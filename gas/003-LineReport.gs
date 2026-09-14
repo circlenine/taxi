@@ -2,11 +2,36 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L010ver  （2026/09/06）  ★★★
+ *  ★★★  L011ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L011ver]
+ *  ▼ 送れなかった原因（Too large flex message）
+ *   ・LINEの Flex Message は 1つ10KB まで。中身を足していって、そこを超えていた
+ *   ・中身を削るのではなく、ふきだしを分けて全部届けるようにした（最大5枚）
+ *     1枚に収まるぶんだけ詰め、あふれたら次の枚へ。見出しに（1/3）と入れる
+ *     スプシへ移動するボタンは、いちばん最後の1枚にだけ付ける
+ *   ・大きさは「文字数」ではなく「バイト数」で見るようにした（lrBytes_）
+ *     日本語は1文字3バイト、絵文字は4バイト。文字数で見ていると必ず足りなくなる
+ *   ・5枚でも入りきらないときは、うしろから丸ごと捨てない
+ *     うしろにあるのは月間戦略アドバイスなので、そこを真っ先に落とすのは本末転倒。
+ *     いちばんかさばっている箱の中身を1行ずつ削り、見出しは全部残す
+ *
+ *  ▼ ほかに起こりうるものへの手当て
+ *   ・LINEが断ってきたときの理由を、日本語で出すようにした（lrPushWhy_）
+ *     401=トークン / 403=権限 / 404=送信先 / 429=送信数の上限 / 500=LINE側の不具合
+ *     前は「muteHttpExceptions オプションを使用してください」という英語混じりの文で、
+ *     何が悪いのか読み取れなかった
+ *   ・裏メッセージ（altText）が400文字を超えたら切るようにした（超えると送信が失敗する）
+ *   ・まとめスプシの行が足りなくなったら、自動で足すようにした（dbEnsureRows_）
+ *     記録が増えれば書く行も増えるので、決め打ちの行数ではいつか必ず足りなくなる
+ *   ・グラフのもとの数字の置き場所を 800行目 → 5000行目 にし、本文が近づいたら下へ逃がす
+ *     グラフが増えると本文と重なって、表を上書きするおそれがあった
+ *   ・記録が1件も無い期間を指定したときは、はっきりそう言って止まるようにした
+ *   ・時間のかかるところで「まだ動いている」と伝えるようにした（見張りの誤判定よけ）
  *
  *  [L010ver]
  *   ・「dbRich_ is not defined」で送信できなかったのを直した
@@ -132,7 +157,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L010ver";
+const LR_VERSION = "L011ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -227,6 +252,8 @@ function toHalfWidthKana(str) {
 }
 
 function getGridRange(sheet, startRow, startColIndex, rowCount, colSpanArray) {
+  // 行が足りないまま getRange すると、そこで止まる。足りなければ先に足しておく
+  if (typeof dbEnsureRows_ === "function") dbEnsureRows_(sheet, startRow + (rowCount || 1) - 1);
   let ranges = []; let currentC = startColIndex;
   for (let i = 0; i < colSpanArray.length; i++) {
     let rng = sheet.getRange(startRow, currentC, rowCount, colSpanArray[i]);
@@ -842,6 +869,7 @@ function sendCustomReport(targetId, customStartD, customEndD) {
 
   // オプチャ（他社の人の投稿）ぶん。
   // 自社の平均に混ぜると数字が狂うので、最後まで別あつかいのまま持っておく。
+  if (typeof updProgress_ === "function") updProgress_("オプチャの記録を集めています");
   const opucha = collectOpucha_(ss, startD, endD, daysStr);
 
   function getBestTimeStr(timesObj) { if(!timesObj) return ""; let maxC = 0, bestT = ""; for(let t in timesObj) { if(timesObj[t] > maxC) { maxC = timesObj[t]; bestT = t; } } return bestT ? " [" + bestT + "]" : ""; }
@@ -858,12 +886,23 @@ function sendCustomReport(targetId, customStartD, customEndD) {
     });
   });
 
+  // 記録が1件も無いのに、まとめスプシを作りに行く意味はない。
+  // 空のグラフや空の表を作ろうとして途中で止まるより、はっきり知らせるほうがよい
+  if (totalRidesCount === 0 && (!opucha || opucha.count === 0)) {
+    const none = `${startD.getMonth()+1}/${startD.getDate()}～${endD.getMonth()+1}/${endD.getDate()}`;
+    throw new Error("この期間（" + none + "）の記録が1件もありませんでした。\n" +
+      "・期間の指定が合っているか\n" +
+      "・記録タブに、その日付の行が入っているか\n" +
+      "を確かめてください。");
+  }
+
   const advice = buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, targetHours, endD);
 
+  if (typeof updProgress_ === "function") updProgress_("まとめスプシを作っています");
   let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides);
 
   const periodStr = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
-  const flexMessage = buildReportFlex_({
+  const bubbles = buildReportFlex_({
     periodStr: periodStr, totalRidesCount: totalRidesCount, tabRidesCount: tabRidesCount,
     DAY_TYPES: DAY_TYPES, areaStats: areaStats, finalTimeline: finalTimeline,
     targetHours: targetHours, dashboardUrl: dashboardUrl, getBestTimeStr: getBestTimeStr,
@@ -877,19 +916,65 @@ function sendCustomReport(targetId, customStartD, customEndD) {
     const tpl = String(cfgAltText_() || "");
     if (tpl) altText = tpl.indexOf("{期間}") !== -1 ? tpl.split("{期間}").join(span) : tpl + span;
   }
-  let messages = [ { type: "flex", altText: altText, contents: flexMessage } ];
-  const token = getLineToken_();
+  // 裏メッセージは400文字まで。超えると送信そのものが失敗する
+  if (altText.length > 400) altText = altText.slice(0, 397) + "…";
+
+  const messages = bubbles.map(function (b, i) {
+    return { type: "flex",
+             altText: bubbles.length > 1 ? altText + "（" + (i + 1) + "/" + bubbles.length + "）" : altText,
+             contents: b };
+  });
+
   // 送信先が無いときに broadcast（公式アカウントの友だち全員に配信）へ落ちないようにする。
   // グループへ送るにはグループIDが要る。未設定なら止める。
   if (!targetId) {
     throw new Error("送信先が未設定です。メニュー「👥 グループIDを設定」から登録してください。" +
                     "（友だち全員への配信を防ぐため中止しました）");
   }
-  UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
+  if (typeof updProgress_ === "function") updProgress_("LINEに送っています");
+  lrPush_(targetId, messages);
+}
+
+/**
+ * LINEに送る。
+ *
+ * 失敗したときに、何が悪かったのかを日本語で返す。
+ * muteHttpExceptions を付けないと、Apps Script が
+ * 「応答の全文を見るには muteHttpExceptions オプションを使用してください」という
+ * 英語混じりの文で止まってしまい、原因が読み取れない。
+ */
+function lrPush_(targetId, messages) {
+  const token = getLineToken_();
+  const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
     method: "post",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-    payload: JSON.stringify({ to: targetId, messages: messages })
+    payload: JSON.stringify({ to: targetId, messages: messages }),
+    muteHttpExceptions: true
   });
+  const code = res.getResponseCode();
+  if (code >= 200 && code < 300) return;
+
+  const body = String(res.getContentText() || "");
+  throw new Error(lrPushWhy_(code, body, messages));
+}
+
+/** LINEが返した断り文句を、日本語に直す */
+function lrPushWhy_(code, body, messages) {
+  let why = body;
+  try { const j = JSON.parse(body); if (j && j.message) why = j.message; } catch (e) {}
+
+  if (/Too large flex message/i.test(body)) {
+    const sizes = (messages || []).map(function (m) { return lrBytes_(JSON.stringify(m.contents)); });
+    return "レポートが大きすぎて、LINEが受け取ってくれませんでした。\n" +
+      "（ふきだし " + sizes.length + "個／" + sizes.join("・") + "バイト。上限は1つ10,000バイト）\n" +
+      "記録が増えるとここに当たります。ご連絡ください、分け方を調整します。";
+  }
+  if (code === 401) return "LINEのトークンが違うか、期限が切れています。\nメニュー「🔑 LINEトークンを設定」から入れ直してください。";
+  if (code === 403) return "LINEに送る権限がありません。\nトークンが別のアカウントのものになっていないか確かめてください。";
+  if (code === 404) return "送信先が見つかりません。\nグループIDが古くないか（退出していないか）確かめてください。";
+  if (code === 429) return "LINEの送信数の上限に達しました。\n月が変わるまで待つか、送る回数を減らしてください。";
+  if (code >= 500) return "LINE側で一時的な不具合が起きています（" + code + "）。\n少し待ってから、もう一度送ってください。";
+  return "LINEに送れませんでした（" + code + "）。\n" + String(why).slice(0, 200);
 }
 
 
@@ -1058,7 +1143,120 @@ function buildReportFlex_(o) {
       ]});
   }
 
-  return { "type": "bubble", "size": "giga", "header": { "type": "box", "layout": "vertical", "backgroundColor": "#1155ca", "paddingAll": "15px", "contents": [ { "type": "text", "text": `📈 【${periodStr}】分析・戦略レポート`, "weight": "bold", "color": "#ffffff", "size": "md", "wrap": true } ] }, "body": { "type": "box", "layout": "vertical", "paddingAll": "12px", "spacing": "none", "contents": flexContents }, "footer": { "type": "box", "layout": "vertical", "paddingAll": "15px", "contents": [ { "type": "button", "style": "primary", "color": "#d93025", "action": { "type": "uri", "label": "🚨ボタンを押せッ!!!!(スプシへ移動)🚨", "uri": dashboardUrl } } ] } };
+  return lrSplitBubbles_(flexContents, periodStr, dashboardUrl);
+}
+
+/* ============ ふきだしの大きさを、LINEの上限に合わせる ============ */
+
+/**
+ * Flex Message 1つあたりの上限。LINEは 10KB まで。
+ * ぴったりを狙うと危ないので、少し余裕を持たせておく。
+ */
+const LR_FLEX_MAX = 9000;
+/** 1回の送信でならべられるふきだしの数（LINEの上限は5） */
+const LR_FLEX_BUBBLES = 5;
+
+/**
+ * 文字がUTF-8で何バイトになるかを数える。
+ *
+ * .length（文字数）ではだめ。日本語は1文字3バイト、絵文字は4バイトなので、
+ * 文字数で見ていると「まだ余裕がある」と思っているうちに上限を超える。
+ */
+function lrBytes_(str) {
+  const t = String(str);
+  let n = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; }   // 絵文字（サロゲートペア）
+    else n += 3;
+  }
+  return n;
+}
+
+/** ふきだし1つを組み立てる */
+function lrBubble_(contents, title, dashboardUrl) {
+  const b = {
+    "type": "bubble", "size": "giga",
+    "header": { "type": "box", "layout": "vertical", "backgroundColor": "#1155ca", "paddingAll": "15px",
+      "contents": [ { "type": "text", "text": title, "weight": "bold", "color": "#ffffff", "size": "md", "wrap": true } ] },
+    "body": { "type": "box", "layout": "vertical", "paddingAll": "12px", "spacing": "none", "contents": contents }
+  };
+  if (dashboardUrl) {
+    b.footer = { "type": "box", "layout": "vertical", "paddingAll": "15px", "contents": [
+      { "type": "button", "style": "primary", "color": "#d93025",
+        "action": { "type": "uri", "label": "🚨ボタンを押せッ!!!!(スプシへ移動)🚨", "uri": dashboardUrl } } ] };
+  }
+  return b;
+}
+
+/**
+ * 中身を、上限に収まるふきだしに分ける。
+ *
+ * ★これが無いと何が起きるか
+ *   中身を足していくと、いつかLINEの上限（10KB）を超えて
+ *   「Too large flex message」で送信そのものが失敗する。
+ *   実際にそれで1回も届かなかった。
+ *   中身を削って上限に合わせるのではなく、ふきだしを分けて全部届ける。
+ *
+ * それでも入りきらないとき（5つを超えるとき）は、最後に
+ * 「続きはスプシで見てください」と入れて、送信は必ず成功させる。
+ */
+function lrSplitBubbles_(contents, periodStr, dashboardUrl) {
+  const titleOf = function (i, total) {
+    return total <= 1 ? `📈 【${periodStr}】分析・戦略レポート`
+                      : `📈 【${periodStr}】分析・戦略レポート（${i + 1}/${total}）`;
+  };
+  // 見出しの長さぶんも数に入れておく（あとで番号が付いても超えないように）
+  const overhead = lrBytes_(JSON.stringify(lrBubble_([], titleOf(0, 9), dashboardUrl)));
+
+  const pack = function (list) {
+    const out = [];
+    let cur = [], size = overhead;
+    list.forEach(function (el) {
+      const w = lrBytes_(JSON.stringify(el)) + 1;
+      // 1つだけで上限を超えるものは、どうやっても入らないので、そのまま1つのふきだしにする
+      if (cur.length && size + w > LR_FLEX_MAX) { out.push(cur); cur = []; size = overhead; }
+      cur.push(el); size += w;
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  };
+
+  let work = contents.slice();
+  let groups = pack(work);
+  let cut = 0;
+
+  // 5つに収まらないときは、うしろから丸ごと捨てない。
+  // うしろにあるのは「月間戦略アドバイス」なので、それを真っ先に落とすのは本末転倒。
+  // いちばんかさばっている箱の中身を1行ずつ削って、全部の見出しが残るようにする。
+  let guard = 0;
+  while (groups.length > LR_FLEX_BUBBLES && guard++ < 400) {
+    let target = null, biggest = 0;
+    work.forEach(function (el) {
+      if (!el || !Array.isArray(el.contents) || el.contents.length <= 2) return;
+      const w = lrBytes_(JSON.stringify(el));
+      if (w > biggest) { biggest = w; target = el; }
+    });
+    if (!target) break;                 // もう削れるものが無い
+    target.contents.pop(); cut++;
+    groups = pack(work);
+  }
+  if (!groups.length) groups.push([{ "type": "text", "text": "この期間の記録がありません", "size": "sm", "wrap": true }]);
+
+  // それでも入りきらないときだけ、最後に打ち切る
+  if (groups.length > LR_FLEX_BUBBLES) { groups.length = LR_FLEX_BUBBLES; cut++; }
+  if (cut > 0) {
+    groups[groups.length - 1].push({ "type": "separator", "margin": "md" },
+      { "type": "text", "text": "※ 記録が多いので、細かいところは " + cut + "件ぶん省きました。\n　 全部は下のボタンからスプシで見られます。",
+        "size": "xs", "color": "#b71c1c", "wrap": true, "margin": "md", "weight": "bold" });
+  }
+
+  // ボタン（スプシへ移動）は最後のふきだしにだけ付ける
+  return groups.map(function (g, i) {
+    return lrBubble_(g, titleOf(i, groups.length), i === groups.length - 1 ? dashboardUrl : "");
+  });
 }
 
 /* ============ 📣 オプチャ（他社の人の投稿）ぶんの集計 ============ */
@@ -1530,6 +1728,7 @@ function dbFit_(sheet, row, cells, minH) {
  * 書いた文字をそのまま返す（行の高さを決めるのに使う）。
  */
 function dbRich_(sheet, row, col, span, parts, size, bg) {
+  dbEnsureRows_(sheet, row);
   const text = parts.map(function (x) { return x.t; }).join("");
   const rg = sheet.getRange(row, col, 1, span).merge()
     .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
@@ -1664,9 +1863,23 @@ function dbDotLines_(dbSS, sheetName) {
   }
 }
 
+/**
+ * その行まで書けるように、足りなければ行を足す。
+ *
+ * 行が足りないまま getRange すると、そこで止まってレポートが出ない。
+ * 記録が増えれば書く行も増えるので、決め打ちの行数では、いつか必ず足りなくなる。
+ */
+function dbEnsureRows_(sheet, upto) {
+  try {
+    const max = sheet.getMaxRows();
+    if (upto > max) sheet.insertRowsAfter(max, upto - max + 200);
+  } catch (e) { logErr_("dbEnsureRows", e); }
+}
+
 /** 区切りの空行。どこまでが1つのまとまりか分かるようにする */
 function dbGap_(sheet, row) {
   try {
+    dbEnsureRows_(sheet, row);
     sheet.getRange(row, 1, 1, DB_COLS).merge().setBackground("#ffffff");
     sheet.setRowHeight(row, 12);
   } catch (e) {}
@@ -1695,6 +1908,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   /** 横いっぱいの見出し行 */
   function dbTitle_(row, text, bg, size) {
+    dbEnsureRows_(sheet, row);
     sheet.getRange(row, 1, 1, DB_COLS).merge().setValue(text)
       .setFontSize(size || 12).setFontWeight("bold").setBackground(bg)
       .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
@@ -1898,7 +2112,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   let datesArr = Array.from(new Set(recordsForGraph.map(r => r.dateStr))).sort();
   let dateColorMap = {}; datesArr.forEach((d, i) => { dateColorMap[d] = GRAPH_COLORS[i % GRAPH_COLORS.length]; });
 
-  let daysOrder = [1, 2, 3, 4, 5, 6, 0]; let heatmapSpotNames = []; let hiddenDataRow = 800;
+  let daysOrder = [1, 2, 3, 4, 5, 6, 0]; let heatmapSpotNames = [];
+  // グラフのもとになる数字の置き場所。本文がここまで伸びてくると上書きしてしまうので、
+  // うんと下から始める。足りなくなったら行は自動で足す（dbEnsureRows_）
+  let hiddenDataRow = 5000;
   for (let key in spotStats) {
     if(spotStats[key].heatmapValidCount >= 3 && spotHeatmapSales[key]) {
       let parts = key.split("|"); let tName = parts[0]; let spotName = parts[1];
@@ -1911,6 +2128,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       if (useDays.length === 0 || useHours.length === 0) continue;
       heatmapSpotNames.push(spotName);
 
+      if (typeof updBeat_ === "function") updBeat_("ヒートマップ " + spotName);
       dbTitle_(curRow, `🔥 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績)`, TAB_COLORS[tName] || "#e8eef5", 12); curRow++;
 
       // 時間帯のらん＋曜日のぶんで、横26列をきっちり分ける
@@ -1979,6 +2197,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         let times = Array.from(new Set(recs.map(r => r.timeDec))).sort((a,b) => a - b);
         for(let t of times) { let row = [t]; for(let d of datesArr) { let rec = recs.find(r => r.timeDec === t && r.dateStr === d); row.push(rec ? rec.price : null); } table.push(row); }
         if (table.length > 1) {
+          dbEnsureRows_(sheet, hiddenDataRow + table.length + 4);
           let dataRng = sheet.getRange(hiddenDataRow, 1, table.length, header.length); sheet.getRange(hiddenDataRow, 1, 1, header.length).setNumberFormat('@'); dataRng.setValues(table);
           // 線は 1px、●は小さめ。
           // ※ lineDashStyle（点線）は、ここに書いてもスプレッドシートのグラフでは効かない。
@@ -1998,10 +2217,12 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             .setOption('legend', {position: 'bottom', textStyle: {fontSize: 11}})
             .setOption('chartArea', {left: '16%', top: '12%', width: '80%', height: '62%'}).setOption('interpolateNulls', true)
             .setOption('width', CHART_W).setOption('height', CHART_H).build();
-          sheet.insertChart(chart); hiddenDataRow += 40; chartPlaced = true;
+          sheet.insertChart(chart); hiddenDataRow += table.length + 6; chartPlaced = true;
         }
       }
       curRow += chartPlaced ? CHART_ROWS : 0;
+      // 本文が置き場所に近づいたら、置き場所を下へ逃がす（上書きしないように）
+      if (curRow + 200 > hiddenDataRow) hiddenDataRow = curRow + 400;
       dbGap_(sheet, curRow); curRow++;
     }
   }

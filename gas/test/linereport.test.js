@@ -22,6 +22,7 @@ ctx.SpreadsheetApp = { getUi: () => ({}) };
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8'), ctx);
 
 let fail = 0;
+const has = (got, want, msg) => eq(String(got).indexOf(want) !== -1, true, msg);
 const eq = (a, b, msg) => {
   const ok = JSON.stringify(a) === JSON.stringify(b);
   if (!ok) { fail++; console.log('FAIL', msg, '\n  got ', JSON.stringify(a), '\n  want', JSON.stringify(b)); }
@@ -263,7 +264,7 @@ finalTimeline["平日"][23] = {
   worst: {name:"新地7", count:2,  avg:2050, max:2050,  at:"23:20", times:[]} };
 finalTimeline["日祝"][3] = { best: {name:"天満", count:6, avg:4827, max:8860, at:"03:48", times:[]}, worst: null };
 
-const flex = ctx.buildReportFlex_({
+const flexList = ctx.buildReportFlex_({
   periodStr: "7/16(木)～8/15(土)", totalRidesCount: 175,
   tabRidesCount: {"北7":41,"北4":41,"北他":50,"ﾐﾅﾐ":0,"関空":0,"ほか":18},
   DAY_TYPES: DT, areaStats: areaStats, finalTimeline: finalTimeline,
@@ -275,6 +276,7 @@ const flex = ctx.buildReportFlex_({
     return bt ? " [" + bt + "]" : "";
   }
 });
+const flex = flexList[0];
 
 /* --- 形がこわれていないか（LINEに弾かれると、レポートそのものが届かない） --- */
 var BOX_OK = ["type","layout","contents","backgroundColor","cornerRadius","height","width","margin",
@@ -308,10 +310,14 @@ eq(problems, [], 'Flexの形に問題がない');
 
 eq(flex.type, 'bubble', 'bubble で作る');
 eq(flex.size, 'giga', '横いっぱい（giga）');
-eq(flex.footer.contents[0].action.uri, 'https://example.com/dash', 'ボタンはダッシュボードへ飛ぶ');
+// スプシへ移動するボタンは、いちばん最後のふきだしに付ける
+eq(flexList[flexList.length - 1].footer.contents[0].action.uri, 'https://example.com/dash',
+   'ボタンはダッシュボードへ飛ぶ');
 
-const J = JSON.stringify(flex);
-eq(J.length < 45000, true, 'LINEの上限(50KB)に余裕がある（実際 ' + J.length + 'バイト）');
+const J = JSON.stringify(flexList);
+eq(flexList.every(b => ctx.lrBytes_(JSON.stringify(b)) <= 10000), true,
+   'どのふきだしもLINEの上限(10,000バイト)に収まる（実際 ' +
+   flexList.map(b => ctx.lrBytes_(JSON.stringify(b))).join('・') + 'バイト）');
 eq(J.indexOf('undefined') === -1, true, 'undefined が混ざっていない');
 eq(J.indexOf('NaN') === -1, true, 'NaN が混ざっていない');
 
@@ -325,7 +331,7 @@ eq(J.indexOf('ﾛﾝｸﾞ17%') !== -1 || J.indexOf('17%') !== -1, true, '17%が
     if (!n || typeof n !== 'object') return;
     if (n.type === 'box' && n.layout === 'horizontal' && n.height === '22px') bars.push(n);
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
-  })(flex);
+  })(flexList);
   eq(bars.length >= 3, true, '帯が曜日区分ごとにある（' + bars.length + '本）');
 
   const b0 = bars[0];   // 平日・北：ﾛﾝｸﾞ17 ﾐﾄﾞﾙ11 ｼｮｰﾄ72
@@ -355,7 +361,7 @@ eq(J.indexOf('【時間詳細】') !== -1, true, '見出しが【時間詳細】
       texts.push(n.contents.map(s => s.text).join(''));
     }
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
-  })(flex);
+  })(flexList);
 
   eq(texts[0], '[20:40] 🔥ﾄﾞﾝ2 （2件／平均￥2,950／最高￥3,600）',
      '頭に「行くならこの時刻」、うしろに件数・平均・最高');
@@ -443,7 +449,7 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
     if (!n || typeof n !== 'object') return;
     if (n.type === 'text' && typeof n.text === 'string' && /^(ﾛﾝｸﾞ|ﾐﾄﾞﾙ|ｼｮｰﾄ)\d+件 /.test(n.text)) bands.push(n.text);
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
-  })(flex);
+  })(flexList);
   eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
   eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
   eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
@@ -467,13 +473,14 @@ console.log('\n■ アドバイスとオプチャを入れても形がこわれ�
              "天満":  {count:4, sales:40000, max:20000, at:"土曜 01:10"},
              "ドン2": {count:3, sales:26000, max:15000, at:"木曜 00:20"} }, hours: {} };
 
-  const f2 = ctx.buildReportFlex_({
+  const f2list = ctx.buildReportFlex_({
     periodStr: "7/16(木)～8/15(土)", totalRidesCount: 175,
     tabRidesCount: {"北7":41,"北4":41,"北他":50,"ﾐﾅﾐ":0,"関空":0,"ほか":18},
     DAY_TYPES: DT, areaStats: areaStats, finalTimeline: finalTimeline,
     targetHours: HRS, dashboardUrl: "https://example.com/dash",
     advice: adv, opucha: opucha
   });
+  const f2 = { type: "carousel", contents: f2list };   // 全部まとめて形を見る
 
   problems = [];
   (function walk(n, path) {
@@ -494,7 +501,9 @@ console.log('\n■ アドバイスとオプチャを入れても形がこわれ�
   eq(problems, [], 'Flexの形に問題がない');
 
   const J2 = JSON.stringify(f2);
-  eq(J2.length < 45000, true, 'まだ上限(50KB)に余裕がある（実際 ' + J2.length + 'バイト）');
+  eq(f2list.every(b => ctx.lrBytes_(JSON.stringify(b)) <= 10000), true,
+     'どのふきだしも上限(10,000バイト)に収まる（実際 ' +
+     f2list.map(b => ctx.lrBytes_(JSON.stringify(b))).join('・') + 'バイト）');
   eq(J2.indexOf('undefined') === -1 && J2.indexOf('NaN') === -1, true, 'undefined も NaN も無い');
 
   eq(J2.indexOf('💡 月間戦略アドバイス') !== -1, true, '💡月間戦略アドバイスが入る');
@@ -573,6 +582,89 @@ console.log('\n■ 白い背景で見づらい色を使わない');
   const bright = G.filter(c => lum(c) > 0.55);
   eq(bright, [], '白地で沈む明るい色が無い' + (bright.length ? '（' + bright.join(',') + '）' : ''));
   eq(new Set(G).size, G.length, '同じ色が2つ入っていない');
+}
+
+/* ============ 大きくなっても必ず送れるか ============ */
+console.log('\n■ 中身が増えても、LINEの上限で落ちない');
+{
+  // 実際に「Too large flex message」で落ちたときと同じくらいの量を作る
+  const bigArea = {};
+  ADV_DT.forEach(d => {
+    bigArea[d] = {};
+    ["北", "ﾐﾅﾐ", "ほか"].forEach(a => {
+      bigArea[d][a] = { l:8, m:5, s:33, t:46, sales:217534, lSum:106160, mSum:36980, sSum:74394,
+        waitSum:1242, waitCount:46, lWait:312, lWaitC:8, mWait:125, mWaitC:5, sWait:805, sWaitC:33,
+        spots: { "ガチマネプラ乗り場": { l:2, m:1, s:20, lSum:25924, mSum:7330, sSum:43000,
+          lTimes:{"(月) 23:51":1}, mTimes:{"(火) 00:10":1}, sTimes:{"(水) 02:30":2} } } };
+    });
+  });
+  // 全曜日区分 × 全時間帯に、アツい／避ける の両方を入れる（いちばん多いとき）
+  const bigFt = {};
+  ADV_DT.forEach(d => {
+    bigFt[d] = {};
+    ADV_HRS.forEach(h => {
+      bigFt[d][h] = {
+        best:  { name:"万博記念公園迎賓館前ロータリー", count:15, avg:6758, max:18960, at:"23:51" },
+        worst: { name:"スナックMiya(住之江区東加賀屋)", count:4, avg:1200, max:1500, at:"02:30" } };
+    });
+  });
+  const bigOpu = { count: 120, sales: 960000, waitSum: 1200, waitCount: 80, kanku: 30, spots: {}, hours: {} };
+  for (let i = 0; i < 12; i++) {
+    bigOpu.spots["オプチャ乗り場" + i + "（長めの名前）"] =
+      { count: 12 - i, sales: 90000, max: 20000, at: "金曜 23:5" + (i % 10) };
+  }
+  const bigAdv = ctx.buildMonthlyAdvice_(
+    { "北4|万博記念公園迎賓館前ロータリー": { count: 16, sales: 108000, waitSum: 320, waitCount: 16 } },
+    { "北4|万博記念公園迎賓館前ロータリー": { "4|23": { count: 6, sales: 65000,
+        times: ["23:44","23:51","23:53","23:55","23:58","23:59"] } } },
+    bigFt, ADV_DT, ADV_HRS, new D(2026, 7, 15));
+
+  const big = ctx.buildReportFlex_({
+    periodStr: "7/16(木)～8/15(土)", totalRidesCount: 175,
+    tabRidesCount: {"北7":41,"北4":41,"北他":50,"ﾐﾅﾐ":12,"関空":3,"ほか":18},
+    DAY_TYPES: ADV_DT, areaStats: bigArea, finalTimeline: bigFt,
+    targetHours: ADV_HRS, dashboardUrl: "https://example.com/dash",
+    advice: bigAdv, opucha: bigOpu,
+    getBestTimeStr: function (o) { if (!o) return ""; let mc=0,bt=""; for (const t in o) if (o[t]>mc){mc=o[t];bt=t;} return bt?" ["+bt+"]":""; }
+  });
+
+  const sizes = big.map(b => ctx.lrBytes_(JSON.stringify(b)));
+  eq(big.length > 1, true, '大きいときは、ふきだしを分ける（' + big.length + '個）');
+  eq(big.length <= 5, true, 'LINEの上限5個を超えない');
+  eq(sizes.every(n => n <= 10000), true,
+     'どれも1つ10,000バイト以内（' + sizes.join('・') + '）');
+  eq(big[0].header.contents[0].text.indexOf('（1/') !== -1, true, '「1/3」のように何枚目か分かる');
+  eq(big[big.length - 1].footer !== undefined, true, 'スプシへのボタンは最後の1枚だけに付く');
+  eq(big.slice(0, -1).every(b => b.footer === undefined), true, '  途中の枚には付けない');
+
+  // 中身が落ちていないこと
+  const all = JSON.stringify(big);
+  eq(all.indexOf('月間戦略アドバイス') !== -1, true, '分けてもアドバイスは残る');
+  eq(all.indexOf('オプチャ情報') !== -1, true, '分けてもオプチャは残る');
+  eq(all.indexOf('時間詳細') !== -1, true, '分けても時間詳細は残る');
+}
+
+console.log('\n■ バイト数の数え方（文字数で数えると足りなくなる）');
+eq(ctx.lrBytes_('abc'), 3, '半角は1バイト');
+eq(ctx.lrBytes_('あいう'), 9, '日本語は1文字3バイト');
+eq(ctx.lrBytes_('🔥'), 4, '絵文字は4バイト');
+eq(ctx.lrBytes_('ﾛﾝｸﾞ'), 12, '半角カナも1文字3バイト（4文字で12）');
+eq(ctx.lrBytes_(''), 0, '空なら0');
+eq(ctx.lrBytes_('🔥アツい') > '🔥アツい'.length, true, '文字数より必ず大きい（だから文字数で見てはいけない）');
+
+console.log('\n■ 送れなかったときに、理由が日本語で分かる');
+{
+  const W = (code, body) => ctx.lrPushWhy_(code, body, [{ contents: { a: 1 } }]);
+  has(W(400, '{"message":"A message (messages[0]) in the request body is invalid","details":[{"message":"Too large flex message. The maximum size of JSON data"}]}'),
+      '大きすぎて', '「大きすぎる」と日本語で言う');
+  has(W(401, '{"message":"Authentication failed"}'), 'トークン', '401はトークンの話');
+  has(W(401, '{}'), '入れ直して', '  直し方も出す');
+  has(W(403, '{}'), '権限', '403は権限の話');
+  has(W(404, '{}'), '送信先が見つかりません', '404は送信先の話');
+  has(W(429, '{}'), '上限', '429は送信数の上限');
+  has(W(500, '{}'), 'LINE側', '500はLINE側の不具合だと分かる');
+  has(W(418, '{"message":"なぞのエラー"}'), 'なぞのエラー', '知らないものは、返ってきた文をそのまま出す');
+  eq(typeof W(400, 'これはJSONではない'), 'string', 'JSONでない返事でも落ちない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
