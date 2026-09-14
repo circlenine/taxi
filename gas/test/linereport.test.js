@@ -271,12 +271,12 @@ const flex = ctx.buildReportFlex_({
 });
 
 /* --- 形がこわれていないか（LINEに弾かれると、レポートそのものが届かない） --- */
-const BOX_OK = ["type","layout","contents","backgroundColor","cornerRadius","height","width","margin",
+var BOX_OK = ["type","layout","contents","backgroundColor","cornerRadius","height","width","margin",
   "paddingAll","paddingTop","paddingBottom","paddingStart","paddingEnd","spacing","flex",
   "justifyContent","alignItems","borderWidth","borderColor","action","position","offsetTop"];
-const TXT_OK = ["type","text","contents","size","color","weight","wrap","margin","flex","align",
+var TXT_OK = ["type","text","contents","size","color","weight","wrap","margin","flex","align",
   "gravity","adjustMode","style","decoration","maxLines","lineSpacing","position","offsetTop","action"];
-let problems = [];
+var problems = [];
 (function walk(n, path) {
   if (Array.isArray(n)) return n.forEach((x, i) => walk(x, path + '[' + i + ']'));
   if (!n || typeof n !== 'object') return;
@@ -359,6 +359,165 @@ eq(J.indexOf('【時間詳細】') !== -1, true, '見出しが【時間詳細】
   eq(texts.length, 4, '記録がある時間帯だけ（' + texts.length + '行）');
   eq(J.indexOf('(月) 23:51') === -1, true, '時刻を全部ならべない（前は30個ならんで読めなかった）');
   eq(J.indexOf('データ不足') !== -1, true, '記録が無い曜日区分は「データ不足」と出す');
+}
+
+/* ============ 💡 月間戦略アドバイス ============ */
+console.log('\n■ 月間戦略アドバイス');
+const ADV_DT = ["平日","金曜","土曜","日祝"], ADV_HRS = [20,21,22,23,0,1,2,3,4,5];
+function mkFt(set) {
+  const ft = {}; ADV_DT.forEach(d => { ft[d] = {}; ADV_HRS.forEach(h => ft[d][h] = {best:null, worst:null}); });
+  (set || []).forEach(x => { ft[x[0]][x[1]] = { best: x[2], worst: null }; });
+  return ft;
+}
+{
+  const spotStats = {
+    "北4|新地4": { count: 16, sales: 84368, waitSum: 320, waitCount: 16 },   // 件数は多いが平均は低い
+    "北他|江坂": { count: 3,  sales: 21699, waitSum: 66,  waitCount: 3 },    // 平均がいちばん高い
+    "ﾐﾅﾐ|大丸":  { count: 2,  sales: 40000, waitSum: 4,   waitCount: 2 }     // 2件だけ＝まぐれ
+  };
+  const spotHotData = {
+    "北4|新地4": { "4|23": { count: 4, sales: 43336, times: ["23:44","23:51","23:53","23:55"] },
+                   "6|1":  { count: 2, sales: 20310, times: ["01:22","01:53"] } },
+    "北他|江坂": { "6|3":  { count: 1, sales: 7233,  times: ["03:16"] },
+                   "5|1":  { count: 1, sales: 7233,  times: ["01:33"] } },
+    "ﾐﾅﾐ|大丸":  { "4|0":  { count: 2, sales: 40000, times: ["00:10","00:20"] } }
+  };
+  const ft = mkFt([["平日",23,{name:"新地4",count:16,avg:10834}],
+                   ["金曜",1, {name:"天満", count:2, avg:10425}],
+                   ["土曜",1, {name:"新地4",count:2, avg:10155}],
+                   ["日祝",3, {name:"天満", count:6, avg:4827}]]);
+  const a = ctx.buildMonthlyAdvice_(spotStats, spotHotData, ft, ADV_DT, ADV_HRS, new D(2026, 7, 15));
+
+  eq(a.best.name, '江坂', '振り返りは「平均がいちばん高い」乗り場（件数の多さではない）');
+  eq(a.best.count, 3, '3件以上がある乗り場から選ぶ');
+  eq(a.best.perHour, 19726, '待ち1時間あたりいくらかも出す（7,233÷22分×60）');
+  eq(ctx.adviceReviewText_(a).indexOf('江坂') !== -1, true, '振り返りの文に乗り場名が入る');
+  eq(ctx.adviceReviewText_(a).indexOf('実際の乗車：土曜 03:16') !== -1, true, '実際の乗車時刻も出す');
+
+  eq(a.picks.length, 3, 'オススメは3つ');
+  eq(a.picks[0].name, '大丸', '平均単価が高い順（￥20,000）');
+  eq(a.picks[0].count >= 2, true, '  1件だけの組み合わせは「狙い目」と言わない');
+  eq(a.picks[1].name, '新地4', '2番目');
+  eq(ctx.advicePickLines_(a)[0].indexOf('木曜 00時台 の 大丸') !== -1, true, '曜日・時間帯・乗り場の順で書く');
+  eq(ctx.advicePickLines_(a)[0].indexOf('00:10、00:20') !== -1, true, '実際の時刻も添える');
+
+  eq(a.nextMonth, 9, '8/15までの期間なら、予想するのは9月');
+  eq(a.bigSlots, 3, '平均￥10,000超えの時間帯を数える');
+  eq(ctx.adviceForecastText_(a).indexOf('一発狙い') !== -1, true, '10,000超えが3個以上なら一発狙いをすすめる');
+  eq(ctx.adviceForecastText_(a).indexOf('残暑') !== -1, true, '9月なら9月らしい話をする');
+}
+{
+  // 10,000超えが無いときは、逆のことを言う
+  const a2 = ctx.buildMonthlyAdvice_({}, {}, mkFt([["平日",23,{name:"新地4",count:5,avg:4000}]]),
+                                     ADV_DT, ADV_HRS, new D(2026, 10, 30));
+  eq(a2.bigSlots, 0, '10,000超えなし');
+  eq(ctx.adviceForecastText_(a2).indexOf('回転数で積む') !== -1, true, 'そのときは回転数をすすめる');
+  eq(a2.nextMonth, 12, '11/30までなら12月の予想');
+  eq(ctx.adviceForecastText_(a2).indexOf('最需要期') !== -1, true, '12月は最需要期と言う');
+  eq(ctx.adviceReviewText_(a2).indexOf('3件以上') !== -1, true, '記録が足りなければ、そう言う');
+  eq(ctx.advicePickLines_(a2)[0].indexOf('まだありません') !== -1, true, 'オススメも同じ');
+
+  // 年をまたぐ
+  const a3 = ctx.buildMonthlyAdvice_({}, {}, mkFt([]), ADV_DT, ADV_HRS, new D(2026, 11, 15));
+  eq(a3.nextMonth, 1, '12/15までなら1月の予想（年をまたいでも落ちない）');
+}
+
+console.log('\n■ 割合で幅を分ける（スプシの帯）');
+eq(ctx.dbSplit_(26, [17, 11, 72]).reduce((a,b)=>a+b,0), 26, '足すと必ず全体の幅になる');
+eq(ctx.dbSplit_(26, [0, 3, 97])[0], 0, '0%のぶんは幅を取らない');
+eq(ctx.dbSplit_(26, [0, 3, 97])[1] >= 1, true, '少しでもあれば1列は確保する');
+eq(ctx.dbSplit_(26, [100, 0, 0]), [26, 0, 0], '100%なら全部');
+eq(ctx.dbSplit_(26, [0, 0, 0]), [26, 0, 0], '全部0でも幅が消えない');
+
+console.log('\n■ 帯・ロング／ミドル／ショートは1行');
+{
+  const bands = [];
+  (function find(n) {
+    if (Array.isArray(n)) return n.forEach(find);
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'text' && typeof n.text === 'string' && /^(ﾛﾝｸﾞ|ﾐﾄﾞﾙ|ｼｮｰﾄ) /.test(n.text)) bands.push(n.text);
+    Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
+  })(flex);
+  eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
+  eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
+  eq(bands.every(t => t.length <= 34), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
+  eq(bands[0], 'ﾛﾝｸﾞ 8件 ￥13,270 待39分 🔥新地4', '「🔥アツい：」と毎回書かず、記号だけにする');
+  eq(J.indexOf('🔥＝アツい') !== -1, true, '記号の意味は、上の凡例で1回だけ説明する');
+  eq(J.indexOf('⚠️＝避ける') !== -1, true, '  避けるほうも');
+}
+
+console.log('\n■ アドバイスとオプチャを入れても形がこわれない');
+{
+  const adv = ctx.buildMonthlyAdvice_(
+    { "北他|江坂": { count: 3, sales: 21699, waitSum: 66, waitCount: 3 } },
+    { "北他|江坂": { "6|3": { count: 2, sales: 14466, times: ["03:16","03:20"] } } },
+    mkFt([["平日",23,{name:"新地4",count:16,avg:10834}]]), ADV_DT, ADV_HRS, new D(2026, 7, 15));
+
+  const opucha = { count: 12, sales: 96000, waitSum: 120, waitCount: 8, kanku: 3,
+    spots: { "新地4": {count:5, sales:30000, max:12000, at:"金曜 23:51"},
+             "天満":  {count:4, sales:40000, max:20000, at:"土曜 01:10"},
+             "ドン2": {count:3, sales:26000, max:15000, at:"木曜 00:20"} }, hours: {} };
+
+  const f2 = ctx.buildReportFlex_({
+    periodStr: "7/16(木)～8/15(土)", totalRidesCount: 175,
+    tabRidesCount: {"北7":41,"北4":41,"北他":50,"ﾐﾅﾐ":0,"関空":0,"ほか":18},
+    DAY_TYPES: DT, areaStats: areaStats, finalTimeline: finalTimeline,
+    targetHours: HRS, dashboardUrl: "https://example.com/dash",
+    advice: adv, opucha: opucha
+  });
+
+  problems = [];
+  (function walk(n, path) {
+    if (Array.isArray(n)) return n.forEach((x, i) => walk(x, path + '[' + i + ']'));
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'box') {
+      if (!Array.isArray(n.contents)) problems.push(path + ': box に contents が無い');
+      Object.keys(n).forEach(k => { if (BOX_OK.indexOf(k) === -1) problems.push(path + ': box に使えない項目 ' + k); });
+    }
+    if (n.type === 'text') {
+      const hasText = typeof n.text === 'string' && n.text.length > 0;
+      const hasSpan = Array.isArray(n.contents) && n.contents.length > 0;
+      if (hasText === hasSpan) problems.push(path + ': text は text か contents のどちらか一方');
+      Object.keys(n).forEach(k => { if (TXT_OK.indexOf(k) === -1) problems.push(path + ': text に使えない項目 ' + k); });
+    }
+    Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') walk(n[k], path + '.' + k); });
+  })(f2, 'bubble');
+  eq(problems, [], 'Flexの形に問題がない');
+
+  const J2 = JSON.stringify(f2);
+  eq(J2.length < 45000, true, 'まだ上限(50KB)に余裕がある（実際 ' + J2.length + 'バイト）');
+  eq(J2.indexOf('undefined') === -1 && J2.indexOf('NaN') === -1, true, 'undefined も NaN も無い');
+
+  eq(J2.indexOf('💡 月間戦略アドバイス') !== -1, true, '💡月間戦略アドバイスが入る');
+  eq(J2.indexOf('【この期間の振り返り】') !== -1, true, '  ① 振り返り');
+  eq(J2.indexOf('【オススメの乗車時間と乗り場】') !== -1, true, '  ② オススメの乗車時間と乗り場');
+  eq(J2.indexOf('【9月の戦略予想】') !== -1, true, '  ③ 翌月（9月）の戦略予想');
+  eq(J2.indexOf('江坂') !== -1, true, '  振り返りの中身も入っている');
+
+  eq(J2.indexOf('📣 オプチャ情報') !== -1, true, 'オプチャの箱が入る');
+  eq(J2.indexOf('自社の平均には混ぜていません') !== -1, true, '  自社の数字と混ざらないと明記する');
+  eq(J2.indexOf('12件 ／ 平均￥8,000 ／ 平均待ち15分 ／ うち関空 3件') !== -1, true, '  件数・平均・待ち・関空の数');
+  // 行は span に分かれているので、つなぎ直してから見る
+  const opuRows = [];
+  (function find(n) {
+    if (Array.isArray(n)) return n.forEach(find);
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'text' && Array.isArray(n.contents) && n.contents[0] && n.contents[0].type === 'span') {
+      opuRows.push(n.contents.map(x => x.text).join(''));
+    }
+    Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
+  })(f2);
+  eq(opuRows.indexOf('[金曜 23:51] 新地4 （5件／平均￥6,000／最高￥12,000）') !== -1, true,
+     '  よく出ている乗り場が、件数の多い順に時刻つきで並ぶ');
+  eq(opuRows.filter(t => /^\[[月火水木金土日]曜/.test(t)).length, 3, '  3か所ぶん出ている');
+
+  // オプチャが0件のときは、箱ごと出さない
+  const f3 = ctx.buildReportFlex_({
+    periodStr: "x", totalRidesCount: 1, tabRidesCount: {"北7":0,"北4":0,"北他":0,"ﾐﾅﾐ":0,"関空":0,"ほか":1},
+    DAY_TYPES: DT, areaStats: areaStats, finalTimeline: finalTimeline,
+    targetHours: HRS, dashboardUrl: "https://example.com/d", advice: adv, opucha: { count: 0 }
+  });
+  eq(JSON.stringify(f3).indexOf('オプチャ情報') === -1, true, 'オプチャが0件なら、その箱は出さない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
