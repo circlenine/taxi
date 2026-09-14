@@ -176,12 +176,12 @@ console.log('\n■ AIが使えないときの「傾向と対策」');
      '高単価は最優先と言う');
   eq(f({name:'ドン5', avgSales:600, count:3, waitAvg:10, times:[]}).indexOf('単価が低い') !== -1, true,
      '低単価はそう言う');
-  eq(f({name:'新地7', avgSales:5000, count:4, waitAvg:30, times:[]}).indexOf('回送') !== -1, true,
-     '待ち負けなら回送をすすめる');
+  eq(f({name:'新地7', avgSales:5000, count:4, waitAvg:30, times:[]}).indexOf('長居せず次へ') !== -1, true,
+     '待った時間のわりに安ければ、そう言う');
   eq(f({name:'天満', avgSales:9000, count:1, waitAvg:0, times:[]}).indexOf('件数が少なく') !== -1, true,
      '1件だけなら判断を保留する');
-  eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('時給換算￥30,000') !== -1, true,
-     '待ち時間あたりの効率を出す（6000円÷12分×60）');
+  eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('1時間待ち続けたら￥30,000') !== -1, true,
+     '待ち時間あたりの効率を、初心者にも分かる言い方で出す（6000円÷12分×60）');
   eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('狙い目 01:10') !== -1, true,
      '狙い目の時刻も出す');
   eq(typeof f({name:'x', avgSales:0, count:0, waitAvg:0, times:null}), 'string', 'からっぽでも落ちない');
@@ -343,11 +343,12 @@ eq(J.indexOf('ﾛﾝｸﾞ17%') !== -1 || J.indexOf('17%') !== -1, true, '17%が
   eq(b0.contents[0].contents[0].align, 'center', '帯の真ん中にそろえる（前は左詰めだった）');
   eq(b0.contents[0].justifyContent, 'center', '上下の真ん中にもそろえる');
 
-  // 金曜・北 … ﾐﾄﾞﾙ3%（細すぎて中に書けない）
-  const thin = bars.find(b => b.contents.some(c => c.flex === 3));
-  eq(!!thin, true, '細い帯もちゃんと描く');
-  eq(thin.contents.find(c => c.flex === 3).contents.length, 0, '細すぎる帯には文字を入れない（はみ出すため）');
-  eq(J.indexOf('細い帯：ﾐﾄﾞﾙ3%') !== -1, true, '  そのぶんは帯の下に小さく添える');
+  // 細い帯にも、半角2桁が入る幅を確保して数字を入れる
+  const thin = bars.map(b => b.contents.filter(c => c.contents.length &&
+      /^\d+$/.test(String(c.contents[0].text)))).filter(x => x.length)[0];
+  eq(!!thin, true, '細い帯にも数字だけ入れる');
+  eq(thin[0].flex >= 7, true, '  半角2桁が入るよう、見た目の幅に下限を付ける（flex ' + thin[0].flex + '）');
+  eq(J.indexOf('細い帯：') === -1, true, '  「細い帯：」の添え書きは、もう要らない');
 }
 
 console.log('\n■ アツい×避ける【時間詳細】');
@@ -416,7 +417,8 @@ function mkFt(set) {
 
   eq(a.nextMonth, 9, '8/15までの期間なら、予想するのは9月');
   eq(a.bigSlots, 3, '平均￥10,000超えの時間帯を数える');
-  eq(ctx.adviceForecastText_(a).indexOf('一発狙い') !== -1, true, '10,000超えが3個以上なら一発狙いをすすめる');
+  eq(ctx.adviceForecastText_(a).indexOf('その時間帯で粘って1本の単価を上げる') !== -1, true,
+     '10,000超えが3個以上なら、粘って単価を上げるほうをすすめる');
   eq(ctx.adviceForecastText_(a).indexOf('残暑') !== -1, true, '9月なら9月らしい話をする');
 }
 {
@@ -424,7 +426,7 @@ function mkFt(set) {
   const a2 = ctx.buildMonthlyAdvice_({}, {}, mkFt([["平日",23,{name:"新地4",count:5,avg:4000}]]),
                                      ADV_DT, ADV_HRS, new D(2026, 10, 30));
   eq(a2.bigSlots, 0, '10,000超えなし');
-  eq(ctx.adviceForecastText_(a2).indexOf('回転数で積む') !== -1, true, 'そのときは回転数をすすめる');
+  eq(ctx.adviceForecastText_(a2).indexOf('短い乗車でも数を積む') !== -1, true, 'そのときは数を積むほうをすすめる');
   eq(a2.nextMonth, 12, '11/30までなら12月の予想');
   eq(ctx.adviceForecastText_(a2).indexOf('最需要期') !== -1, true, '12月は最需要期と言う');
   eq(ctx.adviceReviewText_(a2).indexOf('3件以上') !== -1, true, '記録が足りなければ、そう言う');
@@ -460,8 +462,14 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
   eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
   eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
-  eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 🔥新地4(月)23:51',
-     'おすすめの乗り場と、その時刻まで入れて1行に収める');
+  eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 🔥[アツい]新地4(月)23:51',
+     '［アツい］の文字も入れて1行に収める');
+  // 乗り場の名前が長いときだけ、言葉を外して1行を守る
+  {
+    const w = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
+    eq(bands.every(t => w(t) <= 56), true,
+       'どの行も1行に収まる幅（いちばん長くて ' + Math.max(...bands.map(w)) + '）');
+  }
   eq(J.indexOf('🔥：アツい（狙う）') !== -1, true, '記号のうしろに「：」を付けて、何の説明か分かるようにする');
   eq(J.indexOf('⚠️：避ける') !== -1, true, '  避けるほうも');
   eq(J.indexOf('(月)：その曜日') !== -1, true, '  (月) の意味も');
@@ -558,8 +566,14 @@ console.log('\n■ 大事なところだけ太字にする');
      '振り返りは 乗り場・金額・待ち時間だけ太字');
   eq(bold(ctx.advicePickParts_(a)[0]), ['土曜 03時台', '江坂', '￥7,233', '03:16、03:20'],
      'オススメは 時間帯・乗り場・金額・時刻だけ太字');
-  eq(bold(ctx.adviceForecastParts_(a)), ['その時間帯だけ粘るのが無難です'],
-     '予想は「結論」だけ太字（全部太字だと、どこが大事か分からない）');
+  eq(bold(ctx.adviceForecastParts_(a)), ['平日の23時台', '新地4', '1個', 'ふだんは数をこなし、その時間帯だけ粘る'],
+     '予想は 強かった枠・件数・結論 だけ太字（全部太字だと、どこが大事か分からない）');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 9月はこういう月') !== -1, true,
+     '  来月の行事や社会人の動きから始める');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ この期間の記録から') !== -1, true,
+     '  そのあとに、この期間の数字');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ おすすめの動き方') !== -1, true,
+     '  最後に、どう動くか');
 
   // 文字に戻したものが、太字なしの文と同じであること
   eq(ctx.advicePlain_(ctx.adviceReviewParts_(a)), ctx.adviceReviewText_(a),
@@ -804,12 +818,12 @@ console.log('\n■ アツいエリアは、曜日区分ごとに1つだけ');
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
   })(f);
 
-  eq(rows.length, 3, '記録のあるエリアを3つとも出す（' + rows.length + '行）');
+  eq(rows.length, 1, '曜日区分ごとに1つだけ（' + rows.length + '行）');
   eq(rows[0].indexOf('北') !== -1, true,
-     '1位は61件の「北」（2件で平均が高いだけのエリアではない）');
+     '61件の「北」が選ばれる（2件で平均が高いだけのエリアではない）');
   eq(rows[0].indexOf('🥇') === 0, true, '3件以上あるので 🥇 が付く');
-  eq(rows[1].indexOf('(参考)') === 0 && rows[2].indexOf('(参考)') === 0, true,
-     '3件に満たないエリアは (参考) 扱いで下に回す');
+  eq(rows.filter(t => /ﾐﾅﾐ|ほか/.test(t)).length, 0,
+     '2位・3位はLINEには出さない（3つともスプシで見られる）');
 
   // 3件に満たないものしか無いときは、(参考) を付けて出す
   const as2 = {}; ADV_DT.forEach(d => { as2[d] = { "北": mk({}), "ﾐﾅﾐ": mk({}), "ほか": mk({}) }; });
@@ -966,6 +980,34 @@ console.log('\n■ 乗り場が書かれていないぶんは、のぞいたと�
       "ほか": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}} }; }); return a; })(),
     finalTimeline: mkFt([]), targetHours: ADV_HRS, dashboardUrl: "https://e.com", noPlace: 0 });
   eq(JSON.stringify(f0).indexOf('乗り場の記入がない') === -1, true, '0件なら、よけいな断りは出さない');
+}
+
+console.log('\n■ まとめスプシの見た目');
+{
+  // 金額の文字色（記録用スプシと同じ決まり）
+  const C = ctx.dbMoneyColor_;
+  eq(C(20000), '#990000', '15,000以上は濃い赤');
+  eq(C(15000), '#990000', '  ちょうど15,000も赤');
+  eq(C(14999), '#b45f06', '10,000以上は濃い黄土色');
+  eq(C(10000), '#b45f06', '  ちょうど10,000も黄土色');
+  eq(C(9999),  '#0b5394', '5,000以上は濃い青');
+  eq(C(5000),  '#0b5394', '  ちょうど5,000も青');
+  eq(C(4999),  '#000000', '4,999以下は黒');
+  eq(C(1000),  '#000000', '  1,000も黒');
+  eq(C(999),   '#666666', '999以下は濃いグレー');
+  eq(C(0),     '#666666', '  0もグレー');
+  eq(C(null),  '#666666', '  空でも落ちない');
+
+  // 長い乗り場名は、変なところで折り返さずに小さくする
+  const W = 7 * 26 - 6;
+  const cases = ['新地4', 'ガチマネプラ乗り場', 'スナックMiya(住之江区東加賀屋)', '万博記念公園迎賓館前ロータリー'];
+  cases.forEach(n => {
+    const sz = ctx.dbFitSize_(n, 7, 12, 7, 2);
+    eq(ctx.dbLines_(n, W, sz) <= 1, true, '「' + n + '」が1行に収まる（' + sz + 'pt）');
+    eq(sz >= 9, true, '  小さくしすぎない（9pt以上）');
+  });
+  eq(ctx.dbFitSize_('新地4', 7, 12, 7, 2), 12, '短い名前は大きいまま');
+  eq(ctx.dbFitSize_('あ'.repeat(60), 7, 12, 7, 2) >= 7, true, 'とても長くても、いちばん小さいところで止める');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
