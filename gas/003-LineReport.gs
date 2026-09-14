@@ -2,11 +2,36 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L008ver  （2026/09/06）  ★★★
+ *  ★★★  L009ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L009ver]
+ *  ▼ LINEの絵
+ *   ・ﾛﾝｸﾞ／ﾐﾄﾞﾙ／ｼｮｰﾄの行に、おすすめの乗り場と時刻を戻した。そのうえで1行に収めた
+ *     例）ﾛﾝｸﾞ8件 ￥13,270 待39分 🔥新地4(月)23:51
+ *     前の版で「1行に収める」を、乗り場と時刻を消すことだと取り違えていた
+ *   ・読み方の説明を、1項目ずつ改行して並べた（1行に詰め込んでいて読めなかった）
+ *   ・アドバイスの大事なところ（乗り場・金額・時刻・結論）だけ太字にした
+ *
+ *  ▼ まとめスプシ
+ *   ・【時間詳細】を、横＝曜日区分／縦＝時間帯のマス目に戻した
+ *     曜日をまたいで「この時間はどこが強いか」を横に見比べられる
+ *   ・横幅を 1列24px → 22px（26列＝572px）。記録用スプシの合計幅527pxに近づけた
+ *   ・グラフの線を、本当に点線にした
+ *     スプレッドシートのグラフは setOption の lineDashStyle を無視する。
+ *     色も●の大きさも効くのに点線だけ効かず、2回直しても実線のままだった。
+ *     グラフを置いたあとに Sheets API から lineStyle を DOTTED に書き換える
+ *     （appsscript.json に Sheets の高度なサービスを足してある）
+ *   ・●を 12px → 6px に小さくした
+ *   ・意味のない空行を作らないようにした（curRow += 2 などをやめた）
+ *   ・まとまりの区切りの空行を 6px → 12px にした
+ *   ・1行目の固定をやめた
+ *   ・白地で沈む色をやめた
+ *     グラフの線から黄色・黄緑・薄い水色を外し、濃い10色にそろえた
+ *     🥈の薄い黄色 → 薄い緑。見出しの薄い黄色・薄いオレンジ → 薄い青灰
  *
  *  [L008ver]
  *  ▼ 抜けていたもの
@@ -99,7 +124,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L008ver";
+const LR_VERSION = "L009ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -161,8 +186,10 @@ function menuSetGeminiKey() {
 
 /* ============ レポート専用の定数・道具 ============ */
 
-const GRAPH_COLORS = ["#e6194B", "#3cb44b", "#ffe119", "#4363d8", "#f58231",
-                      "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabed4"];
+// グラフの線・点の色。白い背景でも読めるよう、明るすぎる色は使わない。
+// （前は黄色 #ffe119・黄緑 #bfef45・薄い水色 #42d4f4 が入っていて、白地でほぼ見えなかった）
+const GRAPH_COLORS = ["#c0392b", "#1e8449", "#1f618d", "#b9770e", "#6c3483",
+                      "#117864", "#7b241c", "#2874a6", "#4a235a", "#515a5a"];
 
 const TAB_COLORS = { "北7": "#e3f2fd", "北4": "#e8eaf6", "北他": "#e0f7fa",
                      "ﾐﾅﾐ": "#fce4ec", "関空": "#fff3e0", "ほか": "#f5f5f5" };
@@ -875,9 +902,20 @@ function buildReportFlex_(o) {
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
   // 記号の意味は、ここで1回だけ説明する。
   // 各行に「🔥アツい：」「⚠️避ける：」と毎回書くと、そのぶん1行に収まらなくなるため
-  flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f1f3f4", "paddingAll": "6px", "cornerRadius": "md", "margin": "sm", "contents": [
-    { "type": "text", "text": "🔥＝アツい（狙う）　⚠️＝避ける　[00:00]＝いちばん高かった乗車の時刻", "size": "xxs", "color": "#5f6368", "wrap": true },
-    { "type": "text", "text": "金額は 平均￥／最高￥　・　( ) の中は 件数", "size": "xxs", "color": "#5f6368", "wrap": true }
+  const legend_ = function (mark, markColor, mean) {
+    return { "type": "box", "layout": "baseline", "spacing": "sm", "margin": "xs", "contents": [
+      { "type": "text", "text": mark, "size": "xxs", "weight": "bold", "color": markColor, "flex": 0 },
+      { "type": "text", "text": mean, "size": "xxs", "color": "#5f6368", "wrap": true, "flex": 1 }
+    ]};
+  };
+  flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f1f3f4", "paddingAll": "8px", "cornerRadius": "md", "margin": "sm", "contents": [
+    { "type": "text", "text": "── この絵の読み方 ──", "size": "xxs", "weight": "bold", "color": "#5f6368" },
+    legend_("🔥",      "#d93025", "アツい（狙う乗り場）"),
+    legend_("⚠️",      "#b45f06", "避ける乗り場"),
+    legend_("[00:00]", "#2e7d32", "いちばん高かった乗車の時刻"),
+    legend_("(月)",    "#7b1fa2", "その乗車の曜日"),
+    legend_("〇件",    "#5f6368", "その枠の乗車回数"),
+    legend_("待〇分",  "#5f6368", "平均の待ち時間")
   ]});
   flexContents.push({ "type": "separator", "margin": "md" }, { "type": "text", "text": "🔥アツいエリア【パーセント・実績】", "weight": "bold", "size": "sm", "color": "#1155ca", "margin": "md" });
 
@@ -904,8 +942,8 @@ function buildReportFlex_(o) {
           const pct = x[0], color = x[1], name = x[2];
           if (pct <= 0) return;
           let inner = [];
-          if (pct >= 26)      inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
-          else if (pct >= 12) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
+          if (pct >= 20)     inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
+          else if (pct >= 8) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
           else tooThin.push(`${name}${pct}%`);
           percentBars.push({ "type": "box", "layout": "vertical", "justifyContent": "center", "backgroundColor": color, "flex": pct, "contents": inner });
         });
@@ -913,17 +951,22 @@ function buildReportFlex_(o) {
         // 帯が細すぎて中に書けなかったぶんだけ、下に小さく添える
         if (tooThin.length > 0) { boxContents.push({ "type": "text", "text": `細い帯：${tooThin.join(" ・ ")}`, "size": "xxs", "color": "#888888", "margin": "xs", "wrap": true }); }
 
-        // 1行に収める。「🔥アツい：」と毎回書かず、記号だけにする（意味は上の凡例で説明ずみ）。
-        // 時刻の [ ] も落とす。乗り場の名前さえ分かれば、時刻は上の【時間詳細】で見られる
-        const band_ = function (label, cnt, avg, wait, mark, spot) {
-          let t = `${label} ${cnt}件 ￥${avg.toLocaleString()} 待${wait}分`;
-          if (spot !== "-") t += ` ${mark}${toHalfWidthKana(spot)}`;
+        // 乗り場と時刻まで入れたうえで、1行に収める。
+        // 「🔥アツい：」と毎回書くのをやめ、記号だけにした（意味は上の凡例で説明ずみ）。
+        // 時刻の [ ] と余分な空白も落とす。これで乗り場も時刻も残したまま1行に入る
+        const band_ = function (label, cnt, avg, wait, mark, spot, times) {
+          let t = `${label}${cnt}件 ￥${avg.toLocaleString()} 待${wait}分`;
+          if (spot !== "-") {
+            t += ` ${mark}${toHalfWidthKana(spot)}`;
+            const at = String(getBestTimeStr(times) || "").replace(/[\[\] ]/g, "");
+            if (at) t += at;
+          }
           return t;
         };
         boxContents.push(
-          { "type": "text", "text": band_("ﾛﾝｸﾞ", r.l, r.lA, r.lW, "🔥", bestL),  "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" },
-          { "type": "text", "text": band_("ﾐﾄﾞﾙ", r.m, r.mA, r.mW, "🔥", bestM),  "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" },
-          { "type": "text", "text": band_("ｼｮｰﾄ", r.s, r.sA, r.sW, "⚠️", worstS), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" });
+          { "type": "text", "text": band_("ﾛﾝｸﾞ", r.l, r.lA, r.lW, "🔥", bestL,  bestL  !== "-" ? r.spots[bestL].lTimes  : null), "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" },
+          { "type": "text", "text": band_("ﾐﾄﾞﾙ", r.m, r.mA, r.mW, "🔥", bestM,  bestM  !== "-" ? r.spots[bestM].mTimes  : null), "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" },
+          { "type": "text", "text": band_("ｼｮｰﾄ", r.s, r.sA, r.sW, "⚠️", worstS, worstS !== "-" ? r.spots[worstS].sTimes : null), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" });
       });
       flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f4f4f4", "paddingAll": "10px", "margin": "sm", "cornerRadius": "md", "contents": boxContents });
     }
@@ -983,15 +1026,16 @@ function buildReportFlex_(o) {
 
   /* ---------- 💡 月間戦略アドバイス ---------- */
   if (advice) {
-    const pickLines = advicePickLines_(advice).map(function (t) {
-      return { "type": "text", "text": t, "size": "xs", "color": "#b71c1c", "wrap": true, "margin": "sm", "weight": "bold" };
+    // 乗り場・金額・時刻だけを太字にする。全部太字だと、どこが大事か分からなくなる
+    const pickLines = advicePickParts_(advice).map(function (parts) {
+      return { "type": "text", "size": "xs", "wrap": true, "margin": "sm", "contents": adviceSpans_(parts, "#5f6368") };
     });
     flexContents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": "💡 月間戦略アドバイス", "weight": "bold", "size": "sm", "color": "#f57c00", "margin": "md" },
 
       { "type": "box", "layout": "vertical", "backgroundColor": "#fffde7", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
         { "type": "text", "text": "【この期間の振り返り】", "size": "xs", "weight": "bold", "color": "#e65100" },
-        { "type": "text", "text": adviceReviewText_(advice), "size": "xs", "color": "#333333", "wrap": true, "margin": "xs" }
+        { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": adviceSpans_(adviceReviewParts_(advice), "#333333") }
       ]},
 
       { "type": "box", "layout": "vertical", "backgroundColor": "#fff3e0", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
@@ -1002,7 +1046,7 @@ function buildReportFlex_(o) {
 
       { "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
         { "type": "text", "text": `【${advice.nextMonth}月の戦略予想】`, "size": "xs", "weight": "bold", "color": "#2e7d32" },
-        { "type": "text", "text": adviceForecastText_(advice), "size": "xs", "color": "#333333", "wrap": true, "margin": "xs" }
+        { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": adviceSpans_(adviceForecastParts_(advice), "#333333") }
       ]});
   }
 
@@ -1187,30 +1231,87 @@ function buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, t
   };
 }
 
-/** 振り返りを1つの文にする（LINEにもスプシにも同じ文を出す） */
-function adviceReviewText_(a) {
-  if (!a.best) return "3件以上の記録がある乗り場がまだありません。記録がたまると、ここに出ます。";
+
+
+/**
+ * 振り返りを、太字にするところを分けた形で返す。
+ * 乗り場の名前と金額がひと目で分かるように、そこだけ太字＋色にする。
+ * LINEの絵（span）でも、スプシ（リッチテキスト）でも同じ区切りを使う。
+ * 戻り値は [{t:文字, b:太字か, c:色}]
+ */
+function adviceReviewParts_(a) {
+  if (!a.best) return [{ t: "3件以上の記録がある乗り場が、まだありません。記録がたまると、ここに出ます。", b: false }];
   const b = a.best;
-  let t = `いちばん平均が高く、安定していたのは「${b.name}」\n`;
-  t += `${b.count}件 ／ 平均売上￥${b.avg.toLocaleString()} ／ 平均待ち${b.wait}分`;
-  if (b.perHour > 0) t += `（待ち1時間あたり￥${b.perHour.toLocaleString()}）`;
-  if (b.times.length) t += `\n実際の乗車：${b.times.join("、")}`;
-  return t;
+  const out = [
+    { t: "いちばん平均が高く、安定していたのは\n" },
+    { t: "「" + b.name + "」", b: true, c: "#b71c1c" },
+    { t: "\n" + b.count + "件 ／ 平均売上 " },
+    { t: "￥" + b.avg.toLocaleString(), b: true, c: "#b71c1c" },
+    { t: " ／ 平均待ち " },
+    { t: b.wait + "分", b: true, c: "#0b5394" }
+  ];
+  if (b.perHour > 0) out.push({ t: "\n待ち1時間あたり " }, { t: "￥" + b.perHour.toLocaleString(), b: true, c: "#0b5394" });
+  if (b.times.length) out.push({ t: "\n実際の乗車：" }, { t: b.times.join("、"), b: true, c: "#2e7d32" });
+  return out;
 }
 
-/** オススメの組み合わせを、行の配列にする */
-function advicePickLines_(a) {
-  if (!a.picks.length) return ["同じ曜日・時間帯で2件以上そろった組み合わせが、まだありません。"];
+/** オススメの組み合わせを、太字つきの行の配列で返す */
+function advicePickParts_(a) {
+  if (!a.picks.length) return [[{ t: "同じ曜日・時間帯で2件以上そろった組み合わせが、まだありません。", b: false }]];
   return a.picks.map(function (c, i) {
-    return `${i + 1}. ${c.day}曜 ${("0"+c.hour).slice(-2)}時台 の ${c.name}\n` +
-           `　 平均￥${c.avg.toLocaleString()}（${c.count}件）${c.times.length ? "　" + c.times.join("、") : ""}`;
+    const line = [
+      { t: ["🥇", "🥈", "🥉"][i] + " " },
+      { t: c.day + "曜 " + ("0" + c.hour).slice(-2) + "時台", b: true, c: "#0b5394" },
+      { t: " の " },
+      { t: c.name, b: true, c: "#b71c1c" },
+      { t: "\n　 平均 " },
+      { t: "￥" + c.avg.toLocaleString(), b: true, c: "#b71c1c" },
+      { t: "（" + c.count + "件）" }
+    ];
+    if (c.times.length) line.push({ t: "\n　 " }, { t: c.times.join("、"), b: true, c: "#2e7d32" });
+    return line;
   });
 }
 
-/** 翌月の戦略予想を1つの文にする */
-function adviceForecastText_(a) {
-  return (a.season ? a.season + "。\n" : "") + a.how + "。";
+/** 翌月の戦略予想を、太字つきで返す */
+function adviceForecastParts_(a) {
+  const out = [];
+  if (a.season) out.push({ t: a.season + "。\n" });
+  // 「一発狙い」「回転数」など、結論のところだけ太字にする
+  const m = a.how.match(/^(.*?)(一発狙いの待機が有利です|回転数で積むほうが確実です|その時間帯だけ粘るのが無難です|まずは待ち時間の記入を増やしてください)$/);
+  if (m) { out.push({ t: m[1] }, { t: m[2], b: true, c: "#b71c1c" }, { t: "。" }); }
+  else out.push({ t: a.how + "。" });
+  return out;
 }
+
+/** 太字つきの行を、ただの文字列に戻す */
+function advicePlain_(parts) {
+  return parts.map(function (x) { return x.t; }).join("");
+}
+
+/** 太字つきの行を、LINEの絵の span にする */
+function adviceSpans_(parts, baseColor) {
+  return parts.map(function (x) {
+    return { "type": "span", "text": x.t, "weight": x.b ? "bold" : "regular", "color": x.c || baseColor || "#333333" };
+  });
+}
+
+/*
+ * ↓の3つは、上の ○○Parts_ から「太字の印を外しただけ」のもの。
+ * 文と太字のつけ方が2か所に分かれていると、片方だけ直してずれていく。
+ * 元は ○○Parts_ だけにして、こちらはそこから作る。
+ */
+
+/** 振り返りを1つの文にする */
+function adviceReviewText_(a) { return advicePlain_(adviceReviewParts_(a)); }
+
+/** オススメの組み合わせを、行の配列にする */
+function advicePickLines_(a) { return advicePickParts_(a).map(advicePlain_); }
+
+/** 翌月の戦略予想を1つの文にする */
+function adviceForecastText_(a) { return advicePlain_(adviceForecastParts_(a)); }
+
+
 
 /* ============ 🤖 Gemini「傾向と対策」 ============ */
 
@@ -1375,8 +1476,9 @@ function aiFallback_(it) {
  *
  *  前は A〜Z列 を 50px で作っていた（1,300px）。iPhone の画面は 400px ほどしかないので、
  *  全体を見ようとすると3分の1まで縮まり、文字が読めなかった。
- *  そこで 1列 24px（26列 ＝ 624px）にして、縦に長く伸びる形にした。
- *  16pxまで詰めたこともあるが、今度は縦のスクロールが長くなりすぎたので戻している。
+ *  そこで 1列 22px（26列 ＝ 572px）にした。
+ *  記録用スプシの横幅の合計（527px）に近い。それより少し広いだけなので、
+ *  横のスクロールも縦のスクロールも、どちらも極端にならない。
  *  文字も 8pt → 11〜14pt に上げている。
  *
  *  ★「－」だけの行と列は作らない。
@@ -1385,7 +1487,7 @@ function aiFallback_(it) {
  */
 
 /** 1列の幅（px）。26列で iPhone の画面幅におさまるようにしてある */
-const DB_COL_W = 24;
+const DB_COL_W = 22;
 /** 列の数（＝横いっぱいのマージ幅） */
 const DB_COLS  = 26;
 
@@ -1481,11 +1583,56 @@ function dbSplit_(total, parts) {
   return out;
 }
 
+/** グラフの●の大きさ。大きすぎると点同士が重なって、かえって読めない */
+const DB_POINT_SIZE = 6;
+
+/**
+ * グラフの線を「1pxの点線」にかけ直す。
+ *
+ * ★ここが要点：スプレッドシートのグラフは、Apps Script の
+ *   setOption('series', {0:{lineDashStyle:[2,3]}}) を無視する。
+ *   色も●の大きさも効くのに、点線だけ効かない。
+ *   2回作り直しても実線のままだったのは、これが理由。
+ *
+ *   そこで、グラフを置いたあとに Sheets API（高度なサービス）から
+ *   lineStyle を直接 DOTTED に書き換える。こちらは確実に効く。
+ *
+ * 使えないとき（サービスが無効・権限が足りない）は、何もせず実線のまま残す。
+ * ここで失敗してもレポートは出したいので、例外にはしない。
+ */
+function dbDotLines_(dbSS, sheetName) {
+  try {
+    if (typeof Sheets === "undefined" || !Sheets.Spreadsheets) return "Sheets APIが使えません";
+    const res = Sheets.Spreadsheets.get(dbSS.getId(),
+      { fields: "sheets(properties(title),charts(chartId,spec))" });
+
+    const reqs = [];
+    (res.sheets || []).forEach(function (sh) {
+      if (!sh.properties || sh.properties.title !== sheetName) return;
+      (sh.charts || []).forEach(function (ch) {
+        const spec = ch.spec;
+        if (!spec || !spec.basicChart || !spec.basicChart.series) return;
+        spec.basicChart.series.forEach(function (se) {
+          se.lineStyle  = { width: 1, type: "DOTTED" };
+          se.pointStyle = { size: DB_POINT_SIZE, shape: "CIRCLE" };
+        });
+        reqs.push({ updateChartSpec: { chartId: ch.chartId, spec: spec } });
+      });
+    });
+    if (!reqs.length) return "グラフがありません";
+    Sheets.Spreadsheets.batchUpdate({ requests: reqs }, dbSS.getId());
+    return reqs.length + "個のグラフを点線にしました";
+  } catch (e) {
+    logErr_("dbDotLines", e);
+    return "点線にできませんでした（" + (e && e.message ? e.message : e) + "）";
+  }
+}
+
 /** 区切りの空行。どこまでが1つのまとまりか分かるようにする */
 function dbGap_(sheet, row) {
   try {
     sheet.getRange(row, 1, 1, DB_COLS).merge().setBackground("#ffffff");
-    sheet.setRowHeight(row, 6);
+    sheet.setRowHeight(row, 12);
   } catch (e) {}
 }
 
@@ -1523,12 +1670,12 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   sheet.getRange(curRow, 1, 1, DB_COLS).merge()
     .setValue(`北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件\nﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`)
     .setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-  sheet.setRowHeight(curRow, 40); curRow += 2;
+  sheet.setRowHeight(curRow, 40); curRow++;
 
   /* ---------- 📊 エリア別 実績＆パーセント（LINEの絵と同じもの） ---------- */
   // v185からの作り直しのときに、まるごと抜け落ちていた部分。
   // LINEの絵にはあるのに、スプシには無いという状態だった
-  dbTitle_(curRow, "📊 エリア別 実績＆パーセント（ﾛﾝｸﾞ／ﾐﾄﾞﾙ／ｼｮｰﾄの割合）", "#fff4e5", 12); curRow++;
+  dbTitle_(curRow, "📊 エリア別 実績＆パーセント（ﾛﾝｸﾞ／ﾐﾄﾞﾙ／ｼｮｰﾄの割合）", "#e8eef5", 12); curRow++;
   DAY_TYPES.forEach(function (type) {
     const ranks = [];
     ["北", "ﾐﾅﾐ", "ほか"].forEach(function (area) {
@@ -1582,32 +1729,35 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     sheet.getRange(from - 1, 1, curRow - from + 1, DB_COLS)
       .setBorder(true, true, true, true, null, null, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   });
-  curRow++;
 
   /* ---------- 💡 月間戦略アドバイス（LINEの絵と同じもの） ---------- */
   if (advice) {
-    dbTitle_(curRow, "💡 月間戦略アドバイス", "#fff8e1", 13); curRow++;
+    dbTitle_(curRow, "💡 月間戦略アドバイス", "#e8eef5", 13); curRow++;
     const advFrom = curRow;
+    // オススメは1つずつ行を分ける。3つを1マスに押し込むと、どれがどれか読めない
+    const pickParts = advicePickParts_(advice);
     const blocks = [
-      ["【この期間の振り返り】", adviceReviewText_(advice), "#fffde7", "#e65100"],
-      ["【オススメの乗車時間と乗り場】", "同じ曜日・時間帯で2件以上あって、平均単価が高かった組み合わせです。\n" + advicePickLines_(advice).join("\n"), "#fff3e0", "#b71c1c"],
-      [`【${advice.nextMonth}月の戦略予想】`, adviceForecastText_(advice), "#e8f5e9", "#2e7d32"]
+      ["【この期間の振り返り】", [adviceReviewParts_(advice)], "#eef3f8", "#0b5394"],
+      ["【オススメの乗車時間と乗り場】",
+        [[{ t: "同じ曜日・時間帯で2件以上あって、平均単価が高かった組み合わせです。", c: "#5f6368" }]].concat(pickParts),
+        "#fdf0ef", "#b71c1c"],
+      [`【${advice.nextMonth}月の戦略予想】`, [adviceForecastParts_(advice)], "#eaf4ec", "#2e7d32"]
     ];
     blocks.forEach(function (b) {
       sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(b[0])
-        .setFontSize(11).setFontWeight("bold").setFontColor(b[3]).setBackground(b[2])
+        .setFontSize(12).setFontWeight("bold").setFontColor(b[3]).setBackground(b[2])
         .setHorizontalAlignment("center").setVerticalAlignment("middle");
-      sheet.setRowHeight(curRow, 24); curRow++;
-      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(b[1])
-        .setFontSize(11).setBackground(b[2])
-        .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-      dbFit_(sheet, curRow, [{ text: b[1], span: DB_COLS, size: 11 }], 28);
-      curRow++;
+      sheet.setRowHeight(curRow, 26); curRow++;
+      // 乗り場・金額・時刻だけを太字にする。全部同じ太さだと、どこが大事か分からない
+      b[1].forEach(function (parts) {
+        const txt = dbRich_(sheet, curRow, 1, DB_COLS, parts, 11, b[2]);
+        dbFit_(sheet, curRow, [{ text: txt, span: DB_COLS, size: 11 }], 26);
+        curRow++;
+      });
       dbGap_(sheet, curRow); curRow++;
     });
     sheet.getRange(advFrom - 1, 1, curRow - advFrom + 1, DB_COLS)
       .setBorder(true, true, true, true, null, null, "#000000", SpreadsheetApp.BorderStyle.SOLID);
-    curRow++;
   }
 
   /* ---------- 📣 オプチャ（他社の人の投稿） ---------- */
@@ -1642,59 +1792,71 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     });
     sheet.getRange(opuFrom - 1, 1, curRow - opuFrom + 1, DB_COLS)
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
-    curRow++;
+    dbGap_(sheet, curRow); curRow++;
   }
 
   /* ---------- 🔥アツい ✖️ ⚠️避ける【時間詳細】 ---------- */
-  // 曜日区分ごとに縦に積む。横に9列ならべると、スマホでは1マス40pxになって読めない
+  // 横が曜日区分、縦が時間帯。曜日をまたいで「この時間はどこが強いか」を
+  // 横に見比べられる形にする（縦に積むと、見比べるのにスクロールが要る）
   dbTitle_(curRow, "🔥アツい乗り場 ✖️ ⚠️避ける乗り場【時間詳細】\n(アツい=平均売上が最高 / 避ける=平均￥1,500以下、又はアツいより￥2,000以上低い)", "#d9ead3", 12); curRow++;
 
-  const TL_SPANS = [6, 10, 10];
   let targetHours = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
-  DAY_TYPES.forEach(dType => {
-    // 記録がある時間帯だけ出す。「－」だけの行を並べても読むところが無い
-    const hours = targetHours.filter(hr => finalTimeline[dType][hr].best || finalTimeline[dType][hr].worst);
-    dbTitle_(curRow, `【${dType}】`, "#e8f5e9", 12); curRow++;
-    if (hours.length === 0) {
-      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue("この曜日区分は記録がありません")
-        .setFontSize(11).setFontColor("#999999").setHorizontalAlignment("center").setVerticalAlignment("middle");
-      sheet.setRowHeight(curRow, 28); curRow++;
-      return;
-    }
+  // 時間帯 ＋ 曜日区分ごとに（アツい・避ける）の2列
+  const TL_SPANS = [2].concat([].concat.apply([], DAY_TYPES.map(function () { return [3, 3]; })));
+  {
     const hRng = getGridRange(sheet, curRow, 1, 1, TL_SPANS);
-    ["時間帯", "🔥 アツい", "⚠️ 避ける"].forEach(function (t, i) {
-      hRng[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
-        .setHorizontalAlignment("center").setVerticalAlignment("middle");
+    hRng[0].merge().setValue("時間帯").setBackground("#cccccc").setFontSize(10).setFontWeight("bold")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    DAY_TYPES.forEach(function (dType, i) {
+      hRng[1 + i * 2].merge().setValue(dType + "\n🔥アツい").setBackground("#d9d9d9").setFontSize(10).setFontWeight("bold")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+      hRng[2 + i * 2].merge().setValue(dType + "\n⚠️避ける").setBackground("#efefef").setFontSize(10).setFontWeight("bold")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
     });
-    sheet.setRowHeight(curRow, 28); curRow++;
+    sheet.setRowHeight(curRow, 34);
+    const from = curRow; curRow++;
 
-    const from = curRow;
-    hours.forEach(hr => {
-      const b = finalTimeline[dType][hr].best, w = finalTimeline[dType][hr].worst;
+    // どの曜日区分にも記録が無い時間帯は、行ごと作らない（「－」だけの行は読むところが無い）
+    const hours = targetHours.filter(function (hr) {
+      return DAY_TYPES.some(function (d) { return finalTimeline[d][hr].best || finalTimeline[d][hr].worst; });
+    });
+
+    if (hours.length === 0) {
+      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue("まだ記録がありません")
+        .setFontSize(11).setFontColor("#999999").setHorizontalAlignment("center").setVerticalAlignment("middle");
+      sheet.setRowHeight(curRow, 26); curRow++;
+    } else {
       // 時刻は代表の1つだけ。全部ならべても、結局いつ行けばいいのか分からない
-      const txt = function (sp, withMax) {
+      const cellText = function (sp, withMax) {
         if (!sp) return "－";
-        let t = (sp.at ? `[${sp.at}]\n` : "") + sp.name + `\n${sp.count}件 平均￥${Math.round(sp.avg).toLocaleString()}`;
+        let t = (sp.at ? `[${sp.at}]\n` : "") + sp.name + `\n${sp.count}件 ￥${Math.round(sp.avg).toLocaleString()}`;
         if (withMax && sp.max > 0) t += `\n最高￥${sp.max.toLocaleString()}`;
         return t;
       };
-      const bT = txt(b, true), wT = txt(w, false);
-      const rngs = getGridRange(sheet, curRow, 1, 1, TL_SPANS);
-      rngs[0].merge().setValue(`${("0"+hr).slice(-2)}時台`).setFontSize(12).setFontWeight("bold")
-        .setHorizontalAlignment("center").setVerticalAlignment("middle");
-      rngs[1].merge().setValue(bT).setFontSize(11).setFontWeight("bold").setWrap(true)
-        .setHorizontalAlignment("center").setVerticalAlignment("middle")
-        .setBackground(b ? "#f4cccc" : "#ffffff").setFontColor(b ? "#990000" : "#b7b7b7");
-      rngs[2].merge().setValue(wT).setFontSize(11).setFontWeight("bold").setWrap(true)
-        .setHorizontalAlignment("center").setVerticalAlignment("middle")
-        .setBackground(w ? "#f3f3f3" : "#ffffff").setFontColor(w ? "#434343" : "#b7b7b7");
-      dbFit_(sheet, curRow, [{ text: bT, span: TL_SPANS[1], size: 11 }, { text: wT, span: TL_SPANS[2], size: 11 }], 44);
-      curRow++;
-    });
-    sheet.getRange(from - 1, 1, curRow - from + 1, DB_COLS)
+      hours.forEach(function (hr) {
+        const rngs = getGridRange(sheet, curRow, 1, 1, TL_SPANS);
+        rngs[0].merge().setValue(`${("0"+hr).slice(-2)}\n時台`).setFontSize(11).setFontWeight("bold")
+          .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+        const texts = [];
+        DAY_TYPES.forEach(function (dType, i) {
+          const b = finalTimeline[dType][hr].best, w = finalTimeline[dType][hr].worst;
+          const bT = cellText(b, true), wT = cellText(w, false);
+          texts.push({ text: bT, span: 3, size: 10 }, { text: wT, span: 3, size: 10 });
+          rngs[1 + i * 2].merge().setValue(bT).setFontSize(10).setFontWeight("bold").setWrap(true)
+            .setHorizontalAlignment("center").setVerticalAlignment("middle")
+            .setBackground(b ? "#f4cccc" : "#ffffff").setFontColor(b ? "#990000" : "#b7b7b7");
+          rngs[2 + i * 2].merge().setValue(wT).setFontSize(10).setFontWeight("bold").setWrap(true)
+            .setHorizontalAlignment("center").setVerticalAlignment("middle")
+            .setBackground(w ? "#efefef" : "#ffffff").setFontColor(w ? "#434343" : "#b7b7b7");
+        });
+        dbFit_(sheet, curRow, texts, 44);
+        curRow++;
+      });
+    }
+    sheet.getRange(from, 1, curRow - from, DB_COLS)
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
-  });
-  curRow++;
+  }
+  dbGap_(sheet, curRow); curRow++;
 
   /* ---------- 乗り場ごとのヒートマップとグラフ ---------- */
   let datesArr = Array.from(new Set(recordsForGraph.map(r => r.dateStr))).sort();
@@ -1713,7 +1875,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       if (useDays.length === 0 || useHours.length === 0) continue;
       heatmapSpotNames.push(spotName);
 
-      dbTitle_(curRow, `🔥 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績)`, TAB_COLORS[tName] || "#fce5cd", 12); curRow++;
+      dbTitle_(curRow, `🔥 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績)`, TAB_COLORS[tName] || "#e8eef5", 12); curRow++;
 
       // 時間帯のらん＋曜日のぶんで、横26列をきっちり分ける
       const hmFirst = Math.max(4, DB_COLS - Math.floor((DB_COLS - 4) / useDays.length) * useDays.length);
@@ -1760,7 +1922,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             rt.setTextStyle(nl + 1, nl2 === -1 ? cellText.length : nl2,
               SpreadsheetApp.newTextStyle().setBold(true).setFontSize(10).setForegroundColor(matchedColor).build());
 
-            if (rankIdx === 0) cell.setBackground("#f4cccc"); else if (rankIdx === 1) cell.setBackground("#fff2cc"); else if (rankIdx === 2) cell.setBackground("#cfe2f3"); else cell.setBackground("#ffffff");
+            // 🥈に薄い黄色を使うと白地で沈むので、薄い緑にしている
+            if (rankIdx === 0) cell.setBackground("#f4cccc"); else if (rankIdx === 1) cell.setBackground("#d9ead3"); else if (rankIdx === 2) cell.setBackground("#cfe2f3"); else cell.setBackground("#ffffff");
             cell.setRichTextValue(rt.build());
           } else { cell.setValue("－").setFontColor("#b7b7b7").setBackground("#ffffff"); }
           colIdx++;
@@ -1781,10 +1944,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         for(let t of times) { let row = [t]; for(let d of datesArr) { let rec = recs.find(r => r.timeDec === t && r.dateStr === d); row.push(rec ? rec.price : null); } table.push(row); }
         if (table.length > 1) {
           let dataRng = sheet.getRange(hiddenDataRow, 1, table.length, header.length); sheet.getRange(hiddenDataRow, 1, 1, header.length).setNumberFormat('@'); dataRng.setValues(table);
-          // 線は 1px の点線。●は大きく。
-          // ※ lineDashStyle を series の中だけに書いても、スプレッドシートの
-          //   グラフでは効かないことがある。全体にも同じ指定を置いて、両方から効かせる
-          let seriesOpt = {}; for (let i = 0; i < datesArr.length; i++) { seriesOpt[i] = { lineWidth: 1, lineDashStyle: [2, 3], pointShape: 'circle', pointSize: 12, color: dateColorMap[datesArr[i]], labelInLegend: datesArr[i] }; }
+          // 線は 1px、●は小さめ。
+          // ※ lineDashStyle（点線）は、ここに書いてもスプレッドシートのグラフでは効かない。
+          //   グラフを置いたあとに dbDotLines_() が Sheets API から直接かけ直す
+          let seriesOpt = {}; for (let i = 0; i < datesArr.length; i++) { seriesOpt[i] = { lineWidth: 1, pointShape: 'circle', pointSize: DB_POINT_SIZE, color: dateColorMap[datesArr[i]], labelInLegend: datesArr[i] }; }
           let customTicks = []; for(let i=20; i<=29.1; i+=0.5) { customTicks.push(Math.round(i*1000)/1000); }
           let maxP = Math.max(...recs.map(r=>r.price)) || 10000; let vStep = maxP > 20000 ? 5000 : 2000; let vTicks = []; for(let v=0; v<=maxP+vStep; v+=vStep) vTicks.push(v);
 
@@ -1794,7 +1957,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             .setOption('hAxis', {title: '時間', minValue: 20, maxValue: 29, ticks: customTicks, gridlines: {color: '#e0e0e0'}, textStyle: {fontSize: 11}})
             .setOption('vAxis', {title: '売上', format: '￥#,##0', ticks: vTicks, gridlines: {color: '#e0e0e0'}, textStyle: {fontSize: 11}})
             .setOption('series', seriesOpt).setOption('useFirstColumnAsDomain', true).setOption('headers', 1)
-            .setOption('lineWidth', 1).setOption('lineDashStyle', [2, 3]).setOption('pointSize', 12)
+            .setOption('lineWidth', 1).setOption('pointSize', DB_POINT_SIZE)
             // 横が狭いので、日付の一覧は右ではなく下に置く
             .setOption('legend', {position: 'bottom', textStyle: {fontSize: 11}})
             .setOption('chartArea', {left: '16%', top: '12%', width: '80%', height: '62%'}).setOption('interpolateNulls', true)
@@ -1802,7 +1965,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           sheet.insertChart(chart); hiddenDataRow += 40; chartPlaced = true;
         }
       }
-      curRow += chartPlaced ? CHART_ROWS : 2;
+      curRow += chartPlaced ? CHART_ROWS : 0;
+      dbGap_(sheet, curRow); curRow++;
     }
   }
 
@@ -1888,12 +2052,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   }
   sheet.getRange(spFrom - 1, 1, curRow - spFrom + 1, DB_COLS)
     .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
-  curRow++;
 
   /* ---------- 特別な一覧（再現したい・チケット・避けたい） ---------- */
   function createSpecialTable(title, dataArr, startRow, bgC, isAvoid) {
     let row = startRow;
-    sheet.setRowHeight(row, 14); row++;
     dbTitle_(row, (isAvoid ? "⚠️ " : "🔥 ") + title, bgC, 12); row++;
 
     const hSpans = [4, 7, 7, 4, 4];
@@ -1922,7 +2084,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           dRngs.forEach(rng => { rng.setBackground("#f3f3f3").setFontColor("#434343"); });
           priceCell.setBackground("#f3f3f3").setFontColor("#434343");
         } else {
-          if (rData[3] >= 20000) { priceCell.setBackground("#f4cccc").setFontColor("#990000"); } else if (rData[3] >= 10000) { priceCell.setBackground("#fff2cc").setFontColor("#b45f06"); } else if (rData[3] >= 5000) { priceCell.setBackground("#cfe2f3").setFontColor("#0b5394"); }
+          if (rData[3] >= 20000) { priceCell.setBackground("#f4cccc").setFontColor("#990000"); } else if (rData[3] >= 10000) { priceCell.setBackground("#fce5cd").setFontColor("#994c00"); } else if (rData[3] >= 5000) { priceCell.setBackground("#cfe2f3").setFontColor("#0b5394"); }
         }
         dbFit_(sheet, row, [{ text: rData[2], span: hSpans[1], size: 12 },
                             { text: rData[0]+"\n"+rData[1], span: hSpans[2], size: 11 }], 40);
@@ -1955,13 +2117,14 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   }
 
   curRow = createSpecialTable("再現したい乗車 一覧 (条件: 再現性を含む 又は 備考ありで￥5,000以上)", reproRides, curRow, "#cfe2f3", false);
-  curRow = createSpecialTable("チケット乗車 一覧 (条件: 備考にチケを含み、かつ￥5,000以上)", ticketRides, curRow, "#fff2cc", false);
+  curRow = createSpecialTable("チケット乗車 一覧 (条件: 備考にチケを含み、かつ￥5,000以上)", ticketRides, curRow, "#fce5cd", false);
   curRow = createSpecialTable("避けたい乗車 一覧 (条件: NGワードを含む 又は ￥999以下)", avoidRides, curRow, "#f4cccc", true);
   // バラシは平均に混ぜていない（1件の乗車を分けて書いたものなので、数えると二重になる）。
   // ただし捨てはしない。ここで一覧として見られるようにする
   curRow = createSpecialTable("バラシ 一覧 (平均には数えていません。記録として残すぶん)", barasiRides || [], curRow, "#ead1dc", false);
 
-  // 見出しがスクロールしても消えないように
-  try { sheet.setFrozenRows(1); } catch (e) {}
+  // グラフを全部置き終わってから、まとめて点線にする
+  dbDotLines_(dbSS, tabName);
+
   return dbSS.getUrl();
 }

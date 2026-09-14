@@ -267,7 +267,13 @@ const flex = ctx.buildReportFlex_({
   periodStr: "7/16(木)～8/15(土)", totalRidesCount: 175,
   tabRidesCount: {"北7":41,"北4":41,"北他":50,"ﾐﾅﾐ":0,"関空":0,"ほか":18},
   DAY_TYPES: DT, areaStats: areaStats, finalTimeline: finalTimeline,
-  targetHours: HRS, dashboardUrl: "https://example.com/dash"
+  targetHours: HRS, dashboardUrl: "https://example.com/dash",
+  // 本番と同じものを渡す（sendCustomReport の中で作っている関数）
+  getBestTimeStr: function (o) {
+    if (!o) return ""; let mc = 0, bt = "";
+    for (const t in o) if (o[t] > mc) { mc = o[t]; bt = t; }
+    return bt ? " [" + bt + "]" : "";
+  }
 });
 
 /* --- 形がこわれていないか（LINEに弾かれると、レポートそのものが届かない） --- */
@@ -435,15 +441,18 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   (function find(n) {
     if (Array.isArray(n)) return n.forEach(find);
     if (!n || typeof n !== 'object') return;
-    if (n.type === 'text' && typeof n.text === 'string' && /^(ﾛﾝｸﾞ|ﾐﾄﾞﾙ|ｼｮｰﾄ) /.test(n.text)) bands.push(n.text);
+    if (n.type === 'text' && typeof n.text === 'string' && /^(ﾛﾝｸﾞ|ﾐﾄﾞﾙ|ｼｮｰﾄ)\d+件 /.test(n.text)) bands.push(n.text);
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
   })(flex);
   eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
   eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
-  eq(bands.every(t => t.length <= 34), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
-  eq(bands[0], 'ﾛﾝｸﾞ 8件 ￥13,270 待39分 🔥新地4', '「🔥アツい：」と毎回書かず、記号だけにする');
-  eq(J.indexOf('🔥＝アツい') !== -1, true, '記号の意味は、上の凡例で1回だけ説明する');
-  eq(J.indexOf('⚠️＝避ける') !== -1, true, '  避けるほうも');
+  eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
+  eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 🔥新地4(月)23:51',
+     'おすすめの乗り場と、その時刻まで入れて1行に収める');
+  eq(J.indexOf('アツい（狙う乗り場）') !== -1, true, '記号の意味は、上の凡例で1回だけ説明する');
+  eq(J.indexOf('避ける乗り場') !== -1, true, '  避けるほうも');
+  eq(J.indexOf('その乗車の曜日') !== -1, true, '  (月) の意味も');
+  eq(J.indexOf('── この絵の読み方 ──') !== -1, true, '  読み方の見出しを付ける');
 }
 
 console.log('\n■ アドバイスとオプチャを入れても形がこわれない');
@@ -518,6 +527,52 @@ console.log('\n■ アドバイスとオプチャを入れても形がこわれ�
     targetHours: HRS, dashboardUrl: "https://example.com/d", advice: adv, opucha: { count: 0 }
   });
   eq(JSON.stringify(f3).indexOf('オプチャ情報') === -1, true, 'オプチャが0件なら、その箱は出さない');
+}
+
+console.log('\n■ 大事なところだけ太字にする');
+{
+  const a = ctx.buildMonthlyAdvice_(
+    { "北他|江坂": { count: 3, sales: 21699, waitSum: 66, waitCount: 3 } },
+    { "北他|江坂": { "6|3": { count: 2, sales: 14466, times: ["03:16","03:20"] } } },
+    mkFt([["平日",23,{name:"新地4",count:16,avg:10834}]]), ADV_DT, ADV_HRS, new D(2026, 7, 15));
+
+  const bold = p => p.filter(x => x.b).map(x => x.t);
+  eq(bold(ctx.adviceReviewParts_(a)), ['「江坂」', '￥7,233', '22分', '￥19,726', '土曜 03:16、土曜 03:20'],
+     '振り返りは 乗り場・金額・待ち時間だけ太字');
+  eq(bold(ctx.advicePickParts_(a)[0]), ['土曜 03時台', '江坂', '￥7,233', '03:16、03:20'],
+     'オススメは 時間帯・乗り場・金額・時刻だけ太字');
+  eq(bold(ctx.adviceForecastParts_(a)), ['その時間帯だけ粘るのが無難です'],
+     '予想は「結論」だけ太字（全部太字だと、どこが大事か分からない）');
+
+  // 文字に戻したものが、太字なしの文と同じであること
+  eq(ctx.advicePlain_(ctx.adviceReviewParts_(a)), ctx.adviceReviewText_(a),
+     '太字をはずすと、今までの文とぴったり同じ');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)), ctx.adviceForecastText_(a), '  予想も同じ');
+
+  // LINEの絵の span になるか
+  const sp = ctx.adviceSpans_(ctx.adviceReviewParts_(a), "#333333");
+  eq(sp.every(x => x.type === 'span' && typeof x.text === 'string'), true, 'LINEの span にできる');
+  eq(sp.filter(x => x.weight === 'bold').length, 5, '  太字の数も合う');
+  eq(sp.every(x => /^#[0-9a-f]{6}$/.test(x.color)), true, '  色がすべて入っている（既定の色も必ず付く）');
+
+  // 記録が無いときでも落ちない
+  const a0 = ctx.buildMonthlyAdvice_({}, {}, mkFt([]), ADV_DT, ADV_HRS, new D(2026, 0, 20));
+  eq(ctx.adviceReviewParts_(a0).length >= 1, true, '記録ゼロでも行が作れる');
+  eq(ctx.advicePickParts_(a0).length, 1, '  オススメも1行だけ出す');
+  eq(ctx.adviceSpans_(ctx.advicePickParts_(a0)[0]).length >= 1, true, '  span にもできる');
+}
+
+console.log('\n■ 白い背景で見づらい色を使わない');
+{
+  // 明るさ（輝度）が高すぎる色は、白地だと線が見えない
+  const lum = h => { const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16);
+    return (0.299*r + 0.587*g + 0.114*b) / 255; };
+  const G = vm.runInContext('GRAPH_COLORS', ctx);
+  eq(G.length >= 8, true, 'グラフの色が8色以上ある（' + G.length + '色）');
+  eq(G.every(c => /^#[0-9a-f]{6}$/i.test(c)), true, 'すべて正しい色の書き方');
+  const bright = G.filter(c => lum(c) > 0.55);
+  eq(bright, [], '白地で沈む明るい色が無い' + (bright.length ? '（' + bright.join(',') + '）' : ''));
+  eq(new Set(G).size, G.length, '同じ色が2つ入っていない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
