@@ -2,7 +2,13 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U008ver  （2026/09/06）  ★★★
+ *  ★★★  U009ver  （2026/09/06）  ★★★
+ *
+ *  [U009ver]
+ *   ・更新の結果を、そうさボタンの結果らんにも出すようにした
+ *     前は「終わりました」だけで、何が入れ替わったのか分からなかった
+ *     （説明タブのZ5を見にいくしかなく、スマホからは確かめづらかった）
+ *     これで「入れ替え：appsscript、003-LineReport」まで読める
  *
  *  [U008ver]
  *   ・ボタン [7]「レポートをLINEに送る」を足した（中身は 003-LineReport.gs）
@@ -105,7 +111,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U008ver";
+const UPD_VERSION = "U009ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -390,7 +396,7 @@ function menuUpdateCode() {
     dep = "デプロイのやり直しは失敗しました（" + e.message + "）";
   }
 
-  updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
+  return updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
     "入れ替え：" + (mod.join("、") || "なし") + "\n" +
     "追加　　：" + (add.join("、") || "なし") + "\n" +
     (got.skipped.length ? "変更なし：" + got.skipped.join("、") + "\n" : "") +
@@ -498,6 +504,11 @@ function updTell_(title, body) {
     const ui = SpreadsheetApp.getUi();
     ui.alert(title, body, ui.ButtonSet.OK);
   } catch (e) {}
+
+  // そうさボタンの結果らんにも、そのまま出せるように返す。
+  // 返さないと「終わりました」だけになって、何が入れ替わったのか
+  // スマホからは確かめられなかった（説明タブのZ5を見るしかなかった）
+  return title + "\n" + body;
 }
 
 /** ドライブの「taxi-gas」フォルダ。無ければ作る */

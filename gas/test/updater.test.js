@@ -1142,11 +1142,24 @@ console.log('\n■ 押されているものがあるときは、行を動かさ�
     'そのときは行を差し込まない（押した行がずれるため）');
 }
 
+console.log('\n■ 更新の結果が、そうさボタンの結果らんに出る');
+{
+  reset([['001-Code.gs', 'あたらしい'], ['appsscript.json', '{"x":1}']]);
+  F('menuMakePanel')();
+  panel._cells[TOP + ',2'] = true;                       // [1] コードを更新する
+  F('panelOnEdit')({ range: { getSheet: () => panel, getColumn: () => 2,
+                              getRow: () => TOP }, value: 'TRUE' });
+  const res = String(panel._cells[F('panelResultRow_')(panel) + ',3'] || '');
+  has(res, '更新しました', '何をしたかが結果らんに出る');
+  has(res, 'appsscript', 'appsscript を入れ替えたことも分かる');
+  has(res, '001-Code', 'ほかのファイルも分かる');
+}
+
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U008ver', 'U008ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U009ver', 'U009ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U008ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U009ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
