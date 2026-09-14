@@ -2,11 +2,18 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L015ver  （2026/09/06）  ★★★
+ *  ★★★  L016ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L016ver]
+ *   ・乗り場が書かれていない記録を、レポートから外すようにした
+ *     表に名前のない行が並んでも、どこの話か分からず読みようがないため。
+ *     自社ぶんもオプチャぶんも同じあつかいにする。
+ *   ・何件のぞいたかは、LINEの絵とまとめスプシの見出しに出す
+ *     黙って件数が減ると、記録用スプシの数と合わなくなって混乱するため
  *
  *  [L015ver]
  *  ▼ LINEの絵
@@ -248,7 +255,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L015ver";
+const LR_VERSION = "L016ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1058,7 +1065,7 @@ function sendCustomReport(targetId, customStartD, customEndD) {
   let areaStats = {}; DAY_TYPES.forEach(dt => { areaStats[dt] = { "北": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}}, "ﾐﾅﾐ": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}}, "ほか": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}} }; });
 
   let spotStats = {}; let spotHotData = {}; let spotDayBreakdown = {}; let timelineStats = {}; DAY_TYPES.forEach(dt => { timelineStats[dt] = {}; [20,21,22,23,0,1,2,3,4,5].forEach(h => { timelineStats[dt][h] = {}; }); });
-  let spotHeatmapSales = {}; let spotHeatmapTimes = {}; let recordsForGraph = []; let ticketRides = []; let avoidRides = []; let reproRides = []; let barasiRides = [];
+  let spotHeatmapSales = {}; let spotHeatmapTimes = {}; let recordsForGraph = []; let ticketRides = []; let avoidRides = []; let reproRides = []; let barasiRides = []; let noPlaceCount = 0;
   const avoidWords = ["ゲロ", "ガキ", "障割", "カス", "ババア", "ジジイ", "元3"];
 
   PERSONAL_TABS.forEach(tabName => {
@@ -1070,6 +1077,11 @@ function sendCustomReport(targetId, customStartD, customEndD) {
       if (Object.prototype.toString.call(rawDate) === "[object Date]") { rDate = rawDate; } else if (displayVals[r][1]) { let mm = displayVals[r][1].match(/^(\d+)\/(\d+)/); if (mm) rDate = new Date(currentYear, parseInt(mm[1], 10) - 1, parseInt(mm[2], 10), 12, 0, 0); }
       if (!rDate || rDate < startD || rDate > endD) continue;
       let memo = String(dataVals[r][7]); let remarks = String(dataVals[r][8]); let place = normalizeStr(String(dataVals[r][6]));
+
+      // 乗り場が書かれていない記録は、レポートに出さない。
+      // 表に名前のない行が並んでも、どこの話か分からず読みようがないため。
+      // 何件そうだったかは数えておき、見出しに出す（黙って減らさない）
+      if (!String(place).replace(/[\s\u3000]/g, "")) { noPlaceCount++; continue; }
       // バラシ（1件の乗車を分けて書いたもの）は、平均に混ぜると数字が狂う。
       // 数には入れないが、捨てずに一覧として残す
       if (remarks.includes("バラシ") || place.includes("バラシ")) {
@@ -1179,14 +1191,15 @@ function sendCustomReport(targetId, customStartD, customEndD) {
 
   if (typeof updProgress_ === "function") updProgress_("まとめスプシを作っています");
   // どのスプシに書いたかを、あとで確かめられるようにしておく
-  let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides);
+  let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0));
 
   const periodStr = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
   const bubbles = buildReportFlex_({
     periodStr: periodStr, totalRidesCount: totalRidesCount, tabRidesCount: tabRidesCount,
     DAY_TYPES: DAY_TYPES, areaStats: areaStats, finalTimeline: finalTimeline,
     targetHours: targetHours, dashboardUrl: dashboardUrl, getBestTimeStr: getBestTimeStr,
-    advice: advice, opucha: opucha
+    advice: advice, opucha: opucha,
+    noPlace: noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0)
   });
   // 裏メッセージ（通知やトーク一覧に出る文字）
   // 文面は Code.gs の「設定」タブから変えられる。読めないときは今までの文面
@@ -1270,6 +1283,7 @@ function buildReportFlex_(o) {
   const DAY_TYPES = o.DAY_TYPES, areaStats = o.areaStats, finalTimeline = o.finalTimeline;
   const targetHours = o.targetHours, dashboardUrl = o.dashboardUrl;
   const advice = o.advice, opucha = o.opucha || { count: 0 };
+  const noPlace = o.noPlace || 0;
   const getBestTimeStr = o.getBestTimeStr || function () { return ""; };
   let flexContents = [];
   // 入りきらないときに、先に削ってよい箱（細かい話）を覚えておく。
@@ -1280,7 +1294,8 @@ function buildReportFlex_(o) {
   // （前は「時間詳細」の真ん中で次のメッセージに移っていた）
   const sections = [];
   const section_ = function () { sections.push(flexContents.length); };
-  flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
+  flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件` +
+    (noPlace > 0 ? `\n※ 乗り場の記入がない ${noPlace}件は、この集計から外しています` : ""), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
   // 記号の意味は、ここで1回だけ説明する。
   // 各行に「🔥アツい：」「⚠️避ける：」と毎回書くと、そのぶん1行に収まらなくなるため
   // 1項目ずつ改行して並べる。
@@ -1686,7 +1701,7 @@ function lrSplitBubbles_(contents, periodStr, dashboardUrl, trimFirst, sections)
  * 「日付＋時刻＋金額＋乗り場」が同じものは1件として数える。
  */
 function collectOpucha_(ss, startD, endD, daysStr) {
-  const out = { count: 0, sales: 0, waitSum: 0, waitCount: 0, kanku: 0, spots: {}, hours: {} };
+  const out = { count: 0, sales: 0, waitSum: 0, waitCount: 0, kanku: 0, noPlace: 0, spots: {}, hours: {} };
   const seen = {};
   const tabs = (typeof AREA_TABS !== "undefined" ? AREA_TABS : []).concat(
                typeof FLAG_TABS !== "undefined" ? FLAG_TABS : []);
@@ -1709,6 +1724,8 @@ function collectOpucha_(ss, startD, endD, daysStr) {
       const price = parseInt(String(vals[r][5]).replace(/[^0-9]/g, ''), 10);
       if (isNaN(price) || price === 0) continue;
       const place = normalizeStr(String(vals[r][6]));
+      // 乗り場が書かれていないものは、どこの話か分からないので出さない
+      if (!String(place).replace(/[\s\u3000]/g, "")) { out.noPlace++; continue; }
       const tm = disp[r][4].match(/^(\d+):(\d+)/);
       const timeStr = tm ? tm[0] : "";
 
@@ -2368,7 +2385,7 @@ function dbGap_(sheet, row) {
   } catch (e) {}
 }
 
-function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides) {
+function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlace) {
   const dbSS = dbOpenTarget_(mainSS);
 
   const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
@@ -2406,9 +2423,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   let curRow = 1;
   dbTitle_(curRow, `📈 ${periodTab}\n営業ダッシュボード（全${totalRidesCount}件）`, "#e3f2fd", 14); curRow++;
   sheet.getRange(curRow, 1, 1, DB_COLS).merge()
-    .setValue(`北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件\nﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`)
+    .setValue(`北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件\nﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件` +
+      ((noPlace || 0) > 0 ? `\n※ 乗り場の記入がない ${noPlace}件は、この集計から外しています` : ""))
     .setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-  sheet.setRowHeight(curRow, 40); curRow++;
+  sheet.setRowHeight(curRow, (noPlace || 0) > 0 ? 56 : 40); curRow++;
 
   /* ---------- 📊 エリア別 実績＆パーセント（LINEの絵と同じもの） ---------- */
   // v185からの作り直しのときに、まるごと抜け落ちていた部分。

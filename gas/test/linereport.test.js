@@ -944,5 +944,29 @@ console.log('\n■ 見出しの途中で、次のメッセージに切り替わ�
   eq(msgs.slice(0, -1).every(b => b.footer === undefined), true, '  途中には付けない');
 }
 
+console.log('\n■ 乗り場が書かれていないぶんは、のぞいたと断る');
+{
+  const f = ctx.buildReportFlex_({
+    periodStr: "x", totalRidesCount: 160,
+    tabRidesCount: {"北7":0,"北4":0,"北他":0,"ﾐﾅﾐ":0,"関空":0,"ほか":0},
+    DAY_TYPES: ADV_DT, areaStats: (() => { const a = {}; ADV_DT.forEach(d => { a[d] = {
+      "北": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}},
+      "ﾐﾅﾐ": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}},
+      "ほか": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}} }; }); return a; })(),
+    finalTimeline: mkFt([]), targetHours: ADV_HRS, dashboardUrl: "https://e.com", noPlace: 5 });
+  eq(JSON.stringify(f).indexOf('乗り場の記入がない 5件は、この集計から外しています') !== -1, true,
+     'のぞいた件数を見出しに出す（黙って減らさない）');
+
+  const f0 = ctx.buildReportFlex_({
+    periodStr: "x", totalRidesCount: 160,
+    tabRidesCount: {"北7":0,"北4":0,"北他":0,"ﾐﾅﾐ":0,"関空":0,"ほか":0},
+    DAY_TYPES: ADV_DT, areaStats: (() => { const a = {}; ADV_DT.forEach(d => { a[d] = {
+      "北": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}},
+      "ﾐﾅﾐ": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}},
+      "ほか": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}} }; }); return a; })(),
+    finalTimeline: mkFt([]), targetHours: ADV_HRS, dashboardUrl: "https://e.com", noPlace: 0 });
+  eq(JSON.stringify(f0).indexOf('乗り場の記入がない') === -1, true, '0件なら、よけいな断りは出さない');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
