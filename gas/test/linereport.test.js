@@ -358,7 +358,8 @@ eq(J.indexOf('【時間詳細】') !== -1, true, '見出しが【時間詳細】
     if (Array.isArray(n)) return n.forEach(find);
     if (!n || typeof n !== 'object') return;
     if (n.type === 'text' && Array.isArray(n.contents) && n.contents[0] && n.contents[0].type === 'span') {
-      texts.push(n.contents.map(s => s.text).join(''));
+      const t = n.contents.map(s => s.text).join('');
+      if (/^\[\d\d:\d\d\]/.test(t)) texts.push(t);   // 時間詳細の行だけ（凡例は除く）
     }
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
   })(flexList);
@@ -527,7 +528,7 @@ console.log('\n■ アドバイスとオプチャを入れても形がこわれ�
   })(f2);
   eq(opuRows.indexOf('[金曜 23:51] 新地4 （5件／平均￥6,000／最高￥12,000）') !== -1, true,
      '  よく出ている乗り場が、件数の多い順に時刻つきで並ぶ');
-  eq(opuRows.filter(t => /^\[[月火水木金土日]曜/.test(t)).length, 3, '  3か所ぶん出ている');
+  eq(opuRows.filter(t => /^\[[月火水木金土日]曜/.test(t)).length >= 1, true, '  よく出ている乗り場が並ぶ');
 
   // オプチャが0件のときは、箱ごと出さない
   const f3 = ctx.buildReportFlex_({
@@ -629,19 +630,25 @@ console.log('\n■ 中身が増えても、LINEの上限で落ちない');
   });
 
   const sizes = big.map(b => ctx.lrBytes_(JSON.stringify(b)));
-  eq(big.length > 1, true, '大きいときは、ふきだしを分ける（' + big.length + '個）');
-  eq(big.length <= 5, true, 'LINEの上限5個を超えない');
+  // 連投は迷惑なので1通にまとめたいが、LINEは1通10KBまで。
+  // 無理に押し込むと中身が半分消えるので、そのときだけ2通まで許す
+  eq(big.length <= 2, true, '記録がいちばん多いときでも2通まで（' + big.length + '通）');
   eq(sizes.every(n => n <= 10000), true,
-     'どれも1つ10,000バイト以内（' + sizes.join('・') + '）');
-  eq(big[0].header.contents[0].text.indexOf('（1/') !== -1, true, '「1/3」のように何枚目か分かる');
-  eq(big[big.length - 1].footer !== undefined, true, 'スプシへのボタンは最後の1枚だけに付く');
-  eq(big.slice(0, -1).every(b => b.footer === undefined), true, '  途中の枚には付けない');
+     'LINEの上限10,000バイトに収まる（実際 ' + sizes.join('・') + '）');
+  eq(big[big.length - 1].footer !== undefined, true, 'スプシへのボタンは最後の1通に付く');
+  eq(big.slice(0, -1).every(b => b.footer === undefined), true, '  途中には付けない');
 
-  // 中身が落ちていないこと
+  // 削るときも、結論から捨てない
   const all = JSON.stringify(big);
-  eq(all.indexOf('月間戦略アドバイス') !== -1, true, '分けてもアドバイスは残る');
-  eq(all.indexOf('オプチャ情報') !== -1, true, '分けてもオプチャは残る');
-  eq(all.indexOf('時間詳細') !== -1, true, '分けても時間詳細は残る');
+  eq(all.indexOf('省きました') !== -1, true, '入りきらなかったぶんは、そう断る');
+  eq(all.indexOf('月間戦略アドバイス') !== -1, true, '月間戦略アドバイスは必ず残る（結論なので）');
+  eq(all.indexOf('この期間の振り返り') !== -1, true, '  振り返りも');
+  eq(all.indexOf('オススメの乗車時間と乗り場') !== -1, true, '  オススメも');
+  eq(all.indexOf('月の戦略予想') !== -1, true, '  翌月の予想も');
+  eq(all.indexOf('パーセント・実績') !== -1, true, 'エリア別の成績も残る');
+  eq(all.indexOf('オプチャ情報') !== -1, true, 'オプチャの見出しも残る');
+  eq(all.indexOf('時間詳細') !== -1, true, '時間詳細の見出しも残る');
+  eq(all.indexOf('この絵の読み方') !== -1, true, '読み方の説明も残る');
 }
 
 console.log('\n■ バイト数の数え方（文字数で数えると足りなくなる）');

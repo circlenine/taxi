@@ -2,11 +2,40 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L011ver  （2026/09/06）  ★★★
+ *  ★★★  L012ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L012ver]
+ *  ▼ LINEの絵
+ *   ・5通に分かれていたのを、できるかぎり1通にした
+ *     中身（JSON）の無駄を削った：凡例・帯・時間詳細・アドバイスの組み立て方を軽くし、
+ *     見た目は変えずに約3割ほど軽くした
+ *   ・それでも1通10KBには入りきらないので、多いときだけ2通にする
+ *     無理に1通へ押し込むと、レポートの中身が半分消えてしまうため
+ *   ・削るときは、細かいところ（時間詳細・オプチャ）から均等に減らす
+ *     前は1つの箱だけ空にしていたので、そこだけ情報が丸ごと消えていた
+ *   ・打ち切るときに「省きました」の断り書きまで一緒に消えていたのを直した
+ *
+ *  ▼ 記録用スプシ
+ *   ・メニュー名を「📊 レポート」→「📈 LineReport」にした
+ *
+ *  ▼ まとめスプシ
+ *   ・1行目の固定を、はっきり外すようにした（clear() では外れないため）
+ *   ・毎回あたらしいスプシが作られていたのを直した
+ *     行き先のIDをセルだけで覚えていたので、消えると新規作成になっていた。
+ *     スクリプト自身の控えにも残し、3か所から探すようにした
+ *   ・グラフの下の空白をなくした
+ *     グラフが乗る行の高さが、前回の実行のまま（大きいまま）残っていたのが原因
+ *   ・グラフの凡例（7/16・7/17…の日付）が消えていたのを直した
+ *     点線にするための書き換えで、指示されていない凡例まで消してしまっていた
+ *   ・グラフの目盛りを細かくした
+ *     目盛りの数の指定はスプシのグラフでは効かないので、軸の範囲を記録に合わせて狭めた
+ *     目盛りの線は薄いグレー、そのあいだにもっと薄い線を入れた
+ *   ・表のあいだの空白を 2 → 5 の高さにした
+ *   ・横幅を 1列22px → 26px（26列＝676px）にした
  *
  *  [L011ver]
  *  ▼ 送れなかった原因（Too large flex message）
@@ -157,7 +186,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L011ver";
+const LR_VERSION = "L012ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -278,7 +307,7 @@ function getGridRange(sheet, startRow, startColIndex, rowCount, colSpanArray) {
  * 同じプロジェクトに 002-Extras があれば、それも一緒に出す。
  */
 function onOpenReport() {
-  const m = SpreadsheetApp.getUi().createMenu("📊 レポート");
+  const m = SpreadsheetApp.getUi().createMenu("📈 LineReport");
   m.addItem("📤 レポートを手動送信", "showReportDialog");
   if (typeof menuStrategy === "function") m.addItem("🎯 立ち回り分析", "menuStrategy");
   if (typeof menuOpucha === "function")   m.addItem("🏷 オプチャ印を付ける／外す", "menuOpucha");
@@ -992,23 +1021,24 @@ function buildReportFlex_(o) {
   const advice = o.advice, opucha = o.opucha || { count: 0 };
   const getBestTimeStr = o.getBestTimeStr || function () { return ""; };
   let flexContents = [];
+  // 入りきらないときに、先に削ってよい箱（細かい話）を覚えておく。
+  // エリア別の成績と月間戦略アドバイスは結論なので、ここには入れない
+  const trimFirst = [];
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
   // 記号の意味は、ここで1回だけ説明する。
   // 各行に「🔥アツい：」「⚠️避ける：」と毎回書くと、そのぶん1行に収まらなくなるため
-  const legend_ = function (mark, markColor, mean) {
-    return { "type": "box", "layout": "baseline", "spacing": "sm", "margin": "xs", "contents": [
-      { "type": "text", "text": mark, "size": "xxs", "weight": "bold", "color": markColor, "flex": 0 },
-      { "type": "text", "text": mean, "size": "xxs", "color": "#5f6368", "wrap": true, "flex": 1 }
-    ]};
-  };
+  // 1項目ずつ改行して並べる。
+  // 1行ずつ箱を作ると、見た目は同じなのに中身（JSON）が3倍近くふくらんで、
+  // LINEの上限（10KB）を押し上げてしまう。1つの文の中で改行する
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f1f3f4", "paddingAll": "8px", "cornerRadius": "md", "margin": "sm", "contents": [
     { "type": "text", "text": "── この絵の読み方 ──", "size": "xxs", "weight": "bold", "color": "#5f6368" },
-    legend_("🔥",      "#d93025", "アツい（狙う乗り場）"),
-    legend_("⚠️",      "#b45f06", "避ける乗り場"),
-    legend_("[00:00]", "#2e7d32", "いちばん高かった乗車の時刻"),
-    legend_("(月)",    "#7b1fa2", "その乗車の曜日"),
-    legend_("〇件",    "#5f6368", "その枠の乗車回数"),
-    legend_("待〇分",  "#5f6368", "平均の待ち時間")
+    { "type": "text", "size": "xxs", "color": "#5f6368", "wrap": true, "margin": "xs",
+      "text": "🔥 ＝ アツい（狙う乗り場）\n" +
+              "⚠️ ＝ 避ける乗り場\n" +
+              "[00:00] ＝ いちばん高かった乗車の時刻\n" +
+              "(月) ＝ その乗車の曜日\n" +
+              "〇件 ＝ その枠の乗車回数\n" +
+              "待〇分 ＝ 平均の待ち時間" }
   ]});
   flexContents.push({ "type": "separator", "margin": "md" }, { "type": "text", "text": "🔥アツいエリア【パーセント・実績】", "weight": "bold", "size": "sm", "color": "#1155ca", "margin": "md" });
 
@@ -1035,8 +1065,10 @@ function buildReportFlex_(o) {
           const pct = x[0], color = x[1], name = x[2];
           if (pct <= 0) return;
           let inner = [];
-          if (pct >= 20)     inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
-          else if (pct >= 8) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
+          // justifyContent（上下の中央）と align（左右の中央）があれば足りる。
+          // gravity と adjustMode は同じことの重ね書きで、そのぶん中身だけ重くなる
+          if (pct >= 20)     inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center" }];
+          else if (pct >= 8) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center" }];
           else tooThin.push(`${name}${pct}%`);
           percentBars.push({ "type": "box", "layout": "vertical", "justifyContent": "center", "backgroundColor": color, "flex": pct, "contents": inner });
         });
@@ -1057,9 +1089,9 @@ function buildReportFlex_(o) {
           return t;
         };
         boxContents.push(
-          { "type": "text", "text": band_("ﾛﾝｸﾞ", r.l, r.lA, r.lW, "🔥", bestL,  bestL  !== "-" ? r.spots[bestL].lTimes  : null), "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" },
-          { "type": "text", "text": band_("ﾐﾄﾞﾙ", r.m, r.mA, r.mW, "🔥", bestM,  bestM  !== "-" ? r.spots[bestM].mTimes  : null), "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" },
-          { "type": "text", "text": band_("ｼｮｰﾄ", r.s, r.sA, r.sW, "⚠️", worstS, worstS !== "-" ? r.spots[worstS].sTimes : null), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold", "adjustMode": "shrink-to-fit" });
+          { "type": "text", "text": band_("ﾛﾝｸﾞ", r.l, r.lA, r.lW, "🔥", bestL,  bestL  !== "-" ? r.spots[bestL].lTimes  : null), "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold" },
+          { "type": "text", "text": band_("ﾐﾄﾞﾙ", r.m, r.mA, r.mW, "🔥", bestM,  bestM  !== "-" ? r.spots[bestM].mTimes  : null), "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold" },
+          { "type": "text", "text": band_("ｼｮｰﾄ", r.s, r.sA, r.sW, "⚠️", worstS, worstS !== "-" ? r.spots[worstS].sTimes : null), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold" });
       });
       flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f4f4f4", "paddingAll": "10px", "margin": "sm", "cornerRadius": "md", "contents": boxContents });
     }
@@ -1079,10 +1111,9 @@ function buildReportFlex_(o) {
     if (withMax && sp.max > 0) body += `／最高￥${sp.max.toLocaleString()}`;
     body += "）";
     return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [
-      { "type": "span", "text": head, "weight": "bold", "color": markColor },
-      { "type": "span", "text": mark, "color": "#444444" },
-      { "type": "span", "text": `${toHalfWidthKana(sp.name)} `, "weight": "bold", "color": "#000000" },
-      { "type": "span", "text": body, "color": "#444444" }
+      { "type": "span", "text": head + mark, "weight": "bold", "color": markColor },
+      { "type": "span", "text": toHalfWidthKana(sp.name), "weight": "bold", "color": "#000000" },
+      { "type": "span", "text": " " + body, "color": "#444444" }
     ]};
   };
   DAY_TYPES.forEach(dType => {
@@ -1093,10 +1124,12 @@ function buildReportFlex_(o) {
       if (w) tLines.push(timeLine_("⚠️", "#b45f06", w, false));
     });
     if(tLines.length === 0) tLines.push({ "type": "text", "text": "データ不足", "size": "xs" });
-    flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [ { "type": "text", "text": `【${dType}】`, "size": "xs", "weight": "bold", "color": "#2e7d32", "margin": "none" }, ...tLines ] });
+    const tlBox = { "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [ { "type": "text", "text": `【${dType}】`, "size": "xs", "weight": "bold", "color": "#2e7d32", "margin": "none" }, ...tLines ] };
+    flexContents.push(tlBox); trimFirst.push(tlBox);
   });
 
   /* ---------- 📣 オプチャ（他社の人の投稿） ---------- */
+  const opuBox_ = function (box) { trimFirst.push(box); return box; };
   if (opucha && opucha.count > 0) {
     const top = opuchaTop_(opucha, 5);
     const opuLines = top.map(function (x) {
@@ -1108,13 +1141,13 @@ function buildReportFlex_(o) {
     });
     flexContents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": "📣 オプチャ情報（他社ぶん・自社の平均には混ぜていません）", "weight": "bold", "size": "sm", "color": "#7b1fa2", "margin": "md", "wrap": true },
-      { "type": "box", "layout": "vertical", "backgroundColor": "#f3e5f5", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
+      opuBox_({ "type": "box", "layout": "vertical", "backgroundColor": "#f3e5f5", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
         { "type": "text", "text": `${opucha.count}件 ／ 平均￥${Math.round(opucha.sales / opucha.count).toLocaleString()}` +
             (opucha.waitCount > 0 ? ` ／ 平均待ち${Math.round(opucha.waitSum / opucha.waitCount)}分` : "") +
             (opucha.kanku > 0 ? ` ／ うち関空 ${opucha.kanku}件` : ""),
           "size": "xs", "weight": "bold", "color": "#4a148c", "wrap": true },
         ...opuLines
-      ]});
+      ]}));
   }
 
   /* ---------- 💡 月間戦略アドバイス ---------- */
@@ -1143,7 +1176,7 @@ function buildReportFlex_(o) {
       ]});
   }
 
-  return lrSplitBubbles_(flexContents, periodStr, dashboardUrl);
+  return lrSplitBubbles_(flexContents, periodStr, dashboardUrl, trimFirst);
 }
 
 /* ============ ふきだしの大きさを、LINEの上限に合わせる ============ */
@@ -1152,9 +1185,16 @@ function buildReportFlex_(o) {
  * Flex Message 1つあたりの上限。LINEは 10KB まで。
  * ぴったりを狙うと危ないので、少し余裕を持たせておく。
  */
-const LR_FLEX_MAX = 9000;
-/** 1回の送信でならべられるふきだしの数（LINEの上限は5） */
-const LR_FLEX_BUBBLES = 5;
+const LR_FLEX_MAX = 9500;
+/**
+ * 1回の送信でならべるふきだしの数。
+ *
+ * LINEの上限は5。連投は迷惑なので、できるかぎり1通で済ませる。
+ * ただし1通は10KBまでで、記録が増えると全部は入らない。
+ * 無理に1通へ押し込むと中身が半分消えてしまうので、そのときだけ2通にする。
+ * （2通でも入らないときは、細かいところから削る）
+ */
+const LR_FLEX_BUBBLES = 2;
 
 /**
  * 文字がUTF-8で何バイトになるかを数える。
@@ -1203,19 +1243,23 @@ function lrBubble_(contents, title, dashboardUrl) {
  * それでも入りきらないとき（5つを超えるとき）は、最後に
  * 「続きはスプシで見てください」と入れて、送信は必ず成功させる。
  */
-function lrSplitBubbles_(contents, periodStr, dashboardUrl) {
+function lrSplitBubbles_(contents, periodStr, dashboardUrl, trimFirst) {
   const titleOf = function (i, total) {
     return total <= 1 ? `📈 【${periodStr}】分析・戦略レポート`
                       : `📈 【${periodStr}】分析・戦略レポート（${i + 1}/${total}）`;
   };
   // 見出しの長さぶんも数に入れておく（あとで番号が付いても超えないように）
   const overhead = lrBytes_(JSON.stringify(lrBubble_([], titleOf(0, 9), dashboardUrl)));
+  const weigh = function (el) { return lrBytes_(JSON.stringify(el)) + 1; };
+  const groupSize = function (g) {
+    return g.reduce(function (a, el) { return a + weigh(el); }, overhead);
+  };
 
   const pack = function (list) {
     const out = [];
     let cur = [], size = overhead;
     list.forEach(function (el) {
-      const w = lrBytes_(JSON.stringify(el)) + 1;
+      const w = weigh(el);
       // 1つだけで上限を超えるものは、どうやっても入らないので、そのまま1つのふきだしにする
       if (cur.length && size + w > LR_FLEX_MAX) { out.push(cur); cur = []; size = overhead; }
       cur.push(el); size += w;
@@ -1224,33 +1268,70 @@ function lrSplitBubbles_(contents, periodStr, dashboardUrl) {
     return out;
   };
 
-  let work = contents.slice();
-  let groups = pack(work);
-  let cut = 0;
+  // 削ったときの断り書き。これを足したぶんで、また上限を超えることがあるので、
+  // 「断り書きを入れたあとの大きさ」で判定する
+  const note = function (n) {
+    return [{ "type": "separator", "margin": "md" },
+      { "type": "text", "text": "※ 記録が多いので、細かいところは " + n + "件ぶん省きました。\n　 全部は下のボタンからスプシで見られます。",
+        "size": "xs", "color": "#b71c1c", "wrap": true, "margin": "md", "weight": "bold" }];
+  };
+  const withNote = function (gs, n) {
+    if (n <= 0 || !gs.length) return gs;
+    const copy = gs.map(function (g) { return g.slice(); });
+    copy[copy.length - 1] = copy[copy.length - 1].concat(note(n));
+    return copy;
+  };
+  const fits = function (gs) {
+    return gs.length <= LR_FLEX_BUBBLES && gs.every(function (g) { return groupSize(g) <= LR_FLEX_MAX; });
+  };
 
-  // 5つに収まらないときは、うしろから丸ごと捨てない。
-  // うしろにあるのは「月間戦略アドバイス」なので、それを真っ先に落とすのは本末転倒。
-  // いちばんかさばっている箱の中身を1行ずつ削って、全部の見出しが残るようにする。
-  let guard = 0;
-  while (groups.length > LR_FLEX_BUBBLES && guard++ < 400) {
+  // 削ってよい箱（時間詳細・オプチャ）を先に削る。
+  // エリア別の成績と月間戦略アドバイスは、レポートの結論なので最後まで残す。
+  const work = contents.slice();
+  const detail = (trimFirst || []).filter(function (el) { return el && Array.isArray(el.contents); });
+  //
+  // 削り方の順番。いきなり1つの箱を空にすると、そこだけ情報が消えて不公平になる。
+  //   ① 細かい話（時間詳細・オプチャ）を、どれも「見出し＋3行」まで減らす
+  //   ② それでも入らなければ、ほかの箱も同じところまで減らす
+  //   ③ 最後の手段として、見出し1行だけを残すところまで減らす
+  // いつも「いちばん大きい箱」から減らすので、どれか1つだけが丸ごと消えることはない。
+  //
+  const pickTarget = function (pool, floor) {
     let target = null, biggest = 0;
-    work.forEach(function (el) {
-      if (!el || !Array.isArray(el.contents) || el.contents.length <= 2) return;
+    pool.forEach(function (el) {
+      if (!el || !Array.isArray(el.contents) || el.contents.length <= floor) return;
       const w = lrBytes_(JSON.stringify(el));
       if (w > biggest) { biggest = w; target = el; }
     });
-    if (!target) break;                 // もう削れるものが無い
+    return target;
+  };
+  const nextTarget = function () {
+    return pickTarget(detail, 4) || pickTarget(work, 4)
+        || pickTarget(detail, 1) || pickTarget(work, 1);
+  };
+
+  let groups = pack(work);
+  let cut = 0, guard = 0, done = null;
+  while (guard++ < 800) {
+    const g = withNote(groups, cut);
+    if (fits(g)) { done = g; break; }
+    const target = nextTarget();
+    if (!target) { done = g; break; }        // もう削れるものが無い
     target.contents.pop(); cut++;
     groups = pack(work);
   }
-  if (!groups.length) groups.push([{ "type": "text", "text": "この期間の記録がありません", "size": "sm", "wrap": true }]);
+  groups = done || withNote(groups, cut);
+  if (!groups.length) groups = [[{ "type": "text", "text": "この期間の記録がありません", "size": "sm", "wrap": true }]];
 
-  // それでも入りきらないときだけ、最後に打ち切る
-  if (groups.length > LR_FLEX_BUBBLES) { groups.length = LR_FLEX_BUBBLES; cut++; }
-  if (cut > 0) {
-    groups[groups.length - 1].push({ "type": "separator", "margin": "md" },
-      { "type": "text", "text": "※ 記録が多いので、細かいところは " + cut + "件ぶん省きました。\n　 全部は下のボタンからスプシで見られます。",
-        "size": "xs", "color": "#b71c1c", "wrap": true, "margin": "md", "weight": "bold" });
+  // それでも枚数が多いときは、最後に打ち切る（送れないよりはよい）。
+  // このとき断り書きは最後のふきだしに付いているので、打ち切ると一緒に消えてしまう。
+  // 「省きました」と言わないまま中身だけ減るのがいちばん困るので、必ず付け直す。
+  if (groups.length > LR_FLEX_BUBBLES) {
+    groups.length = LR_FLEX_BUBBLES;
+    const last = groups[groups.length - 1];
+    if (!last.some(function (el) { return el && typeof el.text === "string" && el.text.indexOf("省きました") !== -1; })) {
+      groups[groups.length - 1] = last.concat(note(Math.max(cut, 1)));
+    }
   }
 
   // ボタン（スプシへ移動）は最後のふきだしにだけ付ける
@@ -1497,9 +1578,22 @@ function advicePlain_(parts) {
 
 /** 太字つきの行を、LINEの絵の span にする */
 function adviceSpans_(parts, baseColor) {
-  return parts.map(function (x) {
-    return { "type": "span", "text": x.t, "weight": x.b ? "bold" : "regular", "color": x.c || baseColor || "#333333" };
+  // 太字でも色つきでもないところは、となり同士をひとつにまとめる。
+  // 1文字ずつ span を作ると、見た目は同じなのに中身（JSON）だけがふくらみ、
+  // LINEの上限（10KB）に早く当たってしまう
+  const out = [];
+  parts.forEach(function (x) {
+    const color = x.c || baseColor || "#333333";
+    const bold = !!x.b;
+    const last = out[out.length - 1];
+    if (last && !bold && last._plain && last.color === color) { last.text += x.t; return; }
+    const sp = { "type": "span", "text": x.t, "color": color };
+    if (bold) sp.weight = "bold"; else sp._plain = true;
+    out.push(sp);
   });
+  // 目印は、送る前に落とす（LINEが知らない項目を送ると弾かれる）
+  out.forEach(function (sp) { delete sp._plain; });
+  return out;
 }
 
 /*
@@ -1682,9 +1776,9 @@ function aiFallback_(it) {
  *
  *  前は A〜Z列 を 50px で作っていた（1,300px）。iPhone の画面は 400px ほどしかないので、
  *  全体を見ようとすると3分の1まで縮まり、文字が読めなかった。
- *  そこで 1列 22px（26列 ＝ 572px）にした。
- *  記録用スプシの横幅の合計（527px）に近い。それより少し広いだけなので、
- *  横のスクロールも縦のスクロールも、どちらも極端にならない。
+ *  そこで 1列 26px（26列 ＝ 676px）にした。
+ *  記録用スプシの横幅の合計（527px）より少し広い。
+ *  狭くすると縦のスクロールが長くなりすぎるので、このあたりで釣り合う。
  *  文字も 8pt → 11〜14pt に上げている。
  *
  *  ★「－」だけの行と列は作らない。
@@ -1693,7 +1787,7 @@ function aiFallback_(it) {
  */
 
 /** 1列の幅（px）。26列で iPhone の画面幅におさまるようにしてある */
-const DB_COL_W = 22;
+const DB_COL_W = 26;
 /** 列の数（＝横いっぱいのマージ幅） */
 const DB_COLS  = 26;
 
@@ -1777,9 +1871,14 @@ function dbTidy_(text) {
  */
 function dbOpenTarget_(mainSS) {
   const desc = mainSS.getSheetByName("説明");
+  const props = PropertiesService.getScriptProperties();
   let id = "";
   try { if (typeof cfg_ === "function") id = String(cfg_("まとめスプシのID") || "").trim(); } catch (e) {}
   if (!id && desc) id = String(desc.getRange("Z2").getValue() || "").trim();
+  // セルは消えることがある（行を消した・シートを作り直した など）。
+  // 実際それで毎回あたらしいスプシが作られてしまっていたので、
+  // スクリプト自身の控えからも探す。こちらはシートを触っても消えない
+  if (!id) id = String(props.getProperty("DASHBOARD_ID") || "").trim();
 
   // URLを貼られてもいいように、IDだけ取り出す
   const m = id.match(/\/d\/([a-zA-Z0-9-_]{20,})/);
@@ -1788,7 +1887,9 @@ function dbOpenTarget_(mainSS) {
   if (id) {
     try {
       const ss = SpreadsheetApp.openById(id);
-      if (desc) desc.getRange("Z2").setValue(id);   // 次からはこれを使う
+      // 次からは必ずここへ作る。3か所に控えておき、1つ消えても迷子にならないようにする
+      if (desc) desc.getRange("Z2").setValue(id);
+      props.setProperty("DASHBOARD_ID", id);
       return ss;
     } catch (e) {
       throw new Error("まとめスプシを開けませんでした（ID: " + id.slice(0, 12) + "…）。\n" +
@@ -1798,6 +1899,8 @@ function dbOpenTarget_(mainSS) {
   }
   const made = SpreadsheetApp.create("☣️僕はグールだッシュボード☣️");
   if (desc) desc.getRange("Z2").setValue(made.getId());
+  props.setProperty("DASHBOARD_ID", made.getId());
+  SpreadsheetApp.flush();          // 書き終わる前に落ちても、行き先を見失わないように
   return made;
 }
 
@@ -1851,6 +1954,13 @@ function dbDotLines_(dbSS, sheetName) {
           se.lineStyle  = { width: 1, type: "DOTTED" };
           se.pointStyle = { size: DB_POINT_SIZE, shape: "CIRCLE" };
         });
+        // ★ここを忘れると凡例（7/16・7/17…の日付）が消える。
+        //   Apps Script 側で付けていた日付の名前は、この spec には入っていない。
+        //   headerCount を 1 にして「1行目を名前として使う」と伝えると、
+        //   もとの表の見出し（日付）がそのまま凡例になる。
+        //   前の版でこれを入れ忘れ、指示されていない凡例まで消してしまっていた
+        spec.basicChart.headerCount = 1;
+        spec.basicChart.legendPosition = "BOTTOM_LEGEND";
         reqs.push({ updateChartSpec: { chartId: ch.chartId, spec: spec } });
       });
     });
@@ -1881,7 +1991,7 @@ function dbGap_(sheet, row) {
   try {
     dbEnsureRows_(sheet, row);
     sheet.getRange(row, 1, 1, DB_COLS).merge().setBackground("#ffffff");
-    sheet.setRowHeight(row, 12);
+    sheet.setRowHeight(row, 30);
   } catch (e) {}
 }
 
@@ -1897,13 +2007,18 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   const CHART_W = DB_COLS * DB_COL_W - 2;
   // ヒートマップとグラフを、スクロールせずに見比べられる高さにする
   const CHART_H = 300;
-  const CHART_ROWS = Math.ceil(CHART_H / 21) + 1;   // この行数だけ空けないと次の見出しに重なる
+  // グラフの下に空白ができていたのは、この行の高さが前回の実行のまま（大きいまま）
+  // 残っていたため。置くときに必ず 21px へそろえるので、ぴったりの行数で足りる
+  const CHART_ROW_H = 21;
+  const CHART_ROWS = Math.ceil(CHART_H / CHART_ROW_H);
 
   let sheet = dbSS.getSheetByName(tabName) || dbSS.insertSheet(tabName, 0);
   sheet.clear(); sheet.getCharts().forEach(c => sheet.removeChart(c));
   let maxR = sheet.getMaxRows(); if(maxR < 900) sheet.insertRowsAfter(maxR, 900 - maxR);
   // clear() では結合は外れない。前の割りつけが残っていると新しい表と衝突するので、必ずほどく
   try { sheet.getRange(1, 1, sheet.getMaxRows(), DB_COLS).breakApart(); } catch (e) {}
+  // clear() では固定行も外れない。前に固定したものが残るので、はっきり0に戻す
+  try { sheet.setFrozenRows(0); sheet.setFrozenColumns(0); } catch (e) {}
   for(let i=1; i<=DB_COLS; i++) sheet.setColumnWidth(i, DB_COL_W);
 
   /** 横いっぱいの見出し行 */
@@ -2203,14 +2318,26 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           // ※ lineDashStyle（点線）は、ここに書いてもスプレッドシートのグラフでは効かない。
           //   グラフを置いたあとに dbDotLines_() が Sheets API から直接かけ直す
           let seriesOpt = {}; for (let i = 0; i < datesArr.length; i++) { seriesOpt[i] = { lineWidth: 1, pointShape: 'circle', pointSize: DB_POINT_SIZE, color: dateColorMap[datesArr[i]], labelInLegend: datesArr[i] }; }
-          let customTicks = []; for(let i=20; i<=29.1; i+=0.5) { customTicks.push(Math.round(i*1000)/1000); }
-          let maxP = Math.max(...recs.map(r=>r.price)) || 10000; let vStep = maxP > 20000 ? 5000 : 2000; let vTicks = []; for(let v=0; v<=maxP+vStep; v+=vStep) vTicks.push(v);
+          // 目盛りの数（ticks）は、スプレッドシートのグラフでは効かない。
+          // 代わりに「軸の範囲」を実際の記録に合わせて狭める。
+          // 20〜29時で固定していたので、23〜27時に記録が集まっていても目盛りが粗かった。
+          // 範囲を狭めれば、そのぶん目盛りの線が細かく入る。
+          const tMin = Math.floor(Math.min.apply(null, recs.map(function (r) { return r.timeDec; })) * 2) / 2;
+          const tMax = Math.ceil(Math.max.apply(null, recs.map(function (r) { return r.timeDec; })) * 2) / 2;
+          const hMin = Math.max(20, tMin - 0.5), hMax = Math.min(29, Math.max(tMax + 0.5, hMin + 1));
+          const maxP = Math.max.apply(null, recs.map(function (r) { return r.price; })) || 10000;
+          const vMax = Math.ceil(maxP / 1000) * 1000 + 1000;
 
           let chart = sheet.newChart().asLineChart().addRange(dataRng).setPosition(curRow, 1, 0, 0)
             .setOption('title', `📈 【${spotName}】時刻別の売上`)
             .setOption('titleTextStyle', { fontSize: 14, bold: true })
-            .setOption('hAxis', {title: '時間', minValue: 20, maxValue: 29, ticks: customTicks, gridlines: {color: '#e0e0e0'}, textStyle: {fontSize: 11}})
-            .setOption('vAxis', {title: '売上', format: '￥#,##0', ticks: vTicks, gridlines: {color: '#e0e0e0'}, textStyle: {fontSize: 11}})
+            // 目盛りの線は薄いグレー。細かい線（minorGridlines）も入れて、数値を読み取りやすくする
+            .setOption('hAxis', {title: '時間', viewWindow: {min: hMin, max: hMax},
+              gridlines: {color: '#d0d0d0', count: -1}, minorGridlines: {color: '#eeeeee', count: 1},
+              textStyle: {fontSize: 10}})
+            .setOption('vAxis', {title: '売上', format: '￥#,##0', viewWindow: {min: 0, max: vMax},
+              gridlines: {color: '#d0d0d0', count: -1}, minorGridlines: {color: '#eeeeee', count: 1},
+              textStyle: {fontSize: 10}})
             .setOption('series', seriesOpt).setOption('useFirstColumnAsDomain', true).setOption('headers', 1)
             .setOption('lineWidth', 1).setOption('pointSize', DB_POINT_SIZE)
             // 横が狭いので、日付の一覧は右ではなく下に置く
@@ -2218,6 +2345,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             .setOption('chartArea', {left: '16%', top: '12%', width: '80%', height: '62%'}).setOption('interpolateNulls', true)
             .setOption('width', CHART_W).setOption('height', CHART_H).build();
           sheet.insertChart(chart); hiddenDataRow += table.length + 6; chartPlaced = true;
+          // グラフが乗る行の高さをそろえる。ここをやらないと、前に書いた表の
+          // 高い行がそのまま残り、グラフの下に大きな空白ができる
+          dbEnsureRows_(sheet, curRow + CHART_ROWS);
+          try { sheet.setRowHeights(curRow, CHART_ROWS, CHART_ROW_H); } catch (e) {}
         }
       }
       curRow += chartPlaced ? CHART_ROWS : 0;
