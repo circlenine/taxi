@@ -462,12 +462,10 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
   eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 🔥新地4(月)23:51',
      'おすすめの乗り場と、その時刻まで入れて1行に収める');
-  eq(J.indexOf('🔥 アツい（狙う）') !== -1, true, '記号の意味は、上の凡例で1回だけ説明する');
-  eq(J.indexOf('⚠️ 避ける') !== -1, true, '  避けるほうも');
-  eq(J.indexOf('(月) その曜日') !== -1, true, '  (月) の意味も');
-  // 右がスカスカにならないよう、1行に2つずつ入れてある
-  const legend = (J.match(/この絵の読み方[^"]*/) || [''])[0];
-  eq((J.match(/🔥 アツい（狙う）　／　⚠️ 避ける/) || []).length, 1, '  1行に2つずつまとめる');
+  eq(J.indexOf('🔥：アツい（狙う）') !== -1, true, '記号のうしろに「：」を付けて、何の説明か分かるようにする');
+  eq(J.indexOf('⚠️：避ける') !== -1, true, '  避けるほうも');
+  eq(J.indexOf('(月)：その曜日') !== -1, true, '  (月) の意味も');
+  eq((J.match(/🔥：アツい（狙う）　／　⚠️：避ける/) || []).length, 1, '  1行に2つずつまとめる');
   eq(J.indexOf('── この絵の読み方 ──') !== -1, true, '  読み方の見出しを付ける');
 }
 
@@ -639,9 +637,8 @@ console.log('\n■ 中身が増えても、LINEの上限で落ちない');
   });
 
   const sizes = big.map(b => ctx.lrBytes_(JSON.stringify(b)));
-  // 連投は迷惑なので1通にまとめたいが、LINEは1通10KBまで。
-  // 無理に押し込むと中身が半分消えるので、そのときだけ2通まで許す
-  eq(big.length <= 2, true, '記録がいちばん多いときでも2通まで（' + big.length + '通）');
+  // LINEは1通10KBまで。中身を削るより、通数を増やして全部届ける
+  eq(big.length <= 5, true, 'LINEの上限5通を超えない（' + big.length + '通）');
   eq(sizes.every(n => n <= 10000), true,
      'LINEの上限10,000バイトに収まる（実際 ' + sizes.join('・') + '）');
   eq(big[big.length - 1].footer !== undefined, true, 'スプシへのボタンは最後の1通に付く');
@@ -649,7 +646,7 @@ console.log('\n■ 中身が増えても、LINEの上限で落ちない');
 
   // 削るときも、結論から捨てない
   const all = JSON.stringify(big);
-  eq(all.indexOf('省きました') !== -1, true, '入りきらなかったぶんは、そう断る');
+  eq(all.indexOf('省きました') === -1, true, '5通あれば、削らずに全部入る');
   eq(all.indexOf('月間戦略アドバイス') !== -1, true, '月間戦略アドバイスは必ず残る（結論なので）');
   eq(all.indexOf('この期間の振り返り') !== -1, true, '  振り返りも');
   eq(all.indexOf('オススメの乗車時間と乗り場') !== -1, true, '  オススメも');
@@ -807,12 +804,12 @@ console.log('\n■ アツいエリアは、曜日区分ごとに1つだけ');
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
   })(f);
 
-  eq(rows.length, 1, '記録のある曜日区分ぶんだけ、1行ずつ（' + rows.length + '行）');
+  eq(rows.length, 3, '記録のあるエリアを3つとも出す（' + rows.length + '行）');
   eq(rows[0].indexOf('北') !== -1, true,
-     '61件の「北」が選ばれる（2件で平均が高いだけのエリアではない）');
+     '1位は61件の「北」（2件で平均が高いだけのエリアではない）');
   eq(rows[0].indexOf('🥇') === 0, true, '3件以上あるので 🥇 が付く');
-  eq(rows.filter(t => /ﾐﾅﾐ|ほか/.test(t)).length, 0,
-     '2位・3位はLINEには出さない（3つともスプシで見られる）');
+  eq(rows[1].indexOf('(参考)') === 0 && rows[2].indexOf('(参考)') === 0, true,
+     '3件に満たないエリアは (参考) 扱いで下に回す');
 
   // 3件に満たないものしか無いときは、(参考) を付けて出す
   const as2 = {}; ADV_DT.forEach(d => { as2[d] = { "北": mk({}), "ﾐﾅﾐ": mk({}), "ほか": mk({}) }; });
@@ -867,6 +864,84 @@ console.log('\n■ LINEに出す時間帯の数');
   vm.runInContext('cfg_ = function(k){ return k === "LINEに出す時間帯の数" ? 0 : ""; }', ctx);
   eq(build().length, 3, 'ありえない数（0）は既定に戻す');
   vm.runInContext('cfg_ = function(){ return ""; }', ctx);
+}
+
+console.log('\n■ 見出しの途中で、次のメッセージに切り替わらない');
+{
+  // 実データくらいの量を作る
+  const mk = o => Object.assign({l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,
+    lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}}, o);
+  const sp = () => ({l:2,m:1,s:20,lSum:25924,mSum:7330,sSum:43000,
+    lTimes:{"(月) 23:51":1}, mTimes:{"(火) 00:10":1}, sTimes:{"(水) 02:30":2}});
+  const as = {}; ADV_DT.forEach(d => { as[d] = {
+    "北":   mk({l:7,m:7,s:47,t:61,sales:249063,lSum:92421,mSum:52220,sSum:104387,waitSum:1586,waitCount:61,spots:{"ガチマネプラ乗り場":sp(),"新地7":sp()}}),
+    "ﾐﾅﾐ":  mk({l:3,m:3,s:6, t:12,sales:90000, lSum:54000,mSum:21000,sSum:15000, waitSum:120, waitCount:12,spots:{"ドン2":sp()}}),
+    "ほか": mk({l:3,m:2,s:5, t:10,sales:70000, lSum:40000,mSum:14000,sSum:16000, waitSum:100, waitCount:10,spots:{"コナン像前":sp()}}) }; });
+  const ft = mkFt([]);
+  ADV_DT.forEach(d => [20,23,0,1,2,3].forEach(h => {
+    ft[d][h] = { best:  { name:"ガチマネプラ乗り場", count:15, avg:6758, max:18960, at:("0"+h).slice(-2)+":51" },
+                 worst: { name:"新地7", count:2, avg:2050, max:2050, at:("0"+h).slice(-2)+":20" } };
+  }));
+  const opu = { count:120, sales:960000, waitSum:1200, waitCount:80, kanku:30, spots:{}, hours:{} };
+  for (let i = 0; i < 5; i++) opu.spots["オプチャ乗り場" + i] = { count:12-i, sales:90000, max:20000, at:"金曜 23:5" + i };
+  const adv = ctx.buildMonthlyAdvice_(
+    { "北4|ガチマネプラ乗り場": { count:16, sales:108000, waitSum:320, waitCount:16 } },
+    { "北4|ガチマネプラ乗り場": { "4|23": { count:6, sales:65000, times:["23:44","23:51"] } } },
+    ft, ADV_DT, ADV_HRS, new D(2026, 7, 15));
+
+  const msgs = ctx.buildReportFlex_({
+    periodStr: "7/16(木)～8/15(土)", totalRidesCount: 165,
+    tabRidesCount: {"北7":36,"北4":39,"北他":45,"ﾐﾅﾐ":27,"関空":1,"ほか":17},
+    DAY_TYPES: ADV_DT, areaStats: as, finalTimeline: ft,
+    targetHours: ADV_HRS, dashboardUrl: "https://example.com/x", advice: adv, opucha: opu,
+    getBestTimeStr: function (o) { if (!o) return ""; let mc=0,bt=""; for (const t in o) if (o[t]>mc){mc=o[t];bt=t;} return bt?" ["+bt+"]":""; }
+  });
+
+  const sizes = msgs.map(b => ctx.lrBytes_(JSON.stringify(b)));
+  eq(sizes.every(n => n <= 10000), true, 'どの通もLINEの上限内（' + sizes.join('・') + '）');
+  eq(JSON.stringify(msgs).indexOf('省きました') === -1, true, '中身を削らずに全部届く');
+
+  // 見出しごとに、どの通に入ったかを調べる
+  const where = {};
+  msgs.forEach((b, i) => {
+    (b.body.contents || []).forEach(el => {
+      const t = String(el.text || '');
+      ['パーセント・実績', '時間詳細', 'オプチャ情報', '月間戦略アドバイス'].forEach(name => {
+        if (t.indexOf(name) !== -1) { (where[name] = where[name] || []).push(i); }
+      });
+      // かたまりの中身（曜日区分の箱）も、どの通にあるか数える
+      if (el.type === 'box' && Array.isArray(el.contents)) {
+        const head = String((el.contents[0] || {}).text || '');
+        if (/^【(平日|金曜|土曜|日祝)】$/.test(head)) (where['箱' + head] = where['箱' + head] || []).push(i);
+      }
+    });
+  });
+  eq(where['時間詳細'].length, 1, '「時間詳細」の見出しは1か所だけ');
+  // 時間詳細の4つの箱が、すべて同じ通にあること
+  const tlMsg = where['時間詳細'][0];
+  const boxesAfter = (msgs[tlMsg].body.contents || []);
+  const tlStart = boxesAfter.findIndex(el => String(el.text || '').indexOf('時間詳細') !== -1);
+  const tlBoxes = boxesAfter.slice(tlStart + 1).filter(el => el.type === 'box' &&
+    /^【(平日|金曜|土曜|日祝)】$/.test(String((el.contents[0] || {}).text || '')));
+  eq(tlBoxes.length, 4, '  4つの曜日区分とも、同じ通にそろっている（途中で切れない）');
+
+  eq(where['オプチャ情報'].length, 1, '「オプチャ情報」も1か所だけ');
+  eq(where['月間戦略アドバイス'].length, 1, '「月間戦略アドバイス」も1か所だけ');
+
+  // 1通に入りきらないかたまりだけは分かれる。そのときは見出しを引き継ぐ
+  // 1通に入らないかたまりが分かれたときは、見出しを引き継ぐ
+  const J3 = JSON.stringify(msgs);
+  if (J3.indexOf('（つづき）') !== -1) {
+    const heads = [];
+    msgs.forEach(b => (b.body.contents || []).forEach(el => {
+      if (String(el.text || '').indexOf('（つづき）') !== -1) heads.push(String(el.text));
+    }));
+    eq(heads.every(t => /【[^】]+】（つづき）$/.test(t)), true,
+       '分かれた先には、直前の見出し＋（つづき）が付く（' + heads.join(' / ') + '）');
+  }
+  // 最後の通にだけ、スプシへのボタン
+  eq(msgs[msgs.length - 1].footer !== undefined, true, 'スプシへのボタンは最後の通だけ');
+  eq(msgs.slice(0, -1).every(b => b.footer === undefined), true, '  途中には付けない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

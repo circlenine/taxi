@@ -2,11 +2,30 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L014ver  （2026/09/06）  ★★★
+ *  ★★★  L015ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L015ver]
+ *  ▼ LINEの絵
+ *   ・アツいエリアを3つずつに戻した（1つに絞っても1通にならなかったため）
+ *   ・読み方の記号のうしろに「：」を付けた（🔥：アツい のように）
+ *   ・見出しの途中で次のメッセージに移らないようにした
+ *     前は「時間詳細」の真ん中で切り替わっていた。
+ *     見出しとその中身をひとまとまりとして数え、まとめて次の通へ送る。
+ *     1通に入りきらないほど大きいかたまりだけは分かれるが、
+ *     そのときは見出しに「（つづき）」を付けて引き継ぐ
+ *   ・中身を削るより通数を増やすようにした（上限5通）。実データでは4通、削りゼロ
+ *
+ *  ▼ まとめスプシ
+ *   ・ヒートマップを、どの乗り場でも同じ形（月〜日 × 20〜05時台）にそろえた
+ *     記録の無い曜日を抜いていたので、乗り場ごとに列の並びが変わり、見比べられなかった
+ *   ・個別乗り場 実績を、金額（平均）の高い順にした（前はタブごとに固めていた）
+ *   ・後半の表で、同じ乗り場は空行を挟まず続けて並べるようにした
+ *     曜日が違うだけで離れた場所にとぶと、その乗り場がどうだったのか読み取れない
+ *     並ぶ場所は、その乗り場のいちばん高い額（避けたい表はいちばん安い額）で決める
  *
  *  [L014ver]
  *  ▼ LINEの絵
@@ -229,7 +248,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L014ver";
+const LR_VERSION = "L015ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -653,8 +672,12 @@ function rpTestTarget_() {
 function rpGroupTarget_() {
   try {
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    return sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
-  } catch (e) { return ""; }
+    const v = sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
+    if (v) return v;
+  } catch (e) {}
+  // 説明タブが空でも、LINEから届いたときに覚えたものがあれば、それを使う
+  try { return String(PropertiesService.getScriptProperties().getProperty("GROUP_ID") || "").trim(); }
+  catch (e) { return ""; }
 }
 
 /* ---- 期間の読み取り ---- */
@@ -997,7 +1020,11 @@ function autoReportStatusText_() {
     L.push("グループLINEへ自動で送られます。");
   } else {
     L.push("⚠️ いまのままでは、自動では送られません。");
-    if (!to) L.push("　・グループIDを設定してください（メニュー「👥 グループIDを設定」）");
+    if (!to) {
+      L.push("　・送り先（グループ）がまだ分かっていません。");
+      L.push("　　グループLINEに何か1つ投稿してください。それだけで覚えます。");
+      L.push("　　（投稿したあと、もう一度このチェックを入れて確かめてください）");
+    }
   }
   return L.join("\n");
 }
@@ -1248,6 +1275,11 @@ function buildReportFlex_(o) {
   // 入りきらないときに、先に削ってよい箱（細かい話）を覚えておく。
   // エリア別の成績と月間戦略アドバイスは結論なので、ここには入れない
   const trimFirst = [];
+  // どこからどこまでが1つのかたまりか。
+  // 2通に分けるとき、かたまりの途中で切らないために使う
+  // （前は「時間詳細」の真ん中で次のメッセージに移っていた）
+  const sections = [];
+  const section_ = function () { sections.push(flexContents.length); };
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
   // 記号の意味は、ここで1回だけ説明する。
   // 各行に「🔥アツい：」「⚠️避ける：」と毎回書くと、そのぶん1行に収まらなくなるため
@@ -1257,10 +1289,12 @@ function buildReportFlex_(o) {
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f1f3f4", "paddingAll": "8px", "cornerRadius": "md", "margin": "sm", "contents": [
     { "type": "text", "text": "── この絵の読み方 ──", "size": "xxs", "weight": "bold", "color": "#5f6368" },
     { "type": "text", "size": "xxs", "color": "#5f6368", "wrap": true, "margin": "xs",
-      "text": "🔥 アツい（狙う）　／　⚠️ 避ける\n" +
-              "[00:00] いちばん高かった乗車の時刻　／　(月) その曜日\n" +
-              "〇件 乗車回数　／　待〇分 平均の待ち時間" }
+      "text": "🔥：アツい（狙う）　／　⚠️：避ける\n" +
+              "[00:00]：いちばん高かった乗車の時刻　／　(月)：その曜日\n" +
+              "〇件：乗車回数　／　待〇分：平均の待ち時間" }
   ]});
+  // ここは区切らない。総件数・読み方とエリア別は、続けて1通目に入れる
+  // （区切ると、1通目が見出しだけの小さなカードになってしまう）
   flexContents.push({ "type": "separator", "margin": "md" }, { "type": "text", "text": "🔥アツいエリア【パーセント・実績】", "weight": "bold", "size": "sm", "color": "#1155ca", "margin": "md" });
 
   DAY_TYPES.forEach(type => {
@@ -1274,13 +1308,13 @@ function buildReportFlex_(o) {
     // 3件に満たないエリアは、ほかに候補があるかぎり1位にしない
     // （ほかが無いときだけ出て、記号も 🥇 ではなく (参考) になる）。
     areaRanks.sort((a,b) => b.score - a.score);
-    // 3つならべると1通に収まらないので、LINEでは曜日区分ごとに1つだけ。
-    // 3つとも見たいときは、まとめスプシの「エリア別 実績＆パーセント」にある
-    const areaTop = areaRanks.slice(0, 1);
+    // 1つに絞っても1通には収まらなかったので、今までどおり3つとも出す。
+    // 並び順は平均売上の高い順（3件に満たないものは下へ）
+    const areaTop = areaRanks;
     if(areaTop.length > 0) {
       let boxContents = [ { "type": "text", "text": `【${type}】`, "size": "sm", "weight": "bold", "color": "#333333", "margin": "sm" } ];
       areaTop.forEach((r, i) => {
-        let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t >= 3 ? "🥇" : "(参考)";
+        let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t >= 3 ? (i < 3 ? ["🥇","🥈","🥉"][i] : "") : "(参考)";
         let bestL = "-", bestM = "-", worstS = "-"; let bcL = 0, bcM = 0, bcS = 999999;
         for(let sn in r.spots) { let st = r.spots[sn]; if(st.l > bcL) { bcL = st.l; bestL = sn; } if(st.m > bcM) { bcM = st.m; bestM = sn; } if(st.s > 0 && (st.sSum/st.s) < bcS) { bcS = st.sSum/st.s; worstS = sn; } }
         boxContents.push({ "type": "text", "text": `${rankStr} ${r.name} （${r.t}件 ／ 平均売上￥${r.avg.toLocaleString()} ／ 平均待ち${r.wait}分）`, "size": "xs", "weight": "bold", "color": "#1155ca", "margin": "md", "wrap": true });
@@ -1329,6 +1363,7 @@ function buildReportFlex_(o) {
     }
   });
 
+  section_();
   flexContents.push({ "type": "separator", "margin": "lg" }, { "type": "text", "text": "🔥アツい ✖️ ⚠️避ける【時間詳細】", "weight": "bold", "size": "sm", "color": "#34a853", "margin": "md", "wrap": true });
   //
   // 1行 ＝ 1つの時間帯。頭に「行くならこの時刻」を1つだけ出す。
@@ -1387,6 +1422,7 @@ function buildReportFlex_(o) {
         { "type": "span", "text": `（${x.count}件／平均￥${x.avg.toLocaleString()}／最高￥${x.max.toLocaleString()}）`, "color": "#444444" }
       ]};
     });
+    section_();
     flexContents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": "📣 オプチャ情報（他社ぶん・自社の平均には混ぜていません）", "weight": "bold", "size": "sm", "color": "#7b1fa2", "margin": "md", "wrap": true },
       opuBox_({ "type": "box", "layout": "vertical", "backgroundColor": "#f3e5f5", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
@@ -1404,6 +1440,7 @@ function buildReportFlex_(o) {
     const pickLines = advicePickParts_(advice).map(function (parts) {
       return { "type": "text", "size": "xs", "wrap": true, "margin": "sm", "contents": adviceSpans_(parts, "#5f6368") };
     });
+    section_();
     flexContents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": "💡 月間戦略アドバイス", "weight": "bold", "size": "sm", "color": "#f57c00", "margin": "md" },
 
@@ -1424,7 +1461,7 @@ function buildReportFlex_(o) {
       ]});
   }
 
-  return lrSplitBubbles_(flexContents, periodStr, dashboardUrl, trimFirst);
+  return lrSplitBubbles_(flexContents, periodStr, dashboardUrl, trimFirst, sections);
 }
 
 /* ============ ふきだしの大きさを、LINEの上限に合わせる ============ */
@@ -1442,7 +1479,7 @@ const LR_FLEX_MAX = 9500;
  * 無理に1通へ押し込むと中身が半分消えてしまうので、そのときだけ2通にする。
  * （2通でも入らないときは、細かいところから削る）
  */
-const LR_FLEX_BUBBLES = 2;
+const LR_FLEX_BUBBLES = 5;
 
 /**
  * 文字がUTF-8で何バイトになるかを数える。
@@ -1491,7 +1528,7 @@ function lrBubble_(contents, title, dashboardUrl) {
  * それでも入りきらないとき（5つを超えるとき）は、最後に
  * 「続きはスプシで見てください」と入れて、送信は必ず成功させる。
  */
-function lrSplitBubbles_(contents, periodStr, dashboardUrl, trimFirst) {
+function lrSplitBubbles_(contents, periodStr, dashboardUrl, trimFirst, sections) {
   const titleOf = function (i, total) {
     return total <= 1 ? `📈 【${periodStr}】分析・戦略レポート`
                       : `📈 【${periodStr}】分析・戦略レポート（${i + 1}/${total}）`;
@@ -1503,14 +1540,62 @@ function lrSplitBubbles_(contents, periodStr, dashboardUrl, trimFirst) {
     return g.reduce(function (a, el) { return a + weigh(el); }, overhead);
   };
 
+  // 中身を「かたまり」に切り分ける。
+  // 見出しとその中身は、ひとまとまりで同じふきだしに入れる。
+  // 1つずつ詰めていくと、時間詳細の途中で次のメッセージに移ってしまう
+  const chunk = function (list) {
+    const marks = (sections || []).slice().sort(function (a, b) { return a - b; });
+    const out = [];
+    let start = 0;
+    marks.concat([list.length]).forEach(function (at) {
+      if (at > start) { out.push(list.slice(start, at)); start = at; }
+    });
+    if (start < list.length) out.push(list.slice(start));
+    return out.length ? out : [list];
+  };
+
+  /**
+   * 1つのふきだしに入りきらないほど大きいかたまりを、さらに分ける。
+   * その場合だけ、見出しを次のふきだしにも引き継いで「（つづき）」と付ける。
+   * どの見出しの話なのか分からなくなるのを防ぐため。
+   */
+  const splitBig = function (group) {
+    const room = LR_FLEX_MAX - overhead;
+    if (group.reduce(function (a, el) { return a + weigh(el); }, 0) <= room) return [group];
+
+    // 直前に出てきた見出しを覚えながら進む。
+    // 分かれた先には、その見出しに「（つづき）」を付けて置く。
+    // どの見出しの話なのか分からないまま、次のメッセージが始まるのを防ぐ
+    const isHead = function (el) {
+      return el && el.type === "text" && typeof el.text === "string" && el.weight === "bold";
+    };
+    const out = []; let cur = [], size = 0, head = null;
+    group.forEach(function (el) {
+      const w = weigh(el);
+      if (cur.length && size + w > room) {
+        out.push(cur);
+        if (head) {
+          const cont = Object.assign({}, head, { text: head.text + "（つづき）", margin: "none" });
+          cur = [cont]; size = weigh(cont);
+        } else { cur = []; size = 0; }
+      }
+      if (isHead(el)) head = el;
+      cur.push(el); size += w;
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  };
+
   const pack = function (list) {
     const out = [];
     let cur = [], size = overhead;
-    list.forEach(function (el) {
-      const w = weigh(el);
-      // 1つだけで上限を超えるものは、どうやっても入らないので、そのまま1つのふきだしにする
-      if (cur.length && size + w > LR_FLEX_MAX) { out.push(cur); cur = []; size = overhead; }
-      cur.push(el); size += w;
+    chunk(list).forEach(function (group) {
+      splitBig(group).forEach(function (part) {
+        const w = part.reduce(function (a, el) { return a + weigh(el); }, 0);
+        // かたまりごと次のふきだしへ送る。かたまりの途中では切らない
+        if (cur.length && size + w > LR_FLEX_MAX) { out.push(cur); cur = []; size = overhead; }
+        cur = cur.concat(part); size += w;
+      });
     });
     if (cur.length) out.push(cur);
     return out;
@@ -2527,12 +2612,16 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     if(spotStats[key].heatmapValidCount >= 3 && spotHeatmapSales[key]) {
       let parts = key.split("|"); let tName = parts[0]; let spotName = parts[1];
 
-      // 記録がある曜日・時間帯だけを出す。空っぽの列を並べると、1マスが細くなって読めない
-      const useDays = daysOrder.filter(d => spotHeatmapSales[key][d] &&
-        targetHours.some(hr => spotHeatmapSales[key][d][hr] > 0));
-      const useHours = targetHours.filter(hr => useDays.some(d => spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr] > 0));
+      // どの乗り場でも、同じ形の表にする（月〜日 × 20〜05時台）。
+      // 記録が無い曜日を抜くと、乗り場ごとに列の並びが変わってしまい、
+      // 「この乗り場の火曜は？」と見比べるときに読み違える
+      const useDays = daysOrder;
+      const useHours = targetHours;
+      const hasAny = daysOrder.some(function (d) {
+        return spotHeatmapSales[key][d] && targetHours.some(function (hr) { return spotHeatmapSales[key][d][hr] > 0; });
+      });
       // 出すものが無ければ、下の「個別乗り場 実績」に回す（どこにも出ないのがいちばん困る）
-      if (useDays.length === 0 || useHours.length === 0) continue;
+      if (!hasAny) continue;
       heatmapSpotNames.push(spotName);
 
       if (typeof updBeat_ === "function") updBeat_("ヒートマップ " + spotName);
@@ -2668,8 +2757,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     let p = key.split("|"); let tab = p[0], name = p[1]; if(heatmapSpotNames.includes(name)) continue; let d = spotStats[key];
     spotRowsData.push({tab: tab, name: name, d: d, avgSales: Math.round(d.sales / d.count), key: key});
   }
-  const tOrder = {"北7":1, "北4":2, "北他":3, "ﾐﾅﾐ":4, "関空":5, "ほか":6};
-  spotRowsData.sort((a,b) => (tOrder[a.tab]||99) - (tOrder[b.tab]||99) || b.avgSales - a.avgSales);
+  // 金額（平均）の高い順。タブごとに固めるより、どこが強いかが一目で分かる
+  spotRowsData.sort((a, b) => b.avgSales - a.avgSales);
 
   // AIは乗り場ごとに呼ばず、1回でまとめて作る（回数制限に当たらないように）
   for (let item of spotRowsData) {
@@ -2737,7 +2826,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
 
   /* ---------- 特別な一覧（再現したい・チケット・避けたい） ---------- */
-  function createSpecialTable(title, dataArr, startRow, bgC, isAvoid) {
+  function createSpecialTable(title, dataArr0, startRow, bgC, isAvoid) {
+    let dataArr = (dataArr0 || []).slice();
     let row = startRow;
     dbTitle_(row, (isAvoid ? "⚠️ " : "🔥 ") + title, bgC, 12); row++;
 
@@ -2750,7 +2840,22 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     sheet.setRowHeight(row, 34);
     const from = row; row++;
 
-    dataArr.sort((a,b) => isAvoid ? a[3] - b[3] : b[3] - a[3]);
+    // 金額の順に並べたうえで、同じ乗り場は続けてまとめる。
+    // 曜日が違うだけで別の場所にとぶと、その乗り場がどうだったのか読み取れない。
+    // 並ぶ場所は「その乗り場でいちばん高かった額（避けたい表はいちばん安かった額）」で決める
+    const byPlace = {};
+    dataArr.forEach(function (r) {
+      const k = String(r[2]);
+      if (!byPlace[k]) byPlace[k] = [];
+      byPlace[k].push(r);
+    });
+    const groups = Object.keys(byPlace).map(function (k) {
+      const rows = byPlace[k].slice().sort(function (a, b) { return isAvoid ? a[3] - b[3] : b[3] - a[3]; });
+      return { rows: rows, key: rows[0][3] };
+    });
+    groups.sort(function (a, b) { return isAvoid ? a.key - b.key : b.key - a.key; });
+    dataArr = [];
+    groups.forEach(function (g) { g.rows.forEach(function (r) { dataArr.push(r); }); });
 
     if(dataArr.length > 0) {
       for(let i=0; i<dataArr.length; i++) {
@@ -2772,6 +2877,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         dbFit_(sheet, row, [{ text: rData[2], span: hSpans[1], size: 12 },
                             { text: rData[0]+"\n"+rData[1], span: hSpans[2], size: 11 }], 40);
         row++;
+        // 次の行も同じ乗り場なら、区切りを入れずに続ける
+        const sameNext = (i + 1 < dataArr.length) && String(dataArr[i + 1][2]) === String(rData[2]);
 
         // 備考は横いっぱいの行に、中央ぞろえで置く。
         // 元のセルには手で入れた改行が何個も入っているので、空白はひとつにつぶす。
@@ -2787,7 +2894,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           dbFit_(sheet, row, [{ text: memoTxt, span: DB_COLS, size: 11 }], 26);
           row++;
         }
-        dbGap_(sheet, row); row++;
+        if (!sameNext) { dbGap_(sheet, row); row++; }
       }
     } else {
       sheet.getRange(row, 1, 1, DB_COLS).merge().setValue("データなし")

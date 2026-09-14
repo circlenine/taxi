@@ -1,12 +1,18 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C026ver  （2026/09/06）  ★★★   ← もとは version 232
+ *  ★★★  C027ver  （2026/09/06）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C027ver]
+ *   ・グループLINEのIDを、届いたときに自動で覚えるようにした
+ *     IDはメッセージが届くたびに毎回入っているのに、どこにも残していなかった。
+ *     そのせいで「送り先が未設定」のままレポートを自動送信できなかった。
+ *     これからは、グループに何か1つ投稿されれば、そこで覚える
  *
  *  [C026ver]
  *   ・設定に、レポートの自動送信まわりを足した
@@ -392,7 +398,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C026ver";
+const CODE_VERSION = "C027ver";
 
 const SENDER_MAP = {
   "Ued4659890c83b3b0bcf2a3f8bf008e7f": "ﾀﾞｲｽｹ",
@@ -1149,7 +1155,38 @@ function doPost(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/**
+ * LINEから届いた「どのグループか」を覚えておく。
+ *
+ * ★グループIDは、メッセージが届くたびに ev.source.groupId として毎回入っている。
+ *   それなのに、どこにも残していなかった。
+ *   そのせいで「レポートの送り先が未設定」のまま、自動送信ができなかった。
+ *   人に探させるものではないので、届いた時点でこちらが覚える。
+ *
+ * 説明タブ Z1 が空のときだけ書く（手で入れたものを上書きしない）。
+ * スクリプトの控えにも入れておく（シートを触っても消えないように）。
+ */
+function rememberGroupId_(ev) {
+  try {
+    const src = (ev && ev.source) || {};
+    const id = (src.type === "group" && src.groupId) ? src.groupId
+             : (src.type === "room"  && src.roomId)  ? src.roomId  : "";
+    if (!id) return;
+
+    const props = PropertiesService.getScriptProperties();
+    if (props.getProperty("GROUP_ID") !== id) props.setProperty("GROUP_ID", id);
+
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
+    if (sh && !String(sh.getRange("Z1").getValue() || "").trim()) {
+      sh.getRange("Z1").setValue(id);
+    }
+  } catch (e) { logErr_("rememberGroupId", e); }
+}
+
 function handleEvent_(ev) {
+  // どのグループから届いたかを覚えておく（レポートの送り先に使う）
+  rememberGroupId_(ev);
+
   // --- 送信取り消し ---
   if (ev.type === "unsend" && ev.unsend && ev.unsend.messageId) {
     deleteByMessageId_(ev.unsend.messageId);
