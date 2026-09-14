@@ -2,11 +2,37 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L006ver  （2026/09/06）  ★★★
+ *  ★★★  L007ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L007ver]
+ *  ▼ LINEの絵（Flex Message）
+ *   ・【曜日・時間】を【時間詳細】に作り直した
+ *     前：🔥新地4 (16件/平￥5,273) [(月) 23:37, (月) 23:34, …30個]
+ *     今：[23:51] 🔥新地4 （15件／平均￥6,758／最高￥18,960）
+ *     時刻は「いちばん高かった乗車の時刻」を1つだけ。最高額も出す
+ *     時刻を全部ならべると読めないうえ、Flexの上限50KBにも近づいて危なかった
+ *   ・パーセントを帯の「中」に出すようにした（前は帯の上に左詰めで、色と数字が対応しなかった）
+ *     細すぎて中に書けないぶんは、帯の下に小さく添える
+ *   ・件数の内訳を読めるようにした（北7:41/北4:41 → 北7 41件 ・ 北4 41件）
+ *   ・絵を組み立てるところを buildReportFlex_ に切り出し、テストで形を確かめるようにした
+ *     送ってみるまで分からない、という状態をなくす
+ *
+ *  ▼ まとめスプシ（ダッシュボード）
+ *   ・タブ名を「📈 8/16(日)～9/15(火)」にした（前は開始日だけだった）
+ *   ・スマホで読める幅にした。1列 50px（26列＝1,300px）→ 16px（416px）
+ *     文字は 8pt → 11〜14pt。横に広げず、縦に伸ばす
+ *   ・「－」だけの行と列を作らないようにした
+ *     アツい×避ける表は曜日区分ごとに縦に積み、記録がある時間帯だけ出す
+ *     ヒートマップも、記録がある曜日だけ列にする
+ *   ・グラフを直した。●を 4px → 12px、線を 1px → 2px の点線、日付の一覧は下へ
+ *   ・🤖 傾向と対策：AIの呼び方を「乗り場ごとに1回」→「まとめて1回」にした
+ *     20か所あれば20回呼んでいたので、無料枠の回数制限にすぐ当たって全行エラーになっていた
+ *     それでも失敗したときは、数字から作った文を出す（エラー文を並べない）
+ *   ・備考の表示崩れを直した。手で入れた改行をつなげ、横いっぱいの行に中央ぞろえで出す
  *
  *  [L006ver]
  *   ・そうさボタン [7]「レポートをLINEに送る」を足した（スマホから期間を決めて送れる）
@@ -48,7 +74,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L006ver";
+const LR_VERSION = "L007ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -723,9 +749,13 @@ function sendCustomReport(targetId, customStartD, customEndD) {
         let isHeatmapValidTime = [20,21,22,23,0,1,2,3,4,5].includes(hr); if(isHeatmapValidTime) spotStats[sKey].heatmapValidCount++;
 
         if(timelineStats[dayType][hr]) {
-          if(!timelineStats[dayType][hr][place]) timelineStats[dayType][hr][place] = {count: 0, sales: 0, waitSum: 0, waitCount: 0, times: []};
-          timelineStats[dayType][hr][place].count++; timelineStats[dayType][hr][place].sales += price; timelineStats[dayType][hr][place].times.push(`(${daysStr[dayOfWeek]}) ${exactTimeStr}`);
-          if(waitMinutes > 0) { timelineStats[dayType][hr][place].waitSum += waitMinutes; timelineStats[dayType][hr][place].waitCount++; }
+          if(!timelineStats[dayType][hr][place]) timelineStats[dayType][hr][place] = {count: 0, sales: 0, waitSum: 0, waitCount: 0, times: [], max: 0, at: ""};
+          const tls = timelineStats[dayType][hr][place];
+          tls.count++; tls.sales += price; tls.times.push(`(${daysStr[dayOfWeek]}) ${exactTimeStr}`);
+          // いちばん高かった乗車と、その時刻。これを「オススメの時刻」として出す。
+          // 時刻を全部ならべると読めないので、代表を1つだけにする
+          if (price > tls.max) { tls.max = price; tls.at = exactTimeStr; }
+          if(waitMinutes > 0) { tls.waitSum += waitMinutes; tls.waitCount++; }
         }
         if(isHeatmapValidTime) {
           if(!spotHeatmapSales[sKey]) { spotHeatmapSales[sKey] = {}; spotHeatmapTimes[sKey] = {}; }
@@ -748,7 +778,7 @@ function sendCustomReport(targetId, customStartD, customEndD) {
   DAY_TYPES.forEach(dType => {
     targetHours.forEach(hr => {
       let spots = timelineStats[dType][hr]; let candidates = [];
-      for(let pName in spots) { if(spots[pName].count >= 2) { candidates.push({name: pName, count: spots[pName].count, avg: spots[pName].sales / spots[pName].count, wait: spots[pName].waitCount > 0 ? Math.round(spots[pName].waitSum / spots[pName].waitCount) : 0, times: spots[pName].times }); } }
+      for(let pName in spots) { if(spots[pName].count >= 2) { candidates.push({name: pName, count: spots[pName].count, avg: spots[pName].sales / spots[pName].count, wait: spots[pName].waitCount > 0 ? Math.round(spots[pName].waitSum / spots[pName].waitCount) : 0, times: spots[pName].times, max: spots[pName].max, at: spots[pName].at }); } }
       let bSpot = null, wSpot = null;
       if(candidates.length > 0) { candidates.sort((a,b) => b.avg - a.avg); bSpot = candidates[0]; let avoidCands = candidates.slice(1).filter(c => c.avg <= 1500 || c.avg <= (bSpot.avg - 2000)); if(avoidCands.length > 0) { avoidCands.sort((a,b) => a.avg - b.avg); wSpot = avoidCands[0]; } }
       finalTimeline[dType][hr] = { best: bSpot, worst: wSpot };
@@ -758,57 +788,11 @@ function sendCustomReport(targetId, customStartD, customEndD) {
   let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr);
 
   const periodStr = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
-  let flexContents = [];
-  flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 今月の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7:${tabRidesCount["北7"]}/北4:${tabRidesCount["北4"]}/北他:${tabRidesCount["北他"]}/ﾐﾅﾐ:${tabRidesCount["ﾐﾅﾐ"]}/関空:${tabRidesCount["関空"]}/ほか:${tabRidesCount["ほか"]}`, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
-  flexContents.push({ "type": "separator", "margin": "md" }, { "type": "text", "text": "🔥アツいエリア【パーセント・積立グラフ】", "weight": "bold", "size": "sm", "color": "#1155ca", "margin": "md" });
-
-  DAY_TYPES.forEach(type => {
-    let areaRanks = [];
-    ["北", "ﾐﾅﾐ", "ほか"].forEach(area => {
-      let d = areaStats[type][area]; if(d.t > 0) { areaRanks.push({ name: area, lR: d.l/d.t, score: d.t <= 1 ? -100 : (d.l/d.t), l: d.l, m: d.m, s: d.s, t: d.t, avg: Math.round(d.sales/d.t), wait: d.waitCount > 0 ? Math.round(d.waitSum/d.waitCount) : 0, lA: d.l>0?Math.round(d.lSum/d.l):0, mA: d.m>0?Math.round(d.mSum/d.m):0, sA: d.s>0?Math.round(d.sSum/d.s):0, lW: d.lWaitC>0?Math.round(d.lWait/d.lWaitC):0, mW: d.mWaitC>0?Math.round(d.mWait/d.mWaitC):0, sW: d.sWaitC>0?Math.round(d.sWait/d.sWaitC):0, spots: d.spots }); }
-    });
-    areaRanks.sort((a,b) => b.score - a.score);
-    if(areaRanks.length > 0) {
-      let boxContents = [ { "type": "text", "text": `【${type}】`, "size": "sm", "weight": "bold", "color": "#333333", "margin": "sm" } ];
-      areaRanks.forEach((r, i) => {
-        let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t > 1 ? (i < 3 ? ["🥇","🥈","🥉"][i] : "") : "(参考)";
-        let bestL = "-", bestM = "-", worstS = "-"; let bcL = 0, bcM = 0, bcS = 999999;
-        for(let sn in r.spots) { let st = r.spots[sn]; if(st.l > bcL) { bcL = st.l; bestL = sn; } if(st.m > bcM) { bcM = st.m; bestM = sn; } if(st.s > 0 && (st.sSum/st.s) < bcS) { bcS = st.sSum/st.s; worstS = sn; } }
-        boxContents.push({ "type": "text", "text": `${rankStr} ${r.name} (${r.t}件／平均￥${r.avg.toLocaleString()}／待ち${r.wait}分)`, "size": "xs", "weight": "bold", "color": "#1155ca", "margin": "md", "wrap": true });
-
-        let percentTexts = []; let percentBars = [];
-        if (lrP > 0) { percentTexts.push({ "type": "text", "text": `ﾛﾝｸﾞ${lrP}%`, "color": "#d93025", "size": "xxs", "weight": "bold", "flex": 0 }); percentBars.push({ "type": "box", "layout": "baseline", "backgroundColor": "#d93025", "flex": lrP, "contents": [] }); }
-        if (mrP > 0) { percentTexts.push({ "type": "text", "text": `ﾐﾄﾞﾙ${mrP}%`, "color": "#3b82f6", "size": "xxs", "weight": "bold", "flex": 0 }); percentBars.push({ "type": "box", "layout": "baseline", "backgroundColor": "#3b82f6", "flex": mrP, "contents": [] }); }
-        if (srP > 0) { percentTexts.push({ "type": "text", "text": `ｼｮｰﾄ${srP}%`, "color": "#888888", "size": "xxs", "weight": "bold", "flex": 0 }); percentBars.push({ "type": "box", "layout": "baseline", "backgroundColor": "#aaaaaa", "flex": srP, "contents": [] }); }
-        if (percentTexts.length > 0) { boxContents.push({ "type": "box", "layout": "horizontal", "spacing": "md", "justifyContent": "flex-start", "margin": "xs", "contents": percentTexts }); }
-        if (percentBars.length > 0) { boxContents.push({ "type": "box", "layout": "horizontal", "cornerRadius": "md", "height": "8px", "margin": "none", "contents": percentBars }); } else { boxContents.push({ "type": "box", "layout": "horizontal", "cornerRadius": "md", "height": "8px", "margin": "none", "contents": [ { "type": "box", "layout": "baseline", "backgroundColor": "#cccccc", "flex": 1, "contents": [] } ] }); }
-
-        let lTxt = `ﾛﾝｸﾞ：${r.l}件/平均￥${r.lA.toLocaleString()}/待ち${r.lW}分` + (bestL !== "-" ? `\n(🔥アツい：${toHalfWidthKana(bestL)}${getBestTimeStr(r.spots[bestL].lTimes)})` : "");
-        let mTxt = `ﾐﾄﾞﾙ：${r.m}件/平均￥${r.mA.toLocaleString()}/待ち${r.mW}分` + (bestM !== "-" ? `\n(🔥アツい：${toHalfWidthKana(bestM)}${getBestTimeStr(r.spots[bestM].mTimes)})` : "");
-        let sTxt = `ｼｮｰﾄ：${r.s}件/平均￥${r.sA.toLocaleString()}/待ち${r.sW}分` + (worstS !== "-" ? `\n(⚠️避ける：${toHalfWidthKana(worstS)}${getBestTimeStr(r.spots[worstS].sTimes)})` : "");
-        boxContents.push({ "type": "text", "text": lTxt, "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold" }, { "type": "text", "text": mTxt, "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold" }, { "type": "text", "text": sTxt, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold" });
-      });
-      flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f4f4f4", "paddingAll": "10px", "margin": "sm", "cornerRadius": "md", "contents": boxContents });
-    }
+  const flexMessage = buildReportFlex_({
+    periodStr: periodStr, totalRidesCount: totalRidesCount, tabRidesCount: tabRidesCount,
+    DAY_TYPES: DAY_TYPES, areaStats: areaStats, finalTimeline: finalTimeline,
+    targetHours: targetHours, dashboardUrl: dashboardUrl, getBestTimeStr: getBestTimeStr
   });
-
-  flexContents.push({ "type": "separator", "margin": "lg" }, { "type": "text", "text": "🔥アツい ✖️ ⚠️避ける【曜日・時間】", "weight": "bold", "size": "sm", "color": "#34a853", "margin": "md", "wrap": true });
-  DAY_TYPES.forEach(dType => {
-    let tLines = []; targetHours.forEach(hr => {
-      let b = finalTimeline[dType][hr].best; let w = finalTimeline[dType][hr].worst;
-      if(b || w) {
-        let bTimeStr = b ? Array.from(new Set(b.times)).sort().join(", ") : "";
-        let wTimeStr = w ? Array.from(new Set(w.times)).sort().join(", ") : "";
-
-        if (b) tLines.push({ "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [ { "type": "span", "text": `🔥`, "color": "#444444" }, { "type": "span", "text": `${toHalfWidthKana(b.name)} `, "weight": "bold", "color": "#000000" }, { "type": "span", "text": `(${b.count}件/平￥${Math.round(b.avg).toLocaleString()})\n[${bTimeStr}]`, "color": "#444444" } ]});
-        if (w) tLines.push({ "type": "text", "size": "xs", "margin": b ? "none" : "sm", "wrap": true, "contents": [ { "type": "span", "text": (b ? `\n⚠️` : `⚠️`), "color": "#444444" }, { "type": "span", "text": `${toHalfWidthKana(w.name)} `, "weight": "bold", "color": "#000000" }, { "type": "span", "text": `(${w.count}件/平￥${Math.round(w.avg).toLocaleString()})\n[${wTimeStr}]`, "color": "#444444" } ]});
-      }
-    });
-    if(tLines.length === 0) tLines.push({ "type": "text", "text": "データ不足", "size": "xs" });
-    flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [ { "type": "text", "text": `【${dType}】`, "size": "xs", "weight": "bold", "color": "#2e7d32", "margin": "none" }, ...tLines ] });
-  });
-
-  let flexMessage = { "type": "bubble", "size": "giga", "header": { "type": "box", "layout": "vertical", "backgroundColor": "#1155ca", "paddingAll": "15px", "contents": [ { "type": "text", "text": `📈 【${periodStr}】分析・戦略レポート`, "weight": "bold", "color": "#ffffff", "size": "md", "wrap": true } ] }, "body": { "type": "box", "layout": "vertical", "paddingAll": "12px", "spacing": "none", "contents": flexContents }, "footer": { "type": "box", "layout": "vertical", "paddingAll": "15px", "contents": [ { "type": "button", "style": "primary", "color": "#d93025", "action": { "type": "uri", "label": "🚨ボタンを押せッ!!!!(スプシへ移動)🚨", "uri": dashboardUrl } } ] } };
   // 裏メッセージ（通知やトーク一覧に出る文字）
   // 文面は Code.gs の「設定」タブから変えられる。読めないときは今までの文面
   const span = lrAlt_(startD) + "～" + lrAlt_(endD);
@@ -830,6 +814,98 @@ function sendCustomReport(targetId, customStartD, customEndD) {
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
     payload: JSON.stringify({ to: targetId, messages: messages })
   });
+}
+
+
+/**
+ * LINEに送る絵（Flex Message）を組み立てる。
+ *
+ * 集計とは切り離してある。スプレッドシートを触らないので、
+ * これだけをテストで実際に組み立てて、形がこわれていないか確かめられる。
+ * 送ってみるまで分からない、という状態にはしない。
+ */
+function buildReportFlex_(o) {
+  const periodStr = o.periodStr, totalRidesCount = o.totalRidesCount, tabRidesCount = o.tabRidesCount;
+  const DAY_TYPES = o.DAY_TYPES, areaStats = o.areaStats, finalTimeline = o.finalTimeline;
+  const targetHours = o.targetHours, dashboardUrl = o.dashboardUrl;
+  const getBestTimeStr = o.getBestTimeStr || function () { return ""; };
+  let flexContents = [];
+  flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
+  flexContents.push({ "type": "separator", "margin": "md" }, { "type": "text", "text": "🔥アツいエリア【パーセント・実績】", "weight": "bold", "size": "sm", "color": "#1155ca", "margin": "md" });
+
+  DAY_TYPES.forEach(type => {
+    let areaRanks = [];
+    ["北", "ﾐﾅﾐ", "ほか"].forEach(area => {
+      let d = areaStats[type][area]; if(d.t > 0) { areaRanks.push({ name: area, lR: d.l/d.t, score: d.t <= 1 ? -100 : (d.l/d.t), l: d.l, m: d.m, s: d.s, t: d.t, avg: Math.round(d.sales/d.t), wait: d.waitCount > 0 ? Math.round(d.waitSum/d.waitCount) : 0, lA: d.l>0?Math.round(d.lSum/d.l):0, mA: d.m>0?Math.round(d.mSum/d.m):0, sA: d.s>0?Math.round(d.sSum/d.s):0, lW: d.lWaitC>0?Math.round(d.lWait/d.lWaitC):0, mW: d.mWaitC>0?Math.round(d.mWait/d.mWaitC):0, sW: d.sWaitC>0?Math.round(d.sWait/d.sWaitC):0, spots: d.spots }); }
+    });
+    areaRanks.sort((a,b) => b.score - a.score);
+    if(areaRanks.length > 0) {
+      let boxContents = [ { "type": "text", "text": `【${type}】`, "size": "sm", "weight": "bold", "color": "#333333", "margin": "sm" } ];
+      areaRanks.forEach((r, i) => {
+        let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t > 1 ? (i < 3 ? ["🥇","🥈","🥉"][i] : "") : "(参考)";
+        let bestL = "-", bestM = "-", worstS = "-"; let bcL = 0, bcM = 0, bcS = 999999;
+        for(let sn in r.spots) { let st = r.spots[sn]; if(st.l > bcL) { bcL = st.l; bestL = sn; } if(st.m > bcM) { bcM = st.m; bestM = sn; } if(st.s > 0 && (st.sSum/st.s) < bcS) { bcS = st.sSum/st.s; worstS = sn; } }
+        boxContents.push({ "type": "text", "text": `${rankStr} ${r.name} （${r.t}件 ／ 平均売上￥${r.avg.toLocaleString()} ／ 平均待ち${r.wait}分）`, "size": "xs", "weight": "bold", "color": "#1155ca", "margin": "md", "wrap": true });
+
+        // 帯の「中」に ◯◯% を書く。
+        // 前は帯の上に左詰めで並べていたので、どの色が何%なのか分からなかった。
+        // ただし細い帯に文字を入れるとはみ出すので、入る幅があるときだけ入れる。
+        const percentBars = [];
+        const tooThin = [];
+        [[lrP, "#d93025", "ﾛﾝｸﾞ"], [mrP, "#3b82f6", "ﾐﾄﾞﾙ"], [srP, "#aaaaaa", "ｼｮｰﾄ"]].forEach(function (x) {
+          const pct = x[0], color = x[1], name = x[2];
+          if (pct <= 0) return;
+          let inner = [];
+          if (pct >= 26)      inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
+          else if (pct >= 12) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center", "gravity": "center", "adjustMode": "shrink-to-fit" }];
+          else tooThin.push(`${name}${pct}%`);
+          percentBars.push({ "type": "box", "layout": "vertical", "justifyContent": "center", "backgroundColor": color, "flex": pct, "contents": inner });
+        });
+        if (percentBars.length > 0) { boxContents.push({ "type": "box", "layout": "horizontal", "cornerRadius": "md", "height": "22px", "margin": "xs", "contents": percentBars }); } else { boxContents.push({ "type": "box", "layout": "horizontal", "cornerRadius": "md", "height": "22px", "margin": "xs", "contents": [ { "type": "box", "layout": "vertical", "backgroundColor": "#cccccc", "flex": 1, "contents": [] } ] }); }
+        // 帯が細すぎて中に書けなかったぶんだけ、下に小さく添える
+        if (tooThin.length > 0) { boxContents.push({ "type": "text", "text": `細い帯：${tooThin.join(" ・ ")}`, "size": "xxs", "color": "#888888", "margin": "xs", "wrap": true }); }
+
+        let lTxt = `ﾛﾝｸﾞ：${r.l}件/平均￥${r.lA.toLocaleString()}/待ち${r.lW}分` + (bestL !== "-" ? `\n(🔥アツい：${toHalfWidthKana(bestL)}${getBestTimeStr(r.spots[bestL].lTimes)})` : "");
+        let mTxt = `ﾐﾄﾞﾙ：${r.m}件/平均￥${r.mA.toLocaleString()}/待ち${r.mW}分` + (bestM !== "-" ? `\n(🔥アツい：${toHalfWidthKana(bestM)}${getBestTimeStr(r.spots[bestM].mTimes)})` : "");
+        let sTxt = `ｼｮｰﾄ：${r.s}件/平均￥${r.sA.toLocaleString()}/待ち${r.sW}分` + (worstS !== "-" ? `\n(⚠️避ける：${toHalfWidthKana(worstS)}${getBestTimeStr(r.spots[worstS].sTimes)})` : "");
+        boxContents.push({ "type": "text", "text": lTxt, "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold" }, { "type": "text", "text": mTxt, "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold" }, { "type": "text", "text": sTxt, "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold" });
+      });
+      flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f4f4f4", "paddingAll": "10px", "margin": "sm", "cornerRadius": "md", "contents": boxContents });
+    }
+  });
+
+  flexContents.push({ "type": "separator", "margin": "lg" }, { "type": "text", "text": "🔥アツい ✖️ ⚠️避ける【時間詳細】", "weight": "bold", "size": "sm", "color": "#34a853", "margin": "md", "wrap": true });
+  //
+  // 1行 ＝ 1つの時間帯。頭に「行くならこの時刻」を1つだけ出す。
+  //
+  // 前は、その乗り場で拾った時刻を全部ならべていた（[(月) 23:37, (月) 23:34, …]）。
+  // 30個も時刻が並ぶと、結局いつ行けばいいのか読み取れないうえ、
+  // Flex Message の大きさ（50KB）にも近づいて危なかった。
+  // 代表の1時刻＝「いちばん高かった乗車の時刻」と、最高額を出す形にする。
+  const timeLine_ = function (mark, markColor, sp, withMax) {
+    const head = sp.at ? `[${sp.at}] ` : "";
+    let body = `（${sp.count}件／平均￥${Math.round(sp.avg).toLocaleString()}`;
+    if (withMax && sp.max > 0) body += `／最高￥${sp.max.toLocaleString()}`;
+    body += "）";
+    return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [
+      { "type": "span", "text": head, "weight": "bold", "color": markColor },
+      { "type": "span", "text": mark, "color": "#444444" },
+      { "type": "span", "text": `${toHalfWidthKana(sp.name)} `, "weight": "bold", "color": "#000000" },
+      { "type": "span", "text": body, "color": "#444444" }
+    ]};
+  };
+  DAY_TYPES.forEach(dType => {
+    let tLines = []; targetHours.forEach(hr => {
+      const b = finalTimeline[dType][hr].best; const w = finalTimeline[dType][hr].worst;
+      // アツいほうは「最高いくらまで出たか」まで出す。避けるほうは行かないので出さない
+      if (b) tLines.push(timeLine_("🔥", "#2e7d32", b, true));
+      if (w) tLines.push(timeLine_("⚠️", "#b45f06", w, false));
+    });
+    if(tLines.length === 0) tLines.push({ "type": "text", "text": "データ不足", "size": "xs" });
+    flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [ { "type": "text", "text": `【${dType}】`, "size": "xs", "weight": "bold", "color": "#2e7d32", "margin": "none" }, ...tLines ] });
+  });
+
+  return { "type": "bubble", "size": "giga", "header": { "type": "box", "layout": "vertical", "backgroundColor": "#1155ca", "paddingAll": "15px", "contents": [ { "type": "text", "text": `📈 【${periodStr}】分析・戦略レポート`, "weight": "bold", "color": "#ffffff", "size": "md", "wrap": true } ] }, "body": { "type": "box", "layout": "vertical", "paddingAll": "12px", "spacing": "none", "contents": flexContents }, "footer": { "type": "box", "layout": "vertical", "paddingAll": "15px", "contents": [ { "type": "button", "style": "primary", "color": "#d93025", "action": { "type": "uri", "label": "🚨ボタンを押せッ!!!!(スプシへ移動)🚨", "uri": dashboardUrl } } ] } };
 }
 
 /* ============ 🤖 Gemini「傾向と対策」 ============ */
@@ -877,100 +953,338 @@ function generateAIText(avgSales, count, waitAvg, timesArr) {
   }
 }
 
+/**
+ * 乗り場ぶんの「傾向と対策」を、1回のリクエストでまとめて作る。
+ *
+ * 前は乗り場ごとに1回ずつ呼んでいた。20か所あれば20回で、
+ * 無料枠の回数制限（429）にすぐ当たるうえ、1回1〜2秒かかるので
+ * レポート作成そのものが何十秒も延びていた。
+ * ぜんぶ1回のリクエストにまとめれば、制限にも当たらず速い。
+ *
+ * 返ってこなかったときは、エラー文をそのまま出さずに
+ * 数字から作った文章（aiFallback_）を入れる。
+ * 「【AI分析エラー】データが取得できませんでした」が全行に並ぶより、ずっと役に立つ。
+ *
+ * 戻り値は items と同じ長さの配列。
+ */
+function generateAIBatch_(items) {
+  const out = items.map(function (it) { return aiFallback_(it); });
+  if (!items.length) return out;
+
+  const key = getGeminiKey_();
+  if (!key) {
+    out[0] = "【AI未設定】メニュー「🤖 Geminiキーを設定」から登録してください。／" + out[0];
+    return out;
+  }
+  const model = getGeminiModel_();
+  const lines = items.map(function (it, i) {
+    return `${i + 1}. ${it.name}：平均売上${it.avgSales}円／${it.count}件／平均待ち${it.waitAvg}分` +
+           (it.times && it.times.length ? `／よく出る時刻 ${it.times.slice(0, 6).join(" ")}` : "");
+  }).join("\n");
+
+  const prompt = "あなたは大阪の夜勤タクシードライバー（20:00〜翌05:00）専用のデータ分析AIです。\n" +
+    "下の乗り場ごとに、今後の立ち回りの助言を1つずつ作ってください。\n" +
+    "・1件につき日本語30文字以内、1行\n" +
+    "・「1. 助言」のように、頭に番号を付ける\n" +
+    "・番号の数と順番は、下の一覧とぴったり合わせる\n" +
+    "・前置き、まとめ、記号の装飾は書かない\n\n" + lines;
+
+  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
+                   model + ":generateContent?key=" + encodeURIComponent(key);
+  const options = { method: "post", contentType: "application/json",
+                    payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                    muteHttpExceptions: true };
+
+  let body = "", code = 0;
+  // 回数制限（429）や一時的な不調は、少し待てば通ることが多い
+  for (let tryNo = 0; tryNo < 3; tryNo++) {
+    if (typeof updBeat_ === "function") updBeat_("AI分析");
+    try {
+      const res = UrlFetchApp.fetch(endpoint, options);
+      code = res.getResponseCode(); body = res.getContentText();
+      if (code === 200) break;
+      if (code !== 429 && code < 500) break;      // 直らない種類のエラーなら、待っても同じ
+    } catch (e) { body = String(e && e.message ? e.message : e); }
+    Utilities.sleep(2000 * (tryNo + 1));
+  }
+
+  let text = "";
+  try {
+    const json = JSON.parse(body);
+    if (json.candidates && json.candidates[0] && json.candidates[0].content) {
+      text = String(json.candidates[0].content.parts[0].text || "");
+    } else if (json.error && json.error.message) {
+      out[0] = aiWhy_(code, model, json.error.message) + "／" + out[0];
+      return out;
+    }
+  } catch (e) {}
+  if (!text) { out[0] = aiWhy_(code, model, String(body).slice(0, 120)) + "／" + out[0]; return out; }
+
+  // 「3. 〜」の形で返ってくるので、番号で行き先を決める。
+  // 番号がずれても、ほかの行を巻き込まないようにする
+  text.split(/\r?\n/).forEach(function (ln) {
+    const m = ln.match(/^\s*(\d{1,3})\s*[.、:：)]\s*(.+)$/);
+    if (!m) return;
+    const idx = parseInt(m[1], 10) - 1;
+    const val = m[2].replace(/^[-*・\s]+/, "").trim();
+    if (idx >= 0 && idx < out.length && val) out[idx] = val;
+  });
+  return out;
+}
+
+/** AIが使えなかった理由を、そのまま分かる形にする */
+function aiWhy_(code, model, why) {
+  if (code === 404) return "【モデル " + model + " が見つかりません】メニュー「🤖 Geminiのモデルを変える」で変更してください";
+  if (code === 400 || code === 403) return "【APIキーの問題 " + code + "】" + why;
+  if (code === 429) return "【回数制限】しばらく待って、もう一度レポートを作ってください";
+  if (!code) return "【通信エラー】" + why;
+  return "【AIエラー " + code + "】" + why;
+}
+
+/**
+ * AIが使えないときに出す、数字だけで作る「傾向と対策」。
+ * AIより気は利かないが、エラー文が並ぶより役に立つ。
+ */
+function aiFallback_(it) {
+  const a = it.avgSales, c = it.count, w = it.waitAvg;
+  const L = [];
+  if (a >= 15000)      L.push("高単価。最優先で狙う");
+  else if (a >= 10000) L.push("ロング帯。積極的に");
+  else if (a >= 5000)  L.push("平均以上。悪くない");
+  else if (a >= 2500)  L.push("単価低め。空いていれば");
+  else                 L.push("単価が低い。長居しない");
+  if (w > 0) {
+    const perHour = w > 0 ? Math.round(a / w * 60) : 0;
+    L.push(`待ち${w}分＝時給換算￥${perHour.toLocaleString()}`);
+    if (w >= 30 && a < 8000) L.push("待ち負けなので回送推奨");
+  } else {
+    L.push("待ち記録なし");
+  }
+  if (c <= 2) L.push("件数が少なく判断は保留");
+  if (it.times && it.times.length) L.push(`狙い目 ${it.times[0]}`);
+  return L.join("／");
+}
+
 /* ============ 📊 まとめスプシ ダッシュボード作成 ============ */
+/*
+ * ★スマホで読めることを最優先にしている。
+ *
+ *  前は A〜Z列 を 50px で作っていた（1,300px）。iPhone の画面は 400px ほどしかないので、
+ *  全体を見ようとすると3分の1まで縮まり、文字が読めなかった。
+ *  そこで 1列 16px（26列 ＝ 416px）にして、横は画面いっぱい・縦に長く伸びる形にした。
+ *  文字も 8pt → 11〜14pt に上げている。
+ *
+ *  ★「－」だけの行と列は作らない。
+ *  前は 10時間 × 8列 を必ず並べていたので、中身が4件でも70マスの表になっていた。
+ *  記録がある時間帯・曜日だけを出す。
+ */
+
+/** 1列の幅（px）。26列で iPhone の画面幅におさまるようにしてある */
+const DB_COL_W = 16;
+/** 列の数（＝横いっぱいのマージ幅） */
+const DB_COLS  = 26;
+
+/** 文字数から、折り返したときの行数を見積もる（全角2・半角1で数える） */
+function dbLines_(text, widthPx, fontSize) {
+  const t = String(text == null ? "" : text);
+  const per = Math.max(4, Math.floor(widthPx / (fontSize * 0.62)));
+  let n = 0;
+  t.split("\n").forEach(function (ln) {
+    let w = 0;
+    for (let i = 0; i < ln.length; i++) w += ln.charCodeAt(i) < 0x100 ? 1 : 2;
+    n += Math.max(1, Math.ceil(w / per));
+  });
+  return n;
+}
+
+/** その行に入る文字量から、行の高さを決める */
+function dbFit_(sheet, row, cells, minH) {
+  let lines = 1;
+  cells.forEach(function (c) {
+    lines = Math.max(lines, dbLines_(c.text, c.span * DB_COL_W - 6, c.size || 11));
+  });
+  sheet.setRowHeight(row, Math.min(400, Math.max(minH || 28, lines * 16 + 10)));
+}
+
+/**
+ * よけいな空白・改行をつぶす（備考の表示崩れ対策）。
+ *
+ * 元のセルには手で入れた改行が何個も入っている。
+ * 「男性4 ⏎ ⏎ ⏎ 0代」のように語の途中で折り返してあるので、
+ * 改行をスペースに変えると「男性4 0代」と割れてしまう。
+ * 改行はスペースにせず、そのままつなげる。ふつうのスペースだけ1つに詰める。
+ */
+function dbTidy_(text) {
+  const SP = "[ \\t\\u3000]";
+  return String(text == null ? "" : text)
+    .replace(new RegExp(SP + "*[\\r\\n]+" + SP + "*", "g"), "")   // 改行はつなげる
+    .replace(new RegExp(SP + "+", "g"), " ")                      // 空白は1つに
+    .replace(/ *[、,] */g, "、")
+    .trim();
+}
 
 function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr) {
   let descSheet = mainSS.getSheetByName("説明"); let dashboardId = descSheet ? descSheet.getRange("Z2").getValue() : ""; let dbSS;
   try { if (dashboardId) dbSS = SpreadsheetApp.openById(dashboardId); else throw new Error(); } catch(e) { dbSS = SpreadsheetApp.create("☣️僕はグールだッシュボード☣️"); if (descSheet) descSheet.getRange("Z2").setValue(dbSS.getId()); }
-  const daysStr = ["日", "月", "火", "水", "木", "金", "土"]; let tabName = `📈 ${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})`;
-  // グラフの大きさ。列幅は下で全部50pxに揃えるので、A〜Z列 = 26×50px
-  const CHART_W = 26 * 50 - 2;
-  const CHART_H = 520;
-  const CHART_ROWS = Math.ceil(CHART_H / 21) + 1;   // この行数だけ空けないと次の見出しに重なる
-  let sheet = dbSS.getSheetByName(tabName) || dbSS.insertSheet(tabName, 0); sheet.clear(); sheet.getCharts().forEach(c => sheet.removeChart(c));
-  let maxR = sheet.getMaxRows(); if(maxR < 600) sheet.insertRowsAfter(maxR, 600 - maxR);
 
-  for(let i=1; i<=26; i++) sheet.setColumnWidth(i, 50);
+  const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
+  // タブ名は「📈 8/16(日)～9/15(火)」。いつからいつまでか、タブを見ただけで分かるように
+  const periodTab = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
+  const tabName = `📈 ${periodTab}`;
+
+  // グラフ。横はシートの幅に合わせ、縦長にする（スマホで見るため）
+  const CHART_W = DB_COLS * DB_COL_W - 2;
+  const CHART_H = 460;
+  const CHART_ROWS = Math.ceil(CHART_H / 21) + 1;   // この行数だけ空けないと次の見出しに重なる
+
+  let sheet = dbSS.getSheetByName(tabName) || dbSS.insertSheet(tabName, 0);
+  sheet.clear(); sheet.getCharts().forEach(c => sheet.removeChart(c));
+  let maxR = sheet.getMaxRows(); if(maxR < 900) sheet.insertRowsAfter(maxR, 900 - maxR);
+  // clear() では結合は外れない。前の割りつけが残っていると新しい表と衝突するので、必ずほどく
+  try { sheet.getRange(1, 1, sheet.getMaxRows(), DB_COLS).breakApart(); } catch (e) {}
+  for(let i=1; i<=DB_COLS; i++) sheet.setColumnWidth(i, DB_COL_W);
+
+  /** 横いっぱいの見出し行 */
+  function dbTitle_(row, text, bg, size) {
+    sheet.getRange(row, 1, 1, DB_COLS).merge().setValue(text)
+      .setFontSize(size || 12).setFontWeight("bold").setBackground(bg)
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    dbFit_(sheet, row, [{ text: text, span: DB_COLS, size: size || 12 }], 30);
+  }
 
   let curRow = 1;
-  sheet.getRange(curRow, 1, 1, 26).merge().setValue(`📈 【${startD.getMonth()+1}/${startD.getDate()}～${endD.getMonth()+1}/${endD.getDate()}】 営業ダッシュボード`).setFontSize(14).setFontWeight("bold").setBackground("#e3f2fd").setHorizontalAlignment("center").setVerticalAlignment("middle"); curRow++;
+  dbTitle_(curRow, `📈 ${periodTab}\n営業ダッシュボード（全${totalRidesCount}件）`, "#e3f2fd", 14); curRow++;
+  sheet.getRange(curRow, 1, 1, DB_COLS).merge()
+    .setValue(`北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件\nﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件`)
+    .setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+  sheet.setRowHeight(curRow, 40); curRow += 2;
 
-  curRow += 3;
+  /* ---------- 🔥アツい ✖️ ⚠️避ける【時間詳細】 ---------- */
+  // 曜日区分ごとに縦に積む。横に9列ならべると、スマホでは1マス40pxになって読めない
+  dbTitle_(curRow, "🔥アツい乗り場 ✖️ ⚠️避ける乗り場【時間詳細】\n(アツい=平均売上が最高 / 避ける=平均￥1,500以下、又はアツいより￥2,000以上低い)", "#d9ead3", 12); curRow++;
 
-  sheet.getRange(curRow, 1, 1, 26).merge().setValue("🔥アツい乗り場 ✖️ ⚠️避ける乗り場【曜日・時間】 (条件: アツい=平均売上最高 / 避ける=平均￥1,500以下又はアツいより￥2,000以上低い)").setFontWeight("bold").setBackground("#d9ead3"); curRow++;
-  let headerRngsTL = getGridRange(sheet, curRow, 1, 1, [2,3,3,2,2,3,3,4,4]);
-  let headersTL = ["時間帯", "平日\n(🔥アツい)", "平日\n(⚠️避ける)", "金曜\n(🔥アツい)", "金曜\n(⚠️避ける)", "土曜\n(🔥アツい)", "土曜\n(⚠️避ける)", "日祝\n(🔥アツい)", "日祝\n(⚠️避ける)"];
-  for(let i=0; i<9; i++) { headerRngsTL[i].merge().setValue(headersTL[i]).setBackground("#cccccc").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle"); }
-  sheet.setRowHeight(curRow, 50); curRow++;
-
+  const TL_SPANS = [6, 10, 10];
   let targetHours = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
-  targetHours.forEach(hr => {
-    let rngs = getGridRange(sheet, curRow, 1, 1, [2,3,3,2,2,3,3,4,4]);
-    rngs[0].merge().setValue(`${("0"+hr).slice(-2)}時台`).setHorizontalAlignment("center").setVerticalAlignment("middle");
-    let colIdx = 1;
-    DAY_TYPES.forEach(dType => {
-      let b = finalTimeline[dType][hr].best; let w = finalTimeline[dType][hr].worst;
-      let bTimeStr = b ? Array.from(new Set(b.times)).sort().join(", ") : "";
-      let wTimeStr = w ? Array.from(new Set(w.times)).sort().join(", ") : "";
-      rngs[colIdx].merge().setValue(b ? `${b.name}\n(${b.count}件/平均￥${Math.round(b.avg).toLocaleString()})\n[${bTimeStr}]` : "－").setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground("#f4cccc").setFontColor("#990000").setFontWeight("bold").setWrap(true); colIdx++;
-      rngs[colIdx].merge().setValue(w ? `${w.name}\n(${w.count}件/平均￥${Math.round(w.avg).toLocaleString()})\n[${wTimeStr}]` : "－").setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground("#f3f3f3").setFontColor("#434343").setFontWeight("bold").setWrap(true); colIdx++;
+  DAY_TYPES.forEach(dType => {
+    // 記録がある時間帯だけ出す。「－」だけの行を並べても読むところが無い
+    const hours = targetHours.filter(hr => finalTimeline[dType][hr].best || finalTimeline[dType][hr].worst);
+    dbTitle_(curRow, `【${dType}】`, "#e8f5e9", 12); curRow++;
+    if (hours.length === 0) {
+      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue("この曜日区分は記録がありません")
+        .setFontSize(11).setFontColor("#999999").setHorizontalAlignment("center").setVerticalAlignment("middle");
+      sheet.setRowHeight(curRow, 28); curRow++;
+      return;
+    }
+    const hRng = getGridRange(sheet, curRow, 1, 1, TL_SPANS);
+    ["時間帯", "🔥 アツい", "⚠️ 避ける"].forEach(function (t, i) {
+      hRng[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle");
     });
-    sheet.setRowHeight(curRow, 50); curRow++;
+    sheet.setRowHeight(curRow, 28); curRow++;
+
+    const from = curRow;
+    hours.forEach(hr => {
+      const b = finalTimeline[dType][hr].best, w = finalTimeline[dType][hr].worst;
+      // 時刻は代表の1つだけ。全部ならべても、結局いつ行けばいいのか分からない
+      const txt = function (sp, withMax) {
+        if (!sp) return "－";
+        let t = (sp.at ? `[${sp.at}]\n` : "") + sp.name + `\n${sp.count}件 平均￥${Math.round(sp.avg).toLocaleString()}`;
+        if (withMax && sp.max > 0) t += `\n最高￥${sp.max.toLocaleString()}`;
+        return t;
+      };
+      const bT = txt(b, true), wT = txt(w, false);
+      const rngs = getGridRange(sheet, curRow, 1, 1, TL_SPANS);
+      rngs[0].merge().setValue(`${("0"+hr).slice(-2)}時台`).setFontSize(12).setFontWeight("bold")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle");
+      rngs[1].merge().setValue(bT).setFontSize(11).setFontWeight("bold").setWrap(true)
+        .setHorizontalAlignment("center").setVerticalAlignment("middle")
+        .setBackground(b ? "#f4cccc" : "#ffffff").setFontColor(b ? "#990000" : "#b7b7b7");
+      rngs[2].merge().setValue(wT).setFontSize(11).setFontWeight("bold").setWrap(true)
+        .setHorizontalAlignment("center").setVerticalAlignment("middle")
+        .setBackground(w ? "#f3f3f3" : "#ffffff").setFontColor(w ? "#434343" : "#b7b7b7");
+      dbFit_(sheet, curRow, [{ text: bT, span: TL_SPANS[1], size: 11 }, { text: wT, span: TL_SPANS[2], size: 11 }], 44);
+      curRow++;
+    });
+    sheet.getRange(from - 1, 1, curRow - from + 1, DB_COLS)
+      .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   });
-  sheet.getRange(curRow - targetHours.length - 1, 1, targetHours.length + 1, 26).setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   curRow++;
 
+  /* ---------- 乗り場ごとのヒートマップとグラフ ---------- */
   let datesArr = Array.from(new Set(recordsForGraph.map(r => r.dateStr))).sort();
   let dateColorMap = {}; datesArr.forEach((d, i) => { dateColorMap[d] = GRAPH_COLORS[i % GRAPH_COLORS.length]; });
 
-  let daysOrder = [1, 2, 3, 4, 5, 6, 0]; let heatmapSpotNames = []; let hiddenDataRow = 900;
+  let daysOrder = [1, 2, 3, 4, 5, 6, 0]; let heatmapSpotNames = []; let hiddenDataRow = 800;
   for (let key in spotStats) {
     if(spotStats[key].heatmapValidCount >= 3 && spotHeatmapSales[key]) {
-      let parts = key.split("|"); let tName = parts[0]; let spotName = parts[1]; heatmapSpotNames.push(spotName);
-      sheet.getRange(curRow, 1, 1, 18).merge().setValue(`🔥 【${spotName}】曜日×時間帯別ヒートマップ (条件: 時間帯20〜29内で月間3件以上の実績)`).setFontWeight("bold").setBackground(TAB_COLORS[tName] || "#fce5cd"); curRow++;
-      let headerRngs = getGridRange(sheet, curRow, 1, 1, [2,2,2,2,2,2,2,2,2]);
-      let dayHeaders = ["時間帯", "月曜", "火曜", "水曜", "木曜", "金曜", "土曜", "日曜", ""];
-      for(let i=0; i<9; i++) { headerRngs[i].merge().setValue(dayHeaders[i]).setBackground("#cccccc").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle"); }
-      sheet.setRowHeight(curRow, 50); curRow++;
+      let parts = key.split("|"); let tName = parts[0]; let spotName = parts[1];
+
+      // 記録がある曜日・時間帯だけを出す。空っぽの列を並べると、1マスが細くなって読めない
+      const useDays = daysOrder.filter(d => spotHeatmapSales[key][d] &&
+        targetHours.some(hr => spotHeatmapSales[key][d][hr] > 0));
+      const useHours = targetHours.filter(hr => useDays.some(d => spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr] > 0));
+      // 出すものが無ければ、下の「個別乗り場 実績」に回す（どこにも出ないのがいちばん困る）
+      if (useDays.length === 0 || useHours.length === 0) continue;
+      heatmapSpotNames.push(spotName);
+
+      dbTitle_(curRow, `🔥 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績)`, TAB_COLORS[tName] || "#fce5cd", 12); curRow++;
+
+      // 時間帯のらん＋曜日のぶんで、横26列をきっちり分ける
+      const hmFirst = Math.max(4, DB_COLS - Math.floor((DB_COLS - 4) / useDays.length) * useDays.length);
+      const hmEach = Math.floor((DB_COLS - hmFirst) / useDays.length);
+      const hmSpans = [hmFirst].concat(useDays.map(() => hmEach));
+      const rest = DB_COLS - hmSpans.reduce((a, b) => a + b, 0);
+      if (rest > 0) hmSpans.push(rest);
+
+      const hRngs = getGridRange(sheet, curRow, 1, 1, hmSpans);
+      ["時間帯"].concat(useDays.map(d => daysStr[d] + "曜")).forEach(function (t, i) {
+        hRngs[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
+          .setHorizontalAlignment("center").setVerticalAlignment("middle");
+      });
+      if (rest > 0) hRngs[hmSpans.length - 1].merge().setBackground("#cccccc");
+      sheet.setRowHeight(curRow, 28); curRow++;
 
       let hmAvgSalesList = [];
-      targetHours.forEach(hr => { daysOrder.forEach(d => { let s = (spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr]) ? spotHeatmapSales[key][d][hr] : 0; let tArr = (spotHeatmapTimes[key][d] && spotHeatmapTimes[key][d][hr]) ? spotHeatmapTimes[key][d][hr] : []; let avg = s > 0 ? Math.round(s / tArr.length) : 0; if (avg > 0) hmAvgSalesList.push(avg); }); });
+      useHours.forEach(hr => { useDays.forEach(d => { let s = (spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr]) ? spotHeatmapSales[key][d][hr] : 0; let tArr = (spotHeatmapTimes[key][d] && spotHeatmapTimes[key][d][hr]) ? spotHeatmapTimes[key][d][hr] : []; let avg = s > 0 ? Math.round(s / tArr.length) : 0; if (avg > 0) hmAvgSalesList.push(avg); }); });
       let top3 = [...new Set(hmAvgSalesList)].sort((a,b)=>b-a).slice(0,3);
 
-      targetHours.forEach(hr => {
-        let rngs = getGridRange(sheet, curRow, 1, 1, [2,2,2,2,2,2,2,2,2]);
-        rngs[0].merge().setValue(`${("0"+hr).slice(-2)}時台`).setHorizontalAlignment("center").setVerticalAlignment("middle");
-        let colIdx = 1;
-        daysOrder.forEach(d => {
-          let s = (spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr]) ? spotHeatmapSales[key][d][hr] : 0; let timesArr = (spotHeatmapTimes[key][d] && spotHeatmapTimes[key][d][hr]) ? spotHeatmapTimes[key][d][hr] : [];
+      const hmFrom = curRow;
+      useHours.forEach(hr => {
+        let rngs = getGridRange(sheet, curRow, 1, 1, hmSpans);
+        rngs[0].merge().setValue(`${("0"+hr).slice(-2)}時台`).setFontSize(12).setFontWeight("bold")
+          .setHorizontalAlignment("center").setVerticalAlignment("middle");
+        let colIdx = 1; let cellTexts = [];
+        useDays.forEach(d => {
+          let s = (spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr]) ? spotHeatmapSales[key][d][hr] : 0;
+          let timesArr = (spotHeatmapTimes[key][d] && spotHeatmapTimes[key][d][hr]) ? spotHeatmapTimes[key][d][hr] : [];
           let avgSales = s > 0 ? Math.round(s / timesArr.length) : 0;
-          let cell = rngs[colIdx].merge().setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+          let cell = rngs[colIdx].merge().setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontSize(11);
 
           if (avgSales > 0) {
             let matchedColor = dateColorMap[timesArr[0].dateStr] || "#333333";
-            let timeStrJoined = timesArr.map(t => t.time).join(", ");
-            let cellText = `平均￥${avgSales.toLocaleString()}\n[${timeStrJoined}]`;
-
-            let rt = SpreadsheetApp.newRichTextValue().setText(cellText);
-            rt.setTextStyle(0, cellText.indexOf('\n'), SpreadsheetApp.newTextStyle().setBold(true).setForegroundColor("#000000").build());
-            rt.setTextStyle(cellText.indexOf('\n') + 1, cellText.length, SpreadsheetApp.newTextStyle().setBold(true).setForegroundColor(matchedColor).build());
-
             let rankIdx = top3.indexOf(avgSales);
-            if (rankIdx === 0) cell.setBackground("#f4cccc"); else if (rankIdx === 1) cell.setBackground("#fff2cc"); else if (rankIdx === 2) cell.setBackground("#cfe2f3"); else cell.setBackground("#ffffff");
+            let cellText = `平均￥${avgSales.toLocaleString()}\n[${timesArr.map(t => t.time).join(", ")}]`;
+            if (rankIdx !== -1) cellText += `\n${["🥇","🥈","🥉"][rankIdx]}`;
+            cellTexts.push(cellText);
 
-            if(rankIdx !== -1) {
-                cellText += `\n${["🥇","🥈","🥉"][rankIdx]}`;
-                rt = SpreadsheetApp.newRichTextValue().setText(cellText);
-                rt.setTextStyle(0, cellText.indexOf('\n'), SpreadsheetApp.newTextStyle().setBold(true).setForegroundColor("#000000").build());
-                rt.setTextStyle(cellText.indexOf('\n') + 1, cellText.indexOf('\n', cellText.indexOf('\n')+1), SpreadsheetApp.newTextStyle().setBold(true).setForegroundColor(matchedColor).build());
-            }
+            const nl = cellText.indexOf("\n");
+            const nl2 = cellText.indexOf("\n", nl + 1);
+            let rt = SpreadsheetApp.newRichTextValue().setText(cellText);
+            rt.setTextStyle(0, nl, SpreadsheetApp.newTextStyle().setBold(true).setFontSize(11).setForegroundColor("#000000").build());
+            rt.setTextStyle(nl + 1, nl2 === -1 ? cellText.length : nl2,
+              SpreadsheetApp.newTextStyle().setBold(true).setFontSize(10).setForegroundColor(matchedColor).build());
+
+            if (rankIdx === 0) cell.setBackground("#f4cccc"); else if (rankIdx === 1) cell.setBackground("#fff2cc"); else if (rankIdx === 2) cell.setBackground("#cfe2f3"); else cell.setBackground("#ffffff");
             cell.setRichTextValue(rt.build());
           } else { cell.setValue("－").setFontColor("#b7b7b7").setBackground("#ffffff"); }
           colIdx++;
         });
-        rngs[8].merge(); sheet.setRowHeight(curRow, 50); curRow++;
+        if (rest > 0) rngs[hmSpans.length - 1].merge();
+        dbFit_(sheet, curRow, cellTexts.map(t => ({ text: t, span: hmEach, size: 11 })), 40);
+        curRow++;
       });
-      sheet.getRange(curRow - 11, 1, 11, 16).setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
+      sheet.getRange(hmFrom - 1, 1, curRow - hmFrom + 1, DB_COLS)
+        .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
 
       let chartPlaced = false;
       let recs = recordsForGraph.filter(r => r.spotName === spotName);
@@ -980,131 +1294,175 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         for(let t of times) { let row = [t]; for(let d of datesArr) { let rec = recs.find(r => r.timeDec === t && r.dateStr === d); row.push(rec ? rec.price : null); } table.push(row); }
         if (table.length > 1) {
           let dataRng = sheet.getRange(hiddenDataRow, 1, table.length, header.length); sheet.getRange(hiddenDataRow, 1, 1, header.length).setNumberFormat('@'); dataRng.setValues(table);
-          let seriesOpt = {}; for (let i = 0; i < datesArr.length; i++) { seriesOpt[i] = { lineWidth: 1, lineDashStyle: [4, 4], pointShape: 'circle', pointSize: 4, color: dateColorMap[datesArr[i]], labelInLegend: datesArr[i] }; }
-          let customTicks = []; for(let i=20; i<=29.1; i+=1/6) { customTicks.push(Math.round(i*1000)/1000); }
-          let maxP = Math.max(...recs.map(r=>r.price)) || 10000; let vTicks = []; for(let v=0; v<=maxP+2000; v+=1000) vTicks.push(v);
+          // 線は点線のまま、●をしっかり見える大きさにする（前は4pxで、点が見えなかった）
+          let seriesOpt = {}; for (let i = 0; i < datesArr.length; i++) { seriesOpt[i] = { lineWidth: 2, lineDashStyle: [3, 5], pointShape: 'circle', pointSize: 12, color: dateColorMap[datesArr[i]], labelInLegend: datesArr[i] }; }
+          let customTicks = []; for(let i=20; i<=29.1; i+=0.5) { customTicks.push(Math.round(i*1000)/1000); }
+          let maxP = Math.max(...recs.map(r=>r.price)) || 10000; let vStep = maxP > 20000 ? 5000 : 2000; let vTicks = []; for(let v=0; v<=maxP+vStep; v+=vStep) vTicks.push(v);
 
           let chart = sheet.newChart().asLineChart().addRange(dataRng).setPosition(curRow, 1, 0, 0)
-            .setOption('title', `📈 【${spotName}】詳細分数・売上推移`).setOption('hAxis', {title: '時間 (10分単位)', minValue: 20, maxValue: 29, ticks: customTicks, gridlines: {color: '#e0e0e0'}})
-            .setOption('vAxis', {title: '売上金額 (￥1,000単位)', format: '￥#,##0', ticks: vTicks, gridlines: {color: '#e0e0e0'}}).setOption('series', seriesOpt).setOption('useFirstColumnAsDomain', true).setOption('headers', 1)
-            .setOption('legend', {position: 'right', textStyle: {fontSize: 11}}).setOption('chartArea', {left: '8%', top: '10%', width: '75%', height: '75%'}).setOption('interpolateNulls', true)
+            .setOption('title', `📈 【${spotName}】時刻別の売上`)
+            .setOption('titleTextStyle', { fontSize: 14, bold: true })
+            .setOption('hAxis', {title: '時間', minValue: 20, maxValue: 29, ticks: customTicks, gridlines: {color: '#e0e0e0'}, textStyle: {fontSize: 11}})
+            .setOption('vAxis', {title: '売上', format: '￥#,##0', ticks: vTicks, gridlines: {color: '#e0e0e0'}, textStyle: {fontSize: 11}})
+            .setOption('series', seriesOpt).setOption('useFirstColumnAsDomain', true).setOption('headers', 1)
+            // 横が狭いので、日付の一覧は右ではなく下に置く
+            .setOption('legend', {position: 'bottom', textStyle: {fontSize: 11}})
+            .setOption('chartArea', {left: '16%', top: '12%', width: '80%', height: '62%'}).setOption('interpolateNulls', true)
             .setOption('width', CHART_W).setOption('height', CHART_H).build();
           sheet.insertChart(chart); hiddenDataRow += 40; chartPlaced = true;
         }
       }
-      // グラフを置いたら、その高さぶんだけ行を送る
-      // （v185は20行固定で足りず、次の見出しに重なっていた）
       curRow += chartPlaced ? CHART_ROWS : 2;
     }
   }
 
-  sheet.getRange(curRow, 1, 1, 26).merge().setValue("🔥 個別乗り場 実績 (条件: ヒートマップ基準未達の月間1～2件の個別乗り場)").setFontWeight("bold").setBackground("#cfe2f3"); curRow++;
-  let spotHeaderSpans = [1, 2, 4, 3, 3, 8];
-  let shRngs = getGridRange(sheet, curRow, 1, 1, spotHeaderSpans);
-  let sHeaders = ["タブ", "乗り場名", "🔥アツい乗車時間\n(具体的な曜日・時間)", "待ち時間内訳\n(各曜日の平均)", "今月件数内訳\n(各金額帯)", "🤖 傾向と対策 (Gemini AI自動分析)"];
-  for(let i=0; i<6; i++) { shRngs[i].merge().setValue(sHeaders[i]).setBackground("#cccccc").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle"); }
-  sheet.setRowHeight(curRow, 50); curRow++;
+  /* ---------- 個別乗り場 実績（1か所を2行つかって縦長に） ---------- */
+  dbTitle_(curRow, "🔥 個別乗り場 実績 (条件: ヒートマップ基準にとどかない、月間1〜2件の乗り場)", "#cfe2f3", 12); curRow++;
+  const SP_SPANS = [4, 8, 6, 4, 4];
+  let shRngs = getGridRange(sheet, curRow, 1, 1, SP_SPANS);
+  ["タブ", "乗り場名", "🔥アツい時間", "待ち時間", "件数/平均"].forEach(function (t, i) {
+    shRngs[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+  });
+  sheet.setRowHeight(curRow, 34); curRow++;
 
   let spotRowsData = [];
   for (let key in spotStats) {
     let p = key.split("|"); let tab = p[0], name = p[1]; if(heatmapSpotNames.includes(name)) continue; let d = spotStats[key];
-    let bAvg = Math.round(d.sales / d.count);
-    spotRowsData.push({tab: tab, name: name, d: d, avgSales: bAvg, key: key});
+    spotRowsData.push({tab: tab, name: name, d: d, avgSales: Math.round(d.sales / d.count), key: key});
   }
   const tOrder = {"北7":1, "北4":2, "北他":3, "ﾐﾅﾐ":4, "関空":5, "ほか":6};
   spotRowsData.sort((a,b) => (tOrder[a.tab]||99) - (tOrder[b.tab]||99) || b.avgSales - a.avgSales);
 
+  // AIは乗り場ごとに呼ばず、1回でまとめて作る（回数制限に当たらないように）
   for (let item of spotRowsData) {
-    let bestT = "データ不足";
-    let allTimes = [];
+    item.bestT = "データ不足"; item.allTimes = [];
     if(spotHotData[item.key]) {
-        let bC=-1, bS=-1;
-        for(let dh in spotHotData[item.key]) {
-            let hd = spotHotData[item.key][dh];
-            allTimes.push(...hd.times);
-            if(hd.count > bC || (hd.count===bC && hd.sales>bS)) {
-                bC=hd.count; bS=hd.sales; let p2=dh.split("|");
-                bestT=`(${daysStr[p2[0]]}) ${("0"+p2[1]).slice(-2)}時台\n${bC}件(平均￥${Math.round(bS/bC).toLocaleString()})\n[${hd.times.join(", ")}]`;
-            }
+      let bC=-1, bS=-1;
+      for(let dh in spotHotData[item.key]) {
+        let hd = spotHotData[item.key][dh];
+        item.allTimes.push(...hd.times);
+        if(hd.count > bC || (hd.count===bC && hd.sales>bS)) {
+          bC=hd.count; bS=hd.sales; let p2=dh.split("|");
+          item.bestT=`(${daysStr[p2[0]]}) ${("0"+p2[1]).slice(-2)}時台\n${bC}件 平均￥${Math.round(bS/bC).toLocaleString()}\n[${Array.from(new Set(hd.times)).sort().join(", ")}]`;
         }
+      }
     }
-
-    let waitText = ""; let wArrAll = [];
+    let wArrAll = []; item.waitText = "";
     if(spotDayBreakdown[item.key]) {
       DAY_TYPES.forEach(dt => {
-          if(spotDayBreakdown[item.key][dt] && spotDayBreakdown[item.key][dt].waits.length>0) {
-              let wArr = spotDayBreakdown[item.key][dt].waits; wArrAll.push(...wArr);
-              let wAvg = Math.round(wArr.reduce((a,b)=>a+b,0)/wArr.length); waitText += `${dt}平均: ${wAvg}分\n`;
-          }
+        if(spotDayBreakdown[item.key][dt] && spotDayBreakdown[item.key][dt].waits.length>0) {
+          let wArr = spotDayBreakdown[item.key][dt].waits; wArrAll.push(...wArr);
+          item.waitText += `${dt} ${Math.round(wArr.reduce((a,b)=>a+b,0)/wArr.length)}分\n`;
+        }
       });
     }
-    if(!waitText) waitText = "記録なし";
+    if(!item.waitText) item.waitText = "記録なし";
+    item.overallWait = wArrAll.length > 0 ? Math.round(wArrAll.reduce((a,b)=>a+b,0)/wArrAll.length) : 0;
+  }
 
-    let priceStyleText = `計${item.d.count}件\n(平均￥${item.avgSales.toLocaleString()})`;
-    let overallWait = wArrAll.length > 0 ? Math.round(wArrAll.reduce((a,b)=>a+b,0)/wArrAll.length) : 0;
+  const aiTexts = generateAIBatch_(spotRowsData.map(function (it) {
+    return { name: it.name, avgSales: it.avgSales, count: it.d.count,
+             waitAvg: it.overallWait, times: Array.from(new Set(it.allTimes)).sort() };
+  }));
 
-    let aiAdvice = generateAIText(item.avgSales, item.d.count, overallWait, allTimes);
-
-    let drngs = getGridRange(sheet, curRow, 1, 1, spotHeaderSpans);
-    drngs[0].merge().setValue(item.tab).setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground(TAB_COLORS[item.tab]||"#ffffff").setFontWeight("bold");
-    drngs[1].merge().setValue(item.name).setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold").setFontSize(11);
-    drngs[2].merge().setValue(bestT).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold").setFontSize(11);
-    drngs[3].merge().setValue(waitText).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-
-    let pCell = drngs[4].merge().setValue(priceStyleText).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold").setFontSize(11);
+  const spFrom = curRow;
+  spotRowsData.forEach(function (item, i) {
+    let priceStyleText = `計${item.d.count}件\n平均￥${item.avgSales.toLocaleString()}`;
+    let drngs = getGridRange(sheet, curRow, 1, 1, SP_SPANS);
+    drngs[0].merge().setValue(item.tab).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground(TAB_COLORS[item.tab]||"#ffffff").setFontWeight("bold");
+    drngs[1].merge().setValue(item.name).setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
+    drngs[2].merge().setValue(item.bestT).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
+    drngs[3].merge().setValue(item.waitText.trim()).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    let pCell = drngs[4].merge().setValue(priceStyleText).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
     if(item.avgSales >= 20000) pCell.setFontColor("#990000"); else if(item.avgSales >= 10000) pCell.setFontColor("#b45f06"); else if(item.avgSales >= 5000) pCell.setFontColor("#0b5394"); else pCell.setFontColor("#4b0082");
+    dbFit_(sheet, curRow, [{ text: item.bestT, span: SP_SPANS[2], size: 10 },
+                           { text: item.waitText, span: SP_SPANS[3], size: 10 },
+                           { text: item.name, span: SP_SPANS[1], size: 12 }], 44);
+    curRow++;
 
-    drngs[5].merge().setValue(aiAdvice).setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true).setFontColor("#274e13").setFontWeight("bold");
-
-    sheet.setRowHeight(curRow, 100); curRow++;
-  }
+    // 🤖 は横いっぱいの行にする。狭いらんに押し込むと、長い文が読めない
+    const ai = "🤖 " + aiTexts[i];
+    sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(ai)
+      .setFontSize(11).setFontWeight("bold").setFontColor("#274e13").setBackground("#f6fbf2")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    dbFit_(sheet, curRow, [{ text: ai, span: DB_COLS, size: 11 }], 28);
+    curRow++;
+  });
   if(spotRowsData.length === 0) {
-      getGridRange(sheet, curRow, 1, 1, spotHeaderSpans)[1].merge().setValue("該当データなし"); sheet.setRowHeight(curRow, 50); curRow++;
+    sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue("該当データなし")
+      .setFontSize(11).setFontColor("#999999").setHorizontalAlignment("center").setVerticalAlignment("middle");
+    sheet.setRowHeight(curRow, 28); curRow++;
   }
-  sheet.getRange(curRow - spotRowsData.length - 2, 1, spotRowsData.length + 2, 21).setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange(spFrom - 1, 1, curRow - spFrom + 1, DB_COLS)
+    .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   curRow++;
 
+  /* ---------- 特別な一覧（再現したい・チケット・避けたい） ---------- */
   function createSpecialTable(title, dataArr, startRow, bgC, isAvoid) {
-    sheet.setRowHeight(startRow, 21); let titleRow = startRow + 1;
-    sheet.getRange(titleRow, 1, 1, 26).merge().setValue((isAvoid ? "⚠️ " : "🔥 ") + title).setFontWeight("bold").setBackground(bgC);
-    let hSpans = [1, 2, 4, 2, 2, 8];
-    let headerRow = titleRow + 1;
-    let hRngs = getGridRange(sheet, headerRow, 1, 1, hSpans); let sHeaders = ["タブ", "乗り場名", "日付・曜日・時間", "待ち時間", "金額", "備考"];
-    for(let i=0; i<6; i++) { hRngs[i].merge().setValue(sHeaders[i]).setBackground("#cccccc").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle"); }
-    sheet.setRowHeight(headerRow, 50);
+    let row = startRow;
+    sheet.setRowHeight(row, 14); row++;
+    dbTitle_(row, (isAvoid ? "⚠️ " : "🔥 ") + title, bgC, 12); row++;
+
+    const hSpans = [4, 7, 7, 4, 4];
+    let hRngs = getGridRange(sheet, row, 1, 1, hSpans);
+    ["タブ", "乗り場名", "日付・曜日・時間", "待ち", "金額"].forEach(function (t, i) {
+      hRngs[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    });
+    sheet.setRowHeight(row, 34);
+    const from = row; row++;
 
     dataArr.sort((a,b) => isAvoid ? a[3] - b[3] : b[3] - a[3]);
 
-    let dataStart = headerRow + 1;
     if(dataArr.length > 0) {
       for(let i=0; i<dataArr.length; i++) {
-        let rData = dataArr[i]; let rowIdx = dataStart + i;
-        let dRngs = getGridRange(sheet, rowIdx, 1, 1, hSpans);
-        let tabN = rData[5].split(":")[0];
-        dRngs[0].merge().setValue(tabN).setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground(TAB_COLORS[tabN] || "#ffffff");
-        dRngs[1].merge().setValue(rData[2]).setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold").setFontSize(11);
-        dRngs[2].merge().setValue(rData[0]+" "+rData[1]).setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold").setFontSize(11);
-        dRngs[3].merge().setValue(rData[4]).setHorizontalAlignment("right").setVerticalAlignment("middle");
+        const rData = dataArr[i];
+        const tabN = String(rData[5]).split(":")[0];
+        const dRngs = getGridRange(sheet, row, 1, 1, hSpans);
+        dRngs[0].merge().setValue(tabN).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setBackground(TAB_COLORS[tabN] || "#ffffff");
+        dRngs[1].merge().setValue(rData[2]).setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
+        dRngs[2].merge().setValue(rData[0]+"\n"+rData[1]).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
+        dRngs[3].merge().setValue(rData[4]).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle");
 
-        let priceCell = dRngs[4].merge().setValue(rData[3]).setNumberFormat('￥#,##0').setHorizontalAlignment("right").setVerticalAlignment("middle").setFontWeight("bold").setFontSize(11);
+        const priceCell = dRngs[4].merge().setValue(rData[3]).setNumberFormat('￥#,##0').setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
         if (isAvoid && rData[3] <= 999) {
-            dRngs.forEach(rng => { rng.setBackground("#f3f3f3").setFontColor("#434343"); });
-            priceCell.setBackground("#f3f3f3").setFontColor("#434343");
+          dRngs.forEach(rng => { rng.setBackground("#f3f3f3").setFontColor("#434343"); });
+          priceCell.setBackground("#f3f3f3").setFontColor("#434343");
         } else {
-            if (rData[3] >= 20000) { priceCell.setBackground("#f4cccc").setFontColor("#990000"); } else if (rData[3] >= 10000) { priceCell.setBackground("#fff2cc").setFontColor("#b45f06"); } else if (rData[3] >= 5000) { priceCell.setBackground("#cfe2f3").setFontColor("#0b5394"); }
+          if (rData[3] >= 20000) { priceCell.setBackground("#f4cccc").setFontColor("#990000"); } else if (rData[3] >= 10000) { priceCell.setBackground("#fff2cc").setFontColor("#b45f06"); } else if (rData[3] >= 5000) { priceCell.setBackground("#cfe2f3").setFontColor("#0b5394"); }
         }
-        dRngs[5].merge().setValue(rData[5].substring(rData[5].indexOf(":")+1)).setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true);
-        sheet.setRowHeight(rowIdx, 100);
+        dbFit_(sheet, row, [{ text: rData[2], span: hSpans[1], size: 12 },
+                            { text: rData[0]+"\n"+rData[1], span: hSpans[2], size: 11 }], 40);
+        row++;
+
+        // 備考は横いっぱいの行に、中央ぞろえで置く。
+        // 元のセルには手で入れた改行が何個も入っているので、空白はひとつにつぶす。
+        // （前は狭いらんに生のまま入れていたので、上と下に文字が離れて表示が崩れていた）
+        const memo = dbTidy_(String(rData[5]).substring(String(rData[5]).indexOf(":")+1));
+        if (memo) {
+          sheet.getRange(row, 1, 1, DB_COLS).merge().setValue("📝 " + memo)
+            .setFontSize(11).setFontColor("#333333").setBackground("#fbfbfb")
+            .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+          dbFit_(sheet, row, [{ text: "📝 " + memo, span: DB_COLS, size: 11 }], 26);
+          row++;
+        }
       }
     } else {
-      getGridRange(sheet, dataStart, 1, 1, hSpans)[1].merge().setValue("データなし"); sheet.setRowHeight(dataStart, 50);
+      sheet.getRange(row, 1, 1, DB_COLS).merge().setValue("データなし")
+        .setFontSize(11).setFontColor("#999999").setHorizontalAlignment("center").setVerticalAlignment("middle");
+      sheet.setRowHeight(row, 28); row++;
     }
-    sheet.getRange(headerRow, 1, Math.max(1, dataArr.length) + 1, 19).setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
-    return dataStart + Math.max(1, dataArr.length);
+    sheet.getRange(from, 1, row - from, DB_COLS)
+      .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
+    return row;
   }
 
   curRow = createSpecialTable("再現したい乗車 一覧 (条件: 再現性を含む 又は 備考ありで￥5,000以上)", reproRides, curRow, "#cfe2f3", false);
   curRow = createSpecialTable("チケット乗車 一覧 (条件: 備考にチケを含み、かつ￥5,000以上)", ticketRides, curRow, "#fff2cc", false);
   curRow = createSpecialTable("避けたい乗車 一覧 (条件: NGワードを含む 又は ￥999以下)", avoidRides, curRow, "#f4cccc", true);
+
+  // 見出しがスクロールしても消えないように
+  try { sheet.setFrozenRows(1); } catch (e) {}
   return dbSS.getUrl();
 }
