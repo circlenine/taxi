@@ -448,6 +448,12 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   (function find(n) {
     if (Array.isArray(n)) return n.forEach(find);
     if (!n || typeof n !== 'object') return;
+    // 3行は1つの text にまとめてあるので、span をばらして1行ずつ見る
+    if (n.type === 'text' && Array.isArray(n.contents)) {
+      n.contents.forEach(sp => String(sp.text || '').split('\n').forEach(t => {
+        if (/^(ﾛﾝｸﾞ|ﾐﾄﾞﾙ|ｼｮｰﾄ)\d+件 /.test(t)) bands.push(t);
+      }));
+    }
     if (n.type === 'text' && typeof n.text === 'string' && /^(ﾛﾝｸﾞ|ﾐﾄﾞﾙ|ｼｮｰﾄ)\d+件 /.test(n.text)) bands.push(n.text);
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
   })(flexList);
@@ -456,9 +462,12 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
   eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 🔥新地4(月)23:51',
      'おすすめの乗り場と、その時刻まで入れて1行に収める');
-  eq(J.indexOf('アツい（狙う乗り場）') !== -1, true, '記号の意味は、上の凡例で1回だけ説明する');
-  eq(J.indexOf('避ける乗り場') !== -1, true, '  避けるほうも');
-  eq(J.indexOf('その乗車の曜日') !== -1, true, '  (月) の意味も');
+  eq(J.indexOf('🔥 アツい（狙う）') !== -1, true, '記号の意味は、上の凡例で1回だけ説明する');
+  eq(J.indexOf('⚠️ 避ける') !== -1, true, '  避けるほうも');
+  eq(J.indexOf('(月) その曜日') !== -1, true, '  (月) の意味も');
+  // 右がスカスカにならないよう、1行に2つずつ入れてある
+  const legend = (J.match(/この絵の読み方[^"]*/) || [''])[0];
+  eq((J.match(/🔥 アツい（狙う）　／　⚠️ 避ける/) || []).length, 1, '  1行に2つずつまとめる');
   eq(J.indexOf('── この絵の読み方 ──') !== -1, true, '  読み方の見出しを付ける');
 }
 
@@ -772,6 +781,92 @@ console.log('\n■ 毎月の自動送信');
   ctx.monthlyReportJob();
   eq(!!P['AUTO_REPORT_SENT'], true, '失敗しても「送った」と記録する（二重送信を防ぐため）');
   ctx.Date = RealDate;
+}
+
+console.log('\n■ アツいエリアは、曜日区分ごとに1つだけ');
+{
+  const mk = o => Object.assign({l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,
+    lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}}, o);
+  const as = {}; ADV_DT.forEach(d => { as[d] = { "北": mk({}), "ﾐﾅﾐ": mk({}), "ほか": mk({}) }; });
+  // 北 61件 平均￥4,083 ／ ﾐﾅﾐ 2件 平均￥12,870 ／ ほか 2件 平均￥6,930
+  as["平日"]["北"]   = mk({ l:7, m:7, s:47, t:61, sales:249063, lSum:92421, mSum:52220, sSum:104387, waitSum:1586, waitCount:61 });
+  as["平日"]["ﾐﾅﾐ"]  = mk({ l:1, m:1, s:0,  t:2,  sales:25740,  lSum:18100, mSum:7640,  waitSum:10, waitCount:2 });
+  as["平日"]["ほか"] = mk({ l:1, m:0, s:1,  t:2,  sales:13860,  lSum:10760, sSum:3100,  waitSum:10, waitCount:2 });
+
+  const f = ctx.buildReportFlex_({
+    periodStr: "x", totalRidesCount: 65,
+    tabRidesCount: {"北7":0,"北4":0,"北他":0,"ﾐﾅﾐ":0,"関空":0,"ほか":0},
+    DAY_TYPES: ADV_DT, areaStats: as, finalTimeline: mkFt([]),
+    targetHours: ADV_HRS, dashboardUrl: "https://e.com" });
+
+  const rows = [];
+  (function find(n) {
+    if (Array.isArray(n)) return n.forEach(find);
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'text' && typeof n.text === 'string' && /^(🥇|\(参考\)) /.test(n.text)) rows.push(n.text);
+    Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
+  })(f);
+
+  eq(rows.length, 1, '記録のある曜日区分ぶんだけ、1行ずつ（' + rows.length + '行）');
+  eq(rows[0].indexOf('北') !== -1, true,
+     '61件の「北」が選ばれる（2件で平均が高いだけのエリアではない）');
+  eq(rows[0].indexOf('🥇') === 0, true, '3件以上あるので 🥇 が付く');
+  eq(rows.filter(t => /ﾐﾅﾐ|ほか/.test(t)).length, 0,
+     '2位・3位はLINEには出さない（3つともスプシで見られる）');
+
+  // 3件に満たないものしか無いときは、(参考) を付けて出す
+  const as2 = {}; ADV_DT.forEach(d => { as2[d] = { "北": mk({}), "ﾐﾅﾐ": mk({}), "ほか": mk({}) }; });
+  as2["平日"]["ﾐﾅﾐ"] = mk({ l:1, m:1, s:0, t:2, sales:25740, lSum:18100, mSum:7640, waitSum:10, waitCount:2 });
+  const f2 = ctx.buildReportFlex_({
+    periodStr: "x", totalRidesCount: 2, tabRidesCount: {"北7":0,"北4":0,"北他":0,"ﾐﾅﾐ":0,"関空":0,"ほか":0},
+    DAY_TYPES: ADV_DT, areaStats: as2, finalTimeline: mkFt([]), targetHours: ADV_HRS, dashboardUrl: "https://e.com" });
+  eq(JSON.stringify(f2).indexOf('(参考) ﾐﾅﾐ') !== -1, true,
+     '3件に満たないときは (参考) を付けて出す（消しはしない）');
+}
+
+console.log('\n■ LINEに出す時間帯の数');
+{
+  const ft = mkFt([]);
+  // 平日の6つの時間帯に記録。平均は 20時が最高、次が 23時、その次が 01時
+  [[20, 9000], [23, 8000], [1, 7000], [2, 3000], [3, 2000], [4, 1000]].forEach(([h, avg]) => {
+    ft["平日"][h] = { best: { name: "新地4", count: 5, avg: avg, max: avg * 2, at: ("0"+h).slice(-2) + ":30" }, worst: null };
+  });
+  const build = () => {
+    const f = ctx.buildReportFlex_({ periodStr: "x", totalRidesCount: 30,
+      tabRidesCount: {"北7":0,"北4":0,"北他":0,"ﾐﾅﾐ":0,"関空":0,"ほか":0},
+      DAY_TYPES: ADV_DT, areaStats: (() => { const a = {}; ADV_DT.forEach(d => { a[d] = {
+        "北": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}},
+        "ﾐﾅﾐ": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}},
+        "ほか": {l:0,m:0,s:0,t:0,sales:0,lSum:0,mSum:0,sSum:0,waitSum:0,waitCount:0,lWait:0,lWaitC:0,mWait:0,mWaitC:0,sWait:0,sWaitC:0,spots:{}} }; }); return a; })(),
+      finalTimeline: ft, targetHours: ADV_HRS, dashboardUrl: "https://e.com" });
+    const out = [];
+    (function find(n) {
+      if (Array.isArray(n)) return n.forEach(find);
+      if (!n || typeof n !== 'object') return;
+      if (n.type === 'text' && Array.isArray(n.contents) && n.contents[0] && n.contents[0].type === 'span') {
+        const t = n.contents.map(s => s.text).join('');
+        if (/^\[\d\d:\d\d\]/.test(t)) out.push(t);
+      }
+      Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
+    })(f);
+    return out;
+  };
+
+  vm.runInContext('function cfg_(){ return ""; }', ctx);
+  let lines = build();
+  eq(lines.length, 3, '既定では、曜日区分ごとに3つまで（' + lines.length + '行）');
+  eq(lines.map(t => t.slice(1, 3)), ['20', '23', '01'], '平均の高い時間帯から選ぶ');
+
+  vm.runInContext('cfg_ = function(k){ return k === "LINEに出す時間帯の数" ? 6 : ""; }', ctx);
+  lines = build();
+  eq(lines.length, 6, '設定で増やせる（全部見たいとき）');
+  eq(lines.map(t => t.slice(1, 3)), ['20', '23', '01', '02', '03', '04'], '  出すときは時間の順に並べ直す');
+
+  vm.runInContext('cfg_ = function(k){ return k === "LINEに出す時間帯の数" ? 1 : ""; }', ctx);
+  eq(build().length, 1, '1つまで、にもできる');
+  vm.runInContext('cfg_ = function(k){ return k === "LINEに出す時間帯の数" ? 0 : ""; }', ctx);
+  eq(build().length, 3, 'ありえない数（0）は既定に戻す');
+  vm.runInContext('cfg_ = function(){ return ""; }', ctx);
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

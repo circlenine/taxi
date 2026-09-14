@@ -2,11 +2,29 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L013ver  （2026/09/06）  ★★★
+ *  ★★★  L014ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L014ver]
+ *  ▼ LINEの絵
+ *   ・アツいエリアを、曜日区分ごとに1つだけにした（3つならべるのをやめた）
+ *     「いちばん良かった」の決め方も直した。平均売上がいちばん高いエリアにし、
+ *     3件に満たないエリアは1位にしない。
+ *     前はロング率で並べていたので、2件しかないエリアがロング率50%で1位になり、
+ *     1つに絞ると「平日はﾐﾅﾐ（2件）」というあてにならない案内になってしまった。
+ *     3件に満たないものしか無いときは (参考) を付けて出す（消しはしない）
+ *   ・「この絵の読み方」を3行にまとめた（6行で右がスカスカだった）
+ *   ・金額帯の3行を1つの文にまとめた（見た目は同じ3行のまま、中身だけ軽くした）
+ *   ・LINEに出す時間帯の数を、設定タブで決められるようにした（既定3つ）
+ *     全部の時間帯は、まとめスプシのマス目（曜日×時間帯）で見られる
+ *
+ *   ※ここまでやっても、1通には収まりません。実データで測った結果、
+ *     時間帯を1つまで絞っても16,600バイトあり、1通の上限9,500を超えます。
+ *     エリアを1つにしたぶんは約6,200バイト減りましたが、2通のままです。
+ *     1回の送信でまとめて届くので、時間をおいて何度も鳴る形にはなりません。
  *
  *  [L013ver]
  *  ▼ 毎月の自動送信（いちばん大事）
@@ -211,7 +229,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L013ver";
+const LR_VERSION = "L014ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1239,25 +1257,30 @@ function buildReportFlex_(o) {
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f1f3f4", "paddingAll": "8px", "cornerRadius": "md", "margin": "sm", "contents": [
     { "type": "text", "text": "── この絵の読み方 ──", "size": "xxs", "weight": "bold", "color": "#5f6368" },
     { "type": "text", "size": "xxs", "color": "#5f6368", "wrap": true, "margin": "xs",
-      "text": "🔥 ＝ アツい（狙う乗り場）\n" +
-              "⚠️ ＝ 避ける乗り場\n" +
-              "[00:00] ＝ いちばん高かった乗車の時刻\n" +
-              "(月) ＝ その乗車の曜日\n" +
-              "〇件 ＝ その枠の乗車回数\n" +
-              "待〇分 ＝ 平均の待ち時間" }
+      "text": "🔥 アツい（狙う）　／　⚠️ 避ける\n" +
+              "[00:00] いちばん高かった乗車の時刻　／　(月) その曜日\n" +
+              "〇件 乗車回数　／　待〇分 平均の待ち時間" }
   ]});
   flexContents.push({ "type": "separator", "margin": "md" }, { "type": "text", "text": "🔥アツいエリア【パーセント・実績】", "weight": "bold", "size": "sm", "color": "#1155ca", "margin": "md" });
 
   DAY_TYPES.forEach(type => {
     let areaRanks = [];
     ["北", "ﾐﾅﾐ", "ほか"].forEach(area => {
-      let d = areaStats[type][area]; if(d.t > 0) { areaRanks.push({ name: area, lR: d.l/d.t, score: d.t <= 1 ? -100 : (d.l/d.t), l: d.l, m: d.m, s: d.s, t: d.t, avg: Math.round(d.sales/d.t), wait: d.waitCount > 0 ? Math.round(d.waitSum/d.waitCount) : 0, lA: d.l>0?Math.round(d.lSum/d.l):0, mA: d.m>0?Math.round(d.mSum/d.m):0, sA: d.s>0?Math.round(d.sSum/d.s):0, lW: d.lWaitC>0?Math.round(d.lWait/d.lWaitC):0, mW: d.mWaitC>0?Math.round(d.mWait/d.mWaitC):0, sW: d.sWaitC>0?Math.round(d.sWait/d.sWaitC):0, spots: d.spots }); }
+      let d = areaStats[type][area]; if(d.t > 0) { areaRanks.push({ name: area, lR: d.l/d.t, score: (d.t >= 3 ? 0 : -1000000) + Math.round(d.sales/d.t), l: d.l, m: d.m, s: d.s, t: d.t, avg: Math.round(d.sales/d.t), wait: d.waitCount > 0 ? Math.round(d.waitSum/d.waitCount) : 0, lA: d.l>0?Math.round(d.lSum/d.l):0, mA: d.m>0?Math.round(d.mSum/d.m):0, sA: d.s>0?Math.round(d.sSum/d.s):0, lW: d.lWaitC>0?Math.round(d.lWait/d.lWaitC):0, mW: d.mWaitC>0?Math.round(d.mWait/d.mWaitC):0, sW: d.sWaitC>0?Math.round(d.sWait/d.sWaitC):0, spots: d.spots }); }
     });
+    // 「いちばん良かった」は、平均売上がいちばん高いエリアにする。
+    // ロング率で並べていたが、2件しかないエリアがロング率50%で1位になってしまい、
+    // 1つだけ出すと「平日はﾐﾅﾐ（2件）」のような、あてにならない案内になる。
+    // 3件に満たないエリアは、ほかに候補があるかぎり1位にしない
+    // （ほかが無いときだけ出て、記号も 🥇 ではなく (参考) になる）。
     areaRanks.sort((a,b) => b.score - a.score);
-    if(areaRanks.length > 0) {
+    // 3つならべると1通に収まらないので、LINEでは曜日区分ごとに1つだけ。
+    // 3つとも見たいときは、まとめスプシの「エリア別 実績＆パーセント」にある
+    const areaTop = areaRanks.slice(0, 1);
+    if(areaTop.length > 0) {
       let boxContents = [ { "type": "text", "text": `【${type}】`, "size": "sm", "weight": "bold", "color": "#333333", "margin": "sm" } ];
-      areaRanks.forEach((r, i) => {
-        let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t > 1 ? (i < 3 ? ["🥇","🥈","🥉"][i] : "") : "(参考)";
+      areaTop.forEach((r, i) => {
+        let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t >= 3 ? "🥇" : "(参考)";
         let bestL = "-", bestM = "-", worstS = "-"; let bcL = 0, bcM = 0, bcS = 999999;
         for(let sn in r.spots) { let st = r.spots[sn]; if(st.l > bcL) { bcL = st.l; bestL = sn; } if(st.m > bcM) { bcM = st.m; bestM = sn; } if(st.s > 0 && (st.sSum/st.s) < bcS) { bcS = st.sSum/st.s; worstS = sn; } }
         boxContents.push({ "type": "text", "text": `${rankStr} ${r.name} （${r.t}件 ／ 平均売上￥${r.avg.toLocaleString()} ／ 平均待ち${r.wait}分）`, "size": "xs", "weight": "bold", "color": "#1155ca", "margin": "md", "wrap": true });
@@ -1294,10 +1317,13 @@ function buildReportFlex_(o) {
           }
           return t;
         };
-        boxContents.push(
-          { "type": "text", "text": band_("ﾛﾝｸﾞ", r.l, r.lA, r.lW, "🔥", bestL,  bestL  !== "-" ? r.spots[bestL].lTimes  : null), "size": "xxs", "color": "#d93025", "wrap": true, "margin": "xs", "weight": "bold" },
-          { "type": "text", "text": band_("ﾐﾄﾞﾙ", r.m, r.mA, r.mW, "🔥", bestM,  bestM  !== "-" ? r.spots[bestM].mTimes  : null), "size": "xxs", "color": "#3b82f6", "wrap": true, "margin": "xs", "weight": "bold" },
-          { "type": "text", "text": band_("ｼｮｰﾄ", r.s, r.sA, r.sW, "⚠️", worstS, worstS !== "-" ? r.spots[worstS].sTimes : null), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs", "weight": "bold" });
+        // 3行を1つの文にまとめる（見た目は同じ3行のまま）。
+        // 1行ずつ別々に作ると、中身（JSON）だけが増えて1通に入りにくくなる
+        boxContents.push({ "type": "text", "size": "xxs", "wrap": true, "margin": "xs", "weight": "bold", "contents": [
+          { "type": "span", "text": band_("ﾛﾝｸﾞ", r.l, r.lA, r.lW, "🔥", bestL,  bestL  !== "-" ? r.spots[bestL].lTimes  : null) + "\n", "color": "#d93025" },
+          { "type": "span", "text": band_("ﾐﾄﾞﾙ", r.m, r.mA, r.mW, "🔥", bestM,  bestM  !== "-" ? r.spots[bestM].mTimes  : null) + "\n", "color": "#3b82f6" },
+          { "type": "span", "text": band_("ｼｮｰﾄ", r.s, r.sA, r.sW, "⚠️", worstS, worstS !== "-" ? r.spots[worstS].sTimes : null), "color": "#666666" }
+        ]});
       });
       flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f4f4f4", "paddingAll": "10px", "margin": "sm", "cornerRadius": "md", "contents": boxContents });
     }
@@ -1322,9 +1348,25 @@ function buildReportFlex_(o) {
       { "type": "span", "text": " " + body, "color": "#444444" }
     ]};
   };
+  // LINEに出す行数。これがいちばんかさばるので、ここで1通に収まるかが決まる。
+  // 全部の時間帯は、まとめスプシのマス目（曜日×時間帯）で見られる
+  let tlMax = 3;
+  try { if (typeof cfg_ === "function") { const v = parseInt(cfg_("LINEに出す時間帯の数"), 10); if (v >= 1 && v <= 99) tlMax = v; } } catch (e) {}
+
   DAY_TYPES.forEach(dType => {
-    let tLines = []; targetHours.forEach(hr => {
-      const b = finalTimeline[dType][hr].best; const w = finalTimeline[dType][hr].worst;
+    // 平均売上が高い時間帯から順に選ぶ。そのあと時間の順に並べ直す
+    const picked = targetHours
+      .filter(function (hr) { return finalTimeline[dType][hr].best || finalTimeline[dType][hr].worst; })
+      .map(function (hr, i) {
+        const b = finalTimeline[dType][hr].best;
+        return { hr: hr, order: i, rank: b ? b.avg : -1 };
+      })
+      .sort(function (a, b) { return b.rank - a.rank; })
+      .slice(0, tlMax)
+      .sort(function (a, b) { return a.order - b.order; });
+
+    let tLines = []; picked.forEach(function (x) {
+      const b = finalTimeline[dType][x.hr].best; const w = finalTimeline[dType][x.hr].worst;
       // アツいほうは「最高いくらまで出たか」まで出す。避けるほうは行かないので出さない
       if (b) tLines.push(timeLine_("🔥", "#2e7d32", b, true));
       if (w) tLines.push(timeLine_("⚠️", "#b45f06", w, false));
@@ -1337,7 +1379,7 @@ function buildReportFlex_(o) {
   /* ---------- 📣 オプチャ（他社の人の投稿） ---------- */
   const opuBox_ = function (box) { trimFirst.push(box); return box; };
   if (opucha && opucha.count > 0) {
-    const top = opuchaTop_(opucha, 5);
+    const top = opuchaTop_(opucha, 4);
     const opuLines = top.map(function (x) {
       return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [
         { "type": "span", "text": x.at ? `[${x.at}] ` : "", "weight": "bold", "color": "#7b1fa2" },
