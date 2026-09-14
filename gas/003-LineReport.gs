@@ -2,11 +2,19 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L009ver  （2026/09/06）  ★★★
+ *  ★★★  L010ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L010ver]
+ *   ・「dbRich_ is not defined」で送信できなかったのを直した
+ *     アドバイスを太字で書く関数 dbRich_ の中身が抜け落ちていて、
+ *     呼び出す行だけが残っていた。JavaScript は「無い関数を呼ぶ行」があっても
+ *     その行を通るまでエラーにならないので、構文チェックも素通りしていた
+ *   ・同じ見落としが二度と起きないよう、テストを足した（gas/test/defined.test.js）
+ *     呼んでいるのに、どこにも定義が無い関数を見つける
  *
  *  [L009ver]
  *  ▼ LINEの絵
@@ -124,7 +132,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L009ver";
+const LR_VERSION = "L010ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1511,6 +1519,34 @@ function dbFit_(sheet, row, cells, minH) {
     lines = Math.max(lines, dbLines_(c.text, c.span * DB_COL_W - 6, c.size || 11));
   });
   sheet.setRowHeight(row, Math.min(400, Math.max(minH || 28, lines * 16 + 10)));
+}
+
+/**
+ * 太字つきの行（[{t,b,c}]）を、セルにそのまま書く。
+ *
+ * LINEの絵では span で太字にしている。スプシでも同じところを太字にしたいので、
+ * 同じ材料からリッチテキストを作る。ここが文字列に潰れていると、
+ * どこが大事なのか分からない、のっぺりした文になってしまう。
+ * 書いた文字をそのまま返す（行の高さを決めるのに使う）。
+ */
+function dbRich_(sheet, row, col, span, parts, size, bg) {
+  const text = parts.map(function (x) { return x.t; }).join("");
+  const rg = sheet.getRange(row, col, 1, span).merge()
+    .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+  if (bg) rg.setBackground(bg);
+
+  const rt = SpreadsheetApp.newRichTextValue().setText(text);
+  let at = 0;
+  parts.forEach(function (x) {
+    const to = at + String(x.t).length;
+    if (to > at) {
+      rt.setTextStyle(at, to, SpreadsheetApp.newTextStyle()
+        .setFontSize(size).setBold(!!x.b).setForegroundColor(x.c || "#333333").build());
+    }
+    at = to;
+  });
+  rg.setRichTextValue(rt.build());
+  return text;
 }
 
 /**
