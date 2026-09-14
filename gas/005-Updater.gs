@@ -2,7 +2,12 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U009ver  （2026/09/06）  ★★★
+ *  ★★★  U010ver  （2026/09/06）  ★★★
+ *
+ *  [U010ver]
+ *   ・ボタン [8]「自動送信の状態を見る」を足した
+ *     毎月のレポート送信が本当に仕込まれているかを、スマホから確かめられる
+ *     入っていなければ、その場で入れ直す
  *
  *  [U009ver]
  *   ・更新の結果を、そうさボタンの結果らんにも出すようにした
@@ -111,7 +116,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U009ver";
+const UPD_VERSION = "U010ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -740,7 +745,10 @@ function panelItems_() {
     { key: "レポートをLINE",       label: "[7] レポートをLINEに送る",    fn: "menuSendReportPanel",
       sec: 90, stall: 420,
       note: "すぐ上の「期間」と「送り先」のとおりに送ります。" +
-            "グループ（本番）は、もう一度チェックで確定します" }
+            "グループ（本番）は、もう一度チェックで確定します" },
+    { key: "自動送信の状態",       label: "[8] 自動送信の状態を見る",    fn: "panelAutoReportStatus",
+      sec: 20,
+      note: "毎月の自動送信が本当に入っているかを見ます。入っていなければ入れ直します" }
   ];
 }
 
@@ -904,7 +912,8 @@ const PANEL_FROM = {
   menuRestoreCode:    "005-Updater",
   menuWebAppSendLineStep: "004-WebApp",
   menuWebAppCheck:    "004-WebApp",
-  menuSendReportPanel: "003-LineReport"
+  menuSendReportPanel: "003-LineReport",
+  panelAutoReportStatus: "003-LineReport"
 };
 
 /** その関数がこのプロジェクトに入っているか */

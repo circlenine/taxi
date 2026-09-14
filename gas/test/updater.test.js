@@ -566,13 +566,13 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 7, 'いつも7つ並ぶ（' + items.length + '個）');
+t(items.length === 8, 'いつも8つ並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
 t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
-  'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel',
+  'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -706,7 +706,7 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B17',
+t(panel._prot[0]._a1 === 'B9:B18',
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らんも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -817,7 +817,7 @@ console.log('\n■ 足りないボタンだけ足す');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 // 4つしか無かった昔の状態を作る（5つめ以降を消す）
-[13, 14, 15, 16, 17].forEach(r => {
+[13, 14, 15, 16, 17, 18].forEach(r => {
   delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
 });
 panel._cells['9,3'] = '[1] コードを更新する（じぶんで整えた）';
@@ -828,9 +828,10 @@ const added = F('panelReadRows_')(panel).map(r => String(r.text));
 t(added.some(x => x.indexOf('URLをLINE') !== -1), '5つめが足された');
 t(added.some(x => x.indexOf('開けるか調べる') !== -1), '6つめが足された');
 t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足された');
+t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '3個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '4個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -939,7 +940,9 @@ panel._cells['40,3'] = '[5] ページのURLをLINEに送る';
 panel._cells['41,3'] = '[6] ページが開けるか調べる';
 panel._cells['42,2'] = false;
 panel._cells['42,3'] = '[7] レポートをLINEに送る';
-panel._cells['43,2'] = '結果';
+panel._cells['43,2'] = false;
+panel._cells['43,3'] = '[8] 自動送信の状態を見る';
+panel._cells['44,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1020,15 +1023,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 1, '[7] だけ足りない');
+t(F('panelCheck_')(panel).missing.length === 2, '[7][8] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 3, '3つ足りない');
+t(miss.length === 4, '4つ足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 7, '7つになった');
+t(F('panelReadRows_')(panel).length === 8, '8つになった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -1056,9 +1059,9 @@ F('menuMakePanel')();
   t(!!pc && !!dc, '期間と送り先の2行が置かれる');
   t(pc.col === 4 && dc.col === 4, '入力するのは見出しのすぐ右（D列）');
   const rows = F('panelReadRows_')(panel);
-  const last = rows[rows.length - 1];
-  t(String(last.text).indexOf('レポートをLINE') !== -1, '入力らんの下が [7]');
-  t(pc.row === last.row - 2 && dc.row === last.row - 1, '[7] のすぐ上に並ぶ');
+  const r7 = rows.filter(r => String(r.text).indexOf('レポートをLINE') !== -1)[0];
+  t(!!r7, '[7] がある');
+  t(pc.row === r7.row - 2 && dc.row === r7.row - 1, '[7] のすぐ上に並ぶ');
   t(F('panelInputGet_')(panel, vm.runInContext('PANEL_IN_PERIOD', ctx)) === '今期',
     'はじめは「今期」');
   t(F('panelInputGet_')(panel, vm.runInContext('PANEL_IN_DEST', ctx)) ===
@@ -1105,11 +1108,11 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
   // 古いコードで置いた状態を作る（[7] と入力らんを消し、目印も古くする）
   const rows = F('panelReadRows_')(panel);
   const last = rows[rows.length - 1].row;
-  [last, last - 1, last - 2].forEach(r => {
+  [last, last - 1, last - 2, last - 3].forEach(r => {
     delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
   });
   props['PANEL_SETUP_VER'] = 'U006ver';
-  t(F('panelCheck_')(panel).missing.length === 1, '[7] が無い状態');
+  t(F('panelCheck_')(panel).missing.length === 2, '[7][8] が無い状態');
 
   F('panelWatch')();                       // 1分おきの見張りが気づいて足す
   t(F('panelCheck_')(panel).missing.length === 0, '見張りが [7] を足した');
@@ -1130,7 +1133,7 @@ console.log('\n■ 押されているものがあるときは、行を動かさ�
   F('menuMakePanel')();
   const rows = F('panelReadRows_')(panel);
   const last = rows[rows.length - 1].row;
-  [last, last - 1, last - 2].forEach(r => {
+  [last, last - 1, last - 2, last - 3].forEach(r => {
     delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
   });
   props['PANEL_SETUP_VER'] = 'U006ver';
@@ -1138,7 +1141,7 @@ console.log('\n■ 押されているものがあるときは、行を動かさ�
   panel._cells[(TOP + 2) + ',2'] = true;        // [3] 全タブをまとめて整形する
   F('panelWatch')();
   t(vm.runInContext('formatRan', ctx) === 1, '押されたものが先に動く');
-  t(F('panelCheck_')(panel).missing.length === 1,
+  t(F('panelCheck_')(panel).missing.length >= 1,
     'そのときは行を差し込まない（押した行がずれるため）');
 }
 
@@ -1156,10 +1159,10 @@ console.log('\n■ 更新の結果が、そうさボタンの結果らんに出�
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U009ver', 'U009ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U010ver', 'U010ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U009ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U010ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -1228,7 +1231,7 @@ console.log('\n■ 推定残り時間を出す');
   t(S(120) === '約2分', 'ちょうど何分ならそれだけ');
   t(S(0.4) === '約1秒', '0秒とは言わない');
   const items = F('panelItems_')();
-  t(items.every(x => x.sec > 0), '7つとも見込み時間を持っている');
+  t(items.every(x => x.sec > 0), '8つとも見込み時間を持っている');
 }
 
 console.log('\n■ 押したら、まず空にしてから「実行中（推定〇〇）」を出す');

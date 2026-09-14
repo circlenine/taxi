@@ -674,5 +674,105 @@ console.log('\n■ 送れなかったときに、理由が日本語で分かる'
   eq(typeof W(400, 'これはJSONではない'), 'string', 'JSONでない返事でも落ちない');
 }
 
+console.log('\n■ グラフの色は、見分けがつくこと');
+{
+  const G = vm.runInContext('GRAPH_COLORS', ctx);
+  const rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+  const lum = h => { const [r,g,b] = rgb(h); return (0.299*r + 0.587*g + 0.114*b) / 255; };
+  // 人の目に近い色差（redmean）。数字が小さいほど「似ている」
+  const diff = (a, b) => {
+    const [r1,g1,b1] = rgb(a), [r2,g2,b2] = rgb(b), rm = (r1+r2)/2;
+    return Math.sqrt((2+rm/256)*(r1-r2)**2 + 4*(g1-g2)**2 + (2+(255-rm)/256)*(b1-b2)**2);
+  };
+  eq(G.length >= 12, true, '12色以上ある（' + G.length + '色）');
+  eq(new Set(G).size, G.length, '同じ色が2つ入っていない');
+  const bright = G.filter(c => lum(c) > 0.55);
+  eq(bright, [], '白地で沈む明るい色が無い');
+
+  let worst = 1e9, pair = '';
+  for (let i = 0; i < G.length; i++) for (let j = i+1; j < G.length; j++) {
+    const x = diff(G[i], G[j]); if (x < worst) { worst = x; pair = G[i] + ' と ' + G[j]; }
+  }
+  // 100を下回ると、並べたときに「同じ色では？」と見えてしまう
+  eq(worst >= 100, true, 'どの2色も、はっきり違う（いちばん近い組 ' + pair + ' で ' + Math.round(worst) + '）');
+}
+
+console.log('\n■ 毎月の自動送信');
+{
+  const P = {};
+  ctx.PropertiesService = { getScriptProperties: () => ({
+    getProperty: k => (k in P ? P[k] : null), setProperty: (k,v) => { P[k] = String(v); },
+    deleteProperty: k => { delete P[k]; } }) };
+  // 設定タブは無いものとして、既定（16日・7時）で動くか
+  vm.runInContext('function cfg_(){ return ""; }', ctx);
+
+  eq(ctx.autoReportDay_(), 16, '既定は毎月16日');
+  eq(ctx.autoReportHour_(), 7, '既定は朝7時');
+  eq(ctx.autoReportOn_(), true, '既定は「自動で送る」');
+
+  // 設定タブで変えられる
+  vm.runInContext('cfg_ = function(k){ return ({"自動送信する日（毎月）":1,"自動送信の時刻（時）":23,"レポートを自動で送る":"いいえ"})[k] || ""; }', ctx);
+  eq(ctx.autoReportDay_(), 1, '送る日は設定で変えられる');
+  eq(ctx.autoReportHour_(), 23, '時刻も変えられる');
+  eq(ctx.autoReportOn_(), false, '「いいえ」で止められる');
+  // へんな値でも既定に戻る（0日・99時などで壊れない）
+  vm.runInContext('cfg_ = function(k){ return ({"自動送信する日（毎月）":0,"自動送信の時刻（時）":99})[k] || ""; }', ctx);
+  eq(ctx.autoReportDay_(), 16, 'ありえない日は既定に戻す');
+  eq(ctx.autoReportHour_(), 7, 'ありえない時刻も既定に戻す');
+  vm.runInContext('cfg_ = function(){ return ""; }', ctx);
+
+  // 送る日でなければ、何もしない
+  let sent = [];
+  vm.runInContext('function sendCustomReport(to, s, e){ sentLog.push([to, s.getTime(), e.getTime()]); }', ctx);
+  ctx.sentLog = sent;
+  vm.runInContext('function rpGroupTarget_(){ return "Cgroup123"; }', ctx);
+  vm.runInContext('function logErr_(){}', ctx);
+
+  const RealDate = D;
+  const fakeNow = (y, m, d) => {
+    class F extends RealDate {
+      constructor(...a) { if (a.length === 0) super(y, m, d, 7, 0, 0); else super(...a); }
+      static now() { return new RealDate(y, m, d, 7, 0, 0).getTime(); }
+    }
+    ctx.Date = F;
+  };
+
+  fakeNow(2026, 8, 10);                 // 9/10 … 送る日ではない
+  ctx.monthlyReportJob();
+  eq(sent.length, 0, '16日でなければ、何もしない');
+
+  fakeNow(2026, 8, 16);                 // 9/16 … 送る日
+  ctx.monthlyReportJob();
+  eq(sent.length, 1, '16日なら送る');
+  eq(sent[0][0], 'Cgroup123', '送り先はグループLINE');
+  eq(new RealDate(sent[0][1]).getMonth(), 7, '期間の始まりは8月');
+  eq(new RealDate(sent[0][1]).getDate(), 16, '  8/16 から');
+  eq(new RealDate(sent[0][2]).getMonth(), 8, '期間の終わりは9月');
+  eq(new RealDate(sent[0][2]).getDate(), 15, '  9/15 まで');
+
+  ctx.monthlyReportJob();
+  eq(sent.length, 1, '同じ日にもう一度動いても、二度は送らない');
+
+  fakeNow(2026, 9, 16);                 // 10/16 … 次の月
+  ctx.monthlyReportJob();
+  eq(sent.length, 2, '月が変われば、また送る');
+  eq(new RealDate(sent[1][1]).getMonth(), 8, '  9/16 から');
+  eq(new RealDate(sent[1][2]).getMonth(), 9, '  10/15 まで');
+
+  // 送り先が無いときは、送らずに知らせる
+  sent.length = 0; delete P['AUTO_REPORT_SENT'];
+  vm.runInContext('rpGroupTarget_ = function(){ return ""; }', ctx);
+  ctx.monthlyReportJob();
+  eq(sent.length, 0, 'グループIDが無ければ送らない（誤配信を防ぐ）');
+
+  // 送信中に落ちても、二重送信しない
+  sent.length = 0; delete P['AUTO_REPORT_SENT'];
+  vm.runInContext('rpGroupTarget_ = function(){ return "Cgroup123"; }', ctx);
+  vm.runInContext('sendCustomReport = function(){ throw new Error("途中で失敗"); }', ctx);
+  ctx.monthlyReportJob();
+  eq(!!P['AUTO_REPORT_SENT'], true, '失敗しても「送った」と記録する（二重送信を防ぐため）');
+  ctx.Date = RealDate;
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

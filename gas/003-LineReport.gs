@@ -2,11 +2,36 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L012ver  （2026/09/06）  ★★★
+ *  ★★★  L013ver  （2026/09/06）  ★★★
  *
  *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [L013ver]
+ *  ▼ 毎月の自動送信（いちばん大事）
+ *   ・これまで、自動で送るしくみは1つも入っていませんでした。
+ *     16日の朝になっても何も起きない状態でした。作りました
+ *   ・毎日きまった時刻に見にいき、その日が「送る日」ならグループLINEへ送る
+ *     月の日数が違っても取りこぼさない形にしてある
+ *   ・同じ期間は二度送らない。送る前に「送った」と記録するので、
+ *     途中で時間切れになっても、二重には届かない
+ *   ・設定タブで 送る日／時刻／するしない を変えられる（既定 16日・7時）
+ *   ・メニュー「⏰ 自動送信の状態を見る」と、そうさボタン [8] で確かめられる
+ *
+ *  ▼ まとめスプシ
+ *   ・作ったときに付いてくる「シート1」を消すようにした
+ *     これが残っていると、タブが増えても新しいスプシに見えてしまう
+ *   ・行き先のIDを、いちばん消えにくいところ（スクリプトの控え）へ先に書くようにした
+ *   ・記録用スプシを触れる人に、まとめスプシの「見るだけ」を自動で付けるようにした
+ *     メールアドレスをコードに書かずに済む（記録用スプシから写す）
+ *   ・グラフの凡例に曜日を戻した（7/16 → 7/16(木)）
+ *     日付の並びも、文字ではなく本当の日付で並べるようにした
+ *     （文字のままだと「10/1」が「7/16」より前に来てしまう）
+ *   ・グラフの目盛りを細かくした（横は30分ごと、縦は10本）。線はより薄いグレーに
+ *   ・グラフの色を選び直した
+ *     前は「濃い赤」と「もっと濃い赤」のように見分けのつかない組があった
+ *     （人の目に近い色差で36）。色相を一周する14色にし、いちばん近い組でも131に
  *
  *  [L012ver]
  *  ▼ LINEの絵
@@ -186,7 +211,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L012ver";
+const LR_VERSION = "L013ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -248,10 +273,20 @@ function menuSetGeminiKey() {
 
 /* ============ レポート専用の定数・道具 ============ */
 
-// グラフの線・点の色。白い背景でも読めるよう、明るすぎる色は使わない。
-// （前は黄色 #ffe119・黄緑 #bfef45・薄い水色 #42d4f4 が入っていて、白地でほぼ見えなかった）
-const GRAPH_COLORS = ["#c0392b", "#1e8449", "#1f618d", "#b9770e", "#6c3483",
-                      "#117864", "#7b241c", "#2874a6", "#4a235a", "#515a5a"];
+/**
+ * グラフの線・点の色。
+ *
+ * 条件は2つ。
+ *   ・白い背景でも読めること（明るすぎる色を使わない）
+ *   ・となり合う色が似ていないこと
+ * 前は「濃い赤」と「もっと濃い赤」、「青」と「濃い青」のように
+ * 見分けのつかない組が入っていた（人の目に近い色差でわずか36）。
+ * 色相をぐるりと一周する形に選び直して、いちばん近い組でも131まで離した。
+ * 並びも、となり同士がいちばん遠くなるようにしてある。
+ */
+const GRAPH_COLORS = ["#d32f2f", "#13a4ec", "#0da50d", "#270da5", "#ec13ec",
+                      "#246b6b", "#8013ec", "#6b2453", "#a5730d", "#b82ea1",
+                      "#1337ec", "#2eb85c", "#536b24", "#2e73b8"];
 
 const TAB_COLORS = { "北7": "#e3f2fd", "北4": "#e8eaf6", "北他": "#e0f7fa",
                      "ﾐﾅﾐ": "#fce4ec", "関空": "#fff3e0", "ほか": "#f5f5f5" };
@@ -317,12 +352,19 @@ function onOpenReport() {
     m.addItem("🗺 マップの行き先を確認する", "menuMapLinksCheck");
   }
   m.addSeparator();
+  m.addItem("⏰ 自動送信の状態を見る", "menuAutoReportStatus");
+  m.addItem("🧪 自動送信を今すぐ試す（自分だけ）", "menuAutoReportTestNow");
+  m.addSeparator();
   m.addItem("👥 グループIDを設定", "menuSetGroupId");
   m.addItem("🤖 Geminiキーを設定", "menuSetGeminiKey");
   m.addItem("🤖 Geminiのモデルを変える", "menuSetGeminiModel");
   m.addSeparator();
   m.addItem("ℹ️ バージョンを確認", "menuShowVersions");
   m.addToUi();
+
+  // 自動送信のしかけが入っているか、開いたときに確かめる。
+  // 入っていなければ、ここで入れる（1回だけ。毎回は作り直さない）
+  try { ensureAutoReportTrigger_(false); } catch (e) { console.log("自動送信の用意: " + e.message); }
 }
 
 /**
@@ -362,6 +404,8 @@ function setupReportMenu() {
     }
   });
   ScriptApp.newTrigger("onOpenReport").forSpreadsheet(ss).onOpen().create();
+  // レポートの自動送信（毎月◯日の朝）も、ここで入れておく
+  try { ensureAutoReportTrigger_(true); } catch (e) { console.log("自動送信の用意: " + e.message); }
 
   // ポップアップは出さない。メニューが出ること自体が結果なので、確認は要らない。
   // （起動時トリガーが誤ってこの関数に向いていても、毎回ポップアップが出ないようにする）
@@ -803,6 +847,163 @@ function menuSendReportPanel() {
     "\n　期間：" + span + (r.label ? "（" + r.label + "）" : "");
 }
 
+/* ============ ⏰ 毎月の自動送信 ============ */
+/*
+ * ★これまで、自動で送るしくみは1つも入っていませんでした。
+ *   16日の朝になっても、何も起きない状態でした。
+ *
+ * 作り方：
+ *   毎日きまった時刻に monthlyReportJob() を動かし、
+ *   その日が「送る日」なら、前の期間ぶんをグループLINEへ送る。
+ *   月末の日数が月によって違うので、「毎月◯日」ではなく
+ *   「毎日見にいって、その日かどうかを見る」ほうが取りこぼさない。
+ *
+ * 二重送信よけ：
+ *   送った期間を覚えておき、同じ期間は二度送らない。
+ *   トリガーが二重に登録されても、送られるのは1回だけ。
+ */
+
+/** 何日に送るか（設定タブで変えられる。既定は16日） */
+function autoReportDay_() {
+  let v = 16;
+  try { if (typeof cfg_ === "function") v = parseInt(cfg_("自動送信する日（毎月）"), 10); } catch (e) {}
+  return (v >= 1 && v <= 28) ? v : 16;
+}
+
+/** 何時に送るか（設定タブで変えられる。既定は7時） */
+function autoReportHour_() {
+  let v = 7;
+  try { if (typeof cfg_ === "function") v = parseInt(cfg_("自動送信の時刻（時）"), 10); } catch (e) {}
+  return (v >= 0 && v <= 23) ? v : 7;
+}
+
+/** 自動送信を使うか（設定タブで「いいえ」にすると止まる） */
+function autoReportOn_() {
+  try {
+    if (typeof cfg_ !== "function") return true;
+    return String(cfg_("レポートを自動で送る") || "はい").indexOf("いいえ") !== 0;
+  } catch (e) { return true; }
+}
+
+/**
+ * 毎日よばれる。送る日でなければ、何もしないで終わる。
+ * トリガーから動くので、画面には何も出せない。結果は説明タブとログに残す。
+ */
+function monthlyReportJob() {
+  try {
+    if (!autoReportOn_()) return;
+    const now = new Date();
+    if (now.getDate() !== autoReportDay_()) return;
+
+    // 16日に送るのは「前月16日 〜 当月15日」
+    const endD   = new Date(now.getFullYear(), now.getMonth(), autoReportDay_() - 1, 23, 59, 59);
+    const startD = new Date(endD.getFullYear(), endD.getMonth() - 1, autoReportDay_(), 0, 0, 0);
+    const span   = lrVal_(startD) + "-" + lrVal_(endD);
+
+    const props = PropertiesService.getScriptProperties();
+    if (props.getProperty("AUTO_REPORT_SENT") === span) return;   // もう送ってある
+
+    const to = rpGroupTarget_();
+    if (!to) {
+      autoReportLog_("❌ 自動送信できませんでした：グループの送信先が未設定です（説明タブ Z1）");
+      return;
+    }
+
+    // 先に「送った」と記録する。送信の途中で時間切れになっても、
+    // 次の実行で二重に送ってしまわないようにするため
+    props.setProperty("AUTO_REPORT_SENT", span);
+    sendCustomReport(to, startD, endD);
+    autoReportLog_("✅ " + lrFull_(startD) + "〜" + lrFull_(endD) + " のレポートを、グループLINEに自動送信しました");
+  } catch (e) {
+    logErr_("monthlyReportJob", e);
+    autoReportLog_("❌ 自動送信に失敗しました：" + (e && e.message ? e.message : e));
+  }
+}
+
+/** 自動送信の結果を、あとから見られるところに残す（説明タブ Y6・Z6） */
+function autoReportLog_(text) {
+  const line = lrFull_(new Date()) + " " + pad2_(new Date().getHours()) + ":" + pad2_(new Date().getMinutes()) + "\n" + text;
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
+    if (sh) { sh.getRange("Y6").setValue("自動送信"); sh.getRange("Z6").setValue(line); }
+  } catch (e) {}
+  console.log(line);
+}
+
+/**
+ * 自動送信のトリガーを用意する（すでにあれば作り直す）。
+ * 時刻を変えたときにも、これを呼べば入れ直せる。
+ */
+function ensureAutoReportTrigger_(force) {
+  const hour = autoReportHour_();
+  const props = PropertiesService.getScriptProperties();
+  const want = "monthlyReportJob@" + hour;
+  const cur = ScriptApp.getProjectTriggers().filter(function (t) {
+    return t.getHandlerFunction() === "monthlyReportJob";
+  });
+  if (!force && cur.length === 1 && props.getProperty("AUTO_REPORT_TRIGGER") === want) return false;
+
+  cur.forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger("monthlyReportJob").timeBased().atHour(hour).nearMinute(0).everyDays(1).create();
+  props.setProperty("AUTO_REPORT_TRIGGER", want);
+  return true;
+}
+
+/** 自動送信の状態を見る（メニュー用） */
+function menuAutoReportStatus() {
+  ensureAutoReportTrigger_(false);
+  const ui = SpreadsheetApp.getUi();
+  ui.alert("⏰ レポートの自動送信", autoReportStatusText_(), ui.ButtonSet.OK);
+}
+
+/** そうさボタン／メニューの両方から使う、状態の文 */
+function autoReportStatusText_() {
+  const n = ScriptApp.getProjectTriggers().filter(function (t) {
+    return t.getHandlerFunction() === "monthlyReportJob";
+  }).length;
+  const props = PropertiesService.getScriptProperties();
+  const to = rpGroupTarget_();
+
+  const L = [];
+  L.push(autoReportOn_() ? "自動送信：する" : "自動送信：しない（設定タブで「はい」に戻せます）");
+  L.push("送る日　：毎月 " + autoReportDay_() + "日");
+  L.push("送る時刻：" + autoReportHour_() + "時ごろ");
+  L.push("送り先　：" + (to ? "グループLINE（設定ずみ）" : "❌ 未設定（説明タブ Z1）"));
+  L.push(n > 0 ? "しかけ　：✅ 入っています（" + n + "個）" : "しかけ　：❌ 入っていません");
+  const last = props.getProperty("AUTO_REPORT_SENT");
+  L.push("前回送信：" + (last ? last + " のぶん" : "まだありません"));
+  L.push("");
+  if (n > 0 && to && autoReportOn_()) {
+    L.push("毎月 " + autoReportDay_() + "日 の " + autoReportHour_() + "時ごろに、");
+    L.push("前月" + autoReportDay_() + "日〜当月" + (autoReportDay_() - 1) + "日 のレポートが");
+    L.push("グループLINEへ自動で送られます。");
+  } else {
+    L.push("⚠️ いまのままでは、自動では送られません。");
+    if (!to) L.push("　・グループIDを設定してください（メニュー「👥 グループIDを設定」）");
+  }
+  return L.join("\n");
+}
+
+/** そうさボタン [8] の中身。結果らんに出す文を返す */
+function panelAutoReportStatus() {
+  const made = ensureAutoReportTrigger_(false);
+  return "⏰ レポートの自動送信\n" + autoReportStatusText_() +
+    (made ? "\n\n（入っていなかったので、いま入れました）" : "");
+}
+
+/** 自動送信を、いますぐ試す（送る日でなくても送る。テスト送信） */
+function menuAutoReportTestNow() {
+  const now = new Date();
+  const day = autoReportDay_();
+  const endD   = new Date(now.getFullYear(), now.getMonth(), day - 1, 23, 59, 59);
+  const startD = new Date(endD.getFullYear(), endD.getMonth() - 1, day, 0, 0, 0);
+  const to = rpTestTarget_();
+  if (!to) { SpreadsheetApp.getUi().alert("自分の送信先が分かりませんでした（設定タブ「テスト送信先（自分のLINE）」）"); return; }
+  sendCustomReport(to, startD, endD);
+  SpreadsheetApp.getUi().alert("🧪 自動送信で送られるのと同じものを、自分のLINEにだけ送りました。\n"
+    + "期間：" + lrFull_(startD) + "〜" + lrFull_(endD));
+}
+
 /* ============ 集計 → Flex Message → LINE送信 ============ */
 
 function sendCustomReport(targetId, customStartD, customEndD) {
@@ -839,7 +1040,11 @@ function sendCustomReport(targetId, customStartD, customEndD) {
       let waitMinutes = parseInt(String(dataVals[r][3]).replace(/[^0-9]/g, ''), 10); if(isNaN(waitMinutes)) waitMinutes = 0;
       let dayOfWeek = rDate.getDay(); let dayType = "平日"; if (isHolidayFunc(rDate) || dayOfWeek === 0) dayType = "日祝"; else if (dayOfWeek === 6) dayType = "土曜"; else if (dayOfWeek === 5) dayType = "金曜";
 
-      let dateStr = `${rDate.getMonth()+1}/${rDate.getDate()}`; let timeStr = `${daysStr[dayOfWeek]}曜 ${exactTimeStr}`;
+      // グラフの凡例にそのまま出るので、曜日まで入れる。
+      // 「7/16」だけだと何曜日か分からず、曜日ごとの動きが読み取れない
+      let dateStr = `${rDate.getMonth()+1}/${rDate.getDate()}(${daysStr[dayOfWeek]})`;
+      let dateKey = `${rDate.getFullYear()}-${pad2_(rDate.getMonth()+1)}-${pad2_(rDate.getDate())}`;
+      let timeStr = `${daysStr[dayOfWeek]}曜 ${exactTimeStr}`;
 
       if ((memo.includes("チケ") || memo.includes("チケット") || remarks.includes("チケ") || remarks.includes("チケット")) && price >= 5000) { ticketRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", tabName + ": " + memo + " " + remarks]); }
       if (avoidWords.some(w => memo.includes(w) || remarks.includes(w)) || price <= 999) { avoidRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", tabName + ": " + memo + " " + remarks]); }
@@ -891,7 +1096,7 @@ function sendCustomReport(targetId, customStartD, customEndD) {
           spotHeatmapTimes[sKey][dayOfWeek][hr].push({ time: exactTimeStr, dateStr: dateStr });
         }
         let sortHr = hr < 16 ? hr + 24 : hr; let timeDec = sortHr + (min / 60);
-        if (timeDec >= 20 && timeDec <= 29) recordsForGraph.push({ dateStr: dateStr, timeDec: timeDec, price: price, spotName: place, dayOfWeek: dayOfWeek });
+        if (timeDec >= 20 && timeDec <= 29) recordsForGraph.push({ dateStr: dateStr, dateKey: dateKey, timeDec: timeDec, price: price, spotName: place, dayOfWeek: dayOfWeek });
       }
     }
   });
@@ -928,6 +1133,7 @@ function sendCustomReport(targetId, customStartD, customEndD) {
   const advice = buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, targetHours, endD);
 
   if (typeof updProgress_ === "function") updProgress_("まとめスプシを作っています");
+  // どのスプシに書いたかを、あとで確かめられるようにしておく
   let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides);
 
   const periodStr = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
@@ -1897,11 +2103,51 @@ function dbOpenTarget_(mainSS) {
         "（元のエラー: " + (e && e.message ? e.message : e) + "）");
     }
   }
+  // ここに来るのは、行き先がどこにも残っていないときだけ。
+  // 1回作ったら、次からは必ず同じものに追記する
   const made = SpreadsheetApp.create("☣️僕はグールだッシュボード☣️");
-  if (desc) desc.getRange("Z2").setValue(made.getId());
-  props.setProperty("DASHBOARD_ID", made.getId());
+  const newId = made.getId();
+  props.setProperty("DASHBOARD_ID", newId);   // いちばん消えにくいところへ先に
+  if (desc) desc.getRange("Z2").setValue(newId);
   SpreadsheetApp.flush();          // 書き終わる前に落ちても、行き先を見失わないように
+
+  // 作ったときに勝手に付いてくる「シート1」は消す。
+  // これが残っていると、タブが増えても「まっさらな新しいスプシ」に見えてしまう
+  try {
+    made.getSheets().forEach(function (sh) {
+      if (/^(シート1|Sheet1)$/.test(sh.getName()) && made.getSheets().length > 1) made.deleteSheet(sh);
+    });
+  } catch (e) {}
   return made;
+}
+
+/**
+ * まとめスプシを、記録用スプシと同じ人が見られるようにする。
+ *
+ * メールアドレスをコードに書くと、GitHub に他人のアドレスが残ってしまう。
+ * 記録用スプシを触れる人＝見せたい人、なので、そこから写す。
+ * 人が増えても減っても、勝手についてくる。
+ */
+function dbShareWithTeam_(mainSS, dbSS) {
+  try {
+    if (typeof cfg_ === "function" && String(cfg_("まとめスプシを同じ人に見せる") || "はい").indexOf("いいえ") === 0) return "";
+    const already = {};
+    dbSS.getEditors().forEach(function (u) { already[String(u.getEmail()).toLowerCase()] = true; });
+    dbSS.getViewers().forEach(function (u) { already[String(u.getEmail()).toLowerCase()] = true; });
+
+    const want = [];
+    mainSS.getEditors().concat(mainSS.getViewers()).forEach(function (u) {
+      const mail = String(u.getEmail() || "").trim();
+      if (mail && !already[mail.toLowerCase()]) { already[mail.toLowerCase()] = true; want.push(mail); }
+    });
+    if (!want.length) return "";
+    // 見るだけ。まとめスプシは毎回作り直すので、書き換えられると困る
+    want.forEach(function (mail) { try { dbSS.addViewer(mail); } catch (e) {} });
+    return want.length + "人に見る権限を足しました";
+  } catch (e) {
+    logErr_("dbShareWithTeam", e);
+    return "";
+  }
 }
 
 /** 合計 total 列を、割合 parts で分ける（合計は必ず total になる） */
@@ -2224,7 +2470,11 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   dbGap_(sheet, curRow); curRow++;
 
   /* ---------- 乗り場ごとのヒートマップとグラフ ---------- */
-  let datesArr = Array.from(new Set(recordsForGraph.map(r => r.dateStr))).sort();
+  // 文字のまま並べると「10/1」が「7/16」より前に来てしまうので、本当の日付で並べる
+  const dateKeyOf = {};
+  recordsForGraph.forEach(function (r) { dateKeyOf[r.dateStr] = r.dateKey || r.dateStr; });
+  let datesArr = Array.from(new Set(recordsForGraph.map(r => r.dateStr)))
+    .sort(function (a, b) { return String(dateKeyOf[a]).localeCompare(String(dateKeyOf[b])); });
   let dateColorMap = {}; datesArr.forEach((d, i) => { dateColorMap[d] = GRAPH_COLORS[i % GRAPH_COLORS.length]; });
 
   let daysOrder = [1, 2, 3, 4, 5, 6, 0]; let heatmapSpotNames = [];
@@ -2331,12 +2581,15 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           let chart = sheet.newChart().asLineChart().addRange(dataRng).setPosition(curRow, 1, 0, 0)
             .setOption('title', `📈 【${spotName}】時刻別の売上`)
             .setOption('titleTextStyle', { fontSize: 14, bold: true })
-            // 目盛りの線は薄いグレー。細かい線（minorGridlines）も入れて、数値を読み取りやすくする
+            // 目盛りの線は、数を増やしたうえで、できるだけ細く見えるように薄くする。
+            // 線の太さそのものは指定できないので、色を薄くして細く見せる。
+            // 横は30分ごと、縦は10本ぶん。そのあいだにも、もっと薄い線を1本ずつ入れる
             .setOption('hAxis', {title: '時間', viewWindow: {min: hMin, max: hMax},
-              gridlines: {color: '#d0d0d0', count: -1}, minorGridlines: {color: '#eeeeee', count: 1},
+              gridlines: {color: '#dadada', count: Math.min(25, Math.max(4, Math.round((hMax - hMin) * 2) + 1))},
+              minorGridlines: {color: '#f0f0f0', count: 2},
               textStyle: {fontSize: 10}})
             .setOption('vAxis', {title: '売上', format: '￥#,##0', viewWindow: {min: 0, max: vMax},
-              gridlines: {color: '#d0d0d0', count: -1}, minorGridlines: {color: '#eeeeee', count: 1},
+              gridlines: {color: '#dadada', count: 11}, minorGridlines: {color: '#f0f0f0', count: 1},
               textStyle: {fontSize: 10}})
             .setOption('series', seriesOpt).setOption('useFirstColumnAsDomain', true).setOption('headers', 1)
             .setOption('lineWidth', 1).setOption('pointSize', DB_POINT_SIZE)
@@ -2513,6 +2766,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   // グラフを全部置き終わってから、まとめて点線にする
   dbDotLines_(dbSS, tabName);
+
+  // 記録用スプシを見られる人には、こちらも見せる
+  dbShareWithTeam_(mainSS, dbSS);
 
   return dbSS.getUrl();
 }
