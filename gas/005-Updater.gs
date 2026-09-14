@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U010ver  （2026/09/06）  ★★★
+ *  ★★★  U011ver  （2026/09/06）  ★★★
+ *
+ *  [U011ver]
+ *   ・[1] が「置き場所が見つかりません」で止まっていたのを直した
+ *     何も決めていないと "main" という枝を見にいくが、そこには main が無かった。
+ *     決めていないときは、GitHubに既定の枝を聞いて、それを使うようにした
+ *   ・置き場・枝・フォルダを、設定タブからも決められるようにした
+ *     （スマホだけで直せるように。鍵だけは人に見られては困るのでシートに置かない）
+ *   ・[2] の表示を、次に何をすればよいか分かる形にした
  *
  *  [U010ver]
  *   ・ボタン [8]「自動送信の状態を見る」を足した
@@ -116,7 +124,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U010ver";
+const UPD_VERSION = "U011ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -143,10 +151,47 @@ function updBase_(name) { return String(name).replace(/\.(gs|js|html|json)$/i, "
  */
 
 function updProps_() { return PropertiesService.getScriptProperties(); }
-function updRepo_()   { return updProps_().getProperty("GH_REPO")   || ""; }
-function updBranch_() { return updProps_().getProperty("GH_BRANCH") || "main"; }
-function updPath_()   { return updProps_().getProperty("GH_PATH")   || "gas"; }
+
+/** 設定タブから読む（無ければ ""）。鍵だけはここに置かない */
+function updCfg_(key) {
+  try { return typeof cfg_ === "function" ? String(cfg_(key) || "").trim() : ""; }
+  catch (e) { return ""; }
+}
+
+function updRepo_() {
+  return updProps_().getProperty("GH_REPO") || updCfg_("コードの置き場（GitHub）") || "";
+}
+function updPath_() {
+  return updProps_().getProperty("GH_PATH") || updCfg_("コードのフォルダ") || "gas";
+}
 function updToken_()  { return updProps_().getProperty("GH_TOKEN")  || ""; }
+
+/**
+ * どの枝（ブランチ）から読むか。
+ *
+ * ★ここで詰まっていた：
+ *   何も決めていないと "main" を見にいくが、このリポジトリに main は無い。
+ *   そのため [1] を押しても「置き場所が見つかりません」で止まっていた。
+ *   決めていないときは、GitHubに「この置き場の既定の枝はどれ？」と聞いて、それを使う。
+ *   一度聞いたら覚えておく（毎回聞かない）。
+ */
+function updBranch_() {
+  const pr = updProps_();
+  const set = pr.getProperty("GH_BRANCH") || updCfg_("コードの枝（ブランチ）");
+  if (set) return set;
+
+  const cached = pr.getProperty("GH_BRANCH_AUTO");
+  if (cached) return cached;
+
+  try {
+    const info = JSON.parse(updGh_("https://api.github.com/repos/" + updRepo_(), false));
+    if (info && info.default_branch) {
+      pr.setProperty("GH_BRANCH_AUTO", info.default_branch);
+      return info.default_branch;
+    }
+  } catch (e) { logErr_("updBranch", e); }
+  return "main";
+}
 
 /** いまどこから読むか */
 function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive"; }
@@ -474,10 +519,23 @@ function menuUpdateStatus() {
   }
 
   L.push("");
-  L.push(updSource_() === "github"
-    ? "読み元：GitHub　" + updRepo_() + " / " + updBranch_() + " / " + updPath_()
-    : "読み元：Googleドライブ　" + UPD_FOLDER +
-      "\n　（GitHubから読ませたいなら「🔑 GitHubの鍵を設定」）");
+  if (updSource_() === "github") {
+    L.push("読み元：GitHub");
+    L.push("　置き場：" + updRepo_());
+    L.push("　枝　　：" + updBranch_() +
+      (updProps_().getProperty("GH_BRANCH") || updCfg_("コードの枝（ブランチ）") ? "" : "（自動で調べたもの）"));
+    L.push("　フォルダ：" + updPath_());
+  } else {
+    L.push("読み元：Googleドライブ　" + UPD_FOLDER);
+    L.push("");
+    L.push("⚠️ GitHubから読む用意ができていません。");
+    if (!updRepo_()) L.push("　・置き場が未設定 → 設定タブ「コードの置き場（GitHub）」に circlenine/test と入れてください");
+    if (!updToken_()) {
+      L.push("　・鍵が未設定 → ここだけはパソコンかスマホのブラウザで、");
+      L.push("　　メニュー「🔄 コードの更新 → 🔑 GitHubの鍵を設定」から入れてください。");
+      L.push("　　（鍵は他人に見られてはいけないので、シートには置けません。1回だけの作業です）");
+    }
+  }
 
   try {
     // ここは名前が分かればよい。中身まで読むと時間がかかりすぎる

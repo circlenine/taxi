@@ -279,6 +279,11 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
       return { getResponseCode: () => gh.fail.code,
                getContentText: () => JSON.stringify({ message: gh.fail.msg }) };
     }
+    // 置き場そのものを聞かれたとき（既定の枝を知るため）
+    if (url.indexOf('/contents/') === -1) {
+      return { getResponseCode: () => 200,
+               getContentText: () => JSON.stringify((gh && gh.repo) || { default_branch: 'main' }) };
+    }
     const p = decodeURI(url.split('/contents/')[1].split('?')[0]);
     if (gh && gh.raw && (p in gh.raw)) {
       return { getResponseCode: () => 200, getContentText: () => gh.raw[p] };
@@ -1158,11 +1163,34 @@ console.log('\n■ 更新の結果が、そうさボタンの結果らんに出�
   has(res, '001-Code', 'ほかのファイルも分かる');
 }
 
+console.log('\n■ 枝（ブランチ）を決めていなくても読める');
+{
+  reset([]);
+  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'x';
+  delete props['GH_BRANCH']; delete props['GH_BRANCH_AUTO'];
+  // この置き場には main が無い（実際そうだった）。既定の枝は別の名前
+  gh = { repo: { default_branch: 'claude/gas-code-info-collection-e5mxw3' },
+         dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' },
+               { name: 'appsscript.json', path: 'gas/appsscript.json', type: 'file' }],
+         raw: { 'gas/001-Code.gs': 'あたらしい', 'gas/appsscript.json': '{}' } };
+  t(F('updBranch_')() === 'claude/gas-code-info-collection-e5mxw3',
+    'GitHubに聞いて、既定の枝を使う（main 決め打ちをやめた）');
+  t(props['GH_BRANCH_AUTO'] === 'claude/gas-code-info-collection-e5mxw3',
+    '  一度聞いたら覚える（毎回は聞かない）');
+
+  props['GH_BRANCH'] = 'develop';
+  t(F('updBranch_')() === 'develop', '自分で決めていれば、そちらが優先');
+  delete props['GH_BRANCH'];
+
+  F('menuUpdateCode')();
+  t(lastPut() !== undefined, '枝を決めていなくても、更新が通る');
+}
+
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U010ver', 'U010ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U011ver', 'U011ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U010ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U011ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
