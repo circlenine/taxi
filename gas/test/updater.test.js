@@ -1198,10 +1198,10 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U017ver', 'U017ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U018ver', 'U018ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U017ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U018ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -1421,6 +1421,35 @@ console.log('\n■ ファイル名が変わったときは、前の名前を消�
     '新しい名前が来ていなければ、前の名前には手を出さない');
   t(stale([], []).length === 0, '空でも落ちない');
   t(stale(null, null).length === 0, 'null でも落ちない');
+}
+
+console.log('\n■ 見張りが止まったとき、スマホだけで直せる');
+{
+  // 押されているものを探すのは、チェックのらん1列だけで済む（1分おきに走るため）
+  realLayout();
+  const pend = F('panelPendingRow_');
+  t(pend(panel) === 0, '押されていなければ 0');
+  panel._cells['40,2'] = true;
+  t(pend(panel) === 40, '押されている行が分かる');
+  panel._cells['40,2'] = false;
+
+  // 足あと
+  delete props['PANEL_WATCH_AT'];
+  t(F('panelWatchQuiet_')() === -1, '一度も動いていなければ -1');
+  F('panelBeatWatch_')();
+  t(F('panelWatchQuiet_')() >= 0, '動いたら足あとが残る');
+  t(F('panelWatch') && (F('panelWatch')(), true), '見張りは足あとを残して動く');
+  t(props['PANEL_WATCH_AT'] !== undefined, '  足あとが書かれている');
+
+  // 入れ直し
+  const before = props['PANEL_WATCH_AT'];
+  props['PANEL_WATCH_AT'] = String(Date.now() - 3600 * 1000);   // 1時間 動いていない
+  const text = F('panelRepair_')();
+  has(text, '見張りを入れ直しました', '入れ直したと伝える');
+  has(text, '最後に動いたのは', '  いつから止まっていたかも出る');
+  has(text, '決められた時間', '  長く止まっていたら、その理由も書く');
+  t(F('panelTriggersOk_')() === true, '入れ直したあとは、しくみがそろっている');
+  props['PANEL_WATCH_AT'] = before;
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

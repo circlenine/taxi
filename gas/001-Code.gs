@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C032ver  （2026/09/15）  ★★★   ← もとは version 232
+ *  ★★★  C033ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,14 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C033ver]
+ *   ・LINEに「なおして」と打つと、そうさボタンの見張りを入れ直すようにした
+ *     ボタンが動かない原因は、たいてい「見張り（1分おき）が止まった」こと。
+ *     ところがスマホのスプシのアプリにはメニューが出ないので、
+ *     外出先では入れ直す手段がまったく無かった。
+ *     LINEのウェブフックは時計の見張りではないので、
+ *     見張りが全部止まっていてもここは動く。最後の逃げ道になる
  *
  *  [C032ver]
  *   ・LINEのボタン（postback）を受け取れるようにした
@@ -1264,6 +1272,15 @@ function handleEvent_(ev) {
 
   if (ev.message.type !== "text") return;
 
+  // --- 「なおして」 ＝ ボタンの見張りを入れ直す ---
+  // ★ここが最後の逃げ道。
+  //   そうさボタンが動かなくなる原因は、たいてい「見張りが止まった」こと。
+  //   ところがスマホのスプシのアプリにはメニューが出ないので、
+  //   外出先では入れ直す手段がまったく無かった。
+  //   LINEのウェブフックは時計の見張りではないので、
+  //   見張りが全部止まっていてもここは動く。
+  if (typeof handleRepairNote_ === "function" && handleRepairNote_(ev)) return;
+
   // --- 「ホテル」「↑ホテル」 ＝ 次（または直前）の写真はホテルの予定表 ---
   if (typeof vnHandleNote_ === "function" && vnHandleNote_(ev, sentAt)) return;
 
@@ -1286,6 +1303,33 @@ function handleEvent_(ev) {
   rec.sender    = tabName;
   rec.messageId = ev.message.id || "";
   writeRecord_(rec);
+}
+
+
+/* ============ 3-1b. 「なおして」（ボタンの見張りの入れ直し）============ */
+
+/**
+ * 「なおして」「直して」と打たれたら、そうさボタンの見張りを入れ直す。
+ * 扱ったら true を返す。
+ *
+ * ★スマホしか無いときの、最後の逃げ道です。
+ *   ボタンにチェックを入れても何も起きない、というときに使います。
+ */
+function handleRepairNote_(ev) {
+  const t = String((ev.message && ev.message.text) || "").trim()
+    .replace(/[\s\u3000]/g, "");
+  if (!/^(なおして|直して|なおして！|直して！|修復|リセット)$/.test(t)) return false;
+
+  let text = "";
+  try {
+    text = (typeof panelRepair_ === "function")
+      ? panelRepair_()
+      : "005-Updater が入っていないので、入れ直せません。";
+  } catch (e) {
+    text = "入れ直せませんでした：" + (e && e.message ? e.message : e);
+  }
+  lineReply_(ev.replyToken || "", "🔧 そうさボタンの見張り\n\n" + text);
+  return true;
 }
 
 

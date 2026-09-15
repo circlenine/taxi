@@ -699,5 +699,24 @@ console.log('\n■ 軽量モード');
   resetSheets(); vm.runInContext('_cfgCache = null; _cfgVal = {}', ctx);
 }
 
+console.log('\n■ LINEに「なおして」と打てば、見張りを入れ直す');
+{
+  vm.runInContext('var repaired = 0; function panelRepair_(){ repaired++; return "見張りを入れ直しました"; }', ctx);
+  sent.length = 0;
+  const took = F('handleRepairNote_')({ replyToken: 'rt', message: { text: 'なおして' } });
+  ok(took === true, '「なおして」は、この受け口が扱う');
+  ok(vm.runInContext('repaired', ctx) === 1, '入れ直しが動く');
+  has(sent[0], '見張りを入れ直しました', '結果をその場で返す');
+
+  ['直して', '　なおして　', '修復', 'リセット'].forEach(function (w) {
+    ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: w } }) === true,
+       '「' + w.trim() + '」でも効く');
+  });
+  ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: 'なおしてほしい' } }) === false,
+     '文章の中にあるだけなら、効かない');
+  ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: '23:00 12000 新地4' } }) === false,
+     'ふつうの乗車記録は、そのまま通す');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

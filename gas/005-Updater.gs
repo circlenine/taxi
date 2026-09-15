@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U017ver  （2026/09/15）  ★★★
+ *  ★★★  U018ver  （2026/09/16）  ★★★
+ *
+ *  [U018ver]
+ *   ・見張りが止まったとき、スマホだけで直せるようにした
+ *     いままで入れ直す道は「見張りの中」と「メニュー」しか無く、
+ *     見張りが止まったら誰も入れ直さないうえ、
+ *     スマホのスプシのアプリにはメニューが出ないので、
+ *     外出先では手も足も出なかった。
+ *     LINEに「なおして」と打てば入れ直せるようにした（001-Code）
+ *   ・見張りが動くたびに足あとを残すようにした（最後に動いた時刻が分かる）
+ *   ・見張りを軽くした。押されているものが無いときは、
+ *     チェックのらん1列だけを読んで帰る（前は6列ぶん読んでいた）
+ *     1分おきに走るので、ここが重いと1日ぶんの持ち時間を食いつぶす
  *
  *  [U017ver]
  *   ・前の名前のファイルが消えずに残ることがあったのを直した
@@ -155,7 +167,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U017ver";
+const UPD_VERSION = "U018ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -1149,6 +1161,32 @@ function panelReadRows_(sh) {
   return out;
 }
 
+/**
+ * 押されているボタンの行だけを探す（軽い版）。
+ *
+ * panelReadRows_ は6列ぶん読んで文言まで調べるので、
+ * 1分おきに走らせるには重い。ここはチェックのらん1列だけを見る。
+ */
+function panelPendingRow_(sh) {
+  try {
+    const top = panelTop_(sh);
+    if (!top) return 0;
+    const chk = panelChkCol_(sh, top);
+    const limit = Math.min(panelItems_().length * 3 + 8, sh.getMaxRows() - top + 1);
+    if (limit <= 0) return 0;
+    const col = sh.getRange(top, chk, limit, 1).getValues();
+    let blank = 0;
+    for (let i = 0; i < limit; i++) {
+      const v = col[i][0];
+      if (v === true) return top + i;
+      if (v === false) { blank = 0; continue; }
+      blank++;
+      if (blank >= PANEL_GAP_MAX) return 0;
+    }
+  } catch (e) { logErr_("panelPendingRow", e); }
+  return 0;
+}
+
 /** ボタンの最後の行。無ければ 0 */
 function panelLastRow_(sh) {
   const rows = panelReadRows_(sh);
@@ -1507,6 +1545,95 @@ function panelIsProtected_(sh) {
   } catch (e) { return false; }
 }
 
+/*
+ * ★見張りが止まったときに、スマホだけで直せるようにする。
+ *
+ *   いままで、見張り（1分おき）を入れ直す道は
+ *   「panelWatch の中」と「メニュー」しか無かった。
+ *   見張りが止まったら入れ直す人がいないうえ、
+ *   スマホのスプシのアプリにはメニューが出ないので、
+ *   外出先では手も足も出ない状態になっていた。
+ *
+ *   ・見張りが動くたびに足あとを残す（panelBeatWatch_）
+ *   ・足あとが古い、または見張りが消えていたら、入れ直す（panelRepair_）
+ *   ・LINEに「なおして」と打てば、そこからでも入れ直せる（001-Code）
+ *     LINEのウェブフックは時計の見張りではないので、
+ *     見張りが全部止まっていても動く。これが最後の逃げ道になる。
+ */
+
+/** 見張りが動いた足あとを残す */
+function panelBeatWatch_() {
+  try { PropertiesService.getScriptProperties().setProperty("PANEL_WATCH_AT", String(Date.now())); }
+  catch (e) {}
+}
+
+/** 見張りが最後に動いてからの秒数。一度も動いていなければ -1 */
+function panelWatchQuiet_() {
+  try {
+    const v = PropertiesService.getScriptProperties().getProperty("PANEL_WATCH_AT");
+    if (!v) return -1;
+    return Math.round((Date.now() - Number(v)) / 1000);
+  } catch (e) { return -1; }
+}
+
+/** 見張りのしくみが、ちゃんと入っているか */
+function panelTriggersOk_() {
+  try {
+    let edit = false, watch = false;
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      const f = t.getHandlerFunction();
+      if (f === "panelOnEdit") edit = true;
+      if (f === "panelWatch")  watch = true;
+    });
+    return edit && watch;
+  } catch (e) { return false; }
+}
+
+/**
+ * 見張りを入れ直して、いまの様子を文にして返す。
+ * メニューからも、LINEの「なおして」からも、ここを呼ぶ。
+ */
+function panelRepair_() {
+  const L = [];
+  const quiet = panelWatchQuiet_();
+  L.push(quiet < 0 ? "見張り：一度も動いた記録がありません"
+                   : "見張り：最後に動いたのは " + updSecText_(quiet) + "前");
+  const had = panelTriggersOk_();
+  L.push(had ? "しくみ：ありました" : "しくみ：ありませんでした");
+  try {
+    panelInstall_();
+    L.push("✅ 見張りを入れ直しました（1分おき）");
+  } catch (e) {
+    L.push("❌ 入れ直せませんでした：" + (e && e.message ? e.message : e));
+    L.push("　→ パソコンかブラウザでスプシを開き、メニューから1回動かして、");
+    L.push("　　承認画面を通してください");
+    return L.join("\n");
+  }
+  if (quiet > 600 || !had) {
+    L.push("");
+    L.push("※ 長いあいだ動いていませんでした。Googleの1日ぶんの");
+    L.push("　「決められた時間」を使い切ると、見張りは止まります。");
+    L.push("　その場合、日付が変わればまた動きます。");
+  }
+  L.push("");
+  L.push("チェックを一度はずして、入れ直してみてください。");
+  return L.join("\n");
+}
+
+/** メニューから、見張りを入れ直す */
+function menuPanelRepair() {
+  const text = panelRepair_();
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert("🔧 ボタンの見張りを入れ直す", text, ui.ButtonSet.OK);
+  } catch (e) {}
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
+    if (sh) panelSay_(sh, "🔧 " + text);
+  } catch (e) {}
+  return text;
+}
+
 /** チェックを見張るしくみを入れる（すでにあれば入れ直す） */
 function panelInstall_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1581,16 +1708,19 @@ function panelAutoSync_(sh) {
 /** 1分おきの見張り。onEdit が効かない機種のための保険 */
 function panelWatch() {
   try {
+    panelBeatWatch_();                 // 「見張りは生きている」の足あと
+
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
     if (!sh) return;
 
     // 動きっぱなしになっていないか、先に見る
     if (panelCheckStuck_(sh)) return;
 
-    const rows = panelReadRows_(sh);
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i].value === true) { panelRun_(rows[i].row); return; }   // 1回に1つだけ
-    }
+    // ★まずチェックのらんだけを読む。
+    //   1分おきに走るので、ここが重いと1日ぶんの持ち時間を食いつぶす。
+    //   押されているものが無ければ、ここで帰る（読むのは1列だけ）
+    const hit = panelPendingRow_(sh);
+    if (hit) { panelRun_(hit); return; }             // 1回に1つだけ
 
     // コードが新しくなっていたら、増えたボタンをここで足す。
     // 押されているものが無いときだけ。行を差し込むと下のボタンが動くので、

@@ -286,7 +286,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L023ver";
+const LR_VERSION = "L024ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -434,6 +434,10 @@ function onOpenReport() {
     m.addItem("🎪 イベントの自動発信を入切する", "menuVenueAuto");
     m.addItem("🔎 読み取れているものの一覧を見る", "menuVenueList");
     m.addItem("💬 Discordの送り先を設定", "menuVenueDiscord");
+  }
+  if (typeof menuPanelRepair === "function") {
+    m.addSeparator();
+    m.addItem("🔧 ボタンが動かないとき（見張りを入れ直す）", "menuPanelRepair");
   }
   m.addItem("⏰ 自動送信の状態を見る", "menuAutoReportStatus");
   m.addItem("🧪 自動送信を今すぐ試す（自分だけ）", "menuAutoReportTestNow");

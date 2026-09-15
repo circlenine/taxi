@@ -2,11 +2,18 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V008ver  （2026/09/15）  ★★★
+ *  ★★★  V009ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V009ver]
+ *   ・イベントの見張りを 5分おき → 15分おき にした
+ *     5分おきだと1日に288回も動く。Googleが1日にくれる「決められた時間」は
+ *     決まっていて、1分おきのボタンの見張りと合わせると使い切ってしまい、
+ *     見張りごと止まる（実際に止まった）。
+ *     届く時刻は 16:45〜17:00 ごろ、お知らせは予定時刻から15分以内になる
  *
  *  [V008ver]
  *   ・イベントの枠そのものを、公式ページへのボタンにした
@@ -1699,10 +1706,10 @@ function vnSentKey_(d) {
 }
 
 /**
- * 5分おきに呼ばれて、16:45 を過ぎていたらその日の分を1回だけ送る。
+ * 15分おきに呼ばれて、16:45 を過ぎていたらその日の分を1回だけ送る。
  *
  * Apps Script の「毎日この時刻」は前後に30分ほどずれることがあるため、
- * 5分おきに時計を見る形にしてある（16:45〜16:50 に届く）。
+ * 時計を見る形にしてある（16:45〜17:00 ごろに届く）。
  */
 function venueDailyJob() {
   let lock = null;
@@ -1760,7 +1767,11 @@ function vnEnsureDailyTrigger_(force) {
   });
   if (keep && !force) return true;
   try {
-    ScriptApp.newTrigger("venueDailyJob").timeBased().everyMinutes(5).create();
+    // ★15分おき。5分おきにすると、1日に288回も動く。
+    //   Googleが1日にくれる「決められた時間」は決まっていて、
+    //   1分おきのボタンの見張りと合わせると使い切ってしまい、
+    //   見張りごと止まってしまう（実際に止まった）。
+    ScriptApp.newTrigger("venueDailyJob").timeBased().everyMinutes(15).create();
     return true;
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("vnTrigger", e);
@@ -1775,7 +1786,7 @@ function vnAutoStatusText_() {
   L.push(on ? "✅ 自動発信：入っています" : "⏸ 自動発信：切ってあります");
   L.push("送る時刻：毎日 " + VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2) +
          "（実際に届くのは " + VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2) +
-         "〜" + VN_SEND_HOUR + ":" + ("0" + (VN_SEND_MIN + 5)).slice(-2) + "ごろ）");
+         "〜" + (VN_SEND_HOUR + 1) + ":00 ごろ）");
   L.push("その日に出すものが1件も無ければ、1通も送りません");
 
   let has = false;
@@ -1784,7 +1795,8 @@ function vnAutoStatusText_() {
       if (t.getHandlerFunction() === "venueDailyJob") has = true;
     });
   } catch (e) {}
-  L.push(has ? "時計の見張り：✅ できています" : "時計の見張り：❌ ありません（入にすると作られます）");
+  L.push(has ? "時計の見張り：✅ できています（15分おき）"
+             : "時計の見張り：❌ ありません（入にすると作られます）");
 
   const to = vnGroupTarget_();
   L.push(to ? "送り先：✅ グループを覚えています" : "送り先：❌ 分かりません（グループLINEに何か1つ投稿すると覚えます）");
