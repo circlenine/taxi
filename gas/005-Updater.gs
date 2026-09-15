@@ -130,7 +130,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U013ver";
+const UPD_VERSION = "U014ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -820,7 +820,14 @@ function panelItems_() {
       note: "大阪城ホールなどのページが読めるか確かめ、結果をまーく個人のLINEにも送ります" },
     { key: "イベントの絵の見本",   label: "[10] イベントの絵の見本を見る", fn: "menuEventSample",
       sec: 25,
-      note: "どんな見た目でイベント情報が届くか、まーく個人のLINEにだけ送って見せます" }
+      note: "どんな見た目でイベント情報が届くか、まーく個人のLINEにだけ送って見せます" },
+    { key: "きょうのイベントを試",  label: "[11] きょうのイベントを試し送りする", fn: "menuEventTestSend",
+      sec: 45, stall: 180,
+      note: "きょう16:45に出るはずの中身を、そのまままーく個人のLINEにだけ送ります" },
+    { key: "イベントの自動発信",   label: "[12] イベントの自動発信を入切する", fn: "panelEventAuto",
+      sec: 20,
+      note: "毎日16:45にグループへ送るかどうかを切り替えます。" +
+            "1回押すと今の状態が出るだけ。3分以内にもう1回で切り替わります" }
   ];
 }
 
@@ -987,7 +994,9 @@ const PANEL_FROM = {
   menuSendReportPanel: "003-LineReport",
   panelAutoReportStatus: "003-LineReport",
   panelEventProbe: "006-Events",
-  menuEventSample: "006-Events"
+  menuEventSample: "006-Events",
+  menuEventTestSend: "006-Events",
+  panelEventAuto: "006-Events"
 };
 
 /** その関数がこのプロジェクトに入っているか */
