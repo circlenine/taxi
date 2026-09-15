@@ -2,10 +2,16 @@
  * ================================================================
  *  イベント情報あつめ（006-Events.gs）
  *
- *  ★★★  V001ver  （2026/09/15）  ★★★
+ *  ★★★  V002ver  （2026/09/15）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Events
+ *
+ *  [V002ver]
+ *   ・調べた結果を、まーく個人のLINEにだけ送れるようにした（テスト送信）
+ *     せまいセルで読むより読みやすく、そのままコピーして渡せる
+ *     グループへは送らない。送り先は「テスト送信先（自分のLINE）」
+ *   ・長い文は、行の途中で切らずに分けて送る（LINEは1通5,000文字まで）
  *
  *  [V001ver]
  *   ・まずは「そのページが機械で読めるのか」を調べるところだけ作った。
@@ -22,7 +28,7 @@
  */
 
 /** このファイルのバージョン */
-const EV_VERSION = "V001ver";
+const EV_VERSION = "V002ver";
 
 /**
  * 見にいく先の一覧。
@@ -152,16 +158,138 @@ function evDateLabel_(d) {
   return (d.getMonth() + 1) + "/" + d.getDate() + "(" + w[d.getDay()] + ")";
 }
 
-/* ============ メニュー／そうさボタン ============ */
+/* ============ LINEに送る ============ */
+/*
+ * ★ここは必ず「自分だけ」から始める。
+ *   グループに一度送ったものは取り消せない。
+ *   まだ読み取りが完成していないうちに、みんなに変なものが飛ぶのがいちばん困る。
+ *   グループへ送るのは、レポートと同じく「もう一度チェック」で確かめてからにする。
+ */
 
-/** そうさボタン [9] の中身 */
-function panelEventProbe() {
-  return evProbeAll();
+/** テストの宛先（まーく個人のLINE） */
+function evTestTarget_() {
+  // レポート側と同じ決まりを使う（設定タブ「テスト送信先（自分のLINE）」→ 登録済みの「ﾏｰｸ」）
+  if (typeof rpTestTarget_ === "function") {
+    const v = rpTestTarget_();
+    if (v) return v;
+  }
+  try {
+    for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") return id; }
+  } catch (e) {}
+  return "";
 }
 
-/** メニューから調べる */
-function menuEventProbe() {
+/** グループの宛先 */
+function evGroupTarget_() {
+  if (typeof rpGroupTarget_ === "function") return rpGroupTarget_();
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
+    return sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
+  } catch (e) { return ""; }
+}
+
+/**
+ * 長い文を、LINEが受け取れる長さに分ける。
+ * 1通5,000文字まで。行の途中では切らない（読めなくなるため）。
+ */
+function evSplitText_(text, max) {
+  const limit = max || 4500;
+  const out = [];
+  let cur = "";
+  String(text).split("\n").forEach(function (line) {
+    // 1行だけで長すぎるときは、そこだけ仕方なく切る。
+    // このあと改行を1文字足すので、その1文字ぶんを残しておく
+    while (line.length > limit - 1) {
+      if (cur) { out.push(cur); cur = ""; }
+      out.push(line.slice(0, limit - 1));
+      line = line.slice(limit - 1);
+    }
+    if ((cur + line + "\n").length > limit) { out.push(cur); cur = ""; }
+    cur += line + "\n";
+  });
+  if (cur.trim()) out.push(cur);
+  return out.length ? out : [""];
+}
+
+/**
+ * 文字をLINEに送る。where は "test"（自分だけ）か "group"（みんな）。
+ * 送れたら ""、送れなければ理由を返す。
+ */
+function evSend_(text, where) {
+  const to = (where === "group") ? evGroupTarget_() : evTestTarget_();
+  if (!to) {
+    return where === "group"
+      ? "グループの送り先が分かりません（グループLINEに何か1つ投稿すると覚えます）"
+      : "自分の送り先が分かりません（設定タブ「テスト送信先（自分のLINE）」）";
+  }
+  const parts = evSplitText_(text);
+  // 1回の送信でならべられるのは5通まで
+  const messages = parts.slice(0, 5).map(function (t, i) {
+    return { type: "text", text: (parts.length > 1 ? "（" + (i + 1) + "/" + Math.min(parts.length, 5) + "）\n" : "") + t };
+  });
+  try {
+    if (typeof lrPush_ === "function") { lrPush_(to, messages); return ""; }
+    // 003-LineReport が古いときの逃げ道
+    const token = PropertiesService.getScriptProperties().getProperty("LINE_TOKEN");
+    if (!token) return "LINEトークンが未設定です";
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
+      method: "post", muteHttpExceptions: true,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      payload: JSON.stringify({ to: to, messages: messages })
+    });
+    const code = res.getResponseCode();
+    return (code >= 200 && code < 300) ? "" : "LINEに送れませんでした（" + code + "）";
+  } catch (e) {
+    return "LINEに送れませんでした（" + (e && e.message ? e.message : e) + "）";
+  }
+}
+
+/**
+ * 調べた結果を、自分のLINEにだけ送る。
+ * スプレッドシートのせまいセルで読むより、LINEのほうが読みやすく、
+ * そのままコピーして人に渡せる。
+ */
+function evProbeSendToMe() {
   const text = evProbeAll();
+  const err = evSend_("🔎 イベント情報の調査（テスト送信・自分だけ）\n\n" + text, "test");
+  return { text: text, err: err };
+}
+
+/* ============ メニュー／そうさボタン ============ */
+
+/**
+ * そうさボタン [9] の中身。
+ * 結果らんに出しつつ、自分のLINEにも送る（グループには絶対に送らない）。
+ */
+function panelEventProbe() {
+  const r = evProbeSendToMe();
+  const head = r.err
+    ? "⚠️ 自分のLINEには送れませんでした：" + r.err
+    : "📱 同じ内容を、まーく個人のLINEにだけ送りました（テスト送信）";
+  return head + "\n\n" + r.text;
+}
+
+/**
+ * イベントのお知らせを、自分のLINEにだけ送ってみる（テスト）。
+ * 読み取りがまだのうちは、調査の結果を送る。
+ */
+function menuEventTestSend() {
+  const r = evProbeSendToMe();
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert("🧪 イベント情報のテスト送信",
+      r.err ? "送れませんでした：\n" + r.err
+            : "まーく個人のLINEにだけ送りました。\nグループには送っていません。",
+      ui.ButtonSet.OK);
+  } catch (e) {}
+  return r.err ? "❌ " + r.err : "🧪 まーく個人のLINEにだけ送りました（グループには送っていません）";
+}
+
+/** メニューから調べる（結果は自分のLINEにも送る） */
+function menuEventProbe() {
+  const r = evProbeSendToMe();
+  const text = (r.err ? "⚠️ 自分のLINEには送れませんでした：" + r.err
+                      : "📱 同じ内容を、まーく個人のLINEにだけ送りました") + "\n\n" + r.text;
   try {
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
     if (sh) { sh.getRange("Y7").setValue("イベント調査"); sh.getRange("Z7").setValue(text); }

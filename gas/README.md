@@ -11,7 +11,7 @@
 | **L** | `003-LineReport.gs` | L017ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W007ver | `004-WebApp` |
 | **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U012ver | `005-Updater` |
-| **V** | `006-Events.gs`（イベント情報あつめ） | V001ver | `006-Events` |
+| **V** | `006-Events.gs`（イベント情報あつめ） | V002ver | `006-Events` |
 
 **貼るのはこの6つだけ。** 番号の順に並ぶので、上から順に貼っていけば漏れない。
 `gas/parts/` の中は、`002-Extras.gs` を組み立てるための材料なので貼らなくてよい。

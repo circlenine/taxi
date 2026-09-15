@@ -425,7 +425,10 @@ function onOpenReport() {
     m.addItem("🗺 マップの行き先を確認する", "menuMapLinksCheck");
   }
   m.addSeparator();
-  if (typeof menuEventProbe === "function") m.addItem("🔎 イベント情報を調べる", "menuEventProbe");
+  if (typeof menuEventProbe === "function") {
+    m.addItem("🔎 イベント情報を調べる", "menuEventProbe");
+    m.addItem("🧪 イベント情報をテスト送信（自分だけ）", "menuEventTestSend");
+  }
   m.addItem("⏰ 自動送信の状態を見る", "menuAutoReportStatus");
   m.addItem("🧪 自動送信を今すぐ試す（自分だけ）", "menuAutoReportTestNow");
   m.addSeparator();
