@@ -284,7 +284,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L020ver";
+const LR_VERSION = "L021ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1343,7 +1343,9 @@ function buildReportFlex_(o) {
     { "type": "text", "size": "xxs", "color": "#5f6368", "wrap": true, "margin": "xs",
       "text": "🔥：アツい（狙う）　／　⚠️：避ける\n" +
               "[00:00]：いちばん高かった乗車の時刻　／　(月)：その曜日\n" +
-              "〇件：乗車回数　／　待〇分：平均の待ち時間" }
+              "〇件：乗車回数　／　待〇分：平均の待ち時間\n" +
+              "￥〇：1回あたりの 平均の売上（合計ではありません）\n" +
+              "最高￥〇：いちばん高かった1回の売上" }
   ]});
   // ここは区切らない。総件数・読み方とエリア別は、続けて1通目に入れる
   // （区切ると、1通目が見出しだけの小さなカードになってしまう）
@@ -1433,6 +1435,8 @@ function buildReportFlex_(o) {
       { "type": "text", "text": "同じ乗り場が続く時間はまとめています。区切りが「動くとき」です。",
         "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true },
       { "type": "text", "text": "狙い目：その時間帯でいちばん高かった乗車の時刻です。",
+        "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true },
+      { "type": "text", "text": "平均￥〇：その区間で1回あたり いくらになったかの平均です。",
         "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true });
 
     DAY_TYPES.forEach(function (dType) {
@@ -1445,8 +1449,8 @@ function buildReportFlex_(o) {
         ];
         // 狙い目の時刻は、いちばん動きたくなるところなので赤の太字にする
         if (aim) sp.push({ "type": "span", "text": "　" + aim, "weight": "bold", "color": "#c62828" });
-        sp.push({ "type": "span", "text": (seg.avg ? "　￥" + seg.avg.toLocaleString() : "") +
-                                          (seg.wait ? "　待" + seg.wait + "分" : ""), "color": "#444444" });
+        sp.push({ "type": "span", "text": (seg.avg ? "　平均￥" + seg.avg.toLocaleString() : "") +
+                                          (seg.wait ? "　待ち平均" + seg.wait + "分" : ""), "color": "#444444" });
         return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": sp };
       });
       if (!lines.length) lines.push({ "type": "text", "text": "データ不足", "size": "xs", "color": "#999999" });
@@ -2171,10 +2175,12 @@ function nightAim_(seg) {
 function nightLine_(seg) {
   if (!seg.name) return nightSpan_(seg) + "　記録なし";
   const aim = nightAim_(seg);
+  // 「￥11,400」だけだと、平均なのか合計なのか最高額なのか分からない。
+  // 何の金額かは、いつでも数字のすぐ前に書く
   return nightSpan_(seg) + "　" + seg.name +
     (aim ? "　" + aim : "") +
-    (seg.avg  ? "　￥" + seg.avg.toLocaleString() : "") +
-    (seg.wait ? "　待" + seg.wait + "分" : "") +
+    (seg.avg  ? "　平均￥" + seg.avg.toLocaleString() : "") +
+    (seg.wait ? "　待ち平均" + seg.wait + "分" : "") +
     (seg.max  ? "　最高￥" + seg.max.toLocaleString() : "");
 }
 
@@ -2827,7 +2833,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
     const OP_SPANS = dbSplit_(DB_COLS, [34, 22, 22, 22]);
     const opHead = getGridRange(sheet, curRow, 1, 1, OP_SPANS);
-    ["乗り場名", "件数", "平均", "最高（その時刻）"].forEach(function (t, i) {
+    ["乗り場名", "件数", "平均売上\n(1回あたり)", "最高（その時刻）"].forEach(function (t, i) {
       opHead[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
         .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
     });
@@ -2863,7 +2869,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
     dbTitle_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）\n" +
       "同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です\n" +
-      "狙い目＝その時間帯でいちばん高かった乗車の時刻", "#cfe2f3", 12); curRow++;
+      "狙い目＝その時間帯でいちばん高かった乗車の時刻　／　平均￥＝1回あたりの平均売上", "#cfe2f3", 12); curRow++;
 
     // 時間帯 ＋ 曜日区分4つ（合計26列ぴったり）
     const PL_SPANS = [6, 5, 5, 5, 5];
@@ -2898,7 +2904,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           const head = seg && seg.name && seg.from === hr;
           const aim  = head ? nightAim_(seg) : "";
           const text = !name ? "－"
-                     : head ? [name, aim, (seg.avg ? "￥" + seg.avg.toLocaleString() : "")]
+                     : head ? [name, aim, (seg.avg ? "平均￥" + seg.avg.toLocaleString() : "")]
                                 .filter(String).join("\n")
                             : name;
           rngs[1 + i].merge().setValue(text)
@@ -2928,7 +2934,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             const aim = nightAim_(x);
             return nightSpan_(x) + " " + toHalfWidthKana(x.name) +
                    (aim ? " " + aim : "") +
-                   (x.avg ? "（￥" + x.avg.toLocaleString() + "）" : "");
+                   (x.avg ? "（平均￥" + x.avg.toLocaleString() + "）" : "");
           }).join("　→　");
         sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(text)
           .setFontSize(dbFitSize_(text, DB_COLS, 10, 7, 2)).setWrap(true)
@@ -3243,7 +3249,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
     const hSpans = [4, 7, 7, 4, 4];
     let hRngs = getGridRange(sheet, row, 1, 1, hSpans);
-    ["タブ", "乗り場名", "日付・曜日・時間", "待ち", "金額"].forEach(function (t, i) {
+    ["タブ", "乗り場名", "日付・曜日・時間", "待ち時間", "売上\n(この1回)"].forEach(function (t, i) {
       hRngs[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
         .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
     });
