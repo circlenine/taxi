@@ -537,8 +537,9 @@ console.log('\n■ ダイアログが出ない環境でも結果が残る');
   ctx.SpreadsheetApp = {
     getActiveSpreadsheet: () => ({
       getSheetByName: n => (n === '説明')
-        ? { getRange: a1 => ({ setValue: v => { cells[a1] = String(v); },
-                               getValue: () => 'Cgroup123' }) }
+        ? { getMaxColumns: () => 9, getMaxRows: () => 50,
+            getRange: (r, c) => ({ setValue: v => { cells['I' + r] = String(v); },
+                                   getValue: () => 'Cgroup123' }) }
         : (TABS[n] ? makeSheet(n, TABS[n]) : null),
       toast: (msg, title) => toasts.push({ title: title, msg: msg })
     }),
@@ -561,10 +562,10 @@ console.log('\n■ ダイアログが出ない環境でも結果が残る');
   F('menuWebAppCheck')();
   ok(toasts.length === 1, 'ダイアログが出せなくても落ちない');
   has(toasts[0].title, '❌', 'トーストで結果が出る');
-  has(cells['Z3'], 'macros/s/ABC/exec', '説明タブZ3にURLが残る');
-  has(cells['Y3'], 'ページURL', '見出しも書く');
-  has(cells['Z4'], '新しいデプロイ', '説明タブZ4に直し方が残る');
-  has(cells['Z4'], 'ファイルを開くことができません', '返ってきた中身も残す');
+  has(cells['I3'], 'macros/s/ABC/exec', '説明タブの I3（非表示）にURLが残る');
+  has(cells['I3'], 'ページURL', '見出しも同じマスに書く');
+  has(cells['I4'], '新しいデプロイ', '説明タブの I4 に直し方が残る');
+  has(cells['I4'], 'ファイルを開くことができません', '返ってきた中身も残す');
 
   // 💬 LINEに送る
   toasts.length = 0;
@@ -582,7 +583,7 @@ console.log('\n■ ダイアログが出ない環境でも結果が残る');
   ctx.ScriptApp = { getProjectTriggers: () => [], getService: () => ({ getUrl: () => '' }) };
   toasts.length = 0;
   F('menuWebAppCheck')();
-  has(cells['Z3'], 'まだ公開されていません', '未公開ならそう書く');
+  has(cells['I3'], 'まだ公開されていません', '未公開ならそう書く');
 }
 
 console.log('\n■ まず自分だけ／もう一度でグループ');
@@ -600,7 +601,8 @@ console.log('\n■ まず自分だけ／もう一度でグループ');
   ctx.SpreadsheetApp = Object.assign({}, ctx.SpreadsheetApp, {
     getActiveSpreadsheet: () => ({
       getSheetByName: n => (n === '説明')
-        ? { getRange: () => ({ getValue: () => 'Cgroup123', setValue: () => {} }) }
+        ? { getMaxColumns: () => 9, getMaxRows: () => 50,
+            getRange: () => ({ getValue: () => 'Cgroup123', setValue: () => {} }) }
         : (TABS[n] ? makeSheet(n, TABS[n]) : null),
       toast: () => {}
     }),

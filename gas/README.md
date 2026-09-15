@@ -6,12 +6,12 @@
 
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
-| **C** | `001-Code.gs`（統合スクリプト） | C034ver | `001-Code` |
+| **C** | `001-Code.gs`（統合スクリプト） | C035ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
-| **L** | `003-LineReport.gs` | L025ver | `003-LineReport` |
-| **W** | `004-WebApp.gs`（みんなの記録ページ） | W007ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U018ver | `005-Updater` |
-| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V009ver | `006-Venue` |
+| **L** | `003-LineReport.gs` | L026ver | `003-LineReport` |
+| **W** | `004-WebApp.gs`（みんなの記録ページ） | W008ver | `004-WebApp` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U019ver | `005-Updater` |
+| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V010ver | `006-Venue` |
 
 > **ボタンにチェックを入れても何も起きないとき**
 > グループLINEに **「なおして」** と打ってください。見張りを入れ直して、結果を返します。

@@ -286,7 +286,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L025ver";
+const LR_VERSION = "L026ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -573,14 +573,14 @@ function menuSetGroupId() {
   const ui = SpreadsheetApp.getUi();
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
   if (!sh) { ui.alert("説明タブが見つかりません。"); return; }
-  const cur = String(sh.getRange("Z1").getValue() || "");
+  const cur = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
   const res = ui.prompt("グループLINEのID",
     "レポートを送るグループのID（C から始まる文字列）を貼り付けてください。\n現在: " + (cur || "未設定"),
     ui.ButtonSet.OK_CANCEL);
   if (res.getSelectedButton() !== ui.Button.OK) return;
   const v = res.getResponseText().trim();
   if (!v) return;
-  sh.getRange("Z1").setValue(v);
+  infoSet_(INFO_ROW.GROUP, v, "グループID");
   ui.alert("保存しました。（説明タブ Z1）");
 }
 
@@ -722,11 +722,10 @@ function rpTestTarget_() {
   return "";
 }
 
-/** グループLINEの宛先（説明タブ Z1） */
+/** グループLINEの宛先（説明タブ I列・非表示） */
 function rpGroupTarget_() {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    const v = sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
+    const v = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
     if (v) return v;
   } catch (e) {}
   // 説明タブが空でも、LINEから届いたときに覚えたものがあれば、それを使う
@@ -1050,13 +1049,10 @@ function monthlyReportJob() {
   }
 }
 
-/** 自動送信の結果を、あとから見られるところに残す（説明タブ Y6・Z6） */
+/** 自動送信の結果を、あとから見られるところに残す（説明タブ I列・非表示） */
 function autoReportLog_(text) {
   const line = lrFull_(new Date()) + " " + pad2_(new Date().getHours()) + ":" + pad2_(new Date().getMinutes()) + "\n" + text;
-  try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (sh) { sh.getRange("Y6").setValue("自動送信"); sh.getRange("Z6").setValue(line); }
-  } catch (e) {}
+  try { infoSet_(INFO_ROW.AUTO, line, "自動送信"); } catch (e) {}
   console.log(line);
 }
 
@@ -2571,7 +2567,7 @@ function dbOpenTarget_(mainSS) {
   const props = PropertiesService.getScriptProperties();
   let id = "";
   try { if (typeof cfg_ === "function") id = String(cfg_("まとめスプシのID") || "").trim(); } catch (e) {}
-  if (!id && desc) id = String(desc.getRange("Z2").getValue() || "").trim();
+  if (!id && typeof infoGet_ === "function") id = infoGet_(INFO_ROW.DASHBOARD);
   // セルは消えることがある（行を消した・シートを作り直した など）。
   // 実際それで毎回あたらしいスプシが作られてしまっていたので、
   // スクリプト自身の控えからも探す。こちらはシートを触っても消えない
@@ -2585,7 +2581,7 @@ function dbOpenTarget_(mainSS) {
     try {
       const ss = SpreadsheetApp.openById(id);
       // 次からは必ずここへ作る。3か所に控えておき、1つ消えても迷子にならないようにする
-      if (desc) desc.getRange("Z2").setValue(id);
+      infoSet_(INFO_ROW.DASHBOARD, id, "まとめスプシID");
       props.setProperty("DASHBOARD_ID", id);
       return ss;
     } catch (e) {
@@ -2599,7 +2595,7 @@ function dbOpenTarget_(mainSS) {
   const made = SpreadsheetApp.create("☣️僕はグールだッシュボード☣️");
   const newId = made.getId();
   props.setProperty("DASHBOARD_ID", newId);   // いちばん消えにくいところへ先に
-  if (desc) desc.getRange("Z2").setValue(newId);
+  infoSet_(INFO_ROW.DASHBOARD, newId, "まとめスプシID");
   SpreadsheetApp.flush();          // 書き終わる前に落ちても、行き先を見失わないように
 
   // 作ったときに勝手に付いてくる「シート1」は消す。

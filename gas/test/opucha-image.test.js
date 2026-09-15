@@ -718,5 +718,42 @@ console.log('\n■ LINEに「なおして」と打てば、見張りを入れ直
      'ふつうの乗車記録は、そのまま通す');
 }
 
+console.log('\n■ 知らないIDから記録が届いたら、ｼﾞﾝタブへ入れる');
+{
+  const S = F('senderTabOf_');
+  ok(S('Ued4659890c83b3b0bcf2a3f8bf008e7f') === 'ﾀﾞｲｽｹ', 'コードに書いてある人は、そのタブ');
+  ok(S('Uzzz-しらないID') === '', '知らないIDは、空が返る');
+  ok(S('') === '', 'IDが無ければ、空が返る');
+
+  // 覚えさせると、次からはそのタブになる
+  F('senderLearn_')('Uzzz-しらないID', 'ｼﾞﾝ');
+  ok(S('Uzzz-しらないID') === 'ｼﾞﾝ', '覚えたIDは、そのタブになる');
+  ok(String(propStore['SENDER_EXTRA']).indexOf('Uzzz') !== -1,
+     'コードではなくスクリプトプロパティに覚える（更新で消えないため）');
+
+  // 「ｼﾞﾝ登録」と打てば覚える
+  sent.length = 0;
+  delete propStore['SENDER_EXTRA'];
+  ok(F('handleSenderRegister_')({ replyToken: 'rt', source: { userId: 'Uaaa' },
+      message: { text: 'ｼﾞﾝ登録' } }) === true, '「ｼﾞﾝ登録」は、この受け口が扱う');
+  ok(S('Uaaa') === 'ｼﾞﾝ', '  そのIDが ｼﾞﾝ タブの人になる');
+  has(sent[0], '覚えました', '  そう返事する');
+
+  ok(F('handleSenderRegister_')({ replyToken: 'rt', source: { userId: 'Ubbb' },
+      message: { text: 'ジン登録' } }) === true, '全角カナで打っても効く');
+  ok(S('Ubbb') === 'ｼﾞﾝ', '  ちゃんと ｼﾞﾝ タブになる');
+
+  ok(F('handleSenderRegister_')({ replyToken: 'rt', source: { userId: 'Uccc' },
+      message: { text: '北7登録' } }) === false, '個人タブ以外の名前では覚えない');
+  ok(F('handleSenderRegister_')({ replyToken: 'rt', source: { userId: 'Uccc' },
+      message: { text: '登録しました' } }) === false, 'ふつうの会話では効かない');
+
+  ok(vm.runInContext('PERSONAL_TABS', ctx).indexOf('ｼﾞﾝ') !== -1,
+     'ｼﾞﾝ は個人タブの仲間に入っている（手打ちもできる）');
+  ok(vm.runInContext('ALL_TABS', ctx).indexOf('ｼﾞﾝ') !== -1,
+     '  最終更新（B1）や整形の対象にもなる');
+  ok(vm.runInContext('UNKNOWN_TAB', ctx) === 'ｼﾞﾝ', '受け止め先は ｼﾞﾝ タブ');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

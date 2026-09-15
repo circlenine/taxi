@@ -2,10 +2,15 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W007ver  （2026/09/06）  ★★★
+ *  ★★★  W008ver  （2026/09/16）  ★★★
  *
- *  ファイル記号: C=001-Code.gs / E=002-Extras.gs / L=003-LineReport.gs / W=004-WebApp.gs
+ *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
+ *
+ *  [W008ver] 説明タブの控えらんを Y・Z列 → I列（非表示）に移した
+ *   ・説明タブは J列から先を消したので、Y・Z には書けなくなっていた
+ *   ・ページURLは I3、最後の診断は I4、グループIDは I1
  *
  *  [W007ver] 乗り場をタップすると Googleマップ が開くようにした
  *   ・記録カードの乗り場名と、乗り場ランキングの名前がリンクになる
@@ -38,7 +43,7 @@
  * ================================================================
  */
 
-const WB_VERSION = "W007ver";
+const WB_VERSION = "W008ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
@@ -310,17 +315,11 @@ function wbSelfTest() { return JSON.stringify(wbSelfTest_()); }
  *   ・トーストで出す … ダイアログより出やすい
  */
 
-/** 説明タブのZ3にURL、Z4に診断結果を書いておく（あとから見られるように） */
+/** 説明タブの I列（非表示）に、URLと診断を残す（あとから見られるように） */
 function wbWriteInfo_(url, diag) {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (!sh) return;
-    sh.getRange("Y3").setValue("ページURL");
-    sh.getRange("Z3").setValue(url || "（まだ公開されていません）");
-    if (diag) {
-      sh.getRange("Y4").setValue("最後の診断");
-      sh.getRange("Z4").setValue(diag);
-    }
+    infoSet_(INFO_ROW.WEBAPP, url || "（まだ公開されていません）", "ページURL");
+    if (diag) infoSet_(INFO_ROW.DIAG, diag, "最後の診断");
   } catch (e) { /* 書けなくても本題は止めない */ }
 }
 
@@ -432,11 +431,10 @@ function wbTestTarget_() {
   return "";
 }
 
-/** グループの宛先（説明タブ Z1） */
+/** グループの宛先（説明タブ I列・非表示） */
 function wbGroupTarget_() {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    return sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
+    return (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
   } catch (e) { return ""; }
 }
 

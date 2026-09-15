@@ -285,17 +285,11 @@ function wbSelfTest() { return JSON.stringify(wbSelfTest_()); }
  *   ・トーストで出す … ダイアログより出やすい
  */
 
-/** 説明タブのZ3にURL、Z4に診断結果を書いておく（あとから見られるように） */
+/** 説明タブの I列（非表示）に、URLと診断を残す（あとから見られるように） */
 function wbWriteInfo_(url, diag) {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (!sh) return;
-    sh.getRange("Y3").setValue("ページURL");
-    sh.getRange("Z3").setValue(url || "（まだ公開されていません）");
-    if (diag) {
-      sh.getRange("Y4").setValue("最後の診断");
-      sh.getRange("Z4").setValue(diag);
-    }
+    infoSet_(INFO_ROW.WEBAPP, url || "（まだ公開されていません）", "ページURL");
+    if (diag) infoSet_(INFO_ROW.DIAG, diag, "最後の診断");
   } catch (e) { /* 書けなくても本題は止めない */ }
 }
 
@@ -407,11 +401,10 @@ function wbTestTarget_() {
   return "";
 }
 
-/** グループの宛先（説明タブ Z1） */
+/** グループの宛先（説明タブ I列・非表示） */
 function wbGroupTarget_() {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    return sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
+    return (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
   } catch (e) { return ""; }
 }
 

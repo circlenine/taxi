@@ -134,6 +134,7 @@ function mkPanel() {
 
     getName: () => '説明',
     getMaxRows: () => 200,
+    getMaxColumns: () => 9,          // 説明タブは I列 まで（J以降は消してある）
     insertRowsBefore: (before, n) => {
       const moved = {};
       Object.keys(cells).forEach(k => {
@@ -322,6 +323,18 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
 }};
 function ok(o) { return { getResponseCode: () => 200, getContentText: () => JSON.stringify(o) }; }
 
+// 001-Code.gs の「説明タブの控えらん（I列）」の写し。
+// このテストは 005-Updater.gs しか読み込まないので、ここだけ用意する
+vm.runInContext(`
+  var INFO_COL = 9;
+  var INFO_ROW = { GROUP:1, DASHBOARD:2, WEBAPP:3, DIAG:4, UPDATE:5, AUTO:6, EVENT:7, READ:8, NEWIDS:9 };
+  function infoSet_(row, value, label) {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
+    if (!sh) return false;
+    sh.getRange(row, INFO_COL).setValue(label ? "【" + label + "】\\n" + value : value);
+    return true;
+  }`, ctx);
+
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8'), ctx,
   { filename: '005-Updater.gs' });
 const F = n => vm.runInContext(n, ctx);
@@ -480,7 +493,8 @@ uiWorks = false;
 F('menuUpdateCode')();
 t(lastPut() !== undefined, 'ダイアログ無しでも更新できる');
 t(toasts.length > 0, 'トーストで知らせる');
-has(panel._cells['Z5'], '更新しました', '説明タブZ5にも残る');
+has(panel._cells['5,9'], '更新しました', '説明タブの I5（非表示）にも残る');
+has(panel._cells['5,9'], '最後の更新', '  見出しも同じマスに入る');
 
 console.log('\n■ 状態を調べる');
 reset([['001-Code.gs', 'あたらしい']]);
@@ -841,9 +855,9 @@ has(alerts[alerts.length - 1].b, '9個のボタンを足しました', '何個�
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
-// 結果の記録（Y5・Z5）は毎回書かれるので、ボタンの部分だけを比べる
+// 控えらん（I列＝9列目）は毎回書かれるので、ボタンの部分だけを比べる
 const grid = () => JSON.stringify(Object.keys(panel._cells)
-  .filter(k => /^\d+,\d+$/.test(k)).sort()
+  .filter(k => /^\d+,\d+$/.test(k) && k.split(',')[1] !== '9').sort()
   .map(k => k + '=' + panel._cells[k]));
 const before = grid();
 F('menuMakePanel')();
@@ -930,12 +944,9 @@ t(panel._cells['44,3'] === undefined, 'C列には書かない');
 
 console.log('\n■ 重複していたら、直し方を知らせる（勝手に並べ替えない）');
 realLayout();
-const snap = JSON.stringify(Object.keys(panel._cells)
-  .filter(k => /^\d+,\d+$/.test(k)).sort().map(k => k + '=' + panel._cells[k]));
+const snap = grid();
 F('menuMakePanel')();
-t(JSON.stringify(Object.keys(panel._cells)
-  .filter(k => /^\d+,\d+$/.test(k)).sort().map(k => k + '=' + panel._cells[k])) === snap,
-  'セルを一切さわらない');
+t(grid() === snap, 'セルを一切さわらない（控えらんのI列は別）');
 has(alerts[alerts.length - 1].t, '並びを直してください', 'そう伝える');
 has(alerts[alerts.length - 1].b, '40行目', '重複している行を教える');
 has(alerts[alerts.length - 1].b, 'ページのURLをLINEに送る', '足りないものを教える');
@@ -1198,10 +1209,10 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U018ver', 'U018ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U019ver', 'U019ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U018ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U019ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {

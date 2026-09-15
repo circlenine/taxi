@@ -2,7 +2,7 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V009ver  （2026/09/16）  ★★★
+ *  ★★★  V010ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -115,7 +115,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V006ver";
+const VN_VERSION = "V010ver";
 
 /**
  * 見にいく先の一覧。
@@ -625,8 +625,7 @@ function vnTestTarget_() {
 function vnGroupTarget_() {
   if (typeof rpGroupTarget_ === "function") return rpGroupTarget_();
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    return sh ? String(sh.getRange("Z1").getValue() || "").trim() : "";
+    return (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
   } catch (e) { return ""; }
 }
 
@@ -1862,10 +1861,7 @@ function menuVenueProbe() {
   const r = vnProbeSendToMe();
   const text = (r.err ? "⚠️ 自分のLINEには送れませんでした：" + r.err
                       : "📱 同じ内容を、まーく個人のLINEにだけ送りました") + "\n\n" + r.text;
-  try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (sh) { sh.getRange("Y7").setValue("イベント調査"); sh.getRange("Z7").setValue(text); }
-  } catch (e) {}
+  try { infoSet_(INFO_ROW.EVENT, text, "イベント調査"); } catch (e) {}
   try {
     const ui = SpreadsheetApp.getUi();
     ui.alert("🔎 イベント情報の調査", text.slice(0, 1400), ui.ButtonSet.OK);
@@ -1962,10 +1958,7 @@ function panelVenueList() {
 function menuVenueList() {
   const text = vnReadStatus_(new Date());
   const err = vnSend_(text, "test");
-  try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (sh) { sh.getRange("Y8").setValue("読み取り状況"); sh.getRange("Z8").setValue(text); }
-  } catch (e) {}
+  try { infoSet_(INFO_ROW.READ, text, "読み取り状況"); } catch (e) {}
   try {
     const ui = SpreadsheetApp.getUi();
     ui.alert("🔎 読み取れているものの一覧", text.slice(0, 1400), ui.ButtonSet.OK);

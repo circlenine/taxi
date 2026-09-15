@@ -10,9 +10,13 @@ Apps Script では HTML を別ファイルに置くこともできるが、
 """
 import pathlib, re, sys, datetime
 
-VERSION = "W007ver"
-DATE = "2026/09/06"
-CHANGELOG = """ *  [W007ver] 乗り場をタップすると Googleマップ が開くようにした
+VERSION = "W008ver"
+DATE = "2026/09/16"
+CHANGELOG = """ *  [W008ver] 説明タブの控えらんを Y・Z列 → I列（非表示）に移した
+ *   ・説明タブは J列から先を消したので、Y・Z には書けなくなっていた
+ *   ・ページURLは I3、最後の診断は I4、グループIDは I1
+ *
+ *  [W007ver] 乗り場をタップすると Googleマップ が開くようにした
  *   ・記録カードの乗り場名と、乗り場ランキングの名前がリンクになる
  *   ・行き先の表は 002-Extras.gs（MapLink）のもの。入っていなければただの文字のまま
  *   ・1件ずつURLを持たせるとページが重くなるので、出てくる乗り場の種類ぶんだけ渡す
@@ -55,7 +59,8 @@ head = f'''/**
  *
  *  ★★★  {VERSION}  （{DATE}）  ★★★
  *
- *  ファイル記号: C=001-Code.gs / E=002-Extras.gs / L=003-LineReport.gs / W=004-WebApp.gs
+ *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *
 {CHANGELOG}

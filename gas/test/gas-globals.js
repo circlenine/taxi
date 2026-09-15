@@ -8,7 +8,7 @@ const START_ROW = 4, LAST_COL = 11;
 const C_SENDER = 1, C_DATE = 2, C_START = 3, C_WAIT = 4,
       C_TIME = 5, C_MONEY = 6, C_PLACE = 7, C_METHOD = 8,
       C_OTHER = 9, C_LINK = 10, C_MARK = 11;
-const PERSONAL_TABS = ["ﾀﾞｲｽｹ", "ｼｭﾝ", "ｶｲﾄ", "ｱﾅﾙ", "ﾏｰｸ"];
+const PERSONAL_TABS = ["ﾀﾞｲｽｹ", "ｼｭﾝ", "ｶｲﾄ", "ｱﾅﾙ", "ﾏｰｸ", "ｼﾞﾝ"];
 const AREA_TABS = ["北7", "北4", "北他", "ﾐﾅﾐ", "ほか"];
 const FLAG_TABS = ["関空", "ﾊﾞﾗｼ"];
 const ALL_TABS = PERSONAL_TABS.concat(AREA_TABS, FLAG_TABS);

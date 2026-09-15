@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C034ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C035ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,23 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C035ver]
+ *   ・説明タブの控えらんを Y・Z列 → I列（非表示）に移した
+ *     説明タブは J列から先を消したので、Y・Z には書けなくなっていた。
+ *     行の意味は INFO_ROW で決め打ち（I1=グループID / I2=まとめスプシID /
+ *     I3=ページURL / I4=診断 / I5=最後の更新 / I6=自動送信 /
+ *     I7=イベント調査 / I8=読み取り状況 / I9=知らないIDの控え）
+ *     読むときは、古い Z列 も見る（引っ越しのあいだだけ）
+ *   ・ｼﾞﾝタブ（仁くん）を個人タブに足した
+ *     B1の最終更新も、整形も、レポートの集計も、ほかの5人と同じに扱う
+ *   ・知らないIDから記録が届いたら、捨てずに ｼﾞﾝ タブへ入れるようにした
+ *     前はここで黙って捨てていたので、新しい人の記録が丸ごと消えていた。
+ *     そのIDは 説明タブ I9 に控え、本人には「ｼﾞﾝ登録」と打てば
+ *     次から名前が入ることを返信する
+ *   ・「〇〇登録」で、そのIDをその個人タブの人として覚えるようにした
+ *     コードに直接IDを書き足すと [1] の更新で消えるので、
+ *     スクリプトプロパティ（SENDER_EXTRA）に覚える
  *
  *  [C034ver]
  *   ・自動送信の時刻を「時」だけでなく「分」でも決められるようにした
@@ -470,11 +487,76 @@ const DISPLAY_NAME_MAP = {
   "Mark":     "ﾏｰｸ"
 };
 
-const PERSONAL_TABS = ["ﾀﾞｲｽｹ", "ｼｭﾝ", "ｶｲﾄ", "ｱﾅﾙ", "ﾏｰｸ"];  // マスター（手打ち可）
+const PERSONAL_TABS = ["ﾀﾞｲｽｹ", "ｼｭﾝ", "ｶｲﾄ", "ｱﾅﾙ", "ﾏｰｸ", "ｼﾞﾝ"];  // マスター（手打ち可）
+
+// まだ誰のものか分からない投稿を、いったん受け止めるタブ。
+// 知らないIDから記録が届いたら、捨てずにここへ入れて、IDを説明タブに残す。
+const UNKNOWN_TAB = "ｼﾞﾝ";
 const AREA_TABS     = ["北7", "北4", "北他", "ﾐﾅﾐ", "ほか"];      // 自動連動のみ
 const FLAG_TABS     = ["関空", "ﾊﾞﾗｼ"];                          // 自動連動＋手打ち可
 const OPUCHA_TAB    = "ｵﾌﾟﾁｬ";     // A列の表示名としてのみ使う（専用タブは作らない）
 const INFO_TAB      = "説明";
+
+/* ============ 説明タブの「控えらん」（I列・非表示）============ */
+/*
+ * IDや直近の結果は、説明タブの I列 に縦に並べて置く。
+ * （前は Y・Z列に置いていたが、説明タブは J列から先を消したので届かない）
+ *
+ * 行は下の INFO_ROW で決め打ちにする。場所を覚えなくても、
+ * 名前で書き読みできるようにするため。
+ */
+const INFO_COL = 9;                      // I列
+const INFO_ROW = {
+  GROUP:     1,   // グループLINEのID
+  DASHBOARD: 2,   // まとめスプシのID
+  WEBAPP:    3,   // みんなの記録ページのURL
+  DIAG:      4,   // ページの診断
+  UPDATE:    5,   // 最後の更新
+  AUTO:      6,   // 自動送信の結果
+  EVENT:     7,   // イベント調査
+  READ:      8,   // 読み取り状況
+  NEWIDS:    9    // 知らないIDの控え
+};
+
+/** 説明タブ（無ければ null） */
+function infoSheet_() {
+  try { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INFO_TAB); }
+  catch (e) { return null; }
+}
+
+/**
+ * 控えらんを読む。
+ * 昔は Y・Z列に置いていたので、I列が空ならそちらも見る（引っ越しのあいだだけ）。
+ */
+function infoGet_(row) {
+  const sh = infoSheet_();
+  if (!sh) return "";
+  try {
+    const v = String(sh.getRange(row, INFO_COL).getValue() || "").trim();
+    if (v) return v;
+  } catch (e) {}
+  // 古い置き場（Z列）。列が消されていれば読めないので、黙って空を返す
+  try {
+    if (sh.getMaxColumns() >= 26) {
+      return String(sh.getRange(row, 26).getValue() || "").trim();
+    }
+  } catch (e) {}
+  return "";
+}
+
+/** 控えらんに書く。label を付けると「名前：中身」の形になる */
+function infoSet_(row, value, label) {
+  const sh = infoSheet_();
+  if (!sh) return false;
+  try {
+    if (sh.getMaxColumns() < INFO_COL) {
+      sh.insertColumnsAfter(sh.getMaxColumns(), INFO_COL - sh.getMaxColumns());
+    }
+    if (sh.getMaxRows() < row) sh.insertRowsAfter(sh.getMaxRows(), row - sh.getMaxRows());
+    sh.getRange(row, INFO_COL).setValue(label ? "【" + label + "】\n" + value : value);
+    return true;
+  } catch (e) { logErr_("infoSet", e); return false; }
+}
 const ALL_TABS      = PERSONAL_TABS.concat(AREA_TABS, FLAG_TABS);
 
 // オプチャ取込の条件
@@ -1268,10 +1350,7 @@ function rememberGroupId_(ev) {
     const props = PropertiesService.getScriptProperties();
     if (props.getProperty("GROUP_ID") !== id) props.setProperty("GROUP_ID", id);
 
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (sh && !String(sh.getRange("Z1").getValue() || "").trim()) {
-      sh.getRange("Z1").setValue(id);
-    }
+    if (!infoGet_(INFO_ROW.GROUP)) infoSet_(INFO_ROW.GROUP, id, "グループID");
   } catch (e) { logErr_("rememberGroupId", e); }
 }
 
@@ -1316,6 +1395,9 @@ function handleEvent_(ev) {
   //   見張りが全部止まっていてもここは動く。
   if (typeof handleRepairNote_ === "function" && handleRepairNote_(ev)) return;
 
+  // --- 「ｼﾞﾝ登録」 ＝ このIDはこのタブの人、と覚える ---
+  if (handleSenderRegister_(ev)) return;
+
   // --- 「ホテル」「↑ホテル」 ＝ 次（または直前）の写真はホテルの予定表 ---
   if (typeof vnHandleNote_ === "function" && vnHandleNote_(ev, sentAt)) return;
 
@@ -1327,17 +1409,110 @@ function handleEvent_(ev) {
   if (note) { handleDateNote_(ev, note); return; }
 
   // --- テキスト ＝ 自分の乗車記録 ---
-  // こちらは登録済みの5人だけ。誰の実績かを個人タブに記録するため。
   const userId = (ev.source && ev.source.userId) || "";
-  const tabName = SENDER_MAP[userId];
-  if (!tabName) return;
+  const known  = senderTabOf_(userId);
 
   const rec = parseRideMessage_(ev.message.text, sentAt);
   if (!rec) return;              // 記録として読めないものは雑談。何もしない
+
+  // 知らないIDからの記録は、捨てずに ｼﾞﾝ タブへ入れる。
+  // 前はここで黙って捨てていたので、新しい人の記録が丸ごと消えていた。
+  const tabName = known || UNKNOWN_TAB;
+  if (!known) rememberNewSender_(ev, userId);
   rec.ownerTab  = tabName;
   rec.sender    = tabName;
   rec.messageId = ev.message.id || "";
   writeRecord_(rec);
+}
+
+
+/* ============ 3-1a. 送り主とタブの対応 ============ */
+/*
+ * コードに書いてある5人（SENDER_MAP）に加えて、
+ * あとから覚えたぶん（SENDER_EXTRA）も見る。
+ *
+ * ★コードに直接 ID を書き足す形にしなかった理由。
+ *   コードは [1] で丸ごと入れ替わるので、書き足しても次の更新で消える。
+ *   スクリプトプロパティに覚えさせれば、更新しても残る。
+ *   （IDは他人に見られて困るものなので、シートにもコードにも置かない）
+ */
+
+/** あとから覚えた「ID → タブ名」 */
+function senderExtra_() {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty("SENDER_EXTRA") || "{}"); }
+  catch (e) { return {}; }
+}
+
+/** そのIDの人のタブ名。分からなければ空文字 */
+function senderTabOf_(userId) {
+  if (!userId) return "";
+  if (SENDER_MAP[userId]) return SENDER_MAP[userId];
+  const ex = senderExtra_();
+  return ex[userId] || "";
+}
+
+/** 「このIDは〇〇タブの人」と覚える */
+function senderLearn_(userId, tabName) {
+  if (!userId || !tabName) return false;
+  const pr = PropertiesService.getScriptProperties();
+  const ex = senderExtra_();
+  ex[userId] = tabName;
+  pr.setProperty("SENDER_EXTRA", JSON.stringify(ex));
+  return true;
+}
+
+/**
+ * 知らないIDから記録が届いたときに、そのIDを控えておく。
+ * 説明タブの I列（非表示）に残すので、あとから見て登録できる。
+ */
+function rememberNewSender_(ev, userId) {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    let list = [];
+    try { list = JSON.parse(pr.getProperty("SENDER_NEW") || "[]"); } catch (e) {}
+    if (list.some(function (x) { return x.id === userId; })) return;
+
+    let who = "";
+    try { who = opuchaSenderName_(ev) || ""; } catch (e) {}
+    list.push({ id: userId, name: who, at: new Date().toISOString().slice(0, 16).replace("T", " ") });
+    pr.setProperty("SENDER_NEW", JSON.stringify(list.slice(-20)));
+
+    infoSet_(INFO_ROW.NEWIDS,
+      list.map(function (x) { return x.at + "  " + (x.name || "（名前不明）") + "\n" + x.id; }).join("\n\n"),
+      "知らないIDの控え");
+
+    lineReply_(ev.replyToken || "",
+      "👋 はじめての方ですね。" + (who ? who + "さんの" : "") + "記録は「" + UNKNOWN_TAB + "」タブに入れました。\n\n" +
+      "これからも " + UNKNOWN_TAB + " タブでよければ、このトークで\n" +
+      "「" + UNKNOWN_TAB + "登録」\n" +
+      "と打ってください。次からは名前も入ります。");
+  } catch (e) { logErr_("rememberNewSender", e); }
+}
+
+/**
+ * 「ｼﾞﾝ登録」などと打たれたら、そのIDをそのタブの人として覚える。
+ * 扱ったら true。
+ */
+function handleSenderRegister_(ev) {
+  const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
+  const m = t.match(/^(.+?)登録$/);
+  if (!m) return false;
+  const want = toHalfKana_(m[1]);
+  if (PERSONAL_TABS.indexOf(want) === -1) return false;     // 個人タブの名前だけ受け付ける
+
+  const userId = (ev.source && ev.source.userId) || "";
+  if (!userId) { lineReply_(ev.replyToken || "", "IDが取れませんでした。"); return true; }
+  senderLearn_(userId, want);
+  lineReply_(ev.replyToken || "",
+    "✅ 覚えました。これからあなたの記録は「" + want + "」タブに入ります。");
+  return true;
+}
+
+/** 全角カナを半角に（タブ名は半角カナのため） */
+function toHalfKana_(s) {
+  let t = String(s);
+  for (const k in KANA_H2F) t = t.split(KANA_H2F[k]).join(k);
+  return t;
 }
 
 
@@ -3409,7 +3584,7 @@ function menuRebuild() {
   runnerDialog_({
     title: "🔗 個人タブの内容を他タブへ反映する",
     color: "#b45f06",
-    desc: "個人タブ（ﾀﾞｲｽｹ・ｼｭﾝ・ｶｲﾄ・ｱﾅﾙ・ﾏｰｸ）をもとに、" +
+    desc: "個人タブ（" + PERSONAL_TABS.join("・") + "）をもとに、" +
           "北7・北4・北他・ﾐﾅﾐ・ほか・関空・ﾊﾞﾗｼ を作り直します。<br>" +
           "※各タブに直接手打ちした行（J列が空の行）は残ります。",
     applyLabel: "作り直す",

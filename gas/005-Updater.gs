@@ -167,7 +167,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U018ver";
+const UPD_VERSION = "U019ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -608,13 +608,7 @@ function menuUpdateStatus() {
 /** 結果を、出せる場所ぜんぶに出す（スマホだとダイアログが出ないことがある） */
 function updTell_(title, body) {
   try { SpreadsheetApp.getActiveSpreadsheet().toast(String(body).slice(0, 400), title, 30); } catch (e) {}
-  try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
-    if (sh) {
-      sh.getRange("Y5").setValue("最後の更新");
-      sh.getRange("Z5").setValue(title + "\n" + body);
-    }
-  } catch (e) {}
+  try { infoSet_(INFO_ROW.UPDATE, title + "\n" + body, "最後の更新"); } catch (e) {}
   try {
     const ui = SpreadsheetApp.getUi();
     ui.alert(title, body, ui.ButtonSet.OK);

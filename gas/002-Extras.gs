@@ -747,7 +747,7 @@ function menuOpucha() {
     '<script>' +
     'var DATA=[];' +
     '(function(){var s=document.getElementById("tb");' +
-    '["北7","北4","北他","ﾐﾅﾐ","ほか","関空","ﾊﾞﾗｼ","ﾀﾞｲｽｹ","ｼｭﾝ","ｶｲﾄ","ｱﾅﾙ","ﾏｰｸ"]' +
+    JSON.stringify(AREA_TABS.concat(FLAG_TABS, PERSONAL_TABS)) +
     '.forEach(function(n){s.add(new Option(n,n));});})();' +
     'function search(){' +
     'var b=document.getElementById("bs");b.disabled=true;b.innerText="検索中…";' +
