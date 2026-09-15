@@ -755,5 +755,39 @@ console.log('\n■ 知らないIDから記録が届いたら、ｼﾞﾝタブ�
   ok(vm.runInContext('UNKNOWN_TAB', ctx) === 'ｼﾞﾝ', '受け止め先は ｼﾞﾝ タブ');
 }
 
+console.log('\n■ 知らないIDの1人目は、自動で ｼﾞﾝ タブの人になる');
+{
+  const S = F('senderTabOf_');
+  delete propStore['SENDER_EXTRA'];
+  delete propStore['SENDER_NEW'];
+  sent.length = 0;
+
+  const ev1 = { replyToken: 'rt1', source: { userId: 'Ujin' }, message: { text: '23:00 12000 新地4' } };
+  F('rememberNewSender_')(ev1, 'Ujin');
+  ok(S('Ujin') === 'ｼﾞﾝ', '1人目は、その場で覚える（本人は何も打たなくてよい）');
+  has(sent[0], 'はじめまして', '  ひとこと返す');
+  has(sent[0], '覚えました', '  覚えたと伝える');
+  ok(sent[0].indexOf('ｼﾞﾝ登録') === -1, '  「登録と打ってください」とは言わない');
+  has(String(propStore['SENDER_NEW']), 'Ujin', '  IDの控えも残る');
+
+  // 同じ人がもう一度送っても、返事は繰り返さない
+  sent.length = 0;
+  F('rememberNewSender_')({ replyToken: 'rt2', source: { userId: 'Ujin' }, message: {} }, 'Ujin');
+  ok(sent.length === 0, '同じ人に、何度も同じ案内を返さない');
+
+  // 2人目は、自動では覚えない
+  sent.length = 0;
+  F('rememberNewSender_')({ replyToken: 'rt3', source: { userId: 'Unew2' }, message: {} }, 'Unew2');
+  ok(S('Unew2') === '', '2人目は、自動では覚えない（記録が混ざるため）');
+  has(sent[0], '別の方のものになっています', '  その理由をはっきり伝える');
+  has(sent[0], '〇〇登録', '  どうすればよいかも伝える');
+  has(String(propStore['SENDER_NEW']), 'Unew2', '  IDの控えは残す');
+
+  // 2人目でも「〇〇登録」なら割り当てられる
+  F('handleSenderRegister_')({ replyToken: 'rt4', source: { userId: 'Unew2' },
+    message: { text: 'ｶｲﾄ登録' } });
+  ok(S('Unew2') === 'ｶｲﾄ', '  「ｶｲﾄ登録」と打てば、そちらに割り当てられる');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C035ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C036ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,14 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C036ver]
+ *   ・知らないIDの1人目を、その場で自動で ｼﾞﾝ タブの人として覚えるようにした
+ *     いま新しく入ったのは仁くん1人なので、本人に何か打たせるのは手間なだけ。
+ *   ・2人目からは、自動では覚えない
+ *     誰でも自動で覚えてしまうと、次に別の人が入ったときに
+ *     その人の記録まで仁くんのものとして混ざる。
+ *     混ざったあとで分けるのは、まず無理なので、はっきり知らせて止める
  *
  *  [C035ver]
  *   ・説明タブの控えらんを Y・Z列 → I列（非表示）に移した
@@ -1462,30 +1470,63 @@ function senderLearn_(userId, tabName) {
 }
 
 /**
- * 知らないIDから記録が届いたときに、そのIDを控えておく。
- * 説明タブの I列（非表示）に残すので、あとから見て登録できる。
+ * 知らないIDから記録が届いたときの受け止め。
+ *
+ * ★1人目は、その場で自動で覚える。
+ *   いま新しく入ったのは仁くん1人なので、本人に何か打たせるのは手間なだけ。
+ *   だから、知らないIDの1人目は「ｼﾞﾝタブの人」として自動で覚える。
+ *
+ * ★2人目からは、自動では覚えない。
+ *   ここで誰でも自動で覚えてしまうと、次に別の人が入ったときに
+ *   その人の記録まで仁くんのものとして混ざる。混ざったあとで
+ *   どれが誰のぶんか分けるのは、まず無理。
+ *   2人目以降は ｼﾞﾝ タブに入れたうえで、はっきり知らせる。
  */
 function rememberNewSender_(ev, userId) {
   try {
     const pr = PropertiesService.getScriptProperties();
     let list = [];
     try { list = JSON.parse(pr.getProperty("SENDER_NEW") || "[]"); } catch (e) {}
-    if (list.some(function (x) { return x.id === userId; })) return;
+    const already = list.some(function (x) { return x.id === userId; });
 
     let who = "";
     try { who = opuchaSenderName_(ev) || ""; } catch (e) {}
-    list.push({ id: userId, name: who, at: new Date().toISOString().slice(0, 16).replace("T", " ") });
-    pr.setProperty("SENDER_NEW", JSON.stringify(list.slice(-20)));
 
-    infoSet_(INFO_ROW.NEWIDS,
-      list.map(function (x) { return x.at + "  " + (x.name || "（名前不明）") + "\n" + x.id; }).join("\n\n"),
-      "知らないIDの控え");
+    if (!already) {
+      list.push({ id: userId, name: who, at: new Date().toISOString().slice(0, 16).replace("T", " ") });
+      pr.setProperty("SENDER_NEW", JSON.stringify(list.slice(-20)));
+      infoSet_(INFO_ROW.NEWIDS,
+        list.map(function (x) { return x.at + "  " + (x.name || "（名前不明）") + "\n" + x.id; }).join("\n\n"),
+        "知らないIDの控え");
+    }
 
-    lineReply_(ev.replyToken || "",
-      "👋 はじめての方ですね。" + (who ? who + "さんの" : "") + "記録は「" + UNKNOWN_TAB + "」タブに入れました。\n\n" +
-      "これからも " + UNKNOWN_TAB + " タブでよければ、このトークで\n" +
-      "「" + UNKNOWN_TAB + "登録」\n" +
-      "と打ってください。次からは名前も入ります。");
+    // ｼﾞﾝ タブの人が、まだ1人も決まっていなければ、この人に決める
+    const ex = senderExtra_();
+    let taken = false;
+    for (const k in ex) if (ex[k] === UNKNOWN_TAB) taken = true;
+    for (const k in SENDER_MAP) if (SENDER_MAP[k] === UNKNOWN_TAB) taken = true;
+
+    if (!taken) {
+      senderLearn_(userId, UNKNOWN_TAB);
+      if (!already) {
+        lineReply_(ev.replyToken || "",
+          "👋 はじめまして" + (who ? "、" + who + "さん" : "") + "。\n" +
+          "これからの記録は「" + UNKNOWN_TAB + "」タブに入ります。覚えましたので、" +
+          "こちらで何かしていただく必要はありません。\n\n" +
+          "もし別のタブがよければ、「ﾀﾞｲｽｹ登録」のように打ってください。");
+      }
+      return;
+    }
+
+    // すでに ｼﾞﾝ タブの人が決まっている ＝ この人は別の人
+    if (!already) {
+      lineReply_(ev.replyToken || "",
+        "👋 はじめての方ですね" + (who ? "、" + who + "さん" : "") + "。\n" +
+        "記録はいったん「" + UNKNOWN_TAB + "」タブに入れました。\n\n" +
+        "⚠️ " + UNKNOWN_TAB + " タブは、すでに別の方のものになっています。\n" +
+        "あなた用のタブが決まったら、「〇〇登録」と打ってください。\n" +
+        "（まーくさんへ：説明タブの I列に、このIDを控えてあります）");
+    }
   } catch (e) { logErr_("rememberNewSender", e); }
 }
 
