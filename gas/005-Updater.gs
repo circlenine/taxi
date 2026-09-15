@@ -2,7 +2,10 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U012ver  （2026/09/06）  ★★★
+ *  ★★★  U013ver  （2026/09/06）  ★★★
+ *
+ *  [U013ver]
+ *   ・ボタン [10]「イベントの絵の見本を見る」を足した
  *
  *  [U012ver]
  *   ・ボタン [9]「イベント情報を調べる」を足した（中身は 006-Events.gs）
@@ -127,7 +130,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U012ver";
+const UPD_VERSION = "U013ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -810,9 +813,14 @@ function panelItems_() {
     { key: "自動送信の状態",       label: "[8] 自動送信の状態を見る",    fn: "panelAutoReportStatus",
       sec: 20,
       note: "毎月の自動送信が本当に入っているかを見ます。入っていなければ入れ直します" },
-    { key: "イベント",             label: "[9] イベント情報を調べる",    fn: "panelEventProbe",
+    // key は、ほかのボタンの文言に含まれない言葉にする。
+    // 「イベント」だけだと [10] の文言にも含まれてしまい、同じボタンだと誤解される
+    { key: "イベント情報を調べ",   label: "[9] イベント情報を調べる",    fn: "panelEventProbe",
       sec: 60, stall: 240,
-      note: "大阪城ホールなどのページが読めるか確かめ、結果をまーく個人のLINEにも送ります" }
+      note: "大阪城ホールなどのページが読めるか確かめ、結果をまーく個人のLINEにも送ります" },
+    { key: "イベントの絵の見本",   label: "[10] イベントの絵の見本を見る", fn: "menuEventSample",
+      sec: 25,
+      note: "どんな見た目でイベント情報が届くか、まーく個人のLINEにだけ送って見せます" }
   ];
 }
 
@@ -978,7 +986,8 @@ const PANEL_FROM = {
   menuWebAppCheck:    "004-WebApp",
   menuSendReportPanel: "003-LineReport",
   panelAutoReportStatus: "003-LineReport",
-  panelEventProbe: "006-Events"
+  panelEventProbe: "006-Events",
+  menuEventSample: "006-Events"
 };
 
 /** その関数がこのプロジェクトに入っているか */
