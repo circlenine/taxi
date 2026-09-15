@@ -2,11 +2,30 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V006ver  （2026/09/15）  ★★★
+ *  ★★★  V007ver  （2026/09/15）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V007ver]
+ *   ・ホームページの読み取りを作った（vnScrapeAll_）
+ *     「その日の日付が書いてある行を見つけて、その周りを読む」やり方にした。
+ *     サイトごとに決め打ちすると、向こうの作りが変わった日から黙って
+ *     何も出なくなるため。9/15・9月15日・09-15 のどれでも読む
+ *     終わりの時刻が書いていなければ、会場の種類から見積もる（予想と明記）
+ *   ・[13]「読み取れているものの一覧を見る」を足した
+ *     何件読めたか、読んだ元の文字まで出す。外していればすぐ分かる
+ *   ・事前のお知らせを3つから選べるようにした（催しごとのボタン）
+ *     ⏰カレンダー … 押すと予定として登録できるリンクを返す
+ *                    （Androidの標準は「Googleカレンダー」。iPhoneでも同じ）
+ *     💬Discord   … みんなのDiscordへ流す
+ *     📱自分のLINE … 押した人の個人LINEにだけ届く
+ *     知らせるのは「終わりの◯分前」（設定「イベントのお知らせは何分前」／既定60）
+ *   ・1通に入りきらないときは、催しを落とす前にボタンのほうを消すようにした
+ *     ボタンを絵の中にそのまま入れると1件1,700バイトかかり、
+ *     見本4件で12,358バイト（上限10,000）になって催しが1件消えていた。
+ *     押されたあとにリンクを返す形にして1件450バイトに縮めた
  *
  *  [V006ver] ファイル名を 006-Events.gs → 006-Venue.gs にした
  *   ・「Events」と「Extras」は、どちらも E で始まって紛らわしかった。
@@ -393,7 +412,7 @@ function vnAltText_(d) {
 }
 
 /** 1件ぶんの箱 */
-function vnCard_(ev) {
+function vnCard_(ev, idx, day, noBells) {
   const v = VN_VENUES[ev.venue] || {};
   const rows = [];
 
@@ -431,6 +450,12 @@ function vnCard_(ev) {
 
   const box = { "type": "box", "layout": "vertical", "backgroundColor": "#f6f1f9",
                 "paddingAll": "10px", "cornerRadius": "md", "margin": "sm", "contents": rows };
+  // お知らせの受け取り方を3つならべる（時間が分かっている催しだけ）
+  if (day && !noBells && (ev.start || ev.end) && ev.kind !== "barasi") {
+    rows.push({ "type": "text", "text": "お知らせ：⏰カレンダー ／ 💬Discord ／ 📱自分のLINE",
+                "size": "xxs", "color": "#7b1fa2", "margin": "sm" });
+    rows.push(vnBellRow_(ev, idx, day));
+  }
   // 箱ごと押しても、その会場のページが開く（下のボタンと、どちらからでも行ける）
   if (ev.url) box.action = { "type": "uri", "label": ev.venue, "uri": ev.url };
   return box;
@@ -490,7 +515,7 @@ function vnLinkRows_(events) {
  * イベントのお知らせを組み立てる。
  * 戻り値は LINE に渡すメッセージの配列（絵＋URLのテキスト）。
  */
-function vnBuildMessages_(day, events, note) {
+function vnBuildMessages_(day, events, note, noBells) {
   const alt = vnAltText_(day);
   const contents = [];
 
@@ -507,7 +532,10 @@ function vnBuildMessages_(day, events, note) {
     if (!list.length) return;
     contents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": k[1], "weight": "bold", "size": "sm", "color": VN_COLOR_SUB, "margin": "md" });
-    list.forEach(function (e) { contents.push(vnCard_(e)); shown++; });
+    list.forEach(function (e) {
+      contents.push(vnCard_(e, (events || []).indexOf(e), day, noBells));
+      shown++;
+    });
   });
 
   if (!shown) {
@@ -564,25 +592,34 @@ function vnFitMessages_(day, events, note) {
   };
 
   let evs = (events || []).slice();
-  let msgs = vnBuildMessages_(day, evs, note);
+  let bells = false;                    // お知らせボタンを消したか
+
+  let msgs = vnBuildMessages_(day, evs, note, bells);
   if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
 
   // ① 客層の行（実績・推定）と話題を落とす。
   //    「触れない方がよいこと」だけは、トラブルに直結するので最後まで残す
   evs = copy(evs, ["stats", "guess", "know"]);
-  msgs = vnBuildMessages_(day, evs, note);
+  msgs = vnBuildMessages_(day, evs, note, bells);
   if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
 
-  // ② 助言も落とす
+  // ② お知らせボタンを消す。
+  //    ★催しを1件まるごと落とすくらいなら、ボタンのほうを先に消す。
+  //      「あることを知らせる」のが本題で、ボタンはその次だから。
+  bells = true;
+  msgs = vnBuildMessages_(day, evs, note, bells);
+  if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
+
+  // ③ 助言も落とす
   evs = copy(evs, ["advice"]);
-  msgs = vnBuildMessages_(day, evs, note);
+  msgs = vnBuildMessages_(day, evs, note, bells);
   if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
 
-  // ③ それでも入らなければ件数を減らし、減らしたことを必ず書き添える
-  while (evs.length > 1 && size(vnBuildMessages_(day, evs, note)[0]) > VN_FLEX_MAX) evs.pop();
+  // ④ それでも入らなければ件数を減らし、減らしたことを必ず書き添える
+  while (evs.length > 1 && size(vnBuildMessages_(day, evs, note, bells)[0]) > VN_FLEX_MAX) evs.pop();
   const cut = evs.length < events.length ? (events.length - evs.length) : 0;
   const add = cut ? "※ 長くなりすぎるため、ほかに" + cut + "件を省きました。" : "";
-  return vnBuildMessages_(day, evs, (note ? note + " " : "") + add);
+  return vnBuildMessages_(day, evs, (note ? note + " " : "") + add, bells);
 }
 
 /* ============ LINEに送る ============ */
@@ -739,6 +776,7 @@ function vnSendSampleToMe() {
   const events = vnSampleEvents_();
   const note = "※ これは見た目を決めるための見本です。「推定」の行は見本用の文です。" +
     "ページの読み取りはこれから作ります（[9] の調査結果を見てから）。";
+  vnDaySave_(day, events);
   const msgs = vnFitMessages_(day, events, note);
   const to = vnTestTarget_();
   if (!to) return "自分の送り先が分かりません（設定タブ「テスト送信先（自分のLINE）」）";
@@ -1143,6 +1181,487 @@ function vnHandleImage_(ev, sentAt) {
 }
 
 
+/* ============ ホームページの読み取り ============ */
+/*
+ * ★ここは「どのサイトにも、だいたい効く」書き方にしてある。
+ *   サイトごとに合わせて書くほうが正確だが、
+ *   ・こちらからは各サイトの中身を確かめられない（通信が塞がれている）
+ *   ・サイトの作りは、向こうの都合で勝手に変わる
+ *   ので、決め打ちにすると、変わった日から黙って何も出なくなる。
+ *
+ *   そこで「その日の日付が書いてある行を見つけて、その周りを読む」という
+ *   いちばん壊れにくいやり方にした。読めたものは [13] の一覧で
+ *   そのまま目で確かめられるので、外していればすぐ分かる。
+ */
+
+/** &nbsp; などを、ふつうの文字に戻す */
+function vnEntity_(t) {
+  return String(t)
+    .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#0*39;/g, "'")
+    .replace(/&#(\d+);/g, function (_, n) { return String.fromCharCode(parseInt(n, 10)); });
+}
+
+/** HTMLを「行のならんだ文字」にする。表の1行＝1件のことが多いので、行を残す */
+function vnLines_(html) {
+  let t = String(html || "");
+  t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
+       .replace(/<style[\s\S]*?<\/style>/gi, " ")
+       .replace(/<!--[\s\S]*?-->/g, " ");
+  t = t.replace(/<\s*br[^>]*>/gi, "\n")
+       .replace(/<\/(p|div|li|tr|h[1-6]|dt|dd|section|article|table)\s*>/gi, "\n")
+       .replace(/<\/(td|th)\s*>/gi, "　");
+  t = t.replace(/<[^>]+>/g, " ");
+  t = vnEntity_(t);
+  return t.split("\n")
+    .map(function (x) { return x.replace(/[ \t ]+/g, " ").trim(); })
+    .filter(function (x) { return x !== ""; });
+}
+
+/** その日を表す書き方（9月15日 / 9/15 / 09-15）にあたるか */
+function vnDateRe_(d) {
+  const m = d.getMonth() + 1, day = d.getDate();
+  const p2 = function (n) { return ("0" + n).slice(-2); };
+  return new RegExp(
+    "(^|[^0-9])(" +
+    m + "\\s*月\\s*" + day + "\\s*日" + "|" +
+    m + "\\s*[\\/／.]\\s*" + day + "|" +
+    p2(m) + "\\s*[\\/／.\\-]\\s*" + p2(day) +
+    ")([^0-9]|$)");
+}
+
+/** 「何かの日付が書いてある行」か（次の日の始まりを見つけるため） */
+function vnAnyDateRe_() {
+  return /(\d{1,2}\s*月\s*\d{1,2}\s*日|\d{1,2}\s*[\/／]\s*\d{1,2})/;
+}
+
+/** 行のかたまりから、催しの名前になりそうなところを拾う */
+function vnTitleOf_(block) {
+  let best = "";
+  block.join("　").split(/[　|｜/]/).forEach(function (piece) {
+    const t = piece.replace(/\s+/g, " ").trim();
+    if (t.length < 3 || t.length > 40) return;
+    if (/^\d/.test(t)) return;                                  // 日付・時刻だけの断片
+    if (/^(開場|開演|開始|終了|終演|キックオフ|試合|予定|詳細|チケット|一覧|カレンダー|お知らせ)$/.test(t)) return;
+    if (!/[ぁ-んァ-ヶ一-龥A-Za-z]/.test(t)) return;
+    if (t.length > best.length) best = t;
+  });
+  return best;
+}
+
+/** 会場の種類から、終わりのおおよその時刻を見積もる（書いていないとき用） */
+function vnGuessEnd_(venue, start) {
+  const v = VN_VENUES[venue] || {};
+  const h = vnHourOf_(start);
+  if (h === null) return "";
+  const add = v.type === "スタジアム" ? 2.0
+            : v.type === "ドーム" || v.type === "ホール" || v.type === "野外" ? 2.5
+            : v.type === "展示場" ? 1.0 : 2.0;
+  const t = h + add;
+  const hh = Math.floor(t) % 24, mm = Math.round((t % 1) * 60);
+  return ("0" + hh).slice(-2) + ":" + ("0" + mm).slice(-2);
+}
+
+/** 1つのサイトから、その日のぶんを読む。戻り値は {events, note} */
+function vnScrapeOne_(src, day) {
+  const out = { events: [], note: "", size: 0, code: 0 };
+  let res;
+  try {
+    res = UrlFetchApp.fetch(src.url, {
+      muteHttpExceptions: true, followRedirects: true,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+    });
+  } catch (e) {
+    out.note = "❌ つながりませんでした（" + (e && e.message ? e.message : e) + "）";
+    return out;
+  }
+  out.code = res.getResponseCode();
+  let html = "";
+  try { html = res.getContentText(); }
+  catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
+  out.size = html.length;
+  if (out.code !== 200 || !html) { out.note = "❌ 中身が取れませんでした（" + out.code + "）"; return out; }
+
+  const lines = vnLines_(html);
+  const joined = lines.join("").length;
+  if (joined < 500) {
+    out.note = "❌ 開いたあとに中身を作る作り（JavaScript）のようで、文字が取れません（" + joined + "文字）";
+    return out;
+  }
+
+  const dre = vnDateRe_(day), any = vnAnyDateRe_();
+  const starts = [];
+  lines.forEach(function (ln, i) { if (dre.test(ln)) starts.push(i); });
+  if (!starts.length) {
+    out.note = "⚠️ その日の日付が見当たりません（ページに載っていないか、日付の書き方が違います）";
+    return out;
+  }
+
+  starts.slice(0, 5).forEach(function (i) {
+    // 日付の行から、次の日付の行の手前まで（最大6行）をひとかたまりとして読む
+    const block = [lines[i]];
+    for (let j = i + 1; j < lines.length && block.length < 6; j++) {
+      if (any.test(lines[j])) break;
+      block.push(lines[j]);
+    }
+    const text = block.join("　");
+    const times = (text.match(/\d{1,2}:\d{2}/g) || []);
+    let start = "", end = "";
+    const kick = text.match(/(キックオフ|開演|試合開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    const fin  = text.match(/(終了|終演)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    if (kick) start = kick[2];
+    else if (times.length) start = times[0];
+    if (fin) end = fin[2];
+    else if (times.length >= 2 && times[1] !== start) end = times[1];
+
+    let guessed = false;
+    if (!end && start) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
+
+    out.events.push({
+      venue: src.name, kind: src.kind || "event",
+      icon: src.kind === "barasi" ? "🔧" : "🎤",
+      title: vnTitleOf_(block) || "（名前を読み取れませんでした）",
+      start: start, end: end, endGuess: guessed, people: 0, url: src.url,
+      raw: text.slice(0, 120)
+    });
+  });
+
+  if (!out.events.length) out.note = "⚠️ 日付は見つかりましたが、中身を読み取れませんでした";
+  return out;
+}
+
+/** 全部のサイトから、その日のぶんを読む（vnTodayEvents_ がここを拾う） */
+function vnScrapeAll_(day) {
+  const out = [];
+  VN_SOURCES.forEach(function (src) {
+    try {
+      vnScrapeOne_(src, day).events.forEach(function (e) { out.push(e); });
+    } catch (e) { if (typeof logErr_ === "function") logErr_("vnScrape:" + src.name, e); }
+  });
+  return out;
+}
+
+/**
+ * いま何が読み取れているかの一覧。
+ * 「読めているつもりで、実は何も読めていない」を防ぐための画面。
+ */
+function vnReadStatus_(day) {
+  const d = day || new Date();
+  const L = ["🔎 " + vnDayLabel_(d) + " の読み取り状況", ""];
+  let total = 0;
+
+  VN_SOURCES.forEach(function (src) {
+    let r;
+    try { r = vnScrapeOne_(src, d); }
+    catch (e) { r = { events: [], note: "❌ " + (e && e.message ? e.message : e) }; }
+    L.push("■ " + src.name);
+    if (r.events.length) {
+      total += r.events.length;
+      L.push("　✅ " + r.events.length + "件 読めました");
+      r.events.forEach(function (e) {
+        const when = e.start && e.end ? e.start + "〜" + e.end + (e.endGuess ? "(終わりは予想)" : "")
+                   : e.start ? e.start + " 開始" : "時間を読み取れず";
+        L.push("　・" + e.title + "　" + when);
+        L.push("　　（読んだ文字：" + e.raw + "）");
+      });
+      const kept = r.events.filter(vnInTimeRange_).length;
+      if (kept < r.events.length) {
+        L.push("　※ このうち " + (r.events.length - kept) + "件は 18:00〜翌04:00 の外なので出しません");
+      }
+    } else {
+      L.push("　" + (r.note || "⚠️ 読めませんでした"));
+    }
+    L.push("");
+  });
+
+  const hotel = vnHotelForDay_(d);
+  L.push("■ ホテル（LINEで送られた資料）");
+  if (hotel.length) {
+    total += hotel.length;
+    hotel.forEach(function (h) {
+      L.push("　・" + h.venue + "　" + h.title + "　" +
+             ([h.start, h.end].filter(String).join("〜") || "時間不明"));
+    });
+  } else {
+    L.push("　まだ届いていません（「↓帝国」と打ってから写真を送ってください）");
+  }
+  L.push("");
+  L.push("合計 " + total + "件 読めました。");
+  L.push("※ 中身がおかしければ、そのまま教えてください。読み方を直します。");
+  return L.join("\n");
+}
+
+
+/* ============ 事前のお知らせ（3つの受け取り方）============ */
+/*
+ * 「その日ぜんぶ」を朝に1回もらっても、夜には忘れている。
+ * 気になる催しだけ、稼ぎどきの少し前にもう一度知らせる。
+ *
+ * 受け取り方は3つ。イベントごとにボタンで選ぶ。
+ *   ⏰ カレンダー … スマホのカレンダーに予定として入れる
+ *                  （Android の標準は「Googleカレンダー」。iPhone でも同じボタンで入る）
+ *   💬 Discord   … みんなのDiscordに流す
+ *   📱 自分のLINE … 押した人の個人LINEにだけ届く
+ *
+ * ★知らせるのは「終わりの◯分前」。
+ *   稼ぎどきは終演のときなので、始まりではなく終わりを基準にする。
+ *   終わりが分からない催しだけ、始まりを基準にする。
+ */
+
+/** 何分前に知らせるか（設定「イベントのお知らせは何分前」／既定60分） */
+function vnLeadMin_() {
+  try {
+    if (typeof cfg_ === "function") {
+      const v = parseInt(cfg_("イベントのお知らせは何分前"), 10);
+      if (v >= 5 && v <= 300) return v;
+    }
+  } catch (e) {}
+  return 60;
+}
+
+/** その日のイベントを覚えておく（ボタンが押されたとき、どれのことか分かるように） */
+function vnDayKey_(d) {
+  return "VNDAY_" + d.getFullYear() +
+         ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+}
+function vnDaySave_(d, events) {
+  const slim = (events || []).map(function (e) {
+    return { venue: e.venue, title: e.title, start: e.start, end: e.end, url: e.url };
+  });
+  try { PropertiesService.getScriptProperties().setProperty(vnDayKey_(d), JSON.stringify(slim)); } catch (e) {}
+}
+function vnDayLoad_(d) {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(vnDayKey_(d)) || "[]"); }
+  catch (e) { return []; }
+}
+
+/** その催しで「知らせるべき時刻」（終わりの◯分前。分からなければ始まりの◯分前） */
+function vnRemindAt_(ev, day) {
+  const base = ev.end || ev.start;
+  const h = vnHourOf_(base);
+  if (h === null) return 0;
+  const t = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  // vnHourOf_ は 0〜11時を +24 して返す（翌日あつかい）
+  t.setHours(0, 0, 0, 0);
+  const ms = t.getTime() + Math.round(h * 60) * 60000 - vnLeadMin_() * 60000;
+  return ms;
+}
+
+/** Googleカレンダーに予定を入れるためのURL */
+function vnCalUrl_(ev, day) {
+  const z = function (n) { return ("0" + n).slice(-2); };
+  const at = function (hhmm, fallbackHour) {
+    const h = vnHourOf_(hhmm);
+    const use = (h === null) ? fallbackHour : h;
+    // 日本時間 → 世界標準時（9時間ひく）
+    const d = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    d.setHours(0, 0, 0, 0);
+    const ms = d.getTime() + Math.round(use * 60) * 60000 - 9 * 3600000;
+    const u = new Date(ms);
+    return u.getUTCFullYear() + z(u.getUTCMonth() + 1) + z(u.getUTCDate()) + "T" +
+           z(u.getUTCHours()) + z(u.getUTCMinutes()) + "00Z";
+  };
+  const s = at(ev.start || ev.end, 20);
+  const e = at(ev.end || ev.start, 22);
+  const v = VN_VENUES[ev.venue] || {};
+  const title = "🚕 " + ev.venue + "　" + (ev.title || "");
+  const detail = [
+    ev.start || ev.end ? "時間：" + [ev.start, ev.end].filter(String).join("〜") : "",
+    v.near && v.near.length ? "近い乗り場：" + v.near.join("・") : "",
+    ev.url || ""
+  ].filter(String).join("\n");
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+         "&text=" + encodeURIComponent(title) +
+         "&dates=" + s + "/" + e +
+         "&details=" + encodeURIComponent(detail) +
+         "&location=" + encodeURIComponent(ev.venue);
+}
+
+/*
+ * お知らせのボタン3つ。
+ *
+ * ★どれも「押したら合図を送るだけ」のボタンにしてある。
+ *   カレンダーのリンクをボタンに直接입れると、URLが長いので
+ *   1件あたり1,700バイトにもなり、催しが1通に入りきらなくなる。
+ *   （実測：見本4件で12,358バイト。LINEの上限は10,000バイト）
+ *   押されたあとに、返事としてリンクを送る形にすれば 1件450バイトで済む。
+ *   ひと手間増えるが、催しが丸ごと消えるよりずっとよい。
+ */
+function vnBellBtn_(mark, label, ymd, idx) {
+  return { "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD,
+           "action": { "type": "postback", "label": label,
+                       "data": "vn=" + mark + "&d=" + ymd + "&i=" + idx } };
+}
+
+function vnBellRow_(ev, idx, day) {
+  const ymd = day.getFullYear() + ("0" + (day.getMonth() + 1)).slice(-2) + ("0" + day.getDate()).slice(-2);
+  return { "type": "box", "layout": "horizontal", "margin": "xs",
+    "backgroundColor": "#ffffff", "cornerRadius": "md",
+    "borderWidth": "1px", "borderColor": "#b39ddb",
+    "contents": [
+      vnBellBtn_("cal", "⏰予定", ymd, idx),
+      vnBellBtn_("dc",  "💬DC",  ymd, idx),
+      vnBellBtn_("me",  "📱自分", ymd, idx)
+    ]};
+}
+
+/* ---- 予約のしまい場所 ---- */
+
+function vnRemQueue_() {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty("VN_REMIND") || "[]"); }
+  catch (e) { return []; }
+}
+function vnRemSave_(list) {
+  try {
+    PropertiesService.getScriptProperties()
+      .setProperty("VN_REMIND", JSON.stringify((list || []).slice(0, 60)));
+  } catch (e) {}
+}
+
+/** 予約を1つ足す。同じ人・同じ催し・同じ知らせ方なら二重にしない */
+function vnRemAdd_(at, how, to, ev) {
+  const list = vnRemQueue_();
+  const id = how + "|" + to + "|" + ev.venue + "|" + (ev.title || "");
+  for (let i = 0; i < list.length; i++) if (list[i].id === id) return false;
+  list.push({ id: id, at: at, how: how, to: to,
+              venue: ev.venue, title: ev.title || "", start: ev.start || "", end: ev.end || "",
+              url: ev.url || "" });
+  vnRemSave_(list);
+  return true;
+}
+
+/** 知らせる文 */
+function vnRemText_(r) {
+  const v = VN_VENUES[r.venue] || {};
+  const when = r.end ? r.end + " 終了" : (r.start ? r.start + " 開始" : "時間不明");
+  return "⏰ まもなくです\n" +
+         "🎪 " + r.venue + (r.title ? "　" + r.title : "") + "\n" +
+         "🕒 " + when + "\n" +
+         (v.near && v.near.length ? "📍 近い乗り場：" + v.near.join("・") + "\n" : "") +
+         (r.url ? r.url : "");
+}
+
+/** Discord に流す（送り先は スクリプトプロパティ DISCORD_WEBHOOK にだけ置く） */
+function vnDiscord_(text) {
+  const url = PropertiesService.getScriptProperties().getProperty("DISCORD_WEBHOOK") || "";
+  if (!url) return "Discordの送り先が未設定です（メニュー「💬 Discordの送り先を設定」）";
+  try {
+    const res = UrlFetchApp.fetch(url, {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      payload: JSON.stringify({ content: text })
+    });
+    const c = res.getResponseCode();
+    return (c >= 200 && c < 300) ? "" : "Discordに送れませんでした（" + c + "）";
+  } catch (e) { return "Discordに送れませんでした（" + (e && e.message ? e.message : e) + "）"; }
+}
+
+/** 時間が来た予約を送る。5分おきの見張りから呼ばれる */
+function vnRemindTick_() {
+  const list = vnRemQueue_();
+  if (!list.length) return;
+  const now = Date.now();
+  const keep = [];
+  list.forEach(function (r) {
+    if (r.at > now) { keep.push(r); return; }
+    // 3時間以上すぎたものは、もう送らない（止まっていた間のぶんが一気に飛ばないように）
+    if (now - r.at > 3 * 3600000) return;
+    try {
+      if (r.how === "dc") vnDiscord_(vnRemText_(r));
+      else if (typeof lrPush_ === "function") lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]);
+    } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemind", e); }
+  });
+  vnRemSave_(keep);
+}
+
+/**
+ * ボタンが押されたときの受け口（001-Code のウェブフックから呼ばれる）。
+ * 扱ったら true。
+ */
+function vnHandlePostback_(ev) {
+  const data = (ev && ev.postback && ev.postback.data) || "";
+  if (String(data).indexOf("vn=") !== 0) return false;
+  const q = {};
+  String(data).split("&").forEach(function (kv) {
+    const i = kv.indexOf("=");
+    if (i > 0) q[kv.slice(0, i)] = kv.slice(i + 1);
+  });
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
+
+  const ymd = String(q.d || "");
+  if (!/^\d{8}$/.test(ymd)) { say("どの日のことか分かりませんでした。"); return true; }
+  const day = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)));
+  const list = vnDayLoad_(day);
+  const item = list[Number(q.i)];
+  if (!item) { say("その催しが見つかりませんでした。"); return true; }
+
+  // ⏰ カレンダー … リンクを返事で送る（ボタンに直接入れると長すぎるため）
+  if (q.vn === "cal") {
+    const v = VN_VENUES[item.venue] || {};
+    say("⏰ カレンダーに入れる\n" +
+        "下のリンクを押すと、予定として登録できます。\n" +
+        "（Android の標準は「Googleカレンダー」です。iPhone でも同じリンクで入ります）\n\n" +
+        "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
+        "🕒 " + ([item.start, item.end].filter(String).join("〜") || "時間不明") + "\n" +
+        (v.near && v.near.length ? "📍 " + v.near.join("・") + "\n" : "") + "\n" +
+        vnCalUrl_(item, day));
+    return true;
+  }
+
+  const at = vnRemindAt_(item, day);
+  if (!at) { say("この催しは時間が分からないので、お知らせを入れられません。"); return true; }
+
+  const lead = vnLeadMin_();
+  const base = item.end ? "終わり" : "始まり";
+  if (at <= Date.now()) {
+    // もう過ぎている。いま1回だけ送る
+    const r = { how: q.vn, to: (ev.source && ev.source.userId) || "", venue: item.venue,
+                title: item.title, start: item.start, end: item.end, url: item.url };
+    const err = (q.vn === "dc") ? vnDiscord_(vnRemText_(r))
+              : (typeof lrPush_ === "function" && r.to) ? (lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]), "")
+              : "送り先が分かりませんでした";
+    say(err ? "⚠️ " + err : "⏰ もう時間が近いので、いまお送りしました。");
+    return true;
+  }
+
+  const to = (q.vn === "dc") ? "discord" : ((ev.source && ev.source.userId) || "");
+  if (q.vn === "me" && !to) { say("あなたの送り先が分かりませんでした。"); return true; }
+  const added = vnRemAdd_(at, q.vn, to, item);
+  const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
+  say(added
+    ? (q.vn === "dc" ? "💬 Discordに" : "📱 あなたのLINEに") +
+      "、" + hhmm + "（" + item.venue + " の" + base + "の" + lead + "分前）にお知らせします。"
+    : "⏰ この催しは、もうお知らせを入れてあります。");
+  return true;
+}
+
+/** Discordの送り先を決める（メニュー） */
+function menuVenueDiscord() {
+  let ui;
+  try { ui = SpreadsheetApp.getUi(); } catch (e) { return "画面から実行してください"; }
+  const now = PropertiesService.getScriptProperties().getProperty("DISCORD_WEBHOOK") || "";
+  const r = ui.prompt("💬 Discordの送り先",
+    "Discord の チャンネル設定 → 連携サービス → ウェブフック で作った URL を貼ってください。\n" +
+    "（空のまま OK を押すと、Discordへの通知を止めます）\n\n" +
+    "いま：" + (now ? "設定ずみ" : "未設定"), ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return "そのままにしました";
+  const v = String(r.getResponseText() || "").trim();
+  const pr = PropertiesService.getScriptProperties();
+  if (!v) { pr.deleteProperty("DISCORD_WEBHOOK"); return "💬 Discordへの通知を止めました"; }
+  if (v.indexOf("https://discord.com/api/webhooks/") !== 0 &&
+      v.indexOf("https://discordapp.com/api/webhooks/") !== 0) {
+    ui.alert("⚠️ これは Discord のウェブフックのURLではないようです。\n" +
+             "https://discord.com/api/webhooks/… で始まるものを貼ってください。");
+    return "❌ 入れませんでした";
+  }
+  pr.setProperty("DISCORD_WEBHOOK", v);
+  const err = vnDiscord_("✅ つながりました（テスト送信）");
+  ui.alert(err ? "入れましたが、送れませんでした：\n" + err
+               : "✅ 入れました。Discordにテストを1件送りました。");
+  return err ? "⚠️ " + err : "✅ Discordの送り先を入れました";
+}
+
+
 /* ============ その日の分をそろえる ============ */
 
 /** イベント1件に、実績・推定・助言を足す */
@@ -1221,6 +1740,10 @@ function venueDailyJob() {
     if (!lock.tryLock(10000)) return;
   } catch (e) { lock = null; }
   try {
+    // ★お知らせの予約は、自動発信が切ってあっても届ける。
+    //   これは「自分で押した人」への約束なので、全体の入切とは別。
+    try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }
+
     if (!vnAutoOn_()) return;
 
     const now = new Date();
@@ -1241,6 +1764,7 @@ function venueDailyJob() {
       return;                                            // 印は残さない（分かったら送れるように）
     }
     if (typeof lrPush_ !== "function") return;
+    vnDaySave_(now, events);          // ボタンが押されたとき、どの催しか引けるように
     lrPush_(to, vnFitMessages_(now, events, ""));
     pr.setProperty(key, "1");
   } catch (e) {
@@ -1429,7 +1953,39 @@ function vnSendTodayToMe() {
   if (typeof lrPush_ !== "function") return "003-LineReport が古いので送れません";
   const note = "※ これはテスト送信です（まーく個人のみ）。グループには送っていません。";
   try {
+    vnDaySave_(day, events);
     lrPush_(to, vnFitMessages_(day, events, note));
     return "";
   } catch (e) { return (e && e.message ? e.message : String(e)); }
+}
+
+
+/* ============ [13] 読み取れているものの一覧 ============ */
+
+/**
+ * いま何が読み取れているかを、そのまま見せる。
+ *
+ * ★「動いているつもりで、実は何も読めていない」がいちばん怖い。
+ *   読んだ元の文字までそのまま出すので、外していれば目で分かる。
+ */
+function panelVenueList() {
+  const text = vnReadStatus_(new Date());
+  const err = vnSend_(text, "test");
+  return (err ? "⚠️ 自分のLINEには送れませんでした：" + err
+              : "📱 同じ内容を、まーく個人のLINEにだけ送りました") + "\n\n" + text;
+}
+
+/** メニューからも見られるようにする */
+function menuVenueList() {
+  const text = vnReadStatus_(new Date());
+  const err = vnSend_(text, "test");
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
+    if (sh) { sh.getRange("Y8").setValue("読み取り状況"); sh.getRange("Z8").setValue(text); }
+  } catch (e) {}
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert("🔎 読み取れているものの一覧", text.slice(0, 1400), ui.ButtonSet.OK);
+  } catch (e) {}
+  return err ? "❌ " + err : text;
 }

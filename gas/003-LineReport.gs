@@ -286,7 +286,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L022ver";
+const LR_VERSION = "L023ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -432,6 +432,8 @@ function onOpenReport() {
     m.addItem("🧪 イベント情報をテスト送信（自分だけ）", "menuVenueTestSend");
     m.addItem("🎪 イベントの絵の見本を送る（自分だけ）", "menuVenueSample");
     m.addItem("🎪 イベントの自動発信を入切する", "menuVenueAuto");
+    m.addItem("🔎 読み取れているものの一覧を見る", "menuVenueList");
+    m.addItem("💬 Discordの送り先を設定", "menuVenueDiscord");
   }
   m.addItem("⏰ 自動送信の状態を見る", "menuAutoReportStatus");
   m.addItem("🧪 自動送信を今すぐ試す（自分だけ）", "menuAutoReportTestNow");
@@ -2689,6 +2691,12 @@ function dbGap_(sheet, row) {
 
 function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlace) {
   const dbSS = dbOpenTarget_(mainSS);
+
+  // ★見る権限は、いちばん先に付ける。
+  //   前は表を全部作り終えたあとに付けていたので、途中で1か所でも失敗すると
+  //   「まとめスプシはできているのに、みんなが開けない」ことになっていた。
+  //   権限だけでも先に通しておけば、あとで作り直せば見られる。
+  try { dbShareWithTeam_(mainSS, dbSS); } catch (e) { logErr_("dbShareEarly", e); }
 
   const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
   // タブ名は「📈 8/16(日)～9/15(火)」。いつからいつまでか、タブを見ただけで分かるように

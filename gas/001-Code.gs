@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C031ver  （2026/09/15）  ★★★   ← もとは version 232
+ *  ★★★  C032ver  （2026/09/15）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,11 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C032ver]
+ *   ・LINEのボタン（postback）を受け取れるようにした
+ *     イベントのお知らせを「カレンダー／Discord／自分のLINE」から選ぶのに使う
+ *   ・設定に「イベントのお知らせは何分前」（既定60分）を足した
  *
  *  [C031ver]
  *   ・006-Events.gs が 006-Venue.gs に変わったのに合わせた
@@ -516,6 +521,9 @@ const SETTINGS_DEFS = [
     help: "毎月この日に、前月この日〜前日ぶんのレポートをグループLINEへ送ります" },
   { key: "自動送信の時刻（時）",       def: 7,    kind: "num",
     help: "0〜23。7なら朝7時ごろに送ります（数分ずれることがあります）" },
+  { key: "イベントのお知らせは何分前", def: 60,   kind: "num",
+    help: "ボタンで「お知らせ」を選んだとき、催しが終わる何分前に知らせるか。" +
+          "5〜300で指定します（既定は60分前）" },
   { key: "イベント情報を自動で送る",   def: "いいえ", kind: "text",
     help: "「はい」にすると、その日にイベントがある日だけ、毎日16:45にグループLINEへ送ります。" +
           "何も無い日は送りません。はじめは「いいえ」（切）にしてあります" },
@@ -1233,6 +1241,12 @@ function handleEvent_(ev) {
     deleteByMessageId_(ev.unsend.messageId);
     return;
   }
+  // --- ボタン（お知らせの受け取り方）を押したとき ---
+  if (ev.type === "postback") {
+    if (typeof vnHandlePostback_ === "function") vnHandlePostback_(ev);
+    return;
+  }
+
   if (ev.type !== "message" || !ev.message) return;
 
   const sentAt = new Date(ev.timestamp || Date.now());
