@@ -39,6 +39,17 @@
  *    どちらなのかは、実際に取ってみないと分からない。
  *    「作ったけど動かない」を繰り返さないために、先に調べる。
  *
+ *  [V005ver]
+ *   ・ホテルの合図を増やした。矢印のきまりは日付メモ（「↓0904」）と同じ
+ *     「↓帝国」… 紙にホテル名が無い帝国ホテルの資料を、帝国ホテルとして読む
+ *     「↓ホテル」「↓🏨」… 紙のタイトルからホテル名を読む
+ *     「↑…」にすると、直前に送った写真を読み直す
+ *   ・合図を出したうえでの写真は、読めなかったときも黙らずに伝える
+ *     （合図の無い写真は、読めなければ黙る。雑談の写真に返さないため）
+ *   ・公演名から「知っておくと良いこと」「触れない方が良いこと」も聞くようにした
+ *     訃報・脱退・不祥事・負けた試合など、車内で触れると空気が悪くなることを
+ *     赤字で出す。1通に入りきらないときも、ここだけは最後まで残す
+ *
  *  [V004ver]
  *   ・リンクを「押せるボタン」にして、送るのを1通だけにした
  *     いままでは 絵1通＋URLの文字1通 の2通だった。
@@ -60,7 +71,7 @@
  */
 
 /** このファイルのバージョン */
-const EV_VERSION = "V004ver";
+const EV_VERSION = "V005ver";
 
 /**
  * 見にいく先の一覧。
@@ -400,6 +411,12 @@ function evCard_(ev) {
   // 4行目：客層の見当（これは「推定」。当たり外れがあるので、実績とは色も言葉も分ける）
   if (ev.guess) rows.push({ "type": "text", "text": "👥 推定：" + ev.guess, "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "xs" });
 
+  // 5行目：知っておくと話が弾むこと
+  if (ev.know) rows.push({ "type": "text", "text": "💬 話題：" + ev.know, "size": "xxs", "color": "#00695c", "wrap": true, "margin": "xs" });
+
+  // 6行目：触れない方がよいこと（ここは赤。ひと目で分かるように）
+  if (ev.avoid) rows.push({ "type": "text", "text": "🚫 触れない：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
+
   // 5行目：この1件についての助言
   if (ev.advice) rows.push({ "type": "text", "text": "▶ " + ev.advice, "size": "xs", "color": "#1b5e20", "wrap": true, "margin": "sm", "weight": "bold" });
 
@@ -541,8 +558,9 @@ function evFitMessages_(day, events, note) {
   let msgs = evBuildMessages_(day, evs, note);
   if (size(msgs[0]) <= EV_FLEX_MAX) return msgs;
 
-  // ① 客層の行（実績・推定）を落とす
-  evs = copy(evs, ["stats", "guess"]);
+  // ① 客層の行（実績・推定）と話題を落とす。
+  //    「触れない方がよいこと」だけは、トラブルに直結するので最後まで残す
+  evs = copy(evs, ["stats", "guess", "know"]);
   msgs = evBuildMessages_(day, evs, note);
   if (size(msgs[0]) <= EV_FLEX_MAX) return msgs;
 
@@ -652,21 +670,24 @@ function evSend_(text, where) {
  * 客層や平均は本物（記録が無ければ「記録なし」と出る）。
  */
 function evSampleEvents_() {
-  const mk = function (venue, kind, icon, title, start, end, people, url, guess) {
+  const mk = function (venue, kind, icon, title, start, end, people, url, guess, know, avoid) {
     const v = EV_VENUES[venue] || {};
     const st = evPlaceStats_(v.near, EV_FROM_HOUR, EV_TO_HOUR);
     const line = evStatsLine_(st);
     return { venue: venue, kind: kind, icon: icon, title: title, start: start, end: end,
              people: people, url: url,
              stats: line || "自社の記録：この乗り場の記録はまだありません",
-             guess: guess || "",
+             guess: guess || "", know: know || "", avoid: avoid || "",
              advice: evAdvice_(venue, end, st) };
   };
   return [
     mk("京セラドーム", "event", "🏟", "コンサート", "18:00", "21:00", 0,
-       "https://www.kyoceradome-osaka.jp/schedule/", "20〜30代女性が中心。男女比おおよそ2:8（見本）"),
+       "https://www.kyoceradome-osaka.jp/schedule/", "20〜30代女性が中心。男女比おおよそ2:8（見本）",
+       "デビュー20周年の記念公演。初日です（見本）",
+       "昨年脱退したメンバーの話（見本）"),
     mk("大阪城ホール", "event", "🎤", "コンサート", "18:30", "20:45", 0,
-       "https://www.osaka-johall.com/event/", "30〜40代が中心。男女ほぼ半々（見本）"),
+       "https://www.osaka-johall.com/event/", "30〜40代が中心。男女ほぼ半々（見本）",
+       "大阪公演は3年ぶり（見本）", ""),
     mk("ワントゥワン", "barasi", "🔧", "搬出（バラシ）", "22:00", "", 0,
        "https://onetoone-jp.com/schedule.php", ""),
     mk("リーガロイヤルホテル", "hotel", "🍽", "就任披露・周年記念", "", "21:00", 300, "", "")
@@ -758,36 +779,57 @@ function evAudKey_(title) {
 }
 
 /**
- * 公演名から、来る人の年代・男女比のおおまかな見当をAIに聞く。
- * 分からなければ空文字を返す（無理に埋めない）。
+ * 公演名から、次の3つをまとめてAIに聞く。
+ *   audience … 来る人の年代・男女比のおおよそ（推定）
+ *   know     … 知っておくと話が弾む、いま話題になっていること
+ *   avoid    … 触れない方がいいこと（訃報・活動休止・不祥事・対戦相手のことなど）
+ *
+ * ★avoid がいちばん大事。
+ *   お客さんが盛り上がって乗ってきたところに、こちらが地雷を踏むと
+ *   その場でトラブルになる。「知らないなら黙る」が正解なので、
+ *   AIにも知らないものには「不明」と答えさせている。
+ *
+ * 1回の呼び出しで3つとも取る（回数制限に当たらないように）。
+ * 同じ公演は覚えておいて、二度は聞かない。
  */
-function evAudienceGuess_(title, venue) {
+function evTopicInfo_(title, venue) {
+  const empty = { audience: "", know: "", avoid: "" };
   const t = String(title || "").trim();
-  if (!t || t.length < 2) return "";
+  if (!t || t.length < 2) return empty;
+
   const key = evAudKey_(t);
   const pr = PropertiesService.getScriptProperties();
   if (key) {
     const hit = pr.getProperty(key);
-    if (hit !== null) return hit === "-" ? "" : hit;   // "-" は「聞いたけど分からなかった」印
+    if (hit !== null) {
+      try { return JSON.parse(hit); } catch (e) { return empty; }
+    }
   }
 
   let apiKey = "", model = "";
   try {
-    if (typeof getGeminiKey_ !== "function") return "";
+    if (typeof getGeminiKey_ !== "function") return empty;
     apiKey = getGeminiKey_();
     model  = (typeof getGeminiModel_ === "function") ? getGeminiModel_() : "gemini-3.1-flash-lite";
-  } catch (e) { return ""; }
-  if (!apiKey) return "";
+  } catch (e) { return empty; }
+  if (!apiKey) return empty;
 
   const prompt =
-    "次の催しに来る人の、年代と男女のおおよその比率を答えてください。\n" +
+    "あなたは大阪のタクシー運転手に情報を渡す係です。\n" +
+    "次の催しについて、車内での会話に役立つことを答えてください。\n" +
     "催し：「" + t + "」" + (venue ? "（会場：" + venue + "）" : "") + "\n" +
+    "出力は JSON ひとつだけ。前置きも説明も書かないでください。\n" +
+    '{"audience":"","know":"","avoid":""}\n' +
+    "・audience … 来場者の年代と男女のおおよその比率。35文字以内\n" +
+    "・know … 知っておくと話が弾むこと（最新の話題、記念の公演、初日や千秋楽など）。50文字以内\n" +
+    "・avoid … 触れない方がよいこと（メンバーの訃報・脱退・活動休止・不祥事・けが・\n" +
+    "　　　　　負けた試合・対戦相手の話題など、言うと空気が悪くなること）。50文字以内\n" +
     "決まり：\n" +
-    "・知らない催し・アーティストなら、推測せず「不明」とだけ答える\n" +
-    "・分かる場合だけ、35文字以内の1行で答える（例：20〜30代女性が中心。男女比おおよそ2:8）\n" +
-    "・前置き、言い訳、記号、改行は書かない";
+    "・知らない催し・アーティストなら、推測せず、3つとも空文字にする\n" +
+    "・確かでないことは書かない。うわさ、憶測、古い情報は書かない\n" +
+    "・avoid に書くことが無ければ空文字にする（無理に埋めない）";
 
-  let out = "";
+  let out = empty;
   try {
     const res = UrlFetchApp.fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/" + model +
@@ -795,16 +837,31 @@ function evAudienceGuess_(title, venue) {
       { method: "post", contentType: "application/json", muteHttpExceptions: true,
         payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
     if (res.getResponseCode() === 200) {
-      out = String(JSON.parse(res.getContentText()).candidates[0].content.parts[0].text || "").trim();
+      const text = String(JSON.parse(res.getContentText()).candidates[0].content.parts[0].text || "");
+      const m = text.match(/\{[\s\S]*\}/);
+      if (m) {
+        const j = JSON.parse(m[0]);
+        out = { audience: evClean_(j.audience), know: evClean_(j.know), avoid: evClean_(j.avoid) };
+      }
     }
-  } catch (e) { if (typeof logErr_ === "function") logErr_("evAudience", e); }
+  } catch (e) { if (typeof logErr_ === "function") logErr_("evTopic", e); }
 
-  out = out.replace(/[\r\n]+/g, " ").slice(0, 60);
-  if (!out || out.indexOf("不明") === 0) out = "";
-  if (key) { try { pr.setProperty(key, out || "-"); } catch (e) {} }
+  if (key) { try { pr.setProperty(key, JSON.stringify(out)); } catch (e) {} }
   return out;
 }
 
+/** AIの返事を、そのまま出せる形に整える（「不明」は空にする） */
+function evClean_(v) {
+  let s = String(v == null ? "" : v).replace(/[\r\n]+/g, " ").trim();
+  if (!s) return "";
+  if (/^(不明|なし|特になし|わかりません|分かりません|-|ー)$/.test(s)) return "";
+  return s.slice(0, 60);
+}
+
+/** 年代・男女比だけがほしいとき（今までの呼び名を残しておく） */
+function evAudienceGuess_(title, venue) {
+  return evTopicInfo_(title, venue).audience;
+}
 
 /* ============ ホテルの資料（LINEに送られた画像）============ */
 /*
@@ -820,6 +877,34 @@ function evAudienceGuess_(title, venue) {
  *        ホテルの資料として読み直す（ふつうのオプチャ画像には触れない）
  */
 
+/*
+ * ホテルの合図に使える言葉。
+ *   ↓ を付ける／付けない … これから送る写真のこと
+ *   ↑ を付ける          … 直前に送った写真のこと（オプチャの「↑0904」と同じ）
+ *
+ * 帝国ホテルの資料には紙にホテル名が書かれていないので、
+ * 「帝国」と打ってもらったら、そのまま帝国ホテルとして読む（force）。
+ */
+const EV_HOTEL_WORDS = [
+  { re: /^(帝国|ていこく|帝国ホテル)$/,                     force: "帝国ホテル" },
+  { re: /^(リーガ|りーが|リーガロイヤル|リーガロイヤルホテル)$/, force: "リーガロイヤルホテル" },
+  { re: /^(ホテル|ほてる|🏨)$/,                              force: "" }
+];
+
+/** 打たれた文字が、ホテルの合図かどうかを見る */
+function evHotelWord_(text) {
+  const t = String(text || "").trim().replace(/[\s\u3000]/g, "");
+  const m = t.match(/^([↑↓⬆⬇])?(.+)$/);
+  if (!m) return null;
+  const body = m[2];
+  for (let i = 0; i < EV_HOTEL_WORDS.length; i++) {
+    if (EV_HOTEL_WORDS[i].re.test(body)) {
+      return { up: (m[1] === "↑" || m[1] === "⬆"), force: EV_HOTEL_WORDS[i].force };
+    }
+  }
+  return null;
+}
+
 const EV_HOTEL_PROMPT =
   "これはホテルの宴会・催事の予定表（社内資料やFAXの紙）の写真です。\n" +
   "写っている予定を全部抜き出してください。\n" +
@@ -833,8 +918,12 @@ const EV_HOTEL_PROMPT =
   "・宴会・催事でないもの（レストランの営業案内など）は含めない\n" +
   "・1件も無ければ [] だけを返す";
 
-/** 写真をホテルの資料として読む。戻り値は読み取れた予定の配列 */
-function evHotelFromImage_(messageId) {
+/**
+ * 写真をホテルの資料として読む。戻り値は読み取れた予定の配列。
+ * force にホテル名を渡すと、そのホテルのものとして読む
+ * （帝国ホテルの資料は紙にホテル名が無いため）。
+ */
+function evHotelFromImage_(messageId, force) {
   if (!messageId) throw new Error("画像のIDが取れませんでした");
   if (typeof geminiReady_ !== "function" || typeof getToken_ !== "function") {
     throw new Error("001-Code が古いので読み取れません");
@@ -854,7 +943,8 @@ function evHotelFromImage_(messageId) {
     ":generateContent?key=" + encodeURIComponent(g.key),
     { method: "post", contentType: "application/json", muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ parts: [
-        { text: EV_HOTEL_PROMPT },
+        { text: EV_HOTEL_PROMPT +
+                (force ? "\n・このホテルは「" + force + "」です。hotel には必ず「" + force + "」と入れてください" : "") },
         { inline_data: { mime_type: blob.getContentType() || "image/jpeg",
                          data: Utilities.base64Encode(blob.getBytes()) } }
       ]}]})});
@@ -893,10 +983,11 @@ function evHotelKey_(d) {
  * 同じ予定を二度書かない（同じホテル・同じ名前・同じ開始時刻なら1つ）。
  * 戻り値は「何件しまったか」。
  */
-function evHotelSave_(list, base) {
+function evHotelSave_(list, base, force) {
   const pr = PropertiesService.getScriptProperties();
   const byDay = {};
   (list || []).forEach(function (x) {
+    if (force) x.hotel = force;
     const d = evHotelDate_(x.date, base);
     const k = evHotelKey_(d);
     (byDay[k] = byDay[k] || []).push(x);
@@ -926,8 +1017,10 @@ function evHotelForDay_(d) {
   try { list = JSON.parse(PropertiesService.getScriptProperties().getProperty(evHotelKey_(d)) || "[]"); }
   catch (e) { list = []; }
   return list.map(function (x) {
-    const hotel = String(x.hotel || "").indexOf("帝国") >= 0 ? "帝国ホテル"
-                : String(x.hotel || "") ? "リーガロイヤルホテル" : "ホテル";
+    const raw = String(x.hotel || "");
+    const hotel = raw.indexOf("帝国") >= 0 ? "帝国ホテル"
+                : raw.indexOf("リーガ") >= 0 ? "リーガロイヤルホテル"
+                : raw ? raw : "ホテル";
     const title = [x.name, x.room].filter(String).join("／");
     return { venue: hotel, kind: "hotel", icon: "🍽", title: title,
              start: String(x.start || ""), end: String(x.end || ""),
@@ -939,15 +1032,15 @@ function evHotelForDay_(d) {
  * 写真を「ホテルの資料」として読んで、しまって、返事の文を作る。
  * 読めなければ空文字を返す（＝ホテルの資料ではなかった）。
  */
-function evHotelTry_(messageId, base) {
+function evHotelTry_(messageId, base, force) {
   let list = [];
-  try { list = evHotelFromImage_(messageId); }
+  try { list = evHotelFromImage_(messageId, force); }
   catch (e) { if (typeof logErr_ === "function") logErr_("evHotelTry", e); return ""; }
   if (!list.length) return "";
-  const n = evHotelSave_(list, base || new Date());
+  const n = evHotelSave_(list, base || new Date(), force);
   const lines = list.slice(0, 8).map(function (x) {
     const when = [x.start, x.end].filter(String).join("〜") || "時間不明";
-    return "・" + [x.date, x.hotel, x.name].filter(String).join(" ") + "　" + when +
+    return "・" + [x.date, force || x.hotel, x.name].filter(String).join(" ") + "　" + when +
            (Number(x.people) > 0 ? "　" + Number(x.people).toLocaleString() + "人" : "");
   });
   return "🍽 ホテルの予定として読み取りました（" + n + "件）\n" + lines.join("\n") +
@@ -955,50 +1048,66 @@ function evHotelTry_(messageId, base) {
          "\n\n※ 乗車記録には入れていません。当日16:45のイベント案内に出ます。";
 }
 
-/** 「ホテル」と打ったときの合図を覚える（15分だけ） */
-function evHotelHintSet_(userId) {
-  try { CacheService.getScriptCache().put("EVKIND_" + (userId || "anon"), "hotel", 900); } catch (e) {}
+/** 合図を覚える（15分だけ）。force は「帝国ホテル」など、決め打ちするホテル名 */
+function evHotelHintSet_(userId, force) {
+  try { CacheService.getScriptCache().put("EVKIND_" + (userId || "anon"), "hotel|" + (force || ""), 900); }
+  catch (e) {}
 }
 
-/** 合図が出ているか（1回見たら消す） */
+/**
+ * 合図が出ているか（1回見たら消す）。
+ * 出ていれば { force: "帝国ホテル" } の形、出ていなければ null。
+ */
 function evHotelHintGet_(userId) {
   try {
     const c = CacheService.getScriptCache();
     const k = "EVKIND_" + (userId || "anon");
     const v = c.get(k);
-    if (v) { c.remove(k); return true; }
+    if (v) {
+      c.remove(k);
+      const i = String(v).indexOf("|");
+      return { force: i >= 0 ? String(v).slice(i + 1) : "" };
+    }
   } catch (e) {}
-  return false;
+  return null;
 }
 
 /**
- * 「ホテル」「↑ホテル」と打たれたときの受け口。
+ * 「帝国」「↓ホテル」「↑🏨」などと打たれたときの受け口。
  * 001-Code の文字の処理から呼ばれる。扱ったら true を返す。
+ *
+ *   ↓ を付ける／付けない … これから送る写真のこと
+ *   ↑ を付ける          … 直前に送った写真のこと
  */
 function evHandleNote_(ev, sentAt) {
-  const t = String((ev.message && ev.message.text) || "").trim();
-  if (!/^[↑↓]?\s*(ホテル|ほてる)\s*$/.test(t)) return false;
+  const w = evHotelWord_((ev.message && ev.message.text) || "");
+  if (!w) return false;
   const uid = (ev.source && ev.source.userId) || "anon";
   const reply = ev.replyToken || "";
+  const nameOf = w.force || "ホテル";
 
-  if (t.charAt(0) === "↑") {
+  if (w.up) {
     // 先に写真を送ってしまったとき用。直前の写真を読み直す
     let mid = "";
     try { mid = CacheService.getScriptCache().get("LASTIMG_" + uid) || ""; } catch (e) {}
     if (!mid) {
-      if (typeof lineReply_ === "function") lineReply_(reply, "直前の写真が見つかりませんでした。もう一度送ってください。");
+      if (typeof lineReply_ === "function") {
+        lineReply_(reply, "直前の写真が見つかりませんでした。もう一度送ってください。");
+      }
       return true;
     }
-    const msg = evHotelTry_(mid, sentAt || new Date());
+    const msg = evHotelTry_(mid, sentAt || new Date(), w.force);
+    // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える
     if (typeof lineReply_ === "function") {
-      lineReply_(reply, msg || "ホテルの予定としては読み取れませんでした。");
+      lineReply_(reply, msg || (nameOf + "の予定としては読み取れませんでした。\n" +
+        "日付と時間が写るように、もう一度撮って送ってください。"));
     }
     return true;
   }
 
-  evHotelHintSet_(uid);
+  evHotelHintSet_(uid, w.force);
   if (typeof lineReply_ === "function") {
-    lineReply_(reply, "🍽 つぎに送る写真は、ホテルの予定として読みます（15分以内）。\n" +
+    lineReply_(reply, "🍽 つぎに送る写真は、" + nameOf + "の予定として読みます（15分以内）。\n" +
                       "乗車記録には入れません。");
   }
   return true;
@@ -1010,13 +1119,16 @@ function evHandleNote_(ev, sentAt) {
  */
 function evHandleImage_(ev, sentAt) {
   const uid = (ev.source && ev.source.userId) || "anon";
-  if (!evHotelHintGet_(uid)) return false;
+  const hint = evHotelHintGet_(uid);
+  if (!hint) return false;
   const mid = (ev.message && ev.message.id) || "";
   try { CacheService.getScriptCache().put("LASTIMG_" + uid, mid, 3600); } catch (e) {}
-  const msg = evHotelTry_(mid, sentAt || new Date());
+  const msg = evHotelTry_(mid, sentAt || new Date(), hint.force);
+  // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える
   if (typeof lineReply_ === "function") {
     lineReply_(ev.replyToken || "",
-      msg || "ホテルの予定としては読み取れませんでした。もう一度、明るいところで撮ってみてください。");
+      msg || ((hint.force || "ホテル") + "の予定としては読み取れませんでした。\n" +
+              "日付と時間が写るように、もう一度撮って送ってください。"));
   }
   return true;
 }
@@ -1032,7 +1144,10 @@ function evDecorate_(e) {
   for (const k in e) c[k] = e[k];
   c.stats  = evStatsLine_(st) || "自社の記録：この乗り場の記録はまだありません";
   c.advice = evAdvice_(e.venue, e.end, st);
-  try { c.guess = evAudienceGuess_(e.title, e.venue); } catch (err) { c.guess = ""; }
+  try {
+    const ti = evTopicInfo_(e.title, e.venue);
+    c.guess = ti.audience; c.know = ti.know; c.avoid = ti.avoid;
+  } catch (err) { c.guess = ""; c.know = ""; c.avoid = ""; }
   return c;
 }
 

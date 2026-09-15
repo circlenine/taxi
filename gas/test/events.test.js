@@ -321,5 +321,104 @@ console.log('\n■ 自動発信の入切は、1回押しただけでは変わら
   eq(ctx.evAutoOn_(), true, '  入った');
 }
 
+console.log('\n■ ホテルの合図の言葉（矢印のきまりは日付メモと同じ）');
+{
+  const W = ctx.evHotelWord_;
+  eq(W('帝国').force, '帝国ホテル', '「帝国」は帝国ホテル');
+  eq(W('↓帝国').force, '帝国ホテル', '「↓帝国」も帝国ホテル');
+  eq(W('↓帝国').up, false, '  ↓ は「これから送る写真」');
+  eq(W('↑帝国').up, true, '  ↑ は「直前に送った写真」');
+  eq(W('ホテル').force, '', '「ホテル」はホテル名を決めない（紙のタイトルから読む）');
+  eq(W('↓ホテル').force, '', '「↓ホテル」も同じ');
+  eq(W('↓🏨').force, '', '「↓🏨」も同じ');
+  eq(W('リーガ').force, 'リーガロイヤルホテル', '「リーガ」はリーガロイヤル');
+  eq(W('帝国ホテルの件ですが'), null, '文章の中にあるだけなら、合図にしない');
+  eq(W('こんばんは'), null, 'ふつうの雑談は、合図にしない');
+}
+
+console.log('\n■ 「↓帝国」なら、紙にホテル名が無くても帝国ホテルとして入る');
+{
+  for (const k in cache) delete cache[k];
+  for (const k in props) if (k.indexOf('EVH_') === 0) delete props[k];
+  ctx.lastReply = '';
+  // 帝国ホテルの資料には、紙にホテル名が書かれていない
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
+    { text: '[{"date":"9/18","hotel":"","name":"就任披露","start":"18:00","end":"20:00","people":350}]' } ] } } ] }) } };
+
+  ctx.evHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date());
+  has(ctx.lastReply, '帝国ホテルの予定として読みます', '「↓帝国」でそう返事する');
+
+  ctx.evHandleImage_({ message: { id: 'm9' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date(2026, 8, 18));
+  const list = ctx.evHotelForDay_(new Date(2026, 8, 18));
+  eq(list.length, 1, '予定が入った');
+  eq(list[0].venue, '帝国ホテル', '  紙に名前が無くても「帝国ホテル」になる');
+  has(ctx.lastReply, '帝国ホテル', '  返事にもホテル名が出る');
+}
+
+console.log('\n■ 「↑帝国」は、直前に送った写真を読み直す');
+{
+  for (const k in props) if (k.indexOf('EVH_') === 0) delete props[k];
+  cache['LASTIMG_U3'] = 'm10';
+  ctx.lastReply = '';
+  ctx.evHandleNote_({ message: { text: '↑帝国' }, source: { userId: 'U3' }, replyToken: 'r' }, new Date(2026, 8, 18));
+  eq(ctx.evHotelForDay_(new Date(2026, 8, 18)).length, 1, '直前の写真から入った');
+
+  delete cache['LASTIMG_U4'];
+  ctx.lastReply = '';
+  ctx.evHandleNote_({ message: { text: '↑ホテル' }, source: { userId: 'U4' }, replyToken: 'r' }, new Date());
+  has(ctx.lastReply, '直前の写真が見つかりません', '直前の写真が無ければ、そう伝える');
+}
+
+console.log('\n■ 合図を出したのに読めなかったときは、黙らずに伝える');
+{
+  for (const k in cache) delete cache[k];
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [{ text: '[]' }] } } ] }) } };
+  ctx.lastReply = '';
+  ctx.evHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
+  ctx.lastReply = '';
+  ctx.evHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
+  has(ctx.lastReply, '読み取れませんでした', '自分で合図を出したぶんは、読めなくても伝える');
+  has(ctx.lastReply, '帝国ホテル', '  どのホテルのことかも分かる');
+}
+
+console.log('\n■ 話題と、触れない方がよいこと');
+{
+  for (const k in props) if (k.indexOf('EVAUD_') === 0) delete props[k];
+  vm.runInContext('function getGeminiKey_(){ return "k"; } function getGeminiModel_(){ return "m"; }', ctx);
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
+    { text: '{"audience":"20〜30代女性が中心","know":"20周年の記念公演","avoid":"昨年脱退したメンバーの話"}' } ] } } ] }) } };
+  const ti = ctx.evTopicInfo_('あるアーティスト', '京セラドーム');
+  eq(ti.audience, '20〜30代女性が中心', '客層が取れる');
+  eq(ti.know, '20周年の記念公演', '知っておくと良いことが取れる');
+  eq(ti.avoid, '昨年脱退したメンバーの話', '触れない方がよいことが取れる');
+
+  fetched.length = 0;
+  ctx.evTopicInfo_('あるアーティスト', '京セラドーム');
+  eq(fetched.length, 0, '同じ公演は二度聞かない（覚えている）');
+
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
+    { text: '{"audience":"不明","know":"","avoid":"不明"}' } ] } } ] }) } };
+  const un = ctx.evTopicInfo_('だれも知らない催し2026', '');
+  eq(un.audience, '', '「不明」は空にする（知ったかぶりをさせない）');
+  eq(un.avoid, '', '  触れない方がよいことも同じ');
+}
+
+console.log('\n■ 触れない方がよいことは、いちばん最後まで残す');
+{
+  const day = new Date(2026, 8, 16);
+  const many = [];
+  for (let i = 0; i < 30; i++) {
+    many.push({ venue: '京セラドーム', kind: 'event', icon: '🏟',
+      title: 'とても長い公演名'.repeat(6), start: '18:00', end: '21:00', people: 0,
+      url: 'https://example.com/' + i,
+      stats: 'じっせき'.repeat(20), guess: 'すいてい'.repeat(20),
+      know: 'わだい'.repeat(20), avoid: 'ここは残す', advice: 'じょげん'.repeat(20) });
+  }
+  const json = JSON.stringify(ctx.evFitMessages_(day, many, '')[0]);
+  eq(ctx.lrBytes_(json) <= 9500, true, '上限は守る（' + ctx.lrBytes_(json) + 'バイト）');
+  has(json, 'ここは残す', '削られても「触れない」は残っている');
+  eq(json.indexOf('わだい'), -1, '  代わりに「話題」は落ちる');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

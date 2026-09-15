@@ -284,7 +284,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L018ver";
+const LR_VERSION = "L019ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1420,6 +1420,43 @@ function buildReportFlex_(o) {
     }
   });
 
+  /* ---------- 🚕 一晩の流し方 ---------- */
+  // 時間帯ごとの「アツい乗り場」は下の【時間詳細】に出るが、あれは見比べる表で、
+  // 「今夜どう動くか」の道すじにはなっていない。
+  // ここは、20:00〜翌04:00 を頭からたどれる形で1本にまとめて出す。
+  {
+    const plan = buildNightPlan_(finalTimeline, DAY_TYPES);
+    section_();
+    flexContents.push({ "type": "separator", "margin": "lg" },
+      { "type": "text", "text": "🚕 一晩の流し方（20:00〜翌04:00）", "weight": "bold", "size": "sm",
+        "color": "#1565c0", "margin": "md", "wrap": true },
+      { "type": "text", "text": "同じ乗り場が続く時間はまとめています。区切りが「動くとき」です。",
+        "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true });
+
+    DAY_TYPES.forEach(function (dType) {
+      const segs = (plan[dType] || []).filter(function (x) { return !!x.name; });
+      const lines = segs.map(function (seg) {
+        return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [
+          { "type": "span", "text": nightSpan_(seg) + "　", "weight": "bold", "color": "#1565c0" },
+          { "type": "span", "text": toHalfWidthKana(seg.name), "weight": "bold", "color": "#000000" },
+          { "type": "span", "text": (seg.avg ? "　￥" + seg.avg.toLocaleString() : "") +
+                                    (seg.wait ? "　待" + seg.wait + "分" : ""), "color": "#444444" }
+        ]};
+      });
+      if (!lines.length) lines.push({ "type": "text", "text": "データ不足", "size": "xs", "color": "#999999" });
+      const moves = nightMoves_(segs);
+      const planBox = { "type": "box", "layout": "vertical", "backgroundColor": "#e3f2fd",
+        "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
+          { "type": "text", "size": "xs", "weight": "bold", "color": "#1565c0", "contents": [
+            { "type": "span", "text": `【${dType}】` },
+            { "type": "span", "text": segs.length ? `　動くのは${moves}回` : "", "color": "#5f6368" }
+          ]},
+          ...lines
+        ]};
+      flexContents.push(planBox);
+    });
+  }
+
   section_();
   flexContents.push({ "type": "separator", "margin": "lg" }, { "type": "text", "text": "🔥アツい ✖️ ⚠️避ける【時間詳細】", "weight": "bold", "size": "sm", "color": "#34a853", "margin": "md", "wrap": true });
   //
@@ -2053,6 +2090,115 @@ function adviceReviewText_(a) { return advicePlain_(adviceReviewParts_(a)); }
 /** オススメの組み合わせを、行の配列にする */
 function advicePickLines_(a) { return advicePickParts_(a).map(advicePlain_); }
 
+/* ============ 🚕 一晩の流し方 ============ */
+/*
+ * 「何時台はどこにいればいいか」を、20:00〜翌04:00 のひと晩ぶん、
+ * 曜日区分（平日・金曜・土曜・日祝）ごとに1本の道すじにする。
+ *
+ * ★同じ乗り場が続く時間帯は、1つにまとめる。
+ *   「20時台：新地4／21時台：新地4／22時台：新地4」と3行書くより、
+ *   「20〜22時台：新地4」のほうが、動く回数がひと目で分かる。
+ *   運転手が知りたいのは「いつ動くか」であって、毎時の名前ではない。
+ */
+
+/** ひと晩の時間帯（20:00〜翌04:00） */
+const LR_NIGHT_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4];
+
+/**
+ * finalTimeline（曜日区分 → 時 → {best, worst}）から、道すじを作る。
+ * 戻り値は 曜日区分 → [{from, to, name, avg, wait, count, at}] の配列。
+ */
+function buildNightPlan_(finalTimeline, DAY_TYPES) {
+  const plan = {};
+  (DAY_TYPES || []).forEach(function (dt) {
+    const segs = [];
+    LR_NIGHT_HOURS.forEach(function (hr) {
+      const cell = (finalTimeline && finalTimeline[dt]) ? finalTimeline[dt][hr] : null;
+      const b = cell ? cell.best : null;
+      const name = b ? b.name : "";
+      const last = segs[segs.length - 1];
+      if (last && last.name === name) {
+        last.to = hr;
+        if (b) {
+          last.count += b.count;
+          last.sum   += b.avg * b.count;
+          if (b.wait) { last.waitSum += b.wait; last.waitN++; }
+          if (b.max > last.max) { last.max = b.max; last.at = b.at || last.at; }
+        }
+      } else {
+        segs.push({ from: hr, to: hr, name: name,
+                    count: b ? b.count : 0,
+                    sum:   b ? b.avg * b.count : 0,
+                    max:   b ? (b.max || 0) : 0,
+                    at:    b ? (b.at || "") : "",
+                    waitSum: (b && b.wait) ? b.wait : 0,
+                    waitN:   (b && b.wait) ? 1 : 0 });
+      }
+    });
+    segs.forEach(function (x) {
+      x.avg  = x.count > 0 ? Math.round(x.sum / x.count) : 0;
+      x.wait = x.waitN > 0 ? Math.round(x.waitSum / x.waitN) : 0;
+    });
+    plan[dt] = segs;
+  });
+  return plan;
+}
+
+/** 「20時台」「20〜22時台」 */
+function nightSpan_(seg) {
+  const h = function (x) { return ("0" + x).slice(-2); };
+  return seg.from === seg.to ? h(seg.from) + "時台"
+                             : h(seg.from) + "〜" + h(seg.to) + "時台";
+}
+
+/** 1行の文にする（まとめスプシ・見出し用） */
+function nightLine_(seg) {
+  if (!seg.name) return nightSpan_(seg) + "　記録なし";
+  return nightSpan_(seg) + "　" + seg.name +
+    (seg.avg  ? "　￥" + seg.avg.toLocaleString() : "") +
+    (seg.wait ? "　待" + seg.wait + "分" : "");
+}
+
+/** 動く回数（記録なしの区間は数えない） */
+function nightMoves_(segs) {
+  const real = (segs || []).filter(function (x) { return !!x.name; });
+  return real.length > 0 ? real.length - 1 : 0;
+}
+
+/*
+ * マス目の色。乗り場ごとに1色を割り当てて、同じ色が縦に続けば
+ * 「その間は動かなくていい」とひと目で分かるようにする。
+ * 白地で読めるよう、どれも薄い色だけ。黄色系は使わない（見づらいため）。
+ */
+const LR_PLAN_BG = ["#fce4ec", "#e3f2fd", "#e8f5e9", "#fff3e0", "#f3e5f5",
+                    "#e0f7fa", "#fbe9e7", "#f1f8e9", "#ede7f6", "#e8eaf6",
+                    "#e1f5fe", "#f9fbe7"];
+
+/** 乗り場 → 色。どの曜日区分でも同じ乗り場は同じ色にする */
+function nightColors_(plan, DAY_TYPES) {
+  const map = {}; let i = 0;
+  (DAY_TYPES || []).forEach(function (dt) {
+    (plan[dt] || []).forEach(function (seg) {
+      if (!seg.name || map[seg.name]) return;
+      map[seg.name] = LR_PLAN_BG[i % LR_PLAN_BG.length];
+      i++;
+    });
+  });
+  return map;
+}
+
+/** その時間帯の乗り場（マス目を描くとき用） */
+function nightAt_(segs, hr) {
+  for (let i = 0; i < (segs || []).length; i++) {
+    const s = segs[i];
+    const from = LR_NIGHT_HOURS.indexOf(s.from), to = LR_NIGHT_HOURS.indexOf(s.to);
+    const now  = LR_NIGHT_HOURS.indexOf(hr);
+    if (now >= from && now <= to) return s;
+  }
+  return null;
+}
+
+
 /** 翌月の戦略予想を1つの文にする */
 function adviceForecastText_(a) { return advicePlain_(adviceForecastParts_(a)); }
 
@@ -2682,6 +2828,87 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
     dbGap_(sheet, curRow); curRow++;
   }
+
+  /* ---------- 🚕 一晩の流し方（マス目） ---------- */
+  //
+  // 下の【時間詳細】は「見比べる表」で、ひと晩をどう動くかは読み取れない。
+  // ここは、縦に時間（20:00〜翌04:00）、横に曜日区分をならべ、
+  // 同じ乗り場には同じ色をつける。色が縦に続いている間は動かなくていい。
+  // 色の変わり目が「動くとき」。それがひと目で分かるのがねらい。
+  {
+    const plan   = buildNightPlan_(finalTimeline, DAY_TYPES);
+    const colors = nightColors_(plan, DAY_TYPES);
+    const hasAny = DAY_TYPES.some(function (dt) {
+      return (plan[dt] || []).some(function (x) { return !!x.name; });
+    });
+
+    dbTitle_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）\n同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です", "#cfe2f3", 12); curRow++;
+
+    // 時間帯 ＋ 曜日区分4つ（合計26列ぴったり）
+    const PL_SPANS = [6, 5, 5, 5, 5];
+    const from = curRow;
+    {
+      const hRng = getGridRange(sheet, curRow, 1, 1, PL_SPANS);
+      hRng[0].merge().setValue("時間帯").setBackground("#cccccc").setFontSize(10).setFontWeight("bold")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+      DAY_TYPES.forEach(function (dType, i) {
+        hRng[1 + i].merge().setValue(dType).setBackground("#d9d9d9").setFontSize(10).setFontWeight("bold")
+          .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+      });
+      sheet.setRowHeight(curRow, 24); curRow++;
+    }
+
+    if (!hasAny) {
+      dbEnsureRows_(sheet, curRow);
+      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue("まだ記録がありません")
+        .setFontSize(11).setFontColor("#999999")
+        .setHorizontalAlignment("center").setVerticalAlignment("middle");
+      sheet.setRowHeight(curRow, 26); curRow++;
+    } else {
+      LR_NIGHT_HOURS.forEach(function (hr) {
+        const rngs = getGridRange(sheet, curRow, 1, 1, PL_SPANS);
+        rngs[0].merge().setValue(("0" + hr).slice(-2) + "時台").setFontSize(10).setFontWeight("bold")
+          .setHorizontalAlignment("center").setVerticalAlignment("middle");
+        DAY_TYPES.forEach(function (dType, i) {
+          const seg = nightAt_(plan[dType], hr);
+          const name = seg && seg.name ? toHalfWidthKana(seg.name) : "";
+          // その区間のいちばん上の行にだけ金額を出す（毎行くり返すと読みにくい）
+          const head = seg && seg.name && seg.from === hr;
+          const text = !name ? "－"
+                     : head ? name + (seg.avg ? "\n￥" + seg.avg.toLocaleString() : "")
+                            : name;
+          rngs[1 + i].merge().setValue(text)
+            .setFontSize(dbFitSize_(text, 5, 10, 7, 2))
+            .setFontWeight(head ? "bold" : "normal").setWrap(true)
+            .setHorizontalAlignment("center").setVerticalAlignment("middle")
+            .setBackground(name ? (colors[seg.name] || "#ffffff") : "#ffffff")
+            .setFontColor(name ? "#000000" : "#b7b7b7");
+        });
+        sheet.setRowHeight(curRow, 30);
+        curRow++;
+      });
+
+      // マス目の下に、道すじを1行の文でも置く（コピーして人に渡せる形）
+      DAY_TYPES.forEach(function (dType) {
+        const segs = (plan[dType] || []).filter(function (x) { return !!x.name; });
+        if (!segs.length) return;
+        dbEnsureRows_(sheet, curRow);
+        const text = "【" + dType + "】動くのは" + nightMoves_(segs) + "回　" +
+          segs.map(function (x) {
+            return nightSpan_(x) + " " + toHalfWidthKana(x.name) +
+                   (x.avg ? "（￥" + x.avg.toLocaleString() + "）" : "");
+          }).join("　→　");
+        sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(text)
+          .setFontSize(dbFitSize_(text, DB_COLS, 10, 7, 2)).setWrap(true)
+          .setHorizontalAlignment("left").setVerticalAlignment("middle");
+        sheet.setRowHeight(curRow, 28);
+        curRow++;
+      });
+    }
+    sheet.getRange(from, 1, curRow - from, DB_COLS)
+      .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
+  }
+  dbGap_(sheet, curRow); curRow++;
 
   /* ---------- 🔥アツい ✖️ ⚠️避ける【時間詳細】 ---------- */
   // 横が曜日区分、縦が時間帯。曜日をまたいで「この時間はどこが強いか」を

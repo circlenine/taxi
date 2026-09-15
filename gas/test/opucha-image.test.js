@@ -201,14 +201,16 @@ ok(r.wrote === 0, 'すでにある行は足さない');
 has(r.skipped[0], 'すでに登録されています', '重複だと分かる理由が返る');
 
 console.log('\n■ 返信の文面');
-ok(F('opuchaReplyText_')('ダイスケ', [{ idx: 1, ok: 2, ng: [] }], 1) === '',
-   '1枚で全部通ったときは何も返さない');
-let t = F('opuchaReplyText_')('ダイスケ', [{ idx: 1, ok: 1, ng: [] }, { idx: 2, ok: 2, ng: [] }], 2);
+ok(F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 0, ok: 0, ng: ['乗車記録が写っていません'] }], 1) === '',
+   '乗車記録が1件も写っていなければ、何も返さない（雑談の写真をスルーする）');
+has(F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 2, ok: 2, ng: [] }], 1),
+    '2件を取り込みました', '1枚でもうまくいったら、件数を返す');
+let t = F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 1, ok: 1, ng: [] }, { idx: 2, read: 2, ok: 2, ng: [] }], 2);
 has(t, 'ダイスケ様', '連投で全部通ったら名前つきで件数を返す');
 has(t, 'スクショ2枚', '何枚だったかを書く');
 
 t = F('opuchaReplyText_')('ダイスケ', [
-  { idx: 1, ok: 1, ng: [] },
+  { idx: 1, read: 1, ok: 1, ng: [] },
   { idx: 2, ok: 0, read: 1, ng: ['16:59 ￥12,000 新地4 → 乗車時刻が 17:00〜翌05:15（29:15） の外です。私たちでは乗車不可な時間のため、除外します'] }
 ], 2);
 has(t, 'ダイスケ様データは', '「〇〇様データは」の形になっている');
@@ -217,18 +219,18 @@ has(t, '【2枚目】', '何枚目がダメだったか分かる');
 has(t, '乗車不可な時間', '何がダメだったかまで書いてある');
 has(t, 'ほか1件は取り込みました', '通ったぶんも伝える');
 
-t = F('opuchaReplyText_')('', [{ idx: 1, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
+t = F('opuchaReplyText_')('', [{ idx: 1, read: 1, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
 has(t, 'いただいたデータは', '名前が取れなくても文が崩れない');
 ok(t.indexOf('様') === -1, '名前が無いときに「様」だけ残らない');
 
 console.log('\n■ 連投（imageSet）は全部そろってから1回だけ返す');
 sent.length = 0;
 const set = { id: 'SET1', total: 3 };
-F('opuchaReplyBurst_')('rt1', 'ダイスケ', { idx: 1, ok: 0, ng: ['乗り場が読み取れません'] }, set, 3);
+F('opuchaReplyBurst_')('rt1', 'ダイスケ', { idx: 1, read: 1, ok: 0, ng: ['乗り場が読み取れません'] }, set, 3);
 ok(sent.length === 0, '1枚目では返信しない');
-F('opuchaReplyBurst_')('rt2', 'ダイスケ', { idx: 2, ok: 1, ng: [] }, set, 3);
+F('opuchaReplyBurst_')('rt2', 'ダイスケ', { idx: 2, read: 1, ok: 1, ng: [] }, set, 3);
 ok(sent.length === 0, '2枚目でも返信しない');
-F('opuchaReplyBurst_')('rt3', 'ダイスケ', { idx: 3, ok: 0, ng: ['金額が読み取れません'] }, set, 3);
+F('opuchaReplyBurst_')('rt3', 'ダイスケ', { idx: 3, read: 1, ok: 0, ng: ['金額が読み取れません'] }, set, 3);
 ok(sent.length === 1, '3枚目でまとめて1回だけ返信する');
 has(sent[0], '【1枚目】', '1枚目の不備が入っている');
 has(sent[0], '【3枚目】', '3枚目の不備が入っている');
@@ -283,9 +285,9 @@ t = F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 1, ok: 0, ng: ['乗�
 ok(t.indexOf('のうち') === -1, '1件だけのときは件数の但し書きを付けない');
 
 console.log('\n■ imageSet が無い連投でも「〇枚目」と書く');
-t = F('opuchaReplyText_')('ダイスケ', [{ idx: 2, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
+t = F('opuchaReplyText_')('ダイスケ', [{ idx: 2, read: 1, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
 has(t, '【2枚目】', '2枚目だと分かる');
-t = F('opuchaReplyText_')('ダイスケ', [{ idx: 1, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
+t = F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 1, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
 has(t, '【このスクショ】', '1枚目なら「このスクショ」のまま');
 
 
