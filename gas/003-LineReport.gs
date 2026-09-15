@@ -2,7 +2,16 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L017ver  （2026/09/06）  ★★★
+ *  ★★★  L027ver  （2026/09/16）  ★★★
+ *
+ *  [L027ver]
+ *   ・レポートが1通も届かなかったのを直した（400 invalid）
+ *     「一晩の流し方」で、中身が空の span を作っていた。
+ *     LINEは text が空の span を受け付けず、その通がまるごと弾かれる。
+ *     ・記録が1件も無い曜日区分で「動くのは〇回」が空になっていた
+ *     ・平均も待ちも0の区間で、うしろの span が空になっていた
+ *   ・送る前に、空のところをまとめて取りのぞくようにした（lrClean_）
+ *     作るときに気をつけるだけでは、いつかまた同じことが起きるため
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -286,7 +295,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L026ver";
+const LR_VERSION = "L027ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1494,18 +1503,20 @@ function buildReportFlex_(o) {
         ];
         // 狙い目の時刻は、いちばん動きたくなるところなので赤の太字にする
         if (aim) sp.push({ "type": "span", "text": "　" + aim, "weight": "bold", "color": "#c62828" });
-        sp.push({ "type": "span", "text": (seg.avg ? "　平均￥" + seg.avg.toLocaleString() : "") +
-                                          (seg.wait ? "　待ち平均" + seg.wait + "分" : ""), "color": "#444444" });
+        // ★中身が空の span を作らないこと。
+        //   LINEは text が空の span を受け付けず、400（invalid）で1通も届かなくなる
+        const tail = (seg.avg ? "　平均￥" + seg.avg.toLocaleString() : "") +
+                     (seg.wait ? "　待ち平均" + seg.wait + "分" : "");
+        if (tail) sp.push({ "type": "span", "text": tail, "color": "#444444" });
         return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": sp };
       });
       if (!lines.length) lines.push({ "type": "text", "text": "データ不足", "size": "xs", "color": "#999999" });
       const moves = nightMoves_(segs);
       const planBox = { "type": "box", "layout": "vertical", "backgroundColor": "#e3f2fd",
         "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
-          { "type": "text", "size": "xs", "weight": "bold", "color": "#1565c0", "contents": [
-            { "type": "span", "text": `【${dType}】` },
-            { "type": "span", "text": segs.length ? `　動くのは${moves}回` : "", "color": "#5f6368" }
-          ]},
+          { "type": "text", "size": "xs", "weight": "bold", "color": "#1565c0",
+            "contents": [{ "type": "span", "text": `【${dType}】` }].concat(
+              segs.length ? [{ "type": "span", "text": `　動くのは${moves}回`, "color": "#5f6368" }] : []) },
           ...lines
         ]};
       flexContents.push(planBox);
@@ -1657,7 +1668,64 @@ function lrBytes_(str) {
 }
 
 /** ふきだし1つを組み立てる */
+/**
+ * 送る前に、中身が空のところを取りのぞく。
+ *
+ * ★LINEは、text が空の span／text、contents が空の box を受け付けない。
+ *   1つでも混じっていると 400（A message in the request body is invalid）で
+ *   その通がまるごと届かない。どこが悪いのかも教えてくれない。
+ *   作るときに気をつけるだけでは、いつかまた同じことが起きるので、
+ *   出口でまとめて掃除する。
+ */
+function lrClean_(node) {
+  if (Array.isArray(node)) {
+    const out = [];
+    node.forEach(function (x) {
+      const c = lrClean_(x);
+      if (c !== null) out.push(c);
+    });
+    return out;
+  }
+  if (!node || typeof node !== "object") return node;
+
+  const t = node.type;
+
+  // span：中身が空なら、まるごと捨てる
+  if (t === "span") {
+    return String(node.text || "") === "" ? null : node;
+  }
+
+  // text：span を並べる形なら、中の空を捨てたうえで、1つも残らなければ捨てる
+  if (t === "text") {
+    if (node.contents) {
+      const inner = lrClean_(node.contents);
+      if (!inner.length) return null;
+      node.contents = inner;
+      return node;
+    }
+    return String(node.text || "") === "" ? null : node;
+  }
+
+  // box：中の空を捨てたうえで、1つも残らなければ捨てる
+  if (t === "box") {
+    const inner = lrClean_(node.contents || []);
+    if (!inner.length) return null;
+    node.contents = inner;
+    return node;
+  }
+
+  ["header", "body", "footer", "hero"].forEach(function (k) {
+    if (node[k]) {
+      const c = lrClean_(node[k]);
+      if (c === null) delete node[k]; else node[k] = c;
+    }
+  });
+  if (node.contents) node.contents = lrClean_(node.contents);
+  return node;
+}
+
 function lrBubble_(contents, title, dashboardUrl) {
+  contents = lrClean_(contents || []);
   const b = {
     "type": "bubble", "size": "giga",
     "header": { "type": "box", "layout": "vertical", "backgroundColor": "#1155ca", "paddingAll": "15px",

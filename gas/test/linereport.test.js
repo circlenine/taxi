@@ -299,6 +299,8 @@ var problems = [];
     if (hasSpan) n.contents.forEach((sp, i) => {
       if (sp.type !== 'span') problems.push(path + '.contents[' + i + ']: span ではない');
       if (typeof sp.text !== 'string') problems.push(path + '.contents[' + i + ']: span に text が無い');
+      // ★中身が空の span は LINE が受け付けない（400 invalid で1通も届かない）
+      else if (sp.text.length === 0) problems.push(path + '.contents[' + i + ']: span の text が空');
     });
     Object.keys(n).forEach(k => { if (TXT_OK.indexOf(k) === -1) problems.push(path + ': text に使えない項目 ' + k); });
   }
@@ -307,6 +309,22 @@ var problems = [];
   Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') walk(n[k], path + '.' + k); });
 })(flex, 'bubble');
 eq(problems, [], 'Flexの形に問題がない');
+
+// ★1つ目だけでなく、送る全部のふきだしを見る。
+//   前は1つ目しか見ておらず、2つ目に空の span が入って
+//   「messages[1] is invalid」で1通も届かない事故を見逃した
+problems = [];
+flexList.forEach((b, i) => {
+  (function walk2(n, path) {
+    if (Array.isArray(n)) return n.forEach((x, j) => walk2(x, path + '[' + j + ']'));
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'span' && String(n.text || '') === '') problems.push(path + ': span の text が空');
+    if (n.type === 'text' && !n.contents && String(n.text || '') === '') problems.push(path + ': text が空');
+    if (n.type === 'box' && (!Array.isArray(n.contents) || !n.contents.length)) problems.push(path + ': box が空');
+    Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') walk2(n[k], path + '.' + k); });
+  })(b, 'messages[' + i + ']');
+});
+eq(problems, [], '送る全部のふきだしに、空の文字・空の箱が無い');
 
 eq(flex.type, 'bubble', 'bubble で作る');
 eq(flex.size, 'giga', '横いっぱい（giga）');
@@ -1012,6 +1030,33 @@ console.log('\n■ まとめスプシの見た目');
   });
   eq(ctx.dbFitSize_('新地4', 7, 12, 7, 2), 12, '短い名前は大きいまま');
   eq(ctx.dbFitSize_('あ'.repeat(60), 7, 12, 7, 2) >= 7, true, 'とても長くても、いちばん小さいところで止める');
+}
+
+console.log('\n■ 送る前に、空のところを取りのぞく（出口での掃除）');
+{
+  const C = ctx.lrClean_;
+  eq(C({ type: 'span', text: '' }), null, '空の span は捨てる');
+  eq(C({ type: 'span', text: 'あ' }).text, 'あ', '中身があれば残す');
+  eq(C({ type: 'text', text: '' }), null, '空の text は捨てる');
+  eq(C({ type: 'text', contents: [{ type: 'span', text: '' }] }), null,
+     'span が全部空なら、その text ごと捨てる');
+  eq(C({ type: 'text', contents: [{ type: 'span', text: '' }, { type: 'span', text: 'あ' }] })
+       .contents.length, 1, '空の span だけ抜いて、残りは活かす');
+  eq(C({ type: 'box', layout: 'vertical', contents: [] }), null, '空の box は捨てる');
+  eq(C({ type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '' }] }), null,
+     '中が全部空なら、box ごと捨てる');
+  eq(C({ type: 'box', layout: 'vertical',
+         contents: [{ type: 'text', text: '' }, { type: 'text', text: 'あ' }] }).contents.length, 1,
+     '中身が1つでも残れば、box は残す');
+  // 入れ子でも効く
+  const deep = C({ type: 'box', layout: 'vertical', contents: [
+    { type: 'box', layout: 'vertical', contents: [{ type: 'span', text: '' }] },
+    { type: 'text', text: 'のこる' }
+  ]});
+  eq(deep.contents.length, 1, '入れ子の奥まで見る');
+  eq(deep.contents[0].text, 'のこる', '  残るものは残る');
+  eq(C([]).length, 0, '空の配列でも落ちない');
+  eq(C(null), null, 'null でも落ちない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

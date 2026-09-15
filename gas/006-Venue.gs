@@ -2,11 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V014ver  （2026/09/16）  ★★★
+ *  ★★★  V015ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V015ver]
+ *   ・イベントの絵にも、送る前の掃除（lrClean_）をかけた
+ *     レポートで、中身が空の span のせいで1通も届かない事故があったため
  *
  *  [V014ver]
  *   ・LINEの返事を、叫ぶ系のデスノートネタにそろえた
@@ -139,7 +143,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V014ver";
+const VN_VERSION = "V015ver";
 
 /**
  * 見にいく先の一覧。
@@ -558,12 +562,17 @@ function vnBuildMessages_(day, events, note, noBells) {
       { "type": "text", "text": note, "size": "xxs", "color": "#b71c1c", "wrap": true, "margin": "md" });
   }
 
+  // ★送る前に、中身が空のところを取りのぞく。
+  //   LINEは text が空の span／text、contents が空の box を受け付けない。
+  //   1つでも混じっていると 400 で、その通がまるごと届かない
+  const body = (typeof lrClean_ === "function") ? lrClean_(contents) : contents;
+
   const bubble = {
     "type": "bubble", "size": "giga",
     "header": { "type": "box", "layout": "vertical", "backgroundColor": VN_COLOR_HEAD, "paddingAll": "15px",
       "contents": [ { "type": "text", "text": "🎪 " + vnDayLabel_(day) + " イベント等情報",
         "weight": "bold", "color": "#ffffff", "size": "md", "wrap": true } ] },
-    "body": { "type": "box", "layout": "vertical", "paddingAll": "12px", "spacing": "none", "contents": contents }
+    "body": { "type": "box", "layout": "vertical", "paddingAll": "12px", "spacing": "none", "contents": body }
   };
 
   return [{ type: "flex", altText: alt, contents: bubble }];
