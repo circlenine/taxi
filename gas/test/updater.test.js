@@ -577,8 +577,8 @@ t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
 t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
-  'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelEventProbe,menuEventSample,' +
-  'menuEventTestSend,panelEventAuto',
+  'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
+  'menuVenueTestSend,panelVenueAuto',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -1216,7 +1216,7 @@ console.log('\n■ 番号でも見分けられる（文言を書き換えてし�
   t(P('[4] じぶんで書いた名前').fn === 'menuRestoreCode', '番号だけでも引ける');
   t(P('（5）なにか').fn === 'menuWebAppSendLineStep', '全角のカッコでも引ける');
   t(P('6. なにか').fn === 'menuWebAppCheck', '「6.」の形でも引ける');
-  t(P('[9] なにか').fn === 'panelEventProbe', '9番も引ける');
+  t(P('[9] なにか').fn === 'panelVenueProbe', '9番も引ける');
   t(P('[0] なにか') === null, '無い番号は null');
   t(P('なにか [3] うしろ') === null, '先頭に無い番号は使わない');
 
@@ -1404,14 +1404,14 @@ console.log('\n■ ファイル名が変わったときは、前の名前を消�
 {
   const stale = F('updStale_');
   const RENAMED = vm.runInContext('UPD_RENAMED', ctx);
-  t(RENAMED['002-Tools'] === '002-Extras', '002-Tools の前の名前は 002-Extras');
+  t(RENAMED['006-Venue'] === '006-Events', '006-Venue の前の名前は 006-Events');
 
-  t(JSON.stringify(stale([{ name: '002-Tools' }], [{ name: '002-Extras' }, { name: '001-Code' }]))
-    === JSON.stringify(['002-Extras']),
+  t(JSON.stringify(stale([{ name: '006-Venue' }], [{ name: '006-Events' }, { name: '001-Code' }]))
+    === JSON.stringify(['006-Events']),
     '新しい名前が来て、前の名前が残っていれば、それを消す');
-  t(stale([{ name: '002-Tools' }], [{ name: '002-Tools' }]).length === 0,
+  t(stale([{ name: '006-Venue' }], [{ name: '006-Venue' }]).length === 0,
     'すでに新しい名前になっていれば、消すものは無い');
-  t(stale([{ name: '001-Code' }], [{ name: '002-Extras' }]).length === 0,
+  t(stale([{ name: '001-Code' }], [{ name: '006-Events' }]).length === 0,
     '新しい名前が来ていなければ、前の名前には手を出さない');
   t(stale([], []).length === 0, '空でも落ちない');
   t(stale(null, null).length === 0, 'null でも落ちない');

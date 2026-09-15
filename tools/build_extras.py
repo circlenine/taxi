@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 """
-Strategy.gs / Opucha.gs / ChartFit.gs / MapLink.gs を 002-Tools.gs に束ねる。
+Strategy.gs / Opucha.gs / ChartFit.gs を Extras.gs に束ねる。
 バージョンと履歴はここで管理する（束ね直しても消えないように）。
 
-  python3 tools/build_tools.py
+  python3 tools/build_extras.py
 """
 import pathlib, re, sys
 
-VERSION = "T006ver"
-DATE = "2026/09/15"
-CHANGELOG = """ *  [T006ver] ファイル名を 002-Extras.gs → 002-Tools.gs にした
- *   ・記号も E → T に変えた。中身の動きは何も変えていない
- *   ・「Extras」と「Events」は、どちらも E で始まるので紛らわしかった
- *   ・T005ver 以前は「E005ver」のように E で書いてある。同じファイルのことです
- *   ・関数の頭文字（st / opu / cf / ap）は今までどおり。呼び出し側は直さなくてよい
- *  [E005ver] 乗り場 → Googleマップ（MapLink）を、このファイルに同梱した
+VERSION = "E005ver"
+DATE = "2026/09/06"
+CHANGELOG = """ *  [E005ver] 乗り場 → Googleマップ（MapLink）を、このファイルに同梱した
  *   ・G列の乗り場をタップすると Googleマップ が開く
  *   ・001-Code.gs の整形が終わるたびに、自動で貼り直す
  *   ・行き先が違うものは メニュー「🗺 マップの行き先を確認する」で一覧できる
@@ -34,12 +29,11 @@ SRC = [("Strategy.gs", "立ち回り分析"), ("Opucha.gs", "オプチャ印"),
 
 head = f'''/**
  * ================================================================
- *  道具ばこ（002-Tools.gs）
+ *  追加機能 まとめ（Extras.gs）
  *
  *  ★★★  {VERSION}  （{DATE}）  ★★★
  *
- *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
- *               W=004-WebApp / U=005-Updater / V=006-Events
+ *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
  *
@@ -59,7 +53,7 @@ head = f'''/**
  */
 
 /** このファイルのバージョン */
-const TL_VERSION = "{VERSION}";
+const EX_VERSION = "{VERSION}";
 '''
 
 parts = [head]
@@ -77,5 +71,5 @@ dup = sorted({n for n in flat if flat.count(n) > 1})
 if dup:
     sys.exit("重複した宣言があります: " + ", ".join(dup))
 
-(ROOT / "gas" / "002-Tools.gs").write_text(out)
-print(f"002-Tools.gs を作成 ({VERSION}) : {len(out.splitlines())}行 / トップレベル宣言 {len(flat)}個 / 重複なし")
+(ROOT / "gas" / "002-Extras.gs").write_text(out)
+print(f"Extras.gs を作成 ({VERSION}) : {len(out.splitlines())}行 / トップレベル宣言 {len(flat)}個 / 重複なし")

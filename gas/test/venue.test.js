@@ -1,6 +1,6 @@
 /**
- * イベント情報あつめ（006-Events.gs）を確かめる。
- *   実行: node gas/test/events.test.js
+ * 会場・イベント情報あつめ（006-Venue.gs）を確かめる。
+ *   実行: node gas/test/venue.test.js
  */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ctx = { console };
@@ -51,7 +51,7 @@ vm.runInContext('var SENDER_MAP = { "Umark": "ﾏｰｸ", "Uother": "ｼｭﾝ" 
 vm.runInContext('function lrPush_(to, msgs){ pushLog.push({ to: to, msgs: msgs }); }', ctx);
 ctx.pushLog = pushed;
 
-vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '006-Events.gs'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8'), ctx);
 
 let fail = 0;
 const eq = (a, b, msg) => {
@@ -62,12 +62,12 @@ const eq = (a, b, msg) => {
 const has = (got, want, msg) => eq(String(got).indexOf(want) !== -1, true, msg);
 
 console.log('■ 送り先');
-eq(ctx.evTestTarget_(), 'Umark', 'テストの宛先は、登録済みの「ﾏｰｸ」');
-eq(ctx.evGroupTarget_(), '', '説明タブが無ければ、グループの宛先は空');
+eq(ctx.vnTestTarget_(), 'Umark', 'テストの宛先は、登録済みの「ﾏｰｸ」');
+eq(ctx.vnGroupTarget_(), '', '説明タブが無ければ、グループの宛先は空');
 
 console.log('\n■ 長い文を、行の途中で切らずに分ける');
 {
-  const S = ctx.evSplitText_;
+  const S = ctx.vnSplitText_;
   eq(S('あ\nい\nう', 100).length, 1, '短ければ1つのまま');
   const parts = S(('あいうえお\n').repeat(50), 100);
   eq(parts.length > 1, true, '長ければ分ける（' + parts.length + '個）');
@@ -81,7 +81,7 @@ console.log('\n■ 長い文を、行の途中で切らずに分ける');
 console.log('\n■ テスト送信は、自分だけに行く');
 {
   pushed.length = 0;
-  const err = ctx.evSend_('てすと', 'test');
+  const err = ctx.vnSend_('てすと', 'test');
   eq(err, '', '送れた');
   eq(pushed.length, 1, '1回だけ送る');
   eq(pushed[0].to, 'Umark', 'まーく個人あて');
@@ -92,7 +92,7 @@ console.log('\n■ テスト送信は、自分だけに行く');
 console.log('\n■ グループには、宛先が分かるまで送らない');
 {
   pushed.length = 0;
-  const err = ctx.evSend_('てすと', 'group');
+  const err = ctx.vnSend_('てすと', 'group');
   eq(pushed.length, 0, 'グループの宛先が無ければ、1通も送らない');
   has(err, '分かりません', '  そう伝える');
 }
@@ -103,24 +103,24 @@ console.log('\n■ ページを調べる');
   const md = (today.getMonth() + 1) + '月' + today.getDate() + '日';
   reply = {};
   reply['*'] = { code: 200, body: '<html>ふつうのページ ' + md + ' コンサート</html>' };
-  const one = ctx.evProbeOne_({ name: 'x', url: 'https://example.com/' }, today);
+  const one = ctx.vnProbeOne_({ name: 'x', url: 'https://example.com/' }, today);
   has(one.join('\n'), '日付が文字として入っています', '日付があれば「読める」と言う');
   has(one.join('\n'), '読み取りを作れます', '  次に進めると分かる');
 
   reply['*'] = { code: 200, body: '<html><head>' + '<script>var a=1;</script>'.repeat(8) + '</head><body>あ</body></html>' };
-  const two = ctx.evProbeOne_({ name: 'y', url: 'https://example.com/' }, today);
+  const two = ctx.vnProbeOne_({ name: 'y', url: 'https://example.com/' }, today);
   has(two.join('\n'), 'JavaScript', '中身が空ならJavaScriptの疑いだと言う');
 
   reply['*'] = { code: 200, body: '<iframe src="https://calendar.google.com/calendar/embed?src=abc"></iframe>あ' };
-  const three = ctx.evProbeOne_({ name: 'z', url: 'https://example.com/' }, today);
+  const three = ctx.vnProbeOne_({ name: 'z', url: 'https://example.com/' }, today);
   has(three.join('\n'), 'Googleカレンダー', 'カレンダーを使っていれば、それを教える');
 
   reply['*'] = { code: 404, body: '' };
-  has(ctx.evProbeOne_({ name: 'w', url: 'https://example.com/' }, today).join('\n'), '中身が取れませんでした',
+  has(ctx.vnProbeOne_({ name: 'w', url: 'https://example.com/' }, today).join('\n'), '中身が取れませんでした',
       '取れなければ、はっきりそう言う');
 
   reply['*'] = { throw: '通信できません' };
-  has(ctx.evProbeOne_({ name: 'v', url: 'https://example.com/' }, today).join('\n'), 'つながりませんでした',
+  has(ctx.vnProbeOne_({ name: 'v', url: 'https://example.com/' }, today).join('\n'), 'つながりませんでした',
       'つながらなくても落ちない');
 }
 
@@ -128,7 +128,7 @@ console.log('\n■ 調べたら、そのまま自分のLINEに届く');
 {
   pushed.length = 0;
   reply = { '*': { code: 200, body: '<html>あ</html>' } };
-  const out = ctx.panelEventProbe();
+  const out = ctx.panelVenueProbe();
   eq(pushed.length, 1, '自分のLINEに送る');
   eq(pushed[0].to, 'Umark', '  まーく個人あて');
   has(out, 'まーく個人のLINEにだけ送りました', '結果らんにも、そう出る');
@@ -139,8 +139,8 @@ console.log('\n■ 調べたら、そのまま自分のLINEに届く');
 console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れる');
 {
   const day = new Date(2026, 8, 16);
-  const evs = ctx.evSampleEvents_();
-  const msgs = ctx.evFitMessages_(day, evs, '');
+  const evs = ctx.vnSampleEvents_();
+  const msgs = ctx.vnFitMessages_(day, evs, '');
   eq(msgs.length, 1, '送るのは1通だけ（URLの文字通は無い）');
   eq(msgs[0].type, 'flex', '絵（Flex）で送る');
   eq(msgs[0].altText, '🎪9/16(水)イベント等情報 byシバンニ', '裏メッセージの形');
@@ -157,17 +157,17 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
 
 console.log('\n■ ボタンは横に2つずつ。余ったら幅をそろえる');
 {
-  const rows = ctx.evLinkRows_([
+  const rows = ctx.vnLinkRows_([
     { venue: 'あ', url: 'https://a/' }, { venue: 'い', url: 'https://b/' },
     { venue: 'う', url: 'https://c/' }
   ]);
   eq(rows.length, 2, '3つなら2段');
   eq(rows[0].contents.length, 2, '1段目は2つ');
   eq(rows[1].contents[1].contents[0].type, 'filler', '余った右側は空けて幅をそろえる');
-  eq(ctx.evLinkRows_([{ venue: 'あ', url: 'https://a/' }, { venue: 'い', url: 'https://a/' }]).length, 1,
+  eq(ctx.vnLinkRows_([{ venue: 'あ', url: 'https://a/' }, { venue: 'い', url: 'https://a/' }]).length, 1,
      '同じURLは1つにまとめる');
-  eq(ctx.evBtnLabel_('パナソニックスタジアム吹田'), 'パナソニックスタ…', '長い名前は詰める');
-  eq(ctx.evBtnLabel_('京セラドーム'), '京セラドーム', '短い名前はそのまま');
+  eq(ctx.vnBtnLabel_('パナソニックスタジアム吹田'), 'パナソニックスタ…', '長い名前は詰める');
+  eq(ctx.vnBtnLabel_('京セラドーム'), '京セラドーム', '短い名前はそのまま');
 }
 
 console.log('\n■ 1通に入りきらないときは、細かい話から削る');
@@ -180,7 +180,7 @@ console.log('\n■ 1通に入りきらないときは、細かい話から削る
       url: 'https://example.com/' + i,
       stats: 'じっせき'.repeat(20), guess: 'すいてい'.repeat(20), advice: 'じょげん'.repeat(20) });
   }
-  const msgs = ctx.evFitMessages_(day, many, '');
+  const msgs = ctx.vnFitMessages_(day, many, '');
   eq(msgs.length, 1, 'それでも1通のまま');
   eq(ctx.lrBytes_(JSON.stringify(msgs[0])) <= 9500, true,
      '上限を必ず守る（' + ctx.lrBytes_(JSON.stringify(msgs[0])) + 'バイト）');
@@ -194,7 +194,7 @@ console.log('\n■ ホテルの資料は、オプチャと取り違えない');
   let replied = '';
   vm.runInContext('function lineReply_(tk, t){ lastReply = t; }', ctx);
   ctx.lastReply = '';
-  const handled = ctx.evHandleNote_({ message: { text: 'ホテル' }, source: { userId: 'U1' }, replyToken: 'r' }, new Date());
+  const handled = ctx.vnHandleNote_({ message: { text: 'ホテル' }, source: { userId: 'U1' }, replyToken: 'r' }, new Date());
   eq(handled, true, '「ホテル」は、この受け口が扱う');
   has(ctx.lastReply, 'ホテルの予定として読みます', '  そう返事する');
 
@@ -202,52 +202,52 @@ console.log('\n■ ホテルの資料は、オプチャと取り違えない');
   reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
     { text: '[{"date":"9/16","hotel":"帝国ホテル","name":"周年記念","start":"18:30","end":"20:30","people":400}]' } ] } } ] }) } };
   vm.runInContext('function geminiReady_(){ return { key: "k", model: "m" }; } function getToken_(){ return "t"; }', ctx);
-  const took = ctx.evHandleImage_({ message: { id: 'm1' }, source: { userId: 'U1' }, replyToken: 'r' }, new Date(2026, 8, 16));
+  const took = ctx.vnHandleImage_({ message: { id: 'm1' }, source: { userId: 'U1' }, replyToken: 'r' }, new Date(2026, 8, 16));
   eq(took, true, '写真はホテルとして扱われた（＝オプチャには回らない）');
   has(ctx.lastReply, 'ホテルの予定として読み取りました', '  そう返事する');
   has(ctx.lastReply, '乗車記録には入れていません', '  乗車記録に入れないと、はっきり書く');
 
   // ③ 合図が無ければ、写真には手を出さない（今までどおりオプチャ）
-  eq(ctx.evHandleImage_({ message: { id: 'm2' }, source: { userId: 'U9' } }, new Date()), false,
+  eq(ctx.vnHandleImage_({ message: { id: 'm2' }, source: { userId: 'U9' } }, new Date()), false,
      '合図が無ければ、オプチャの読み取りにそのまま渡す');
 
   // ④ しまった予定が、その日のぶんとして出てくる
   const day = new Date(2026, 8, 16);
-  const list = ctx.evHotelForDay_(day);
+  const list = ctx.vnHotelForDay_(day);
   eq(list.length, 1, 'その日の予定として残っている');
   eq(list[0].venue, '帝国ホテル', '  ホテル名も合っている');
   eq(list[0].kind, 'hotel', '  ホテルの枠に入る');
-  eq(ctx.evHotelForDay_(new Date(2026, 8, 17)).length, 0, '別の日には出てこない');
+  eq(ctx.vnHotelForDay_(new Date(2026, 8, 17)).length, 0, '別の日には出てこない');
 
   // ⑤ 同じ資料を二度送っても、二重にならない
-  ctx.evHotelSave_([{ date: '9/16', hotel: '帝国ホテル', name: '周年記念', start: '18:30' }], day);
-  eq(ctx.evHotelForDay_(day).length, 1, '同じ予定は1つのまま');
+  ctx.vnHotelSave_([{ date: '9/16', hotel: '帝国ホテル', name: '周年記念', start: '18:30' }], day);
+  eq(ctx.vnHotelForDay_(day).length, 1, '同じ予定は1つのまま');
 }
 
 console.log('\n■ 年をまたぐ日付も取り違えない');
 {
-  const d1 = ctx.evHotelDate_('1/3', new Date(2026, 11, 20));
+  const d1 = ctx.vnHotelDate_('1/3', new Date(2026, 11, 20));
   eq(d1.getFullYear(), 2027, '12月に「1/3」とあれば、翌年');
-  const d2 = ctx.evHotelDate_('12/30', new Date(2027, 0, 5));
+  const d2 = ctx.vnHotelDate_('12/30', new Date(2027, 0, 5));
   eq(d2.getFullYear(), 2026, '1月に「12/30」とあれば、前年');
 }
 
 console.log('\n■ 自動発信は、はじめは切ってある');
 {
-  delete props.EV_AUTO;
-  eq(ctx.evAutoOn_(), false, '何も決めていなければ、送らない');
+  delete props.VN_AUTO;
+  eq(ctx.vnAutoOn_(), false, '何も決めていなければ、送らない');
   pushed.length = 0;
-  ctx.eventDailyJob();
+  ctx.venueDailyJob();
   eq(pushed.length, 0, '  1通も送らない');
 }
 
 console.log('\n■ 入れても、16:45より前には送らない');
 {
-  props.EV_AUTO = '1';
+  props.VN_AUTO = '1';
   triggers.length = 0;
-  ctx.ensureEventDailyTrigger_(false);
+  ctx.vnEnsureDailyTrigger_(false);
   eq(triggers.length, 1, '時計の見張りができる');
-  ctx.ensureEventDailyTrigger_(false);
+  ctx.vnEnsureDailyTrigger_(false);
   eq(triggers.length, 1, '  二重には作らない');
 
   const RealDate = Date;
@@ -261,50 +261,50 @@ console.log('\n■ 入れても、16:45より前には送らない');
 
   at(16, 30);
   pushed.length = 0;
-  ctx.eventDailyJob();
+  ctx.venueDailyJob();
   eq(pushed.length, 0, '16:30 には送らない');
 
   at(18, 0);
-  ctx.eventDailyJob();
+  ctx.venueDailyJob();
   eq(pushed.length, 0, '18:00 になってしまったら、その日はもう送らない');
   back();
 }
 
 console.log('\n■ 送り先が分からなければ、グループには絶対に送らない');
 {
-  props.EV_AUTO = '1';
+  props.VN_AUTO = '1';
   const RealDate = Date;
   const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 46); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
   pushed.length = 0;
-  delete props.EVSENT_20260916;
-  ctx.eventDailyJob();
+  delete props.VNSENT_20260916;
+  ctx.venueDailyJob();
   eq(pushed.length, 0, 'グループの宛先が無いので、1通も出さない');
-  eq(props.EVSENT_20260916, undefined, '  「送った」印も残さない（分かったら送れるように）');
+  eq(props.VNSENT_20260916, undefined, '  「送った」印も残さない（分かったら送れるように）');
 
   // 宛先が分かった状態にする
-  vm.runInContext('function evGroupTarget_(){ return "Cgroup"; }', ctx);
+  vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
   pushed.length = 0;
-  ctx.eventDailyJob();
+  ctx.venueDailyJob();
   eq(pushed.length, 1, '宛先が分かれば送る');
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   eq(pushed[0].msgs.length, 1, '  1通だけ');
 
   // 二度は送らない
   pushed.length = 0;
-  ctx.eventDailyJob();
+  ctx.venueDailyJob();
   eq(pushed.length, 0, '同じ日に二度は送らない');
 
   // その日に何も無ければ、そもそも送らない
-  props.EVSENT_20260917 = '';
-  delete props.EVSENT_20260917;
+  props.VNSENT_20260917 = '';
+  delete props.VNSENT_20260917;
   const D2 = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 17, 16, 46); };
   D2.prototype = RealDate.prototype; D2.now = RealDate.now;
   ctx.Date = D2;
   pushed.length = 0;
-  ctx.eventDailyJob();
+  ctx.venueDailyJob();
   eq(pushed.length, 0, '出すものが1件も無い日は、1通も送らない（空の通知で鳴らさない）');
   ctx.Date = RealDate;
 }
@@ -312,18 +312,18 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 console.log('\n■ 自動発信の入切は、1回押しただけでは変わらない');
 {
   for (const k in cache) delete cache[k];
-  props.EV_AUTO = '0';
-  const first = ctx.panelEventAuto();
+  props.VN_AUTO = '0';
+  const first = ctx.panelVenueAuto();
   has(first, 'もう一度チェック', '1回目は、やり方を出すだけ');
-  eq(ctx.evAutoOn_(), false, '  まだ入らない');
-  const second = ctx.panelEventAuto();
+  eq(ctx.vnAutoOn_(), false, '  まだ入らない');
+  const second = ctx.panelVenueAuto();
   has(second, '入れました', '2回目で入る');
-  eq(ctx.evAutoOn_(), true, '  入った');
+  eq(ctx.vnAutoOn_(), true, '  入った');
 }
 
 console.log('\n■ ホテルの合図の言葉（矢印のきまりは日付メモと同じ）');
 {
-  const W = ctx.evHotelWord_;
+  const W = ctx.vnHotelWord_;
   eq(W('帝国').force, '帝国ホテル', '「帝国」は帝国ホテル');
   eq(W('↓帝国').force, '帝国ホテル', '「↓帝国」も帝国ホテル');
   eq(W('↓帝国').up, false, '  ↓ は「これから送る写真」');
@@ -339,17 +339,17 @@ console.log('\n■ ホテルの合図の言葉（矢印のきまりは日付メ�
 console.log('\n■ 「↓帝国」なら、紙にホテル名が無くても帝国ホテルとして入る');
 {
   for (const k in cache) delete cache[k];
-  for (const k in props) if (k.indexOf('EVH_') === 0) delete props[k];
+  for (const k in props) if (k.indexOf('VNH_') === 0) delete props[k];
   ctx.lastReply = '';
   // 帝国ホテルの資料には、紙にホテル名が書かれていない
   reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
     { text: '[{"date":"9/18","hotel":"","name":"就任披露","start":"18:00","end":"20:00","people":350}]' } ] } } ] }) } };
 
-  ctx.evHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date());
+  ctx.vnHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date());
   has(ctx.lastReply, '帝国ホテルの予定として読みます', '「↓帝国」でそう返事する');
 
-  ctx.evHandleImage_({ message: { id: 'm9' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date(2026, 8, 18));
-  const list = ctx.evHotelForDay_(new Date(2026, 8, 18));
+  ctx.vnHandleImage_({ message: { id: 'm9' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date(2026, 8, 18));
+  const list = ctx.vnHotelForDay_(new Date(2026, 8, 18));
   eq(list.length, 1, '予定が入った');
   eq(list[0].venue, '帝国ホテル', '  紙に名前が無くても「帝国ホテル」になる');
   has(ctx.lastReply, '帝国ホテル', '  返事にもホテル名が出る');
@@ -357,15 +357,15 @@ console.log('\n■ 「↓帝国」なら、紙にホテル名が無くても帝�
 
 console.log('\n■ 「↑帝国」は、直前に送った写真を読み直す');
 {
-  for (const k in props) if (k.indexOf('EVH_') === 0) delete props[k];
+  for (const k in props) if (k.indexOf('VNH_') === 0) delete props[k];
   cache['LASTIMG_U3'] = 'm10';
   ctx.lastReply = '';
-  ctx.evHandleNote_({ message: { text: '↑帝国' }, source: { userId: 'U3' }, replyToken: 'r' }, new Date(2026, 8, 18));
-  eq(ctx.evHotelForDay_(new Date(2026, 8, 18)).length, 1, '直前の写真から入った');
+  ctx.vnHandleNote_({ message: { text: '↑帝国' }, source: { userId: 'U3' }, replyToken: 'r' }, new Date(2026, 8, 18));
+  eq(ctx.vnHotelForDay_(new Date(2026, 8, 18)).length, 1, '直前の写真から入った');
 
   delete cache['LASTIMG_U4'];
   ctx.lastReply = '';
-  ctx.evHandleNote_({ message: { text: '↑ホテル' }, source: { userId: 'U4' }, replyToken: 'r' }, new Date());
+  ctx.vnHandleNote_({ message: { text: '↑ホテル' }, source: { userId: 'U4' }, replyToken: 'r' }, new Date());
   has(ctx.lastReply, '直前の写真が見つかりません', '直前の写真が無ければ、そう伝える');
 }
 
@@ -374,31 +374,31 @@ console.log('\n■ 合図を出したのに読めなかったときは、黙ら�
   for (const k in cache) delete cache[k];
   reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [{ text: '[]' }] } } ] }) } };
   ctx.lastReply = '';
-  ctx.evHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
+  ctx.vnHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
   ctx.lastReply = '';
-  ctx.evHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
+  ctx.vnHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
   has(ctx.lastReply, '読み取れませんでした', '自分で合図を出したぶんは、読めなくても伝える');
   has(ctx.lastReply, '帝国ホテル', '  どのホテルのことかも分かる');
 }
 
 console.log('\n■ 話題と、触れない方がよいこと');
 {
-  for (const k in props) if (k.indexOf('EVAUD_') === 0) delete props[k];
+  for (const k in props) if (k.indexOf('VNAUD_') === 0) delete props[k];
   vm.runInContext('function getGeminiKey_(){ return "k"; } function getGeminiModel_(){ return "m"; }', ctx);
   reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
     { text: '{"audience":"20〜30代女性が中心","know":"20周年の記念公演","avoid":"昨年脱退したメンバーの話"}' } ] } } ] }) } };
-  const ti = ctx.evTopicInfo_('あるアーティスト', '京セラドーム');
+  const ti = ctx.vnTopicInfo_('あるアーティスト', '京セラドーム');
   eq(ti.audience, '20〜30代女性が中心', '客層が取れる');
   eq(ti.know, '20周年の記念公演', '知っておくと良いことが取れる');
   eq(ti.avoid, '昨年脱退したメンバーの話', '触れない方がよいことが取れる');
 
   fetched.length = 0;
-  ctx.evTopicInfo_('あるアーティスト', '京セラドーム');
+  ctx.vnTopicInfo_('あるアーティスト', '京セラドーム');
   eq(fetched.length, 0, '同じ公演は二度聞かない（覚えている）');
 
   reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
     { text: '{"audience":"不明","know":"","avoid":"不明"}' } ] } } ] }) } };
-  const un = ctx.evTopicInfo_('だれも知らない催し2026', '');
+  const un = ctx.vnTopicInfo_('だれも知らない催し2026', '');
   eq(un.audience, '', '「不明」は空にする（知ったかぶりをさせない）');
   eq(un.avoid, '', '  触れない方がよいことも同じ');
 }
@@ -414,7 +414,7 @@ console.log('\n■ 触れない方がよいことは、いちばん最後まで�
       stats: 'じっせき'.repeat(20), guess: 'すいてい'.repeat(20),
       know: 'わだい'.repeat(20), avoid: 'ここは残す', advice: 'じょげん'.repeat(20) });
   }
-  const json = JSON.stringify(ctx.evFitMessages_(day, many, '')[0]);
+  const json = JSON.stringify(ctx.vnFitMessages_(day, many, '')[0]);
   eq(ctx.lrBytes_(json) <= 9500, true, '上限は守る（' + ctx.lrBytes_(json) + 'バイト）');
   has(json, 'ここは残す', '削られても「触れない」は残っている');
   eq(json.indexOf('わだい'), -1, '  代わりに「話題」は落ちる');

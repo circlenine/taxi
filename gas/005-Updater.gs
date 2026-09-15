@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U013ver  （2026/09/06）  ★★★
+ *  ★★★  U015ver  （2026/09/15）  ★★★
+ *
+ *  [U015ver]
+ *   ・ファイル名が変わったときに、前の名前のファイルを消すようにした
+ *     更新は「新しい名前のファイルを足す」だけなので、これが無いと
+ *     前の名前のファイルが残る。どちらにも同じ const が書いてあるため
+ *     Apps Script はプロジェクト全体を止めてしまう。
+ *     UPD_RENAMED（新しい名前 → 前の名前）に書いておけば、自動で消える
+ *   ・確認の画面と、終わったあとの知らせに「名前が変わったので消す」を出す
+ *
+ *  [U014ver]
+ *   ・ボタン [11]「きょうのイベントを試し送りする」を足した
+ *   ・ボタン [12]「イベントの自動発信を入切する」を足した
+ *     1回押すと今の状態が出るだけ。3分以内にもう1回で切り替わる
  *
  *  [U013ver]
  *   ・ボタン [10]「イベントの絵の見本を見る」を足した
@@ -102,8 +115,9 @@
  *
  *  [U001ver] 最初の版（コードの自動更新／そうさボタン）
  *
- *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
- *               W=004-WebApp / U=005-Updater / V=006-Events
+ *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Venue
+ *  ※記号は、ファイル名の頭文字にそろえています。
  *               W=004-WebApp / U=005-Updater
  *
  *  やること:
@@ -825,16 +839,16 @@ function panelItems_() {
       note: "毎月の自動送信が本当に入っているかを見ます。入っていなければ入れ直します" },
     // key は、ほかのボタンの文言に含まれない言葉にする。
     // 「イベント」だけだと [10] の文言にも含まれてしまい、同じボタンだと誤解される
-    { key: "イベント情報を調べ",   label: "[9] イベント情報を調べる",    fn: "panelEventProbe",
+    { key: "イベント情報を調べ",   label: "[9] イベント情報を調べる",    fn: "panelVenueProbe",
       sec: 60, stall: 240,
       note: "大阪城ホールなどのページが読めるか確かめ、結果をまーく個人のLINEにも送ります" },
-    { key: "イベントの絵の見本",   label: "[10] イベントの絵の見本を見る", fn: "menuEventSample",
+    { key: "イベントの絵の見本",   label: "[10] イベントの絵の見本を見る", fn: "menuVenueSample",
       sec: 25,
       note: "どんな見た目でイベント情報が届くか、まーく個人のLINEにだけ送って見せます" },
-    { key: "きょうのイベントを試",  label: "[11] きょうのイベントを試し送りする", fn: "menuEventTestSend",
+    { key: "きょうのイベントを試",  label: "[11] きょうのイベントを試し送りする", fn: "menuVenueTestSend",
       sec: 45, stall: 180,
       note: "きょう16:45に出るはずの中身を、そのまままーく個人のLINEにだけ送ります" },
-    { key: "イベントの自動発信",   label: "[12] イベントの自動発信を入切する", fn: "panelEventAuto",
+    { key: "イベントの自動発信",   label: "[12] イベントの自動発信を入切する", fn: "panelVenueAuto",
       sec: 20,
       note: "毎日16:45にグループへ送るかどうかを切り替えます。" +
             "1回押すと今の状態が出るだけ。3分以内にもう1回で切り替わります" }
@@ -1000,12 +1014,14 @@ function updSecText_(sec) {
  * ★これが無いと、名前を変えたときにプロジェクトが丸ごと止まる。
  *   更新は「新しい名前のファイルを足す」だけなので、前の名前のファイルが残る。
  *   どちらにも同じ const が書いてあるため、Apps Script は
- *   「Identifier 'TL_VERSION' has already been declared」で
+ *   「Identifier 'VN_VERSION' has already been declared」で
  *   プロジェクト全体を動かさなくなる。
  *   そこで、新しい名前が入ってくるときは、前の名前のほうを消す。
+ *
+ *   ★ファイル名を変えたら、必ずここに1行足すこと。
  */
 const UPD_RENAMED = {
-  "002-Tools": "002-Extras"
+  "006-Venue": "006-Events"
 };
 
 /** 名前が変わったせいで要らなくなったファイルの名前をならべる */
@@ -1029,10 +1045,10 @@ const PANEL_FROM = {
   menuWebAppCheck:    "004-WebApp",
   menuSendReportPanel: "003-LineReport",
   panelAutoReportStatus: "003-LineReport",
-  panelEventProbe: "006-Events",
-  menuEventSample: "006-Events",
-  menuEventTestSend: "006-Events",
-  panelEventAuto: "006-Events"
+  panelVenueProbe: "006-Venue",
+  menuVenueSample: "006-Venue",
+  menuVenueTestSend: "006-Venue",
+  panelVenueAuto: "006-Venue"
 };
 
 /** その関数がこのプロジェクトに入っているか */

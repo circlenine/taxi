@@ -4,8 +4,9 @@
  *
  *  ★★★  L017ver  （2026/09/06）  ★★★
  *
- *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
- *               W=004-WebApp / U=005-Updater / V=006-Events
+ *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Venue
+ *  ※記号は、ファイル名の頭文字にそろえています。
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
  *
@@ -413,7 +414,7 @@ function getGridRange(sheet, startRow, startColIndex, rowCount, colSpanArray) {
  *   → イベントのソース: スプレッドシートから
  *   → イベントの種類: 起動時
  *
- * 同じプロジェクトに 002-Tools があれば、それも一緒に出す。
+ * 同じプロジェクトに 002-Extras があれば、それも一緒に出す。
  */
 function onOpenReport() {
   const m = SpreadsheetApp.getUi().createMenu("📈 LineReport");
@@ -426,11 +427,11 @@ function onOpenReport() {
     m.addItem("🗺 マップの行き先を確認する", "menuMapLinksCheck");
   }
   m.addSeparator();
-  if (typeof menuEventProbe === "function") {
-    m.addItem("🔎 イベント情報を調べる", "menuEventProbe");
-    m.addItem("🧪 イベント情報をテスト送信（自分だけ）", "menuEventTestSend");
-    m.addItem("🎪 イベントの絵の見本を送る（自分だけ）", "menuEventSample");
-    m.addItem("🎪 イベントの自動発信を入切する", "menuEventAuto");
+  if (typeof menuVenueProbe === "function") {
+    m.addItem("🔎 イベント情報を調べる", "menuVenueProbe");
+    m.addItem("🧪 イベント情報をテスト送信（自分だけ）", "menuVenueTestSend");
+    m.addItem("🎪 イベントの絵の見本を送る（自分だけ）", "menuVenueSample");
+    m.addItem("🎪 イベントの自動発信を入切する", "menuVenueAuto");
   }
   m.addItem("⏰ 自動送信の状態を見る", "menuAutoReportStatus");
   m.addItem("🧪 自動送信を今すぐ試す（自分だけ）", "menuAutoReportTestNow");
@@ -455,13 +456,13 @@ function menuShowVersions() {
   const rows = [];
   rows.push("001-Code       : " +
     (typeof CODE_VERSION === "string" ? CODE_VERSION : "入っていません"));
-  rows.push("002-Tools      : " +
-    (typeof TL_VERSION === "string" ? TL_VERSION
-     : typeof EX_VERSION === "string" ? EX_VERSION + "（古い名前のままです）"
-     : "入っていません"));
+  rows.push("002-Extras     : " +
+    (typeof EX_VERSION === "string" ? EX_VERSION : "入っていません"));
   rows.push("003-LineReport : " + LR_VERSION);
-  rows.push("006-Events     : " +
-    (typeof EV_VERSION === "string" ? EV_VERSION : "入っていません"));
+  rows.push("006-Venue      : " +
+    (typeof VN_VERSION === "string" ? VN_VERSION
+     : typeof EV_VERSION === "string" ? EV_VERSION + "（古い名前のままです）"
+     : "入っていません"));
 
   const msg = "いま動いているバージョン\n──────────────\n" + rows.join("\n");
   SpreadsheetApp.getUi().alert(msg);

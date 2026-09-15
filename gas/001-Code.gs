@@ -3,16 +3,17 @@
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
  *  ★★★  C031ver  （2026/09/15）  ★★★   ← もとは version 232
  *
- *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
- *               W=004-WebApp / U=005-Updater / V=006-Events
+ *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Venue
+ *  ※記号は、ファイル名の頭文字にそろえています。
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
  *
  *  [C031ver]
- *   ・002-Extras.gs が 002-Tools.gs に変わったのに合わせた
- *     「ℹ️ バージョンを確認」は、新しい名前（TL_VERSION）を先に見て、
- *     古い名前のまま入っていれば「（古い名前のままです）」と添えて出す
+ *   ・006-Events.gs が 006-Venue.gs に変わったのに合わせた
+ *     ホテルの写真を振り分けるところで呼ぶ名前を ev○○ → vn○○ にした
+ *     （名前が変わっただけ。動きは何も変えていない）
  *
  *  [C030ver]
  *   ・スクショの返信を「乗車記録として読めたときだけ」にした
@@ -32,7 +33,7 @@
  *         （先に写真を送ってしまったときは「↑ホテル」で読み直す）
  *       ② 合図が無くても、乗車記録が1件も読めなかったときだけ
  *         ホテルの予定表として読み直す。ふつうのオプチャ画像には触れない
- *     読み取った予定は、当日16:45のイベント案内に出る（006-Events.gs）
+ *     読み取った予定は、当日16:45のイベント案内に出る（006-Venue.gs）
  *
  *  [C028ver]
  *   ・設定に「コードの置き場（GitHub）」「コードの枝（ブランチ）」「コードのフォルダ」を足した
@@ -63,7 +64,7 @@
  *     いちばん上の年見出し（4行目）には引かない
  *     （見出し行のすぐ下なので、二重線に見えてしまうため）
  *   ・整形のたびに、G列の乗り場に Googleマップ のリンクを貼るようにした
- *     タップするとマップが開く。002-Tools.gs が入っているときだけ動く
+ *     タップするとマップが開く。002-Extras.gs が入っているときだけ動く
  *   ・設定に「乗り場にマップリンクを付ける」を足した（いいえ にすると貼らない）
  *
  *  [C023ver]
@@ -78,7 +79,7 @@
  *  [C021ver]
  *   ・005-Updater.gs（コードの自動更新）用のメニューを足した
  *     入れているときだけ出る。これで貼り替えが要らなくなる
- *   ・ファイル記号: C=001-Code / E=002-Extras（いまは T=002-Tools）/ L=003-LineReport
+ *   ・ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *                  W=004-WebApp / U=005-Updater
  *
  *  [C020ver]
@@ -1242,7 +1243,7 @@ function handleEvent_(ev) {
   if (ev.message.type === "image") {
     // ただし「ホテル」と打ってから送られた写真は、ホテルの予定表として読む。
     // 打った人の合図が最優先。合図が無ければ、今までどおりオプチャとして読む。
-    if (typeof evHandleImage_ === "function" && evHandleImage_(ev, sentAt)) return;
+    if (typeof vnHandleImage_ === "function" && vnHandleImage_(ev, sentAt)) return;
     handleOpuchaImage_(ev, sentAt);
     return;
   }
@@ -1250,7 +1251,7 @@ function handleEvent_(ev) {
   if (ev.message.type !== "text") return;
 
   // --- 「ホテル」「↑ホテル」 ＝ 次（または直前）の写真はホテルの予定表 ---
-  if (typeof evHandleNote_ === "function" && evHandleNote_(ev, sentAt)) return;
+  if (typeof vnHandleNote_ === "function" && vnHandleNote_(ev, sentAt)) return;
 
   // --- 「0904」「↑0904」だけの1行 ＝ スクショの日付メモ ---
   // オプチャは過去の投稿を探してから送るので、送った日と乗った日がずれる。
@@ -1325,8 +1326,8 @@ function handleOpuchaImage_(ev, sentAt) {
     if (!list.length) {
       // 乗車記録が1件も無いなら、ホテルの予定表かもしれない。そのときだけ読み直す。
       // ふつうのオプチャのスクショには触れないので、取り違えは起きない。
-      if (typeof evHotelTry_ === "function") {
-        const hotel = evHotelTry_(mid, bizD);
+      if (typeof vnHotelTry_ === "function") {
+        const hotel = vnHotelTry_(mid, bizD);
         if (hotel) { lineReply_(reply, hotel); return; }
       }
       r.ng.push("乗車記録が写っていません（時刻・金額・乗り場のどれも読み取れませんでした）");
@@ -2626,7 +2627,7 @@ function formatTab_(sheet) {
   applyStyles_(sheet, out, meta);
 
   // G列（乗り場）にGoogleマップのリンクを貼る。
-  // 002-Tools.gs が入っていないときは、何もしないで通り過ぎる。
+  // 002-Extras.gs が入っていないときは、何もしないで通り過ぎる。
   // G列は上で setValues で書き戻しているので、ここで貼り直さないと消えてしまう。
   try {
     if (cfg_("乗り場にマップリンクを付ける") !== "いいえ" &&
@@ -3153,11 +3154,7 @@ function menuOpenCheckStatus() {
   // ④ 3つのファイルがそろっているか
   L.push("");
   L.push("001-Code       : " + (typeof CODE_VERSION === "string" ? CODE_VERSION : "❌ 入っていません"));
-  // T006ver で 002-Extras.gs → 002-Tools.gs に変わった。
-  // 古い名前のまま入っている人もいるので、どちらでも読めるようにしておく
-  L.push("002-Tools      : " + (typeof TL_VERSION === "string" ? TL_VERSION
-                              : typeof EX_VERSION === "string" ? EX_VERSION + "（古い名前のままです）"
-                              : "（未導入）"));
+  L.push("002-Extras     : " + (typeof EX_VERSION   === "string" ? EX_VERSION   : "（未導入）"));
   L.push("003-LineReport : " + (typeof LR_VERSION   === "string" ? LR_VERSION   : "❌ 入っていません"));
 
   // ⑤ 直近のエラー

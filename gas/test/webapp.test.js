@@ -308,7 +308,7 @@ console.log('\n■ 乗り場の表は、種類のぶんだけ渡す');
   ok(m[''] === undefined, '空欄は入れない');
   vm.runInContext('mapUrlFor_ = undefined;', ctx);
   ok(Object.keys(F('wbMapUrls_')([mk('天満')], [])).length === 0,
-     '002-Tools.gs が入っていなければ空（画面はただの文字で出す）');
+     '002-Extras.gs が入っていなければ空（画面はただの文字で出す）');
 }
 
 console.log('\n■ 読み込みに失敗したときの表示');

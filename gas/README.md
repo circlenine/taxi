@@ -7,36 +7,39 @@
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
 | **C** | `001-Code.gs`（統合スクリプト） | C031ver | `001-Code` |
-| **T** | `002-Tools.gs`（道具ばこ） | T006ver | `002-Tools` |
+| **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L022ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W007ver | `004-WebApp` |
 | **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U015ver | `005-Updater` |
-| **V** | `006-Events.gs`（イベント情報あつめ） | V005ver | `006-Events` |
+| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V006ver | `006-Venue` |
 
 **貼るのはこの6つだけ。** 番号の順に並ぶので、上から順に貼っていけば漏れない。
-`gas/parts/` の中は、`002-Tools.gs` を組み立てるための材料なので貼らなくてよい。
+`gas/parts/` の中は、`002-Extras.gs` を組み立てるための材料なので貼らなくてよい。
 
 ### 名前と記号の決まり（あとから足すとき）
 
 新しいファイルを足すときは、**ここを必ず先に見る**。
 
-1. **ファイル名は、先頭の1文字が他と重ならないようにする。**
-   `Extras` と `Events` はどちらも E で始まっていて紛らわしかった（T006ver で `Tools` に改名）。
-2. **記号は、ファイル名の頭文字にする。** 使えないときは2文字目を使う（`V` = e**V**ents）。
-   上の表にある記号は、**過去に使ったものも含めて二度と使い回さない**
-   （E は 002-Extras が E001〜E005 で使った。履歴が別のファイルを指してしまうため）。
-3. **関数の頭につける言葉も重ならないようにする。** いま使っているもの:
+1. **記号は、ファイル名の頭文字にそろえる。**
+   記号とファイル名がずれていると、どのファイルの話か分からなくなる。
+   `V006ver` なら `006-**V**enue.gs`、`E005ver` なら `002-**E**xtras.gs`。
+2. **ファイル名の先頭1文字を、他と重ねない。**
+   `Events` と `Extras` はどちらも E で始まっていて紛らわしかった
+   （V006ver で `Events` → `Venue` に改名。履歴の古い `Extras` はそのまま残した）。
+3. **記号は、過去に使ったものも含めて使い回さない。**
+   同じ記号が別のファイルを指すと、古い履歴が読めなくなる。
+4. **関数の頭につける言葉も重ならないようにする。** いま使っているもの:
 
    | 頭の言葉 | ファイル | 例 |
    |---|---|---|
    | （なし・和名） | `001-Code` | `cfg_` `formatTab_` `opuchaFromImage_` |
-   | `st` `opu` `cf` `ap` | `002-Tools` | `stBand_` `opuMarks_` `cfFitAll_` `applyMapLinks_` |
+   | `st` `opu` `cf` `ap` | `002-Extras` | `stBand_` `opuMarks_` `cfFitAll_` `applyMapLinks_` |
    | `lr` `db` `night` `advice` | `003-LineReport` | `lrPush_` `dbTitle_` `nightPlan_` |
    | `wb` | `004-WebApp` | `wbMapUrls_` |
    | `upd` `panel` | `005-Updater` | `updBranch_` `panelRun_` |
-   | `ev` | `006-Events` | `evProbeAll` `evHotelTry_` |
+   | `vn` | `006-Venue` | `vnProbeAll` `vnHotelTry_` |
 
-4. **ファイル名を変えたら、`005-Updater.gs` の `UPD_RENAMED` に前の名前を書く。**
+5. **ファイル名を変えたら、`005-Updater.gs` の `UPD_RENAMED` に前の名前を書く。**
    これを忘れると、更新したときに前の名前のファイルが残り、
    同じ `const` が2回宣言されて **プロジェクト全体が止まる**。
 
@@ -46,14 +49,14 @@ Apps Script 上のファイル名も **`001-Code`** のようにそろえる（�
 いま動いているバージョンは、メニュー「**ℹ️ バージョンを確認**」で見られる。
 手元のファイルと実際に動いているものがずれていないか、これで確かめられる。
 
-`002-Tools.gs` は `tools/build_tools.py` で組み立てる（バージョンと履歴もそこで管理）。
+`002-Extras.gs` は `tools/build_extras.py` で組み立てる（バージョンと履歴もそこで管理）。
 `004-WebApp.gs` は `tools/build_webapp.py` で組み立てる。
 直すのは `gas/parts/WebApp.gs`（データを集める側）と
 `gas/parts/webapp.html`（画面）のほう。
 `gas/parts/Strategy.gs` / `Opucha.gs` / `ChartFit.gs` / `MapLink.gs` を直したら:
 
 ```
-python3 tools/build_tools.py
+python3 tools/build_extras.py
 ```
 
 同じ名前の宣言が2つあると Apps Script はプロジェクト全体を止めるので、
@@ -65,10 +68,10 @@ python3 tools/build_tools.py
 
 | ファイル | 役割 | 状態 |
 |---|---|---|
-| `parts/MapLink.gs` | G列の乗り場名 → Googleマップへのリンク | `002-Tools.gs` に同梱（E005ver〜） |
+| `parts/MapLink.gs` | G列の乗り場名 → Googleマップへのリンク | `002-Extras.gs` に同梱（E005ver〜） |
 | `parts/ChartFit.gs` | まとめスプシのグラフをZ列の幅にそろえる | 実装済み |
 | `003-LineReport.gs` | LINE画像(Flex)＋まとめスプシのレポート作成 | **v185からの抜粋** |
-| `002-Tools.gs` | 下の4つを1ファイルに束ねたもの（**貼るのはこれ1つでOK**） | 実装済み |
+| `002-Extras.gs` | 下の3つを1ファイルに束ねたもの（**貼るのはこれ1つでOK**） | 実装済み |
 | `parts/Opucha.gs` | どれがオプチャかを検索して指定する画面 | 実装済み |
 | `parts/Strategy.gs` | 立ち回り分析＋ロングマップ | 実装済み |
 
@@ -85,7 +88,7 @@ G列（乗り場）をタップするとGoogleマップが開くようにする�
 
 ## 導入（E005ver 以降は、貼るだけで済みます）
 
-- `002-Tools.gs`（E005ver〜）に同梱。単体で貼る必要はない。
+- `002-Extras.gs`（E005ver〜）に同梱。単体で貼る必要はない。
 - `001-Code.gs`（C024ver〜）の `formatTab_` が、整形の最後に `applyMapLinks_(sheet)` を呼ぶ。
   整形のたびに貼り直されるので、リンクが消えることはない。
 - 設定タブ「**乗り場にマップリンクを付ける**」を `いいえ` にすると貼らない。
