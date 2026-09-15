@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **C** | `001-Code.gs`（統合スクリプト） | C030ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
-| **L** | `003-LineReport.gs` | L019ver | `003-LineReport` |
+| **L** | `003-LineReport.gs` | L020ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W007ver | `004-WebApp` |
 | **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U014ver | `005-Updater` |
 | **V** | `006-Events.gs`（イベント情報あつめ） | V005ver | `006-Events` |

@@ -130,5 +130,26 @@ console.log('\n■ 記録が1件も無くても落ちない');
      '曜日区分が空でも落ちない');
 }
 
+console.log('\n■ 狙い目の詳細時間（その区間でいちばん高かった乗車の時刻）');
+{
+  // 21時台に最高額が出た区間 → 狙い目はその時刻になる
+  const t = tl({});
+  t['平日'][20] = { best: { name: '新地4', avg: 10000, count: 3, wait: 20, max: 15000, at: '20:41' }, worst: null };
+  t['平日'][21] = { best: { name: '新地4', avg: 12000, count: 2, wait: 10, max: 28000, at: '21:37' }, worst: null };
+  t['平日'][22] = { best: { name: '新地4', avg: 9000,  count: 2, wait: 10, max: 9000,  at: '22:10' }, worst: null };
+  const seg = ctx.buildNightPlan_(t, DAY_TYPES)['平日'][0];
+  eq(seg.max, 28000, '区間でいちばん高かった額を持つ');
+  eq(seg.at, '21:37', '  その時刻が狙い目になる（区間の先頭の時刻ではない）');
+  eq(ctx.nightAim_(seg), '狙い目：21:37', '「狙い目：」を付けて出す');
+
+  const line = ctx.nightLine_(seg);
+  has(line, '20〜22時台', '時間帯が入る');
+  has(line, '新地4', '乗り場名が入る');
+  has(line, '狙い目：21:37', '狙い目の詳細時間が入る');
+  has(line, '最高￥28,000', '最高額も入る（狙い目の根拠）');
+  eq(ctx.nightAim_({ name: 'あ', at: '' }), '', '時刻が取れていなければ、何も出さない');
+  eq(ctx.nightLine_({ from: 1, to: 2, name: '' }).indexOf('狙い目'), -1, '記録なしの区間には付けない');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

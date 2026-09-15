@@ -284,7 +284,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L019ver";
+const LR_VERSION = "L020ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1431,17 +1431,23 @@ function buildReportFlex_(o) {
       { "type": "text", "text": "🚕 一晩の流し方（20:00〜翌04:00）", "weight": "bold", "size": "sm",
         "color": "#1565c0", "margin": "md", "wrap": true },
       { "type": "text", "text": "同じ乗り場が続く時間はまとめています。区切りが「動くとき」です。",
+        "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true },
+      { "type": "text", "text": "狙い目：その時間帯でいちばん高かった乗車の時刻です。",
         "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true });
 
     DAY_TYPES.forEach(function (dType) {
       const segs = (plan[dType] || []).filter(function (x) { return !!x.name; });
       const lines = segs.map(function (seg) {
-        return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [
+        const aim = nightAim_(seg);
+        const sp = [
           { "type": "span", "text": nightSpan_(seg) + "　", "weight": "bold", "color": "#1565c0" },
-          { "type": "span", "text": toHalfWidthKana(seg.name), "weight": "bold", "color": "#000000" },
-          { "type": "span", "text": (seg.avg ? "　￥" + seg.avg.toLocaleString() : "") +
-                                    (seg.wait ? "　待" + seg.wait + "分" : ""), "color": "#444444" }
-        ]};
+          { "type": "span", "text": toHalfWidthKana(seg.name), "weight": "bold", "color": "#000000" }
+        ];
+        // 狙い目の時刻は、いちばん動きたくなるところなので赤の太字にする
+        if (aim) sp.push({ "type": "span", "text": "　" + aim, "weight": "bold", "color": "#c62828" });
+        sp.push({ "type": "span", "text": (seg.avg ? "　￥" + seg.avg.toLocaleString() : "") +
+                                          (seg.wait ? "　待" + seg.wait + "分" : ""), "color": "#444444" });
+        return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": sp };
       });
       if (!lines.length) lines.push({ "type": "text", "text": "データ不足", "size": "xs", "color": "#999999" });
       const moves = nightMoves_(segs);
@@ -2151,12 +2157,25 @@ function nightSpan_(seg) {
                              : h(seg.from) + "〜" + h(seg.to) + "時台";
 }
 
+/**
+ * 「狙い目：23:37」。
+ * その区間で いちばん高かった乗車の時刻。
+ * 「何時台」だけだと1時間の幅があって動きようがないので、
+ * 実際に当たった時刻を1つだけ添える。
+ */
+function nightAim_(seg) {
+  return seg && seg.at ? "狙い目：" + seg.at : "";
+}
+
 /** 1行の文にする（まとめスプシ・見出し用） */
 function nightLine_(seg) {
   if (!seg.name) return nightSpan_(seg) + "　記録なし";
+  const aim = nightAim_(seg);
   return nightSpan_(seg) + "　" + seg.name +
+    (aim ? "　" + aim : "") +
     (seg.avg  ? "　￥" + seg.avg.toLocaleString() : "") +
-    (seg.wait ? "　待" + seg.wait + "分" : "");
+    (seg.wait ? "　待" + seg.wait + "分" : "") +
+    (seg.max  ? "　最高￥" + seg.max.toLocaleString() : "");
 }
 
 /** 動く回数（記録なしの区間は数えない） */
@@ -2842,7 +2861,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       return (plan[dt] || []).some(function (x) { return !!x.name; });
     });
 
-    dbTitle_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）\n同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です", "#cfe2f3", 12); curRow++;
+    dbTitle_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）\n" +
+      "同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です\n" +
+      "狙い目＝その時間帯でいちばん高かった乗車の時刻", "#cfe2f3", 12); curRow++;
 
     // 時間帯 ＋ 曜日区分4つ（合計26列ぴったり）
     const PL_SPANS = [6, 5, 5, 5, 5];
@@ -2872,19 +2893,28 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         DAY_TYPES.forEach(function (dType, i) {
           const seg = nightAt_(plan[dType], hr);
           const name = seg && seg.name ? toHalfWidthKana(seg.name) : "";
-          // その区間のいちばん上の行にだけ金額を出す（毎行くり返すと読みにくい）
+          // その区間のいちばん上の行にだけ、狙い目の時刻と金額を出す
+          // （毎行くり返すと、どこが区間のはじまりか分からなくなる）
           const head = seg && seg.name && seg.from === hr;
+          const aim  = head ? nightAim_(seg) : "";
           const text = !name ? "－"
-                     : head ? name + (seg.avg ? "\n￥" + seg.avg.toLocaleString() : "")
+                     : head ? [name, aim, (seg.avg ? "￥" + seg.avg.toLocaleString() : "")]
+                                .filter(String).join("\n")
                             : name;
           rngs[1 + i].merge().setValue(text)
-            .setFontSize(dbFitSize_(text, 5, 10, 7, 2))
+            .setFontSize(dbFitSize_(text, 5, 10, 7, head ? 3 : 2))
             .setFontWeight(head ? "bold" : "normal").setWrap(true)
             .setHorizontalAlignment("center").setVerticalAlignment("middle")
             .setBackground(name ? (colors[seg.name] || "#ffffff") : "#ffffff")
             .setFontColor(name ? "#000000" : "#b7b7b7");
         });
-        sheet.setRowHeight(curRow, 30);
+        // 区間のはじまりの行は、狙い目と金額のぶん少し高くする。
+        // 高さが変わること自体が「ここが区切り」の目印にもなる
+        const isHead = DAY_TYPES.some(function (dType) {
+          const sg = nightAt_(plan[dType], hr);
+          return sg && sg.name && sg.from === hr;
+        });
+        sheet.setRowHeight(curRow, isHead ? 44 : 26);
         curRow++;
       });
 
@@ -2895,7 +2925,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         dbEnsureRows_(sheet, curRow);
         const text = "【" + dType + "】動くのは" + nightMoves_(segs) + "回　" +
           segs.map(function (x) {
+            const aim = nightAim_(x);
             return nightSpan_(x) + " " + toHalfWidthKana(x.name) +
+                   (aim ? " " + aim : "") +
                    (x.avg ? "（￥" + x.avg.toLocaleString() + "）" : "");
           }).join("　→　");
         sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(text)
