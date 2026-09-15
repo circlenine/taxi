@@ -66,7 +66,7 @@ cd taxi-gas
 clasp clone ここにスクリプトID
 ```
 
-`001-Code.gs` `002-Extras.gs` `003-LineReport.gs` `appsscript.json` が落ちてくる。
+`001-Code.gs` `002-Tools.gs` `003-LineReport.gs` `appsscript.json` が落ちてくる。
 **この時点で、フォルダの中身 = Apps Script の中身 になっている。**
 
 ---

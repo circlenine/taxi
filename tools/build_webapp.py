@@ -14,7 +14,7 @@ VERSION = "W007ver"
 DATE = "2026/09/06"
 CHANGELOG = """ *  [W007ver] 乗り場をタップすると Googleマップ が開くようにした
  *   ・記録カードの乗り場名と、乗り場ランキングの名前がリンクになる
- *   ・行き先の表は 002-Extras.gs（MapLink）のもの。入っていなければただの文字のまま
+ *   ・行き先の表は 002-Tools.gs（MapLink）のもの。入っていなければただの文字のまま
  *   ・1件ずつURLを持たせるとページが重くなるので、出てくる乗り場の種類ぶんだけ渡す
  *  [W006ver] LINEへの送信を「まず自分だけ」→「グループ」の2段階にした
  *   ・メニューからは、送る前に必ず聞く（自分だけ／グループ／やめる）
@@ -55,7 +55,8 @@ head = f'''/**
  *
  *  ★★★  {VERSION}  （{DATE}）  ★★★
  *
- *  ファイル記号: C=001-Code.gs / E=002-Extras.gs / L=003-LineReport.gs / W=004-WebApp.gs
+ *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Events
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *
 {CHANGELOG}

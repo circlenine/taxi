@@ -4,7 +4,8 @@
  *
  *  ★★★  V003ver  （2026/09/15）  ★★★
  *
- *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Events
  *               W=004-WebApp / U=005-Updater / V=006-Events
  *
  *  [V003ver]

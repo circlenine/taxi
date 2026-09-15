@@ -1,12 +1,18 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C030ver  （2026/09/15）  ★★★   ← もとは version 232
+ *  ★★★  C031ver  （2026/09/15）  ★★★   ← もとは version 232
  *
- *  ファイル記号: C=001-Code.gs / L=003-LineReport.gs / E=002-Extras.gs
+ *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Events
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C031ver]
+ *   ・002-Extras.gs が 002-Tools.gs に変わったのに合わせた
+ *     「ℹ️ バージョンを確認」は、新しい名前（TL_VERSION）を先に見て、
+ *     古い名前のまま入っていれば「（古い名前のままです）」と添えて出す
  *
  *  [C030ver]
  *   ・スクショの返信を「乗車記録として読めたときだけ」にした
@@ -57,7 +63,7 @@
  *     いちばん上の年見出し（4行目）には引かない
  *     （見出し行のすぐ下なので、二重線に見えてしまうため）
  *   ・整形のたびに、G列の乗り場に Googleマップ のリンクを貼るようにした
- *     タップするとマップが開く。002-Extras.gs が入っているときだけ動く
+ *     タップするとマップが開く。002-Tools.gs が入っているときだけ動く
  *   ・設定に「乗り場にマップリンクを付ける」を足した（いいえ にすると貼らない）
  *
  *  [C023ver]
@@ -72,7 +78,7 @@
  *  [C021ver]
  *   ・005-Updater.gs（コードの自動更新）用のメニューを足した
  *     入れているときだけ出る。これで貼り替えが要らなくなる
- *   ・ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *   ・ファイル記号: C=001-Code / E=002-Extras（いまは T=002-Tools）/ L=003-LineReport
  *                  W=004-WebApp / U=005-Updater
  *
  *  [C020ver]
@@ -2620,7 +2626,7 @@ function formatTab_(sheet) {
   applyStyles_(sheet, out, meta);
 
   // G列（乗り場）にGoogleマップのリンクを貼る。
-  // 002-Extras.gs が入っていないときは、何もしないで通り過ぎる。
+  // 002-Tools.gs が入っていないときは、何もしないで通り過ぎる。
   // G列は上で setValues で書き戻しているので、ここで貼り直さないと消えてしまう。
   try {
     if (cfg_("乗り場にマップリンクを付ける") !== "いいえ" &&
@@ -3147,7 +3153,11 @@ function menuOpenCheckStatus() {
   // ④ 3つのファイルがそろっているか
   L.push("");
   L.push("001-Code       : " + (typeof CODE_VERSION === "string" ? CODE_VERSION : "❌ 入っていません"));
-  L.push("002-Extras     : " + (typeof EX_VERSION   === "string" ? EX_VERSION   : "（未導入）"));
+  // T006ver で 002-Extras.gs → 002-Tools.gs に変わった。
+  // 古い名前のまま入っている人もいるので、どちらでも読めるようにしておく
+  L.push("002-Tools      : " + (typeof TL_VERSION === "string" ? TL_VERSION
+                              : typeof EX_VERSION === "string" ? EX_VERSION + "（古い名前のままです）"
+                              : "（未導入）"));
   L.push("003-LineReport : " + (typeof LR_VERSION   === "string" ? LR_VERSION   : "❌ 入っていません"));
 
   // ⑤ 直近のエラー

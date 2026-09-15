@@ -1196,10 +1196,10 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U014ver', 'U014ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U015ver', 'U015ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U014ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U015ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -1398,6 +1398,24 @@ console.log('\n■ 空にするときは、高さをふだんに戻す');
 F('panelClear_')(panel);
 t(panel._heights[48] === 42, 'ふだんの高さ（42）に戻る');
 t(panel._cells['48,2'] === '', '中身も空になる');
+
+console.log('\n■ ファイル名が変わったときは、前の名前を消す');
+// これが無いと、同じ const が2回宣言されて Apps Script が丸ごと止まる
+{
+  const stale = F('updStale_');
+  const RENAMED = vm.runInContext('UPD_RENAMED', ctx);
+  t(RENAMED['002-Tools'] === '002-Extras', '002-Tools の前の名前は 002-Extras');
+
+  t(JSON.stringify(stale([{ name: '002-Tools' }], [{ name: '002-Extras' }, { name: '001-Code' }]))
+    === JSON.stringify(['002-Extras']),
+    '新しい名前が来て、前の名前が残っていれば、それを消す');
+  t(stale([{ name: '002-Tools' }], [{ name: '002-Tools' }]).length === 0,
+    'すでに新しい名前になっていれば、消すものは無い');
+  t(stale([{ name: '001-Code' }], [{ name: '002-Extras' }]).length === 0,
+    '新しい名前が来ていなければ、前の名前には手を出さない');
+  t(stale([], []).length === 0, '空でも落ちない');
+  t(stale(null, null).length === 0, 'null でも落ちない');
+}
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

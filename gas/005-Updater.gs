@@ -102,7 +102,8 @@
  *
  *  [U001ver] 最初の版（コードの自動更新／そうさボタン）
  *
- *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
+ *  ファイル記号: C=001-Code / T=002-Tools / L=003-LineReport
+ *               W=004-WebApp / U=005-Updater / V=006-Events
  *               W=004-WebApp / U=005-Updater
  *
  *  やること:
@@ -130,7 +131,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U014ver";
+const UPD_VERSION = "U015ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -392,7 +393,10 @@ function menuUpdateCode() {
     else same.push(f.name);
   });
 
-  if (!add.length && !mod.length) {
+  // 名前が変わったせいで消すもの
+  const stale = updStale_(neu, cur.files);
+
+  if (!add.length && !mod.length && !stale.length) {
     return updTell_("✅ すでに最新です", "入れ替えるものはありませんでした。");
   }
 
@@ -400,6 +404,7 @@ function menuUpdateCode() {
     const a = ui.alert("🔄 コードを更新する",
       "入れ替える：" + (mod.join("、") || "なし") + "\n" +
       "新しく足す：" + (add.join("、") || "なし") + "\n" +
+      (stale.length ? "名前が変わったので消す：" + stale.join("、") + "\n" : "") +
       "そのまま　：" + (same.join("、") || "なし") + "\n\n" +
       "書き換える前に、いまのコードをドライブに保存します。\n" +
       "進めますか？", ui.ButtonSet.YES_NO);
@@ -419,8 +424,12 @@ function menuUpdateCode() {
       "危ないので中止しました。\n" + e.message);
   }
 
-  // ② 差し替える。ドライブに無いファイルはそのまま残す
-  const merged = cur.files.map(function (f) {
+  // ② 差し替える。ドライブに無いファイルはそのまま残す。
+  //    ただし、名前が変わったファイルの「前の名前」だけは落とす
+  //    （両方あると、同じ const を2回宣言することになって全部止まる）
+  const merged = cur.files.filter(function (f) {
+    return stale.indexOf(f.name) === -1;
+  }).map(function (f) {
     for (let i = 0; i < neu.length; i++) {
       if (neu[i].name === f.name) return neu[i];
     }
@@ -455,6 +464,7 @@ function menuUpdateCode() {
   return updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
     "入れ替え：" + (mod.join("、") || "なし") + "\n" +
     "追加　　：" + (add.join("、") || "なし") + "\n" +
+    (stale.length ? "消した　：" + stale.join("、") + "（名前が変わったため）\n" : "") +
     (got.skipped.length ? "変更なし：" + got.skipped.join("、") + "\n" : "") +
     dep + "\n\n" +
     "戻すときはメニュー「⏪ 前のコードに戻す」。\n" +
@@ -984,6 +994,32 @@ function updSecText_(sec) {
 }
 
 /** その機能がどのファイルに入っているか（入っていないときの案内用） */
+/*
+ * 名前が変わったファイルの表（新しい名前 → 前の名前）。
+ *
+ * ★これが無いと、名前を変えたときにプロジェクトが丸ごと止まる。
+ *   更新は「新しい名前のファイルを足す」だけなので、前の名前のファイルが残る。
+ *   どちらにも同じ const が書いてあるため、Apps Script は
+ *   「Identifier 'TL_VERSION' has already been declared」で
+ *   プロジェクト全体を動かさなくなる。
+ *   そこで、新しい名前が入ってくるときは、前の名前のほうを消す。
+ */
+const UPD_RENAMED = {
+  "002-Tools": "002-Extras"
+};
+
+/** 名前が変わったせいで要らなくなったファイルの名前をならべる */
+function updStale_(newFiles, curFiles) {
+  const coming = {}, have = {}, out = [];
+  (newFiles || []).forEach(function (f) { coming[f.name] = 1; });
+  (curFiles  || []).forEach(function (f) { have[f.name] = 1; });
+  for (const now in UPD_RENAMED) {
+    const before = UPD_RENAMED[now];
+    if (coming[now] && have[before] && out.indexOf(before) === -1) out.push(before);
+  }
+  return out;
+}
+
 const PANEL_FROM = {
   menuUpdateCode:     "005-Updater",
   menuUpdateStatus:   "005-Updater",
