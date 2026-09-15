@@ -204,7 +204,7 @@ console.log('\n■ 返信の文面');
 ok(F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 0, ok: 0, ng: ['乗車記録が写っていません'] }], 1) === '',
    '乗車記録が1件も写っていなければ、何も返さない（雑談の写真をスルーする）');
 has(F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 2, ok: 2, ng: [] }], 1),
-    '2件を取り込みました', '1枚でもうまくいったら、件数を返す');
+    '2件、ジェバンニが一瞬でやってくれました', '1枚でもうまくいったら、件数を返す');
 let t = F('opuchaReplyText_')('ダイスケ', [{ idx: 1, read: 1, ok: 1, ng: [] }, { idx: 2, read: 2, ok: 2, ng: [] }], 2);
 has(t, 'ダイスケ様', '連投で全部通ったら名前つきで件数を返す');
 has(t, 'スクショ2枚', '何枚だったかを書く');
@@ -213,14 +213,14 @@ t = F('opuchaReplyText_')('ダイスケ', [
   { idx: 1, read: 1, ok: 1, ng: [] },
   { idx: 2, ok: 0, read: 1, ng: ['16:59 ￥12,000 新地4 → 乗車時刻が 17:00〜翌05:15（29:15） の外です。私たちでは乗車不可な時間のため、除外します'] }
 ], 2);
-has(t, 'ダイスケ様データは', '「〇〇様データは」の形になっている');
-has(t, 'レポート作成に不十分と判断', '指定の言い回しが入っている');
+has(t, 'ダイスケ様データ', '「〇〇様データ」の形で始まる');
+has(t, 'ジェバンニでも読めませんでした', 'ジェバンニ調で、短く伝える');
 has(t, '【2枚目】', '何枚目がダメだったか分かる');
 has(t, '乗車不可な時間', '何がダメだったかまで書いてある');
 has(t, 'ほか1件は取り込みました', '通ったぶんも伝える');
 
 t = F('opuchaReplyText_')('', [{ idx: 1, read: 1, ok: 0, ng: ['乗り場が読み取れません'] }], 1);
-has(t, 'いただいたデータは', '名前が取れなくても文が崩れない');
+has(t, 'いただいたデータ', '名前が取れなくても文が崩れない');
 ok(t.indexOf('様') === -1, '名前が無いときに「様」だけ残らない');
 
 console.log('\n■ 連投（imageSet）は全部そろってから1回だけ返す');
@@ -486,13 +486,13 @@ const evNote = (text, quoted) => ({
 // ① まだスクショが無い状態で「↓0904」→ 次のスクショ用に取っておく
 F('handleDateNote_')(evNote('↓0904'), P('↓0904'));
 ok(cacheStore['PENDDATE_U9'] === '2026-09-04', '次のスクショ用に日付を取っておく');
-has(sent[0], '次に送るスクショ', 'その旨を返信する');
+has(sent[0], '次のスクショは', 'その旨を返信する');
 // ② スクショが無いのに「↑0904」→ これも次のスクショ用に回す
 Object.keys(cacheStore).forEach(k => delete cacheStore[k]);
 sent.length = 0;
 F('handleDateNote_')(evNote('↑0904'), P('↑0904'));
 ok(cacheStore['PENDDATE_U9'] === '2026-09-04', '直前のスクショが無ければ次に回す');
-has(sent[0], '見つからなかった', 'その旨を返信する');
+has(sent[0], '見当たらない', 'その旨を返信する');
 
 console.log('\n■ 取り込んだ行の日付を後から直す');
 resetSheets();
@@ -737,7 +737,7 @@ console.log('\n■ 知らないIDから記録が届いたら、ｼﾞﾝタブ�
   ok(F('handleSenderRegister_')({ replyToken: 'rt', source: { userId: 'Uaaa' },
       message: { text: 'ｼﾞﾝ登録' } }) === true, '「ｼﾞﾝ登録」は、この受け口が扱う');
   ok(S('Uaaa') === 'ｼﾞﾝ', '  そのIDが ｼﾞﾝ タブの人になる');
-  has(sent[0], '覚えました', '  そう返事する');
+  has(sent[0], '名簿を書き換えました', '  そう返事する');
 
   ok(F('handleSenderRegister_')({ replyToken: 'rt', source: { userId: 'Ubbb' },
       message: { text: 'ジン登録' } }) === true, '全角カナで打っても効く');
@@ -780,7 +780,7 @@ console.log('\n■ 知らないIDの1人目は、自動で ｼﾞﾝ タブの�
   sent.length = 0;
   F('rememberNewSender_')({ replyToken: 'rt3', source: { userId: 'Unew2' }, message: {} }, 'Unew2');
   ok(S('Unew2') === '', '2人目は、自動では覚えない（記録が混ざるため）');
-  has(sent[0], '別の方のものになっています', '  その理由をはっきり伝える');
+  has(sent[0], '枠は、もう埋まっています', '  その理由をはっきり伝える');
   has(sent[0], '〇〇登録', '  どうすればよいかも伝える');
   has(String(propStore['SENDER_NEW']), 'Unew2', '  IDの控えは残す');
 

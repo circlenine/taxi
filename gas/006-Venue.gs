@@ -2,11 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V011ver  （2026/09/16）  ★★★
+ *  ★★★  V012ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V012ver]
+ *   ・LINEの返事を、ぜんぶ短くしてジェバンニ調にそろえた
  *
  *  [V011ver]
  *   ・公式アカウントからの返事を減らした
@@ -126,7 +129,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V011ver";
+const VN_VERSION = "V012ver";
 
 /**
  * 見にいく先の一覧。
@@ -1133,13 +1136,13 @@ function vnHandleNote_(ev, sentAt) {
     let mid = "";
     try { mid = CacheService.getScriptCache().get("LASTIMG_" + uid) || ""; } catch (e) {}
     if (!mid) {
-      if (typeof lineReply_ === "function") lineReply_(reply, "直前の写真が見つかりませんでした。");
+      if (typeof lineReply_ === "function") lineReply_(reply, "🔍 ジェバンニが探しましたが、直前の写真がありません");
       return true;
     }
     const msg = vnHotelTry_(mid, sentAt || new Date(), w.force);
     // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える（1行だけ）
     if (typeof lineReply_ === "function") {
-      lineReply_(reply, msg || (nameOf + "の予定として読み取れませんでした。撮り直してください。"));
+      lineReply_(reply, msg || ("🔍 " + nameOf + "の予定、ジェバンニでも読めませんでした。撮り直しを"));
     }
     return true;
   }
@@ -1165,7 +1168,7 @@ function vnHandleImage_(ev, sentAt) {
   // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える（1行だけ）
   if (typeof lineReply_ === "function") {
     lineReply_(ev.replyToken || "",
-      msg || ((hint.force || "ホテル") + "の予定として読み取れませんでした。撮り直してください。"));
+      msg || ("🔍 " + (hint.force || "ホテル") + "の予定、ジェバンニでも読めませんでした。撮り直しを"));
   }
   return true;
 }
@@ -1524,7 +1527,7 @@ function vnRemAdd_(at, how, to, ev) {
 function vnRemText_(r) {
   const v = VN_VENUES[r.venue] || {};
   const when = r.end ? r.end + " 終了" : (r.start ? r.start + " 開始" : "時間不明");
-  return "⏰ まもなくです\n" +
+  return "⏰ ジェバンニです。そろそろです\n" +
          "🎪 " + r.venue + (r.title ? "　" + r.title : "") + "\n" +
          "🕒 " + when + "\n" +
          (v.near && v.near.length ? "📍 近い乗り場：" + v.near.join("・") + "\n" : "") +
@@ -1579,27 +1582,25 @@ function vnHandlePostback_(ev) {
   const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
 
   const ymd = String(q.d || "");
-  if (!/^\d{8}$/.test(ymd)) { say("どの日のことか分かりませんでした。"); return true; }
+  if (!/^\d{8}$/.test(ymd)) { say("どの日のことか、ジェバンニにも分かりませんでした"); return true; }
   const day = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)));
   const list = vnDayLoad_(day);
   const item = list[Number(q.i)];
-  if (!item) { say("その催しが見つかりませんでした。"); return true; }
+  if (!item) { say("その催しが見つかりませんでした"); return true; }
 
   // ⏰ カレンダー … リンクを返事で送る（ボタンに直接入れると長すぎるため）
   if (q.vn === "cal") {
     const v = VN_VENUES[item.venue] || {};
-    say("⏰ カレンダーに入れる\n" +
-        "下のリンクを押すと、予定として登録できます。\n" +
-        "（Android の標準は「Googleカレンダー」です。iPhone でも同じリンクで入ります）\n\n" +
+    say("⏰ ジェバンニが予定表を用意しました\n" +
         "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
         "🕒 " + ([item.start, item.end].filter(String).join("〜") || "時間不明") + "\n" +
-        (v.near && v.near.length ? "📍 " + v.near.join("・") + "\n" : "") + "\n" +
+        (v.near && v.near.length ? "📍 " + v.near.join("・") + "\n" : "") +
         vnCalUrl_(item, day));
     return true;
   }
 
   const at = vnRemindAt_(item, day);
-  if (!at) { say("この催しは時間が分からないので、お知らせを入れられません。"); return true; }
+  if (!at) { say("時間が分からないので、ジェバンニも起こせません"); return true; }
 
   const lead = vnLeadMin_();
   const base = item.end ? "終わり" : "始まり";
@@ -1610,18 +1611,18 @@ function vnHandlePostback_(ev) {
     const err = (q.vn === "dc") ? vnDiscord_(vnRemText_(r))
               : (typeof lrPush_ === "function" && r.to) ? (lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]), "")
               : "送り先が分かりませんでした";
-    say(err ? "⚠️ " + err : "⏰ もう時間が近いので、いまお送りしました。");
+    say(err ? "⚠️ " + err : "⏰ もう時間です。ジェバンニが今すぐ届けました");
     return true;
   }
 
   const to = (q.vn === "dc") ? "discord" : ((ev.source && ev.source.userId) || "");
-  if (q.vn === "me" && !to) { say("あなたの送り先が分かりませんでした。"); return true; }
+  if (q.vn === "me" && !to) { say("あなたの送り先が分かりませんでした"); return true; }
   const added = vnRemAdd_(at, q.vn, to, item);
   const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
   say(added
-    ? (q.vn === "dc" ? "💬 Discordに" : "📱 あなたのLINEに") +
-      "、" + hhmm + "（" + item.venue + " の" + base + "の" + lead + "分前）にお知らせします。"
-    : "⏰ この催しは、もうお知らせを入れてあります。");
+    ? "⏰ ジェバンニが " + hhmm + " に起こします（" + item.venue + " の" + base + "の" + lead + "分前）" +
+      (q.vn === "dc" ? "／Discordへ" : "／あなたのLINEへ")
+    : "⏰ それはもうジェバンニが覚えています");
   return true;
 }
 

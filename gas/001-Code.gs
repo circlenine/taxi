@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C037ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C038ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,10 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C038ver]
+ *   ・LINEの返事を、ぜんぶ短くしてジェバンニ調にそろえた
+ *     グループは雑談の場なので、長い説明を並べない
  *
  *  [C037ver]
  *   ・毎日17時の自動チェックを、確実に入る形にした（ensureAutoFormatTrigger_）
@@ -1518,7 +1522,7 @@ function rememberNewSender_(ev, userId) {
       if (!already) {
         lineReply_(ev.replyToken || "",
           "👋 はじめまして" + (who ? "、" + who + "さん" : "") + "。\n" +
-          "記録は「" + UNKNOWN_TAB + "」タブに入ります。");
+          "ジェバンニが名簿に書き足しました。記録は「" + UNKNOWN_TAB + "」タブへ。");
       }
       return;
     }
@@ -1527,10 +1531,8 @@ function rememberNewSender_(ev, userId) {
     if (!already) {
       lineReply_(ev.replyToken || "",
         "👋 はじめての方ですね" + (who ? "、" + who + "さん" : "") + "。\n" +
-        "記録はいったん「" + UNKNOWN_TAB + "」タブに入れました。\n\n" +
-        "⚠️ " + UNKNOWN_TAB + " タブは、すでに別の方のものになっています。\n" +
-        "あなた用のタブが決まったら、「〇〇登録」と打ってください。\n" +
-        "（まーくさんへ：説明タブの I列に、このIDを控えてあります）");
+        "⚠️ 「" + UNKNOWN_TAB + "」の枠は、もう埋まっています。\n" +
+        "記録はいったんそこへ。あなたの枠が決まったら「〇〇登録」と打ってください。");
     }
   } catch (e) { logErr_("rememberNewSender", e); }
 }
@@ -1547,10 +1549,10 @@ function handleSenderRegister_(ev) {
   if (PERSONAL_TABS.indexOf(want) === -1) return false;     // 個人タブの名前だけ受け付ける
 
   const userId = (ev.source && ev.source.userId) || "";
-  if (!userId) { lineReply_(ev.replyToken || "", "IDが取れませんでした。"); return true; }
+  if (!userId) { lineReply_(ev.replyToken || "", "IDが取れず、ジェバンニも書けませんでした。"); return true; }
   senderLearn_(userId, want);
   lineReply_(ev.replyToken || "",
-    "✅ 覚えました。これからあなたの記録は「" + want + "」タブに入ります。");
+    "✅ ジェバンニが名簿を書き換えました。以後あなたの記録は「" + want + "」タブへ。");
   return true;
 }
 
@@ -1584,7 +1586,7 @@ function handleRepairNote_(ev) {
   } catch (e) {
     text = "入れ直せませんでした：" + (e && e.message ? e.message : e);
   }
-  lineReply_(ev.replyToken || "", "🔧 そうさボタンの見張り\n\n" + text);
+  lineReply_(ev.replyToken || "", "🔧 ジェバンニが見張りを立て直しました\n\n" + text);
   return true;
 }
 
@@ -1789,7 +1791,7 @@ function dateNoteHelp_(input, why) {
   const yy  = String(now.getFullYear()).slice(-2);       // 例: 26
 
   return [
-    "📅 日付が読み取れませんでした：「" + input + "」",
+    "📅 ジェバンニでも読めませんでした：「" + input + "」",
     (why ? "　" + why : ""),
     "",
     "▼ 日付の書き方（どちらでも）",
@@ -1846,7 +1848,7 @@ function handleDateNote_(ev, note) {
   // 「↓0904」＝これから送るスクショの日付。取っておいて、次の画像で使う
   if (!quoted && note.dir === "next") {
     cache.put("PENDDATE_" + uid, dateToYmd_(note.bizDate), 3600);
-    lineReply_(reply, "\U0001F4C5 次に送るスクショを " + label + " として取り込みます");
+    lineReply_(reply, "📅 次のスクショは " + label + " で。ジェバンニが控えました");
     return;
   }
 
@@ -1854,21 +1856,19 @@ function handleDateNote_(ev, note) {
   if (!mid) {
     // まだスクショが来ていない。前向きの矢印でも、次のスクショに使えるようにしておく
     cache.put("PENDDATE_" + uid, dateToYmd_(note.bizDate), 3600);
-    lineReply_(reply, "\U0001F4C5 直前のスクショが見つからなかったので、" +
-                      "次に送るスクショを " + label + " として取り込みます");
+    lineReply_(reply, "📅 直前のスクショが見当たらないので、次のぶんを " + label + " で控えました");
     return;
   }
 
   let n = 0;
   try { n = fixOpuchaDate_(mid, note.bizDate); }
-  catch (e) { logErr_("fixOpuchaDate", e); lineReply_(reply, "\u274C 日付を直せませんでした\n" + e.message); return; }
+  catch (e) { logErr_("fixOpuchaDate", e); lineReply_(reply, "❌ ジェバンニでも直せませんでした\n" + e.message); return; }
 
   if (!n) {
-    lineReply_(reply, "\U0001F4C5 直す行が見つかりませんでした。" +
-                      "取り込めていないスクショか、すでに消された行かもしれません。");
+    lineReply_(reply, "📅 直す行が見当たりません。未取込か、消えた行かもしれません");
     return;
   }
-  lineReply_(reply, "\U0001F4C5 営業曜日を " + label + " に直しました（" + n + "件）");
+  lineReply_(reply, "📅 ジェバンニが " + label + " に直しました（" + n + "件）");
 }
 
 /**
@@ -2020,15 +2020,14 @@ function opuchaReplyText_(who, arr, total) {
 
   if (!bad.length) {
     const head = (total <= 1)
-      ? "📷 " + sama + ok + "件を取り込みました"
-      : "📷 " + sama + "スクショ" + total + "枚を取り込みました（合計" + ok + "件）";
+      ? "📷 " + sama + ok + "件、ジェバンニが一瞬でやってくれました"
+      : "📷 " + sama + "スクショ" + total + "枚（合計" + ok + "件）、ジェバンニが一晩でやってくれました";
     return [head].concat(uniq_(notes)).join("\n");
   }
 
   const lines = [];
-  lines.push("📷 " + (sama ? sama + "データは、" : "いただいたデータは、") +
-             "下の内容が不備で");
-  lines.push("レポート作成に不十分と判断したため、自動反映できませんでした。");
+  lines.push("📷 " + (sama ? sama + "データ、" : "いただいたデータ、") +
+             "ここだけジェバンニでも読めませんでした。");
   lines.push("");
 
   bad.forEach(function (x) {
@@ -2045,7 +2044,7 @@ function opuchaReplyText_(who, arr, total) {
 
   if (ok > 0) lines.push("※ ほか" + ok + "件は取り込みました。");
   uniq_(notes).forEach(function (m) { lines.push(m); });
-  lines.push("お手数ですが、時刻・金額・乗り場が写るように撮り直して送ってください。");
+  lines.push("時刻・金額・乗り場が写るように撮り直してください。");
   return lines.join("\n");
 }
 

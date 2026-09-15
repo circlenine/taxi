@@ -1209,10 +1209,10 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U020ver', 'U020ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U021ver', 'U021ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U020ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U021ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -1462,7 +1462,7 @@ console.log('\n■ 見張りが止まったとき、スマホだけで直せる'
   t(vm.runInContext('fmtArmed', ctx) === 1, '毎日17時の自動チェックも、一緒にそろえる');
   has(text, '17時の自動チェック', '  そう伝える');
   has(text, '最後に動いたのは', '  いつから止まっていたかも出る');
-  has(text, '決められた時間', '  長く止まっていたら、その理由も書く');
+  has(text, '持ち時間を使い切る', '  長く止まっていたら、その理由も書く');
   t(F('panelTriggersOk_')() === true, '入れ直したあとは、しくみがそろっている');
   props['PANEL_WATCH_AT'] = before;
 }

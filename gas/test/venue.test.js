@@ -383,7 +383,7 @@ console.log('\n■ 「↑帝国」は、直前に送った写真を読み直す'
   delete cache['LASTIMG_U4'];
   ctx.lastReply = '';
   ctx.vnHandleNote_({ message: { text: '↑ホテル' }, source: { userId: 'U4' }, replyToken: 'r' }, new Date());
-  has(ctx.lastReply, '直前の写真が見つかりません', '直前の写真が無ければ、そう伝える');
+  has(ctx.lastReply, '直前の写真がありません', '直前の写真が無ければ、そう伝える');
 }
 
 console.log('\n■ 合図を出したのに読めなかったときは、黙らずに伝える');
@@ -394,7 +394,7 @@ console.log('\n■ 合図を出したのに読めなかったときは、黙ら�
   ctx.vnHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
   ctx.lastReply = '';
   ctx.vnHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
-  has(ctx.lastReply, '読み取れませんでした', '自分で合図を出したぶんは、読めなくても伝える');
+  has(ctx.lastReply, 'ジェバンニでも読めませんでした', '自分で合図を出したぶんは、読めなくても伝える');
   has(ctx.lastReply, '帝国ホテル', '  どのホテルのことかも分かる');
   eq(ctx.lastReply.split('\n').length, 1, '  それも1行だけ');
 }
@@ -552,12 +552,13 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(took, true, 'ボタンはこの受け口が扱う');
   has(ctx.lastReply, '20:00', '21:00の60分前＝20:00にお知らせすると返す');
+  has(ctx.lastReply, 'ジェバンニ', '  ジェバンニ調で返す');
   eq(JSON.parse(props['VN_REMIND']).length, 1, '予約が1つ入る');
 
   ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(JSON.parse(props['VN_REMIND']).length, 1, '同じものを二度押しても、二重にならない');
-  has(ctx.lastReply, 'もうお知らせを入れてあります', '  そう伝える');
+  has(ctx.lastReply, 'もうジェバンニが覚えています', '  そう伝える');
 
   // 時間になったら送る
   pushed.length = 0;
