@@ -210,7 +210,7 @@ console.log('\n■ ホテルの資料は、オプチャと取り違えない');
   ctx.lastReply = '';
   const handled = ctx.vnHandleNote_({ message: { text: 'ホテル' }, source: { userId: 'U1' }, replyToken: 'r' }, new Date());
   eq(handled, true, '「ホテル」は、この受け口が扱う');
-  has(ctx.lastReply, 'ホテルの予定として読みます', '  そう返事する');
+  eq(ctx.lastReply, '', '  ここでは何も返さない（雑談のじゃまをしない）');
 
   // ② 次の写真は、オプチャではなくホテルとして読む
   reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [
@@ -218,8 +218,11 @@ console.log('\n■ ホテルの資料は、オプチャと取り違えない');
   vm.runInContext('function geminiReady_(){ return { key: "k", model: "m" }; } function getToken_(){ return "t"; }', ctx);
   const took = ctx.vnHandleImage_({ message: { id: 'm1' }, source: { userId: 'U1' }, replyToken: 'r' }, new Date(2026, 8, 16));
   eq(took, true, '写真はホテルとして扱われた（＝オプチャには回らない）');
-  has(ctx.lastReply, 'ホテルの予定として読み取りました', '  そう返事する');
-  has(ctx.lastReply, '乗車記録には入れていません', '  乗車記録に入れないと、はっきり書く');
+  has(ctx.lastReply, 'ジェバンニ', '  読み取れたときだけ返事する');
+  has(ctx.lastReply, '件数：1件', '  件数が出る');
+  has(ctx.lastReply, '場所：帝国ホテル', '  場所が出る');
+  eq(ctx.lastReply.split('\n').length, 3, '  3行だけ（ポンポン喋らない）');
+  eq(/ジェバンニが[0-9.]+秒で確認しました/.test(ctx.lastReply), true, '  読み取りにかかった秒数も出る');
 
   // ③ 合図が無ければ、写真には手を出さない（今までどおりオプチャ）
   eq(ctx.vnHandleImage_({ message: { id: 'm2' }, source: { userId: 'U9' } }, new Date()), false,
@@ -360,13 +363,13 @@ console.log('\n■ 「↓帝国」なら、紙にホテル名が無くても帝�
     { text: '[{"date":"9/18","hotel":"","name":"就任披露","start":"18:00","end":"20:00","people":350}]' } ] } } ] }) } };
 
   ctx.vnHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date());
-  has(ctx.lastReply, '帝国ホテルの予定として読みます', '「↓帝国」でそう返事する');
+  eq(ctx.lastReply, '', '「↓帝国」では、まだ何も返さない');
 
   ctx.vnHandleImage_({ message: { id: 'm9' }, source: { userId: 'U2' }, replyToken: 'r' }, new Date(2026, 8, 18));
   const list = ctx.vnHotelForDay_(new Date(2026, 8, 18));
   eq(list.length, 1, '予定が入った');
   eq(list[0].venue, '帝国ホテル', '  紙に名前が無くても「帝国ホテル」になる');
-  has(ctx.lastReply, '帝国ホテル', '  返事にもホテル名が出る');
+  has(ctx.lastReply, '場所：帝国ホテル', '  写真が読めたときに、場所として出る');
 }
 
 console.log('\n■ 「↑帝国」は、直前に送った写真を読み直す');
@@ -393,6 +396,7 @@ console.log('\n■ 合図を出したのに読めなかったときは、黙ら�
   ctx.vnHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
   has(ctx.lastReply, '読み取れませんでした', '自分で合図を出したぶんは、読めなくても伝える');
   has(ctx.lastReply, '帝国ホテル', '  どのホテルのことかも分かる');
+  eq(ctx.lastReply.split('\n').length, 1, '  それも1行だけ');
 }
 
 console.log('\n■ 話題と、触れない方がよいこと');

@@ -2,11 +2,22 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V010ver  （2026/09/16）  ★★★
+ *  ★★★  V011ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V011ver]
+ *   ・公式アカウントからの返事を減らした
+ *     ここは雑談のグループなので、合図のたびに口を出すと邪魔になる。
+ *     「↓ホテル」などの合図には、もう何も返さない（黙って待つ）
+ *   ・読み取れたときの返事を3行にした
+ *     「以下のイベント情報をジェバンニが〇秒で確認しました／件数：〇件／場所：〇〇」
+ *   ・読み取れなかったときの返事も1行にした
+ *
+ *  [V010ver]
+ *   ・説明タブへの書き読みを I列 に合わせた
  *
  *  [V009ver]
  *   ・イベントの見張りを 5分おき → 15分おき にした
@@ -115,7 +126,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V010ver";
+const VN_VERSION = "V011ver";
 
 /**
  * 見にいく先の一覧。
@@ -1057,19 +1068,26 @@ function vnHotelForDay_(d) {
  * 読めなければ空文字を返す（＝ホテルの資料ではなかった）。
  */
 function vnHotelTry_(messageId, base, force) {
+  const t0 = Date.now();                 // 読み取りにかかった時間を出すため
   let list = [];
   try { list = vnHotelFromImage_(messageId, force); }
   catch (e) { if (typeof logErr_ === "function") logErr_("vnHotelTry", e); return ""; }
   if (!list.length) return "";
   const n = vnHotelSave_(list, base || new Date(), force);
-  const lines = list.slice(0, 8).map(function (x) {
-    const when = [x.start, x.end].filter(String).join("〜") || "時間不明";
-    return "・" + [x.date, force || x.hotel, x.name].filter(String).join(" ") + "　" + when +
-           (Number(x.people) > 0 ? "　" + Number(x.people).toLocaleString() + "人" : "");
+
+  // 場所の名前を、重ならないようにならべる
+  const seen = {}, places = [];
+  list.forEach(function (x) {
+    const nm = String(force || x.hotel || "").trim();
+    if (!nm || seen[nm]) return;
+    seen[nm] = 1; places.push(nm);
   });
-  return "🍽 ホテルの予定として読み取りました（" + n + "件）\n" + lines.join("\n") +
-         (list.length > 8 ? "\n…ほか" + (list.length - 8) + "件" : "") +
-         "\n\n※ 乗車記録には入れていません。当日16:45のイベント案内に出ます。";
+
+  // ★ここは雑談のグループに出る。短く、3行で終える
+  const sec = Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
+  return "以下のイベント情報をジェバンニが" + sec + "秒で確認しました\n" +
+         "件数：" + n + "件\n" +
+         "場所：" + (places.join("・") || "（読み取れず）");
 }
 
 /** 合図を覚える（15分だけ）。force は「帝国ホテル」など、決め打ちするホテル名 */
@@ -1115,25 +1133,21 @@ function vnHandleNote_(ev, sentAt) {
     let mid = "";
     try { mid = CacheService.getScriptCache().get("LASTIMG_" + uid) || ""; } catch (e) {}
     if (!mid) {
-      if (typeof lineReply_ === "function") {
-        lineReply_(reply, "直前の写真が見つかりませんでした。もう一度送ってください。");
-      }
+      if (typeof lineReply_ === "function") lineReply_(reply, "直前の写真が見つかりませんでした。");
       return true;
     }
     const msg = vnHotelTry_(mid, sentAt || new Date(), w.force);
-    // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える
+    // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える（1行だけ）
     if (typeof lineReply_ === "function") {
-      lineReply_(reply, msg || (nameOf + "の予定としては読み取れませんでした。\n" +
-        "日付と時間が写るように、もう一度撮って送ってください。"));
+      lineReply_(reply, msg || (nameOf + "の予定として読み取れませんでした。撮り直してください。"));
     }
     return true;
   }
 
+  // ★ここでは何も返さない。
+  //   グループは雑談の場なので、合図のたびに公式アカウントが口を出すと邪魔になる。
+  //   写真が届いて、読み取れたときにだけ返す。
   vnHotelHintSet_(uid, w.force);
-  if (typeof lineReply_ === "function") {
-    lineReply_(reply, "🍽 つぎに送る写真は、" + nameOf + "の予定として読みます（15分以内）。\n" +
-                      "乗車記録には入れません。");
-  }
   return true;
 }
 
@@ -1148,11 +1162,10 @@ function vnHandleImage_(ev, sentAt) {
   const mid = (ev.message && ev.message.id) || "";
   try { CacheService.getScriptCache().put("LASTIMG_" + uid, mid, 3600); } catch (e) {}
   const msg = vnHotelTry_(mid, sentAt || new Date(), hint.force);
-  // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える
+  // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える（1行だけ）
   if (typeof lineReply_ === "function") {
     lineReply_(ev.replyToken || "",
-      msg || ((hint.force || "ホテル") + "の予定としては読み取れませんでした。\n" +
-              "日付と時間が写るように、もう一度撮って送ってください。"));
+      msg || ((hint.force || "ホテル") + "の予定として読み取れませんでした。撮り直してください。"));
   }
   return true;
 }
