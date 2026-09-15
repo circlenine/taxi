@@ -727,18 +727,22 @@ console.log('\n■ 毎月の自動送信');
   vm.runInContext('function cfg_(){ return ""; }', ctx);
 
   eq(ctx.autoReportDay_(), 16, '既定は毎月16日');
-  eq(ctx.autoReportHour_(), 7, '既定は朝7時');
+  eq(ctx.autoReportHour_(), 5, '既定は朝5時');
+  eq(ctx.autoReportMin_(), 30, '既定は30分（＝5:30）');
+  eq(ctx.autoReportTimeStr_(), '5:30', '「5:30」の形で出せる');
   eq(ctx.autoReportOn_(), true, '既定は「自動で送る」');
 
   // 設定タブで変えられる
-  vm.runInContext('cfg_ = function(k){ return ({"自動送信する日（毎月）":1,"自動送信の時刻（時）":23,"レポートを自動で送る":"いいえ"})[k] || ""; }', ctx);
+  vm.runInContext('cfg_ = function(k){ return ({"自動送信する日（毎月）":1,"自動送信の時刻（時）":23,"自動送信の時刻（分）":5,"レポートを自動で送る":"いいえ"})[k] || ""; }', ctx);
   eq(ctx.autoReportDay_(), 1, '送る日は設定で変えられる');
   eq(ctx.autoReportHour_(), 23, '時刻も変えられる');
+  eq(ctx.autoReportTimeStr_(), '23:05', '分も変えられる（0を落とさない）');
   eq(ctx.autoReportOn_(), false, '「いいえ」で止められる');
   // へんな値でも既定に戻る（0日・99時などで壊れない）
-  vm.runInContext('cfg_ = function(k){ return ({"自動送信する日（毎月）":0,"自動送信の時刻（時）":99})[k] || ""; }', ctx);
+  vm.runInContext('cfg_ = function(k){ return ({"自動送信する日（毎月）":0,"自動送信の時刻（時）":99,"自動送信の時刻（分）":99})[k] || ""; }', ctx);
   eq(ctx.autoReportDay_(), 16, 'ありえない日は既定に戻す');
-  eq(ctx.autoReportHour_(), 7, 'ありえない時刻も既定に戻す');
+  eq(ctx.autoReportTimeStr_(), '5:30', 'ありえない時刻も既定に戻す');
+  eq(ctx.autoReportHour_(), 5, '　時のほうも既定に戻る');
   vm.runInContext('cfg_ = function(){ return ""; }', ctx);
 
   // 送る日でなければ、何もしない

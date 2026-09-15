@@ -286,7 +286,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L024ver";
+const LR_VERSION = "L025ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -967,12 +967,47 @@ function autoReportDay_() {
 
 /** 何時に送るか（設定タブで変えられる。既定は7時） */
 function autoReportHour_() {
-  let v = 7;
+  let v = 5;
   try { if (typeof cfg_ === "function") v = parseInt(cfg_("自動送信の時刻（時）"), 10); } catch (e) {}
-  return (v >= 0 && v <= 23) ? v : 7;
+  return (v >= 0 && v <= 23) ? v : 5;
 }
 
 /** 自動送信を使うか（設定タブで「いいえ」にすると止まる） */
+/** 自動送信の「分」（0〜59）。既定30 */
+function autoReportMin_() {
+  let v = NaN;
+  try { if (typeof cfg_ === "function") v = parseInt(cfg_("自動送信の時刻（分）"), 10); } catch (e) {}
+  return (v >= 0 && v <= 59) ? v : 30;
+}
+
+/** 「5:30」の形 */
+function autoReportTimeStr_() {
+  return autoReportHour_() + ":" + ("0" + autoReportMin_()).slice(-2);
+}
+
+/**
+ * 送る時刻を 朝7時 → 朝5時30分 に引っ越す（1回だけ）。
+ *
+ * ★設定タブに「7」と書いてあると、コードの既定を変えても効かない。
+ *   かといって毎回書き換えると、あとから直した値まで元に戻してしまう。
+ *   そこで「7時のままの人だけ」「1回だけ」書き換える。
+ */
+function autoReportMigrate_() {
+  const pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty("AUTO_REPORT_530") === "1") return false;
+  pr.setProperty("AUTO_REPORT_530", "1");        // 何があっても二度はやらない
+  try {
+    if (typeof cfg_ !== "function" || typeof cfgSet_ !== "function") return false;
+    let moved = false;
+    if (parseInt(cfg_("自動送信の時刻（時）"), 10) === 7) {
+      moved = cfgSet_("自動送信の時刻（時）", 5) || moved;
+    }
+    const m = parseInt(cfg_("自動送信の時刻（分）"), 10);
+    if (isNaN(m) || m === 0) moved = cfgSet_("自動送信の時刻（分）", 30) || moved;
+    return moved;
+  } catch (e) { logErr_("autoReportMigrate", e); return false; }
+}
+
 function autoReportOn_() {
   try {
     if (typeof cfg_ !== "function") return true;
@@ -1030,16 +1065,18 @@ function autoReportLog_(text) {
  * 時刻を変えたときにも、これを呼べば入れ直せる。
  */
 function ensureAutoReportTrigger_(force) {
-  const hour = autoReportHour_();
+  autoReportMigrate_();                      // 7時のままの人を 5:30 へ移す（1回だけ）
+  const hour = autoReportHour_(), min = autoReportMin_();
   const props = PropertiesService.getScriptProperties();
-  const want = "monthlyReportJob@" + hour;
+  const want = "monthlyReportJob@" + hour + ":" + min;
   const cur = ScriptApp.getProjectTriggers().filter(function (t) {
     return t.getHandlerFunction() === "monthlyReportJob";
   });
   if (!force && cur.length === 1 && props.getProperty("AUTO_REPORT_TRIGGER") === want) return false;
 
   cur.forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger("monthlyReportJob").timeBased().atHour(hour).nearMinute(0).everyDays(1).create();
+  ScriptApp.newTrigger("monthlyReportJob").timeBased()
+    .atHour(hour).nearMinute(min).everyDays(1).create();
   props.setProperty("AUTO_REPORT_TRIGGER", want);
   return true;
 }
@@ -1062,14 +1099,16 @@ function autoReportStatusText_() {
   const L = [];
   L.push(autoReportOn_() ? "自動送信：する" : "自動送信：しない（設定タブで「はい」に戻せます）");
   L.push("送る日　：毎月 " + autoReportDay_() + "日");
-  L.push("送る時刻：" + autoReportHour_() + "時ごろ");
+  L.push("送る時刻：" + autoReportTimeStr_() + " ごろ（Googleの決まりで15分ほど前後します）");
   L.push("送り先　：" + (to ? "グループLINE（設定ずみ）" : "❌ 未設定（説明タブ Z1）"));
   L.push(n > 0 ? "しかけ　：✅ 入っています（" + n + "個）" : "しかけ　：❌ 入っていません");
   const last = props.getProperty("AUTO_REPORT_SENT");
   L.push("前回送信：" + (last ? last + " のぶん" : "まだありません"));
   L.push("");
+  L.push(dbViewerText_());
+  L.push("");
   if (n > 0 && to && autoReportOn_()) {
-    L.push("毎月 " + autoReportDay_() + "日 の " + autoReportHour_() + "時ごろに、");
+    L.push("毎月 " + autoReportDay_() + "日 の " + autoReportTimeStr_() + " ごろに、");
     L.push("前月" + autoReportDay_() + "日〜当月" + (autoReportDay_() - 1) + "日 のレポートが");
     L.push("グループLINEへ自動で送られます。");
   } else {
@@ -2580,6 +2619,47 @@ function dbOpenTarget_(mainSS) {
  * 記録用スプシを触れる人＝見せたい人、なので、そこから写す。
  * 人が増えても減っても、勝手についてくる。
  */
+/**
+ * まとめスプシを、いま誰が見られるかを文にする。
+ * ついでに、見られるようにし直す（足りない人がいれば足す）。
+ *
+ * ★これを作った理由。
+ *   見る権限は「レポートを作ったとき」にしか付けていなかった。
+ *   そのため、レポートがまだ一度も自動で作られていないうちは、
+ *   本人しか見られない状態のままだった（実際そうなっていた）。
+ *   [8] を押せば、レポートを作らなくても権限だけ直せるようにする。
+ */
+function dbViewerText_() {
+  let dbSS = null, mainSS = null;
+  try {
+    mainSS = SpreadsheetApp.getActiveSpreadsheet();
+    dbSS = dbOpenTarget_(mainSS);
+  } catch (e) {
+    return "まとめスプシ：❌ 開けませんでした（" + (e && e.message ? e.message : e) + "）";
+  }
+  if (!dbSS) return "まとめスプシ：❌ 見つかりません";
+
+  const L = [];
+  let added = "";
+  try { added = dbShareWithTeam_(mainSS, dbSS); } catch (e) { logErr_("dbViewerText", e); }
+
+  let list = [];
+  try {
+    dbSS.getViewers().forEach(function (u) { list.push(String(u.getEmail())); });
+    dbSS.getEditors().forEach(function (u) {
+      const m = String(u.getEmail());
+      if (list.indexOf(m) === -1) list.push(m + "（編集もできます）");
+    });
+  } catch (e) {}
+
+  L.push("まとめスプシ：" + dbSS.getName());
+  L.push("見られる人（" + list.length + "人）");
+  list.forEach(function (m) { L.push("　・" + m); });
+  if (added) L.push("　→ " + added);
+  L.push("※ 「リンクを知っている全員」にはしていません。ここに出ている人だけです。");
+  return L.join("\n");
+}
+
 function dbShareWithTeam_(mainSS, dbSS) {
   try {
     if (typeof cfg_ === "function" && String(cfg_("まとめスプシを同じ人に見せる") || "はい").indexOf("いいえ") === 0) return "";

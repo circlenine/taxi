@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C033ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C034ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,13 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C034ver]
+ *   ・自動送信の時刻を「時」だけでなく「分」でも決められるようにした
+ *     設定に「自動送信の時刻（分）」を足し、既定を 5時30分 にした
+ *   ・設定を1つ書き換える道（cfgSet_）を足した
+ *     決まりそのものを変えたときの引っ越しに使う。1回きりの印を付けて、
+ *     人が入れた値を勝手に上書きしないようにする
  *
  *  [C033ver]
  *   ・LINEに「なおして」と打つと、そうさボタンの見張りを入れ直すようにした
@@ -527,8 +534,10 @@ const SETTINGS_DEFS = [
     help: "「いいえ」にすると、毎月の自動送信を止めます" },
   { key: "自動送信する日（毎月）",     def: 16,   kind: "num",
     help: "毎月この日に、前月この日〜前日ぶんのレポートをグループLINEへ送ります" },
-  { key: "自動送信の時刻（時）",       def: 7,    kind: "num",
-    help: "0〜23。7なら朝7時ごろに送ります（数分ずれることがあります）" },
+  { key: "自動送信の時刻（時）",       def: 5,    kind: "num",
+    help: "0〜23。5と30なら 朝5時30分ごろに送ります" },
+  { key: "自動送信の時刻（分）",       def: 30,   kind: "num",
+    help: "0〜59。Googleの決まりで15分ほど前後することがあります" },
   { key: "イベントのお知らせは何分前", def: 60,   kind: "num",
     help: "ボタンで「お知らせ」を選んだとき、催しが終わる何分前に知らせるか。" +
           "5〜300で指定します（既定は60分前）" },
@@ -573,6 +582,32 @@ function cfgLoad_() {
     }
   } catch (e) { /* 設定が読めなくても、初期値で動けばよい */ }
   return _cfgCache;
+}
+
+/**
+ * 設定を1つ書き換える。
+ *
+ * ★いままで設定は「読む」だけで、コード側から書き換える道が無かった。
+ *   そのため、決まりを変えても各自がシートを直すまで効かなかった。
+ *   使うのは、決まりそのものを変えたとき（引っ越し）だけ。
+ *   人が入れた値を勝手に上書きしないよう、呼ぶ側で1回きりの印を付けること。
+ */
+function cfgSet_(key, value) {
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETTINGS_TAB);
+    if (!sh) return false;
+    const last = sh.getLastRow();
+    if (last < 2) return false;
+    const rows = sh.getRange(2, 2, last - 1, 2).getValues();
+    for (let i = 0; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === key) {
+        sh.getRange(2 + i, 3).setValue(value);
+        _cfgCache = null; _cfgVal = {};      // 読み直させる
+        return true;
+      }
+    }
+  } catch (e) { logErr_("cfgSet", e); }
+  return false;
 }
 
 /** 設定を1つ取る。空欄・読めない値なら初期値 */

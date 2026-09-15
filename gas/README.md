@@ -6,9 +6,9 @@
 
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
-| **C** | `001-Code.gs`（統合スクリプト） | C033ver | `001-Code` |
+| **C** | `001-Code.gs`（統合スクリプト） | C034ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
-| **L** | `003-LineReport.gs` | L024ver | `003-LineReport` |
+| **L** | `003-LineReport.gs` | L025ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W007ver | `004-WebApp` |
 | **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U018ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V009ver | `006-Venue` |
