@@ -1209,10 +1209,10 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U021ver', 'U021ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U022ver', 'U022ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U021ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U022ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -1458,7 +1458,8 @@ console.log('\n■ 見張りが止まったとき、スマホだけで直せる'
   // 「なおして」は “ぜんぶ直す” 合図。ほかのしかけも一緒にそろえる
   vm.runInContext('var fmtArmed = 0; function ensureAutoFormatTrigger_(){ fmtArmed++; return true; }', ctx);
   const text = F('panelRepair_')();
-  has(text, '見張りを入れ直しました', '入れ直したと伝える');
+  has(text, '見張りを立て直しました', '入れ直したと伝える');
+  has(text, '計画通り', '  ユーモアも入れる');
   t(vm.runInContext('fmtArmed', ctx) === 1, '毎日17時の自動チェックも、一緒にそろえる');
   has(text, '17時の自動チェック', '  そう伝える');
   has(text, '最後に動いたのは', '  いつから止まっていたかも出る');

@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C038ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C039ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,12 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C039ver]
+ *   ・LINEの返事に、デスノートのネタを散らした（短いまま）
+ *     計画通り／ジェバンニが一晩で／Lでも解読できません／ワタリが用意しました
+ *     ★命令口調にしない。ネタを知らない人が読んでも、
+ *       ただの丁寧な返事として通じる言い回しだけにする
  *
  *  [C038ver]
  *   ・LINEの返事を、ぜんぶ短くしてジェバンニ調にそろえた
@@ -1522,7 +1528,7 @@ function rememberNewSender_(ev, userId) {
       if (!already) {
         lineReply_(ev.replyToken || "",
           "👋 はじめまして" + (who ? "、" + who + "さん" : "") + "。\n" +
-          "ジェバンニが名簿に書き足しました。記録は「" + UNKNOWN_TAB + "」タブへ。");
+          "ワタリが席を用意しました。記録は「" + UNKNOWN_TAB + "」タブへ。");
       }
       return;
     }
@@ -1531,8 +1537,8 @@ function rememberNewSender_(ev, userId) {
     if (!already) {
       lineReply_(ev.replyToken || "",
         "👋 はじめての方ですね" + (who ? "、" + who + "さん" : "") + "。\n" +
-        "⚠️ 「" + UNKNOWN_TAB + "」の枠は、もう埋まっています。\n" +
-        "記録はいったんそこへ。あなたの枠が決まったら「〇〇登録」と打ってください。");
+        "⚠️ 「" + UNKNOWN_TAB + "」の席は、もう埋まっています。\n" +
+        "記録はいったんそこへ。空き席が決まったら「〇〇登録」と打ってください。");
     }
   } catch (e) { logErr_("rememberNewSender", e); }
 }
@@ -1549,10 +1555,10 @@ function handleSenderRegister_(ev) {
   if (PERSONAL_TABS.indexOf(want) === -1) return false;     // 個人タブの名前だけ受け付ける
 
   const userId = (ev.source && ev.source.userId) || "";
-  if (!userId) { lineReply_(ev.replyToken || "", "IDが取れず、ジェバンニも書けませんでした。"); return true; }
+  if (!userId) { lineReply_(ev.replyToken || "", "IDが取れず、ワタリも手が出せませんでした。"); return true; }
   senderLearn_(userId, want);
   lineReply_(ev.replyToken || "",
-    "✅ ジェバンニが名簿を書き換えました。以後あなたの記録は「" + want + "」タブへ。");
+    "✅ 名簿を書き換えました。以後あなたの記録は「" + want + "」タブへ。計画通り。");
   return true;
 }
 
@@ -1586,7 +1592,7 @@ function handleRepairNote_(ev) {
   } catch (e) {
     text = "入れ直せませんでした：" + (e && e.message ? e.message : e);
   }
-  lineReply_(ev.replyToken || "", "🔧 ジェバンニが見張りを立て直しました\n\n" + text);
+  lineReply_(ev.replyToken || "", "🔧 ワタリが見張りを立て直しました\n\n" + text);
   return true;
 }
 
@@ -1791,7 +1797,7 @@ function dateNoteHelp_(input, why) {
   const yy  = String(now.getFullYear()).slice(-2);       // 例: 26
 
   return [
-    "📅 ジェバンニでも読めませんでした：「" + input + "」",
+    "📅 これは解読不能です：「" + input + "」",
     (why ? "　" + why : ""),
     "",
     "▼ 日付の書き方（どちらでも）",
@@ -1848,7 +1854,7 @@ function handleDateNote_(ev, note) {
   // 「↓0904」＝これから送るスクショの日付。取っておいて、次の画像で使う
   if (!quoted && note.dir === "next") {
     cache.put("PENDDATE_" + uid, dateToYmd_(note.bizDate), 3600);
-    lineReply_(reply, "📅 次のスクショは " + label + " で。ジェバンニが控えました");
+    lineReply_(reply, "📅 次のスクショは " + label + " で。ワタリに伝えておきました");
     return;
   }
 
@@ -1862,13 +1868,13 @@ function handleDateNote_(ev, note) {
 
   let n = 0;
   try { n = fixOpuchaDate_(mid, note.bizDate); }
-  catch (e) { logErr_("fixOpuchaDate", e); lineReply_(reply, "❌ ジェバンニでも直せませんでした\n" + e.message); return; }
+  catch (e) { logErr_("fixOpuchaDate", e); lineReply_(reply, "❌ Lでも直せませんでした\n" + e.message); return; }
 
   if (!n) {
     lineReply_(reply, "📅 直す行が見当たりません。未取込か、消えた行かもしれません");
     return;
   }
-  lineReply_(reply, "📅 ジェバンニが " + label + " に直しました（" + n + "件）");
+  lineReply_(reply, "📅 " + label + " に直しました（" + n + "件）。計画通り。");
 }
 
 /**
@@ -2020,14 +2026,14 @@ function opuchaReplyText_(who, arr, total) {
 
   if (!bad.length) {
     const head = (total <= 1)
-      ? "📷 " + sama + ok + "件、ジェバンニが一瞬でやってくれました"
+      ? "📷 " + sama + ok + "件、取り込みました。計画通り。"
       : "📷 " + sama + "スクショ" + total + "枚（合計" + ok + "件）、ジェバンニが一晩でやってくれました";
     return [head].concat(uniq_(notes)).join("\n");
   }
 
   const lines = [];
   lines.push("📷 " + (sama ? sama + "データ、" : "いただいたデータ、") +
-             "ここだけジェバンニでも読めませんでした。");
+             "ここだけLでも解読できませんでした。");
   lines.push("");
 
   bad.forEach(function (x) {
@@ -2044,7 +2050,7 @@ function opuchaReplyText_(who, arr, total) {
 
   if (ok > 0) lines.push("※ ほか" + ok + "件は取り込みました。");
   uniq_(notes).forEach(function (m) { lines.push(m); });
-  lines.push("時刻・金額・乗り場が写るように撮り直してください。");
+  lines.push("時刻・金額・乗り場が写っていれば、次はいけると思います。");
   return lines.join("\n");
 }
 
