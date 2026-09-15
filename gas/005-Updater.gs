@@ -2,7 +2,14 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U016ver  （2026/09/15）  ★★★
+ *  ★★★  U017ver  （2026/09/15）  ★★★
+ *
+ *  [U017ver]
+ *   ・前の名前のファイルが消えずに残ることがあったのを直した
+ *     更新は変わっていないファイルを読み飛ばすので、
+ *     新しい名前を入れたあとにもう一度押しても
+ *     「これから入ってくるもの」が空になり、前の名前が残り続けていた。
+ *     もう入っているかどうかも見るようにしたので、次に押せば必ず片づく
  *
  *  [U016ver]
  *   ・ボタン [13]「読み取れているものの一覧を見る」を足した
@@ -148,7 +155,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U016ver";
+const UPD_VERSION = "U017ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -1031,14 +1038,22 @@ const UPD_RENAMED = {
   "006-Venue": "006-Events"
 };
 
-/** 名前が変わったせいで要らなくなったファイルの名前をならべる */
+/**
+ * 名前が変わったせいで要らなくなったファイルの名前をならべる。
+ *
+ * ★「これから入ってくる」だけでなく「もう入っている」ときも消す。
+ *   更新は、変わっていないファイルを読み飛ばす作りになっている。
+ *   そのため、新しい名前を入れたあとにもう一度押しても
+ *   「これから入ってくるもの」は空になり、前の名前がずっと残ってしまっていた。
+ *   もう入っているかどうかも見れば、次に押したときに必ず片づく。
+ */
 function updStale_(newFiles, curFiles) {
   const coming = {}, have = {}, out = [];
   (newFiles || []).forEach(function (f) { coming[f.name] = 1; });
   (curFiles  || []).forEach(function (f) { have[f.name] = 1; });
   for (const now in UPD_RENAMED) {
     const before = UPD_RENAMED[now];
-    if (coming[now] && have[before] && out.indexOf(before) === -1) out.push(before);
+    if ((coming[now] || have[now]) && have[before] && out.indexOf(before) === -1) out.push(before);
   }
   return out;
 }

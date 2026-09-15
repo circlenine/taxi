@@ -1198,10 +1198,10 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U016ver', 'U016ver になっている');
+t(vm.runInContext('UPD_VERSION', ctx) === 'U017ver', 'U017ver になっている');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U016ver', '状態画面にバージョンが出る');
+has(alerts[0].b, 'U017ver', '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -1412,7 +1412,11 @@ console.log('\n■ ファイル名が変わったときは、前の名前を消�
     === JSON.stringify(['006-Events']),
     '新しい名前が来て、前の名前が残っていれば、それを消す');
   t(stale([{ name: '006-Venue' }], [{ name: '006-Venue' }]).length === 0,
-    'すでに新しい名前になっていれば、消すものは無い');
+    'すでに新しい名前だけになっていれば、消すものは無い');
+  // 読み飛ばしで「これから入ってくるもの」が空でも、両方あるなら片づける
+  t(JSON.stringify(stale([], [{ name: '006-Venue' }, { name: '006-Events' }]))
+    === JSON.stringify(['006-Events']),
+    '前の名前が残ったままなら、次に押したときに消す');
   t(stale([{ name: '001-Code' }], [{ name: '006-Events' }]).length === 0,
     '新しい名前が来ていなければ、前の名前には手を出さない');
   t(stale([], []).length === 0, '空でも落ちない');
