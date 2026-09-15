@@ -215,7 +215,7 @@ t = F('opuchaReplyText_')('ダイスケ', [
 ], 2);
 has(t, 'ダイスケ様データ', '「〇〇様データ」の形で始まる');
 has(t, 'くそっ!!!!やられた!!!!', 'デスノート調で、短く伝える');
-has(t, '死神の目', '  死神ネタも入れる');
+has(t, '死神の目と契約しない限り', '  死神ネタも入れる');
 has(t, '【2枚目】', '何枚目がダメだったか分かる');
 has(t, '乗車不可な時間', '何がダメだったかまで書いてある');
 has(t, 'ほか1件は取り込みました', '通ったぶんも伝える');
@@ -792,6 +792,16 @@ console.log('\n■ 知らないIDの1人目は、自動で ｼﾞﾝ タブの�
   F('handleSenderRegister_')({ replyToken: 'rt4', source: { userId: 'Unew2' },
     message: { text: 'ｶｲﾄ登録' } });
   ok(S('Unew2') === 'ｶｲﾄ', '  「ｶｲﾄ登録」と打てば、そちらに割り当てられる');
+}
+
+console.log('\n■ どっさり取り込めたときだけ、ひとこと足す');
+{
+  const many = F('opuchaReplyText_')('ダイスケ',
+    [{ idx: 1, read: 6, ok: 6, ng: [] }, { idx: 2, read: 6, ok: 6, ng: [] }], 2);
+  has(many, '人間って…面白ォオー!!!!', '10件以上そろったら、そう言う');
+  const few = F('opuchaReplyText_')('ダイスケ',
+    [{ idx: 1, read: 1, ok: 1, ng: [] }, { idx: 2, read: 1, ok: 1, ng: [] }], 2);
+  ok(few.indexOf('面白ォオー') === -1, '少ないときは言わない（毎回だとくどい）');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
