@@ -2,11 +2,20 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V007ver  （2026/09/15）  ★★★
+ *  ★★★  V008ver  （2026/09/15）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V008ver]
+ *   ・イベントの枠そのものを、公式ページへのボタンにした
+ *     下にリンクを別に並べるのはやめた。どのリンクがどの催しのものかを
+ *     目で探させることになるうえ、場所も文字数も食っていた。
+ *     枠の中に「👆 この枠を押すと「〇〇」の公式ページが開きます」と書いて、
+ *     押せることが必ず分かるようにしてある
+ *   ・URLの無い催し（ホテルの資料など）には、案内も行き先も付けない
+ *     押しても何も起きないボタンほど、たちの悪いものはないため
  *
  *  [V007ver]
  *   ・ホームページの読み取りを作った（vnScrapeAll_）
@@ -456,59 +465,29 @@ function vnCard_(ev, idx, day, noBells) {
                 "size": "xxs", "color": "#7b1fa2", "margin": "sm" });
     rows.push(vnBellRow_(ev, idx, day));
   }
-  // 箱ごと押しても、その会場のページが開く（下のボタンと、どちらからでも行ける）
-  if (ev.url) box.action = { "type": "uri", "label": ev.venue, "uri": ev.url };
+  // ★この枠そのものがボタン。押すと、その催しの公式ページが開く。
+  //   下にリンクのボタンを別に並べるのはやめた。
+  //   「どのリンクがどの催しのものか」を目で探させることになるうえ、
+  //   場所も文字数も食う。催しの枠を押せば、その催しのページへ行くのが素直。
+  //   押せることが分からないと意味がないので、必ず案内を出す。
+  if (ev.url) {
+    box.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
+    rows.push({ "type": "box", "layout": "vertical", "backgroundColor": "#ede7f6",
+      "cornerRadius": "md", "paddingAll": "6px", "margin": "sm", "contents": [
+        { "type": "text", "size": "xxs", "color": VN_COLOR_HEAD, "weight": "bold", "wrap": true,
+          "text": "👆 この枠を押すと「" + ev.venue + "」の公式ページが開きます" }
+      ]});
+  }
   return box;
 }
 
 
-/* ============ リンクのボタン ============ */
-/*
- * URLを文字で並べると、それだけで画面が埋まってしまう。
- * 押せるボタンにして、絵の中に入れてしまう（送るのは1通だけで済む）。
- *
- * 大きさは LINE でいちばん小さい "sm"（高さ40px前後）。
- * これより小さくする指定は LINE に無く、あっても指で押しづらくなるので、
- * ここで止めている。横に2つずつ並べて、たてに伸びないようにしている。
- */
+/* ============ ボタンの文字 ============ */
 
-/** ボタンの文字。長い会場名は入りきらないので詰める */
+/** ボタンや行き先の名前。長い会場名は入りきらないので詰める */
 function vnBtnLabel_(name) {
-  const s = String(name || "").replace(/[\s\u3000]/g, "");
-  return s.length > 9 ? s.slice(0, 8) + "…" : (s || "ページ");
-}
-
-/** ボタン1つぶん */
-function vnLinkBtn_(name, url) {
-  return {
-    "type": "box", "layout": "vertical", "flex": 1,
-    "backgroundColor": "#ede7f6", "cornerRadius": "md",
-    "borderWidth": "1px", "borderColor": "#b39ddb",
-    "contents": [{
-      "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD,
-      "action": { "type": "uri", "label": vnBtnLabel_(name), "uri": url }
-    }]
-  };
-}
-
-/** ボタンを、横に2つずつ並べる */
-function vnLinkRows_(events) {
-  const seen = {}, btns = [];
-  (events || []).forEach(function (e) {
-    if (!e.url || seen[e.url]) return;
-    seen[e.url] = true;
-    btns.push(vnLinkBtn_(e.venue, e.url));
-  });
-  const rows = [];
-  for (let i = 0; i < btns.length; i += 2) {
-    const pair = btns.slice(i, i + 2);
-    // 1つだけ余ったときは、右側を空けて幅をそろえる（ボタンが横に伸びない）
-    if (pair.length === 1) {
-      pair.push({ "type": "box", "layout": "vertical", "flex": 1, "contents": [{ "type": "filler" }] });
-    }
-    rows.push({ "type": "box", "layout": "horizontal", "spacing": "sm", "margin": "sm", "contents": pair });
-  }
-  return rows;
+  const t = String(name || "").replace(/[\s\u3000]/g, "");
+  return t.length > 9 ? t.slice(0, 8) + "…" : (t || "ページ");
 }
 
 /**
@@ -522,7 +501,8 @@ function vnBuildMessages_(day, events, note, noBells) {
   contents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f3e5f5",
     "paddingAll": "10px", "cornerRadius": "md", "contents": [
       { "type": "text", "text": "対象は 18:00〜翌04:00 に動きがあるものだけです", "size": "xxs", "color": "#6a1b9a", "wrap": true },
-      { "type": "text", "text": "小さすぎてタクシーに響かないものは省いています", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs" }
+      { "type": "text", "text": "小さすぎてタクシーに響かないものは省いています", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs" },
+      { "type": "text", "text": "👆 各イベントの枠を押すと、その公式ページが開きます", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs", "weight": "bold" }
     ]});
 
   const kinds = [["event", "🎤 イベント"], ["barasi", "🔧 バラシ（搬出）"], ["hotel", "🍽 ホテル宴会"]];
@@ -542,15 +522,6 @@ function vnBuildMessages_(day, events, note, noBells) {
     contents.push({ "type": "text", "text": "この日に、18:00〜翌04:00 で拾えるイベントは見つかりませんでした。",
       "size": "sm", "color": "#666666", "wrap": true, "margin": "lg" });
   }
-  // もとのページへ行けるボタン（文字で並べるとかさばるので、押せる形にする）
-  const links = vnLinkRows_(events);
-  if (links.length) {
-    contents.push({ "type": "separator", "margin": "lg" },
-      { "type": "text", "text": "🔗 もとのページ（押すと開きます）", "size": "xxs",
-        "color": VN_COLOR_SUB, "weight": "bold", "margin": "md" });
-    links.forEach(function (r) { contents.push(r); });
-  }
-
   if (note) {
     contents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": note, "size": "xxs", "color": "#b71c1c", "wrap": true, "margin": "md" });

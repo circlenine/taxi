@@ -150,9 +150,6 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
 
   eq((json.match(/"type":"button"/g) || []).length,
      (json.match(/"height":"sm"/g) || []).length, 'ボタンはどれもいちばん小さい "sm"');
-  eq((json.match(/"uri":"https:\/\/www\.kyoceradome/g) || []).length >= 1, true,
-     'もとのページへのボタンがある');
-  has(json, '🔗 もとのページ', '「もとのページ」の見出しが入る');
   has(json, '"type":"postback"', 'お知らせのボタン（Discord・自分のLINE）が入る');
   has(json, 'vn=cal', 'カレンダーのボタンも入る（リンクは押したあとに返す）');
   eq(json.indexOf('calendar.google.com'), -1,
@@ -160,19 +157,31 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
   eq(json.indexOf('長押しでコピー'), -1, 'URLを文字で並べる通は、もう出さない');
 }
 
-console.log('\n■ ボタンは横に2つずつ。余ったら幅をそろえる');
+console.log('\n■ イベントの枠そのものが、公式ページへのボタン');
 {
-  const rows = ctx.vnLinkRows_([
-    { venue: 'あ', url: 'https://a/' }, { venue: 'い', url: 'https://b/' },
-    { venue: 'う', url: 'https://c/' }
-  ]);
-  eq(rows.length, 2, '3つなら2段');
-  eq(rows[0].contents.length, 2, '1段目は2つ');
-  eq(rows[1].contents[1].contents[0].type, 'filler', '余った右側は空けて幅をそろえる');
-  eq(ctx.vnLinkRows_([{ venue: 'あ', url: 'https://a/' }, { venue: 'い', url: 'https://a/' }]).length, 1,
-     '同じURLは1つにまとめる');
+  const day = new Date(2026, 8, 16);
+  const card = ctx.vnCard_(
+    { venue: '京セラドーム', kind: 'event', icon: '🏟', title: 'コンサート',
+      start: '18:00', end: '21:00', people: 0,
+      url: 'https://www.kyoceradome-osaka.jp/schedule/' }, 0, day);
+  eq(card.action.type, 'uri', '枠を押すとリンクが開く');
+  eq(card.action.uri, 'https://www.kyoceradome-osaka.jp/schedule/', '  その催しのページへ行く');
+  const j = JSON.stringify(card);
+  has(j, '👆 この枠を押すと「京セラドーム」の公式ページが開きます',
+      '押せることが分かる案内が、枠の中に入っている');
+
+  // URLが無い催し（ホテルの資料など）には、案内も行き先も付けない
+  const noUrl = ctx.vnCard_({ venue: '帝国ホテル', kind: 'hotel', title: '周年記念', end: '21:00', url: '' }, 1, day);
+  eq(noUrl.action, undefined, 'URLが無ければ、押しても何も起きないようにする');
+  eq(JSON.stringify(noUrl).indexOf('この枠を押すと'), -1, '  ありもしないページの案内も出さない');
+
   eq(ctx.vnBtnLabel_('パナソニックスタジアム吹田'), 'パナソニックスタ…', '長い名前は詰める');
   eq(ctx.vnBtnLabel_('京セラドーム'), '京セラドーム', '短い名前はそのまま');
+
+  // 絵ぜんたいでも、案内がちゃんと出る
+  const whole = JSON.stringify(ctx.vnFitMessages_(day, ctx.vnSampleEvents_(), '')[0]);
+  has(whole, '👆 各イベントの枠を押すと、その公式ページが開きます', '読み方のところにも書いてある');
+  eq(whole.indexOf('🔗 もとのページ'), -1, 'URLを下にまとめて並べるのは、もうやめた');
 }
 
 console.log('\n■ 1通に入りきらないときは、細かい話から削る');
