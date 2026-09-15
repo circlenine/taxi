@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C036ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C037ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,13 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C037ver]
+ *   ・毎日17時の自動チェックを、確実に入る形にした（ensureAutoFormatTrigger_）
+ *     前はメニューから1回押したときしか作られなかったので、
+ *     消えたり止まったりすると、誰も気づかないまま
+ *     「手打ちが他のタブに反映されない」状態になっていた
+ *   ・はじめての人への案内を、ひとことだけにした
  *
  *  [C036ver]
  *   ・知らないIDの1人目を、その場で自動で ｼﾞﾝ タブの人として覚えるようにした
@@ -1511,9 +1518,7 @@ function rememberNewSender_(ev, userId) {
       if (!already) {
         lineReply_(ev.replyToken || "",
           "👋 はじめまして" + (who ? "、" + who + "さん" : "") + "。\n" +
-          "これからの記録は「" + UNKNOWN_TAB + "」タブに入ります。覚えましたので、" +
-          "こちらで何かしていただく必要はありません。\n\n" +
-          "もし別のタブがよければ、「ﾀﾞｲｽｹ登録」のように打ってください。");
+          "記録は「" + UNKNOWN_TAB + "」タブに入ります。");
       }
       return;
     }
@@ -3595,17 +3600,43 @@ function runFormatAll() {
   return head + body;
 }
 
-/** スマホからでも自動で整形されるように、15分ごとのトリガーを仕掛ける */
+/**
+ * 毎日17時の自動チェックを、確実に1つだけ入れる。
+ *
+ * ★前はメニューから1回押したときしか作られなかった。
+ *   そのため、消えてしまったり、承認が切れて止まったりすると、
+ *   誰も気づかないまま「手打ちが他のタブに反映されない」状態になっていた。
+ *   これからは、直すときにいつでもここを通す。
+ *
+ * 戻り値は true（入れ直した）／false（もう入っていた）。
+ */
+function ensureAutoFormatTrigger_(force) {
+  let cur = [];
+  try {
+    cur = ScriptApp.getProjectTriggers().filter(function (t) {
+      return t.getHandlerFunction() === "autoFormatJob";
+    });
+  } catch (e) { return false; }
+  if (!force && cur.length === 1) return false;
+
+  cur.forEach(function (t) { try { ScriptApp.deleteTrigger(t); } catch (e) {} });
+  try {
+    ScriptApp.newTrigger("autoFormatJob").timeBased()
+      .atHour(17).nearMinute(0).everyDays(1).create();
+    return true;
+  } catch (e) { logErr_("ensureAutoFormat", e); return false; }
+}
+
+/** スマホからでも自動で整形されるように、毎日17時のしかけを入れる */
 function menuInstallTriggers() {
-  const ui = SpreadsheetApp.getUi();
-  ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === "autoFormatJob") ScriptApp.deleteTrigger(t);
-  });
-  ScriptApp.newTrigger("autoFormatJob").timeBased().atHour(17).nearMinute(0).everyDays(1).create();
-  ui.alert("✅ 自動チェックをONにしました。\n\n" +
-           "これ以降は毎日17:00ごろに、並び順・行の高さ・色・他タブへの反映を\n" +
-           "自動で行います。\n\n" +
-           "スマホからでも反映されるので、この操作は初回だけで大丈夫です。");
+  const made = ensureAutoFormatTrigger_(true);
+  try {
+    SpreadsheetApp.getUi().alert(
+      (made ? "✅ 自動チェックをONにしました。" : "⚠️ 入れられませんでした。") + "\n\n" +
+      "毎日17:00ごろに、並び順・行の高さ・色・他タブへの反映を自動で行います。\n" +
+      "スマホからでも反映されるので、この操作は初回だけで大丈夫です。");
+  } catch (e) {}
+  return made ? "✅ 毎日17時の自動チェックを入れました" : "⚠️ 入れられませんでした";
 }
 
 function autoFormatJob() {
