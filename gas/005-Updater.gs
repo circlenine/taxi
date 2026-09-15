@@ -2,7 +2,10 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U011ver  （2026/09/06）  ★★★
+ *  ★★★  U012ver  （2026/09/06）  ★★★
+ *
+ *  [U012ver]
+ *   ・ボタン [9]「イベント情報を調べる」を足した（中身は 006-Events.gs）
  *
  *  [U011ver]
  *   ・[1] が「置き場所が見つかりません」で止まっていたのを直した
@@ -124,7 +127,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U011ver";
+const UPD_VERSION = "U012ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -806,7 +809,10 @@ function panelItems_() {
             "グループ（本番）は、もう一度チェックで確定します" },
     { key: "自動送信の状態",       label: "[8] 自動送信の状態を見る",    fn: "panelAutoReportStatus",
       sec: 20,
-      note: "毎月の自動送信が本当に入っているかを見ます。入っていなければ入れ直します" }
+      note: "毎月の自動送信が本当に入っているかを見ます。入っていなければ入れ直します" },
+    { key: "イベント",             label: "[9] イベント情報を調べる",    fn: "panelEventProbe",
+      sec: 60, stall: 240,
+      note: "大阪城ホールなどのページが、機械で読めるかどうかを実際に確かめます" }
   ];
 }
 
@@ -971,7 +977,8 @@ const PANEL_FROM = {
   menuWebAppSendLineStep: "004-WebApp",
   menuWebAppCheck:    "004-WebApp",
   menuSendReportPanel: "003-LineReport",
-  panelAutoReportStatus: "003-LineReport"
+  panelAutoReportStatus: "003-LineReport",
+  panelEventProbe: "006-Events"
 };
 
 /** その関数がこのプロジェクトに入っているか */
