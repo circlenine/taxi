@@ -2,11 +2,16 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V013ver  （2026/09/16）  ★★★
+ *  ★★★  V014ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V014ver]
+ *   ・LINEの返事を、叫ぶ系のデスノートネタにそろえた
+ *     ノートに書きました。あと〇分…／くそっ!!!!やられた!!!!／
+ *     わ…私は仰せの通りに…／だ…ダメだ…／早くなんとかしないと…
  *
  *  [V013ver]
  *   ・LINEの返事に、デスノートのネタを散らした（短いまま）
@@ -134,7 +139,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V013ver";
+const VN_VERSION = "V014ver";
 
 /**
  * 見にいく先の一覧。
@@ -1093,7 +1098,7 @@ function vnHotelTry_(messageId, base, force) {
 
   // ★ここは雑談のグループに出る。短く、3行で終える
   const sec = Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
-  return "以下のイベント情報をジェバンニが" + sec + "秒で確認しました\n" +
+  return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
          "場所：" + (places.join("・") || "（読み取れず）");
 }
@@ -1141,13 +1146,14 @@ function vnHandleNote_(ev, sentAt) {
     let mid = "";
     try { mid = CacheService.getScriptCache().get("LASTIMG_" + uid) || ""; } catch (e) {}
     if (!mid) {
-      if (typeof lineReply_ === "function") lineReply_(reply, "🔍 ワタリが探しましたが、直前の写真がありません");
+      if (typeof lineReply_ === "function") lineReply_(reply, "🔍 だ…ダメだ…直前の写真がない…");
       return true;
     }
     const msg = vnHotelTry_(mid, sentAt || new Date(), w.force);
     // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える（1行だけ）
     if (typeof lineReply_ === "function") {
-      lineReply_(reply, msg || ("🔍 " + nameOf + "の予定、Lでも解読できませんでした。明るいところなら、いけるかもしれません"));
+      lineReply_(reply, msg || ("🔍 くそっ!!!!やられた!!!!　" + nameOf +
+        "の予定が読めません。明るいところなら、いけるかもしれません"));
     }
     return true;
   }
@@ -1173,7 +1179,8 @@ function vnHandleImage_(ev, sentAt) {
   // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える（1行だけ）
   if (typeof lineReply_ === "function") {
     lineReply_(ev.replyToken || "",
-      msg || ("🔍 " + (hint.force || "ホテル") + "の予定、Lでも解読できませんでした。明るいところなら、いけるかもしれません"));
+      msg || ("🔍 くそっ!!!!やられた!!!!　" + (hint.force || "ホテル") +
+        "の予定が読めません。明るいところなら、いけるかもしれません"));
   }
   return true;
 }
@@ -1532,7 +1539,7 @@ function vnRemAdd_(at, how, to, ev) {
 function vnRemText_(r) {
   const v = VN_VENUES[r.venue] || {};
   const when = r.end ? r.end + " 終了" : (r.start ? r.start + " 開始" : "時間不明");
-  return "⏰ そろそろです。ポテチを食べている場合ではありません\n" +
+  return "⏰ 早くなんとかしないと…\n" +
          "🎪 " + r.venue + (r.title ? "　" + r.title : "") + "\n" +
          "🕒 " + when + "\n" +
          (v.near && v.near.length ? "📍 近い乗り場：" + v.near.join("・") + "\n" : "") +
@@ -1587,16 +1594,16 @@ function vnHandlePostback_(ev) {
   const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
 
   const ymd = String(q.d || "");
-  if (!/^\d{8}$/.test(ymd)) { say("どの日のことか、Lにも分かりませんでした"); return true; }
+  if (!/^\d{8}$/.test(ymd)) { say("わけがわからない…　どの日のことでしょう"); return true; }
   const day = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)));
   const list = vnDayLoad_(day);
   const item = list[Number(q.i)];
-  if (!item) { say("その催しが見つかりませんでした"); return true; }
+  if (!item) { say("だ…ダメだ…その催しが見つからない…"); return true; }
 
   // ⏰ カレンダー … リンクを返事で送る（ボタンに直接入れると長すぎるため）
   if (q.vn === "cal") {
     const v = VN_VENUES[item.venue] || {};
-    say("⏰ ワタリが予定表を用意しました\n" +
+    say("⏰ わ…私は仰せの通りに…\n" +
         "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
         "🕒 " + ([item.start, item.end].filter(String).join("〜") || "時間不明") + "\n" +
         (v.near && v.near.length ? "📍 " + v.near.join("・") + "\n" : "") +
@@ -1605,7 +1612,7 @@ function vnHandlePostback_(ev) {
   }
 
   const at = vnRemindAt_(item, day);
-  if (!at) { say("時間が分からないので、リュークも動けません"); return true; }
+  if (!at) { say("⏰ だ…ダメだ…時間が分からない…"); return true; }
 
   const lead = vnLeadMin_();
   const base = item.end ? "終わり" : "始まり";
@@ -1616,18 +1623,20 @@ function vnHandlePostback_(ev) {
     const err = (q.vn === "dc") ? vnDiscord_(vnRemText_(r))
               : (typeof lrPush_ === "function" && r.to) ? (lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]), "")
               : "送り先が分かりませんでした";
-    say(err ? "⚠️ " + err : "⏰ もう時間です。いまお届けしました。計画通り。");
+    say(err ? "⚠️ " + err : "⏰ 遅い!!!! …が、いま届けました。計★画★通★り");
     return true;
   }
 
   const to = (q.vn === "dc") ? "discord" : ((ev.source && ev.source.userId) || "");
-  if (q.vn === "me" && !to) { say("あなたの送り先が分かりませんでした"); return true; }
+  if (q.vn === "me" && !to) { say("うわあああ!!!! 送り先が分からない!!!!"); return true; }
   const added = vnRemAdd_(at, q.vn, to, item);
   const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
+  const mins = Math.max(1, Math.round((at - Date.now()) / 60000));
   say(added
-    ? "⏰ リュークが " + hhmm + " に起こしに行きます（" + item.venue + " の" + base + "の" + lead + "分前）" +
-      (q.vn === "dc" ? "／Discordへ" : "／あなたのLINEへ")
-    : "⏰ それはもうノートに書いてあります");
+    ? "⏰ ノートに書きました。あと" + mins + "分…\n" +
+      hhmm + " に" + (q.vn === "dc" ? "Discordへ" : "あなたのLINEへ") +
+      "（" + item.venue + " の" + base + "の" + lead + "分前）"
+    : "⏰ それはもうノートに書いてある");
   return true;
 }
 

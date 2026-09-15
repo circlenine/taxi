@@ -222,7 +222,7 @@ console.log('\n■ ホテルの資料は、オプチャと取り違えない');
   has(ctx.lastReply, '件数：1件', '  件数が出る');
   has(ctx.lastReply, '場所：帝国ホテル', '  場所が出る');
   eq(ctx.lastReply.split('\n').length, 3, '  3行だけ（ポンポン喋らない）');
-  eq(/ジェバンニが[0-9.]+秒で確認しました/.test(ctx.lastReply), true, '  読み取りにかかった秒数も出る');
+  eq(/ジェバンニが[0-9.]+秒でやってくれました/.test(ctx.lastReply), true, '  読み取りにかかった秒数も出る');
 
   // ③ 合図が無ければ、写真には手を出さない（今までどおりオプチャ）
   eq(ctx.vnHandleImage_({ message: { id: 'm2' }, source: { userId: 'U9' } }, new Date()), false,
@@ -383,7 +383,7 @@ console.log('\n■ 「↑帝国」は、直前に送った写真を読み直す'
   delete cache['LASTIMG_U4'];
   ctx.lastReply = '';
   ctx.vnHandleNote_({ message: { text: '↑ホテル' }, source: { userId: 'U4' }, replyToken: 'r' }, new Date());
-  has(ctx.lastReply, '直前の写真がありません', '直前の写真が無ければ、そう伝える');
+  has(ctx.lastReply, '直前の写真がない', '直前の写真が無ければ、そう伝える');
 }
 
 console.log('\n■ 合図を出したのに読めなかったときは、黙らずに伝える');
@@ -394,7 +394,7 @@ console.log('\n■ 合図を出したのに読めなかったときは、黙ら�
   ctx.vnHandleNote_({ message: { text: '↓帝国' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
   ctx.lastReply = '';
   ctx.vnHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
-  has(ctx.lastReply, 'Lでも解読できませんでした', '自分で合図を出したぶんは、読めなくても伝える');
+  has(ctx.lastReply, 'くそっ!!!!やられた!!!!', '自分で合図を出したぶんは、読めなくても伝える');
   has(ctx.lastReply, '帝国ホテル', '  どのホテルのことかも分かる');
   eq(ctx.lastReply.split('\n').length, 1, '  それも1行だけ');
 }
@@ -552,13 +552,14 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(took, true, 'ボタンはこの受け口が扱う');
   has(ctx.lastReply, '20:00', '21:00の60分前＝20:00にお知らせすると返す');
-  has(ctx.lastReply, 'リューク', '  デスノート調で返す');
+  has(ctx.lastReply, 'ノートに書きました', '  デスノート調で返す');
+  eq(/あと[0-9]+分…/.test(ctx.lastReply), true, '  あと何分かも出る');
   eq(JSON.parse(props['VN_REMIND']).length, 1, '予約が1つ入る');
 
   ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(JSON.parse(props['VN_REMIND']).length, 1, '同じものを二度押しても、二重にならない');
-  has(ctx.lastReply, 'もうノートに書いてあります', '  そう伝える');
+  has(ctx.lastReply, 'もうノートに書いてある', '  そう伝える');
 
   // 時間になったら送る
   pushed.length = 0;
