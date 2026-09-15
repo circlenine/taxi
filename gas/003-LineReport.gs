@@ -4,6 +4,14 @@
  *
  *  ★★★  L027ver  （2026/09/16）  ★★★
  *
+ *  [L028ver]
+ *   ・まとめスプシの行き先を、3か所から順に試すようにした
+ *     前は最初の1つがダメなだけで、そこで投げて終わっていた。
+ *     控えが1つ壊れていても、残りで開ければ止まらない。
+ *     開けたものは3か所ぜんぶに書き直すので、次からは1発で開ける
+ *   ・IDの取り出しを infoIdOf_ に任せた
+ *     見出し・URL・空白・改行が混ざっていてもIDだけ取り出す
+ *
  *  [L027ver]
  *   ・レポートが1通も届かなかったのを直した（400 invalid）
  *     「一晩の流し方」で、中身が空の span を作っていた。
@@ -295,7 +303,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L027ver";
+const LR_VERSION = "L028ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -721,8 +729,13 @@ function executeManualReportFromUI(val, isTest) {
 
 /** 「まず自分だけ」のときの宛先 */
 function rpTestTarget_() {
+  const ok = function (raw) {
+    return (typeof isLineTarget_ === "function")
+      ? isLineTarget_(raw)
+      : String(raw || "").replace(/[\s\u3000]+/g, "");
+  };
   try {
-    const v = String(cfg_("テスト送信先（自分のLINE）") || "").trim();
+    const v = ok(cfg_("テスト送信先（自分のLINE）"));
     if (v) return v;
   } catch (e) {}
   try {
@@ -733,12 +746,20 @@ function rpTestTarget_() {
 
 /** グループLINEの宛先（説明タブ I列・非表示） */
 function rpGroupTarget_() {
+  // ★宛先は「形が正しいものだけ」を返す。
+  //   見出しや改行が混ざったままLINEに渡すと 400/404 になり、
+  //   しかも何が悪いのか分からないエラーしか出ない。
+  const ok = function (raw) {
+    return (typeof isLineTarget_ === "function")
+      ? isLineTarget_(raw)
+      : String(raw || "").replace(/[\s\u3000]+/g, "");
+  };
   try {
-    const v = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    const v = ok((typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "");
     if (v) return v;
   } catch (e) {}
-  // 説明タブが空でも、LINEから届いたときに覚えたものがあれば、それを使う
-  try { return String(PropertiesService.getScriptProperties().getProperty("GROUP_ID") || "").trim(); }
+  // 説明タブが空・壊れていても、LINEから届いたときに覚えたものがあれば、それを使う
+  try { return ok(PropertiesService.getScriptProperties().getProperty("GROUP_ID")); }
   catch (e) { return ""; }
 }
 
@@ -2631,32 +2652,37 @@ function dbTidy_(text) {
  * リポジトリに他人のスプレッドシートの場所を残したくないため。
  */
 function dbOpenTarget_(mainSS) {
-  const desc = mainSS.getSheetByName("説明");
   const props = PropertiesService.getScriptProperties();
-  let id = "";
-  try { if (typeof cfg_ === "function") id = String(cfg_("まとめスプシのID") || "").trim(); } catch (e) {}
-  if (!id && typeof infoGet_ === "function") id = infoGet_(INFO_ROW.DASHBOARD);
-  // セルは消えることがある（行を消した・シートを作り直した など）。
-  // 実際それで毎回あたらしいスプシが作られてしまっていたので、
-  // スクリプト自身の控えからも探す。こちらはシートを触っても消えない
-  if (!id) id = String(props.getProperty("DASHBOARD_ID") || "").trim();
 
-  // URLを貼られてもいいように、IDだけ取り出す
-  const m = id.match(/\/d\/([a-zA-Z0-9-_]{20,})/);
-  if (m) id = m[1];
+  // ★行き先の控えは3か所ある。1つが壊れていても止まらないよう、順に試す。
+  //   前は最初の1つがダメなだけで、そこで投げて終わっていた。
+  //   （見出し付きで保存されていたIDを、そのまま使って落ちた）
+  const cands = [];
+  const add = function (raw, from) {
+    const id = (typeof infoIdOf_ === "function") ? infoIdOf_(raw) : String(raw || "").trim();
+    if (id && !cands.some(function (c) { return c.id === id; })) cands.push({ id: id, from: from });
+  };
+  try { if (typeof cfg_ === "function") add(cfg_("まとめスプシのID"), "設定タブ"); } catch (e) {}
+  try { if (typeof infoGet_ === "function") add(infoGet_(INFO_ROW.DASHBOARD), "説明タブ I2"); } catch (e) {}
+  add(props.getProperty("DASHBOARD_ID"), "スクリプトの控え");
 
-  if (id) {
+  const why = [];
+  for (let i = 0; i < cands.length; i++) {
     try {
-      const ss = SpreadsheetApp.openById(id);
-      // 次からは必ずここへ作る。3か所に控えておき、1つ消えても迷子にならないようにする
-      infoSet_(INFO_ROW.DASHBOARD, id, "まとめスプシID");
-      props.setProperty("DASHBOARD_ID", id);
+      const ss = SpreadsheetApp.openById(cands[i].id);
+      // 開けたものを、3か所ぜんぶに書き直しておく（次からは1発で開ける）
+      try { infoSet_(INFO_ROW.DASHBOARD, cands[i].id, "まとめスプシID"); } catch (e) {}
+      props.setProperty("DASHBOARD_ID", cands[i].id);
       return ss;
     } catch (e) {
-      throw new Error("まとめスプシを開けませんでした（ID: " + id.slice(0, 12) + "…）。\n" +
-        "設定タブの「まとめスプシのID」に、正しいURLが入っているか確かめてください。\n" +
-        "（元のエラー: " + (e && e.message ? e.message : e) + "）");
+      why.push("・" + cands[i].from + "（" + cands[i].id.slice(0, 12) + "…）：" +
+               (e && e.message ? e.message : e));
     }
+  }
+  if (cands.length) {
+    throw new Error("まとめスプシを開けませんでした。\n" + why.join("\n") + "\n\n" +
+      "設定タブの「まとめスプシのID」に、まとめスプシのURLを貼り直してください。\n" +
+      "（URLをまるごと貼って大丈夫です）");
   }
   // ここに来るのは、行き先がどこにも残っていないときだけ。
   // 1回作ったら、次からは必ず同じものに追記する

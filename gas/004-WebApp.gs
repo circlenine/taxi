@@ -2,11 +2,14 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W008ver  （2026/09/16）  ★★★
+ *  ★★★  W009ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
+ *
+ *  [W009ver] グループの宛先を、形を確かめてから使うようにした
+ *   ・見出しが混ざったままLINEに渡すと、理由の分からない400になる
  *
  *  [W008ver] 説明タブの控えらんを Y・Z列 → I列（非表示）に移した
  *   ・説明タブは J列から先を消したので、Y・Z には書けなくなっていた
@@ -43,7 +46,7 @@
  * ================================================================
  */
 
-const WB_VERSION = "W008ver";
+const WB_VERSION = "W009ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
@@ -434,7 +437,9 @@ function wbTestTarget_() {
 /** グループの宛先（説明タブ I列・非表示） */
 function wbGroupTarget_() {
   try {
-    return (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    if (typeof rpGroupTarget_ === "function") return rpGroupTarget_();
+    const v = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    return (typeof isLineTarget_ === "function") ? isLineTarget_(v) : v;
   } catch (e) { return ""; }
 }
 

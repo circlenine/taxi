@@ -804,5 +804,85 @@ console.log('\n■ どっさり取り込めたときだけ、ひとこと足す'
   ok(few.indexOf('面白ォオー') === -1, '少ないときは言わない（毎回だとくどい）');
 }
 
+console.log('\n■ 控えらん（説明タブ I列）の読み書き');
+{
+  const V = F('infoValue_'), I = F('infoIdOf_'), T = F('isLineTarget_');
+
+  // ★ここを間違えて、レポートが作れなくなった。見出しは必ず外す
+  ok(V('【まとめスプシID】\n1Y7S2X-F_VZBX20e5jLNOAMNngEWX0F7xvIe8kMARcHM')
+     === '1Y7S2X-F_VZBX20e5jLNOAMNngEWX0F7xvIe8kMARcHM', '見出しを外して中身だけにする');
+  ok(V('1Y7S2X-F_VZBX20e5jLNOAMNngEWX0F7xvIe8kMARcHM')
+     === '1Y7S2X-F_VZBX20e5jLNOAMNngEWX0F7xvIe8kMARcHM', '見出しが無くてもそのまま通る');
+  ok(V('  【あ】  \n  なかみ  ') === 'なかみ', '前後の空白も落とす');
+  ok(V('') === '' && V(null) === '' && V(undefined) === '', '空・null でも落ちない');
+  ok(V('【あ】のこり【い】') === 'のこり【い】', '先頭の見出しだけ外す（中身の【】は残す）');
+
+  // IDの取り出し
+  const ID = '1Y7S2X-F_VZBX20e5jLNOAMNngEWX0F7xvIe8kMARcHM';
+  ok(I(ID) === ID, 'IDそのもの');
+  ok(I('【まとめスプシID】\n' + ID) === ID, '見出し付き');
+  ok(I('https://docs.google.com/spreadsheets/d/' + ID + '/edit?usp=drivesdk') === ID, 'URLまるごと');
+  ok(I('【まとめスプシID】\nhttps://docs.google.com/spreadsheets/d/' + ID + '/edit') === ID,
+     '見出し付きのURL');
+  ok(I(' ' + ID + ' \n') === ID, '前後の空白・改行');
+  ok(I('あいうえお') === '', 'IDでないものは使わない');
+  ok(I('') === '' && I(null) === '', '空でも落ちない');
+  ok(I('短すぎID123') === '', '短すぎるものも使わない');
+
+  // LINEの宛先
+  const UID = 'U' + '0123456789abcdef'.repeat(2);
+  ok(T(UID) === UID, 'ユーザーの宛先');
+  ok(T('C' + '0123456789abcdef'.repeat(2)).charAt(0) === 'C', 'グループの宛先');
+  ok(T('【グループID】\n' + UID) === UID, '見出しが混ざっていても取り出す');
+  ok(T(UID + '\n') === UID, '改行が付いていても取り出す');
+  ok(T('【グループID】') === '', '見出しだけなら、宛先として使わない');
+  ok(T('Cgroup123') === 'Cgroup123', 'きつくしすぎない（LINE側の決まりが変わっても弾かない）');
+  ok(T('あいうえお') === '', 'U／C／R で始まらないものは使わない');
+  ok(T('【グループID】\nCxxx') === '', '見出しだけ外れて中身が短ければ使わない');
+  ok(T('') === '' && T(null) === '', '空でも落ちない');
+}
+
+console.log('\n■ 書いたものが、そのまま読めるか（往復）');
+{
+  // 説明タブの偽物。I列（9列目）に書き、そこから読む
+  const cells = {};
+  const realSS = ctx.SpreadsheetApp;
+  ctx.SpreadsheetApp = { getActiveSpreadsheet: () => ({
+    getSheetByName: n => (n === '説明') ? {
+      getMaxColumns: () => 9, getMaxRows: () => 50,
+      getRange: (r, c) => ({
+        setValue: v => { cells[r + ',' + c] = String(v); },
+        getValue: () => (cells[r + ',' + c] === undefined ? '' : cells[r + ',' + c])
+      })
+    } : null }) };
+
+  const ID = '1Y7S2X-F_VZBX20e5jLNOAMNngEWX0F7xvIe8kMARcHM';
+  const ROW = vm.runInContext('INFO_ROW.DASHBOARD', ctx);
+  F('infoSet_')(ROW, ID, 'まとめスプシID');
+  has(cells[ROW + ',9'], '【まとめスプシID】', '見出し付きでセルに書かれる');
+  has(cells[ROW + ',9'], ID, '  中身も入っている');
+  ok(F('infoGet_')(ROW) === ID, '読むと、見出しが外れて中身だけになる');
+  ok(F('infoIdOf_')(F('infoGet_')(ROW)) === ID, '  IDとしてもそのまま使える');
+
+  // 見出し無しで書いたものも、そのまま読める
+  const G = vm.runInContext('INFO_ROW.GROUP', ctx);
+  F('infoSet_')(G, 'Cffffffffffffffffffffffffffffffff');
+  ok(F('infoGet_')(G) === 'Cffffffffffffffffffffffffffffffff', '見出し無しでも読める');
+
+  // 何も書いていない行は空
+  ok(F('infoGet_')(vm.runInContext('INFO_ROW.READ', ctx)) === '', '空の行は空が返る');
+
+  ctx.SpreadsheetApp = realSS;
+}
+
+console.log('\n■ 説明タブが無くても落ちない');
+{
+  const realSS = ctx.SpreadsheetApp;
+  ctx.SpreadsheetApp = { getActiveSpreadsheet: () => ({ getSheetByName: () => null }) };
+  ok(F('infoGet_')(1) === '', '説明タブが無ければ空を返す');
+  ok(F('infoSet_')(1, 'あ', 'い') === false, '書けなければ false を返す（落ちない）');
+  ctx.SpreadsheetApp = realSS;
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

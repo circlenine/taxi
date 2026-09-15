@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C041ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C042ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,17 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C042ver]
+ *   ・控えらん（I列）を読むとき、見出しを外していなかったのを直した
+ *     書くときに「【まとめスプシID】」と付けているのに、読むときは
+ *     そのままだったので、見出しごとIDとして使って落ちていた
+ *     （Illegal spreadsheet id or key: 【まとめスプシID】1Y7S2X…）
+ *   ・同じ取り違えが二度と起きないよう、取り出し口をそろえた
+ *     infoValue_ … 見出しを外して中身だけにする
+ *     infoIdOf_  … URL・見出し・空白が混ざっていてもIDだけ取り出す。
+ *                  形が違うものは使わない（空を返す）
+ *     isLineTarget_ … LINEの宛先の形（U/C/R＋32文字）かを確かめる
  *
  *  [C041ver]
  *   ・読めなかったときの一言を
@@ -563,6 +574,20 @@ function infoSheet_() {
 }
 
 /**
+ * 控えらんの中身だけを取り出す。
+ *
+ * ★書くときに「【まとめスプシID】」のような見出しを付けているので、
+ *   読むときは必ず外すこと。
+ *   外し忘れて、見出しごとIDとして使い、レポートが作れなくなった。
+ *   （Illegal spreadsheet id or key: 【まとめスプシID】1Y7S2X…）
+ */
+function infoValue_(raw) {
+  let v = String(raw == null ? "" : raw);
+  v = v.replace(/^[\s\u3000]*【[^】]*】[\s\u3000]*\r?\n?/, "");   // 先頭の見出しを落とす
+  return v.trim();
+}
+
+/**
  * 控えらんを読む。
  * 昔は Y・Z列に置いていたので、I列が空ならそちらも見る（引っ越しのあいだだけ）。
  */
@@ -570,16 +595,52 @@ function infoGet_(row) {
   const sh = infoSheet_();
   if (!sh) return "";
   try {
-    const v = String(sh.getRange(row, INFO_COL).getValue() || "").trim();
+    const v = infoValue_(sh.getRange(row, INFO_COL).getValue());
     if (v) return v;
   } catch (e) {}
   // 古い置き場（Z列）。列が消されていれば読めないので、黙って空を返す
   try {
-    if (sh.getMaxColumns() >= 26) {
-      return String(sh.getRange(row, 26).getValue() || "").trim();
-    }
+    if (sh.getMaxColumns() >= 26) return infoValue_(sh.getRange(row, 26).getValue());
   } catch (e) {}
   return "";
+}
+
+/**
+ * どんな形で入っていても、スプレッドシートのIDだけを取り出す。
+ *
+ * 通るもの：
+ *   ・IDそのもの
+ *   ・URL まるごと（https://docs.google.com/spreadsheets/d/〇〇/edit…）
+ *   ・見出し付き（【まとめスプシID】\n〇〇）
+ *   ・前後に空白・改行・全角スペースが付いたもの
+ * 通らないもの（空を返す）：
+ *   ・見るからにIDでないもの（短すぎる・記号が混じっている）
+ */
+function infoIdOf_(raw) {
+  let v = infoValue_(raw).replace(/[\s\u3000]+/g, "");
+  if (!v) return "";
+  const m = v.match(/\/d\/([A-Za-z0-9_-]{20,})/);      // URLならIDを抜く
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{20,}$/.test(v) ? v : "";      // 形が違うものは使わない
+}
+
+/**
+ * LINEの宛先として使える形に整える。使えなければ空を返す。
+ *
+ * ★きつくしすぎないこと。
+ *   本物のIDは「U／C／R ＋ 32文字」だが、そこまで決めつけると、
+ *   LINE側の決まりが変わった日に、正しい宛先まで弾いて
+ *   1通も送れなくなる。それは今より悪い。
+ *   ここで弾きたいのは「見出しが混ざった」「空」「改行が入った」ような、
+ *   明らかに宛先ではないものだけ。
+ */
+function isLineTarget_(raw) {
+  const v = infoValue_(raw).replace(/[\s\u3000]+/g, "");
+  if (!v) return "";
+  if (/[【】]/.test(v)) return "";                  // 見出しが残っている
+  if (!/^[UCR]/.test(v)) return "";                // LINEの宛先は U／C／R で始まる
+  if (v.length < 8) return "";                     // 短すぎるものは宛先ではない
+  return v;
 }
 
 /** 控えらんに書く。label を付けると「名前：中身」の形になる */

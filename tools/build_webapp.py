@@ -10,9 +10,12 @@ Apps Script では HTML を別ファイルに置くこともできるが、
 """
 import pathlib, re, sys, datetime
 
-VERSION = "W008ver"
+VERSION = "W009ver"
 DATE = "2026/09/16"
-CHANGELOG = """ *  [W008ver] 説明タブの控えらんを Y・Z列 → I列（非表示）に移した
+CHANGELOG = """ *  [W009ver] グループの宛先を、形を確かめてから使うようにした
+ *   ・見出しが混ざったままLINEに渡すと、理由の分からない400になる
+ *
+ *  [W008ver] 説明タブの控えらんを Y・Z列 → I列（非表示）に移した
  *   ・説明タブは J列から先を消したので、Y・Z には書けなくなっていた
  *   ・ページURLは I3、最後の診断は I4、グループIDは I1
  *

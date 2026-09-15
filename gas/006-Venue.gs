@@ -2,11 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V015ver  （2026/09/16）  ★★★
+ *  ★★★  V016ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V016ver]
+ *   ・グループの宛先も、形を確かめてから使うようにした
+ *     見出しが混ざったままLINEに渡すと、理由の分からない400になるため
  *
  *  [V015ver]
  *   ・イベントの絵にも、送る前の掃除（lrClean_）をかけた
@@ -143,7 +147,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V015ver";
+const VN_VERSION = "V016ver";
 
 /**
  * 見にいく先の一覧。
@@ -658,7 +662,8 @@ function vnTestTarget_() {
 function vnGroupTarget_() {
   if (typeof rpGroupTarget_ === "function") return rpGroupTarget_();
   try {
-    return (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    const v = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    return (typeof isLineTarget_ === "function") ? isLineTarget_(v) : v;
   } catch (e) { return ""; }
 }
 

@@ -404,7 +404,9 @@ function wbTestTarget_() {
 /** グループの宛先（説明タブ I列・非表示） */
 function wbGroupTarget_() {
   try {
-    return (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    if (typeof rpGroupTarget_ === "function") return rpGroupTarget_();
+    const v = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
+    return (typeof isLineTarget_ === "function") ? isLineTarget_(v) : v;
   } catch (e) { return ""; }
 }
 

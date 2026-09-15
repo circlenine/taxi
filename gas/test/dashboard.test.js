@@ -1,0 +1,133 @@
+/**
+ * まとめスプシの行き先さがし（dbOpenTarget_）を確かめる。
+ *   実行: node gas/test/dashboard.test.js
+ *
+ * ★ここが1回こけただけでレポートが作れなくなり、
+ *   「まとめスプシを開けませんでした」で止まった。
+ *   控えが1つ壊れていても、残りで開ければ止まらないことを確かめる。
+ */
+const fs = require('fs'), path = require('path'), vm = require('vm');
+const ctx = { console };
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'gas-globals.js'), 'utf8'), ctx);
+vm.runInContext('function logErr_(){}', ctx);
+
+const ID_OK  = '1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const ID_BAD = '1BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
+
+let props = {};
+ctx.PropertiesService = { getScriptProperties: () => ({
+  getProperty: k => (k in props ? props[k] : null),
+  setProperty: (k, v) => { props[k] = String(v); },
+  deleteProperty: k => { delete props[k]; } }) };
+
+let cfgVals = {}, infoVals = {}, opened = [], created = 0;
+vm.runInContext('function cfg_(k){ return cfgGet(k); }', ctx);
+ctx.cfgGet = k => (k in cfgVals ? cfgVals[k] : '');
+
+// 001-Code.gs の「控えらん」の写し（このテストは 003 しか読み込まないため）
+vm.runInContext(`
+  var INFO_COL = 9;
+  var INFO_ROW = { GROUP:1, DASHBOARD:2, WEBAPP:3, DIAG:4, UPDATE:5, AUTO:6, EVENT:7, READ:8, NEWIDS:9 };
+  function infoValue_(raw) {
+    var v = String(raw == null ? "" : raw);
+    v = v.replace(/^[\\s\\u3000]*【[^】]*】[\\s\\u3000]*\\r?\\n?/, "");
+    return v.trim();
+  }
+  function infoGet_(row) { return infoValue_(infoRead(row)); }
+  function infoSet_(row, value, label) { infoWrite(row, label ? "【" + label + "】\\n" + value : value); return true; }
+  function infoIdOf_(raw) {
+    var v = infoValue_(raw).replace(/[\\s\\u3000]+/g, "");
+    if (!v) return "";
+    var m = v.match(/\\/d\\/([A-Za-z0-9_-]{20,})/);
+    if (m) return m[1];
+    return /^[A-Za-z0-9_-]{20,}$/.test(v) ? v : "";
+  }`, ctx);
+ctx.infoRead = r => (r in infoVals ? infoVals[r] : '');
+ctx.infoWrite = (r, v) => { infoVals[r] = String(v); };
+
+ctx.SpreadsheetApp = {
+  openById: id => {
+    opened.push(id);
+    if (id !== ID_OK) throw new Error('Illegal spreadsheet id or key: ' + id);
+    return { _id: id, getSheetByName: () => null, getSheets: () => [], getName: () => 'まとめ' };
+  },
+  create: () => { created++; return { getId: () => 'NEWNEWNEWNEWNEWNEWNEWNEWNEWNEW111',
+    getSheets: () => [], deleteSheet: () => {}, getSheetByName: () => null }; },
+  flush: () => {},
+  getUi: () => { throw new Error('no ui'); }
+};
+
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8'), ctx);
+
+let fail = 0;
+const ok = (cond, msg, extra) => {
+  if (!cond) { fail++; console.log('NG  ', msg, extra === undefined ? '' : '… 実際: ' + JSON.stringify(extra)); }
+  else console.log('ok  ', msg);
+};
+const reset = () => { props = {}; cfgVals = {}; infoVals = {}; opened = []; created = 0; };
+const mainSS = { getSheetByName: () => null };
+
+console.log('■ 見出し付きで保存されていても、開ける');
+{
+  reset();
+  // ★これが今回の事故そのもの。「【まとめスプシID】\n〇〇」が入っていた
+  infoVals[2] = '【まとめスプシID】\n' + ID_OK;
+  const ss = ctx.dbOpenTarget_(mainSS);
+  ok(ss && ss._id === ID_OK, '見出しを外して開ける', opened);
+  ok(props['DASHBOARD_ID'] === ID_OK, '  開けたIDを控えに書き直す');
+  ok(infoVals[2].indexOf(ID_OK) !== -1, '  説明タブにも書き直す');
+  ok(created === 0, '  新しいスプシは作らない');
+}
+
+console.log('\n■ 控えが1つ壊れていても、残りで開ける');
+{
+  reset();
+  cfgVals['まとめスプシのID'] = ID_BAD;      // 設定タブが壊れている
+  props['DASHBOARD_ID'] = ID_OK;             // 控えは生きている
+  const ss = ctx.dbOpenTarget_(mainSS);
+  ok(ss && ss._id === ID_OK, '次の候補で開ける', opened);
+  ok(opened.length === 2, '  壊れたほうも一度は試す');
+  ok(created === 0, '  新しいスプシは作らない');
+}
+
+console.log('\n■ URLをまるごと貼ってあっても開ける');
+{
+  reset();
+  cfgVals['まとめスプシのID'] = 'https://docs.google.com/spreadsheets/d/' + ID_OK + '/edit?usp=drivesdk';
+  ok(ctx.dbOpenTarget_(mainSS)._id === ID_OK, 'URLからIDを取り出して開ける');
+}
+
+console.log('\n■ 同じIDを2回試さない');
+{
+  reset();
+  cfgVals['まとめスプシのID'] = ID_BAD;
+  infoVals[2] = '【まとめスプシID】\n' + ID_BAD;
+  props['DASHBOARD_ID'] = ID_BAD;
+  let err = '';
+  try { ctx.dbOpenTarget_(mainSS); } catch (e) { err = e.message; }
+  ok(opened.length === 1, '同じIDは1回だけ試す', opened);
+  ok(err.indexOf('開けませんでした') !== -1, 'ぜんぶダメなら、はっきり伝える');
+  ok(err.indexOf('URLを貼り直して') !== -1, '  どうすればよいかも伝える');
+  ok(created === 0, '  勝手に新しいスプシを作らない（増えると混乱するため）');
+}
+
+console.log('\n■ 行き先がどこにも無いときだけ、新しく作る');
+{
+  reset();
+  const ss = ctx.dbOpenTarget_(mainSS);
+  ok(created === 1, '1つだけ作る');
+  ok(props['DASHBOARD_ID'] === 'NEWNEWNEWNEWNEWNEWNEWNEWNEWNEW111', '  作ったIDを控える');
+}
+
+console.log('\n■ IDでないものが入っていても、落ちない');
+{
+  reset();
+  cfgVals['まとめスプシのID'] = 'あとで入れる';
+  props['DASHBOARD_ID'] = ID_OK;
+  ok(ctx.dbOpenTarget_(mainSS)._id === ID_OK, 'IDでないものは飛ばして、次の候補で開ける');
+  ok(opened.length === 1, '  IDでないものは、そもそも試さない');
+}
+
+console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
+process.exit(fail ? 1 : 0);
