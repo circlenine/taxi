@@ -2,11 +2,39 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V017ver  （2026/09/16）  ★★★
+ *  ★★★  V018ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V018ver]
+ *   ・確認用のいちばん下に「この内容でよろしいですか」＋【はい】【いいえ】を付けた
+ *     【はい】… そのまま17:00にグループへ
+ *     【いいえ】… 直し方の手順をお送りし、返信をいただいたら作り直して送り直す
+ *     ★何も押されなくても、17:00にはいちばん新しい内容のまま送る
+ *       （寝ていて見られないこともある。止めるより出すほうがよい）
+ *   ・イベント通知は「その日に出せるものがある日だけ」。毎日は送らない
+ *     （出せるものが1件も無ければ、確認用も本番も1通も送らない）
+ *   ・注釈を必ず入れた（VN_DISCLAIMER）
+ *     AIが自動で読み取ったものであること、読み取り違いや予定変更（時刻の
+ *     前後・延長・中止）があること、動く前に公式ページで確かめること。
+ *     この案内を見て実際に会場へ向かう人がいる。黙っているのは危ない。
+ *     長さを詰めるときも、注釈だけは絶対に削らない
+ *   ・まーくさんの個人LINEから、その場でグループへ出せるようにした
+ *     「グループへ送信」→ 聞き返す →「はい」の2段階。何回もグループで
+ *     試さずに済むように。送ったら、17:00には二度送らない
+ *   ・「イベント一覧」と打つと、その日の一覧を返すようにした（だれでも・いつでも）
+ *     16:30／17:00 を見のがしても、あとから引ける
+ *   ・送ってもらった資料の写真を、あとから見られるようにした（vnDocSave_）
+ *     案内の枠を押すと、その紙（PDF）が開く。AIの読み違いを目で確かめられる。
+ *     ※リンクを知っていれば誰でも見られる形で置きます。社外に出せない資料の
+ *       ときは、設定タブ「資料の写真をリンクで見せる」を「いいえ」に
+ *   ・ホテルニューオータニ大阪を足した
+ *     一覧のページに時刻が無いので、催しのページまで開いて時刻を探す
+ *     （同じ入れ物の中だけ・多くても5ページ・時刻が無ければ出さない）
+ *   ・「省きました」の断り書きも長さに数えるようにした
+ *     数えていなかったので、その一文を足したぶんだけ上限を超えていた
  *
  *  [V017ver]
  *   ・★時刻が読めないものを、二度と出さないようにした（vnHasTime_）
@@ -193,7 +221,12 @@ const VN_SOURCES = [
   //   読み先だけを外してある。会場の情報（VN_VENUES）は消していないので、
   //   戻すときは、この行を書き戻すだけでよい
   // { name: "万博記念公園",      kind: "event",  url: "https://live-events.a-jp.org/soko/plc/318.html" },
-  { name: "ワントゥワン",         kind: "barasi", url: "https://onetoone-jp.com/schedule.php" }
+  { name: "ワントゥワン",         kind: "barasi", url: "https://onetoone-jp.com/schedule.php" },
+  // ★ニューオータニは、一覧のページに時刻が載っていない。
+  //   deep: true を付けると、一覧から催しのページを開いて、そこで時刻を探す。
+  //   時刻が見つからなければ、その催しは出さない（時間不明では出さないため）
+  { name: "ホテルニューオータニ大阪", kind: "event", deep: true,
+    url: "https://www.newotani.co.jp/osaka/event/" }
 ];
 
 /* ============ 会場のこと ============ */
@@ -213,7 +246,8 @@ const VN_VENUES = {
   "帝国ホテル":             { cap: 0,     near: ["帝国"],                         type: "ホテル" },
   "リーガロイヤルホテル":   { cap: 0,     near: ["中之島", "リーガ"],             type: "ホテル" },
   // 月間の公演スケジュール表（紙・PDFの写真）から読む会場
-  "フェスティバルホール":   { cap: 2700,  near: ["渡辺橋", "肥後橋", "中之島"],   type: "ホール" }
+  "フェスティバルホール":   { cap: 2700,  near: ["渡辺橋", "肥後橋", "中之島"],   type: "ホール" },
+  "ホテルニューオータニ大阪": { cap: 2000, near: ["大阪城公園", "京橋", "森ノ宮"], type: "ホテル" }
 };
 
 /** 対象にする時間帯（この中に「終わり」か「始まり」が入っていれば出す） */
@@ -235,6 +269,20 @@ const VN_SEND_HOUR = 17;
 const VN_SEND_MIN  = 0;
 /** 送る時刻をどれだけ過ぎたら、その日はもうあきらめるか（分） */
 const VN_SEND_WINDOW = 45;
+
+/*
+ * 注釈。AIが自動で読み取ったものだと、必ず分かるようにする。
+ *
+ * ★この案内を見て、実際にその会場へ向かう人がいる。
+ *   読み取り違いも、そのあとの予定変更（延長・中止）もある。
+ *   「AIが読んだものです」「公式で確かめてください」と
+ *   はっきり書いていないのは、不親切を通りこして危ない。
+ */
+const VN_DISCLAIMER = [
+  "※ AIが自動で読み取った案内です",
+  "読み取り違いや、そのあとの予定変更（時刻の前後・延長・中止）があります。\n" +
+  "動く前に、必ず各会場の公式ページでお確かめください（枠を押すと開きます）。"
+];
 
 /** Flex（絵）1通の上限。LINEの決まりは10KB。ぶつからないよう手前で止める */
 const VN_FLEX_MAX = 9500;
@@ -634,6 +682,14 @@ function vnBuildMessages_(day, events, note, noBells) {
       { "type": "text", "text": note, "size": "xxs", "color": "#b71c1c", "wrap": true, "margin": "md" });
   }
 
+  // ★注釈は必ず最後に入れる。削る対象にもしない（危ないので）
+  contents.push({ "type": "separator", "margin": "lg" },
+    { "type": "box", "layout": "vertical", "backgroundColor": "#fbf7fd",
+      "paddingAll": "8px", "cornerRadius": "md", "margin": "md", "contents": [
+        { "type": "text", "text": VN_DISCLAIMER[0], "size": "xxs", "weight": "bold", "color": "#6a1b9a", "wrap": true },
+        { "type": "text", "text": VN_DISCLAIMER[1], "size": "xxs", "color": "#7b5e8a", "wrap": true, "margin": "xs" }
+      ]});
+
   // ★送る前に、中身が空のところを取りのぞく。
   //   LINEは text が空の span／text、contents が空の box を受け付けない。
   //   1つでも混じっていると 400 で、その通がまるごと届かない
@@ -659,7 +715,10 @@ function vnBuildMessages_(day, events, note, noBells) {
  *   削る順は、細かい話 → 助言 → 件数。いちばん大事な
  *   「どこで・何時に終わるか」は最後まで残す。
  */
-function vnFitMessages_(day, events, note) {
+function vnFitMessages_(day, events, note, reserve) {
+  // ★あとから足すもの（確認用の「よろしいですか」など）のぶんを、先に空けておく。
+  //   足したあとで上限を超えては、元も子もない
+  const LIMIT = VN_FLEX_MAX - (Number(reserve) || 0);
   const size = function (msg) {
     const json = JSON.stringify(msg);
     try { if (typeof lrBytes_ === "function") return lrBytes_(json); } catch (e) {}
@@ -678,28 +737,32 @@ function vnFitMessages_(day, events, note) {
   let bells = false;                    // お知らせボタンを消したか
 
   let msgs = vnBuildMessages_(day, evs, note, bells);
-  if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
+  if (size(msgs[0]) <= LIMIT) return msgs;
 
   // ① 客層の行（実績・推定）と話題を落とす。
   //    「触れない方がよいこと」だけは、トラブルに直結するので最後まで残す
   evs = copy(evs, ["stats", "guess", "know"]);
   msgs = vnBuildMessages_(day, evs, note, bells);
-  if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
+  if (size(msgs[0]) <= LIMIT) return msgs;
 
   // ② お知らせボタンを消す。
   //    ★催しを1件まるごと落とすくらいなら、ボタンのほうを先に消す。
   //      「あることを知らせる」のが本題で、ボタンはその次だから。
   bells = true;
   msgs = vnBuildMessages_(day, evs, note, bells);
-  if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
+  if (size(msgs[0]) <= LIMIT) return msgs;
 
   // ③ 助言も落とす
   evs = copy(evs, ["advice"]);
   msgs = vnBuildMessages_(day, evs, note, bells);
-  if (size(msgs[0]) <= VN_FLEX_MAX) return msgs;
+  if (size(msgs[0]) <= LIMIT) return msgs;
 
   // ④ それでも入らなければ件数を減らし、減らしたことを必ず書き添える
-  while (evs.length > 1 && size(vnBuildMessages_(day, evs, note, bells)[0]) > VN_FLEX_MAX) evs.pop();
+  // ★「省きました」の断り書きも、長さに数える。
+  //   前は数えずに詰めていたので、最後にその一文を足したぶんだけ上限を超えていた
+  const willAdd = "※ 長くなりすぎるため、ほかに99件を省きました。";
+  while (evs.length > 1 &&
+         size(vnBuildMessages_(day, evs, (note ? note + " " : "") + willAdd, bells)[0]) > LIMIT) evs.pop();
   const cut = evs.length < events.length ? (events.length - evs.length) : 0;
   const add = cut ? "※ 長くなりすぎるため、ほかに" + cut + "件を省きました。" : "";
   return vnBuildMessages_(day, evs, (note ? note + " " : "") + add, bells);
@@ -1053,9 +1116,9 @@ const VN_HOTEL_PROMPT =
  * force にホテル名を渡すと、そのホテルのものとして読む
  * （帝国ホテルの資料は紙にホテル名が無いため）。
  */
-function vnHotelFromImage_(messageId, force) {
+function vnHotelFromImage_(messageId, force, blob) {
   return vnImageJson_(messageId, VN_HOTEL_PROMPT +
-    (force ? "\n・このホテルは「" + force + "」です。hotel には必ず「" + force + "」と入れてください" : ""));
+    (force ? "\n・このホテルは「" + force + "」です。hotel には必ず「" + force + "」と入れてください" : ""), blob);
 }
 
 /**
@@ -1064,20 +1127,78 @@ function vnHotelFromImage_(messageId, force) {
  * 読めなかったときは、何が起きたのかが分かる文で throw する
  * （黙って空を返すと、原因がまったく分からなくなるため）。
  */
-function vnImageJson_(messageId, prompt) {
+function vnFetchImage_(messageId) {
   if (!messageId) throw new Error("画像のIDが取れませんでした");
-  if (typeof geminiReady_ !== "function" || typeof getToken_ !== "function") {
-    throw new Error("001-Code が古いので読み取れません");
-  }
-  const g = geminiReady_();
-
+  if (typeof getToken_ !== "function") throw new Error("001-Code が古いので読み取れません");
   const res = UrlFetchApp.fetch(
     "https://api-data.line.me/v2/bot/message/" + encodeURIComponent(messageId) + "/content",
     { headers: { "Authorization": "Bearer " + getToken_() }, muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) {
     throw new Error("画像を取得できませんでした（" + res.getResponseCode() + "）");
   }
-  const blob = res.getBlob();
+  return res.getBlob();
+}
+
+/**
+ * 送ってもらった資料の写真を、あとから見られる形でしまっておく。
+ *
+ * ★AIの読み取りには間違いがある。だから「元の紙」を見られるようにしておく。
+ *   案内の枠を押すと、この写真が開く。
+ *   PDFにできればPDFで、できなければ写真のまましまう（どちらでも開ける）。
+ *
+ * ※リンクを知っている人なら誰でも見られる形で置きます。
+ *   社外に出せない資料のときは、この機能を切ってください
+ *   （設定タブ「資料の写真をリンクで見せる」を「いいえ」に）。
+ */
+function vnDocSave_(blob, label, d) {
+  try {
+    if (typeof cfg_ === "function" && cfg_("資料の写真をリンクで見せる") === "いいえ") return "";
+    if (typeof DriveApp === "undefined") return "";
+    const ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+    const name = ymd + "_" + String(label || "資料");
+    let file = null;
+    try {
+      // 写真1枚のPDFにする（紙の資料は、PDFのほうが見やすいため）
+      const html = '<img src="data:' + (blob.getContentType() || "image/jpeg") + ";base64," +
+                   Utilities.base64Encode(blob.getBytes()) + '" style="width:100%">';
+      file = DriveApp.createFile(Utilities.newBlob(html, "text/html", name + ".html")
+                                  .getAs("application/pdf").setName(name + ".pdf"));
+    } catch (e) {
+      // PDFにできなければ、写真のまま置く（見られればよい）
+      try { file = DriveApp.createFile(blob.setName(name + ".jpg")); } catch (e2) { return ""; }
+    }
+    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+    return file.getUrl() || "";
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("vnDocSave", e);
+    return "";
+  }
+}
+
+/** その日の「資料の写真」の置き場所をしまう／引く */
+function vnDocKey_(d) {
+  return "VNDOC_" + d.getFullYear() +
+         ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+}
+function vnDocSet_(d, place, url) {
+  if (!place || !url) return;
+  const pr = PropertiesService.getScriptProperties();
+  let map = {};
+  try { map = JSON.parse(pr.getProperty(vnDocKey_(d)) || "{}"); } catch (e) { map = {}; }
+  map[place] = url;
+  try { pr.setProperty(vnDocKey_(d), JSON.stringify(map)); } catch (e) {}
+}
+function vnDocGet_(d, place) {
+  try {
+    const map = JSON.parse(PropertiesService.getScriptProperties().getProperty(vnDocKey_(d)) || "{}");
+    return map[place] || "";
+  } catch (e) { return ""; }
+}
+
+function vnImageJson_(messageId, prompt, blobIn) {
+  if (typeof geminiReady_ !== "function") throw new Error("001-Code が古いので読み取れません");
+  const g = geminiReady_();
+  const blob = blobIn || vnFetchImage_(messageId);
 
   const out = UrlFetchApp.fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/" + g.model +
@@ -1167,7 +1288,9 @@ function vnHotelForDay_(d) {
     const title = [x.name, x.room].filter(String).join("／");
     return { venue: hotel, kind: "hotel", icon: "🍽", title: title,
              start: String(x.start || ""), end: String(x.end || ""),
-             people: Number(x.people) > 0 ? Number(x.people) : 0, url: "" };
+             people: Number(x.people) > 0 ? Number(x.people) : 0,
+             // 送ってもらった紙そのもの。枠を押すと開く（AIの読み違いを、目で確かめられるように）
+             url: vnDocGet_(d, hotel) };
   });
 }
 
@@ -1177,8 +1300,11 @@ function vnHotelForDay_(d) {
  */
 function vnHotelTry_(messageId, base, force) {
   const t0 = Date.now();                 // 読み取りにかかった時間を出すため
-  let list = [];
-  try { list = vnHotelFromImage_(messageId, force); }
+  let list = [], blob = null;
+  try {
+    blob = vnFetchImage_(messageId);     // 写真は1回だけ取る（読み取りと保存で使い回す）
+    list = vnHotelFromImage_(messageId, force, blob);
+  }
   catch (e) { if (typeof logErr_ === "function") logErr_("vnHotelTry", e); return ""; }
   if (!list.length) return "";
   const n = vnHotelSave_(list, base || new Date(), force);
@@ -1191,11 +1317,16 @@ function vnHotelTry_(messageId, base, force) {
     seen[nm] = 1; places.push(nm);
   });
 
+  // 元の紙を、あとから見られるようにしまっておく（案内の枠を押すと開く）
+  const doc = vnDocSave_(blob, places.join("・") || (force || "ホテル"), base || new Date());
+  if (doc) places.forEach(function (nm) { vnDocSet_(base || new Date(), nm, doc); });
+
   // ★ここは雑談のグループに出る。短く、3行で終える
   const sec = Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
   return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
-         "場所：" + (places.join("・") || "（読み取れず）");
+         "場所：" + (places.join("・") || "（読み取れず）") +
+         (doc ? "\n資料：この案内の枠を押すと、送ってもらった紙が開きます" : "");
 }
 
 /* ================================================================
@@ -1247,9 +1378,9 @@ const VN_HALL_PROMPT =
  * 写真を「会場の月間スケジュール表」として読む。
  * 読めた公演の配列を返す。
  */
-function vnHallFromImage_(messageId, force) {
+function vnHallFromImage_(messageId, force, blob) {
   return vnImageJson_(messageId, VN_HALL_PROMPT +
-    (force ? "\n・この会場は「" + force + "」です。hall には必ず「" + force + "」と入れてください" : ""));
+    (force ? "\n・この会場は「" + force + "」です。hall には必ず「" + force + "」と入れてください" : ""), blob);
 }
 
 /** 会場の公演を、日付ごとにしまう（時刻の無いものは入れない） */
@@ -1289,7 +1420,8 @@ function vnHallForDay_(d) {
   catch (e) { list = []; }
   return list.map(function (x) {
     return { venue: x.hall, kind: "event", icon: "🎤", title: String(x.name || ""),
-             start: String(x.start || ""), end: String(x.end || ""), people: 0, url: "" };
+             start: String(x.start || ""), end: String(x.end || ""), people: 0,
+             url: vnDocGet_(d, x.hall) };
   });
 }
 
@@ -1299,8 +1431,11 @@ function vnHallForDay_(d) {
  */
 function vnHallTry_(messageId, base, force) {
   const t0 = Date.now();
-  let list = [];
-  try { list = vnHallFromImage_(messageId, force); }
+  let list = [], blob = null;
+  try {
+    blob = vnFetchImage_(messageId);
+    list = vnHallFromImage_(messageId, force, blob);
+  }
   catch (e) { if (typeof logErr_ === "function") logErr_("vnHallTry", e); return ""; }
   if (!list.length) return "";
   const n = vnHallSave_(list, base || new Date(), force);
@@ -1310,10 +1445,14 @@ function vnHallTry_(messageId, base, force) {
     if (!nm || seen[nm]) return;
     seen[nm] = 1; places.push(nm);
   });
+  const doc = vnDocSave_(blob, places.join("・") || (force || "会場"), base || new Date());
+  if (doc) places.forEach(function (nm) { vnDocSet_(base || new Date(), nm, doc); });
+
   const sec = Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
   return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
-         "場所：" + (places.join("・") || "（読み取れず）");
+         "場所：" + (places.join("・") || "（読み取れず）") +
+         (doc ? "\n資料：この案内の枠を押すと、送ってもらった紙が開きます" : "");
 }
 
 /** 合図を覚える（15分だけ）。force は「帝国ホテル」など、決め打ちするホテル名 */
@@ -1353,6 +1492,9 @@ function vnHandleNote_(ev, sentAt) {
   const text = (ev.message && ev.message.text) || "";
   const uid = (ev.source && ev.source.userId) || "anon";
   const reply = ev.replyToken || "";
+
+  // ⓪「イベント一覧」… だれでも、いつでも今日のぶんを見られるように
+  if (vnHandleListCmd_(ev, sentAt)) return true;
 
   // ① 確認用の手直し（「①削除」「①③削除」「①修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
@@ -1401,6 +1543,51 @@ function vnHandleNote_(ev, sentAt) {
   //   グループは雑談の場なので、合図のたびに公式アカウントが口を出すと邪魔になる。
   //   写真が届いて、読み取れたときにだけ返す。
   vnHotelHintSet_(uid, w.force, kind);
+  return true;
+}
+
+/**
+ * 「イベント一覧」と打たれたときの受け口。
+ *
+ * ★16:30／17:00 を見のがしても、あとから自分で引けるようにする。
+ *   グループでも個人でも使える。
+ *   ここは読むだけなので、だれが打っても構わない。
+ */
+function vnHandleListCmd_(ev, sentAt) {
+  const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
+  if (!/^(イベント一覧|いべんと一覧|イベント確認|今日のイベント|イベント)$/.test(t)) return false;
+  const d = sentAt || new Date();
+  const reply = ev.replyToken || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  const list = vnFinalEvents_(d);
+  const L = ["🎪 " + vnDayLabel_(d) + " のイベント一覧", ""];
+  if (!list.length) {
+    L.push("この日に出せるイベントはありません。");
+    L.push("（時刻が読み取れなかったものは、はじめから出していません）");
+  } else {
+    list.forEach(function (e, i) {
+      const when = [e.start, e.end].filter(String).join("〜");
+      const v = VN_VENUES[e.venue] || {};
+      L.push(vnNoMark_(i + 1) + " " + (e.icon || "📍") + " " + e.venue + (when ? "　" + when : ""));
+      if (e.title) L.push("　" + e.title);
+      if (e.note) L.push("　✏️ " + e.note);
+      if (v.near && v.near.length) L.push("　📍 近い乗り場：" + v.near.join("・"));
+    });
+  }
+
+  // 自分が受け取る約束になっているお知らせ
+  const mine = vnRemQueue_().filter(function (r) { return r.to === ((ev.source && ev.source.userId) || ""); });
+  if (mine.length) {
+    L.push("", "⏰ お知らせを受け取る約束になっているもの");
+    mine.forEach(function (r) {
+      L.push("・" + r.venue + (r.title ? "　" + r.title : "") +
+             "（" + (r.end ? r.end + " 終了" : r.start + " 開始") + "）");
+    });
+  }
+
+  L.push("", VN_DISCLAIMER[0], VN_DISCLAIMER[1]);
+  say(L.join("\n"));
   return true;
 }
 
@@ -1508,6 +1695,95 @@ function vnLines_(html) {
     .filter(function (x) { return x !== ""; });
 }
 
+/**
+ * ページの中のリンク（href）を取り出して、絶対の住所にそろえる。
+ * 一覧のページに時刻が無いところ（ニューオータニなど）で、
+ * 催しのページまで開きにいくために使う。
+ */
+function vnLinks_(html, baseUrl) {
+  const out = [];
+  const seen = {};
+  let base = String(baseUrl || "");
+  let origin = base;
+  try {
+    const m = base.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
+    origin = m ? m[1] : base;
+  } catch (e) {}
+  const re = /<a[^>]+href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,200}?)<\/a>/gi;
+  let m2;
+  while ((m2 = re.exec(String(html || ""))) !== null) {
+    let href = vnEntity_(m2[1]).trim();
+    if (!href || /^(javascript:|mailto:|tel:)/i.test(href)) continue;
+    if (/^\/\//.test(href)) href = "https:" + href;
+    else if (/^\//.test(href)) href = origin + href;
+    else if (!/^https?:/i.test(href)) href = base.replace(/[^\/]*$/, "") + href;
+    if (seen[href]) continue;
+    seen[href] = 1;
+    const text = vnEntity_(String(m2[2]).replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    out.push({ url: href, text: text });
+  }
+  return out;
+}
+
+/**
+ * 一覧のページに時刻が載っていない会場を、催しのページまで開いて読む。
+ *
+ * ★ニューオータニは、一覧には催しの名前と期間しか出ていない。
+ *   時刻はそれぞれのページを開かないと分からない。
+ *   時刻が分からないものは出さない決まりなので、
+ *   ここで開きにいかないと、この会場は1件も出せなくなる。
+ *
+ *   ただし、よそのサーバーを何十回も叩くわけにはいかないので、
+ *   ・同じ入れ物（ドメイン）の中だけ
+ *   ・多くても5ページまで
+ *   ・時刻が見つかった時点でやめる
+ *   という決めごとにしてある。
+ */
+function vnScrapeDeep_(src, day, html) {
+  const out = [];
+  const dre = vnDateRe_(day);
+  const host = String(src.url).replace(/^(https?:\/\/[^\/]+).*$/, "$1");
+  // 催しのページらしいリンクだけに絞る（同じ入れ物・一覧そのものは除く）
+  const links = vnLinks_(html, src.url).filter(function (l) {
+    return l.url.indexOf(host) === 0 && l.url !== src.url && l.text;
+  }).slice(0, 12);
+
+  let opened = 0;
+  for (let i = 0; i < links.length && opened < 5 && out.length < 5; i++) {
+    let res;
+    try {
+      res = UrlFetchApp.fetch(links[i].url, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+      });
+    } catch (e) { continue; }
+    opened++;
+    if (res.getResponseCode() !== 200) continue;
+    let h2 = "";
+    try { h2 = res.getContentText(); } catch (e) { continue; }
+    const lines = vnLines_(h2);
+    // そのページに「今日」が書いてあり、かつ時刻もあること。両方そろって初めて出す
+    const hasDay = lines.some(function (x) { return dre.test(x); });
+    if (!hasDay) continue;
+    const text = lines.join("　");
+    const kick = text.match(/(開演|開場|スタート|開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    const times = (text.match(/\d{1,2}:\d{2}/g) || []);
+    const start = kick ? kick[2] : (times.length ? times[0] : "");
+    if (!start) continue;                       // 時刻が無いなら出さない
+    const fin = text.match(/(終了|終演|閉場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    let end = fin ? fin[2] : (times.length >= 2 && times[1] !== start ? times[1] : "");
+    let guessed = false;
+    if (!end) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
+    out.push({
+      venue: src.name, kind: src.kind || "event", icon: "🎤",
+      title: links[i].text.slice(0, 60) || "（名前を読み取れませんでした）",
+      start: start, end: end, endGuess: guessed, people: 0, url: links[i].url,
+      raw: text.slice(0, 120)
+    });
+  }
+  return out;
+}
+
 /** その日を表す書き方（9月15日 / 9/15 / 09-15）にあたるか */
 function vnDateRe_(d) {
   const m = d.getMonth() + 1, day = d.getDate();
@@ -1583,6 +1859,11 @@ function vnScrapeOne_(src, day) {
   const starts = [];
   lines.forEach(function (ln, i) { if (dre.test(ln)) starts.push(i); });
   if (!starts.length) {
+    // 一覧に日付が出ない作りのところ（ニューオータニなど）は、催しのページを開いて探す
+    if (src.deep) {
+      try { out.events = vnScrapeDeep_(src, day, html); } catch (e) {}
+      if (out.events.length) return out;
+    }
     out.note = "⚠️ その日の日付が見当たりません（ページに載っていないか、日付の書き方が違います）";
     return out;
   }
@@ -1623,7 +1904,13 @@ function vnScrapeOne_(src, day) {
     });
   });
 
-  if (!out.events.length) out.note = "⚠️ 日付は見つかりましたが、中身を読み取れませんでした";
+  // 一覧のページに時刻が無い会場は、催しのページまで開いて読む
+  if (!out.events.length && src.deep) {
+    try { out.events = vnScrapeDeep_(src, day, html); } catch (e) {}
+  }
+  if (!out.events.length) {
+    out.note = "⚠️ 日付は見つかりましたが、時刻が読み取れませんでした（時間不明では出しません）";
+  }
   return out;
 }
 
@@ -1888,6 +2175,20 @@ function vnHandlePostback_(ev) {
   const ymd = String(q.d || "");
   if (!/^\d{8}$/.test(ymd)) { say("わけがわからない…　どの日のことでしょう"); return true; }
   const day = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)));
+
+  // 確認用の【はい】…このまま17:00にグループへ
+  if (q.vn === "ok") {
+    try { PropertiesService.getScriptProperties().setProperty("VNOK_" + ymd, "1"); } catch (e) {}
+    say("計★画★通★り　17:00 にグループへ送ります");
+    return true;
+  }
+  // 確認用の【いいえ】…直し方をお伝えして、返信を待つ
+  if (q.vn === "ng") {
+    try { PropertiesService.getScriptProperties().setProperty("VNOK_" + ymd, "0"); } catch (e) {}
+    say(vnTestHelpText_());
+    return true;
+  }
+
   const list = vnDayLoad_(day);
   const item = list[Number(q.i)];
   if (!item) { say("だ…ダメだ…その催しが見つからない…"); return true; }
@@ -2051,24 +2352,51 @@ function vnFinalEvents_(d) {
   return vnTodayEvents_(d);
 }
 
-/** 確認用の説明（この返し方をすると、こうなります） */
-function vnTestHelpBox_() {
+/** 日付を YYYYMMDD の文字にする（ボタンに入れて、あとで引くため） */
+function vnYmd_(d) {
+  return d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+}
+
+/**
+ * 確認用のしめくくり。「この内容でよろしいですか」＋【はい】【いいえ】。
+ *
+ * ★長い説明を毎回ならべると、読むのが面倒になって、結局読まれない。
+ *   ふだんは【はい】を押すだけで終わるようにして、
+ *   直したいときだけ【いいえ】で手順を出す。
+ */
+function vnTestAskBox_(day) {
+  const ymd = vnYmd_(day);
   return { "type": "box", "layout": "vertical", "backgroundColor": "#fff8e1",
     "paddingAll": "10px", "cornerRadius": "md", "margin": "md", "contents": [
-      { "type": "text", "text": "🧪 これは確認用です（まーくさんにだけ送っています）",
+      { "type": "text", "text": "🧪 確認用（まーくさんにだけ送っています）",
         "size": "xs", "weight": "bold", "color": "#e65100", "wrap": true },
-      { "type": "text", "size": "xxs", "color": "#6d4c41", "wrap": true, "margin": "sm",
-        "text": "このまま何もしなければ、17:00 にグループへ送ります。\n" +
-                "直したいときは、この確認用に返信してください。" },
-      { "type": "text", "size": "xxs", "color": "#6d4c41", "wrap": true, "margin": "sm",
-        "text": "「①削除」… ①を消して、消したものをもう一度送ります\n" +
-                "「①③削除」… まとめて消せます（「1,3削除」でも可）\n" +
-                "「①修正：雨天中止」… ①に、その言葉を書き足します\n" +
-                "「もどす」… 手直しを全部やめて、読み取ったままに戻します\n" +
-                "「全削除」… 今日はグループへ送りません" },
+      { "type": "text", "text": "この内容でよろしいですか？",
+        "size": "sm", "weight": "bold", "color": "#e65100", "wrap": true, "margin": "sm" },
+      { "type": "box", "layout": "horizontal", "spacing": "sm", "margin": "sm", "contents": [
+        { "type": "button", "style": "primary", "height": "sm", "color": "#2e7d32",
+          "action": { "type": "postback", "label": "はい", "data": "vn=ok&d=" + ymd,
+                      "displayText": "はい" } },
+        { "type": "button", "style": "primary", "height": "sm", "color": "#b71c1c",
+          "action": { "type": "postback", "label": "いいえ", "data": "vn=ng&d=" + ymd,
+                      "displayText": "いいえ" } }
+      ]},
       { "type": "text", "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "sm",
-        "text": "※ 開演・終演の時刻が読めなかったものは、はじめから出していません（時間不明では出しません）" }
+        "text": "何も押さなくても、17:00 にこの内容でグループへ送ります" }
     ]};
+}
+
+/** 【いいえ】のときに出す、直し方の手順 */
+function vnTestHelpText_() {
+  return "わ…私は仰せの通りに…　直し方はこちらです\n" +
+         "\n" +
+         "「①削除」… ①を消します\n" +
+         "「①③削除」… まとめて消せます（「1,3削除」でも可）\n" +
+         "「①修正：雨天中止」… ①に、その言葉を書き足します\n" +
+         "「もどす」… 手直しを全部やめて、読み取ったままに戻します\n" +
+         "「全削除」… 今日はグループへ送りません\n" +
+         "\n" +
+         "返信をいただいたら、直したものを もう一度お送りします。\n" +
+         "※ 開演・終演の時刻が読めなかったものは、はじめから出していません";
 }
 
 /**
@@ -2084,11 +2412,11 @@ function vnSendTest_(d, list) {
     return c;
   });
   vnEditSave_(d, evs);
-  const msgs = vnFitMessages_(d, evs, "");
-  // 説明は絵の中ではなく、続けて1通の文で出す（絵を大きくしないため）
+  const msgs = vnFitMessages_(d, evs, "", 700);   // 700バイトは「よろしいですか」のぶん
+  // 「この内容でよろしいですか」は、いちばん下（読み終わったところ）に置く
   try {
     const b = msgs[0] && msgs[0].contents;
-    if (b && b.body && b.body.contents) b.body.contents.unshift(vnTestHelpBox_());
+    if (b && b.body && b.body.contents) b.body.contents.push(vnTestAskBox_(d));
   } catch (e) {}
   lrPush_(to, msgs);
   return true;
@@ -2111,6 +2439,40 @@ function vnHandleEditCmd_(ev, sentAt) {
   const d = sentAt || new Date();
   const reply = ev.replyToken || "";
   const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
+
+  const flat = text.replace(/[\s\u3000]/g, "");
+
+  /* --- 個人LINEから、その場でグループへ出す（必ず2段階で確かめる） --- */
+  if (/^(グループへ送信|グループ送信|グループに送信|本番送信)$/.test(flat)) {
+    const list = vnFinalEvents_(d);
+    if (!list.length) { say("🔍 だ…ダメだ…今日は出せるイベントがありません"); return true; }
+    try { CacheService.getScriptCache().put("VNPUSHOK_" + uid, vnYmd_(d), 300); } catch (e) {}
+    say("⚠️ グループへ送ります。よろしいですか\n" +
+        "件数：" + list.length + "件\n" +
+        "・送ると取り消せません\n" +
+        "・よければ5分以内に「はい」と返してください（やめるときは何もしないでください）");
+    return true;
+  }
+  if (/^(はい|ハイ|OK|ok|送る)$/.test(flat)) {
+    let ok = "";
+    try { ok = CacheService.getScriptCache().get("VNPUSHOK_" + uid) || ""; } catch (e) {}
+    if (ok !== vnYmd_(d)) return false;              // 確かめていないなら、ただの雑談
+    try { CacheService.getScriptCache().remove("VNPUSHOK_" + uid); } catch (e) {}
+    const to = vnGroupTarget_();
+    if (!to) { say("🔍 わけがわからない…　グループの送り先が分かりません"); return true; }
+    const list = vnFinalEvents_(d);
+    if (!list.length) { say("🔍 だ…ダメだ…今日は出せるイベントがありません"); return true; }
+    const clean = list.map(function (e) {
+      const c = {}; for (const k in e) { if (k !== "no") c[k] = e[k]; }
+      return c;
+    });
+    vnDaySave_(d, clean);
+    if (typeof lrPush_ === "function") lrPush_(to, vnFitMessages_(d, clean, ""));
+    // 17:00 に二度送らないよう、送った印も残す
+    try { PropertiesService.getScriptProperties().setProperty(vnSentKey_(d), "1"); } catch (e) {}
+    say("計★画★通★り　グループへ送りました（" + clean.length + "件）");
+    return true;
+  }
 
   // 「もどす」… 読み取ったままに戻す
   if (/^(もどす|戻す|リセット|やり直し|やりなおし)$/.test(text.replace(/[\s\u3000]/g, ""))) {
@@ -2242,7 +2604,11 @@ function venueDailyJob() {
     if (!pr.getProperty(tKey)) return;
 
     // ★確認用で手直ししたものがあれば、必ずそちらを使う。
-    //   「①削除」と言われたものが、そのままグループへ出ていってはいけない
+    //   「①削除」と言われたものが、そのままグループへ出ていってはいけない。
+    // ★【はい】が押されていなくても送る。
+    //   寝ていて見られないこともある。そのときは止めるより、
+    //   いちばん新しい内容のまま出すほうがよい、という決めごと
+    //   （「全削除」と言われた日だけは、1件も無いので送らない）
     const events = vnFinalEvents_(now);
     if (!events.length) { pr.setProperty(key, "none"); return; }   // 無い日は送らない
 

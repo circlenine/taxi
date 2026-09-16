@@ -444,11 +444,11 @@ console.log('\n■ 催しを落とす前に、まずボタンのほうを消す'
 {
   const day = new Date(2026, 8, 16);
   const evs = ctx.vnSampleEvents_();
-  const full = JSON.stringify(ctx.vnBuildMessages_(day, evs, '')[0]);
-  eq(ctx.lrBytes_(full) <= 9500, true,
-     '見本4件なら、ボタンを付けたままでも1通に収まる（' + ctx.lrBytes_(full) + 'バイト）');
   const fit = JSON.stringify(ctx.vnFitMessages_(day, evs, '')[0]);
-  has(fit, 'vn=me', '  お知らせのボタンも消えていない');
+  eq(ctx.lrBytes_(fit) <= 9500, true,
+     '見本4件でも1通に収まる（' + ctx.lrBytes_(fit) + 'バイト）');
+  has(fit, 'vn=me', '  お知らせのボタンも消えていない（催しより先に細かい話を削る）');
+  has(fit, '公式ページでお確かめください', '  注釈は、どんなに詰めても必ず残す');
 
   // 催しが増えて入りきらなくなったら、催しより先にボタンを消す
   const many = evs.concat(evs);                       // 8件
@@ -740,9 +740,21 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
   const j = JSON.stringify(pushed[0].msgs[0]);
   has(j, '①', '  番号が付く');
   has(j, '③', '  3件目まで');
-  has(j, 'これは確認用です', '  確認用だと分かる');
-  has(j, '「①削除」', '  返し方の説明も入っている');
+  has(j, '確認用', '  確認用だと分かる');
+  has(j, 'この内容でよろしいですか', '  最後に「よろしいですか」と聞く');
+  has(j, 'vn=ok&d=20260916', '  【はい】のボタンが付く');
+  has(j, 'vn=ng&d=20260916', '  【いいえ】のボタンも付く');
   has(j, '17:00', '  何もしなければ17:00に出ることも書いてある');
+  eq(ctx.lrBytes_(j) <= 9500, true, '  ボタンを足しても1通に収まる（' + ctx.lrBytes_(j) + 'バイト）');
+
+  // 【いいえ】を押したときだけ、直し方の手順を出す
+  ctx.lastReply = '';
+  eq(ctx.vnHandlePostback_({ postback: { data: 'vn=ng&d=20260916' }, replyToken: 'r' }), true, '【いいえ】を受ける');
+  has(ctx.lastReply, '「①削除」', '  そのときに直し方をお伝えする');
+  has(ctx.lastReply, '「①修正：', '  修正のしかたも');
+  ctx.lastReply = '';
+  eq(ctx.vnHandlePostback_({ postback: { data: 'vn=ok&d=20260916' }, replyToken: 'r' }), true, '【はい】も受ける');
+  has(ctx.lastReply, '17:00', '  このまま17:00に送ると伝える');
 
   // 「①③削除」
   pushed.length = 0; ctx.lastReply = '';
@@ -773,6 +785,99 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
   eq(ctx.vnHandleNote_({ message: { text: '①削除' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), false,
      '★まーくさん以外の「①削除」は受けない');
   eq(pushed.length, 0, '  何も送らない');
+}
+
+
+console.log('\n■ 「イベント一覧」で、いつでも引ける');
+{
+  const base = new Date(2026, 8, 16);
+  ctx.vnEditSave_(base, [
+    { venue: '京セラドーム', kind: 'event', icon: '🎤', title: 'コンサート', start: '18:00', end: '21:00', url: '' }
+  ]);
+  ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: 'イベント一覧' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), true,
+     '「イベント一覧」を受ける');
+  has(ctx.lastReply, '京セラドーム', '  今日のイベントが出る');
+  has(ctx.lastReply, '18:00〜21:00', '  時刻も出る');
+  has(ctx.lastReply, '①', '  番号つきで出る');
+  has(ctx.lastReply, 'ドーム前', '  近い乗り場も出る');
+  has(ctx.lastReply, 'AIが自動で読み取った', '  注釈も必ず付ける');
+
+  ctx.vnEditSave_(base, []);
+  ctx.lastReply = '';
+  ctx.vnHandleNote_({ message: { text: 'イベント一覧' }, source: { userId: 'Uother' }, replyToken: 'r' }, base);
+  has(ctx.lastReply, 'イベントはありません', '無い日は、無いとはっきり言う');
+
+  ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: 'きょうはいい天気ですね' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), false,
+     '雑談には反応しない');
+}
+
+console.log('\n■ 個人LINEから、その場でグループへ出す（必ず2段階）');
+{
+  const base = new Date(2026, 8, 16);
+  for (const k in cache) delete cache[k];
+  delete props['VNSENT_20260916'];
+  ctx.vnEditSave_(base, [
+    { venue: '京セラドーム', kind: 'event', icon: '🎤', title: 'コンサート', start: '18:00', end: '21:00', url: '' }
+  ]);
+  vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
+
+  // いきなり「はい」では、絶対に送らない
+  pushed.length = 0; ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }, base), false,
+     '★確かめていない「はい」は、ただの雑談として扱う');
+  eq(pushed.length, 0, '  1通も送らない');
+
+  // 1段目
+  pushed.length = 0; ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: 'グループへ送信' }, source: { userId: 'Umark' }, replyToken: 'r' }, base), true,
+     '「グループへ送信」を受ける');
+  eq(pushed.length, 0, '  ★1段目では、まだ送らない');
+  has(ctx.lastReply, 'よろしいですか', '  聞き返す');
+  has(ctx.lastReply, '取り消せません', '  取り消せないことも伝える');
+
+  // 2段目
+  pushed.length = 0; ctx.lastReply = '';
+  ctx.vnHandleNote_({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }, base);
+  eq(pushed.length, 1, '  2段目で送る');
+  eq(pushed[0].to, 'Cgroup', '  グループあて');
+  eq(JSON.stringify(pushed[0].msgs[0]).indexOf('①'), -1, '  本番には番号を出さない');
+  eq(props['VNSENT_20260916'], '1', '  17:00に二度送らないよう、印も残す');
+
+  // 同じ「はい」をもう一度打っても、二度は送らない
+  pushed.length = 0;
+  ctx.vnHandleNote_({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }, base);
+  eq(pushed.length, 0, '  ★二度目の「はい」では送らない');
+
+  // ほかの人は使えない
+  pushed.length = 0;
+  eq(ctx.vnHandleNote_({ message: { text: 'グループへ送信' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), false,
+     '★まーくさん以外は、グループへ送れない');
+  eq(pushed.length, 0, '  何も送らない');
+  delete props['VNSENT_20260916'];
+}
+
+console.log('\n■ 見られていなくても、17:00には最新のまま出す');
+{
+  const base = new Date(2026, 8, 16);
+  props.VN_AUTO = '1';
+  delete props['VNSENT_20260916'];
+  props['VNSENT_20260916_T'] = '1';         // 確認用は送ってある
+  delete props['VNOK_20260916'];            // 【はい】は押されていない（寝ていた）
+  ctx.vnEditSave_(base, [
+    { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'ライブ', start: '18:00', end: '21:00', url: '' }
+  ]);
+  const RealDate = Date;
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  D.prototype = RealDate.prototype; D.now = RealDate.now;
+  ctx.Date = D;
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 1, '★【はい】が押されていなくても、17:00には送る');
+  eq(pushed[0].to, 'Cgroup', '  グループあて');
+  ctx.Date = RealDate;
+  delete props['VNSENT_20260916'];
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
