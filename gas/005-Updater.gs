@@ -2,7 +2,21 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U046ver  （2026/09/16）  ★★★
+ *  ★★★  U047ver  （2026/09/16）  ★★★
+ *
+ *  [U047ver]
+ *   ・コードを入れ替えたら、見張りをその場で自分でそろえるようにした
+ *     ★申し訳ありませんでした。「入れ替えたあとに『なおして』と
+ *       打ってください」とお願いしていたのが間違いでした。
+ *       毎回 手で打ってもらうのは、忘れる前提のやり方です。
+ *       もう、打つ必要はありません
+ *     ★あわせて訂正します。「コードを入れ替えると見張りが消える」と
+ *       お伝えしたのは、誤りでした。ファイルを書き換えても、
+ *       いまある見張りはそのまま残ります。
+ *       足りないのは「新しく増えたぶん」だけです
+ *   ・そろえる中身を updEnsureAll_ に1本化した
+ *     更新のあと・合言葉・「なおして」の、どこから呼んでも同じものがそろう。
+ *     ばらばらに書いていたので、片方だけ足し忘れていました
  *
  *  [U046ver]
  *   ・「なおして」で、イベントの見張りも立て直すようにした
@@ -1897,14 +1911,61 @@ function menuUpdateCode() {
     dep = "デプロイのやり直しは失敗しました（" + e.message + "）";
   }
 
+  /*
+   * ④ 見張りを、こちらでそろえる。
+   *
+   * ★これまでは、入れ替えたあとに「なおして」と打ってもらっていました。
+   *   打ち忘れると、新しく増えた見張り（たとえばイベントの見張り）が
+   *   いつまでも立たず、黙って動かないままになります。
+   *   毎回 手で打ってもらうのは、忘れる前提のやり方で、間違っています。
+   *   だから、入れ替えたその場で、こちらでそろえます。
+   *
+   * ★入れ替えただけでは、いまある見張りは消えません（Googleの仕組みとして、
+   *   ファイルを書き換えても見張りはそのまま残ります）。
+   *   足りないのは「新しく増えたぶん」だけなので、
+   *   すでにあるものは触らず、無いものだけを足します。
+   */
+  updProgress_("見張りをそろえています…", 20);
+  const armed = updEnsureAll_();
+
   return updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
     "入れ替え：" + (mod.join("、") || "なし") + "\n" +
     "追加　　：" + (add.join("、") || "なし") + "\n" +
     (stale.length ? "消した　：" + stale.join("、") + "（名前が変わったため）\n" : "") +
     (got.skipped.length ? "変更なし：" + got.skipped.join("、") + "\n" : "") +
-    dep + "\n\n" +
+    dep + "\n" +
+    armed + "\n\n" +
     "戻すときはメニュー「⏪ 前のコードに戻す」。\n" +
     "保存：" + UPD_FOLDER + "/" + UPD_BACKUP + "/" + backupName);
+}
+
+/**
+ * 足りない見張りを、ぜんぶそろえる。すでにあるものは触らない。
+ *
+ * ★ここ1か所にまとめてあります。
+ *   更新のあと・「Kataskatrophe」と打たれたとき・毎日の見回りの
+ *   どこから呼んでも、同じものがそろうようにするためです。
+ *   ばらばらに書くと、片方だけ足し忘れます（実際に忘れました）。
+ */
+function updEnsureAll_() {
+  const made = [], keep = [];
+  const one = function (name, fn) {
+    if (typeof fn !== "function") return;
+    try { (fn(false) ? made : keep).push(name); }
+    catch (e) { made.push(name + "（立てられませんでした）"); }
+  };
+  // そうさボタンの見張り（1分おき）
+  try {
+    if (typeof panelTriggersOk_ === "function" && !panelTriggersOk_()) {
+      if (typeof panelInstall_ === "function") { panelInstall_(); made.push("そうさボタン"); }
+    } else keep.push("そうさボタン");
+  } catch (e) {}
+  one("毎日17時の自動チェック", typeof ensureAutoFormatTrigger_ === "function" ? ensureAutoFormatTrigger_ : null);
+  one("レポート本番（16日5:30）", typeof ensureAutoReportTrigger_ === "function" ? ensureAutoReportTrigger_ : null);
+  one("レポート確認用（16日3:00）", typeof ensureAutoReportTestTrigger_ === "function" ? ensureAutoReportTestTrigger_ : null);
+  one("イベントの見張り（15分おき）", typeof vnEnsureDailyTrigger_ === "function" ? vnEnsureDailyTrigger_ : null);
+  if (!made.length && !keep.length) return "見張り：確かめられませんでした";
+  return "見張り：" + (made.length ? "立てました（" + made.join("・") + "）" : "ぜんぶ そろっています");
 }
 
 /** 書き換える直前の状態に戻す */
@@ -3000,37 +3061,9 @@ function panelRepair_() {
     L.push("✅ 見張りを立て直した。死神が1分おきに張り付きます。計★画★通★り");
 
     // ついでに、止まっていると困るしかけも全部そろえる。
-    // 「なおして」は “ぜんぶ直す” 合図なので、ここで一度に見る
-    if (typeof ensureAutoFormatTrigger_ === "function") {
-      L.push(ensureAutoFormatTrigger_(false)
-        ? "✅ 毎日17時の自動チェックを入れました"
-        : "✅ 毎日17時の自動チェック：入っています");
-    }
-    if (typeof ensureAutoReportTrigger_ === "function") {
-      L.push(ensureAutoReportTrigger_(false)
-        ? "✅ 毎月のレポート自動送信を入れました"
-        : "✅ 毎月のレポート自動送信：入っています");
-    }
-    // ★毎月16日 3:00 の確認用（まーくさんだけに先に見せるぶん）
-    if (typeof ensureAutoReportTestTrigger_ === "function") {
-      L.push(ensureAutoReportTestTrigger_(false)
-        ? "✅ レポートの確認用（16日3:00）を入れました"
-        : "✅ レポートの確認用（16日3:00）：入っています");
-    }
-    /*
-     * ★イベントの見張り。ここが、いちばん抜けやすいところでした。
-     *
-     *   イベントの見張り（venueDailyJob）は、自分で自分を立て直す仕掛け
-     *   （vnSelfHeal_）を持っています。ところが その仕掛けは
-     *   見張りの中から動くので、見張りそのものが無いときには
-     *   いつまでも動きません。鶏と卵です。
-     *   だから「なおして」でも、ここを必ず見るようにしました。
-     */
-    if (typeof vnEnsureDailyTrigger_ === "function") {
-      L.push(vnEnsureDailyTrigger_(false)
-        ? "✅ イベントの見張り（15分おき）を入れました"
-        : "✅ イベントの見張り（15分おき）：入っています");
-    }
+    // ★そろえる中身は updEnsureAll_ に1本化してある。
+    //   更新のあとも、ここからも、同じものがそろう
+    L.push("✅ " + updEnsureAll_());
   } catch (e) {
     L.push("❌ うわあああ!!!! 立て直せない!!!!：" + (e && e.message ? e.message : e));
     L.push("　→ ブラウザでスプシを開き、メニューから1回動かして承認を通してください");

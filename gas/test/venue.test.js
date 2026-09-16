@@ -23,8 +23,45 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
            getBlob: () => ({ getContentType: () => 'image/jpeg', getBytes: () => [] }) };
 } };
 let pushed = [];
-ctx.SpreadsheetApp = { getUi: () => { throw new Error('no ui'); },
-  getActiveSpreadsheet: () => ({ getSheetByName: () => null }) };
+// スプシの写し（テスト用）。どのスプシに書いたかを見張れるようにしておく
+const madeBooks = [];
+const fakeSheet = name => {
+  const sh = {
+    _name: name, _vals: [], _widths: [],
+    clear: () => sh, getRange: () => rng, setFrozenRows: () => sh,
+    setColumnWidth: (i, w) => { sh._widths[i] = w; return sh; },
+    getSheetId: () => 1
+  };
+  const rng = {
+    setValues: v => { sh._vals = sh._vals.concat(v); return rng },
+    setValue: () => rng, setFontWeight: () => rng, setBackground: () => rng,
+    setWrap: () => rng, setVerticalAlignment: () => rng, setFontColor: () => rng,
+    setRichTextValue: () => rng, createFilter: () => rng
+  };
+  return sh;
+};
+const fakeBook = id => {
+  const tabs = {};
+  return {
+    _id: id,
+    getId: () => id, getUrl: () => 'https://docs.google.com/spreadsheets/d/' + id + '/edit',
+    getSheetByName: n => tabs[n] || null,
+    insertSheet: n => (tabs[n] = fakeSheet(n)),
+    _tabs: tabs
+  };
+};
+const activeBook = fakeBook('ACTIVE-記録用スプシ');
+ctx.SpreadsheetApp = {
+  getUi: () => { throw new Error('no ui'); },
+  getActiveSpreadsheet: () => activeBook,
+  openById: id => {
+    const b = madeBooks.filter(x => x._id === id)[0];
+    if (!b) throw new Error('開けません');
+    return b;
+  },
+  create: name => { const b = fakeBook('LEDGER-' + madeBooks.length); b._name = name; madeBooks.push(b); return b; },
+  newRichTextValue: () => ({ setText: () => ({ setLinkUrl: () => ({ build: () => ({}) }) }) })
+};
 
 // --- Apps Script のしくみの写し（テスト用）---
 const cache = {};
@@ -682,6 +719,60 @@ console.log('\n■ 🔕 通知解除のボタン');
   ctx.Date = RealDate;
 }
 
+console.log('\n■ 🗓️ 台帳は、まーくさん専用のスプシに書く');
+{
+  madeBooks.length = 0;
+  delete props['VN_LEDGER_SS'];
+  reply['*'] = { code: 404, body: '' };          // ページは開けなくてよい（置き場所の話）
+  const text = ctx.vnLedgerBuild_(1, false);
+
+  eq(madeBooks.length, 1, '★台帳スプシを、あたらしく1つ作る');
+  has(madeBooks[0]._name, 'まーく専用', '  名前で、だれ用かが分かる');
+  eq(props['VN_LEDGER_SS'], madeBooks[0]._id, '  そのIDを覚えておく');
+  eq(activeBook.getSheetByName('🗓️イベント台帳'), null,
+     '★記録用スプシ（みんなが見られるほう）には、1行も書かない');
+  eq(madeBooks[0].getSheetByName('🗓️イベント台帳') !== null, true, '  台帳は専用スプシのほうに書く');
+  eq(madeBooks[0].getSheetByName('📋 いまの条件') !== null, true,
+     '★「いまの条件」タブも、同じスプシに並べる');
+  has(text, 'まーくさんだけが開けます', '★だれにも共有していないと、はっきり書く');
+  has(text, 'LINEに出るもの', '  出る件数と、落とした件数を分けて出す');
+
+  // 2回目は、作り直さずに同じスプシを使う
+  ctx.vnLedgerBuild_(1, false);
+  eq(madeBooks.length, 1, '★2回目は、同じスプシに上書きする（増やさない）');
+
+  /*
+   * ★台帳では、時刻が読めなかったものも落とさないこと。
+   *   「読めていないこと」こそ、いちばん確かめたいものだから。
+   *   LINEには出さない（出す・出さないは、らんで分ける）
+   */
+  const realScrape = ctx.vnScrapeOne_;
+  reply['*'] = { code: 200, body: '<html>x</html>' };
+  vm.runInContext('vnScrapeOne_ = function(src, day){ return { events: [' +
+    '{ venue: src.name, title: "時刻あり", start: "18:00", end: "21:00" },' +
+    '{ venue: src.name, title: "時刻なし", start: "", end: "" }] }; };', ctx);
+  const web = ctx.vnLedgerFromWeb_(1);
+  eq(web.rows.filter(r => r.title === '時刻なし').length > 0, true,
+     '★時刻が読めなかったものも、台帳には残す');
+  eq(web.rows.filter(r => r.title === '時刻あり').length > 0, true, '  読めたものも、もちろん残る');
+  eq(ctx.vnLedgerJudge_(web.rows.filter(r => r.title === '時刻なし')[0]).ok, false,
+     '  ただし「LINEに出す？」は × になる');
+
+  // 時間切れになったら、そこで切り上げて、そう伝える
+  const late = ctx.vnLedgerFromWeb_(300, Date.now() - 1000);
+  eq(late.cut > 0, true, '★時間切れなら、途中で切り上げる（6分で打ち切られて全滅しないように）');
+  eq(late.notes.join(' ').indexOf('時間切れ') !== -1, true, '  そのことも、はっきり伝える');
+  vm.runInContext('vnScrapeOne_ = null;', ctx);
+  ctx.vnScrapeOne_ = realScrape;
+  reply['*'] = { code: 404, body: '' };
+
+  // 覚えていたIDが開けなくなっていたら、作り直す
+  props['VN_LEDGER_SS'] = 'もう無いID';
+  ctx.vnLedgerBuild_(1, false);
+  eq(madeBooks.length, 2, '  消されていたら、作り直す');
+  reply['*'] = { code: 200, body: '' };
+}
+
 console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
 {
   const day = new Date(2026, 8, 16);
@@ -1218,9 +1309,34 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   eq(row[3], '山下達郎', '  催しの名前');
   eq(row[4], '18:30', '  開演');
   eq(row[5], '21:00', '  ★終わりの時刻も出す');
-  has(row[9], '渡辺橋', '  近い乗り場も出す');
-  has(row[10], 'スクショ', '  どこから読んだか');
-  eq(row.length, 12, '  らんの数（日付〜確かめるリンクまで）');
+  // ★「LINEに出すか」と「出さない理由」が、ここでいちばん見たいもの
+  eq(row[6], '○ 出す', '★LINEに出るかどうかを、1行ずつ出す');
+  eq(row[7], '', '  出すものは、理由のらんは空');
+  has(row[11], '渡辺橋', '  近い乗り場も出す');
+  has(row[12], 'スクショ', '  どこから読んだか');
+  eq(row.length, 14, '  らんの数（日付〜確かめるリンクまで）');
+
+  // 落としたものは、理由まで出る
+  const J = ctx.vnLedgerJudge_;
+  eq(J({ start: '', end: '' }).ok, false, '時刻が読めないものは、出さない');
+  has(J({ start: '', end: '' }).why, '時刻が読み取れていない', '  ★その理由も書く');
+  eq(J({ start: '10:00', end: '12:00' }).ok, false, '昼に終わるものは、出さない');
+  has(J({ start: '10:00', end: '12:00' }).why, '時間帯の外', '  ★その理由も書く');
+  eq(J({ start: '18:00', end: '21:00' }).ok, true, '18:00〜翌04:00 のものは、出す');
+  eq(J({ start: '18:00', end: '21:00', people: 100 }).ok, false, '人数が少なければ、出さない');
+  has(J({ start: '18:00', end: '21:00', people: 100 }).why, '300人', '  ★その理由も書く');
+
+  // ★条件の一覧が、そのまま読める形で出ること
+  const rules = ctx.vnLedgerRules_();
+  const flat = rules.map(r => r.join(' ')).join('\n');
+  has(flat, '18:00', '「いまの条件」に、時間帯が出る');
+  has(flat, '04:00（翌日）', '  終わりの時刻も');
+  has(flat, '300人', '  人数の下限も');
+  has(flat, '16:30', '  確認用の時刻も');
+  has(flat, '17:00', '  グループへ送る時刻も');
+  has(flat, '5 分前', '  リマインダーの何分前かも');
+  has(flat, '大阪城ホール', '  見に行くページの名前も');
+  has(flat, '万博記念公園', '  外しているところも、はっきり書く');
 
   const hrow = ctx.vnLedgerRow_(photos[1], false);
   eq(hrow[2], 'ホテル宴会・催事', 'ホテルのぶんはカテゴリーが分かれる');

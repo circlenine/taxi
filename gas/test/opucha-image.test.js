@@ -717,6 +717,25 @@ console.log('\n■ LINEに「なおして」と打てば、見張りを入れ直
      '文章の中にあるだけなら、効かない');
   ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: '23:00 12000 新地4' } }) === false,
      'ふつうの乗車記録は、そのまま通す');
+
+  /*
+   * ★「Kataskatrophe」は、1文字でも違えば動かない。
+   *   ほかの合言葉は ひらがなでも飾り文字でも通るようにしてあるが、
+   *   こちらは わざと厳しくしてある（そういうご指定）
+   */
+  vm.runInContext('repaired = 0;', ctx);
+  ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: 'Kataskatrophe' } }) === true,
+     '★「Kataskatrophe」でも入れ直せる');
+  ok(vm.runInContext('repaired', ctx) === 1, '  ちゃんと動く');
+  ['kataskatrophe', 'KATASKATROPHE', 'Kataskatrophé', 'ｋａｔａｓｋａｔｒｏｐｈｅ',
+   'カタスカトロフ', 'Kataskatrophe です', 'Kataskatroph'
+  ].forEach(function (w) {
+    ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: w } }) === false,
+       '  ★1文字でも違えば動かない：「' + w + '」');
+  });
+  // 前後の空白だけは、指がすべっただけなので許す
+  ok(F('handleRepairNote_')({ replyToken: 'rt', message: { text: '  Kataskatrophe  ' } }) === true,
+     '  前後の空白だけは、そのまま通す');
 }
 
 console.log('\n■ 知らないIDから記録が届いたら、ｼﾞﾝタブへ入れる');

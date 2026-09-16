@@ -397,7 +397,23 @@ t(d[0].source === 'あたらしい版', '新しいほうが勝つ');
 
 console.log('\n■ 更新の流れ');
 reset([['001-Code.gs', 'あたらしい'], ['005-Updater.gs', '更新係']]);
-F('menuUpdateCode')();
+/*
+ * ★更新のあと、見張りをこちらでそろえること。
+ *   前は「入れ替えたら、LINEに『なおして』と打ってください」とお願いしていた。
+ *   打ち忘れると、新しく増えた見張りが立たないまま黙って止まる。
+ *   毎回 手で打ってもらうのは、忘れる前提のやり方だった
+ */
+vm.runInContext('var upFmt = 0, upRep = 0, upTst = 0, upVn = 0;' +
+  'function ensureAutoFormatTrigger_(){ upFmt++; return true; }' +
+  'function ensureAutoReportTrigger_(){ upRep++; return true; }' +
+  'function ensureAutoReportTestTrigger_(){ upTst++; return true; }' +
+  'function vnEnsureDailyTrigger_(){ upVn++; return true; }', ctx);
+const upOut = F('menuUpdateCode')();
+t(vm.runInContext('upFmt', ctx) === 1, '★更新したら、毎日17時の見張りを自分でそろえる');
+t(vm.runInContext('upRep', ctx) === 1, '  レポート本番も');
+t(vm.runInContext('upTst', ctx) === 1, '  レポート確認用も');
+t(vm.runInContext('upVn', ctx) === 1, '  ★イベントの見張りも（ここが立たないと黙って止まる）');
+t(String(upOut).indexOf('見張り') !== -1, '  何をしたか、結果にも書く');
 t(lastPut() !== undefined, '書き込みが走った');
 const put = lastPut().body.files;
 t(put.filter(f => f.name === '001-Code')[0].source === 'あたらしい', '001-Code が入れ替わった');
@@ -1468,10 +1484,10 @@ console.log('\n■ 見張りが止まったとき、スマホだけで直せる'
   has(text, '見張りを立て直した', '入れ直したと伝える');
   has(text, '計★画★通★り', '  ユーモアも入れる');
   t(vm.runInContext('fmtArmed', ctx) === 1, '毎日17時の自動チェックも、一緒にそろえる');
-  has(text, '17時の自動チェック', '  そう伝える');
+  has(text, '毎日17時の自動チェック', '  そう伝える');
   t(vm.runInContext('repArmed', ctx) === 1, '毎月のレポート本番も、一緒にそろえる');
   t(vm.runInContext('tstArmed', ctx) === 1, '★レポートの確認用（16日3:00）も、一緒にそろえる');
-  has(text, 'レポートの確認用', '  そう伝える');
+  has(text, 'レポート確認用', '  そう伝える');
   /*
    * ★イベントの見張りは、ここが無いと永久に立ち上がらない。
    *   立て直す仕掛け（vnSelfHeal_）が、その見張りの中から動くため。
@@ -1479,6 +1495,19 @@ console.log('\n■ 見張りが止まったとき、スマホだけで直せる'
    */
   t(vm.runInContext('vnArmed', ctx) === 1, '★イベントの見張りも、一緒にそろえる（ここが抜けていた）');
   has(text, 'イベントの見張り', '  そう伝える');
+
+  /*
+   * ★ふだんは、これを打つ必要そのものが無いようにした。
+   *   コードを入れ替えたら、その場で見張りをそろえる。
+   *   毎回 手で打ってもらうのは、忘れる前提のやり方だった
+   */
+  vm.runInContext('fmtArmed = 0; repArmed = 0; tstArmed = 0; vnArmed = 0;', ctx);
+  const ea = F('updEnsureAll_')();
+  t(vm.runInContext('fmtArmed', ctx) === 1, '★更新のあとも、同じものをそろえる（毎日17時）');
+  t(vm.runInContext('repArmed', ctx) === 1, '  レポート本番も');
+  t(vm.runInContext('tstArmed', ctx) === 1, '  レポート確認用も');
+  t(vm.runInContext('vnArmed', ctx) === 1, '  イベントの見張りも');
+  has(ea, '見張り', '  何をしたか、そのまま読める形で返す');
   has(text, '最後に動いたのは', '  いつから止まっていたかも出る');
   has(text, '持ち時間を使い切る', '  長く止まっていたら、その理由も書く');
   t(F('panelTriggersOk_')() === true, '入れ直したあとは、しくみがそろっている');

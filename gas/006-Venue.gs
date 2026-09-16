@@ -2,11 +2,35 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V028ver  （2026/09/16）  ★★★
+ *  ★★★  V029ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V029ver]
+ *   ・読み取り台帳を、まーくさん専用の「べつのスプシ」に出すようにした
+ *     ★記録用スプシに書くと、グループの全員に見えてしまいます。
+ *       台帳には「まだ人の目を通していない、読み取ったまま」のものが並ぶので、
+ *       間違ったまま誰かが見て、そこへ向かってしまっては困ります。
+ *       置き場所ごと分けました。だれにも共有していません
+ *   ・全期間（読み取れているぶん全部）を出すようにした
+ *     ★前は14日ぶんしか見ておらず、先の予定が入っているかを
+ *       確かめられませんでした。いまは365日先まで見ます。
+ *       写真から読んだぶんは、もとから全部出しています
+ *     ★6分で打ち切られて1行も残らない、ということが無いよう、
+ *       4分で切り上げて「ここまでしか見ていません」と伝えます
+ *   ・「LINEに出す？」と「出さない理由」のらんを足した
+ *     ★件数だけでは、拾えていないのか、決まりで落としたのかが分かりません。
+ *       落とした行は灰色にして、となりに理由を書きます。
+ *       時刻が読めなかったものも、台帳からは落としません
+ *       （読めていないこと自体が、いちばん見たいものだからです）
+ *   ・「📋 いまの条件」タブを足した
+ *     いま効いている決まりごとを、同じスプシに全部ならべます。
+ *     条件と結果を、その場で見比べられるようにするため
+ *   ・メニュー／そうさボタン [13] も、全期間の台帳を出すように変えた
+ *     ★前はどれも当日ぶんしか出ていませんでした。
+ *       今日のぶんだけ見たいときは menuVenueToday を残してあります
  *
  *  [V028ver]
  *   ・確認用を送るとき、ボタンの引き当て先もそろえるようにした（vnDaySave_）
@@ -1873,9 +1897,114 @@ function vnLedgerFromPhotos_() {
   return out;
 }
 
+/*
+ * ★台帳は「まーくさん専用の、べつのスプシ」に書きます。
+ *
+ *   記録用スプシに書くと、グループの全員に見えてしまいます。
+ *   台帳には「まだ人の目を通していない、読み取ったままのもの」が並びます。
+ *   間違ったまま誰かが見て、そこへ向かってしまっては困ります。
+ *   だから、置き場所ごと分けました。
+ *
+ *   このスプシは、まーくさんのGoogleアカウントが作ります。
+ *   だれにも共有しないので、作った本人しか開けません。
+ *   （こちらから、ほかの人を足すことは一度もしていません）
+ */
+const VN_LEDGER_SS = "VN_LEDGER_SS";      // 台帳スプシのID（スクリプトプロパティ）
+const VN_LEDGER_NAME = "🗓️ イベント読み取り台帳（まーく専用）";
+
+/** 台帳スプシを開く。無ければ作る */
+function vnLedgerBook_() {
+  const pr = PropertiesService.getScriptProperties();
+  const id = pr.getProperty(VN_LEDGER_SS) || "";
+  if (id) {
+    try { return SpreadsheetApp.openById(id); }
+    catch (e) { /* 消された・開けない。下で作り直す */ }
+  }
+  const ss = SpreadsheetApp.create(VN_LEDGER_NAME);
+  pr.setProperty(VN_LEDGER_SS, ss.getId());
+  // ★共有はしない。作った本人だけが開ける状態のままにしておく
+  return ss;
+}
+
+/**
+ * いまの「出す・出さない」の決まりを、そのまま書き出す。
+ *
+ * ★条件が効いているかどうかは、結果だけ見ても分かりません。
+ *   いま何を決まりにしているのかを、台帳と同じ場所に並べておけば、
+ *   「この決まりで、この結果になった」と、その場で見比べられます。
+ */
+function vnLedgerRules_() {
+  const hh = function (h) {
+    const x = h >= 24 ? h - 24 : h;
+    return ("0" + Math.floor(x)).slice(-2) + ":" + ("0" + Math.round((x % 1) * 60)).slice(-2) +
+           (h >= 24 ? "（翌日）" : "");
+  };
+  const rows = [
+    ["対象の時間帯", hh(VN_FROM_HOUR) + " 〜 " + hh(VN_TO_HOUR),
+     "終わりの時刻が この中に入っていれば出します。終わりが分からないときだけ、始まりで見ます"],
+    ["時刻が読めないもの", "出しません",
+     "いちばん大事な関所です。「時間不明」で出すと、何も無い会場へ向かってしまうため"],
+    ["見込み人数の下限", VN_MIN_PEOPLE + "人",
+     "人数が書いてあるときだけ効きます。書いていないものは、消さずに残します"],
+    ["人数が書いていないとき", "会場の大きさで見る",
+     "3,000人以上の会場は残します。ホテルの宴会も残します。分からないものは消しません"],
+    ["確認用を送る時刻", VN_TEST_HOUR + ":" + ("0" + VN_TEST_MIN).slice(-2) + "（まーくさんだけ）",
+     "番号つきで届きます。「❶削除」「❶修正：〜」で手直しできます"],
+    ["グループへ送る時刻", VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2),
+     "確認用を送っていない日は、グループには絶対に送りません"],
+    ["リマインダー", "終了予定の " + vnLeadMin_() + " 分前",
+     "設定タブ「イベントのお知らせは何分前」で変えられます（1〜300）"],
+    ["1件も無い日", "1通も送りません", "何も無いのに鳴らさない、という決まりです"],
+    ["連日の催し", "（〇日目／〇日間）を付ける", "全会場。ワントゥワンは対象の公演にも付けます"],
+    ["ワントゥワン", "詳細まで見に行く",
+     "「徹夜」などが書いてあれば、営業時間内にバラシが終わらないので、赤字で警告を出します"],
+    ["万博記念公園", "いまは外しています", "読み取りが安定しなかったため"]
+  ];
+  const src = VN_SOURCES.map(function (x) { return x.name; }).join("・");
+  rows.push(["見に行くホームページ", VN_SOURCES.length + "か所", src]);
+  rows.push(["写真から読むもの", "フェスティバルホール・帝国ホテル・リーガロイヤル ほか",
+             "送ってもらったスクショぶん。先の月のものも、しまってある全部を出します"]);
+  return rows;
+}
+
+/** 「いまの条件」タブを書く */
+function vnLedgerWriteRules_(ss) {
+  const NAME = "📋 いまの条件";
+  let sh = ss.getSheetByName(NAME);
+  if (!sh) sh = ss.insertSheet(NAME);
+  sh.clear();
+  const head = ["決まりごと", "いまの値", "なぜ／補足"];
+  sh.getRange(1, 1, 1, 3).setValues([head]).setFontWeight("bold").setBackground("#e8d5f0");
+  const rows = vnLedgerRules_();
+  sh.getRange(2, 1, rows.length, 3).setValues(rows).setWrap(true).setVerticalAlignment("top");
+  sh.setFrozenRows(1);
+  [200, 280, 520].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  return sh;
+}
+
+/**
+ * その1件が、LINEの絵に出るかどうか。出ないなら、その理由も返す。
+ *
+ * ★台帳でいちばん見たいのは「なぜ出なかったのか」です。
+ *   件数だけでは、拾えていないのか、決まりで落としたのかが分かりません。
+ */
+function vnLedgerJudge_(e) {
+  if (!vnHasTime_(e)) return { ok: false, why: "時刻が読み取れていない" };
+  if (!vnInTimeRange_(e)) {
+    const h = vnHourOf_(e.end) !== null ? vnHourOf_(e.end) : vnHourOf_(e.start);
+    return { ok: false, why: "時間帯の外（" + (h < VN_FROM_HOUR ? "早すぎる" : "遅すぎる") + "）" };
+  }
+  if (!vnBigEnough_(e)) return { ok: false, why: "見込み人数が " + VN_MIN_PEOPLE + "人 未満" };
+  return { ok: true, why: "" };
+}
+
 /** ホームページから、これから何日ぶん拾えるかを調べる（ページは1回だけ読む） */
-function vnLedgerFromWeb_(days) {
-  const n = Math.max(1, Math.min(Number(days) || 14, 31));
+function vnLedgerFromWeb_(days, deadline) {
+  // ★「全期間」は365日先まで見ます。ページに載っていない先のことは、
+  //   どうやっても読めないので、そこから先は見ても意味がありません
+  const n = Math.max(1, Math.min(Number(days) || 365, 400));
+  const until = Number(deadline) || (Date.now() + 4 * 60000);   // 4分で切り上げる
+  let cut = 0;                                                   // 時間切れで見られなかった日数
   const rows = [], notes = [];
   const today = new Date();
   VN_SOURCES.forEach(function (src) {
@@ -1893,22 +2022,31 @@ function vnLedgerFromWeb_(days) {
     }
     if (!html) { notes.push("❌ " + src.name + "：中身が空です"); return; }
 
-    let hit = 0;
+    let hit = 0, seen = 0;
     for (let i = 0; i < n; i++) {
+      // ★Googleは1回の処理を6分で打ち切ります。打ち切られると、
+      //   台帳が1行も残らないまま終わってしまう。
+      //   途中まででも書いて、「ここまでしか見ていません」と伝えるほうがよい
+      if (Date.now() > until) { cut = Math.max(cut, n - i); break; }
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       let got = [];
       try { got = vnScrapeOne_(src, d, (src.deep && i > 0) ? html : (src.deep ? null : html)).events || []; }
       catch (e) { got = []; }
-      got.filter(vnHasTime_).forEach(function (e) {
+      seen++;
+      // ★台帳では、時刻が読めなかったものも落とさずに残します。
+      //   「読めていないこと」こそ、いちばん見たいものだからです。
+      //   （LINEには出しません。出す・出さないは、あとの らんで分けます）
+      got.forEach(function (e) {
         rows.push({ d: d, venue: e.venue, kind: e.kind || "event", title: e.title,
                     start: e.start, end: e.end, endGuess: !!e.endGuess, people: 0,
                     url: e.url || src.url, from: "ホームページ" });
         hit++;
       });
     }
-    notes.push((hit > 0 ? "✅ " : "⚠️ ") + src.name + "：" + n + "日ぶんを見て " + hit + "件");
+    notes.push((hit > 0 ? "✅ " : "⚠️ ") + src.name + "：" + seen + "日ぶんを見て " + hit + "件");
   });
-  return { rows: rows, notes: notes };
+  if (cut) notes.push("⏳ 時間切れで、最後の " + cut + "日ぶんは見られませんでした（日数を減らしてお試しください）");
+  return { rows: rows, notes: notes, cut: cut };
 }
 
 /** 台帳に出す1行ぶん（客層などを付けるかどうかを選べる） */
@@ -1921,6 +2059,7 @@ function vnLedgerRow_(e, withGuess) {
     } catch (err) {}
   }
   const v = VN_VENUES[e.venue] || {};
+  const j = vnLedgerJudge_(e);
   return [
     vnLedDate_(e.d),
     e.venue,
@@ -1928,6 +2067,8 @@ function vnLedgerRow_(e, withGuess) {
     e.title || "（名前を読み取れませんでした）",
     e.start || "",
     (e.end || "") + (e.endGuess ? "（予想）" : ""),
+    j.ok ? "○ 出す" : "× 出さない",
+    j.why,
     guess || (withGuess ? "（AIも分からないと答えました）" : "―"),
     know || "",
     avoid || "",
@@ -1959,42 +2100,64 @@ function vnLedgerBuild_(days, withGuess) {
   const rows = all.map(function (e, i) { return vnLedgerRow_(e, withGuess && i < GUESS_MAX); });
 
   let url = "";
+  let outCount = 0;
+  all.forEach(function (e) { if (vnLedgerJudge_(e).ok) outCount++; });
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // ★記録用スプシではなく、まーくさん専用のスプシに書く（上の説明を参照）
+    const ss = vnLedgerBook_();
     let sh = ss.getSheetByName(VN_LEDGER_TAB);
     if (!sh) sh = ss.insertSheet(VN_LEDGER_TAB);
     sh.clear();
     const head = ["日付", "会場", "カテゴリー", "催しの名前", "開演", "終演",
+                  "LINEに出す？", "出さない理由",
                   "客層・年齢層（推定）", "知っておくとよい話題", "触れない方がよいこと",
                   "近い乗り場", "どこから読んだか", "確かめる（押すと開きます）"];
+    const LINK = head.length, FROM = head.length - 1, OK = 7, WHY = 8, AVOID = 11;
     sh.getRange(1, 1, 1, head.length).setValues([head])
       .setFontWeight("bold").setBackground("#e8d5f0").setWrap(true);
     if (rows.length) {
       sh.getRange(2, 1, rows.length, head.length).setValues(rows).setWrap(true).setVerticalAlignment("top");
-      // リンクのらんは、押して開ける形にする（スマホでそのまま確かめられるように）
       for (let i = 0; i < rows.length; i++) {
-        const u = rows[i][head.length - 1];
-        if (!u) continue;
-        const label = String(rows[i][10]).indexOf("スクショ") >= 0 ? "📷 送ったスクショを見る" : "🔗 公式ページを見る";
+        const u = rows[i][LINK - 1];
+        if (u) {
+          // リンクのらんは、押して開ける形にする（スマホでそのまま確かめられるように）
+          const label = String(rows[i][FROM - 1]).indexOf("スクショ") >= 0
+            ? "📷 送ったスクショを見る" : "🔗 公式ページを見る";
+          try {
+            sh.getRange(i + 2, LINK).setRichTextValue(
+              SpreadsheetApp.newRichTextValue().setText(label)
+                .setLinkUrl(0, label.length, u).build());
+          } catch (e) { sh.getRange(i + 2, LINK).setValue(u); }
+        }
+        // ★出す行と、落とした行を、色で分ける。
+        //   ずらっと並んだ中から「落ちているもの」を探すのは、字だけでは無理
         try {
-          sh.getRange(i + 2, head.length).setRichTextValue(
-            SpreadsheetApp.newRichTextValue().setText(label)
-              .setLinkUrl(0, label.length, u).build());
-        } catch (e) { sh.getRange(i + 2, head.length).setValue(u); }
+          const outp = String(rows[i][OK - 1]).indexOf("○") === 0;
+          sh.getRange(i + 2, 1, 1, head.length)
+            .setBackground(outp ? null : "#f2f2f2")
+            .setFontColor(outp ? null : "#888888");
+        } catch (e) {}
       }
-      // 「触れない方がよいこと」は赤で目立たせる
-      sh.getRange(2, 9, rows.length, 1).setFontColor("#c62828").setFontWeight("bold");
+      sh.getRange(2, WHY, rows.length, 1).setFontColor("#c62828");
+      sh.getRange(2, AVOID, rows.length, 1).setFontColor("#c62828").setFontWeight("bold");
     }
     sh.setFrozenRows(1);
-    [110, 130, 130, 240, 55, 75, 180, 200, 180, 130, 160, 170]
+    [110, 130, 130, 240, 55, 75, 90, 160, 180, 200, 180, 130, 160, 170]
       .forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+    try { sh.getRange(1, 1, rows.length + 1, head.length).createFilter(); } catch (e) {}
+    // いまの決まりごとも、同じスプシに並べておく（見比べられるように）
+    try { vnLedgerWriteRules_(ss); } catch (e) {}
     url = ss.getUrl() + "#gid=" + sh.getSheetId();
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("vnLedger", e);
   }
 
   // LINEには短く。中身は台帳で見てもらう
-  const L = ["🗓️ 読み取り台帳をつくりました（" + rows.length + "件）", ""];
+  const L = ["🗓️ 読み取り台帳をつくりました",
+             "　読み取れた全部：" + rows.length + "件",
+             "　そのうち LINEに出るもの：" + outCount + "件",
+             "　（残り " + (rows.length - outCount) + "件は、決まりで落としたもの。理由も並べてあります）",
+             ""];
   web.notes.forEach(function (x) { L.push(x); });
   if (photos.length) {
     const byPlace = {};
@@ -2005,10 +2168,14 @@ function vnLedgerBuild_(days, withGuess) {
   L.push("⚠️ は、その期間に催しが無いか、読み取れていないかのどちらかです。");
   L.push("公式ページに催しが出ているのに ⚠️ なら、読み取りが効いていません。");
   L.push("");
-  L.push("台帳には、日付・カテゴリー・催しの名前・開演・終演・客層・話題・" +
-         "触れない方がよいこと・近い乗り場・出所・確かめるリンク をならべてあります。");
+  L.push("台帳には、日付・カテゴリー・催しの名前・開演・終演・出す出さない・その理由・" +
+         "客層・話題・触れない方がよいこと・近い乗り場・出所・確かめるリンク をならべてあります。");
   L.push("いちばん右のらんを押すと、公式ページか、送ってもらったスクショが開きます。");
+  L.push("灰色の行が「落としたもの」です。となりのらんに理由が入っています。");
+  L.push("「📋 いまの条件」タブに、いま効いている決まりごとを全部ならべてあります。");
   if (!withGuess) L.push("客層も見るときは「読み取り確認 詳しく」と送ってください（少し時間がかかります）。");
+  L.push("");
+  L.push("🔒 このスプシは、まーくさんだけが開けます（だれにも共有していません）。");
   if (url) L.push("", url);
   return L.join("\n");
 }
@@ -2030,7 +2197,9 @@ function vnHandleListCmd_(ev, sentAt) {
     const dm = t.match(/(\d+)/);
     const say0 = function (x) { if (typeof lineReply_ === "function") lineReply_(ev.replyToken || "", x); };
     const deep = /(詳しく|くわしく)/.test(t);
-    try { say0(vnLedgerBuild_(dm ? Number(dm[1]) : 14, deep)); }
+    // ★何も言われなければ「全期間」。前は14日ぶんしか見ておらず、
+    //   先の予定が入っているかどうかを確かめられませんでした
+    try { say0(vnLedgerBuild_(dm ? Number(dm[1]) : 365, deep)); }
     catch (e) { say0("🔍 くそっ!!!!やられた!!!!　台帳を作れませんでした：" + (e && e.message ? e.message : e)); }
     return true;
   }
@@ -4264,7 +4433,12 @@ function vnSendTodayToMe() {
  *   読んだ元の文字までそのまま出すので、外していれば目で分かる。
  */
 function panelVenueList() {
-  const text = vnReadStatus_(new Date());
+  // ★前は「今日のぶん」しか出していませんでした。
+  //   確かめたいのは「先の予定まで、ちゃんと読めているか」なので、
+  //   全期間の台帳を作るほうに変えました（当日のぶんも、その中に入っています）
+  let text = "";
+  try { text = vnLedgerBuild_(365, false); }
+  catch (e) { text = "🔍 台帳を作れませんでした：" + (e && e.message ? e.message : e); }
   const err = vnSend_(text, "test");
   return (err ? "⚠️ 自分のLINEには送れませんでした：" + err
               : "📱 同じ内容を、まーく個人のLINEにだけ送りました") + "\n\n" + text;
@@ -4272,12 +4446,25 @@ function panelVenueList() {
 
 /** メニューからも見られるようにする */
 function menuVenueList() {
-  const text = vnReadStatus_(new Date());
+  let text = "";
+  try { text = vnLedgerBuild_(365, false); }
+  catch (e) { text = "🔍 台帳を作れませんでした：" + (e && e.message ? e.message : e); }
   const err = vnSend_(text, "test");
   try { infoSet_(INFO_ROW.READ, text, "読み取り状況"); } catch (e) {}
   try {
     const ui = SpreadsheetApp.getUi();
-    ui.alert("🔎 読み取れているものの一覧", text.slice(0, 1400), ui.ButtonSet.OK);
+    ui.alert("🔎 読み取れているものの一覧（全期間）", text.slice(0, 1400), ui.ButtonSet.OK);
   } catch (e) {}
   return err ? "❌ " + err : text;
+}
+
+/** 今日のぶんだけを見たいとき（前からある、そのままの形） */
+function menuVenueToday() {
+  const text = vnReadStatus_(new Date());
+  try { infoSet_(INFO_ROW.READ, text, "読み取り状況"); } catch (e) {}
+  try {
+    SpreadsheetApp.getUi().alert("🔎 今日のぶんの読み取り状況", text.slice(0, 1400),
+                                 SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (e) {}
+  return text;
 }
