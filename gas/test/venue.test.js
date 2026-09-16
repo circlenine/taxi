@@ -153,7 +153,7 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
      (json.match(/"height":"sm"/g) || []).length, 'ボタンはどれもいちばん小さい "sm"');
   has(json, '通知設定', '★「お知らせ」ではなく「通知設定」と書く（初見で分かるように）');
   eq(json.indexOf('お知らせ：'), -1, '  「お知らせ：」の言い方は、もう使わない');
-  has(json, '📱リマインダー', '★ボタンは「リマインダー」だけ');
+  has(json, '📱個人LINEへ通知', '★ボタンは「個人LINEへ通知」だけ（どこへ届くか分かるように）');
   eq(json.indexOf('ﾃﾞｨｽｺｰﾄﾞ'), -1, '★ディスコードのボタンは出さない（設定がややこしいため）');
   eq(json.indexOf('💬DC'), -1, '  「DC」も出さない');
   eq(json.indexOf('⏰カレンダー'), -1,
@@ -574,19 +574,27 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   D.prototype = RealDate.prototype; D.now = () => new RealDate(2026, 8, 15, 17, 0).getTime();
   ctx.Date = D;
 
+  // ★グループで押されても、返事は「押した本人の個人LINE」へ送る
+  pushed.length = 0; ctx.lastReply = '';
   const took = ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
-    source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
+    source: { userId: 'Umark', groupId: 'Cgroup' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(took, true, 'ボタンはこの受け口が扱う');
-  has(ctx.lastReply, '20:00', '21:00の60分前＝20:00にお知らせすると返す');
-  has(ctx.lastReply, 'リマインダーを入れました', '  ★「リマインダー」という言い方で返す');
-  has(ctx.lastReply, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
-  eq(ctx.lastReply.split('\n').length <= 4, true, '  ★返事は1回・短く（連投しない）');
+  eq(ctx.lastReply, '', '★グループには何も出さない（雑談の場を汚さない）');
+  eq(pushed.length, 1, '★押した本人の個人LINEへ送る');
+  eq(pushed[0].to, 'Umark', '  宛先は、押した人');
+  const rep0 = pushed[0].msgs[0].text;
+  has(rep0, '20:00', '21:00の60分前＝20:00に届くと伝える');
+  has(rep0, 'リマインダーを入れました', '  ★「リマインダー」という言い方で返す');
+  has(rep0, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
+  has(rep0, 'あなたの個人LINEへ', '★公式アカウントから個人LINEへ届く、と分かるように書く');
+  has(rep0, 'アプリは開きません', '  アプリは開かないことも、はっきり書く');
   eq(JSON.parse(props['VN_REMIND']).length, 1, '予約が1つ入る');
 
+  pushed.length = 0;
   ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
-    source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
+    source: { userId: 'Umark', groupId: 'Cgroup' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(JSON.parse(props['VN_REMIND']).length, 1, '同じものを二度押しても、二重にならない');
-  has(ctx.lastReply, 'もう入っています', '  そう伝える');
+  has(pushed[0].msgs[0].text, 'もう入っています', '  そう伝える（これも個人LINEへ）');
 
   // 時間になったら送る
   pushed.length = 0;

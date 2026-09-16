@@ -2,11 +2,21 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V023ver  （2026/09/16）  ★★★
+ *  ★★★  V024ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V024ver]
+ *   ・通知設定のボタンを「📱個人LINEへ通知」にした
+ *     どこへ届くのかが、押す前に分かるようにするため
+ *   ・押したあとの返事を、押した本人の「個人LINE」へ送るようにした（tellMe）
+ *     ★グループで押されたとき、その場に返すと、みんなの雑談に
+ *       自分あての設定の話が流れてしまう。本人だけに届けばよい。
+ *     友だち追加がまだで送れないときだけ、押したところに
+ *       「友だち追加してください」と返す
+ *   ・返事に「この公式アカウントから あなたの個人LINEへ届きます」と明記した
  *
  *  [V023ver]
  *   ・通知設定のボタンを「📱リマインダー」1つだけにした
@@ -2538,7 +2548,7 @@ function vnBellRow_(ev, idx, day) {
     "contents": [
       { "type": "text", "text": "🔔通知設定", "size": "xxs", "weight": "bold",
         "color": VN_COLOR_HEAD, "gravity": "center", "align": "center", "flex": 4, "wrap": true },
-      vnBellBtn_("me", "📱リマインダー", ymd, idx, 6)
+      vnBellBtn_("me", "📱個人LINEへ通知", ymd, idx, 6)
     ]};
 }
 
@@ -2631,6 +2641,25 @@ function vnHandlePostback_(ev) {
   const reply = (ev && ev.replyToken) || "";
   const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
 
+  /*
+   * 押した本人の「個人LINE」へ送る。
+   *
+   * ★グループで押されたとき、その場に返すと、みんなの雑談に
+   *   自分あての設定の話が流れてしまう。本人だけに届けばよい。
+   *   （公式アカウントから、その人の個人トークへ送る）
+   *
+   *   友だち追加がまだだと送れないので、そのときだけ、
+   *   押したところに「友だち追加してください」と返す。
+   */
+  const tellMe = function (uid, t) {
+    if (uid && typeof lrPush_ === "function") {
+      try { lrPush_(uid, [{ type: "text", text: t }]); return; }
+      catch (e) { /* 送れなかった。下でその場に返す */ }
+    }
+    say(t + "\n\n※ 個人LINEへ送れませんでした。\n" +
+        "この公式アカウントを「友だち追加」すると、次からは個人LINEへ直接届きます。");
+  };
+
   const ymd = String(q.d || "");
   if (!/^\d{8}$/.test(ymd)) { say("わけがわからない…　どの日のことでしょう"); return true; }
   const day = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)));
@@ -2668,10 +2697,14 @@ function vnHandlePostback_(ev) {
     // もう過ぎている。いま1回だけ送る
     const r = { how: q.vn, to: (ev.source && ev.source.userId) || "", venue: item.venue,
                 title: item.title, start: item.start, end: item.end, url: item.url };
-    const err = (q.vn === "dc") ? vnDiscord_(vnRemText_(r))
-              : (typeof lrPush_ === "function" && r.to) ? (lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]), "")
-              : "送り先が分かりませんでした";
-    say(err ? "⚠️ " + err : "⏰ その時刻は過ぎていたので、いまお届けしました");
+    let err = "";
+    try {
+      if (q.vn === "dc") err = vnDiscord_(vnRemText_(r));
+      else if (typeof lrPush_ === "function" && r.to) lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]);
+      else err = "送り先が分かりませんでした";
+    } catch (e) { err = (e && e.message) ? e.message : String(e); }
+    if (err) say("⚠️ " + err);
+    // うまく届いたときは、これ以上なにも言わない（本人の個人LINEに届いている）
     return true;
   }
 
@@ -2680,7 +2713,8 @@ function vnHandlePostback_(ev) {
   const added = vnRemAdd_(at, q.vn, to, item);
   const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
   const mins = Math.max(1, Math.round((at - Date.now()) / 60000));
-  if (!added) { say("🔔 そのリマインダーは、もう入っています"); return true; }
+  const me = (ev.source && ev.source.userId) || "";
+  if (!added) { tellMe(me, "🔔 そのリマインダーは、もう入っています"); return true; }
 
   // ★返事は1回だけ。これ以上は送らない（うまくいっているのに何度も鳴らさない）
   if (q.vn === "dc") {
@@ -2704,11 +2738,14 @@ function vnHandlePostback_(ev) {
         "https://discord.com/app");
     return true;
   }
-  say("🔔 リマインダーを入れました。\n" +
-      hhmm + "ごろ（" + item.venue + " の" + base + " " +
-      ([item.end, item.start].filter(String)[0] || "") + " の" + lead + "分前）に\n" +
-      "このLINEへ自動でメッセージが届きます。\n" +
-      "※アプリは開きません。届く時刻は15分ほど前後します");
+  tellMe(me,
+      "🔔 リマインダーを入れました。\n" +
+      "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
+      "🕒 " + base + " " + ([item.end, item.start].filter(String)[0] || "") + "\n" +
+      "📩 " + hhmm + "ごろ（" + lead + "分前）に、\n" +
+      "　　この公式アカウントから あなたの個人LINEへ\n" +
+      "　　メッセージが届きます。\n" +
+      "※ アプリは開きません。届く時刻は15分ほど前後します");
   return true;
 }
 
