@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C045ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C046ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,10 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C046ver]
+ *   ・合言葉「katastrophe」を受けるようにした（updHandleKata_）
+ *     公式LINEでもグループLINEでも効く。まーくさん以外は動かない
  *
  *  [C045ver]
  *   ・LINEの「コード更新」を受けるようにした（updHandleNote_ / updHandleYes_）
@@ -1510,6 +1514,10 @@ function handleEvent_(ev) {
   // --- 「コード更新」 ＝ GitHubの新しいコードを取り込む（まーくさんだけ・2段階）---
   //     スマホしか無いのに、コードを1本ずつ貼り替えるのは無理がある。
   //     ここから押せれば、貼り替えそのものが要らなくなる
+  // --- 合言葉「katastrophe」 ＝ その場でコードを取り込む（まーくさんだけ）---
+  //     公式LINEでも、グループLINEでも効く。合言葉そのものが歯止め
+  if (typeof updHandleKata_ === "function" && updHandleKata_(ev)) return;
+
   if (typeof updHandleNote_ === "function" && updHandleNote_(ev)) return;
   if (typeof updHandleYes_ === "function" && updHandleYes_(ev)) return;
 

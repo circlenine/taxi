@@ -2,7 +2,21 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U025ver  （2026/09/16）  ★★★
+ *  ★★★  U026ver  （2026/09/16）  ★★★
+ *
+ *  [U026ver]
+ *   ・合言葉「katastrophe」でコードを取り込めるようにした
+ *     大文字・小文字・全角・半角、どれで打っても通る
+ *     （KATASTROPHE／Ｋａｔａｓｔｒｏｐｈｅ… すべて同じ）
+ *   ・公式LINE（1対1）でも、グループLINEでも効く
+ *   ・★打てるのは まーくさんだけ。ほかの人が同じ言葉を打っても
+ *     取り込みは絶対に動かないし、返事もしない
+ *     （返すと「何かある」と気づかせてしまうため、黙って見送る）
+ *   ・取り込み中にもう一度打たれても、二重には動かさない
+ *   ・GitHubの置き場所は入っているのに鍵が無い、という半分だけの状態では止める
+ *     そのまま進むと、黙ってドライブの古いコードが入ってしまうため
+ *   ・返事を、近未来のロボットの声（ドイツ語まじり）にした
+ *     ただし何が起きたかは、必ず日本語でも添える
  *
  *  [U025ver]
  *   ・LINEから「コード更新」と打つだけで、GitHubの新しいコードを取り込めるようにした
@@ -420,11 +434,135 @@ function menuSetGitHub() {
  *    取り込みそのものは裏でやる。終わったら結果を送る。
  * ================================================================ */
 
+/* ---------------- 合言葉「katastrophe」 ---------------- */
+
+/**
+ * 打たれた文字が合言葉かどうか。
+ * 大文字・小文字、全角・半角、前後の空白は、どれでも通す。
+ *   KATASTROPHE / katastrophe / Ｋａｔａｓｔｒｏｐｈｅ …すべて同じ
+ */
+function updKataWord_(text) {
+  let t = String(text == null ? "" : text);
+  // 全角のアルファベットを、半角に直す
+  t = t.replace(/[Ａ-Ｚａ-ｚ]/g, function (c) {
+    return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+  });
+  t = t.replace(/[\s\u3000]/g, "").toLowerCase();
+  return t === "katastrophe";
+}
+
+/** 返事を返す場所（グループで打たれたらグループ、個人なら個人） */
+function updWhere_(ev) {
+  const src = (ev && ev.source) || {};
+  return src.groupId || src.roomId || src.userId || "";
+}
+
+/** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
+function updKataStart_(where) {
+  return "▚▚▚  K A T A S T R O P H E  ▚▚▚\n" +
+         "SYSTEM INITIALISIERUNG …\n" +
+         "VERBINDUNG WIRD HERGESTELLT\n" +
+         "ZIEL ： " + where + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "取り込みを開始しました。2〜3分で完了の合図を送ります。";
+}
+
+function updKataDone_(body) {
+  return "▚▚▚  Ü B E R T R A G U N G   K O M P L E T T  ▚▚▚\n" +
+         "ALLE MODULE SYNCHRONISIERT\n" +
+         "SICHERUNG ： ABGESCHLOSSEN\n" +
+         "STATUS ： BEREIT\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n\n" +
+         String(body || "") + "\n\n" +
+         "SYSTEM BEREIT. GUTEN TAG.";
+}
+
+function updKataFail_(body) {
+  return "▚▚▚  F E H L E R  ▚▚▚\n" +
+         "SYSTEMSTÖRUNG ERKANNT\n" +
+         "ÜBERTRAGUNG ABGEBROCHEN\n" +
+         "KEINE ÄNDERUNG AM SYSTEM\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n\n" +
+         String(body || "") + "\n\n" +
+         "コードは元のままです。何も壊れていません。";
+}
+
+/**
+ * 合言葉「katastrophe」を受ける。扱ったら true。
+ *
+ * ★公式LINE（1対1）でも、グループLINEでも、どちらでも効く。
+ *   ただし打てるのは まーくさんだけ。
+ *   ほかの人が同じ言葉を打っても、何も起きないし、何も返さない
+ *   （返すと「何かある」と分かってしまうため、黙って見送る）。
+ *
+ * ★ここは「打ったらすぐ動く」。聞き返さない。
+ *   合言葉そのものが歯止めになっている。
+ *   そのかわり、書き換える前に必ず今のコードを保存するので、
+ *   おかしくなっても [4] 前のコードに戻す で戻せる。
+ */
+function updHandleKata_(ev) {
+  if (!updKataWord_((ev && ev.message && ev.message.text) || "")) return false;
+
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
+  if (!me || uid !== me) return true;          // 黙って見送る（返事もしない）
+
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  // 取り込みの最中に、もう一度打たれても二重に動かさない
+  const c = CacheService.getScriptCache();
+  if (c.get("UPD_RUNNING")) {
+    say("▚▚ IN BEARBEITUNG ▚▚\nすでに取り込み中です。終わるまでお待ちください。");
+    return true;
+  }
+
+  // 読み元が入っていなければ、動かさずに理由を返す
+  let where = "";
+  try {
+    // ★GitHubの置き場所は入っているのに鍵が無い、という半分だけの状態だと、
+    //   黙ってドライブのほうを読みにいってしまう。
+    //   それでは古いコードが入ってしまうので、ここで止める
+    if (updRepo_() && !updToken_()) {
+      say(updKataFail_("GitHubの置き場所は入っていますが、鍵（トークン）が入っていません。\n" +
+                       "このまま進めると、古いコードが入ってしまうので止めました。\n" +
+                       "[2] 更新できる状態か調べる で確かめてください。"));
+      return true;
+    }
+    if (updSource_() === "github") {
+      where = updRepo_() + " / " + updBranch_();
+    } else {
+      where = "ドライブ（" + UPD_FOLDER + "）";
+    }
+  } catch (e) {
+    say(updKataFail_("読み元が分かりませんでした：" + (e && e.message ? e.message : e)));
+    return true;
+  }
+
+  c.put("UPD_RUNNING", "1", 600);
+  try { updProps_().setProperty("UPD_LINE_TO", updWhere_(ev)); } catch (e) {}
+  try { updProps_().setProperty("UPD_LINE_KATA", "1"); } catch (e) {}
+  try {
+    ScriptApp.newTrigger("updRunFromLine_").timeBased().after(1000).create();
+  } catch (e) {
+    try { c.remove("UPD_RUNNING"); } catch (e2) {}
+    say(updKataFail_("取り込みを始められませんでした：" + (e && e.message ? e.message : e)));
+    return true;
+  }
+  say(updKataStart_(where));
+  return true;
+}
+
 /** LINEから頼まれた取り込みを、裏で1回だけ動かす */
 function updRunFromLine_() {
   const pr = updProps_();
   const to = pr.getProperty("UPD_LINE_TO") || "";
+  const kata = pr.getProperty("UPD_LINE_KATA") === "1";
   pr.deleteProperty("UPD_LINE_TO");
+  pr.deleteProperty("UPD_LINE_KATA");
+  try { CacheService.getScriptCache().remove("UPD_RUNNING"); } catch (e) {}
 
   // 自分（この一度きりの見張り）を片づける。残すと見張りの数を食う
   try {
@@ -433,9 +571,13 @@ function updRunFromLine_() {
     });
   } catch (e) {}
 
-  let out = "";
+  let out = "", bad = false;
   try { out = menuUpdateCode() || "終わりました"; }
-  catch (e) { out = "❌ 取り込みに失敗しました\n" + (e && e.message ? e.message : e); }
+  catch (e) { out = "取り込みに失敗しました：" + (e && e.message ? e.message : e); bad = true; }
+  if (/^❌/.test(String(out))) bad = true;
+
+  // 合言葉から始めたときは、近未来のロボットの声で返す
+  if (kata) out = bad ? updKataFail_(out) : updKataDone_(out);
 
   if (to && typeof lrPush_ === "function") {
     try { lrPush_(to, [{ type: "text", text: String(out).slice(0, 4900) }]); } catch (e) {}

@@ -1539,5 +1539,84 @@ console.log('\n■ LINEから「コード更新」（スマホだけで貼り替
   t(props['UPD_LINE_TO'] === undefined, '  送り先の覚え書きも消す');
 }
 
+
+console.log('\n■ 合言葉「katastrophe」');
+{
+  const K = F('updKataWord_');
+  t(K('katastrophe') === true, '小文字そのまま');
+  t(K('KATASTROPHE') === true, '大文字でも通る');
+  t(K('Katastrophe') === true, '頭だけ大文字でも');
+  t(K('KaTaStRoPhE') === true, 'まざっていても');
+  t(K('Ｋａｔａｓｔｒｏｐｈｅ') === true, '★全角でも通る');
+  t(K('ＫＡＴＡＳＴＲＯＰＨＥ') === true, '  全角の大文字でも');
+  t(K(' katastrophe ') === true, '前後に空白があっても');
+  t(K('katastrophen') === false, '別の言葉は通さない');
+  t(K('カタストロフ') === false, 'カタカナは通さない');
+  t(K('') === false, '空でも落ちない');
+  t(K(null) === false, 'null でも落ちない');
+
+  const kata = F('updHandleKata_');
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file', sha: 'z' }],
+         raw: { 'gas/001-Code.gs': 'function appsscript(){}' } };
+  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok';
+  props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
+
+  // ほかの人が打っても、何も起きず、何も返さない
+  ctx.rep.length = 0; triggers.length = 0;
+  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    '★ほかの人が打っても、そこで止める');
+  t(ctx.rep.length === 0, '  返事もしない（何かあると気づかせない）');
+  t(triggers.length === 0, '  取り込みも始めない');
+
+  // 個人LINEから
+  ctx.rep.length = 0; triggers.length = 0;
+  t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    'まーくさんが打つと動く');
+  t(triggers.length === 1 && triggers[0].getHandlerFunction() === 'updRunFromLine_',
+    '  裏で取り込む見張りを作る');
+  t(triggers[0]._kind === 'after', '  受け口の中では取り込まない');
+  t(ctx.rep[0].indexOf('SYSTEM INITIALISIERUNG') !== -1, '  ロボットの声で返す');
+  t(ctx.rep[0].indexOf('VERBINDUNG WIRD HERGESTELLT') !== -1, '  ドイツ語まじり');
+  t(ctx.rep[0].indexOf('取り込みを開始しました') !== -1, '  ★日本語で中身も必ず添える');
+  t(props['UPD_LINE_TO'] === 'Umark', '  結果の送り先を覚える');
+  t(props['UPD_LINE_KATA'] === '1', '  合言葉から始めたことも覚える');
+
+  // 取り込み中にもう一度打っても、二重に動かない
+  ctx.rep.length = 0; triggers.length = 0;
+  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '取り込み中にもう一度打っても受ける');
+  t(triggers.length === 0, '  ★二重には動かさない');
+  t(ctx.rep[0].indexOf('IN BEARBEITUNG') !== -1, '  すでに動いていると伝える');
+
+  // 終わったら、ロボットの声で結果を返す
+  ctx.pu.length = 0;
+  triggers.push({ getHandlerFunction: () => 'updRunFromLine_', _kind: 'after' });
+  F('updRunFromLine_')();
+  t(ctx.pu.length === 1 && ctx.pu[0].to === 'Umark', '結果を送る');
+  const done = ctx.pu[0].msgs[0].text;
+  t(done.indexOf('ALLE MODULE SYNCHRONISIERT') !== -1 || done.indexOf('SYSTEMSTÖRUNG ERKANNT') !== -1,
+    '  ロボットの声で返す');
+  t(props['UPD_LINE_KATA'] === undefined, '  合言葉の覚え書きは消す');
+
+  // グループLINEから打っても効く（結果はそのグループへ）
+  ctx.rep.length = 0; triggers.length = 0; ctx.pu.length = 0;
+  t(kata({ message: { text: 'ｋａｔａｓｔｒｏｐｈｅ' },
+           source: { userId: 'Umark', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    '★グループLINEからでも効く');
+  t(triggers.length === 1, '  取り込みを始める');
+  t(props['UPD_LINE_TO'] === 'Cgroup', '  結果は、打った場所（グループ）へ返す');
+
+  // 置き場所が入っていなければ、動かさずに理由を返す
+  ctx.rep.length = 0; triggers.length = 0;
+  try { F('CacheService').getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
+  const keepTok = props['GH_TOKEN']; delete props['GH_TOKEN'];
+  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '置き場所が無くても落ちない');
+  t(triggers.length === 0, '  ★動かさない');
+  t(ctx.rep[0].indexOf('SYSTEMSTÖRUNG ERKANNT') !== -1, '  理由を返す');
+  t(ctx.rep[0].indexOf('元のまま') !== -1, '  何も壊れていないことも伝える');
+  props['GH_TOKEN'] = keepTok;
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
