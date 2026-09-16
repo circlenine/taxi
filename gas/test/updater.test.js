@@ -1913,12 +1913,38 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   has(ctx.rep[0], '鍵に、この置き場を読む力が無い',
       '★「無い」と言われても、鍵が原因のことが多いと書く');
 
+  /*
+   * ★置き場は、はじめから入れてあります。
+   *   秘密ではない（鍵とちがって名前を知られても困らない）のに、
+   *   「設定タブに circlenine/test と入れてください」とお願いしていたのは手落ちでした
+   */
   const keepRepo2 = props['GH_REPO'];
-  ctx.rep.length = 0;
   delete props['GH_REPO'];
-  H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
-  has(ctx.rep[0], '置き場が入っていません', '★置き場が空のときも、そう言い当てる');
+  t(F('updRepo_')() === 'circlenine/test', '★置き場は、何もしなくても入っている');
+  t(F('updRepoSet_')() === '', '  ただし「人が決めた置き場」としては、空のまま');
+  props['GH_REPO'] = 'よそ/べつのところ';
+  t(F('updRepo_')() === 'よそ/べつのところ', '  決めればそちらが優先される');
   props['GH_REPO'] = keepRepo2;
+
+  // 「おきば」でも決められる
+  const R = F('updRepoWord_');
+  t(R('おきば').name === '', '「おきば」だけなら、いまの置き場を答える');
+  t(R('おきば circlenine/test').name === 'circlenine/test', '「おきば ○○/○○」で決める');
+  t(R('置き場 a/b').name === 'a/b', '  「置き場」でも通る');
+  t(R('repo a/b').name === 'a/b', '  「repo」でも通る');
+  t(R('おきばしょ') === null, '  くっついた言葉には反応しない');
+  t(R('こんにちは') === null, '  ふつうの話にも反応しない');
+
+  const HR = F('updHandleRepo_');
+  ctx.rep.length = 0;
+  HR({ message: { text: 'おきば へんな名前' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '形になっていません', '★「だれか/なにか」の形でなければ、入れない');
+  ctx.rep.length = 0;
+  HR({ message: { text: 'おきば よそ/べつ' }, source: { userId: 'Uother' }, replyToken: 'r' });
+  t(props['GH_REPO'] !== 'よそ/べつ', '★ほかの人には、絶対に変えさせない');
+  ctx.rep.length = 0;
+  HR({ message: { text: 'おきば circlenine/test' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  t(props['GH_REPO'] === 'circlenine/test', '★まーくさんなら決められる');
   gh = { dir: [], head: { commit: { message: 'さいしんの直し', author: { date: '2026-09-16T14:20:00Z' } } } };
 
   // 自動に戻す

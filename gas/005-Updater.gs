@@ -2,7 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U055ver  （2026/09/16）  ★★★
+ *  ★★★  U056ver  （2026/09/16）  ★★★
+ *
+ *  [U056ver]
+ *   ・コードの置き場を、はじめから入れておくようにした
+ *     ★申し訳ありませんでした。置き場の名前は秘密ではありません
+ *       （鍵とちがって、知られても困りません）。
+ *       設定タブにもREADMEにも、ずっと書いてある名前です。
+ *       それなのに「設定タブに circlenine/test と入れてください」と
+ *       お願いしていたのは、こちらの手落ちでした。
+ *       いまは、何もしなくても入っています
+ *     ★よそに変えたいときは、設定タブか「おきば ○○/○○」で上書きできます
+ *   ・「おきば」で、置き場もLINEから決められるようにした（まーくさんだけ）
+ *     「置き場」「リポジトリ」「repo」でも同じです
+ *   ・「置き場はあるのに鍵が無い」の関所を、updRepoSet_ で見るようにした
+ *     はじめから入っている置き場まで数えると、
+ *     GitHubを使っていない人まで止めてしまうため
  *
  *  [U055ver]
  *   ・「読みにいけない」とき、どこで止まっているのかを言い当てるようにした
@@ -574,9 +589,26 @@ function updCfg_(key) {
   catch (e) { return ""; }
 }
 
-function updRepo_() {
+/*
+ * ★コードの置き場の、はじめから入っている値。
+ *
+ *   ここは秘密ではありません（鍵とちがって、名前を知られても困りません）。
+ *   設定タブにもREADMEにも、ずっと書いてある名前です。
+ *   それなのに「設定タブに circlenine/test と入れてください」と
+ *   お願いしていたのは、こちらの手落ちでした。
+ *   はじめから入れておけば、打ち込んでいただく必要はありません。
+ *
+ *   よその置き場に変えたいときは、設定タブか、
+ *   LINEに「おきば ○○/○○」と送れば、そちらが優先されます。
+ */
+const UPD_REPO_DEFAULT = "circlenine/test";
+
+/** 人が決めた置き場だけを返す（はじめから入っている値は含めない） */
+function updRepoSet_() {
   return updProps_().getProperty("GH_REPO") || updCfg_("コードの置き場（GitHub）") || "";
 }
+
+function updRepo_() { return updRepoSet_() || UPD_REPO_DEFAULT; }
 function updPath_() {
   return updProps_().getProperty("GH_PATH") || updCfg_("コードのフォルダ") || "gas";
 }
@@ -1891,6 +1923,58 @@ function updBranchText_() {
   return L.join("\n");
 }
 
+/** 打たれた文が「おきば」の合図かどうか。合図なら { name } を返す */
+function updRepoWord_(text) {
+  const t = String(text == null ? "" : text).trim();
+  const m = t.match(/^(おきば|置き場|置場|リポジトリ|りぽじとり|repo|Repo|REPO)(?:[\s\u3000:：]+(.+))?$/);
+  if (!m) return null;
+  return { name: String(m[2] || "").trim() };
+}
+
+/**
+ * 「おきば」を受ける。扱ったら true。
+ * ★これも まーくさんだけ。読み元は、触られては困るところです。
+ */
+function updHandleRepo_(ev) {
+  const w = updRepoWord_((ev && ev.message && ev.message.text) || "");
+  if (!w) return false;
+
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
+  if (!me || uid !== me) return true;              // 黙って見送る
+
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  if (!w.name) {
+    say("📦 いまの置き場：" + updRepo_() + "\n\n" +
+        "変えたいときは、この形で送ってください。\n" +
+        "　おきば だれか/なにか");
+    return true;
+  }
+  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(w.name)) {
+    say("📦 置き場の形になっていません。\n" +
+        "　「だれか/なにか」の形で送ってください。\n" +
+        "　（例）おきば circlenine/test");
+    return true;
+  }
+  try {
+    updProps_().setProperty("GH_REPO", w.name);
+    // 置き場が変われば、枝も覚え書きも当てになりません
+    updProps_().deleteProperty("GH_BRANCH_AUTO");
+    updProps_().deleteProperty("GH_SHAS");
+  } catch (e) {
+    say("📦 入れられませんでした：" + (e && e.message ? e.message : e));
+    return true;
+  }
+  const d = updDiag_("");
+  say("📦 置き場を「" + w.name + "」にしました。\n\n" +
+      (d.ok ? updBranchText_() : d.text));
+  return true;
+}
+
 /** 「えだ」を受ける。扱ったら true */
 function updHandleBranch_(ev) {
   const w = updBranchWord_((ev && ev.message && ev.message.text) || "");
@@ -1992,7 +2076,10 @@ function updHandleKata_(ev) {
     // ★GitHubの置き場所は入っているのに鍵が無い、という半分だけの状態だと、
     //   黙ってドライブのほうを読みにいってしまう。
     //   それでは古いコードが入ってしまうので、ここで止める
-    if (updRepo_() && !updToken_()) {
+    // ★ここは「人が置き場を決めているのに、鍵だけ無い」ときの関所です。
+    //   はじめから入っている置き場まで数えてしまうと、
+    //   GitHubを使っていない人まで止めてしまうので、updRepoSet_ で見ます
+    if (updRepoSet_() && !updToken_()) {
       say(updKataFail_("GitHubの置き場所は入っていますが、鍵（トークン）が入っていません。\n" +
                        "このまま進めると、古いコードが入ってしまうので止めました。\n" +
                        "[2] 更新できる状態か調べる で確かめてください。"));
