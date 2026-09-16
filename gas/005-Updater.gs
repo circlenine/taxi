@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U056ver  （2026/09/16）  ★★★
+ *  ★★★  U057ver  （2026/09/16）  ★★★
+ *
+ *  [U057ver]
+ *   ・鍵を入れる画面で、鍵だけをきくようにした
+ *     ★申し訳ありませんでした。前は 置き場・枝・フォルダも順に4回きいていました。
+ *       けれど その3つは、こちらが知っていることです。
+ *       知らないことをきかれても、答えようがありません
+ *       （実際に「リポジトリ名がわかりません」で止まってしまいました）。
+ *       いまは、いまの設定を画面に出したうえで、鍵だけをききます
+ *     ★空のまま押しても、いまの鍵は消しません
+ *   ・鍵の入れ方を、道順まで書いて返すようにした（updTokenHow_）
+ *     ★「メニュー『🔑 GitHubの鍵を設定』から」だけでは見つかりません。
+ *       4つ下の階にあるので、①②③④と順に書きます
+ *     ★スマホのスプシの「アプリ」ではできないことも、はっきり書きます
  *
  *  [U056ver]
  *   ・コードの置き場を、はじめから入れておくようにした
@@ -645,6 +658,35 @@ function updBranch_() {
 function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive"; }
 
 /**
+ * 鍵の入れ方を、道順まで書いて返す。
+ *
+ * ★「メニュー『🔑 GitHubの鍵を設定』から」だけでは、見つかりません。
+ *   4つ下の階にあるので、上から順に書きます。
+ * ★鍵だけは、どうしてもブラウザからの作業になります。
+ *   人に見られてはいけないので、シートにもLINEにも置けないためです。
+ *   スマホのスプシのアプリには、そもそもメニューが出ません。
+ */
+function updTokenHow_() {
+  return [
+    "【鍵の入れ方（1回だけ）】",
+    "　★スマホのスプシの「アプリ」ではできません。",
+    "　　ブラウザ（Safari・Chrome）でスプシを開いてください。",
+    "",
+    "　① スプシをブラウザで開く",
+    "　② 上のほうにある「🎮EnemyController」を押す",
+    "　③「🅰️ はじめの設定（初回だけ）」を押す",
+    "　④「🔄 コードの更新」を押す",
+    "　⑤「🔑 GitHubの鍵を設定」を押す",
+    "　⑥ 鍵だけをききます。ほかは打たなくて大丈夫です。",
+    "　　github_pat_… で始まる長い文字を、貼りつけてください。",
+    "",
+    "　※「🎮EnemyController」が出ないときは、",
+    "　　いったんページを閉じて、開き直してください。",
+    "　　（開いてから出るまで、少しかかります）"
+  ].join("\n");
+}
+
+/**
  * GitHubに聞いてみて、返ってきた番号と中身を、そのまま返す。
  * ★updGh_ は失敗すると例外を投げるので、原因を切り分けるときは使えません。
  *   ここは投げずに、番号を持ち帰ります。
@@ -694,11 +736,7 @@ function updDiag_(wantBranch) {
     L.push("⚠️ GitHubの鍵が入っていません。");
     L.push("　置き場：" + repo);
     L.push("");
-    L.push("　鍵だけは、人に見られてはいけないので");
-    L.push("　シートにもLINEにも置けません。");
-    L.push("　パソコンかスマホのブラウザでスプシを開き、");
-    L.push("　メニュー「🔄 コードの更新」→「🔑 GitHubの鍵を設定」");
-    L.push("　から入れてください。1回だけの作業です。");
+    L.push(updTokenHow_());
     return { ok: false, text: L.join("\n") };
   }
 
@@ -707,7 +745,8 @@ function updDiag_(wantBranch) {
   if (r1.code === 401) {
     L.push("⚠️ GitHubの鍵が通りませんでした（401）。");
     L.push("　鍵がちがうか、期限が切れています。");
-    L.push("　メニュー「🔑 GitHubの鍵を設定」から入れ直してください。");
+    L.push("");
+    L.push(updTokenHow_());
     return { ok: false, text: L.join("\n") };
   }
   if (r1.code === 404) {
@@ -720,7 +759,8 @@ function updDiag_(wantBranch) {
     L.push("　② 鍵に、この置き場を読む力が無い");
     L.push("　　人に見せない置き場のとき、GitHubは鍵が足りなくても");
     L.push("　　「無い」と答えます。②のほうが多いです。");
-    L.push("　　メニュー「🔑 GitHubの鍵を設定」から入れ直してください。");
+    L.push("");
+    L.push(updTokenHow_());
     return { ok: false, text: L.join("\n") };
   }
   if (r1.code !== 200) {
@@ -894,36 +934,52 @@ function updReadNew_() {
 }
 
 /** GitHub の置き場所と鍵を入れる */
+/**
+ * 鍵を入れる。
+ *
+ * ★ききたいのは「鍵」だけです。
+ *
+ *   前は、置き場・枝・フォルダも順に4回きいていました。
+ *   けれど、その3つは こちらが知っていることです。
+ *   知らないことをきかれても、答えようがありません。
+ *   （実際に「リポジトリ名がわかりません」で止まってしまいました）
+ *
+ *   いまは、いまの設定を画面に出したうえで、鍵だけをききます。
+ *   置き場や枝を変えたいときは、設定タブか、
+ *   LINEの「おきば ○○/○○」「えだ ○○」でどうぞ。
+ */
 function menuSetGitHub() {
   const ui = SpreadsheetApp.getUi();
-  const ask = function (title, msg, cur) {
-    const r = ui.prompt(title, msg + (cur ? "\n\nいま：" + cur : ""), ui.ButtonSet.OK_CANCEL);
-    if (r.getSelectedButton() !== ui.Button.OK) return null;
-    return r.getResponseText().trim();
-  };
+  const r = ui.prompt("🔑 GitHubの鍵を入れる",
+    "GitHubのアクセストークンを貼りつけてください。\n" +
+    "（github_pat_… で始まる、長い文字です）\n" +
+    "\n" +
+    "ほかの3つは、もう入っています。打たなくて大丈夫です。\n" +
+    "　置き場　：" + updRepo_() + "\n" +
+    "　枝　　　：" + updBranch_() + "\n" +
+    "　フォルダ：" + updPath_() + "\n" +
+    "\n" +
+    "いまの鍵：" + (updToken_() ? "入っています" : "入っていません"),
+    ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const token = String(r.getResponseText() || "").trim();
 
-  const repo = ask("🔑 GitHub 1/4", "リポジトリ名（例：circlenine/test）", updRepo_());
-  if (repo === null) return;
-  const branch = ask("🔑 GitHub 2/4", "ブランチ名", updBranch_());
-  if (branch === null) return;
-  const path = ask("🔑 GitHub 3/4", "コードが入っているフォルダ（例：gas）", updPath_());
-  if (path === null) return;
-  const token = ask("🔑 GitHub 4/4",
-    "アクセストークン（github_pat_… で始まるもの）\n" +
-    "空のままにすると、いまの鍵をそのまま使います。", updToken_() ? "設定済み" : "未設定");
-  if (token === null) return;
-
-  const pr = updProps_();
-  if (repo)   pr.setProperty("GH_REPO", repo);
-  if (branch) pr.setProperty("GH_BRANCH", branch);
-  if (path)   pr.setProperty("GH_PATH", path);
-  if (token)  pr.setProperty("GH_TOKEN", token);
+  if (!token) {
+    if (updToken_()) { updTell_("🔑 そのままにしました", "いまの鍵を、そのまま使います。"); return; }
+    updTell_("🔑 入れませんでした", "鍵が空のままです。もう一度お試しください。");
+    return;
+  }
+  try { updProps_().setProperty("GH_TOKEN", token); }
+  catch (e) { updTell_("❌ 入れられませんでした", (e && e.message) || String(e)); return; }
 
   // ちゃんと読めるか、その場で試す
   try {
     const n = updReadGitHub_();
     updTell_("✅ GitHub につながりました",
-      "見つかったファイル：" + n.map(function (f) { return f.name; }).join("、"));
+      "置き場：" + updRepo_() + "\n" +
+      "枝　　：" + updBranch_() + "\n" +
+      "見つかったファイル：" + n.map(function (f) { return f.name; }).join("、") + "\n\n" +
+      "これで、[1] コードを更新する に☑を入れるだけで更新できます。");
   } catch (e) {
     updTell_("❌ つながりませんでした", e.message);
   }

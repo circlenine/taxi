@@ -71,10 +71,14 @@ ctx.SpreadsheetApp = {
     if (!uiWorks) throw new Error('ダイアログは使えません');
     return {
       alert: (t, b) => { alerts.push({ t: t, b: b }); return 'YES'; },
-      Button: { YES: 'YES' }, ButtonSet: { YES_NO: 'YN', OK: 'OK' }
+      prompt: (t, b) => { prompts.push({ t: t, b: b });
+        return { getSelectedButton: () => promptBtn, getResponseText: () => promptText }; },
+      Button: { YES: 'YES', OK: 'OK' },
+      ButtonSet: { YES_NO: 'YN', OK: 'OK', OK_CANCEL: 'OKC' }
     };
   }
 };
+let prompts = [], promptBtn = 'OK', promptText = '';
 ctx.pad2_ = n => ('0' + n).slice(-2);
 const props = {};
 ctx.PropertiesService = { getScriptProperties: () => ({
@@ -1829,6 +1833,57 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   ctx.updAlien_ = realAlien;
   try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
   delete props['UPD_KATA_JOBS'];
+}
+
+console.log('\n■ 鍵を入れる画面では、鍵だけをきく');
+{
+  /*
+   * ★前は、置き場・枝・フォルダも順に4回きいていた。
+   *   けれど その3つは こちらが知っていること。
+   *   知らないことをきかれても答えようがなく、
+   *   実際に「リポジトリ名がわかりません」で止まってしまった
+   */
+  reset([]);
+  prompts.length = 0; alerts.length = 0;
+  props['GH_REPO'] = 'circlenine/test';
+  props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
+  props['GH_PATH'] = 'gas';
+  delete props['GH_TOKEN'];
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' }],
+         raw: { 'gas/001-Code.gs': 'x' } };
+  promptBtn = 'OK'; promptText = 'github_pat_ABCDEF';
+
+  F('menuSetGitHub')();
+  t(prompts.length === 1, '★きくのは1回だけ（前は4回きいていた）');
+  has(prompts[0].b, '打たなくて大丈夫です', '  ほかは打たなくてよい、と書いてある');
+  has(prompts[0].b, '置き場　：circlenine/test', '★いまの置き場を、画面に出す');
+  has(prompts[0].b, '枝　　　：claude/gas-code-info-collection-e5mxw3', '  枝も出す');
+  has(prompts[0].b, 'github_pat_', '  何を貼ればよいかも書いてある');
+  t(props['GH_TOKEN'] === 'github_pat_ABCDEF', '★入れた鍵が、ちゃんとしまわれる');
+  t(props['GH_REPO'] === 'circlenine/test', '  置き場は、勝手に書きかえない');
+  t(props['GH_BRANCH'] === 'claude/gas-code-info-collection-e5mxw3', '  枝も、そのまま');
+  t(alerts.length > 0, '  つながったかどうかを、その場で知らせる');
+
+  // 空のまま OK を押したら、いまの鍵をそのまま使う
+  prompts.length = 0; alerts.length = 0; promptText = '';
+  F('menuSetGitHub')();
+  t(props['GH_TOKEN'] === 'github_pat_ABCDEF', '★空のまま押しても、いまの鍵を消さない');
+  has(alerts[alerts.length - 1].t, 'そのままにしました', '  そう伝える');
+
+  // 道順の案内
+  const how = F('updTokenHow_')();
+  // ★「メニュー『🔑 GitHubの鍵を設定』から」だけでは見つからない。
+  //   4つ下の階にあるので、①②③④と順に書いてあること
+  const steps = how.split('\n').filter(x => /^　[①②③④⑤⑥]/.test(x));
+  t(steps.length >= 5, '★道順を、番号つきで順にならべる');
+  has(steps.join('\n'), '🎮EnemyController', '  いちばん上のメニュー名');
+  has(steps.join('\n'), '🅰️ はじめの設定（初回だけ）', '  2つめ');
+  has(steps.join('\n'), '🔄 コードの更新', '  3つめ');
+  has(steps.join('\n'), '🔑 GitHubの鍵を設定', '  4つめ');
+  t(steps.join('\n').indexOf('🎮EnemyController') < steps.join('\n').indexOf('🅰️'),
+    '  ★上から順に書いてある');
+  has(how, 'アプリ」ではできません', '★スマホのアプリでは できないことも書く');
+  promptText = '';
 }
 
 console.log('\n■ 「えだ」… どこを読むかを、LINEから決める');
