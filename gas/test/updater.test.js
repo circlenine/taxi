@@ -282,6 +282,15 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
       return { getResponseCode: () => gh.fail.code,
                getContentText: () => JSON.stringify({ message: gh.fail.msg }) };
     }
+    // 枝のいちばん新しい書き込みを聞かれたとき
+    if (url.indexOf('/commits/') !== -1) {
+      if (gh && gh.headFail) {
+        return { getResponseCode: () => gh.headFail,
+                 getContentText: () => JSON.stringify({ message: 'Not Found' }) };
+      }
+      return { getResponseCode: () => 200, getContentText: () => JSON.stringify(
+        (gh && gh.head) || { commit: { message: 'さいしんの直し\n\n本文', author: { date: '2026-09-16T14:20:00Z' } } }) };
+    }
     // 置き場そのものを聞かれたとき（既定の枝を知るため）
     if (url.indexOf('/contents/') === -1) {
       return { getResponseCode: () => 200,
@@ -535,6 +544,44 @@ apiFail = { path: '/content', method: 'get', code: 403, msg: 'not enabled' };
 F('menuUpdateStatus')();
 has(alerts[0].b, '使えません', '使えないときもそう出る');
 has(alerts[0].b, 'usersettings', '直し方も出る');
+
+console.log('\n■ いま見ている枝の、いちばん新しい書き込みを出す');
+{
+  /*
+   * ★「☑を押したのに、古いままだ」というとき、たいていは枝がちがう。
+   *   日時と題がここに出れば、取り込む前に見分けられる
+   */
+  const keepRepo = props['GH_REPO'], keepTok = props['GH_TOKEN'], keepBr = props['GH_BRANCH'];
+  props['GH_REPO'] = 'circlenine/test';
+  props['GH_TOKEN'] = 'github_pat_xxx';
+  props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
+  gh = { dir: [], head: { commit: { message: 'さいしんの直し\n\n本文',
+                                    author: { date: '2026-09-16T14:20:00Z' } } } };
+  const h = F('updHeadInfo_')();
+  has(h, '2026-09-16 14:20', '書き込んだ日時が出る');
+  has(h, 'さいしんの直し', '  題の1行目も出る');
+  t(h.indexOf('本文') === -1, '  2行目から先は出さない（長くなるため）');
+
+  // 枝の名前を打ちまちがえたとき
+  gh = { dir: [], headFail: 404 };
+  has(F('updHeadInfo_')(), 'その枝が見つかりません', '★枝が無ければ、はっきりそう言う');
+  gh = { dir: [], headFail: 500 };
+  t(F('updHeadInfo_')().indexOf('その枝が見つかりません') === -1,
+    '  ほかの不具合を「枝が無い」とは言わない');
+
+  // [2] の結果にも出る
+  reset([]);
+  props['GH_REPO'] = 'circlenine/test';
+  props['GH_TOKEN'] = 'github_pat_xxx';
+  props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
+  gh = { dir: [], head: { commit: { message: 'さいしんの直し', author: { date: '2026-09-16T14:20:00Z' } } } };
+  F('menuUpdateStatus')();
+  has(alerts[0].b, '枝　　：claude/gas-code-info-collection-e5mxw3', '★どの枝を見ているか出る');
+  has(alerts[0].b, '最新　：', '★その枝の最新も出る');
+  has(alerts[0].b, 'さいしんの直し', '  題も出る');
+
+  props['GH_REPO'] = keepRepo; props['GH_TOKEN'] = keepTok; props['GH_BRANCH'] = keepBr;
+}
 
 console.log('\n■ 読み元の選び方');
 reset([['001-Code.gs', 'x']]);

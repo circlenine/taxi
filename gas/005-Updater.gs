@@ -2,7 +2,14 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U049ver  （2026/09/16）  ★★★
+ *  ★★★  U050ver  （2026/09/16）  ★★★
+ *
+ *  [U050ver]
+ *   ・[2]「更新できる状態か調べる」に、その枝のいちばん新しい書き込みを出した
+ *     ★「☑を押したのに、古いままだ」というとき、
+ *       たいていは 枝（ブランチ）がちがっています。
+ *       日時と題がここに出るので、取り込む前に見分けられます
+ *     ★枝の名前を打ちまちがえていれば「その枝が見つかりません」と出ます
  *
  *  [U049ver]
  *   ・合言葉を打っても何も返ってこない、を直した
@@ -543,6 +550,32 @@ function updBranch_() {
 
 /** いまどこから読むか */
 function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive"; }
+
+/**
+ * いま見ている枝の、いちばん新しい書き込みを1行で返す。
+ *
+ * ★「☑を押したのに、古いままだ」というとき、
+ *   たいていは 枝（ブランチ）がちがっています。
+ *   ここに日時と題が出るので、取り込む前に見分けられます。
+ */
+function updHeadInfo_() {
+  try {
+    const j = JSON.parse(updGh_("https://api.github.com/repos/" + updRepo_() +
+                                "/commits/" + encodeURIComponent(updBranch_()), false));
+    const c = (j && j.commit) || {};
+    const when = String((c.author && c.author.date) || "").replace("T", " ").replace("Z", "");
+    const msg = String(c.message || "").split("\n")[0];
+    if (!when && !msg) return "分かりませんでした";
+    return (when ? when + "　" : "") + (msg.length > 40 ? msg.slice(0, 40) + "…" : msg);
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    // 404 は「その枝が無い」。打ちまちがいが、いちばん多い
+    if (m.indexOf("404") !== -1) {
+      return "⚠️ その枝が見つかりません（枝の名前をお確かめください）";
+    }
+    return "調べられませんでした（" + m.slice(0, 60) + "）";
+  }
+}
 
 /** GitHub を叩く */
 function updGh_(url, raw) {
@@ -2138,6 +2171,10 @@ function menuUpdateStatus() {
     L.push("　枝　　：" + updBranch_() +
       (updProps_().getProperty("GH_BRANCH") || updCfg_("コードの枝（ブランチ）") ? "" : "（自動で調べたもの）"));
     L.push("　フォルダ：" + updPath_());
+    // ★その枝の「いちばん新しい書き込み」も出す。
+    //   ここを見れば、これから取り込まれるのが本当に最新かどうかが、ひと目で分かる。
+    //   枝の名前を打ちまちがえていれば、ここで「見つかりません」と出る
+    L.push("　最新　：" + updHeadInfo_());
   } else {
     L.push("読み元：Googleドライブ　" + UPD_FOLDER);
     L.push("");
