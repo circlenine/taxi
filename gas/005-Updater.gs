@@ -2,7 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U026ver  （2026/09/16）  ★★★
+ *  ★★★  U027ver  （2026/09/16）  ★★★
+ *
+ *  [U027ver]
+ *   ・まーくさん以外が合言葉を打ったときの返しを足した
+ *     ・★コードの取り込みには、1歩も進まない（ここは前と同じ）
+ *     ・ロボットの声で断り、おもしろ動画のリンクを1本送る
+ *     ・同じ人が連打しても、10分に1回までしか送らない
+ *       （グループが動画だらけになるため）
+ *   ・動画は「🎬おもしろ動画」タブに貼ったものから選ぶ
+ *     ★「いま話題のショート動画」をこちらで決め打ちにはできない。
+ *       動画の番号を書き込んでも、消されたり非公開になったりして、
+ *       いつか必ず「開かないリンク」になる。
+ *       人に見せるものが死んだリンクでは、かっこがつかない。
+ *       だから、面白いと思ったものを貼っておける形にした。
+ *       1本も貼っていなければ、YouTubeの流行りの一覧ページを送る
+ *       （こちらは無くならない）
  *
  *  [U026ver]
  *   ・合言葉「katastrophe」でコードを取り込めるようにした
@@ -487,6 +502,78 @@ function updKataFail_(body) {
          "コードは元のままです。何も壊れていません。";
 }
 
+/* ---------------- 合言葉を、ほかの人が打ったとき ---------------- */
+
+/**
+ * おもしろ動画のらんを置くタブ。
+ *
+ * ★「いま話題のショート動画」を、こちらで決め打ちにはできない。
+ *   動画の番号を書き込んでも、消されたり非公開になったりして、
+ *   いつか必ず「開かないリンク」になる。
+ *   人に見せるものが死んだリンクでは、かっこがつかない。
+ *
+ *   そこで、まーくさんが「これ面白い」と思ったものを
+ *   このタブに貼っておける形にした。貼ってあればそこから選ぶ。
+ *   1本も貼っていなければ、YouTubeの「いま流行っているショート」の
+ *   一覧ページを送る（こちらは無くならない）。
+ */
+const UPD_FUN_TAB = "🎬おもしろ動画";
+
+/** タブが無ければ作る。すでにあれば、そのまま */
+function updFunSheet_() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = ss.getSheetByName(UPD_FUN_TAB);
+    if (!sh) {
+      sh = ss.insertSheet(UPD_FUN_TAB);
+      sh.getRange(1, 1, 1, 2)
+        .setValues([["動画のリンク（YouTubeのURLを貼るだけ）", "メモ（何の動画か・任意）"]])
+        .setFontWeight("bold").setBackground("#fce5cd");
+      sh.setColumnWidth(1, 380); sh.setColumnWidth(2, 240);
+      sh.setFrozenRows(1);
+      sh.getRange(2, 2).setValue("ここに貼った中から、1本ずつ選んで送ります（空なら流行りの一覧を送ります）");
+    }
+    return sh;
+  } catch (e) { return null; }
+}
+
+/** いつでも開ける、YouTubeの流行りの入口（無くならないページ） */
+const UPD_FUN_FALLBACK = [
+  "https://www.youtube.com/hashtag/shorts",
+  "https://www.youtube.com/results?search_query=" + encodeURIComponent("面白い shorts"),
+  "https://www.youtube.com/results?search_query=" + encodeURIComponent("爆笑 shorts"),
+  "https://www.youtube.com/results?search_query=" + encodeURIComponent("ドッキリ shorts"),
+  "https://www.youtube.com/results?search_query=" + encodeURIComponent("動物 面白 shorts"),
+  "https://www.youtube.com/feed/trending"
+];
+
+/** おもしろ動画を1本えらぶ。貼ってあればそこから、無ければ流行りの一覧から */
+function updFunLink_() {
+  const list = [];
+  try {
+    const sh = updFunSheet_();
+    if (sh && sh.getLastRow() >= 2) {
+      sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().forEach(function (r) {
+        const u = String(r[0] == null ? "" : r[0]).trim();
+        // ちゃんとしたリンクだけ。メモ書きが混ざっていても拾わない
+        if (/^https?:\/\//i.test(u)) list.push(u);
+      });
+    }
+  } catch (e) {}
+  const pool = list.length ? list : UPD_FUN_FALLBACK;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** ほかの人が合言葉を打ったときの返事（近未来のロボットの声） */
+function updKataDenied_() {
+  return "▚▚▚  Z U G R I F F   V E R W E I G E R T  ▚▚▚\n" +
+         "IDENTITÄT NICHT ERKANNT\n" +
+         "BERECHTIGUNG ： KEINE\n" +
+         "SYSTEM BLEIBT UNVERÄNDERT\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "TROSTPREIS WIRD ÜBERTRAGEN …";
+}
+
 /**
  * 合言葉「katastrophe」を受ける。扱ったら true。
  *
@@ -507,7 +594,22 @@ function updHandleKata_(ev) {
   let me = "";
   try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
   if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
-  if (!me || uid !== me) return true;          // 黙って見送る（返事もしない）
+  // ★まーくさん以外は、コードの取り込みを絶対にしない。
+  //   ここから下（取り込みの処理）には、1歩も進まない。
+  //   代わりに、ロボットの声で断って、おもしろ動画を1本送る
+  if (!me || uid !== me) {
+    // 同じ人が何度も打って、グループが動画だらけになるのを防ぐ（10分に1回まで）
+    try {
+      const cc = CacheService.getScriptCache();
+      const kk = "KATA_FUN_" + (uid || "anon");
+      if (cc.get(kk)) return true;               // 少し前に送ったばかりなら、黙って見送る
+      cc.put(kk, "1", 600);
+    } catch (e) {}
+    if (typeof lineReply_ === "function") {
+      lineReply_((ev && ev.replyToken) || "", updKataDenied_() + "\n\n" + updFunLink_());
+    }
+    return true;
+  }
 
   const reply = (ev && ev.replyToken) || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };

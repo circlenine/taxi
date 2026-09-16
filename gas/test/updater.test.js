@@ -1565,8 +1565,9 @@ console.log('\n■ 合言葉「katastrophe」');
   ctx.rep.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
-  t(ctx.rep.length === 0, '  返事もしない（何かあると気づかせない）');
-  t(triggers.length === 0, '  取り込みも始めない');
+  t(triggers.length === 0, '  ★取り込みは絶対に始めない');
+  t(ctx.rep.length === 1 && ctx.rep[0].indexOf('IDENTITÄT NICHT ERKANNT') !== -1,
+    '  代わりに、ロボットの声で断る');
 
   // 個人LINEから
   ctx.rep.length = 0; triggers.length = 0;
@@ -1616,6 +1617,49 @@ console.log('\n■ 合言葉「katastrophe」');
   t(ctx.rep[0].indexOf('SYSTEMSTÖRUNG ERKANNT') !== -1, '  理由を返す');
   t(ctx.rep[0].indexOf('元のまま') !== -1, '  何も壊れていないことも伝える');
   props['GH_TOKEN'] = keepTok;
+}
+
+
+console.log('\n■ 僕以外が合言葉を打ったとき');
+{
+  const kata = F('updHandleKata_');
+  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok';
+  try {
+    const cc = ctx.CacheService.getScriptCache();
+    cc.remove('UPD_RUNNING'); cc.remove('KATA_FUN_Uother'); cc.remove('KATA_FUN_Uthird');
+  } catch (e) {}
+
+  ctx.rep.length = 0; triggers.length = 0;
+  t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    'ほかの人が打っても受ける');
+  t(triggers.length === 0, '★コードの取り込みは、絶対に動かさない');
+  t(props['UPD_LINE_TO'] === undefined || props['UPD_LINE_TO'] !== 'Uother',
+    '  結果の送り先にもならない');
+  t(ctx.rep.length === 1, '  返事は1回');
+  t(ctx.rep[0].indexOf('IDENTITÄT NICHT ERKANNT') !== -1, '  ロボットの声で断る');
+  t(ctx.rep[0].indexOf('SYSTEM BLEIBT UNVERÄNDERT') !== -1,
+    '  ★「システムは変わっていない」と、はっきり書く');
+  t(/https:\/\/www\.youtube\.com\//.test(ctx.rep[0]), '  ★おもしろ動画のリンクを送る');
+
+  // 何度も打たれても、グループが動画だらけにならない
+  ctx.rep.length = 0;
+  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    '続けて打っても受ける');
+  t(ctx.rep.length === 0, '★続けて打たれても、二度は送らない（10分に1回まで）');
+
+  // 別の人なら送る
+  ctx.rep.length = 0;
+  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uthird', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    '別の人が打てば受ける');
+  t(ctx.rep.length === 1, '  その人にはちゃんと送る');
+  t(triggers.length === 0, '  それでも取り込みは動かさない');
+
+  // 動画のリンクは、何度呼んでも必ず開ける形
+  const L = F('updFunLink_');
+  const got = {};
+  for (let i = 0; i < 40; i++) { const u = L(); got[u] = 1; if (!/^https:\/\/www\.youtube\.com\//.test(u)) { ng++; console.log('  NG  リンクの形'); } }
+  t(true, '40回えらんでも、すべてYouTubeのリンク');
+  t(Object.keys(got).length > 1, '  毎回おなじではない（ランダムにえらぶ）');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
