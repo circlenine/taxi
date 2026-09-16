@@ -888,12 +888,45 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   props['VNV_20261105'] = JSON.stringify([{ hall: 'フェスティバルホール', name: '山下達郎', start: '18:30', end: '21:00' }]);
   props['VNH_20261220'] = JSON.stringify([{ hotel: '帝国ホテル', name: '忘年会', start: '18:00', end: '21:00' }]);
 
-  const photos = ctx.vnLedgerFromPhotos_();
+  const photos = ctx.vnLedgerFromPhotos_().sort((a, b) => a.d - b.d);
   eq(photos.length, 2, '写真から読んだぶんは、先の月のものも全部ひろう');
-  eq(photos[0][0], '2026/11/05', '  日付の早い順にならぶ');
-  eq(photos[0][1], 'フェスティバルホール', '  会場名');
-  eq(photos[1][1], '帝国ホテル', '  ホテルのぶんも');
-  has(photos[0][5], '写真', '  どこから読んだかも残す');
+  eq(photos[0].venue, 'フェスティバルホール', '  会場名');
+  eq(photos[1].venue, '帝国ホテル', '  ホテルのぶんも');
+  has(photos[0].from, 'スクショ', '  どこから読んだかも残す');
+
+  // ★何件、では確かめようがない。1行ずつ中身が出ること
+  const row = ctx.vnLedgerRow_(photos[0], false);
+  eq(row[0], '2026/11/05(木)', '  日付は曜日つき');
+  eq(row[1], 'フェスティバルホール', '  会場');
+  eq(row[2], 'ホール公演', '  カテゴリーも出す');
+  eq(row[3], '山下達郎', '  催しの名前');
+  eq(row[4], '18:30', '  開演');
+  eq(row[5], '21:00', '  ★終わりの時刻も出す');
+  has(row[9], '渡辺橋', '  近い乗り場も出す');
+  has(row[10], 'スクショ', '  どこから読んだか');
+  eq(row.length, 12, '  らんの数（日付〜確かめるリンクまで）');
+
+  const hrow = ctx.vnLedgerRow_(photos[1], false);
+  eq(hrow[2], 'ホテル宴会・催事', 'ホテルのぶんはカテゴリーが分かれる');
+
+  // カテゴリーの見分け
+  eq(ctx.vnCategory_({ venue: '京セラドーム', kind: 'event', title: 'セレッソ大阪 vs ガンバ大阪' }), 'スポーツ', 'スポーツを見分ける');
+  eq(ctx.vnCategory_({ venue: '京セラドーム', kind: 'event', title: 'LIVE TOUR 2026' }), 'ライブ・コンサート', 'ライブを見分ける');
+  eq(ctx.vnCategory_({ venue: 'フェスティバルホール', kind: 'event', title: '大阪フィルハーモニー交響楽団' }), 'クラシック・舞台', 'クラシックを見分ける');
+  eq(ctx.vnCategory_({ venue: 'ワントゥワン', kind: 'barasi', title: '' }), 'バラシ（搬出）', 'バラシも分ける');
+  eq(ctx.vnCategory_({ venue: 'どこか', kind: 'event', title: '' }), '不明', '★分からないときは、うそを書かずに「不明」');
+
+  // 送ったスクショのありかは、その1件ずつが持っている（先の日付でも引ける）
+  // ★しまうときに、1件ずつ「ありか」を持たせていること。
+  //   受け取った日で引く形にしていたので、先の日付からは引けなくなっていた
+  delete props['VNV_20261210'];
+  ctx.vnHallSave_([{ date: '12/10', hall: 'フェスティバルホール', name: 'X', start: '18:00', end: '20:00' }],
+                  new Date(2026, 8, 16), 'フェスティバルホール', 'https://drive.example/abc');
+  const far = ctx.vnHallForDay_(new Date(2026, 11, 10));
+  eq(far.length, 1, '先の日付の予定も引ける');
+  eq(far[0].url, 'https://drive.example/abc',
+     '★送った日と違う日の予定からも、スクショのありかを引ける');
+  delete props['VNV_20261210'];
 
   // ホームページ側：1ページを1回だけ読んで、何日ぶんも調べられること
   const today = new Date();
@@ -913,6 +946,31 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   eq(ctx.vnHandleNote_({ message: { text: '読み取り確認' }, source: { userId: 'Uother' }, replyToken: 'r' }, today), false,
      '★まーくさん以外は使えない');
   eq(ctx.lastReply, '', '  何も返さない');
+}
+
+
+console.log('\n■ 見張りは、こちらで勝手にそろえる（お願いしない）');
+{
+  // ★「入れ替えたあと、一度そうさボタンを押してください」は、忘れたときに
+  //   黙って動かなくなる。15分おきの見張りから、自分で作る
+  delete props['VN_HEAL_YMD'];
+  triggers.length = 0;
+  let made = [];
+  vm.runInContext('function ensureAutoReportTrigger_(f){ heal.push("本番"); return true; }', ctx);
+  vm.runInContext('function ensureAutoReportTestTrigger_(f){ heal.push("確認用"); return true; }', ctx);
+  vm.runInContext('function ensureAutoFormatTrigger_(){ heal.push("17時"); }', ctx);
+  ctx.heal = made;
+
+  eq(ctx.vnSelfHeal_(), true, '足りない見張りを自分で作る');
+  eq(made.indexOf('確認用') !== -1, true, '★レポートの確認用（毎月16日 3:00）も作る');
+  eq(made.indexOf('本番') !== -1, true, '  レポート本番（5:30）も');
+  eq(made.indexOf('17時') !== -1, true, '  毎日17時の自動チェックも');
+  eq(triggers.length, 1, '  イベントの見張りも作る');
+
+  // 1日に何度も動かない（Googleの「動いてよい時間」を使い切らないため）
+  made.length = 0;
+  eq(ctx.vnSelfHeal_(), false, '★同じ日には、もう確かめない');
+  eq(made.length, 0, '  何も呼ばない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

@@ -2,11 +2,33 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V019ver  （2026/09/16）  ★★★
+ *  ★★★  V020ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V020ver]
+ *   ・読み取り台帳を「中身まで見える」形に作り直した
+ *     ★「何件」だけでは、合っているかどうか確かめようがない、というご指摘。
+ *       そのとおりなので、1行ずつ、こうならべた：
+ *       日付（曜日つき）／会場／カテゴリー／催しの名前／開演／終演／
+ *       客層・年齢層（推定）／知っておくとよい話題／触れない方がよいこと／
+ *       近い乗り場／どこから読んだか／確かめるリンク
+ *     いちばん右のらんを押すと、公式ページか、送ってもらったスクショが開く。
+ *     これで、読み取りが合っているかを その場で見比べられる
+ *   ・カテゴリーを付けた（vnCategory_）
+ *     会場の種類と催しの名前の両方から決める。
+ *     分からないときは、うそを書かずに「不明」と書く
+ *   ・客層は「読み取り確認 詳しく」のときだけ聞く（時間がかかるため。上から30件）
+ *   ・送ってもらったスクショのありかを、予定1件ずつに持たせるようにした
+ *     受け取った日で引く形にしていたので、
+ *     先の日付の予定からはリンクが引けなくなっていた（直した）
+ *   ・足りない見張りを、こちらで勝手にそろえるようにした（vnSelfHeal_）
+ *     ★「入れ替えたあと、一度そうさボタンを押してください」とお願いしていたが、
+ *       忘れたときに黙って動かなくなる。お願いするほうが間違っていた。
+ *       15分おきのこの見張りから、1日1回だけ点検して、自分で作る。
+ *       レポートの確認用（毎月16日 AM3:00）も、これで勝手に入る
  *
  *  [V019ver]
  *   ・読み取り台帳を作った（「読み取り確認」とまーく個人LINEから打つ）
@@ -1259,7 +1281,7 @@ function vnHotelKey_(d) {
  * 同じ予定を二度書かない（同じホテル・同じ名前・同じ開始時刻なら1つ）。
  * 戻り値は「何件しまったか」。
  */
-function vnHotelSave_(list, base, force) {
+function vnHotelSave_(list, base, force, docUrl) {
   const pr = PropertiesService.getScriptProperties();
   const byDay = {};
   (list || []).forEach(function (x) {
@@ -1267,6 +1289,10 @@ function vnHotelSave_(list, base, force) {
     //   しまってしまうと、あとで「時間不明」として出てくる
     if (!String(x.start || "").trim() && !String(x.end || "").trim()) return;
     if (force) x.hotel = force;
+    // ★送ってもらった紙のありかは、この1件ずつに持たせる。
+    //   「その日に受け取ったぶん」として日付で引くと、
+    //   先の日付の予定からは引けなくなる（実際そうなっていた）
+    if (docUrl) x.doc = docUrl;
     const d = vnHotelDate_(x.date, base);
     const k = vnHotelKey_(d);
     (byDay[k] = byDay[k] || []).push(x);
@@ -1305,7 +1331,7 @@ function vnHotelForDay_(d) {
              start: String(x.start || ""), end: String(x.end || ""),
              people: Number(x.people) > 0 ? Number(x.people) : 0,
              // 送ってもらった紙そのもの。枠を押すと開く（AIの読み違いを、目で確かめられるように）
-             url: vnDocGet_(d, hotel) };
+             url: String(x.doc || "") || vnDocGet_(d, hotel) };
   });
 }
 
@@ -1322,7 +1348,11 @@ function vnHotelTry_(messageId, base, force) {
   }
   catch (e) { if (typeof logErr_ === "function") logErr_("vnHotelTry", e); return ""; }
   if (!list.length) return "";
-  const n = vnHotelSave_(list, base || new Date(), force);
+  // ★先に紙をしまう。予定1件ずつに「ありか」を持たせたいので、順番が大事
+  const places0 = {};
+  list.forEach(function (x) { const nm = String(force || x.hotel || "").trim(); if (nm) places0[nm] = 1; });
+  const doc = vnDocSave_(blob, Object.keys(places0).join("・") || (force || "ホテル"), base || new Date());
+  const n = vnHotelSave_(list, base || new Date(), force, doc);
 
   // 場所の名前を、重ならないようにならべる
   const seen = {}, places = [];
@@ -1332,8 +1362,6 @@ function vnHotelTry_(messageId, base, force) {
     seen[nm] = 1; places.push(nm);
   });
 
-  // 元の紙を、あとから見られるようにしまっておく（案内の枠を押すと開く）
-  const doc = vnDocSave_(blob, places.join("・") || (force || "ホテル"), base || new Date());
   if (doc) places.forEach(function (nm) { vnDocSet_(base || new Date(), nm, doc); });
 
   // ★ここは雑談のグループに出る。短く、3行で終える
@@ -1399,7 +1427,7 @@ function vnHallFromImage_(messageId, force, blob) {
 }
 
 /** 会場の公演を、日付ごとにしまう（時刻の無いものは入れない） */
-function vnHallSave_(list, base, force) {
+function vnHallSave_(list, base, force, docUrl) {
   const pr = PropertiesService.getScriptProperties();
   const byDay = {};
   (list || []).forEach(function (x) {
@@ -1409,7 +1437,8 @@ function vnHallSave_(list, base, force) {
     const d = vnHotelDate_(x.date, base);
     const k = "VNV_" + vnHotelKey_(d).slice(4);
     (byDay[k] = byDay[k] || []).push({ hall: hall, name: String(x.name || ""),
-                                       start: String(x.start || ""), end: String(x.end || "") });
+                                       start: String(x.start || ""), end: String(x.end || ""),
+                                       doc: String(docUrl || "") });
   });
   let wrote = 0;
   for (const k in byDay) {
@@ -1436,7 +1465,7 @@ function vnHallForDay_(d) {
   return list.map(function (x) {
     return { venue: x.hall, kind: "event", icon: "🎤", title: String(x.name || ""),
              start: String(x.start || ""), end: String(x.end || ""), people: 0,
-             url: vnDocGet_(d, x.hall) };
+             url: String(x.doc || "") || vnDocGet_(d, x.hall) };
   });
 }
 
@@ -1453,14 +1482,16 @@ function vnHallTry_(messageId, base, force) {
   }
   catch (e) { if (typeof logErr_ === "function") logErr_("vnHallTry", e); return ""; }
   if (!list.length) return "";
-  const n = vnHallSave_(list, base || new Date(), force);
+  const places0 = {};
+  list.forEach(function (x) { const nm = String(force || x.hall || "").trim(); if (nm) places0[nm] = 1; });
+  const doc = vnDocSave_(blob, Object.keys(places0).join("・") || (force || "会場"), base || new Date());
+  const n = vnHallSave_(list, base || new Date(), force, doc);
   const seen = {}, places = [];
   list.forEach(function (x) {
     const nm = String(force || x.hall || "").trim();
     if (!nm || seen[nm]) return;
     seen[nm] = 1; places.push(nm);
   });
-  const doc = vnDocSave_(blob, places.join("・") || (force || "会場"), base || new Date());
   if (doc) places.forEach(function (nm) { vnDocSet_(base || new Date(), nm, doc); });
 
   const sec = Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
@@ -1574,6 +1605,36 @@ function vnHandleNote_(ev, sentAt) {
  * ================================================================ */
 const VN_LEDGER_TAB = "🗓️イベント台帳";
 
+/** 日付の名札（2026/11/05(木) の形） */
+function vnLedDate_(d) {
+  const w = ["日", "月", "火", "水", "木", "金", "土"];
+  return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" +
+         ("0" + d.getDate()).slice(-2) + "(" + w[d.getDay()] + ")";
+}
+
+/** "20261105" → Date */
+function vnLedYmdToDate_(y, m, d) { return new Date(Number(y), Number(m) - 1, Number(d)); }
+
+/**
+ * カテゴリー（何の催しか）。
+ * 会場の種類と、催しの名前の両方から決める。
+ * 分からないときは、うそを書かずに「不明」と書く。
+ */
+function vnCategory_(ev) {
+  const v = VN_VENUES[ev.venue] || {};
+  if ((ev.kind || "") === "barasi") return "バラシ（搬出）";
+  if ((ev.kind || "") === "hotel" || v.type === "ホテル") return "ホテル宴会・催事";
+  const t = String(ev.title || "");
+  if (/(vs|対|開幕|リーグ|ダービー|試合|キックオフ|セレッソ|ガンバ|バファローズ|オリックス)/.test(t)) return "スポーツ";
+  if (/(展|フェア|EXPO|見本市|商談|大会|総会)/i.test(t)) return "展示会・大会";
+  if (/(交響楽団|フィル|クラシック|オーケストラ|バレエ|落語|演劇|ミュージカル)/.test(t)) return "クラシック・舞台";
+  if (/(TOUR|LIVE|ライブ|コンサート|CONCERT|公演)/i.test(t)) return "ライブ・コンサート";
+  if (v.type === "ドーム" || v.type === "スタジアム") return "スポーツ／大型公演";
+  if (v.type === "ホール") return "ホール公演";
+  if (v.type === "展示場") return "展示会";
+  return "不明";
+}
+
 /** 写真から読んだぶんを、日付ごとに全部集める（先の月も含めて） */
 function vnLedgerFromPhotos_() {
   const out = [];
@@ -1586,17 +1647,18 @@ function vnLedgerFromPhotos_() {
     if (!m) continue;
     let list = [];
     try { list = JSON.parse(props[k] || "[]"); } catch (e) { list = []; }
-    const ymd = m[1] + "/" + m[2] + "/" + m[3];
+    const d = vnLedYmdToDate_(m[1], m[2], m[3]);
     list.forEach(function (x) {
-      out.push([ymd,
-                String(x.hall || x.hotel || ""),
-                String(x.name || ""),
-                String(x.start || ""),
-                String(x.end || ""),
-                mv ? "写真（会場の月間表）" : "写真（ホテルの予定表）"]);
+      const venue = String(x.hall || x.hotel || "");
+      out.push({
+        d: d, venue: venue, kind: mv ? "event" : "hotel",
+        title: String(x.name || ""), start: String(x.start || ""), end: String(x.end || ""),
+        people: Number(x.people) > 0 ? Number(x.people) : 0,
+        url: String(x.doc || "") || vnDocGet_(d, venue),
+        from: mv ? "送ったスクショ（会場の月間表）" : "送ったスクショ（ホテルの予定表）"
+      });
     });
   }
-  out.sort(function (a, b) { return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0); });
   return out;
 }
 
@@ -1624,12 +1686,12 @@ function vnLedgerFromWeb_(days) {
     for (let i = 0; i < n; i++) {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       let got = [];
-      // 詳細ページまで開く会場は、1日ぶんだけにする（よそのサーバーを叩きすぎないため）
       try { got = vnScrapeOne_(src, d, (src.deep && i > 0) ? html : (src.deep ? null : html)).events || []; }
       catch (e) { got = []; }
       got.filter(vnHasTime_).forEach(function (e) {
-        rows.push([d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2),
-                   e.venue, e.title, e.start, e.end, "ホームページ"]);
+        rows.push({ d: d, venue: e.venue, kind: e.kind || "event", title: e.title,
+                    start: e.start, end: e.end, endGuess: !!e.endGuess, people: 0,
+                    url: e.url || src.url, from: "ホームページ" });
         hit++;
       });
     }
@@ -1638,15 +1700,52 @@ function vnLedgerFromWeb_(days) {
   return { rows: rows, notes: notes };
 }
 
+/** 台帳に出す1行ぶん（客層などを付けるかどうかを選べる） */
+function vnLedgerRow_(e, withGuess) {
+  let guess = "", know = "", avoid = "";
+  if (withGuess) {
+    try {
+      const ti = vnTopicInfo_(e.title, e.venue);
+      guess = ti.audience || ""; know = ti.know || ""; avoid = ti.avoid || "";
+    } catch (err) {}
+  }
+  const v = VN_VENUES[e.venue] || {};
+  return [
+    vnLedDate_(e.d),
+    e.venue,
+    vnCategory_(e),
+    e.title || "（名前を読み取れませんでした）",
+    e.start || "",
+    (e.end || "") + (e.endGuess ? "（予想）" : ""),
+    guess || (withGuess ? "（AIも分からないと答えました）" : "―"),
+    know || "",
+    avoid || "",
+    (v.near && v.near.length) ? v.near.join("・") : "",
+    e.from,
+    e.url || ""
+  ];
+}
+
 /**
  * 台帳を作って、記録用スプシの「🗓️イベント台帳」タブに書く。
- * 戻り値は、LINEに返す短い文。
+ *
+ * ★何件、では確かめようがない。
+ *   日付・終わりの時刻・客層・カテゴリー・リンクまで、1行ずつ出す。
+ *   リンクのらんを押せば、公式ページか、送ってもらったスクショが開く。
+ *   これで「合っているかどうか」を、その場で見比べられる。
  */
-function vnLedgerBuild_(days) {
+function vnLedgerBuild_(days, withGuess) {
   const photos = vnLedgerFromPhotos_();
   const web = vnLedgerFromWeb_(days);
-  const rows = web.rows.concat(photos);
-  rows.sort(function (a, b) { return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0); });
+  const all = web.rows.concat(photos);
+  all.sort(function (a, b) {
+    if (a.d - b.d !== 0) return a.d - b.d;
+    return String(a.start) < String(b.start) ? -1 : 1;
+  });
+
+  // 客層をAIに聞くのは、時間も回数もかかる。上から決まった数だけにする
+  const GUESS_MAX = 30;
+  const rows = all.map(function (e, i) { return vnLedgerRow_(e, withGuess && i < GUESS_MAX); });
 
   let url = "";
   try {
@@ -1654,32 +1753,52 @@ function vnLedgerBuild_(days) {
     let sh = ss.getSheetByName(VN_LEDGER_TAB);
     if (!sh) sh = ss.insertSheet(VN_LEDGER_TAB);
     sh.clear();
-    const head = ["日付", "会場", "催しの名前", "開演", "終演", "どこから読んだか"];
+    const head = ["日付", "会場", "カテゴリー", "催しの名前", "開演", "終演",
+                  "客層・年齢層（推定）", "知っておくとよい話題", "触れない方がよいこと",
+                  "近い乗り場", "どこから読んだか", "確かめる（押すと開きます）"];
     sh.getRange(1, 1, 1, head.length).setValues([head])
-      .setFontWeight("bold").setBackground("#e8d5f0");
-    if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
+      .setFontWeight("bold").setBackground("#e8d5f0").setWrap(true);
+    if (rows.length) {
+      sh.getRange(2, 1, rows.length, head.length).setValues(rows).setWrap(true).setVerticalAlignment("top");
+      // リンクのらんは、押して開ける形にする（スマホでそのまま確かめられるように）
+      for (let i = 0; i < rows.length; i++) {
+        const u = rows[i][head.length - 1];
+        if (!u) continue;
+        const label = String(rows[i][10]).indexOf("スクショ") >= 0 ? "📷 送ったスクショを見る" : "🔗 公式ページを見る";
+        try {
+          sh.getRange(i + 2, head.length).setRichTextValue(
+            SpreadsheetApp.newRichTextValue().setText(label)
+              .setLinkUrl(0, label.length, u).build());
+        } catch (e) { sh.getRange(i + 2, head.length).setValue(u); }
+      }
+      // 「触れない方がよいこと」は赤で目立たせる
+      sh.getRange(2, 9, rows.length, 1).setFontColor("#c62828").setFontWeight("bold");
+    }
     sh.setFrozenRows(1);
-    [90, 150, 260, 60, 60, 150].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+    [110, 130, 130, 240, 55, 75, 180, 200, 180, 130, 160, 170]
+      .forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
     url = ss.getUrl() + "#gid=" + sh.getSheetId();
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("vnLedger", e);
   }
 
-  const L = ["🗓️ 読み取り台帳をつくりました", ""];
-  L.push("ホームページ：" + web.rows.length + "件");
-  L.push("写真から読んだぶん：" + photos.length + "件（先の月のぶんも全部）");
-  L.push("");
+  // LINEには短く。中身は台帳で見てもらう
+  const L = ["🗓️ 読み取り台帳をつくりました（" + rows.length + "件）", ""];
   web.notes.forEach(function (x) { L.push(x); });
   if (photos.length) {
     const byPlace = {};
-    photos.forEach(function (r) { byPlace[r[1]] = (byPlace[r[1]] || 0) + 1; });
-    L.push("");
-    for (const k in byPlace) L.push("📷 " + k + "：" + byPlace[k] + "件");
+    photos.forEach(function (r) { byPlace[r.venue] = (byPlace[r.venue] || 0) + 1; });
+    for (const k in byPlace) L.push("📷 " + k + "：" + byPlace[k] + "件（送ったスクショぶん）");
   }
   L.push("");
-  L.push("⚠️ の会場は、その期間に催しが無いか、読み取れていないかのどちらかです。");
-  L.push("公式ページに催しが出ているのに ⚠️ のときは、読み取りが効いていません。");
-  if (url) L.push("", "一覧（日付・会場・名前・時刻）はこちら", url);
+  L.push("⚠️ は、その期間に催しが無いか、読み取れていないかのどちらかです。");
+  L.push("公式ページに催しが出ているのに ⚠️ なら、読み取りが効いていません。");
+  L.push("");
+  L.push("台帳には、日付・カテゴリー・催しの名前・開演・終演・客層・話題・" +
+         "触れない方がよいこと・近い乗り場・出所・確かめるリンク をならべてあります。");
+  L.push("いちばん右のらんを押すと、公式ページか、送ってもらったスクショが開きます。");
+  if (!withGuess) L.push("客層も見るときは「読み取り確認 詳しく」と送ってください（少し時間がかかります）。");
+  if (url) L.push("", url);
   return L.join("\n");
 }
 
@@ -1693,13 +1812,14 @@ function vnLedgerBuild_(days) {
 function vnHandleListCmd_(ev, sentAt) {
   const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
   // 「読み取り確認」…先の日付まで、ちゃんと読めているかを見る（まーくさんだけ）
-  if (/^(読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?$/.test(t)) {
+  if (/^(読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
     let me = "";
     try { me = vnTestTarget_(); } catch (e) {}
     if (!me || ((ev.source && ev.source.userId) || "") !== me) return false;
     const dm = t.match(/(\d+)/);
     const say0 = function (x) { if (typeof lineReply_ === "function") lineReply_(ev.replyToken || "", x); };
-    try { say0(vnLedgerBuild_(dm ? Number(dm[1]) : 14)); }
+    const deep = /(詳しく|くわしく)/.test(t);
+    try { say0(vnLedgerBuild_(dm ? Number(dm[1]) : 14, deep)); }
     catch (e) { say0("🔍 くそっ!!!!やられた!!!!　台帳を作れませんでした：" + (e && e.message ? e.message : e)); }
     return true;
   }
@@ -2725,6 +2845,12 @@ function venueDailyJob() {
     if (!lock.tryLock(10000)) return;
   } catch (e) { lock = null; }
   try {
+    // ★見張りは、こちらで勝手にそろえる。
+    //   「入れ替えたあと、一度どこかを押してください」とお願いするのは、
+    //   忘れたときに黙って動かなくなるので、やり方として間違っている。
+    //   1日1回だけ確かめて、足りないものがあれば自分で作る。
+    try { vnSelfHeal_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnSelfHeal", e); }
+
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。
     try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }
@@ -2785,6 +2911,46 @@ function venueDailyJob() {
   } finally {
     if (lock) { try { lock.releaseLock(); } catch (e) {} }
   }
+}
+
+/**
+ * 足りない見張りを、自分でそろえる（1日1回だけ確かめる）。
+ *
+ * ★新しい見張り（レポートの確認用＝毎月16日 AM3:00 など）を足したとき、
+ *   「入れ替えたあと、一度そうさボタンを押してください」とお願いしていた。
+ *   これは忘れたときに、黙って動かなくなる。お願いするほうが間違っている。
+ *   15分おきに動くこの見張りから、1日1回だけ点検して、自分で作る。
+ *
+ *   ※1日1回に絞るのは、Googleが1日にくれる「動いてよい時間」を
+ *     使い切らないため（前に使い切って、見張りごと止まったことがある）。
+ */
+function vnSelfHeal_() {
+  const pr = PropertiesService.getScriptProperties();
+  const now = new Date();
+  const ymd = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2);
+  if (pr.getProperty("VN_HEAL_YMD") === ymd) return false;
+  pr.setProperty("VN_HEAL_YMD", ymd);            // 何があっても、その日はもうやらない
+
+  let made = [];
+  // 自分（イベント）の見張り
+  try { if (vnEnsureDailyTrigger_(false)) made.push("イベントの見張り"); } catch (e) {}
+  // レポートの本番（毎月16日 5:30）
+  try {
+    if (typeof ensureAutoReportTrigger_ === "function" && ensureAutoReportTrigger_(false)) made.push("レポート本番");
+  } catch (e) {}
+  // レポートの確認用（毎月16日 3:00）
+  try {
+    if (typeof ensureAutoReportTestTrigger_ === "function" && ensureAutoReportTestTrigger_(false)) made.push("レポート確認用");
+  } catch (e) {}
+  // 毎日17時の自動チェック（001-Code）
+  try {
+    if (typeof ensureAutoFormatTrigger_ === "function") ensureAutoFormatTrigger_();
+  } catch (e) {}
+
+  if (made.length && typeof logErr_ === "function") {
+    console.log("見張りを作り直しました：" + made.join("・"));
+  }
+  return made.length > 0;
 }
 
 /** 5分おきの見張りを用意する（重ねて作らない） */
