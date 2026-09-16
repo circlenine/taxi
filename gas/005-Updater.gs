@@ -2,7 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U054ver  （2026/09/16）  ★★★
+ *  ★★★  U055ver  （2026/09/16）  ★★★
+ *
+ *  [U055ver]
+ *   ・「読みにいけない」とき、どこで止まっているのかを言い当てるようにした
+ *     ★申し訳ありませんでした。「その枝が見つかりません」としか言えず、
+ *       ほんとうの原因（置き場・鍵・枝のどれか）が分かりませんでした。
+ *       同じ返事を何度も出させてしまい、時間を無駄にさせました。
+ *     ★順に確かめて、直し方まで書きます（updDiag_）。
+ *       ・置き場が入っていない
+ *       ・鍵が入っていない
+ *       ・鍵が通らない（401）
+ *       ・置き場が見えない（404）
+ *       ・枝の名前がちがう → いまある枝を、ならべて見せる
+ *     ★GitHubは、人に見せない置き場のとき、鍵が足りなくても
+ *       「そんなものは無い」と答えます。だから「無い」と言われても、
+ *       たいていは鍵のほうが原因だ、ということも書き添えます
  *
  *  [U054ver]
  *   ・ちゃんとある枝なのに「見つかりません」と言っていたのを直した
@@ -596,6 +611,114 @@ function updBranch_() {
 
 /** いまどこから読むか */
 function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive"; }
+
+/**
+ * GitHubに聞いてみて、返ってきた番号と中身を、そのまま返す。
+ * ★updGh_ は失敗すると例外を投げるので、原因を切り分けるときは使えません。
+ *   ここは投げずに、番号を持ち帰ります。
+ */
+function updGhTry_(url) {
+  try {
+    const res = UrlFetchApp.fetch(url, {
+      headers: {
+        "Authorization": "Bearer " + updToken_(),
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "taxi-gas-updater"
+      },
+      muteHttpExceptions: true
+    });
+    return { code: res.getResponseCode(), body: res.getContentText() };
+  } catch (e) {
+    return { code: 0, body: String((e && e.message) || e) };
+  }
+}
+
+/**
+ * 「読みにいけない」とき、どこで止まっているのかを言い当てる。
+ *
+ * ★「見つかりません」だけでは、
+ *     ・置き場の名前がちがう
+ *     ・鍵が入っていない／切れている
+ *     ・枝の名前がちがう
+ *   のどれなのか分かりません。順に確かめて、直し方まで書きます。
+ *
+ * ★GitHubは、人に見せない置き場のとき、
+ *   鍵が無くても「そんなものは無い」と答えます（あることを隠すため）。
+ *   だから「無い」と言われても、たいていは鍵のほうが原因です。
+ */
+function updDiag_(wantBranch) {
+  const L = [];
+  const repo = updRepo_();
+  const tok = updToken_();
+
+  if (!repo) {
+    L.push("⚠️ コードの置き場が入っていません。");
+    L.push("　設定タブ「コードの置き場（GitHub）」に");
+    L.push("　circlenine/test と入れてください。");
+    return { ok: false, text: L.join("\n") };
+  }
+  if (!tok) {
+    L.push("⚠️ GitHubの鍵が入っていません。");
+    L.push("　置き場：" + repo);
+    L.push("");
+    L.push("　鍵だけは、人に見られてはいけないので");
+    L.push("　シートにもLINEにも置けません。");
+    L.push("　パソコンかスマホのブラウザでスプシを開き、");
+    L.push("　メニュー「🔄 コードの更新」→「🔑 GitHubの鍵を設定」");
+    L.push("　から入れてください。1回だけの作業です。");
+    return { ok: false, text: L.join("\n") };
+  }
+
+  // ① 置き場そのものが見えるか
+  const r1 = updGhTry_("https://api.github.com/repos/" + repo);
+  if (r1.code === 401) {
+    L.push("⚠️ GitHubの鍵が通りませんでした（401）。");
+    L.push("　鍵がちがうか、期限が切れています。");
+    L.push("　メニュー「🔑 GitHubの鍵を設定」から入れ直してください。");
+    return { ok: false, text: L.join("\n") };
+  }
+  if (r1.code === 404) {
+    L.push("⚠️ 置き場が見つかりませんでした（404）。");
+    L.push("　置き場：" + repo);
+    L.push("");
+    L.push("　考えられるのは、この2つです。");
+    L.push("　① 置き場の名前がちがう");
+    L.push("　　（設定タブ「コードの置き場（GitHub）」）");
+    L.push("　② 鍵に、この置き場を読む力が無い");
+    L.push("　　人に見せない置き場のとき、GitHubは鍵が足りなくても");
+    L.push("　　「無い」と答えます。②のほうが多いです。");
+    L.push("　　メニュー「🔑 GitHubの鍵を設定」から入れ直してください。");
+    return { ok: false, text: L.join("\n") };
+  }
+  if (r1.code !== 200) {
+    L.push("⚠️ GitHubにつながりませんでした（" + r1.code + "）。");
+    L.push("　" + String(r1.body).slice(0, 120));
+    return { ok: false, text: L.join("\n") };
+  }
+
+  // ② 枝の一覧をもらう（打ちまちがいを、その場で見比べられるように）
+  const names = [];
+  const r2 = updGhTry_("https://api.github.com/repos/" + repo + "/branches?per_page=100");
+  if (r2.code === 200) {
+    try {
+      JSON.parse(r2.body).forEach(function (b) { if (b && b.name) names.push(b.name); });
+    } catch (e) {}
+  }
+
+  const want = String(wantBranch || "");
+  if (want && names.length && names.indexOf(want) === -1) {
+    L.push("⚠️ その枝はありませんでした。");
+    L.push("　打った名前：" + want);
+    L.push("");
+    L.push("　いまある枝は、これだけです。");
+    names.slice(0, 12).forEach(function (n) { L.push("　・" + n); });
+    if (names.length > 12) L.push("　…ほか " + (names.length - 12) + "個");
+    return { ok: false, text: L.join("\n"), names: names };
+  }
+
+  return { ok: true, text: "", names: names };
+}
 
 /**
  * 枝の名前を、URLの「道」の部分に入れられる形にする。
@@ -1783,7 +1906,12 @@ function updHandleBranch_(ev) {
   const reply = (ev && ev.replyToken) || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
 
-  if (!w.name) { say(updBranchText_()); return true; }
+  if (!w.name) {
+    const d0 = updDiag_("");
+    say(d0.ok ? updBranchText_()
+              : "🌿 いま、コードを読みにいけません。\n\n" + d0.text);
+    return true;
+  }
 
   // 「じどう」に戻す
   if (/^(じどう|自動|オート|auto|かいじょ|解除|なし|空)$/i.test(w.name)) {
@@ -1801,15 +1929,14 @@ function updHandleBranch_(ev) {
    *   無い名前を入れてしまうと、そのあと [1] を押しても
    *   何も取り込めなくなります。入れる前に止めるほうが安全です。
    */
-  const info = updHeadInfo_(w.name);
-  if (String(info).indexOf("見つかりません") !== -1) {
-    say("🌿 その枝が見つかりませんでした。\n" +
-        "　打った名前：" + w.name + "\n" +
-        "　（大文字・小文字も、そのままでないと通りません）\n\n" +
-        "★読み先は、いまのまま変えていません。\n" +
-        "　いまは「" + updBranch_() + "」を読みます。");
+  // ★どこで止まっているのかを、先に言い当てる
+  const diag = updDiag_(w.name);
+  if (!diag.ok) {
+    say("🌿 読み先を変えられませんでした。\n\n" + diag.text + "\n\n" +
+        "★読み先は、いまのまま変えていません。");
     return true;
   }
+  const info = updHeadInfo_(w.name);
   try {
     updProps_().setProperty("GH_BRANCH", w.name);
     // ★枝が変われば、どのファイルが変わったかの覚え書きも当てになりません。

@@ -284,6 +284,15 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
       return { getResponseCode: () => gh.fail.code,
                getContentText: () => JSON.stringify({ message: gh.fail.msg }) };
     }
+    // 枝の一覧を聞かれたとき
+    if (url.indexOf('/branches') !== -1) {
+      if (gh && gh.reposCode && gh.reposCode !== 200) {
+        return { getResponseCode: () => gh.reposCode, getContentText: () => JSON.stringify({ message: 'x' }) };
+      }
+      return { getResponseCode: () => 200, getContentText: () => JSON.stringify(
+        ((gh && gh.branches) || ['main', 'claude/gas-code-info-collection-e5mxw3'])
+          .map(function (n) { return { name: n }; })) };
+    }
     // 枝のいちばん新しい書き込みを聞かれたとき
     if (url.indexOf('/commits/') !== -1) {
       ghUrls.push(url);
@@ -296,6 +305,10 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
     }
     // 置き場そのものを聞かれたとき（既定の枝を知るため）
     if (url.indexOf('/contents/') === -1) {
+      if (gh && gh.reposCode && gh.reposCode !== 200) {
+        return { getResponseCode: () => gh.reposCode,
+                 getContentText: () => JSON.stringify({ message: 'Not Found' }) };
+      }
       return { getResponseCode: () => 200,
                getContentText: () => JSON.stringify((gh && gh.repo) || { default_branch: 'main' }) };
     }
@@ -1867,10 +1880,46 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   const keepBranch = props['GH_BRANCH'];
   gh = { dir: [], headFail: 404 };
   H({ message: { text: 'えだ うっかりまちがえた' }, source: { userId: 'Umark' }, replyToken: 'r' });
-  has(ctx.rep[0], 'その枝が見つかりません', '★無い枝を打ったら、はっきりそう言う');
+  has(ctx.rep[0], 'その枝はありませんでした', '★無い枝を打ったら、はっきりそう言う');
   t(props['GH_BRANCH'] === keepBranch,
     '★そのときは、読み先を変えない（変えると、そのあと何も取り込めなくなる）');
   has(ctx.rep[0], '変えていません', '  変えていないことも、はっきり伝える');
+  // ★打ちまちがいを、その場で見比べられるように
+  has(ctx.rep[0], 'いまある枝は', '★いまある枝を、ならべて見せる');
+  has(ctx.rep[0], 'claude/gas-code-info-collection-e5mxw3', '  正しい名前も、その中に出る');
+
+  /*
+   * ★「見つかりません」だけでは、どこで止まっているのか分からない。
+   *   置き場・鍵・枝のどれが原因かを、言い当てること
+   */
+  const keepTok2 = props['GH_TOKEN'];
+  ctx.rep.length = 0;
+  delete props['GH_TOKEN'];
+  H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '鍵が入っていません', '★鍵が無いときは、そう言い当てる');
+  has(ctx.rep[0], '🔑 GitHubの鍵を設定', '  入れ方まで書く');
+  t(props['GH_BRANCH'] === keepBranch, '  そのときも、読み先は変えない');
+  props['GH_TOKEN'] = keepTok2;
+
+  ctx.rep.length = 0;
+  gh = { dir: [], reposCode: 401 };
+  H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '鍵が通りませんでした', '★鍵が古いときも、そう言い当てる');
+
+  ctx.rep.length = 0;
+  gh = { dir: [], reposCode: 404 };
+  H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '置き場が見つかりませんでした', '★置き場が見えないときも、そう言い当てる');
+  has(ctx.rep[0], '鍵に、この置き場を読む力が無い',
+      '★「無い」と言われても、鍵が原因のことが多いと書く');
+
+  const keepRepo2 = props['GH_REPO'];
+  ctx.rep.length = 0;
+  delete props['GH_REPO'];
+  H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '置き場が入っていません', '★置き場が空のときも、そう言い当てる');
+  props['GH_REPO'] = keepRepo2;
+  gh = { dir: [], head: { commit: { message: 'さいしんの直し', author: { date: '2026-09-16T14:20:00Z' } } } };
 
   // 自動に戻す
   ctx.rep.length = 0;
