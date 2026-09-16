@@ -272,6 +272,8 @@ function mkPanel() {
   };
 }
 
+let ghUrls = [];        // GitHubに投げたURLを、そのまま覚えておく
+
 /* ---- 偽の Apps Script API ---- */
 let project;            // サーバー側にあることになっている中身
 let apiCalls;           // 呼ばれた記録
@@ -284,6 +286,7 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
     }
     // 枝のいちばん新しい書き込みを聞かれたとき
     if (url.indexOf('/commits/') !== -1) {
+      ghUrls.push(url);
       if (gh && gh.headFail) {
         return { getResponseCode: () => gh.headFail,
                  getContentText: () => JSON.stringify({ message: 'Not Found' }) };
@@ -557,8 +560,25 @@ console.log('\n■ いま見ている枝の、いちばん新しい書き込み�
   props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
   gh = { dir: [], head: { commit: { message: 'さいしんの直し\n\n本文',
                                     author: { date: '2026-09-16T14:20:00Z' } } } };
+  ghUrls.length = 0;
   const h = F('updHeadInfo_')();
   has(h, '2026-09-16 14:20', '書き込んだ日時が出る');
+  /*
+   * ★枝の名前には「claude/なんとか」のように「/」が入る。
+   *   ふつうの入れ方だと「%2F」に置きかわり、GitHubが別の名前として扱うので、
+   *   ちゃんとある枝なのに「見つかりません」になっていた（実際になった）
+   */
+  has(ghUrls[0], '/commits/claude/gas-code-info-collection-e5mxw3',
+      '★枝の「/」は、そのままURLに入れる');
+  t(ghUrls[0].indexOf('%2F') === -1, '  「%2F」に置きかえない');
+
+  const P = F('updRefPath_');
+  t(P('claude/abc') === 'claude/abc', '「/」はそのまま');
+  t(P('feature/日本語') === 'feature/' + encodeURIComponent('日本語'),
+    '  日本語などは、ちゃんと置きかえる');
+  t(P('a b') === 'a%20b', '  空白も置きかえる');
+  t(P('') === '', '空でも落ちない');
+  t(P(null) === '', 'null でも落ちない');
   has(h, 'さいしんの直し', '  題の1行目も出る');
   t(h.indexOf('本文') === -1, '  2行目から先は出さない（長くなるため）');
 

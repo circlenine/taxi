@@ -2,7 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U053ver  （2026/09/16）  ★★★
+ *  ★★★  U054ver  （2026/09/16）  ★★★
+ *
+ *  [U054ver]
+ *   ・ちゃんとある枝なのに「見つかりません」と言っていたのを直した
+ *     ★申し訳ありませんでした。枝の名前ではなく、こちらの作りが原因でした。
+ *       枝の名前には「claude/なんとか」のように「/」が入ります。
+ *       その「/」を「%2F」という別の字に置きかえて GitHub に聞いていたため、
+ *       GitHub は別の名前として扱い、毎回「そんな枝は無い」と答えていました。
+ *       いまは「/」をそのまま残します（updRefPath_）
+ *     ★U050ver でこの確認を足したときに入れた間違いです。防げたものでした
  *
  *  [U053ver]
  *   ・「💩」でも読み先を決められるようにした（覚えやすいほうで打てるように）
@@ -589,6 +598,22 @@ function updBranch_() {
 function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive"; }
 
 /**
+ * 枝の名前を、URLの「道」の部分に入れられる形にする。
+ *
+ * ★申し訳ありませんでした。ここを間違えていました。
+ *   枝の名前には「claude/なんとか」のように「/」が入ります。
+ *   ふつうの入れ方（encodeURIComponent）だと、この「/」が
+ *   「%2F」という別の字に置きかわってしまいます。
+ *   GitHub は それを別の名前として扱うので、
+ *   ちゃんとある枝なのに「見つかりません」と言われていました。
+ *
+ *   ここでは「/」はそのまま残し、それ以外の字だけを置きかえます。
+ */
+function updRefPath_(name) {
+  return String(name == null ? "" : name).split("/").map(encodeURIComponent).join("/");
+}
+
+/**
  * いま見ている枝の、いちばん新しい書き込みを1行で返す。
  *
  * ★「☑を押したのに、古いままだ」というとき、
@@ -599,7 +624,7 @@ function updHeadInfo_(branchIn) {
   try {
     const br = branchIn || updBranch_();
     const j = JSON.parse(updGh_("https://api.github.com/repos/" + updRepo_() +
-                                "/commits/" + encodeURIComponent(br), false));
+                                "/commits/" + updRefPath_(br), false));
     const c = (j && j.commit) || {};
     const when = String((c.author && c.author.date) || "").replace("T", " ").replace("Z", "");
     const msg = String(c.message || "").split("\n")[0];
