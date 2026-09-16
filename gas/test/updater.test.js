@@ -1461,11 +1461,24 @@ console.log('\n■ 見張りが止まったとき、スマホだけで直せる'
   props['PANEL_WATCH_AT'] = String(Date.now() - 3600 * 1000);   // 1時間 動いていない
   // 「なおして」は “ぜんぶ直す” 合図。ほかのしかけも一緒にそろえる
   vm.runInContext('var fmtArmed = 0; function ensureAutoFormatTrigger_(){ fmtArmed++; return true; }', ctx);
+  vm.runInContext('var repArmed = 0; function ensureAutoReportTrigger_(){ repArmed++; return true; }', ctx);
+  vm.runInContext('var tstArmed = 0; function ensureAutoReportTestTrigger_(){ tstArmed++; return true; }', ctx);
+  vm.runInContext('var vnArmed = 0; function vnEnsureDailyTrigger_(){ vnArmed++; return true; }', ctx);
   const text = F('panelRepair_')();
   has(text, '見張りを立て直した', '入れ直したと伝える');
   has(text, '計★画★通★り', '  ユーモアも入れる');
   t(vm.runInContext('fmtArmed', ctx) === 1, '毎日17時の自動チェックも、一緒にそろえる');
   has(text, '17時の自動チェック', '  そう伝える');
+  t(vm.runInContext('repArmed', ctx) === 1, '毎月のレポート本番も、一緒にそろえる');
+  t(vm.runInContext('tstArmed', ctx) === 1, '★レポートの確認用（16日3:00）も、一緒にそろえる');
+  has(text, 'レポートの確認用', '  そう伝える');
+  /*
+   * ★イベントの見張りは、ここが無いと永久に立ち上がらない。
+   *   立て直す仕掛け（vnSelfHeal_）が、その見張りの中から動くため。
+   *   「なおして」でここを見ないと、鶏と卵になる
+   */
+  t(vm.runInContext('vnArmed', ctx) === 1, '★イベントの見張りも、一緒にそろえる（ここが抜けていた）');
+  has(text, 'イベントの見張り', '  そう伝える');
   has(text, '最後に動いたのは', '  いつから止まっていたかも出る');
   has(text, '持ち時間を使い切る', '  長く止まっていたら、その理由も書く');
   t(F('panelTriggersOk_')() === true, '入れ直したあとは、しくみがそろっている');
