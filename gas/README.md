@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **C** | `001-Code.gs`（統合スクリプト） | C042ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
-| **L** | `003-LineReport.gs` | L029ver | `003-LineReport` |
+| **L** | `003-LineReport.gs` | L030ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W009ver | `004-WebApp` |
 | **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U023ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V016ver | `006-Venue` |
@@ -222,11 +222,29 @@ LINEの画像スクショから読み取ったものは自動でオプチャ扱�
 
 ## テスト
 
+まとめて動かす（1本でも落ちたらファイル名が出る）：
+
 ```
-node gas/test/maplink.test.js
+cd gas/test && for f in *.test.js; do node "$f" >/dev/null || echo "FAIL $f"; done
+```
+
+1本ずつ動かす：
+
+```
 node gas/test/chartfit.test.js
-node gas/test/strategy.test.js
+node gas/test/dashboard.test.js
+node gas/test/dbplace.test.js
+node gas/test/defined.test.js
+node gas/test/linereport.test.js
+node gas/test/maplink.test.js
+node gas/test/nightplan.test.js
+node gas/test/opucha-image.test.js
 node gas/test/opucha.test.js
+node gas/test/place.test.js
+node gas/test/strategy.test.js
+node gas/test/updater.test.js
+node gas/test/venue.test.js
+node gas/test/webapp.test.js
 ```
 
 `gas/test/gas-globals.js` は統合スクリプトから必要な部分だけ抜き出した写し（テスト専用）。
