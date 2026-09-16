@@ -2,11 +2,20 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V021ver  （2026/09/16）  ★★★
+ *  ★★★  V022ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V022ver]
+ *   ・通知設定のボタンを2つだけにした（⏰カレンダー ／ 📱リマインダー）
+ *     ★ディスコードは、送り先（ウェブフックURL）を自分で取ってきて
+ *       入れてもらわないと届かない。手順が多く、ややこしすぎるのでやめた。
+ *       仕掛けそのものは残してあるので、必要になれば戻せる
+ *   ・ボタンの上にあった説明の行を消した
+ *     「通知設定」という言葉は、ボタンの列の中に残してある
+ *     （上に行を足すと、そのぶん場所を食い、読むものも増えるため）
  *
  *  [V021ver]
  *   ・「👆 この枠を押すと〇〇の公式ページが開きます」をやめた
@@ -704,8 +713,6 @@ function vnCard_(ev, idx, day, noBells) {
                 "paddingAll": "10px", "cornerRadius": "md", "margin": "sm", "contents": rows };
   // お知らせの受け取り方を3つならべる（時間が分かっている催しだけ）
   if (day && !noBells && (ev.start || ev.end) && ev.kind !== "barasi") {
-    rows.push({ "type": "text", "text": "🔔 通知設定（終了予定の前に知らせます）",
-                "size": "xxs", "color": "#7b1fa2", "weight": "bold", "margin": "sm", "wrap": true });
     rows.push(vnBellRow_(ev, idx, day));
   }
   // ★この枠そのものがボタン。押すと、その催しの公式ページが開く。
@@ -2489,25 +2496,39 @@ function vnCalUrl_(ev, day) {
  *   押されたあとに、返事としてリンクを送る形にすれば 1件450バイトで済む。
  *   ひと手間増えるが、催しが丸ごと消えるよりずっとよい。
  */
-function vnBellBtn_(mark, label, ymd, idx) {
-  return { "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD,
-           "action": { "type": "postback", "label": label,
-                       "data": "vn=" + mark + "&d=" + ymd + "&i=" + idx } };
+function vnBellBtn_(mark, label, ymd, idx, flex) {
+  const b = { "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD,
+              "action": { "type": "postback", "label": label,
+                          "data": "vn=" + mark + "&d=" + ymd + "&i=" + idx } };
+  if (flex) b.flex = flex;
+  return b;
 }
 
+/*
+ * 通知設定の列。
+ *
+ * ★ボタンは2つだけにした。
+ *   ディスコードは、送り先（ウェブフックURL）を自分で取ってきて
+ *   入れてもらわないと届かない。手順が多く、ややこしすぎるのでやめた。
+ *   （仕掛けそのものは残してあるので、必要になれば戻せる）
+ *
+ * ★「通知設定」という言葉は、ボタンの列の中に残す。
+ *   上に説明の行を足すと、そのぶん場所を食い、読むものも増えるため。
+ */
 function vnBellRow_(ev, idx, day) {
   const ymd = day.getFullYear() + ("0" + (day.getMonth() + 1)).slice(-2) + ("0" + day.getDate()).slice(-2);
-  return { "type": "box", "layout": "horizontal", "margin": "xs",
+  return { "type": "box", "layout": "horizontal", "margin": "sm",
     "backgroundColor": "#ffffff", "cornerRadius": "md",
     "borderWidth": "1px", "borderColor": "#b39ddb",
     "contents": [
-      // ★カレンダーだけは「押したらその場で開く」形にする。
+      { "type": "text", "text": "🔔通知設定", "size": "xxs", "weight": "bold",
+        "color": VN_COLOR_HEAD, "gravity": "center", "align": "center", "flex": 3, "wrap": true },
+      // ★カレンダーは「押したらその場で開く」形。
       //   合図を返してリンクを送る形だと、もう一度押さないと開けなかった。
-      //   終わりの時刻まで入った予定が、1回押すだけで作れる
-      { "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD,
+      //   終了予定の時刻まで入った予定が、1回押すだけで作れる
+      { "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD, "flex": 4,
         "action": { "type": "uri", "label": "⏰カレンダー", "uri": vnCalUrl_(ev, day) } },
-      vnBellBtn_("dc",  "💬ﾃﾞｨｽｺｰﾄﾞ", ymd, idx),
-      vnBellBtn_("me",  "📱自分のLINE", ymd, idx)
+      vnBellBtn_("me", "📱リマインダー", ymd, idx, 4)
     ]};
 }
 
@@ -2643,7 +2664,7 @@ function vnHandlePostback_(ev) {
   const added = vnRemAdd_(at, q.vn, to, item);
   const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
   const mins = Math.max(1, Math.round((at - Date.now()) / 60000));
-  if (!added) { say("⏰ その通知設定は、もう入っています"); return true; }
+  if (!added) { say("🔔 そのリマインダーは、もう入っています"); return true; }
 
   // ★返事は1回だけ。これ以上は送らない（うまくいっているのに何度も鳴らさない）
   if (q.vn === "dc") {
@@ -2667,9 +2688,9 @@ function vnHandlePostback_(ev) {
         "https://discord.com/app");
     return true;
   }
-  say("⏰ 通知設定をしました。\n" +
+  say("🔔 リマインダーを入れました。\n" +
       hhmm + "（" + item.venue + " の" + base + "の" + lead + "分前）に\n" +
-      "あなたのLINEへ自動で届きます。");
+      "このLINEへ自動で届きます。");
   return true;
 }
 

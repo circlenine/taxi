@@ -151,10 +151,13 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
 
   eq((json.match(/"type":"button"/g) || []).length,
      (json.match(/"height":"sm"/g) || []).length, 'ボタンはどれもいちばん小さい "sm"');
-  has(json, '"type":"postback"', '通知設定のボタン（ﾃﾞｨｽｺｰﾄﾞ・自分のLINE）が入る');
-  has(json, 'ﾃﾞｨｽｺｰﾄﾞ', '★「DC」ではなく「ﾃﾞｨｽｺｰﾄﾞ」と書く（初見で分かるように）');
-  has(json, '通知設定', '★「お知らせ」ではなく「通知設定」と書く');
+  has(json, '通知設定', '★「お知らせ」ではなく「通知設定」と書く（初見で分かるように）');
   eq(json.indexOf('お知らせ：'), -1, '  「お知らせ：」の言い方は、もう使わない');
+  has(json, '⏰カレンダー', '★ボタンは「カレンダー」');
+  has(json, '📱リマインダー', '★もう1つは「リマインダー」');
+  eq(json.indexOf('ﾃﾞｨｽｺｰﾄﾞ'), -1, '★ディスコードのボタンは出さない（設定がややこしいため）');
+  eq(json.indexOf('💬DC'), -1, '  「DC」も出さない');
+  eq(json.indexOf('終了予定の前に知らせます'), -1, '★ボタンの上の説明文は出さない');
   has(json, 'calendar.google.com',
       '★カレンダーは、押したらその場で開く（もう一度押させない）');
   eq(json.indexOf('長押しでコピー'), -1, 'URLを文字で並べる通は、もう出さない');
@@ -575,7 +578,7 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(took, true, 'ボタンはこの受け口が扱う');
   has(ctx.lastReply, '20:00', '21:00の60分前＝20:00にお知らせすると返す');
-  has(ctx.lastReply, '通知設定をしました', '  ★「通知設定」という言い方で返す');
+  has(ctx.lastReply, 'リマインダーを入れました', '  ★「リマインダー」という言い方で返す');
   has(ctx.lastReply, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
   eq(ctx.lastReply.split('\n').length <= 4, true, '  ★返事は1回・短く（連投しない）');
   eq(JSON.parse(props['VN_REMIND']).length, 1, '予約が1つ入る');
