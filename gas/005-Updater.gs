@@ -2,7 +2,11 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U039ver  （2026/09/16）  ★★★
+ *  ★★★  U040ver  （2026/09/16）  ★★★
+ *
+ *  [U040ver]
+ *   ・特徴・好きなもの・きらいなもの・口ぐせ の頭に「▼」を付けた
+ *     どこからどこまでが ひとかたまりか、目で追いやすくするため
  *
  *  [U039ver]
  *   ・星人の名前を【】で囲んだ
@@ -1008,15 +1012,15 @@ function updAlienBlock_(a) {
   const L = [];
   // ★名前は【】で囲む。ふきだしの中で、いちばん先に目が行くように
   L.push("　【" + x.name + "】");
-  L.push("　　特徴");
+  L.push("　　▼特徴");
   x.toku.forEach(function (t) { L.push("　　　" + t); });
-  L.push("　　好きなもの");
+  L.push("　　▼好きなもの");
   x.suki.forEach(function (t) { L.push("　　　" + t); });
   if (x.kirai.length) {
-    L.push("　　きらいなもの");
+    L.push("　　▼きらいなもの");
     x.kirai.forEach(function (t) { L.push("　　　" + t); });
   }
-  L.push("　　口ぐせ");
+  L.push("　　▼口ぐせ");
   L.push("　　　" + x.kuse);
   L.push("　　とくてん　" + updWide_(String(pt)) + "てん");
   // ★頭の1行だけ、わざと崩す。
