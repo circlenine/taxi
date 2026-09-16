@@ -1655,6 +1655,67 @@ console.log('\n■ 「終了」とは書かない（必ず「終了予定」）'
 }
 
 
+console.log('\n■ 16:30 と 17:00 も、時刻ぴったりに動かす');
+{
+  /*
+   * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
+   *   どこかに届き、毎日ばらつく。見張りの回数は増やさずに、
+   *   その時刻が近づいたときだけ1回きりの見張りを立てて、ぴったりにする
+   */
+  const AIM = 'venueAimFire';
+  const aims = () => triggers.filter(t => t.getHandlerFunction() === AIM);
+  const day = (h, m) => new Date(2026, 8, 17, h, m, 0).getTime();   // 2026/09/17
+  const keyOf = () => 'VNSENT_20260917';
+
+  delete props[keyOf()]; delete props[keyOf() + '_T'];
+
+  // ① 16:20 … 確認用(16:30)まで10分。ぴったりの見張りを立てる
+  triggers.length = 0;
+  eq(ctx.vnAimTick_(day(16, 20)), true, '★16:30 が近づいたら、見張りを立てる');
+  eq(aims().length, 1, '  立つのは1つだけ');
+  eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝16:30ぴったり）に動く');
+
+  // ② 10:00 … まだ先。立てない（次のふだんの見張りでまた考える）
+  triggers.length = 0;
+  eq(ctx.vnAimTick_(day(10, 0)), false, '★まだ先のときは、立てない');
+  eq(aims().length, 0, '  見張りを増やさない（持ち時間を使い切らないため）');
+
+  // ③ 16:50 … 確認用は済み。次はグループ用(17:00)を狙う
+  triggers.length = 0;
+  props[keyOf() + '_T'] = '1';
+  eq(ctx.vnAimTick_(day(16, 50)), true, '★確認用が済んだら、次は17:00を狙う');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝17:00ぴったり）に動く');
+
+  // ④ きょうのぶんが両方とも済んでいたら、もう立てない
+  triggers.length = 0;
+  props[keyOf()] = '1';
+  eq(ctx.vnAimTick_(day(16, 50)), false, '★両方とも済んでいたら、立てない');
+  eq(aims().length, 0, '  むだに動かさない');
+
+  // ⑤ 立て直すときは、前のものを片づける（見張りは20個までしか作れない）
+  triggers.length = 0;
+  delete props[keyOf()]; delete props[keyOf() + '_T'];
+  triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 1 });
+  triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 2 });
+  triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
+  ctx.vnAimTick_(day(16, 20));
+  eq(aims().length, 1, '★古いものは片づけて、1つだけにする');
+  eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
+     '  ふだんの見張りは、消さない');
+
+  // ⑥ 自動発信を切っているときは、何もしない
+  triggers.length = 0;
+  const keepAuto = props['VN_AUTO'];
+  props['VN_AUTO'] = '0';
+  eq(ctx.vnAimTick_(day(16, 20)), false, '★自動発信を切っていたら、何もしない');
+  eq(aims().length, 0, '  そのときは、見張りも立てない');
+  if (keepAuto === undefined) delete props['VN_AUTO']; else props['VN_AUTO'] = keepAuto;
+
+  delete props[keyOf()]; delete props[keyOf() + '_T'];
+  triggers.length = 0;
+}
+
 console.log('\n■ リマインダーは、終了予定の5分前ぴったりに届ける');
 {
   // ★見張りは15分おきにしか動かない。5分前に知らせたいのに、

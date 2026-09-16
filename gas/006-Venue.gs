@@ -2,11 +2,22 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V032ver  （2026/09/16）  ★★★
+ *  ★★★  V033ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V033ver]
+ *   ・⏱ 16:30 と 17:00 を、時刻ぴったりに動かすようにした（vnAimTick_）
+ *     ★前は15分おきの見張り任せだったので、確認用は 16:30〜16:45、
+ *       グループ用は 17:00〜17:15 のどこかに届いていました。
+ *       毎日ばらつくと「今日は来ないな」と気になります
+ *     ★見張りの回数は増やしていません。リマインダーと同じやり方で、
+ *       その時刻が近づいたときだけ1回きりの見張りを立てます。
+ *       増えるのは1日2回だけです
+ *     ★15分おきを5分おきにすると1日288回になり、
+ *       Googleの1日ぶんの持ち時間を使い切って、見張りごと止まります
  *
  *  [V032ver]
  *   ・15分おきの見張りで、コードの自動取り込みも見るようにした
@@ -3676,6 +3687,94 @@ function venueRemindFire() {
   finally { if (lock) { try { lock.releaseLock(); } catch (e) {} } }
 }
 
+/* ================================================================
+ *  ⏱ 16:30 と 17:00 も、時刻ぴったりに動かす
+ *
+ *  ★なぜ要るのか
+ *    ふだんの見張りは15分おきです。そのままだと、
+ *    16:30 の確認用は 16:30〜16:45 のどこか、
+ *    17:00 のグループ用は 17:00〜17:15 のどこかに届きます。
+ *    毎日ばらつくと「今日は来ないな」と気になります。
+ *
+ *  ★見張りの回数は増やしません
+ *    15分おきを5分おきにすると、1日に288回も動きます。
+ *    Googleが1日にくれる「動いてよい時間」は決まっていて、
+ *    1分おきのボタンの見張りと合わせると使い切ってしまいます
+ *    （前に使い切って、見張りごと止まったことがあります）。
+ *    そこで、リマインダーと同じやり方にしました。
+ *    その時刻が近づいたときだけ、
+ *    「その時刻に1回だけ動く見張り」を別に立てます。
+ *    増えるのは1日に2回だけです。
+ * ================================================================ */
+
+const VN_AIM_FIRE = "venueAimFire";      // 時刻ぴったりの見張りが呼ぶ名前
+
+/** 役目を終えた「時刻ぴったりの見張り」を片づける（20個の上限にぶつからないように） */
+function vnAimSweep_() {
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === VN_AIM_FIRE) {
+        try { ScriptApp.deleteTrigger(t); } catch (e) {}
+      }
+    });
+  } catch (e) {}
+}
+
+/** 〇ミリ秒あとに1回だけ動く見張りを立てる。立てられたら true */
+function vnAimArm_(ms) {
+  try {
+    ScriptApp.newTrigger(VN_AIM_FIRE).timeBased()
+      .after(Math.max(1000, Math.round(ms))).create();
+    return true;
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("vnAimArm", e);
+    return false;
+  }
+}
+
+/**
+ * つぎに送る時刻が近ければ、その時刻ぴったりの見張りを立てる。
+ * 立てたら true。
+ *
+ * nowIn … いまの時刻（ふだんは渡しません。テストで時計を決めるためにあります）
+ */
+function vnAimTick_(nowIn) {
+  if (!vnAutoOn_()) return false;            // 自動発信を切ってあるなら、要らない
+  vnAimSweep_();                             // 古いものを片づけてから立て直す
+
+  const now = nowIn ? new Date(nowIn) : new Date();
+  const pr = PropertiesService.getScriptProperties();
+  const tKey = vnSentKey_(now) + "_T";       // 16:30 の確認用を送った印
+  const key = vnSentKey_(now);               // 17:00 のグループ用を送った印
+
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  let target = 0;
+  if (!pr.getProperty(tKey)) {
+    target = base + (VN_TEST_HOUR * 60 + VN_TEST_MIN) * 60000;
+  } else if (!pr.getProperty(key)) {
+    target = base + (VN_SEND_HOUR * 60 + VN_SEND_MIN) * 60000;
+  }
+  if (!target) return false;                 // きょうのぶんは、どちらも済んでいる
+
+  const ms = target - now.getTime();
+  // すでに過ぎている（＝ふだんの見張りが、いま送るところ）
+  if (ms <= VN_REM_SLACK) return false;
+  // まだ先。次のふだんの見張りのときに、また考えればよい
+  if (ms > VN_POLL_MS) return false;
+  return vnAimArm_(ms);
+}
+
+/**
+ * 時刻ぴったりの見張りが呼ぶところ。
+ * ★名前にうしろの「_」を付けていないのは、見張りから呼ぶ関数は
+ *   外から名前で呼ばれるため。「_」付きだと呼んでもらえない。
+ */
+function venueAimFire() {
+  vnAimSweep_();                             // 自分はもう役目を終えたので、片づける
+  try { venueDailyJob(); }
+  catch (e) { if (typeof logErr_ === "function") logErr_("venueAimFire", e); }
+}
+
 /** 時間が来た予約を送る。15分おきの見張りと、時刻ぴったりの見張りから呼ばれる */
 function vnRemindTick_() {
   vnRemindSweep_();                      // 終わった1回きりの見張りを片づける
@@ -4301,6 +4400,10 @@ function venueDailyJob() {
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。
     try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }
+
+    // ★16:30／17:00 が近ければ、その時刻ぴったりの見張りを立てる。
+    //   15分おきのままだと、届く時刻が毎日15分ぶんばらつくため（V033ver〜）
+    try { vnAimTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnAimTick", e); }
 
     // ★コードが新しくなっていたら、こちらで取り込む。
     //   「伝えるだけで終わる」ようにするため（005-Updater の updAutoPull_）
