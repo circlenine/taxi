@@ -11,7 +11,8 @@ const props = { LINE_TOKEN: 'tok' };
 ctx.PropertiesService = { getScriptProperties: () => ({
   getProperty: k => (k in props ? props[k] : null),
   getProperties: () => Object.assign({}, props),
-  setProperty: (k, v) => { props[k] = String(v); } }) };
+  setProperty: (k, v) => { props[k] = String(v); },
+  deleteProperty: k => { delete props[k]; } }) };
 
 let fetched = [], reply = {};
 ctx.UrlFetchApp = { fetch: (url, opt) => {
@@ -37,7 +38,14 @@ ctx.ScriptApp = {
   getProjectTriggers: () => triggers,
   deleteTrigger: t => { triggers = triggers.filter(x => x !== t); },
   newTrigger: fn => ({ timeBased: () => ({
-    everyMinutes: () => ({ create: () => { triggers.push({ getHandlerFunction: () => fn }); } }) }) })
+    everyMinutes: () => ({ create: () => { triggers.push({ getHandlerFunction: () => fn }); } }),
+    after: ms => ({ create: () => { triggers.push({ getHandlerFunction: () => fn, _kind: 'after', _ms: ms }); } }) }) })
+};
+// 📧 メール（テスト用の写し）
+let mails = [];
+ctx.MailApp = {
+  getRemainingDailyQuota: () => 100,
+  sendEmail: o => { mails.push(o); }
 };
 ctx.Utilities = {
   DigestAlgorithm: { MD5: 'MD5' }, Charset: { UTF_8: 'UTF_8' },
@@ -61,6 +69,14 @@ const eq = (a, b, msg) => {
   else console.log('ok  ', msg);
 };
 const has = (got, want, msg) => eq(String(got).indexOf(want) !== -1, true, msg);
+
+// 送った1通ぶんから、読める文だけを取り出す
+// （ふつうの文でも、ボタン付き（flex）でも、同じように中身を見られるように）
+const msgText = m => {
+  if (!m) return '';
+  if (m.type === 'text') return String(m.text || '');
+  return JSON.stringify(m);
+};
 
 console.log('■ 送り先');
 eq(ctx.vnTestTarget_(), 'Umark', 'テストの宛先は、登録済みの「ﾏｰｸ」');
@@ -582,8 +598,8 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   eq(ctx.lastReply, '', '★グループには何も出さない（雑談の場を汚さない）');
   eq(pushed.length, 1, '★押した本人の個人LINEへ送る');
   eq(pushed[0].to, 'Umark', '  宛先は、押した人');
-  const rep0 = pushed[0].msgs[0].text;
-  has(rep0, '20:00', '21:00の60分前＝20:00に届くと伝える');
+  const rep0 = msgText(pushed[0].msgs[0]);
+  has(rep0, '20:55', '★21:00の5分前＝20:55に届くと伝える（60分前は早すぎた）');
   has(rep0, 'リマインダーを入れました', '  ★「リマインダー」という言い方で返す');
   has(rep0, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
   has(rep0, 'あなたの個人LINEへ', '★公式アカウントから個人LINEへ届く、と分かるように書く');
@@ -594,11 +610,11 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
     source: { userId: 'Umark', groupId: 'Cgroup' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(JSON.parse(props['VN_REMIND']).length, 1, '同じものを二度押しても、二重にならない');
-  has(pushed[0].msgs[0].text, 'もう入っています', '  そう伝える（これも個人LINEへ）');
+  has(msgText(pushed[0].msgs[0]), 'もう入っています', '  そう伝える（これも個人LINEへ）');
 
   // 時間になったら送る
   pushed.length = 0;
-  D.now = () => new RealDate(2026, 8, 15, 20, 1).getTime();
+  D.now = () => new RealDate(2026, 8, 15, 20, 56).getTime();
   ctx.vnRemindTick_();
   eq(pushed.length, 1, '時間になったら1回送る');
   eq(pushed[0].to, 'Umark', '  押した本人に届く');
@@ -613,6 +629,112 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   ctx.vnRemindTick_();
   eq(pushed.length, 0, '3時間以上すぎた予約は、もう送らない');
   ctx.Date = RealDate;
+}
+
+console.log('\n■ 🔕 通知解除のボタン');
+{
+  props['VN_REMIND'] = '[]';
+  const day = new Date(2026, 8, 15);
+  ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'コンサート', start: '18:00', end: '21:00', url: 'https://x/' }]);
+  const RealDate = Date;
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 15, 17, 0); };
+  D.prototype = RealDate.prototype; D.now = () => new RealDate(2026, 8, 15, 17, 0).getTime();
+  ctx.Date = D;
+
+  pushed.length = 0; ctx.lastReply = '';
+  ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
+    source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
+  const m = pushed[0].msgs[0];
+  eq(m.type, 'flex', '★予約の返事に、押せるボタンを付ける');
+  const js = JSON.stringify(m);
+  has(js, '🔕 通知解除', '  「通知解除」のボタンがある');
+  has(js, 'vn=off&k=', '  押すと、そのぶんだけを解除する合図が飛ぶ');
+  const key = JSON.parse(props['VN_REMIND'])[0].k;
+  eq(typeof key === 'string' && key.length === 6, true, '  予約には、みじかい合言葉が付く');
+  eq(js.indexOf('k=' + key) !== -1, true, '  ボタンにも、その合言葉が入る');
+  eq(js.length < 2000, true, '  ★ボタンの荷物は300文字まで。会場名を入れずに済ませている');
+
+  // 押したら消える
+  pushed.length = 0;
+  const took = ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
+    source: { userId: 'Umark' }, postback: { data: 'vn=off&k=' + key } });
+  eq(took, true, '解除のボタンも、この受け口が扱う');
+  eq(JSON.parse(props['VN_REMIND']).length, 0, '★押すと、その予約は消える');
+  has(msgText(pushed[0].msgs[0]), '解除しました', '  消したことを、本人の個人LINEへ伝える');
+  eq(pushed[0].to, 'Umark', '  ★グループではなく、押した本人へ');
+
+  // 二度押しても落ちない
+  pushed.length = 0;
+  ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
+    source: { userId: 'Umark' }, postback: { data: 'vn=off&k=' + key } });
+  has(msgText(pushed[0].msgs[0]), 'もうありません', '  二度押しても落ちない');
+
+  // ほかの人の予約は、絶対に消さない
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'x', k: 'zzzzzz', at: Date.now() + 600000, how: 'me', to: 'Uother',
+      venue: 'あ', title: '', start: '', end: '' }]);
+  pushed.length = 0;
+  ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
+    source: { userId: 'Umark' }, postback: { data: 'vn=off&k=zzzzzz' } });
+  eq(JSON.parse(props['VN_REMIND']).length, 1, '★ほかの人の予約には、手を出さない');
+  ctx.Date = RealDate;
+}
+
+console.log('\n■ 📧 メールでも受け取れる（LINEが開けないとき用）');
+{
+  const W = ctx.vnMailWord_;
+  eq(W('メール通知 taro@example.com').kind, 'on', 'アドレスを送ると、入れる合図');
+  eq(W('メール通知 taro@example.com').addr, 'taro@example.com', '  アドレスを取り出せる');
+  eq(W('メール通知　taro@example.com').addr, 'taro@example.com', '  全角の空白でも通る');
+  eq(W('メール通知：taro@example.com').addr, 'taro@example.com', '  「：」でも通る');
+  eq(W('めーる通知 taro@example.com').kind, 'on', '  ひらがなでも通る');
+  eq(W('メール通知').kind, 'status', '「メール通知」だけなら、いまの状態を答える');
+  eq(W('メール通知 解除').kind, 'off', '「解除」で止める');
+  eq(W('メール通知 やめる').kind, 'off', '  「やめる」でも止まる');
+  eq(W('メール通知 あいうえお').kind, 'bad', 'アドレスとして読めなければ、そう言う');
+  eq(W('こんにちは'), null, 'ふつうの話には反応しない');
+  eq(W(''), null, '空でも落ちない');
+  eq(W(null), null, 'null でも落ちない');
+
+  // 入れる → テストメールが飛ぶ
+  mails.length = 0; pushed.length = 0;
+  delete props['VNMAIL_Umark'];
+  const took = ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark' },
+    message: { text: 'メール通知 taro@example.com' } });
+  eq(took, true, '「メール通知」の合図は、ここが扱う');
+  eq(props['VNMAIL_Umark'], 'taro@example.com', '★アドレスはスクリプトプロパティにだけ置く');
+  eq(mails.length, 1, '  入れたらすぐ、テストのメールを1通送る');
+  eq(mails[0].to, 'taro@example.com', '  宛先はそのアドレス');
+  eq(pushed[0].to, 'Umark', '★返事は本人の個人LINEへ（グループにアドレスを出さない）');
+
+  // グループで打たれたら、そのことも伝える
+  pushed.length = 0; mails.length = 0;
+  ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark', groupId: 'Cgroup' },
+    message: { text: 'メール通知 taro@example.com' } });
+  has(msgText(pushed[0].msgs[0]), 'みんなに見えます', '  グループに打つと見えてしまうと伝える');
+
+  // リマインダーが、メールにも飛ぶ
+  mails.length = 0; pushed.length = 0;
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 5000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  ctx.vnRemindTick_();
+  eq(pushed.length, 1, 'LINEにも届く');
+  eq(mails.length, 1, '★メールにも届く');
+  has(mails[0].subject, '京セラドーム', '  件名に会場名（開かなくても分かる）');
+  has(mails[0].body, '終了予定', '  中身も同じ');
+
+  // 止めたら、メールは飛ばない
+  ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark' },
+    message: { text: 'メール通知 解除' } });
+  eq(props['VNMAIL_Umark'], undefined, '★解除すると、アドセスは消える'.replace('アドセス', 'アドレス'));
+  mails.length = 0; pushed.length = 0;
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 5000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  ctx.vnRemindTick_();
+  eq(mails.length, 0, '  解除したら、もうメールは飛ばない');
+  eq(pushed.length, 1, '  LINEのほうは、そのまま届く');
 }
 
 console.log('\n■ カレンダーに入れるリンク');
@@ -1066,29 +1188,67 @@ console.log('\n■ 「終了」とは書かない（必ず「終了予定」）'
 }
 
 
-console.log('\n■ リマインダーは、終了予定を基準に、少し早めに届ける');
+console.log('\n■ リマインダーは、終了予定の5分前ぴったりに届ける');
 {
-  // ★見張りは15分おきにしか動かない。時刻を過ぎてから送る形だと
-  //   いちばん遅いときで15分おくれ、60分前のつもりが45分前になる。
-  //   向かうかどうかの判断が間に合わないので、少し早めに出す
+  // ★見張りは15分おきにしか動かない。5分前に知らせたいのに、
+  //   先回りして送れば20分前、過ぎてから送れば終わったあと。どちらもだめ。
+  //   だから「その時刻に1回だけ動く見張り」を別に立てる
   props['VN_REMIND'] = JSON.stringify([
-    { id: 'a', at: Date.now() + 10 * 60000, how: 'me', to: 'Umark',
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 10 * 60000, how: 'me', to: 'Umark',
       venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' },
-    { id: 'b', at: Date.now() + 40 * 60000, how: 'me', to: 'Umark',
+    { id: 'b', k: 'bbbbbb', at: Date.now() + 40 * 60000, how: 'me', to: 'Umark',
       venue: '大阪城ホール', title: 'y', start: '18:00', end: '21:00', url: '' }
+  ]);
+  pushed.length = 0; triggers.length = 0;
+  ctx.vnRemindTick_();
+  eq(pushed.length, 0, '★あと10分のものを、いま先回りして送らない（早すぎると役に立たない）');
+  const fire = triggers.filter(t => t.getHandlerFunction() === 'venueRemindFire');
+  eq(fire.length, 1, '★代わりに、その時刻に1回だけ動く見張りを立てる');
+  eq(fire[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
+  eq(Math.round(fire[0]._ms / 60000), 10, '  ★10分後ぴったりに動く');
+  eq(JSON.parse(props['VN_REMIND']).length, 2, '  予約は、どちらも残しておく');
+
+  // その時刻になったら、そこで送る
+  pushed.length = 0; triggers.length = 0;
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 5000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }
+  ]);
+  ctx.vnRemindTick_();
+  eq(pushed.length, 1, '★時刻が来たら送る');
+  has(msgText(pushed[0].msgs[0]), '京セラドーム', '  そのイベントのもの');
+  has(msgText(pushed[0].msgs[0]), '終了予定', '  ★「終了」ではなく「終了予定」と書く');
+  eq(JSON.parse(props['VN_REMIND']).length, 0, '  送ったら消える');
+
+  // 役目を終えた「1回きりの見張り」は、たまらないように片づける
+  triggers.length = 0;
+  triggers.push({ getHandlerFunction: () => 'venueRemindFire', _kind: 'after', _ms: 1000 });
+  triggers.push({ getHandlerFunction: () => 'venueRemindFire', _kind: 'after', _ms: 2000 });
+  triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
+  props['VN_REMIND'] = '[]';
+  ctx.vnRemindTick_();
+  eq(triggers.filter(t => t.getHandlerFunction() === 'venueRemindFire').length, 0,
+     '★終わった1回きりの見張りは、片づける（20個までしか作れないため）');
+  eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
+     '  ふだんの見張りは、消さない');
+
+  // 見張りが立てられなかったときは、先回りして送る（鳴らないよりまし）
+  const keepNew = ctx.ScriptApp.newTrigger;
+  ctx.ScriptApp.newTrigger = () => { throw new Error('もう作れません'); };
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 10 * 60000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }
   ]);
   pushed.length = 0;
   ctx.vnRemindTick_();
-  eq(pushed.length, 1, '★あと10分のものは、いま送る（15分おくれるより早いほうが安全）');
-  has(pushed[0].msgs[0].text, '京セラドーム', '  そのイベントのもの');
-  has(pushed[0].msgs[0].text, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
-  eq(JSON.parse(props['VN_REMIND']).length, 1, '  まだ先のものは、残しておく');
+  eq(pushed.length, 1, '★見張りを立てられなかったときだけ、先回りして送る');
+  ctx.ScriptApp.newTrigger = keepNew;
 
   // 何分前にするかは、終了予定から数える
   const at = ctx.vnRemindAt_({ start: '18:00', end: '21:00' }, new Date(2026, 8, 16));
   const d = new Date(at);
-  eq(d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2), '20:00',
-     '★21:00 終了予定の60分前＝20:00に知らせる');
+  eq(d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2), '20:55',
+     '★21:00 終了予定の5分前＝20:55に知らせる');
   const at2 = ctx.vnRemindAt_({ start: '18:00', end: '' }, new Date(2026, 8, 16));
   eq(new Date(at2).getHours(), 17, '  終わりが分からなければ、始まりから数える');
   eq(ctx.vnRemindAt_({ start: '', end: '' }, new Date(2026, 8, 16)), 0, '  時刻が無ければ 0（入れない）');

@@ -2,7 +2,31 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U043ver  （2026/09/16）  ★★★
+ *  ★★★  U044ver  （2026/09/16）  ★★★
+ *
+ *  [U044ver]
+ *   ・星人の紹介から、行の頭の空白をぜんぶ取った
+ *     下げて書くと、そのぶん1行が長くなり、特徴のような長い文が
+ *     LINEで折り返されて、ふきだしの形がくずれていたため。
+ *     折り返した続きの行にも、よけいな空白を足さないようにした
+ *   ・せりふが折り返さないよう、1行を全角13文字ぶんまでに詰めた
+ *     ・「きみは　えらばれて　いません。」→「きみは　えらばれません。」
+ *     ・「スプシは　なにも　かわりません。」→「スプシは　かわりません。」
+ *     ・「そのかわり　これを　みなさい。」→「そのかわり　見て下ちい。」
+ *     ・「てんそうは　ちゅうしされました。」→「てんそうは　やめました。」
+ *     ・「きみの　スプシは　そのままです。」→「スプシは　そのままです。」
+ *     ・「やりなおしても　かまいません。」→「やりなおして　下ちい。」
+ *     ・「という　りくつな　わけだす。」→「という　りくつなわけだす。」
+ *       （全角14文字ぶんあり、機種によっては折り返していた。
+ *         同じ言葉をあちこちに書かないよう UPD_KATA_END に1本化した）
+ *   ・おもしろ動画の見出しを「▼タイトル」の形にした
+ *     「（X トレンド）」では、何の動画なのか分からず、押す気にならないため。
+ *     🎬おもしろ動画タブの「メモ」が、そのまま見出しになります
+ *   ・合言葉が、打ち方のまざったものでも通るようにした
+ *     「kataストロフィ」「カタstrophe」「ｶﾀすとろふぃ」など。
+ *     いったんローマ字に直してから見くらべる（updKanaRoma_）。
+ *     前後の「！」やかぎかっこも、外して見るようにした
+ *     ★ほかの言葉が混ざったときは、これまでどおり反応しません
  *
  *  [U043ver]
  *   ・とくてんを〖〗で囲み、行の先頭の空白をなくした
@@ -717,20 +741,57 @@ function updKanaFull_(str) {
  * ★その1文だけのとき限り。「カタストロフィの件」のように
  *   ほかの言葉が混ざっていたら、反応しない。
  */
-const UPD_KATA_ROMA = ["katastrophe", "jebanni", "gevanni", "jyebanni"];
+const UPD_KATA_ROMA = [
+  "katastrophe", "jebanni", "gevanni", "jyebanni",
+  // ★下の3つは「カナをローマ字に直したときの形」。
+  //   ひらがな・カタカナ・ローマ字が入りまじって打たれたとき
+  //   （たとえば「kataストロフィ」「カタstrophe」）に、ここで受け止める
+  "katasutorofi", "katasutorofu", "jiebanni"
+];
 const UPD_KATA_KANA = [
   /^カタストロフ[ィイー]?ー?$/,
   /^ジ[ェエ]バンニ[ー]?$/
 ];
 
+/*
+ * カタカナを、ローマ字に直すための表。
+ *
+ * ★なぜ要るのか。
+ *   「カタストロフィ」と「katastrophe」は、どちらも合言葉として受けている。
+ *   ところが「kataストロフィ」のように、とちゅうで打ち方が変わったものは、
+ *   カタカナとしても・ローマ字としても、そのままでは形がそろわない。
+ *   そこで、いったん全部ローマ字に直してから見くらべる。
+ * ★2文字でひとまとまりのもの（フィ・ジェ）を先に直す。
+ *   あとにすると「フ」「ィ」に割れて、別のローマ字になってしまう。
+ */
+const UPD_KATA_KANA2ROMA = {
+  "フィ":"fi", "ジェ":"je", "ジエ":"je", "ティ":"ti", "ディ":"di", "ヴィ":"vi",
+  "カ":"ka", "タ":"ta", "ス":"su", "ト":"to", "ロ":"ro", "フ":"fu",
+  "ジ":"ji", "バ":"ba", "ン":"n", "ニ":"ni",
+  "ィ":"i", "イ":"i", "ェ":"e", "エ":"e", "ー":""
+};
+
+/** カタカナまじりの文字列を、ローマ字だけの形にする */
+function updKanaRoma_(str) {
+  let out = String(str == null ? "" : str);
+  Object.keys(UPD_KATA_KANA2ROMA).sort(function (a, b) { return b.length - a.length; })
+    .forEach(function (k) { out = out.split(k).join(UPD_KATA_KANA2ROMA[k]); });
+  return out;
+}
+
 function updKataWord_(text) {
   // まず飾り文字を、ふつうの字に戻す
   let t = updDeFont_(text);
-  // 全角のアルファベットを、半角に直す
-  t = t.replace(/[Ａ-Ｚａ-ｚ]/g, function (c) {
+  // 全角のアルファベットと数字を、半角に直す
+  t = t.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (c) {
     return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
   });
   t = t.replace(/[\s\u3000]/g, "");
+  // ★前後の飾り（かっこ・句読点・びっくり）は、外して見る。
+  //   「カタストロフィ！」のように、勢いで付けてしまうことがあるため。
+  //   ★外すのは前と後ろだけ。まん中に言葉が混ざっていたら、やはり反応しない
+  t = t.replace(/^[「『（(\[【《〈"'`♪…・、。,.!?！？‼⁉ー～~-]+/, "")
+       .replace(/[」』）)\]】》〉"'`♪…・、。,.!?！？‼⁉]+$/, "");
   if (!t) return false;
 
   // ローマ字で打たれたとき
@@ -747,6 +808,10 @@ function updKataWord_(text) {
   for (let i = 0; i < UPD_KATA_KANA.length; i++) {
     if (UPD_KATA_KANA[i].test(k)) return true;
   }
+  // ★最後に、カナもローマ字も入りまじった打ち方を受け止める。
+  //   いったん全部ローマ字に直してから見くらべる
+  const r = updKanaRoma_(k).toLowerCase();
+  if (/^[a-z]+$/.test(r) && UPD_KATA_ROMA.indexOf(r) !== -1) return true;
   return false;
 }
 
@@ -1029,19 +1094,23 @@ function updAlienBlock_(a) {
   const x = (a && a.name && Array.isArray(a.toku)) ? a : updAlien_();
   const pt = (1 + Math.floor(Math.random() * 8)) * 10;
   const L = [];
+  // ★行の頭には、空白をひとつも入れない。
+  //   下げて書くと見た目はそろうが、そのぶん1行が長くなり、
+  //   特徴のような長い文が LINE で折り返されて、形がくずれてしまう。
+  //   ふきだしの中は、すべて左にそろえる。
   // ★名前は【】で囲む。ふきだしの中で、いちばん先に目が行くように
-  L.push("　【" + x.name + "】");
-  L.push("　　▼特徴");
-  x.toku.forEach(function (t) { L.push("　　　" + t); });
-  L.push("　　▼好きなもの");
-  x.suki.forEach(function (t) { L.push("　　　" + t); });
+  L.push("【" + x.name + "】");
+  L.push("▼特徴");
+  x.toku.forEach(function (t) { L.push(t); });
+  L.push("▼好きなもの");
+  x.suki.forEach(function (t) { L.push(t); });
   if (x.kirai.length) {
-    L.push("　　▼きらいなもの");
-    x.kirai.forEach(function (t) { L.push("　　　" + t); });
+    L.push("▼きらいなもの");
+    x.kirai.forEach(function (t) { L.push(t); });
   }
-  L.push("　　▼口ぐせ");
-  L.push("　　　" + x.kuse);
-  // ★とくてんは〖〗で囲む。先頭の空白は入れない（左にそろえて目立たせる）
+  L.push("▼口ぐせ");
+  L.push(x.kuse);
+  // ★とくてんも〖〗で囲んで、左にそろえる
   L.push("〖とくてん　" + updWide_(String(pt)) + "てん〗");
   // ★字を崩すのはやめた（読みにくいだけだった）。ふつうの字で出す
   // ★1行に収まるよう、短くしてある。
@@ -1293,18 +1362,22 @@ function updWrapLine_(line, w) {
   const src = String(line == null ? "" : line);
   const head = (src.match(/^[　\s]*/) || [""])[0];      // 行の頭の空白
   const headW = updZenkaku_(head);
+  // ★続きの行の頭。元の行に空白が無ければ、こちらも入れない。
+  //   何も無い行に空白だけ足すと、左のそろいが崩れて見苦しい
+  const cont = head ? head + "　" : "";
+  const contW = updZenkaku_(cont);
   const out = [];
   let cur = "", curW = 0, first = true;
   for (const ch of src.slice(head.length)) {
     const cw = updZenkaku_(ch);
-    const limit = w - (first ? headW : headW + 1);
+    const limit = w - (first ? headW : contW);
     if (curW + cw > limit && cur) {
-      out.push((first ? head : head + "　") + cur);
+      out.push((first ? head : cont) + cur);
       cur = ""; curW = 0; first = false;
     }
     cur += ch; curW += cw;
   }
-  out.push((first ? head : head + "　") + cur);
+  out.push((first ? head : cont) + cur);
   return out;
 }
 
@@ -1327,30 +1400,41 @@ function updBubble_(text) {
          "╰" + "─".repeat(left) + "⌄" + "─".repeat(n - 1 - left) + "╯";
 }
 
+/**
+ * しめの1行。あの黒い球の言い方。
+ *
+ * ★同じ言葉をあちこちに書くと、直すときに1か所だけ直し忘れて
+ *   言い回しがバラつく。だから、ここ1か所にだけ書いて、みんなで使う。
+ * ★「という　りくつな　わけだす。」は全角14文字ぶんあり、
+ *   機種によっては折り返してしまったので、まん中の空白をひとつ詰めた（13文字ぶん）。
+ */
+const UPD_KATA_END = "という　りくつなわけだす。";
+
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
 function updKataStart_(alien) {
   return UPD_BALL + "\n" +
          updAlienBlock_(alien) + "\n" +
          "\n" +
-         "きみたちの　ふるいスプシは\n" +
+         "まえの　バージョンは\n" +
          "なくなりました。\n" +
          "\n" +
-         "あたらしいスプシを\n" +
+         "いまの　スプシを\n" +
          "どう　アップデートしようと\n" +
          "わたしの　かってです。\n" +
          "\n" +
-         "という　りくつな　わけだす。";
+         UPD_KATA_END;
 }
 
 function updKataFail_(body) {
+  // ★ここも、1行が全角13文字ぶんまでに収まるよう詰めてある（折り返し防止）
   return UPD_BALL + "\n" +
          "しっぱいしました\n" +
          "\n" +
-         "てんそうは　ちゅうしされました。\n" +
-         "きみの　スプシは　そのままです。\n" +
+         "てんそうは　やめました。\n" +
+         "スプシは　そのままです。\n" +
          "\n" + String(body || "") + "\n\n" +
-         "やりなおしても　かまいません。\n" +
-         "という　りくつな　わけだす。";
+         "やりなおして　下ちい。\n" +
+         UPD_KATA_END;
 }
 
 /* ---------------- 合言葉を、ほかの人が打ったとき ---------------- */
@@ -1393,16 +1477,19 @@ const UPD_FUN_FALLBACK = [
   // ★ねらいは「いま話題で、思わず見たくなるもの」。
   //   ただ「面白い」と検索しても、古いものや質の低いものが混ざる。
   //   各サービスが「いま伸びているもの」を出してくれる入口を、先に置く。
-  { url: "https://www.youtube.com/feed/trending",                                             from: "YouTube 急上昇" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("急上昇 shorts"), from: "YouTube 急上昇" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("バズ動画 shorts"), from: "YouTube 話題" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("話題 shorts 2026"), from: "YouTube 話題" },
-  { url: "https://www.tiktok.com/explore",                                                    from: "TikTok おすすめ" },
-  { url: "https://www.tiktok.com/tag/" + encodeURIComponent("バズり"),                         from: "TikTok 話題" },
-  { url: "https://www.tiktok.com/tag/" + encodeURIComponent("神回"),                           from: "TikTok 話題" },
-  { url: "https://x.com/explore/tabs/trending",                                               from: "X トレンド" },
-  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("バズ 動画"),                   from: "X 話題" },
-  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("神動画"),                      from: "X 話題" }
+  // ★ここに書く from は「どこの入口か」ではなく、動画の見出し（タイトル）。
+  //   送るときは「▼見出し」の形で出すので、
+  //   「（X トレンド）」のような、中身の分からない書き方にはしない。
+  { url: "https://www.youtube.com/feed/trending",                                             from: "いま急上昇の動画" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("急上昇 shorts"), from: "急上昇のショート動画" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("バズ動画 shorts"), from: "バズっているショート" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("話題 shorts 2026"), from: "いま話題のショート" },
+  { url: "https://www.tiktok.com/explore",                                                    from: "いまおすすめの動画" },
+  { url: "https://www.tiktok.com/tag/" + encodeURIComponent("バズり"),                         from: "バズっている動画" },
+  { url: "https://www.tiktok.com/tag/" + encodeURIComponent("神回"),                           from: "神回あつめ" },
+  { url: "https://x.com/explore/tabs/trending",                                               from: "いま話題の動画" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("バズ 動画"),                   from: "バズ動画あつめ" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("神動画"),                      from: "神動画あつめ" }
 ];
 
 /**
@@ -1430,17 +1517,46 @@ function updFunPick_() {
 /** 動画のリンクだけ欲しいとき */
 function updFunLink_() { return updFunPick_().url; }
 
+/**
+ * 動画の見出し（タイトル）を取り出す。
+ *
+ * ★送るときは「▼見出し」の形で出す。
+ *   「（X トレンド）」のような書き方だと、何の動画なのかが分からず、
+ *   押す気にならない。見出しがあれば、押す前に中身の見当がつく。
+ * ★🎬おもしろ動画タブの「メモ」を見出しとして使う。
+ *   メモが空のときでも「▼」だけが浮かないよう、あたりさわりのない
+ *   見出しを入れておく。
+ * ★長すぎる見出しは、LINEで折り返して形がくずれるので、
+ *   ふきだしの幅で切って「…」を付ける。
+ */
+function updFunTitle_(fun) {
+  let s = String((fun && fun.from) || "").replace(/[\r\n]+/g, " ").trim();
+  if (!s) s = "いま話題の動画";
+  const w = updBubbleW_() - 1;                 // 「▼」のぶん、1文字ぶん狭くする
+  if (updZenkaku_(s) <= w) return s;
+  let out = "", acc = 0;
+  for (const ch of s) {
+    const cw = updZenkaku_(ch);
+    if (acc + cw > w - 1) break;               // 「…」のぶんも空けておく
+    out += ch; acc += cw;
+  }
+  return out + "…";
+}
+
 /** ほかの人が合言葉を打ったときの返事（近未来のロボットの声） */
 function updKataDenied_(alien, fun) {
+  // ★どの行も、全角13文字ぶんまでに収めてある。
+  //   これより長いと、機種や文字の大きさによっては LINE が勝手に折り返し、
+  //   言葉がまん中で切れて、せりふの形がくずれてしまう
   return UPD_BALL + "\n" +
          updAlienBlock_(alien) + "\n" +
          "\n" +
-         "きみは　えらばれて　いません。\n" +
-         "スプシは　なにも　かわりません。\n" +
+         "きみは　えらばれません。\n" +
+         "スプシは　かわりません。\n" +
          "\n" +
-         "そのかわり　これを　みなさい。\n" +
-         "という　りくつな　わけだす。\n" +
-         ((fun && fun.from) ? "（" + fun.from + "）\n" : "") +
+         "そのかわり　見て下ちい。\n" +
+         UPD_KATA_END + "\n" +
+         "▼" + updFunTitle_(fun) + "\n" +
          String((fun && fun.url) || "");
 }
 

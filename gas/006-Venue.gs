@@ -2,11 +2,43 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V024ver  （2026/09/16）  ★★★
+ *  ★★★  V025ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V025ver]
+ *   ・リマインダーを「終了予定の5分前」に変えた（前は60分前）
+ *     1時間前に言われても、そのときはまだ別の仕事の途中で、
+ *     動く合図になりませんでした。5分前が、いちばん役に立ちます
+ *   ・その5分前に、ちゃんと届くようにした
+ *     ★ふだんの見張りは15分おきです。そのままだと、
+ *       先回りすれば20分前に鳴り、過ぎてから送れば終わったあとになる。
+ *       そこで、知らせる時刻が近づいたときだけ
+ *       「その時刻に1回だけ動く見張り」を別に立てるようにしました
+ *       （venueRemindFire／vnRemindArm_／vnRemindSweep_）。
+ *       立てられなかったときだけ、これまでどおり先回りして送ります
+ *     ★役目を終えた見張りは、毎回こちらで片づけます。
+ *       ためると20個の上限にぶつかり、毎日の発信ごと止まるため
+ *   ・「🔕 通知解除」ボタンを付けた
+ *     入れたあとで やめたくなったときに、その場で押せば止まります。
+ *     押した本人のぶんだけ消します（ほかの人の予約には手を出しません）
+ *   ・📧 メールでも受け取れるようにした
+ *     ★ﾃﾞｨｽｺｰﾄﾞは、受け取れるようにするまで8手もかかり、
+ *       出先のスマホでは無理でした。メールなら1手です。
+ *       この公式LINEに「メール通知 じぶんのアドレス」と1回送るだけ。
+ *       「メール通知 解除」で止まり、「メール通知」だけで今の状態が分かります
+ *     ★Android のスマホには Gmail が最初から入っているので、
+ *       LINEが開けないときでも、通知で気づけます
+ *     ★アドレスはスクリプトプロパティにだけ置きます（シートにも書きません）。
+ *       返事も必ず本人の個人LINEへ返します（グループには出しません）
+ *     ★LINE通知（LINE Notify）は2025年3月で終わったので使えません。
+ *       ショートメール（SMS）は Apps Script から送れません。
+ *       だから、いちばん簡単で確実なのがメールでした
+ *     ※ メールを送るのに新しい許可が要ります（appsscript.json に
+ *       script.send_mail を足しました）。入れ替えたあと、
+ *       1回だけ「許可」の画面が出ます
  *
  *  [V024ver]
  *   ・通知設定のボタンを「📱個人LINEへ通知」にした
@@ -222,7 +254,7 @@
  *                    （Androidの標準は「Googleカレンダー」。iPhoneでも同じ）
  *     💬Discord   … みんなのDiscordへ流す
  *     📱自分のLINE … 押した人の個人LINEにだけ届く
- *     知らせるのは「終わりの◯分前」（設定「イベントのお知らせは何分前」／既定60）
+ *     知らせるのは「終わりの◯分前」（設定「イベントのお知らせは何分前」／既定5）
  *   ・1通に入りきらないときは、催しを落とす前にボタンのほうを消すようにした
  *     ボタンを絵の中にそのまま入れると1件1,700バイトかかり、
  *     見本4件で12,358バイト（上限10,000）になって催しが1件消えていた。
@@ -1650,6 +1682,9 @@ function vnHandleNote_(ev, sentAt) {
   // ⓪「イベント一覧」… だれでも、いつでも今日のぶんを見られるように
   if (vnHandleListCmd_(ev, sentAt)) return true;
 
+  // ⓪-2「メール通知 〇〇@〇〇」… LINEが開けないときの受け取り口
+  if (vnHandleMailCmd_(ev)) return true;
+
   // ① 確認用の手直し（「①削除」「①③削除」「①修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
 
@@ -2444,15 +2479,23 @@ function vnReadStatus_(day) {
  *   終わりが分からない催しだけ、始まりを基準にする。
  */
 
-/** 何分前に知らせるか（設定「イベントのお知らせは何分前」／既定60分） */
+/**
+ * 何分前に知らせるか（設定「イベントのお知らせは何分前」／既定5分）
+ *
+ * ★以前は60分前でした。早すぎます。
+ *   終演の1時間も前に言われても、そのときは まだ別の仕事の途中で、
+ *   聞いた頃には忘れてしまう。「そろそろ動く」ちょうどの合図にならない。
+ *   終わりの5分前に鳴るのが、いちばん役に立つ。
+ * ★1分前〜300分前のあいだで、設定タブから変えられます。
+ */
 function vnLeadMin_() {
   try {
     if (typeof cfg_ === "function") {
       const v = parseInt(cfg_("イベントのお知らせは何分前"), 10);
-      if (v >= 5 && v <= 300) return v;
+      if (v >= 1 && v <= 300) return v;
     }
   } catch (e) {}
-  return 60;
+  return 5;
 }
 
 /** その日のイベントを覚えておく（ボタンが押されたとき、どれのことか分かるように） */
@@ -2565,16 +2608,255 @@ function vnRemSave_(list) {
   } catch (e) {}
 }
 
-/** 予約を1つ足す。同じ人・同じ催し・同じ知らせ方なら二重にしない */
+/**
+ * 予約1件ぶんの、みじかい合言葉をつくる。
+ *
+ * ★「通知解除」ボタンに持たせる荷物は、300文字までと決められている。
+ *   会場名や催し名をそのまま入れると、長いものであふれてしまう。
+ *   そこで、6文字の短い合言葉だけを持たせて、押されたら
+ *   その合言葉で予約をさがす。
+ */
+function vnRemKey_() {
+  return (Date.now().toString(36) + Math.floor(Math.random() * 1679616).toString(36)).slice(-6);
+}
+
+/**
+ * 予約を1つ足す。同じ人・同じ催し・同じ知らせ方なら二重にしない。
+ * 戻り値は { added, key }。
+ *   added … 新しく入れたら true、すでに入っていたら false
+ *   key   … 「通知解除」に使う、みじかい合言葉
+ *           （すでに入っていたときも、そのぶんの合言葉を返す。
+ *             二度目に押した人も、そこから解除できるようにするため）
+ */
 function vnRemAdd_(at, how, to, ev) {
   const list = vnRemQueue_();
   const id = how + "|" + to + "|" + ev.venue + "|" + (ev.title || "");
-  for (let i = 0; i < list.length; i++) if (list[i].id === id) return false;
-  list.push({ id: id, at: at, how: how, to: to,
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id === id) {
+      // 古い予約には合言葉が無い。ここで足しておく（あとから解除できるように）
+      if (!list[i].k) { list[i].k = vnRemKey_(); vnRemSave_(list); }
+      return { added: false, key: list[i].k };
+    }
+  }
+  const k = vnRemKey_();
+  list.push({ id: id, k: k, at: at, how: how, to: to,
               venue: ev.venue, title: ev.title || "", start: ev.start || "", end: ev.end || "",
               url: ev.url || "" });
   vnRemSave_(list);
+  return { added: true, key: k };
+}
+
+/**
+ * 予約を1つ取り消す。取り消したら、その予約を返す。無ければ null。
+ *
+ * ★押した本人のぶんだけ消す。ほかの人の予約は、絶対に触らない。
+ *   （合言葉をたまたま当てられても、送り先がちがえば消さない）
+ */
+function vnRemDrop_(key, uid) {
+  const list = vnRemQueue_();
+  let hit = null;
+  const keep = [];
+  list.forEach(function (r) {
+    if (!hit && r.k === key && (!uid || !r.to || r.to === uid)) { hit = r; return; }
+    keep.push(r);
+  });
+  if (hit) vnRemSave_(keep);
+  return hit;
+}
+
+/* ---- 📧 メールでも受け取れるようにする ---- */
+
+/*
+ * ★なぜ、メールを足したのか。
+ *
+ *   これまで、LINE以外の受け取り方は ﾃﾞｨｽｺｰﾄﾞだけでした。
+ *   ところが ﾃﾞｨｽｺｰﾄﾞは、受け取れるようにするまでの手数が多すぎます。
+ *     ①アプリを入れる ②サーバーを作る ③チャンネルを作る
+ *     ④チャンネルの編集 ⑤連携サービス ⑥ウェブフック ⑦URLをコピー
+ *     ⑧そのURLを渡す
+ *   出先のスマホで、これを全部やるのは無理です。
+ *
+ *   メールなら、やることは1つだけです。
+ *     「メール通知 じぶんのアドレス」と、この公式LINEに1回送るだけ。
+ *   Android のスマホには Gmail が最初から入っていて、
+ *   届けばすぐ画面の上に出ます。LINEが開けないときでも受け取れます。
+ *
+ *   ★LINE通知（LINE Notify）は 2025年3月で終わってしまったので、使えません。
+ *   ★ショートメール（SMS）は、Apps Script からは送れません。
+ *     だからメールが、いま いちばん簡単で確実な道です。
+ */
+
+/** その人のメールのしまい場所（アドレスはスクリプトプロパティにだけ置く） */
+function vnMailKey_(uid) { return "VNMAIL_" + String(uid || ""); }
+
+/** その人のメールアドレスを読む。入れていなければ空 */
+function vnMailGet_(uid) {
+  if (!uid) return "";
+  try { return PropertiesService.getScriptProperties().getProperty(vnMailKey_(uid)) || ""; }
+  catch (e) { return ""; }
+}
+
+/** メールアドレスを入れる／消す */
+function vnMailSet_(uid, addr) {
+  if (!uid) return false;
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    if (addr) pr.setProperty(vnMailKey_(uid), addr);
+    else pr.deleteProperty(vnMailKey_(uid));
+    return true;
+  } catch (e) { return false; }
+}
+
+/**
+ * 打たれた文が「メール通知」の合図かどうかを見る。
+ *
+ *   メール通知 abc@example.com … そのアドレスに届くようにする
+ *   メール通知 解除／やめる／オフ … 止める
+ *   メール通知                   … いまどうなっているかを答える
+ *
+ * ★「メールつうち」「めーる通知」など、書き方が少し違っても受ける。
+ *   出先で打つものなので、厳しくすると通らなくて困るため。
+ */
+function vnMailWord_(text) {
+  let t = String(text == null ? "" : text).trim();
+  if (!t) return null;
+  const head = t.match(/^(メール|めーる|ﾒｰﾙ|mail|Mail|MAIL)\s*(通知|つうち|ツウチ|notify)?/);
+  if (!head) return null;
+  let rest = t.slice(head[0].length).replace(/^[\s\u3000:：、,]+/, "").trim();
+  if (!rest) return { kind: "status" };
+  if (/^(解除|かいじょ|やめる|やめ|止める|とめる|オフ|off|OFF|停止|なし)$/.test(rest)) {
+    return { kind: "off" };
+  }
+  // メールアドレスらしきものを、1つだけ取り出す
+  const m = rest.match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/);
+  if (m) return { kind: "on", addr: m[0] };
+  return { kind: "bad" };
+}
+
+/**
+ * メールを1通送る。うまくいけば空文字、だめなら理由を返す。
+ *
+ * ★1日に送れる数には上限があります（ふつうのアカウントで100通）。
+ *   使い切ると、そのあとが黙って届かなくなるので、残りを先に見ておく。
+ */
+function vnMailSend_(addr, subject, body) {
+  if (!addr) return "メールの宛先が入っていません";
+  try {
+    if (typeof MailApp === "undefined") return "メールのしくみが使えません";
+    let left = 1;
+    try { left = MailApp.getRemainingDailyQuota(); } catch (e) {}
+    if (left <= 0) return "今日のメールの送れる数（100通）を使い切りました";
+    MailApp.sendEmail({ to: addr, subject: subject, body: body, name: "タクシー記録のお知らせ" });
+    return "";
+  } catch (e) { return "メールを送れませんでした（" + (e && e.message ? e.message : e) + "）"; }
+}
+
+/**
+ * 「メール通知」の合図を受ける。扱ったら true。
+ *
+ * ★返事は、必ず打った本人の個人LINEへ。
+ *   グループにそのまま返すと、メールアドレスがみんなに見えてしまう。
+ */
+function vnHandleMailCmd_(ev) {
+  const w = vnMailWord_((ev && ev.message && ev.message.text) || "");
+  if (!w) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const reply = (ev && ev.replyToken) || "";
+  const inGroup = !!(ev && ev.source && (ev.source.groupId || ev.source.roomId));
+  const tell = function (t) {
+    if (uid && typeof lrPush_ === "function") {
+      try { lrPush_(uid, [{ type: "text", text: t }]); return; }
+      catch (e) {}
+    }
+    if (typeof lineReply_ === "function") lineReply_(reply, t);
+  };
+
+  if (w.kind === "status") {
+    const now = vnMailGet_(uid);
+    tell(now
+      ? "📧 メール通知：入っています\n" +
+        "　　" + now + "\n" +
+        "止めたいときは「メール通知 解除」と送ってください。"
+      : "📧 メール通知：まだ入っていません\n" +
+        "「メール通知 じぶんのアドレス」と送ると、\n" +
+        "リマインダーがメールにも届くようになります。\n" +
+        "（例）メール通知 taro@gmail.com\n" +
+        "※ LINEが開けないときでも、Gmailの通知で気づけます。");
+    return true;
+  }
+  if (w.kind === "off") {
+    vnMailSet_(uid, "");
+    tell("📧 メール通知を止めました。\n" +
+         "また入れたいときは「メール通知 じぶんのアドレス」と送ってください。");
+    return true;
+  }
+  if (w.kind === "bad") {
+    tell("📧 メールアドレスが読み取れませんでした。\n" +
+         "「メール通知 taro@gmail.com」のように、\n" +
+         "半角のアドレスをそのまま書いて送ってください。");
+    return true;
+  }
+  if (!uid) {
+    if (typeof lineReply_ === "function") lineReply_(reply, "📧 どなたか分からず、入れられませんでした");
+    return true;
+  }
+  vnMailSet_(uid, w.addr);
+  const err = vnMailSend_(w.addr, "【テスト】メール通知を入れました",
+      "この公式LINEから、イベントのリマインダーをこのアドレスへお送りします。\n\n" +
+      "・届く時刻は、催しの終了予定の少し前です。\n" +
+      "・止めたいときは、LINEで「メール通知 解除」と送ってください。\n");
+  tell(err
+    ? "📧 入れましたが、テストのメールを送れませんでした。\n" + err
+    : "📧 メール通知を入れました。\n" +
+      "　　" + w.addr + "\n" +
+      "テストのメールを1通お送りしました。届いているか見てください。\n" +
+      "※ 迷惑メールに入ることがあります。無ければ そちらもご確認ください。\n" +
+      "止めたいときは「メール通知 解除」と送ってください。" +
+      (inGroup ? "\n\n※ グループに打つと、アドレスがみんなに見えます。\n" +
+                 "　　次からは、この公式LINEに直接送ってください。" : ""));
   return true;
+}
+
+/**
+ * 予約の返事に添える、メールの案内文。
+ *
+ * ★入れている人には「メールにも届く」と伝えるだけ。
+ *   入れていない人にだけ、入れ方をひと言そえる。
+ *   もう入れている人に毎回すすめるのは、うるさいだけなので出さない。
+ */
+function vnMailHint_(uid) {
+  const ad = vnMailGet_(uid);
+  if (ad) return "📧 メールにも届きます（" + ad + "）";
+  return "📧 LINEが開けないときのために、メールでも受け取れます。\n" +
+         "　　「メール通知 じぶんのアドレス」と送るだけです。";
+}
+
+/**
+ * 「通知解除」ボタンの付いたお知らせを1通ぶん作る。
+ *
+ * ★ただの文だと、あとから止めたくなったときに止めるところが無い。
+ *   入れた本人が、その場で押して止められるようにしておく。
+ * ★ボタンに持たせる荷物は、みじかい合言葉（6文字）だけ。
+ *   会場名や催し名を入れると、決められた長さ（300文字）を超えてしまう。
+ */
+function vnRemCancelMsg_(text, key) {
+  return {
+    type: "flex",
+    altText: String(text).split("\n")[0],
+    contents: {
+      type: "bubble", size: "kilo",
+      body: {
+        type: "box", layout: "vertical", spacing: "sm", paddingAll: "12px",
+        contents: [
+          { type: "text", text: String(text), size: "sm", wrap: true, color: "#333333" },
+          { type: "button", style: "secondary", height: "sm", margin: "md",
+            action: { type: "postback", label: "🔕 通知解除",
+                      data: "vn=off&k=" + encodeURIComponent(key),
+                      displayText: "通知解除" } }
+        ]
+      }
+    }
+  };
 }
 
 /** 知らせる文 */
@@ -2602,25 +2884,112 @@ function vnDiscord_(text) {
   } catch (e) { return "Discordに送れませんでした（" + (e && e.message ? e.message : e) + "）"; }
 }
 
-/** 時間が来た予約を送る。5分おきの見張りから呼ばれる */
+/* ---- 時刻ぴったりに送るためのしくみ ---- */
+
+/**
+ * ★なぜ、こんな回りくどいことをするのか。
+ *
+ *   ふだんの見張り（venueDailyJob）は15分おきにしか動きません。
+ *   知らせるのが「終わりの60分前」だったころは、15分ずれても
+ *   45分前〜60分前に届けばよく、それで足りていました。
+ *
+ *   でも「5分前」になると、15分のずれは致命的です。
+ *   先回りして送れば20分前に鳴ってしまい、早すぎる。
+ *   過ぎてから送れば、終わったあとに鳴ってしまい、間に合わない。
+ *
+ *   そこで、知らせる時刻が近づいたときだけ、
+ *   「その時刻に1回だけ動く見張り」を別に立てます。
+ *   15分おきの見張りはそのまま（動く回数を増やすと、
+ *   Googleがくれる1日ぶんの持ち時間を使い切ってしまうため）。
+ */
+const VN_REM_FIRE = "venueRemindFire";   // 1回きりの見張りが呼ぶ名前
+const VN_REM_SLACK = 60 * 1000;          // 1分の余裕（ぴったりは無理なので）
+const VN_POLL_MS = 15 * 60000;           // ふだんの見張りの間かく
+
+/**
+ * 役目を終えた「1回きりの見張り」を片づける。
+ *
+ * ★片づけないと、たまり続けます。見張りは1つのスプシに20個までと
+ *   決められていて、あふれると新しい見張りが1つも作れなくなり、
+ *   毎日のイベント発信ごと止まってしまいます。
+ */
+function vnRemindSweep_() {
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === VN_REM_FIRE) {
+        try { ScriptApp.deleteTrigger(t); } catch (e) {}
+      }
+    });
+  } catch (e) {}
+}
+
+/** 〇ミリ秒あとに1回だけ動く見張りを立てる。立てられたら true */
+function vnRemindArm_(ms) {
+  try {
+    ScriptApp.newTrigger(VN_REM_FIRE).timeBased()
+      .after(Math.max(1000, Math.round(ms))).create();
+    return true;
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("vnRemindArm", e);
+    return false;
+  }
+}
+
+/**
+ * 1回きりの見張りが呼ぶところ。
+ * ★名前にうしろの「_」を付けていないのは、見張りから呼ぶ関数は
+ *   外から名前で呼ばれるため。「_」付きだと呼んでもらえない。
+ */
+function venueRemindFire() {
+  let lock = null;
+  try {
+    lock = LockService.getScriptLock();
+    // ふだんの見張りと重なると、同じ知らせを2回送ってしまう。
+    // 取れなければ送らず、1分あとにもう一度やり直す
+    if (!lock.tryLock(30000)) { vnRemindArm_(60000); return; }
+  } catch (e) { lock = null; }
+  try { vnRemindTick_(); }
+  catch (e) { if (typeof logErr_ === "function") logErr_("venueRemindFire", e); }
+  finally { if (lock) { try { lock.releaseLock(); } catch (e) {} } }
+}
+
+/** 時間が来た予約を送る。15分おきの見張りと、時刻ぴったりの見張りから呼ばれる */
 function vnRemindTick_() {
+  vnRemindSweep_();                      // 終わった1回きりの見張りを片づける
   const list = vnRemQueue_();
   if (!list.length) return;
   const now = Date.now();
-  const keep = [];
-  // ★見張りは15分おきにしか動かない。
-  //   「時刻を過ぎてから送る」形だと、いちばん遅いときで15分おくれる。
-  //   60分前のつもりが45分前になってしまい、向かうかどうかの判断が
-  //   間に合わなくなる。少し早めに出すほうが安全なので、
-  //   次の15分のうちに来るものは、いまのうちに送っておく
-  const AHEAD = 15 * 60000;
+
+  // ① まだ先の予約のうち、いちばん近いものを見つける
+  let next = 0;
   list.forEach(function (r) {
-    if (r.at > now + AHEAD) { keep.push(r); return; }
+    if (r.at > now + VN_REM_SLACK && (!next || r.at < next)) next = r.at;
+  });
+
+  // ② それが次の見張りより先に来るなら、その時刻ぴったりの見張りを立てる。
+  //    まだ15分より先なら、次のふだんの見張りでまた考えればよい
+  const armed = (next && next - now <= VN_POLL_MS + VN_REM_SLACK)
+    ? vnRemindArm_(next - now)
+    : true;
+
+  // ③ 送るぶんを決める。
+  //    ぴったりの見張りが立っていれば、先回りしない（＝ちょうどの時刻に届く）。
+  //    立てられなかったときだけ、次の見張りまでのぶんを先に送っておく。
+  //    早く鳴るのは困るが、鳴らないまま終わってしまうよりはましなため
+  const ahead = armed ? VN_REM_SLACK : VN_POLL_MS;
+  const keep = [];
+  list.forEach(function (r) {
+    if (r.at > now + ahead) { keep.push(r); return; }
     // 3時間以上すぎたものは、もう送らない（止まっていた間のぶんが一気に飛ばないように）
     if (now - r.at > 3 * 3600000) return;
     try {
       if (r.how === "dc") vnDiscord_(vnRemText_(r));
       else if (typeof lrPush_ === "function") lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]);
+      // ★メールを入れている人には、メールでも送る。
+      //   出先でLINEが開けないときや、Androidで通知を見落としたときの受け皿。
+      //   件名に会場名を入れておけば、開かなくても画面の上で分かる
+      const ad = vnMailGet_(r.to);
+      if (ad) vnMailSend_(ad, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r));
     } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemind", e); }
   });
   vnRemSave_(keep);
@@ -2651,14 +3020,42 @@ function vnHandlePostback_(ev) {
    *   友だち追加がまだだと送れないので、そのときだけ、
    *   押したところに「友だち追加してください」と返す。
    */
-  const tellMe = function (uid, t) {
+  const tellMe = function (uid, t, key) {
+    // key があるときは「🔕 通知解除」ボタンを添える。
+    // 文だけだと、あとから止めたくなったときに止めるところが無いため
+    const msg = key ? vnRemCancelMsg_(t, key) : { type: "text", text: t };
     if (uid && typeof lrPush_ === "function") {
-      try { lrPush_(uid, [{ type: "text", text: t }]); return; }
+      try { lrPush_(uid, [msg]); return; }
       catch (e) { /* 送れなかった。下でその場に返す */ }
     }
     say(t + "\n\n※ 個人LINEへ送れませんでした。\n" +
         "この公式アカウントを「友だち追加」すると、次からは個人LINEへ直接届きます。");
   };
+
+  /*
+   * 🔕 通知解除 … 入れたリマインダーを取り消す。
+   *
+   * ★このボタンには日付が付いていない（みじかい合言葉だけ）。
+   *   だから、日付を調べるより前に、ここで受ける。
+   * ★返事は、押した本人の個人LINEへ。グループには何も流さない
+   */
+  if (q.vn === "off") {
+    const uid = (ev.source && ev.source.userId) || "";
+    const key = decodeURIComponent(String(q.k || ""));
+    const gone = vnRemDrop_(key, uid);
+    if (!gone) {
+      tellMe(uid, "🔕 そのリマインダーは、もうありません。\n" +
+                  "（すでに解除されたか、もう送られたあとです）");
+      return true;
+    }
+    tellMe(uid,
+        "🔕 リマインダーを解除しました。\n" +
+        "🎪 " + gone.venue + (gone.title ? "　" + gone.title : "") + "\n" +
+        "このぶんの通知は届きません。\n" +
+        "また入れたいときは、イベントの絵から\n" +
+        "「📱個人LINEへ通知」を押してください。");
+    return true;
+  }
 
   const ymd = String(q.d || "");
   if (!/^\d{8}$/.test(ymd)) { say("わけがわからない…　どの日のことでしょう"); return true; }
@@ -2710,11 +3107,22 @@ function vnHandlePostback_(ev) {
 
   const to = (q.vn === "dc") ? "discord" : ((ev.source && ev.source.userId) || "");
   if (q.vn === "me" && !to) { say("うわあああ!!!! 送り先が分からない!!!!"); return true; }
-  const added = vnRemAdd_(at, q.vn, to, item);
+  const reg = vnRemAdd_(at, q.vn, to, item);
   const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
   const mins = Math.max(1, Math.round((at - Date.now()) / 60000));
   const me = (ev.source && ev.source.userId) || "";
-  if (!added) { tellMe(me, "🔔 そのリマインダーは、もう入っています"); return true; }
+  if (!reg.added) {
+    // すでに入っている。止めたくなったときのために、解除ボタンは添える
+    tellMe(me, "🔔 そのリマインダーは、もう入っています。\n" +
+               "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
+               "📩 " + hhmm + "ごろに届きます。", reg.key);
+    return true;
+  }
+
+  // ★時刻ぴったりに届くよう、ここで見張りをそろえておく。
+  //   「あとで一度どこかを押してください」とお願いすると、忘れたときに
+  //   黙って届かなくなるため、押されたその場で立てる
+  try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindArm", e); }
 
   // ★返事は1回だけ。これ以上は送らない（うまくいっているのに何度も鳴らさない）
   if (q.vn === "dc") {
@@ -2745,7 +3153,10 @@ function vnHandlePostback_(ev) {
       "📩 " + hhmm + "ごろ（" + lead + "分前）に、\n" +
       "　　この公式アカウントから あなたの個人LINEへ\n" +
       "　　メッセージが届きます。\n" +
-      "※ アプリは開きません。届く時刻は15分ほど前後します");
+      "※ アプリは開きません。届く時刻は1〜2分ほど前後します。\n" +
+      "※ やめたいときは、下の「🔕 通知解除」を押してください。\n" +
+      vnMailHint_(me),
+      reg.key);
   return true;
 }
 

@@ -1585,7 +1585,7 @@ console.log('\n■ 合言葉「katastrophe」');
     '★ほかの人が打っても、そこで止める');
   t(upTrig().length === 0, '  ★取り込みは絶対に始めない');
   t(ctx.pu.length === 1, '  代わりに、1回だけ送る');
-  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれて　いません') !== -1,
+  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1,
     '  あの黒い球の声で断る');
 
   // 個人LINEから
@@ -1596,8 +1596,9 @@ console.log('\n■ 合言葉「katastrophe」');
   t(upTrig()[0]._kind === 'after', '  受け口の中では取り込まない');
   t(ctx.pu.length === 1, '★送るのは1回だけ');
   const kt = ctx.pu[0].msgs[0].text;
-  t(kt.indexOf('きみたちの　ふるいスプシは') !== -1, '  あの黒い球の声で返す');
-  t(kt.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
+  t(kt.indexOf('まえの　バージョンは') !== -1, '  あの黒い球の声で返す');
+  t(kt.indexOf('いまの　スプシを') !== -1, '  「いまのスプシを どうアップデートしようと」');
+  t(kt.indexOf('という　りくつなわけだす') !== -1, '  「わけだす」で終わる');
   t(kt.indexOf('●') !== -1, '  黒い球も出る');
   t(kt.indexOf('取り込みを開始しました') === -1, '★「取り込みを開始しました」は、もう書かない');
   t(kt.indexOf('死') === -1 && kt.indexOf('命') === -1, '  ★「死」「命」という言葉は使わない');
@@ -1626,8 +1627,8 @@ console.log('\n■ 合言葉「katastrophe」');
   F('updRunFromLine_')();
   t(ctx.pu.length === 1, '★しくじったときだけ、もう1通お知らせする');
   const bad = ctx.pu[0].msgs[0].text;
-  t(bad.indexOf('きみの　スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
-  t(bad.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
+  t(bad.indexOf('スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
+  t(bad.indexOf('という　りくつなわけだす') !== -1, '  「わけだす」で終わる');
   gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file', sha: 'z' }],
          raw: { 'gas/001-Code.gs': 'function appsscript(){}' } };
 
@@ -1646,8 +1647,8 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     '置き場所が無くても落ちない');
   t(upTrig().length === 0, '  ★動かさない');
-  t(ctx.rep[0].indexOf('てんそうは　ちゅうしされました') !== -1, '  理由を返す');
-  t(ctx.rep[0].indexOf('きみの　スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
+  t(ctx.rep[0].indexOf('てんそうは　やめました') !== -1, '  理由を返す');
+  t(ctx.rep[0].indexOf('スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
   props['GH_TOKEN'] = keepTok;
 }
 
@@ -1670,10 +1671,10 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   t(ctx.pu.length === 1, '★送るのは1回だけ');
   t(ctx.pu[0].to === 'Cgroup', '  打った場所（グループ）へ送る');
   const dn = ctx.pu[0].msgs[0].text;
-  t(dn.indexOf('きみは　えらばれて　いません') !== -1, '  あの黒い球の声で断る');
-  t(dn.indexOf('スプシは　なにも　かわりません') !== -1,
+  t(dn.indexOf('きみは　えらばれません') !== -1, '  あの黒い球の声で断る');
+  t(dn.indexOf('スプシは　かわりません') !== -1,
     '  ★「なにも変わっていない」と、はっきり書く');
-  t(dn.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
+  t(dn.indexOf('という　りくつなわけだす') !== -1, '  「わけだす」で終わる');
   t(dn.indexOf('死') === -1 && dn.indexOf('命') === -1, '  ★「死」「命」は使わない');
   t(/https:\/\/(www\.youtube\.com|www\.tiktok\.com|x\.com)\//.test(dn), '  ★おもしろ動画のリンクも、同じ1通に入れる');
   t(dn.indexOf('▚') === -1, '★かすれた四角の区切り線は、もう使わない');
@@ -1783,10 +1784,10 @@ console.log('\n■ 毎回ちがう星人が出る（特徴・好きなもの・�
   t(b.indexOf('下ちい') !== -1, '  わざと まちがえた字も、そのまま');
   t(b.indexOf('乗車させて来て') === -1, '★長い言い方はやめた（折り返すおそれがあるため）');
   t(b.indexOf('星人') !== -1, '  星人の名前が出る');
-  t(b.indexOf('　　▼特徴') !== -1, '★「▼特徴」のらんが出る');
-  t(b.indexOf('　　▼好きなもの') !== -1, '  「▼好きなもの」も');
-  t(b.indexOf('　　▼きらいなもの') !== -1, '  「▼きらいなもの」も');
-  t(b.indexOf('　　▼口ぐせ') !== -1, '  「▼口ぐせ」も');
+  t(b.indexOf('▼特徴') !== -1, '★「▼特徴」のらんが出る');
+  t(b.indexOf('▼好きなもの') !== -1, '  「▼好きなもの」も');
+  t(b.indexOf('▼きらいなもの') !== -1, '  「▼きらいなもの」も');
+  t(b.indexOf('▼口ぐせ') !== -1, '  「▼口ぐせ」も');
   t((b.match(/▼/g) || []).length === 4, '★▼は、この4つの見出しだけに付ける');
   t(/〖とくてん　[０-９]+てん〗/.test(b), '★とくてんは〖〗で囲む');
   t(b.split('\n').some(x => x.indexOf('〖') === 0), '★とくてんの行は、先頭に空白を入れない');
@@ -1902,11 +1903,22 @@ console.log('\n■ 動画は「いま話題のもの」から');
   for (let i = 0; i < 60; i++) { const x = P(); froms[x.from] = 1; urls[x.url] = 1; }
   t(Object.keys(urls).length > 5, '毎回ちがうところから出る');
   const all = Object.keys(froms).join(' ');
-  t(/急上昇|話題|トレンド|おすすめ/.test(all), '★「急上昇」「話題」から探す');
-  t(all.indexOf('YouTube') !== -1, '  YouTube も');
-  t(all.indexOf('TikTok') !== -1, '  TikTok も');
-  t(all.indexOf('X') !== -1, '  X も');
+  const us = Object.keys(urls).join(' ');
+  t(/急上昇|話題|バズ|神|おすすめ/.test(all), '★「急上昇」「話題」から探す');
+  t(us.indexOf('youtube.com') !== -1, '  YouTube も');
+  t(us.indexOf('tiktok.com') !== -1, '  TikTok も');
+  t(us.indexOf('x.com') !== -1, '  X も');
   t(Object.keys(urls).every(u => /^https:\/\//.test(u)), '  どれも ちゃんとしたリンク');
+
+  // ★見出しは「▼タイトル」の形。「（X トレンド）」のような書き方はしない
+  const TI = F('updFunTitle_');
+  t(TI({ from: 'ねこがしゃべった' }) === 'ねこがしゃべった', '見出しは、そのまま出す');
+  t(TI({ from: '' }) !== '', '★見出しが空でも、「▼」だけにはしない');
+  t(TI(null) !== '', '  null でも落ちない');
+  const longT = TI({ from: 'あ'.repeat(40) });
+  t(F('updZenkaku_')(longT) <= F('updBubbleW_')() - 1, '★長すぎる見出しは、切って「…」を付ける');
+  t(longT.slice(-1) === '…', '  切ったことが分かるようにする');
+  t(TI({ from: 'ね\nこ' }).indexOf('\n') === -1, '  改行が混ざっても、1行にする');
 }
 
 
@@ -1974,6 +1986,88 @@ console.log('\n■ ふきだしで囲む');
       });
   t(true, '★どの行も、ふきだしの幅に収まる');
   t(card.indexOf('▚') === -1, 'かすれた四角は使わない');
+
+  // ★行の頭に空白を入れない（下げて書くと、そのぶん長くなって折り返す）
+  inside.forEach(function (x) {
+    if (/^[　\s]/.test(x)) { ng++; console.log('  NG  行の頭に空白がある：' + JSON.stringify(x)); }
+  });
+  t(true, '★ふきだしの中は、どの行も 行頭の空白なし');
+  t(inside.some(x => x.indexOf('▼特徴') === 0), '  「▼特徴」も左にそろえる');
+  t(inside.some(x => x.indexOf('【') === 0), '  名前も左にそろえる');
+}
+
+console.log('\n■ せりふは、LINEで折り返さない長さにする');
+{
+  const W = F('updZenkaku_'), LIM = 13;
+  // ★13文字ぶんを超えると、機種によっては まん中で折り返し、
+  //   言葉が切れて せりふの形がくずれる（実際にくずれた）
+  const check = function (text, name) {
+    text.split('\n').forEach(function (x) {
+      // ふきだしの中と、リンクの行は別（ふきだしは自前で折り返している）
+      if (/^[╭╰]/.test(x) || /^https?:\/\//.test(x) || x.indexOf('⌄') !== -1) return;
+      if (/^https?:\/\//.test(x)) return;
+      if (W(x) > LIM + 5) { ng++; console.log('  NG  ' + name + ' の行が長い：' + x + '（' + W(x) + '）'); }
+    });
+  };
+  const a = F('updAlien_')();
+  const st = F('updKataStart_')(a);
+  const dn = F('updKataDenied_')(a, { url: 'https://x.com/', from: 'ねこ' });
+  const fl = F('updKataFail_')('だめでした');
+  t(st.indexOf('という　りくつなわけだす。') !== -1, '★しめの1行は、まん中の空白をひとつ詰めた形');
+  t(st.indexOf('という　りくつな　わけだす。') === -1, '  前の長い形は、もう使わない');
+  t(dn.indexOf('きみは　えらばれません。') !== -1, '断りも、みじかい言い方に');
+  t(dn.indexOf('スプシは　かわりません。') !== -1, '  「なにも」を外して詰めた');
+  t(dn.indexOf('そのかわり　見て下ちい。') !== -1, '★「みなさい」ではなく「見て下ちい」');
+  t(dn.indexOf('みなさい') === -1, '  前の言い方は、もう使わない');
+  t(fl.indexOf('てんそうは　やめました。') !== -1, 'しくじったときも、みじかく');
+  t(fl.indexOf('やりなおして　下ちい。') !== -1, '  やり直しの案内も「下ちい」でそろえる');
+  [[st, 'まーくさんの返事'], [dn, '断りの返事'], [fl, 'しくじりの返事']]
+    .forEach(function (pair) { check(pair[0], pair[1]); });
+  t(true, '★どのせりふも、折り返さない長さに収まる');
+
+  // ★動画の見出しは「▼タイトル」。「（X トレンド）」のような書き方はしない
+  const d2 = F('updKataDenied_')(a, { url: 'https://x.com/explore', from: 'ねこがしゃべった' });
+  t(d2.indexOf('▼ねこがしゃべった') !== -1, '★動画の見出しは「▼タイトル」で出す');
+  t(d2.indexOf('（X トレンド）') === -1, '  「（どこの入口か）」の書き方は、もう使わない');
+  t(/▼[^\n]+\nhttps:\/\//.test(d2), '  見出しのすぐ下に、リンクが来る');
+  const d3 = F('updKataDenied_')(a, { url: 'https://x.com/explore' });
+  t(/▼[^\n]/.test(d3), '  見出しが無いときでも、「▼」だけにはしない');
+}
+
+console.log('\n■ 合言葉は、打ち方がまざっていても通る');
+{
+  const K = F('updKataWord_');
+  [['katastrophe', 'ローマ字'],
+   ['ＫＡＴＡＳＴＲＯＰＨＥ', '全角の英字'],
+   ['Katastrophe', '大文字まじり'],
+   ['カタストロフィ', 'カタカナ'],
+   ['かたすとろふぃ', 'ひらがな'],
+   ['ｶﾀｽﾄﾛﾌｨ', '半角カナ'],
+   ['カタストロフィ！', 'うしろに「！」'],
+   ['「カタストロフィ」', 'かぎかっこ付き'],
+   ['ジェバンニ', 'ジェバンニ'],
+   ['じぇばんに', 'ひらがなのジェバンニ'],
+   ['ｼﾞｪﾊﾞﾝﾆ', '半角カナのジェバンニ'],
+   ['jebanni', 'ローマ字のジェバンニ'],
+   ['kataストロフィ', '★ローマ字とカタカナのまぜこぜ'],
+   ['カタstrophe', '★カタカナとローマ字のまぜこぜ'],
+   ['かたストロフィ', '★ひらがなとカタカナのまぜこぜ'],
+   ['ｶﾀすとろふぃ', '★半角カナとひらがなのまぜこぜ'],
+   ['ジェbanni', '★ジェバンニのまぜこぜ'],
+   ['𝕜𝕒𝕥𝕒𝕤𝕥𝕣𝕠𝕡𝕙𝕖', '飾り文字'],
+   ['ⓀⒶⓉⒶⓈⓉⓇⓄⓅⒽⒺ', '丸囲みの飾り文字']
+  ].forEach(function (pair) { t(K(pair[0]) === true, pair[1] + '「' + pair[0] + '」'); });
+
+  // ★ほかの言葉が混ざったら、絶対に反応しない
+  [['カタストロフィの件', 'ほかの言葉が続く'],
+   ['きょうは katastrophe です', '文の中にある'],
+   ['カタ', 'とちゅうまで'],
+   ['カタストロフィカタストロフィ', '2つ続けて'],
+   ['', '空'],
+   ['　', '空白だけ'],
+   ['ジェバンニが一晩でやってくれました', 'ジェバンニ＋ほかの言葉']
+  ].forEach(function (pair) { t(K(pair[0]) === false, '  反応しない：' + pair[1]); });
+  t(K(null) === false, '  null でも落ちない');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
