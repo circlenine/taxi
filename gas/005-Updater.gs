@@ -11,7 +11,9 @@
  *       押し忘れれば、直したものは入りません。
  *     ★15分おきの見張りのついでに、GitHubのいちばん新しい書き込みを
  *       1回だけ見にいきます。変わっていれば、そのまま取り込みます。
- *       終わったら、まーくさんの個人LINEに1通だけお知らせします
+ *       うまくいったときは、LINEには何も送りません
+ *       （こちらで気づいて こちらで取り込むので、知らせる必要がないため）。
+ *       おかしくなったときだけ、まーくさんにお知らせします
  *     ★安全のために
  *       ・取り込む前に、いまのコードを必ず保存します（[4] で戻せます）
  *       ・同じ書き込みで二度は動きません（見た印を覚えます）
@@ -4375,17 +4377,29 @@ function updAutoPull_() {
   // すでに最新だったときは、黙っている（毎回鳴らさない）
   if (String(out).indexOf("すでに最新です") !== -1) return false;
 
-  // まーくさんにだけ、1通お知らせする
+  /*
+   * ★うまくいったときは、LINEに何も送りません。
+   *
+   *   こちらで気づいて、こちらで取り込むところまでやるので、
+   *   わざわざ知らせる必要がありません。
+   *   直したことは、話しているところでお伝えします。
+   *   何もしていないのに毎回鳴るほうが、うるさいだけです。
+   *
+   * ★おかしくなったときだけ、お知らせします。
+   *   黙って失敗していると、直したものが入っていないことに
+   *   気づけないためです。
+   */
+  const bad = /^❌/.test(String(out)) ||
+              String(out).indexOf("新しいコードがありません") !== -1;
+  if (!bad) return true;
+
   try {
     let me = "";
     try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
     // 003-LineReport が古いときのために、こちらでも探す（合言葉のときと同じ）
     if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
     if (me && typeof lrPush_ === "function") {
-      const bad = /^❌/.test(String(out)) ||
-                  String(out).indexOf("新しいコードがありません") !== -1;
-      lrPush_(me, [{ type: "text",
-        text: bad ? updKataFail_(out) : updKataDone_(out) }]);
+      lrPush_(me, [{ type: "text", text: updKataFail_(out) }]);
     }
   } catch (e) {}
   return true;

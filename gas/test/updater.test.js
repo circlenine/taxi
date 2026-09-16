@@ -2012,9 +2012,28 @@ console.log('\n■ 🔁 新しいコードに、自分で気づいて取り込�
   t(F('updAutoPull_')() === true, '★新しくなっていたら、自分で取り込む');
   t(props['GH_HEAD_SEEN'] === 'AAA111', '  見た印を覚える');
   t(lastPut() !== undefined, '★ちゃんと書き込まれる');
-  t(ctx.pu.length === 1, '★終わったら、まーくさんに1通だけ知らせる');
-  has(ctx.pu[0].msgs[0].text, 'とりこみ　かんりょう', '  終わったと分かる');
+  /*
+   * ★うまくいったときは、LINEに何も送らない。
+   *   こちらで気づいて こちらで取り込むので、知らせる必要がない。
+   *   直したことは、話しているところで伝える
+   */
+  t(ctx.pu.length === 0, '★うまくいったら、LINEには何も送らない');
+
+  // しくじったときだけ、知らせる
+  props['GH_HEAD_SEEN'] = 'ふるい';
+  gh = { dir: [], head: { sha: 'CCC333', commit: { message: 'x', author: { date: '2026-09-17T08:00:00Z' } } } };
+  ctx.pu.length = 0;
+  F('updAutoPull_')();
+  t(ctx.pu.length === 1, '★しくじったときだけ、お知らせする');
   t(ctx.pu[0].to === 'Umark', '  ★まーくさんにだけ（グループには流さない）');
+  has(ctx.pu[0].msgs[0].text, 'しっぱいしました', '  しくじったと分かる');
+
+  // もとに戻して、続きを見る
+  props['GH_HEAD_SEEN'] = 'AAA111';
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' }],
+         raw: { 'gas/001-Code.gs': 'あたらしい中身' },
+         head: { sha: 'AAA111', commit: { message: 'なおした', author: { date: '2026-09-17T07:00:00Z' } } } };
+  ctx.pu.length = 0;
 
   /*
    * ★同じ書き込みでは、二度と動かないこと。
