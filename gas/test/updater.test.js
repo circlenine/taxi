@@ -340,6 +340,8 @@ vm.runInContext(`
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8'), ctx,
   { filename: '005-Updater.gs' });
 const F = n => vm.runInContext(n, ctx);
+// 「取り込みの見張り」だけを数える（星人の絵の見張りは別物なので、混ぜない）
+const upTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updRunFromLine_');
 
 let ng = 0;
 function t(c, l) { console.log((c ? '  ok   ' : '  NG   ') + l); if (!c) ng++; }
@@ -1502,7 +1504,7 @@ console.log('\n■ LINEから「コード更新」（スマホだけで貼り替
   triggers.length = 0;
   t(yes({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }) === false,
     '★確かめていない「はい」では、取り込みを始めない');
-  t(triggers.length === 0, '  見張りも作らない');
+  t(upTrig().length === 0, '  見張りも作らない');
 
   // 1段目：聞き返すだけ
   replies.length = 0; triggers.length = 0;
@@ -1527,7 +1529,7 @@ console.log('\n■ LINEから「コード更新」（スマホだけで貼り替
   triggers.length = 0;
   t(yes({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }) === false,
     '★二度目の「はい」では始まらない');
-  t(triggers.length === 0, '  見張りも作らない');
+  t(upTrig().length === 0, '  見張りも作らない');
 
   // 裏の見張りは、終わったら自分を片づけて、結果を送る
   triggers.push({ getHandlerFunction: () => 'updRunFromLine_', _kind: 'after' });
@@ -1565,7 +1567,7 @@ console.log('\n■ 合言葉「katastrophe」');
   ctx.rep.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
-  t(triggers.length === 0, '  ★取り込みは絶対に始めない');
+  t(upTrig().length === 0, '  ★取り込みは絶対に始めない');
   t(ctx.rep.length === 1 && ctx.rep[0].indexOf('きみは　えらばれて　いません') !== -1,
     '  代わりに、あの黒い球の声で断る');
 
@@ -1573,10 +1575,9 @@ console.log('\n■ 合言葉「katastrophe」');
   ctx.rep.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     'まーくさんが打つと動く');
-  t(triggers.length === 1 && triggers[0].getHandlerFunction() === 'updRunFromLine_',
-    '  裏で取り込む見張りを作る');
-  t(triggers[0]._kind === 'after', '  受け口の中では取り込まない');
-  t(ctx.rep[0].indexOf('きみたちの　ふるいコードは') !== -1, '  あの黒い球の声で返す');
+  t(upTrig().length === 1, '  裏で取り込む見張りを作る');
+  t(upTrig()[0]._kind === 'after', '  受け口の中では取り込まない');
+  t(ctx.rep[0].indexOf('きみたちの　ふるいスプシは') !== -1, '  あの黒い球の声で返す');
   t(ctx.rep[0].indexOf('という　りくつな　わけだ') !== -1, '  あの言い回しも入る');
   t(ctx.rep[0].indexOf('●') !== -1, '  黒い球も出る');
   t(ctx.rep[0].indexOf('取り込みを開始しました') !== -1, '  ★日本語で中身も必ず添える');
@@ -1589,7 +1590,7 @@ console.log('\n■ 合言葉「katastrophe」');
   ctx.rep.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     '取り込み中にもう一度打っても受ける');
-  t(triggers.length === 0, '  ★二重には動かさない');
+  t(upTrig().length === 0, '  ★二重には動かさない');
   t(ctx.rep[0].indexOf('IN BEARBEITUNG') !== -1, '  すでに動いていると伝える');
 
   // 終わったら、ロボットの声で結果を返す
@@ -1607,7 +1608,7 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: 'ｋａｔａｓｔｒｏｐｈｅ' },
            source: { userId: 'Umark', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     '★グループLINEからでも効く');
-  t(triggers.length === 1, '  取り込みを始める');
+  t(upTrig().length === 1, '  取り込みを始める');
   t(props['UPD_LINE_TO'] === 'Cgroup', '  結果は、打った場所（グループ）へ返す');
 
   // 置き場所が入っていなければ、動かさずに理由を返す
@@ -1616,9 +1617,9 @@ console.log('\n■ 合言葉「katastrophe」');
   const keepTok = props['GH_TOKEN']; delete props['GH_TOKEN'];
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     '置き場所が無くても落ちない');
-  t(triggers.length === 0, '  ★動かさない');
+  t(upTrig().length === 0, '  ★動かさない');
   t(ctx.rep[0].indexOf('てんそうは　ちゅうしされました') !== -1, '  理由を返す');
-  t(ctx.rep[0].indexOf('きみの　コードは　そのままです') !== -1, '  何も壊れていないことも伝える');
+  t(ctx.rep[0].indexOf('きみの　スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
   props['GH_TOKEN'] = keepTok;
 }
 
@@ -1635,12 +1636,12 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   ctx.rep.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     'ほかの人が打っても受ける');
-  t(triggers.length === 0, '★コードの取り込みは、絶対に動かさない');
+  t(upTrig().length === 0, '★コードの取り込みは、絶対に動かさない');
   t(props['UPD_LINE_TO'] === undefined || props['UPD_LINE_TO'] !== 'Uother',
     '  結果の送り先にもならない');
   t(ctx.rep.length === 1, '  返事は1回');
   t(ctx.rep[0].indexOf('きみは　えらばれて　いません') !== -1, '  あの黒い球の声で断る');
-  t(ctx.rep[0].indexOf('システムは　なにも　かわりません') !== -1,
+  t(ctx.rep[0].indexOf('スプシは　なにも　かわりません') !== -1,
     '  ★「なにも変わっていない」と、はっきり書く');
   t(ctx.rep[0].indexOf('死') === -1 && ctx.rep[0].indexOf('命') === -1,
     '  ★「死」「命」は使わない');
@@ -1657,7 +1658,7 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uthird', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     '別の人が打てば受ける');
   t(ctx.rep.length === 1, '  その人にはちゃんと送る');
-  t(triggers.length === 0, '  それでも取り込みは動かさない');
+  t(upTrig().length === 0, '  それでも取り込みは動かさない');
 
   // 動画のリンクは、何度呼んでも必ず開ける形
   const L = F('updFunLink_');
@@ -1777,12 +1778,61 @@ console.log('\n■ 毎回ちがう星人が出る（特徴・好きなもの・�
   t(AA(['1','2','3','4','5']).length === 3, '  多すぎるときは3つまで');
 
   // まーくさんの分にも、ほかの人の分にも出る
-  ['updKataStart_', 'updKataDenied_'].forEach(function (fn) {
-    const out = F(fn)('てすと');
+  [['updKataStart_', 'circlenine/test'], ['updKataDenied_', undefined]].forEach(function (pair) {
+    const fn = pair[0];
+    const out = F(fn)(pair[1]);
     t(out.indexOf('星人') !== -1, '★' + fn + ' にも星人が出る');
     t(out.indexOf('特徴') !== -1, '  ' + fn + ' にも特徴が出る');
     t(out.length < 4000, '  それでも1通に収まる（' + out.length + '文字）');
   });
+}
+
+
+console.log('\n■ 星人のすがた（絵）');
+{
+  // ★絵は5〜15秒かかる。受け口の中で待つと、LINEが合図を送り直してくる。
+  //   だから「あとから別便」で送る
+  const picTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updAlienPicJob_');
+  triggers.length = 0;
+  delete props['UPD_PIC'];
+  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
+  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok';
+
+  const kata = F('updHandleKata_');
+  ctx.rep.length = 0;
+  kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  t(picTrig().length === 1, '★絵は、あとから別便で作る（受け口の中では待たない）');
+  t(picTrig()[0]._kind === 'after', '  1回だけ動く見張り');
+  const job = JSON.parse(props['UPD_PIC']);
+  t(job.to === 'Umark', '  送り先を覚えている');
+  t(/星人$/.test(job.a.name), '  どの星人の絵かも覚えている');
+  t(ctx.rep[0].indexOf(job.a.name) !== -1, '★文に出た星人と、絵にする星人は同じ');
+
+  // ほかの人のときも、絵は出る
+  triggers.length = 0; delete props['UPD_PIC']; ctx.rep.length = 0;
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Ufour'); } catch (e) {}
+  kata({ message: { text: 'katastrophe' }, source: { userId: 'Ufour', groupId: 'Cgroup' }, replyToken: 'r' });
+  t(picTrig().length === 1, '★ほかの人のときも、絵は出る');
+  t(JSON.parse(props['UPD_PIC']).to === 'Cgroup', '  打った場所（グループ）へ送る');
+  t(upTrig().length === 0, '  それでも取り込みは動かさない');
+
+  // 絵が作れなかったら、黙って何も送らない（文はもう届いている）
+  ctx.pu.length = 0;
+  triggers.push({ getHandlerFunction: () => 'updAlienPicJob_', _kind: 'after' });
+  reply = { '*': { code: 500, body: '' } };          // 絵が作れない状況
+  F('updAlienPicJob_')();
+  t(ctx.pu.length === 0, '★絵が作れなければ、黙って何も送らない');
+  t(picTrig().length === 0, '  それでも自分の見張りは片づける');
+  t(props['UPD_PIC'] === undefined, '  覚え書きも消す');
+
+  // 「いいえ」にすれば、絵は出ない
+  props['CFG_星人の絵を出す'] = 'いいえ';
+  vm.runInContext('function updCfg_(k){ return k === "星人の絵を出す" ? "いいえ" : ""; }', ctx);
+  triggers.length = 0; delete props['UPD_PIC'];
+  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
+  kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  t(picTrig().length === 0, '★設定で「いいえ」にすれば、絵は作らない');
+  vm.runInContext('function updCfg_(k){ return ""; }', ctx);
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

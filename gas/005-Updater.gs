@@ -2,7 +2,26 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U030ver  （2026/09/16）  ★★★
+ *  ★★★  U031ver  （2026/09/16）  ★★★
+ *
+ *  [U031ver]
+ *   ・星人の「すがた（絵）」を出すようにした（updAlienPic_）
+ *     ★これまでは文字だけで、絵は出していませんでした。
+ *     作るのに5〜15秒かかるので、受け口の中では待たず「あとから別便」で送る。
+ *     文はすぐ届き、絵はそのあと追いかけて届く。
+ *     絵が作れなかったときは、黙って文だけにする
+ *     （絵が出ないせいで、肝心の取り込みが止まってはいけない）。
+ *     設定タブ「星人の絵を出す」を「いいえ」にすれば止まる
+ *   ・特徴を、タクシーの困ったお客さんネタにした
+ *     ★からかうのは「ふるまい」だけ。からだのことや、生まれ・国・
+ *       信じているものは、AIにも絶対に使わせない
+ *   ・「この方に　あいさつして来て下ちい」→「この方を　乗車させて来て下ちい」
+ *   ・「コード」という言い方をやめた（ほかの人に伝わらないため）
+ *     「ふるいスプシ」「あたらしいスプシを　どう　アップデートしようと」に
+ *   ・長くなりすぎていたので、けずった
+ *     ・頭の「Ｋ Ａ Ｔ Ａ …」をやめて、そこを読めない文字の羅列にした
+ *     ・まん中の羅列と、TRANSFER／ZIEL の行をやめた
+ *     ・区切り線を短くして（▚8つ）、数も減らした
  *
  *  [U030ver]
  *   ・毎回ちがう「星人」が出るようにした。まーくさんでも、ほかの人でも出る
@@ -625,43 +644,52 @@ function updNoise_(rows, width, deep) {
  *     あくまで「出現した」「観測した」という言い方にとどめる。
  */
 const UPD_ALIEN_PROMPT =
-  "GANTZ風の、へんてこな「星人」を1体、考えてください。\n" +
+  "タクシーの「困ったお客さん」を、GANTZ風の星人にして1体、考えてください。\n" +
+  "笑いにするのが目的です。きつすぎない範囲で、思いきりふざけてください。\n" +
   "出力は JSON ひとつだけ。前置きも説明も書かないでください。\n" +
-  '{"name":"あばれんぼう星人","toku":["つよい","でかい"],' +
-  '"suki":["せまいとこ","おこりんぼう"],"kirai":["つよいやつ"],"kuse":"ぬん"}\n' +
-  "・name は「〇〇星人」。性格・日用品・動物・妖怪・食べ物など、身近なものから取る\n" +
-  "・toku は 特徴。ひらがなの短い言葉を2〜3個（例：つよい／でかい／ぬるぬる）\n" +
+  '{"name":"ワンメーター星人","toku":["さけくさい","ワンメーター"],' +
+  '"suki":["ちかいとこ","じぶんのはなし"],"kirai":["とおまわり"],"kuse":"ここでいい"}\n' +
+  "・name は「〇〇星人」。タクシーで困るお客さんの特徴から取る\n" +
+  "・toku は 特徴。ひらがな・カタカナの短い言葉を2〜3個\n" +
+  "　（例：さけくさい／ワンメーター／ずっとしゃべる／みちをしじしてくる）\n" +
   "・suki は 好きなもの。1〜2個\n" +
   "・kirai は きらいなもの。1〜2個\n" +
-  "・kuse は 口ぐせ。意味のない short な音がよい（例：ぬん／はっ／ぐへ）\n" +
+  "・kuse は 口ぐせ。運転手がうんざりする ひとこと（例：ここでいい／そこまげて）\n" +
   "・ぜんぶ ひらがな か カタカナ で、短く。むずかしい漢字は使わない\n" +
   "・血・死・殺といった言葉は使わないでください\n" +
-  "・実在の人物や団体の名前は使わないでください";
+  "・実在の人物や団体の名前は使わないでください\n" +
+  "・からだのことや、生まれ・国・信じているものを からかう言葉は使わないでください\n" +
+  "　（からかうのは「ふるまい」だけ。人そのものではありません）";
 
-/* 鍵も通信もいらない、こちらの組み合わせ表（いざというときの逃げ道） */
+/* 鍵も通信もいらない、こちらの組み合わせ表（いざというときの逃げ道）。
+   ★からかうのは「ふるまい」だけ。人そのものは からかわない。 */
 const UPD_ALIEN_BASE = [
-  "あばれんぼう", "おこりんぼう", "なまけもの", "ねぎ", "たまねぎ", "ぬらりひょん",
-  "こけし", "だるま", "かっぱ", "ろくろくび", "でんでん", "まねきねこ",
-  "かさじぞう", "ざしきわらし", "てるてる", "わさび", "たこやき", "しゃちほこ",
-  "おきあがりこぼし", "ひとりごと", "はやおき", "よふかし", "くいしんぼう"
+  "ワンメーター", "よっぱらい", "ながばなし", "ねおち", "みちしじ", "ねぎり",
+  "おおごえ", "つりせんいらん", "まどぜんかい", "りょうしゅうしょ", "しんごうせかし",
+  "くつぬぎ", "スマホだいおんりょう", "ここでいい", "いまむかえ", "さがしもの",
+  "はいてない", "うたいだし", "ゆびさし", "とおまわりぎわく"
 ];
 const UPD_ALIEN_TOKU = [
-  "つよい", "でかい", "はやい", "かたい", "ぬるぬる", "まるい", "ながい",
-  "うるさい", "しつこい", "ふとい", "ちいさい", "よくのびる", "しずか",
-  "よくはねる", "においがつよい", "つるつる", "ねばる", "おもい"
+  "さけくさい", "ワンメーター", "ずっとしゃべる", "すぐねる", "みちをしじしてくる",
+  "ねぎる", "こえがでかい", "りょうしゅうしょ５まい", "しんごうのたびにおこる",
+  "スマホがだいおんりょう", "くつをぬぐ", "まどをぜんかいにする",
+  "つりせんをうけとらない", "のりばをむしする", "よったままうたう",
+  "「はいてない」といいはる", "ナビをしんじない", "ちかみちをしってるらしい",
+  "ずっとためいき", "こうさてんでてをふる"
 ];
 const UPD_ALIEN_SUKI = [
-  "せまいとこ", "おこりんぼう", "ラーメン", "あついふろ", "ひるね", "かがみ",
-  "あまいもの", "でんきゅう", "だんボール", "あしおと", "しずかなとこ",
-  "おふとん", "まるいもの", "あかいもの", "たかいとこ", "ゆげ"
+  "ちかいとこ", "じぶんのはなし", "ちかみち", "ワンメーター", "むりょうのみず",
+  "まえのせき", "こんびにによること", "むかしばなし", "せいじのはなし",
+  "うんてんしゅのいけん", "エアコンさいだい", "まどぜんかい"
 ];
 const UPD_ALIEN_KIRAI = [
-  "つよいやつ", "おおきいおと", "みずたまり", "さむいひ", "はやいやつ",
-  "あかるいとこ", "ひとごみ", "すっぱいもの", "かぜ", "まちがいでんわ"
+  "とおまわり", "ちんもく", "ラジオ", "まっすぐなみち", "おつり", "ながいしんごう",
+  "メーター", "のりばのれつ", "せんせいのくち", "クレジットカード"
 ];
 const UPD_ALIEN_KUSE = [
-  "ぬん", "はっ", "ぐへ", "ほい", "むむ", "ぜっ", "んなぁ", "うへ",
-  "ぱお", "ずずっ", "どすこい", "ふごっ", "きゅい", "のん"
+  "ここでいい", "そこまげて", "はやくして", "ねてないよ", "メーターたおした？",
+  "おつりいらん", "はいてないから", "ちかみちで", "そこ、むかしは とおれた",
+  "まだつかへん？", "エアコンつよくして", "まどあけて", "しってるやろ？"
 ];
 
 /** AIが使えないときの星人 */
@@ -683,8 +711,8 @@ function updAlienFallback_() {
 
 /** 文字の並びを、かならず配列にそろえる（AIが1個だけ文字で返すことがある） */
 function updAlienArr_(v) {
-  if (Array.isArray(v)) return v.map(function (x) { return String(x).slice(0, 12); }).filter(String).slice(0, 3);
-  const t = String(v == null ? "" : v).slice(0, 12);
+  if (Array.isArray(v)) return v.map(function (x) { return String(x).slice(0, 14); }).filter(String).slice(0, 3);
+  const t = String(v == null ? "" : v).slice(0, 14);
   return t ? [t] : [];
 }
 
@@ -711,7 +739,7 @@ function updAlien_() {
       toku:  updAlienArr_(o && o.toku),
       suki:  updAlienArr_(o && o.suki),
       kirai: updAlienArr_(o && o.kirai),
-      kuse:  String((o && o.kuse) || "").slice(0, 10)
+      kuse:  String((o && o.kuse) || "").slice(0, 14)
     };
     // どれか1つでも欠けていたら、こちらの表で作る（中途半端に出さない）
     if (!a.name || !a.toku.length || !a.suki.length || !a.kuse) return updAlienFallback_();
@@ -726,65 +754,165 @@ function updAlien_() {
  * 星人の表示。あの「特徴／好きなもの／口ぐせ」の並べ方をまねる。
  * 点数は 10〜80てん、10きざみ。
  */
-function updAlienBlock_() {
-  const a = updAlien_();
+function updAlienBlock_(a) {
+  // 渡されたものが星人の形をしていなければ、こちらで1体つくる。
+  // （呼びまちがえたときに、途中で止まってしまわないように）
+  const x = (a && a.name && Array.isArray(a.toku)) ? a : updAlien_();
   const pt = (1 + Math.floor(Math.random() * 8)) * 10;
   const L = [];
-  L.push("▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚");
   L.push("てめえ達は今から");
-  L.push("この方に　あいさつして来て下ちい");
-  L.push("▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚");
-  L.push("　" + a.name);
+  L.push("この方を　乗車させて来て下ちい");
+  L.push("");
+  L.push("　" + x.name);
   L.push("　　特徴");
-  a.toku.forEach(function (x) { L.push("　　　" + x); });
+  x.toku.forEach(function (t) { L.push("　　　" + t); });
   L.push("　　好きなもの");
-  a.suki.forEach(function (x) { L.push("　　　" + x); });
-  if (a.kirai.length) {
+  x.suki.forEach(function (t) { L.push("　　　" + t); });
+  if (x.kirai.length) {
     L.push("　　きらいなもの");
-    a.kirai.forEach(function (x) { L.push("　　　" + x); });
+    x.kirai.forEach(function (t) { L.push("　　　" + t); });
   }
   L.push("　　口ぐせ");
-  L.push("　　　" + a.kuse);
+  L.push("　　　" + x.kuse);
   L.push("　　とくてん　" + updWide_(String(pt)) + "てん");
   return L.join("\n");
+}
+
+/* ---------------- 星人のすがた（絵） ---------------- */
+/*
+ * ★「絵もちゃんと出るのか」というご質問への答え。
+ *   これまでは 文字だけで、絵は出していませんでした。ここで足します。
+ *
+ *   ただし、作るのに5〜15秒かかります。
+ *   LINEの受け口の中で待つと、LINEが「返事が無い」と思って
+ *   同じ合図を送り直してくるので、絵は「あとから別便」で送ります。
+ *   （文はすぐ届き、絵はそのあと追いかけて届く形）
+ *
+ *   絵が作れなかったときは、黙って文だけにします。
+ *   絵が出ないせいで、肝心の取り込みが止まってはいけないからです。
+ */
+
+/** 絵を出すかどうか（設定タブで「いいえ」にすると止まる） */
+function updPicOn_() {
+  try {
+    const v = updCfg_("星人の絵を出す");
+    if (String(v).indexOf("いいえ") === 0) return false;
+  } catch (e) {}
+  return true;
+}
+
+/** 星人のすがたを1枚つくって、ドライブに置き、その場所を返す */
+function updAlienPic_(a) {
+  try {
+    if (!updPicOn_() || !a || !a.name) return "";
+    if (typeof geminiReady_ !== "function") return "";
+    const g = geminiReady_();
+    let model = "";
+    try { model = updCfg_("星人の絵のモデル") || ""; } catch (e) {}
+    if (!model) model = "gemini-2.5-flash-image";
+
+    const prompt =
+      "白黒の劇画タッチ、荒い描き込みの一枚絵。\n" +
+      "「" + a.name + "」という架空の宇宙人（星人）を、正面から胸から上で描いてください。\n" +
+      "特徴：" + (a.toku || []).join("、") + "\n" +
+      "口ぐせ：「" + (a.kuse || "") + "」\n" +
+      "・へんてこで、少し不気味で、でも笑える見た目にしてください\n" +
+      "・絵の中に文字は入れないでください\n" +
+      "・実在の人物には似せないでください\n" +
+      "・血や、けがをしている様子は描かないでください";
+
+    const res = UrlFetchApp.fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + model +
+      ":generateContent?key=" + encodeURIComponent(g.key),
+      { method: "post", contentType: "application/json", muteHttpExceptions: true,
+        payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+    if (res.getResponseCode() !== 200) return "";
+
+    const parts = (JSON.parse(res.getContentText()).candidates || [{}])[0].content.parts || [];
+    let data = "", mime = "image/png";
+    parts.forEach(function (pt) {
+      const d = pt.inlineData || pt.inline_data;
+      if (d && d.data) { data = d.data; mime = d.mimeType || d.mime_type || mime; }
+    });
+    if (!data) return "";
+
+    const blob = Utilities.newBlob(Utilities.base64Decode(data), mime,
+                                   a.name + "_" + Date.now() + ".png");
+    const file = DriveApp.createFile(blob);
+    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+    return file.getUrl() || "";
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("updAlienPic", e);
+    return "";
+  }
+}
+
+/** 絵づくりを、あとから別便でやるように頼む */
+function updAlienPicLater_(a, to) {
+  try {
+    if (!updPicOn_() || !to || !a) return;
+    updProps_().setProperty("UPD_PIC", JSON.stringify({ a: a, to: to }));
+    ScriptApp.newTrigger("updAlienPicJob_").timeBased().after(1000).create();
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("updAlienPicLater", e);
+  }
+}
+
+/** 1回だけ動いて、星人の絵を送る見張り */
+function updAlienPicJob_() {
+  const pr = updProps_();
+  let job = null;
+  try { job = JSON.parse(pr.getProperty("UPD_PIC") || "null"); } catch (e) { job = null; }
+  pr.deleteProperty("UPD_PIC");
+  // 自分を片づける。残すと見張りの数を食う
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === "updAlienPicJob_") ScriptApp.deleteTrigger(t);
+    });
+  } catch (e) {}
+  if (!job || !job.to || !job.a) return;
+
+  const url = updAlienPic_(job.a);
+  // 絵が作れなかったら、黙って何も送らない（文はもう届いている）
+  if (!url || typeof lrPush_ !== "function") return;
+  try {
+    lrPush_(job.to, [{ type: "text",
+      text: UPD_LINE + "\n" + job.a.name + "　の　すがた\n" + UPD_LINE + "\n" + url }]);
+  } catch (e) {}
 }
 
 /** あの黒い球 */
 const UPD_BALL = "　　　　　　●";
 
+/** 区切り線（短く。多いと読みづらい） */
+const UPD_LINE = "▚▚▚▚▚▚▚▚";
+
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
-function updKataStart_(where) {
+function updKataStart_(where, alien) {
   return UPD_BALL + "\n" +
-         updGlitch_("Ｋ Ａ Ｔ Ａ Ｓ Ｔ Ｒ Ｏ Ｐ Ｈ Ｅ", 2) + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         updNoise_(4, 18, 2) + "\n" +
-         updAlienBlock_() + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         "きみたちの　ふるいコードは\n" +
+         updNoise_(2, 16, 2) + "\n" +
+         UPD_LINE + "\n" +
+         updAlienBlock_(alien) + "\n" +
+         UPD_LINE + "\n" +
+         "きみたちの　ふるいスプシは\n" +
          "なくなりました。\n" +
          "\n" +
-         "あたらしいコードを\n" +
-         "どう　つかおうと\n" +
+         "あたらしいスプシを\n" +
+         "どう　アップデートしようと\n" +
          "わたしの　かってです。\n" +
          "\n" +
          "という　りくつな　わけだ。\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         updMath_("TRANSFER") + " ： " + updWide_("START") + "\n" +
-         "ZIEL ： " + where + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         "てんそう　かいし。\n" +
-         "取り込みを開始しました。2〜3分で完了の合図を送ります。";
+         "\n" +
+         "取り込みを開始しました（" + where + "）。\n" +
+         "2〜3分で完了の合図を送ります。";
 }
 
 function updKataDone_(body) {
-  // 点数は、そのつど変わったほうが楽しい（100点なら、ひとこと足す）
+  // 点数は、そのつど変わったほうが楽しい
   const pt = 90 + Math.floor(Math.random() * 11);
   return UPD_BALL + "\n" +
-         updGlitch_("Ｍ Ｉ Ｓ Ｓ Ｉ Ｏ Ｎ 　 Ｃ Ｌ Ｅ Ａ Ｒ", 2) + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         updMath_("SYNCHRONISATION") + " ： " + updWide_("KOMPLETT") + "\n" +
-         updMath_("SICHERUNG") + " ： " + updWide_("OK") + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updNoise_(1, 16, 2) + "\n" +
+         UPD_LINE + "\n" +
          "きみの　とくてんは　" + updWide_(String(pt)) + "てん　です。\n" +
          (pt >= 100 ? "ひゃくてん。\nよくやりました。\n" : "あと　" + (100 - pt) + "てんで　ひゃくてん。\n") +
          "\n" + String(body || "") + "\n\n" +
@@ -794,13 +922,10 @@ function updKataDone_(body) {
 
 function updKataFail_(body) {
   return UPD_BALL + "\n" +
-         updGlitch_("Ｆ Ｅ Ｈ Ｌ Ｅ Ｒ", 3) + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         updMath_("STOERUNG") + " ： " + updWide_("ERKANNT") + "\n" +
-         updMath_("TRANSFER") + " ： " + updWide_("ABGEBROCHEN") + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updNoise_(1, 16, 3) + "\n" +
+         UPD_LINE + "\n" +
          "てんそうは　ちゅうしされました。\n" +
-         "きみの　コードは　そのままです。\n" +
+         "きみの　スプシは　そのままです。\n" +
          "\n" + String(body || "") + "\n\n" +
          "やりなおしても　かまいません。\n" +
          "という　りくつな　わけだ。";
@@ -869,18 +994,14 @@ function updFunLink_() {
 }
 
 /** ほかの人が合言葉を打ったときの返事（近未来のロボットの声） */
-function updKataDenied_() {
+function updKataDenied_(alien) {
   return UPD_BALL + "\n" +
-         updGlitch_("Ｖ Ｅ Ｒ Ｗ Ｅ Ｉ Ｇ Ｅ Ｒ Ｔ", 3) + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         updNoise_(4, 18, 2) + "\n" +
-         updAlienBlock_() + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         updMath_("IDENTITAET") + " ： " + updWide_("UNBEKANNT") + "\n" +
-         updMath_("BERECHTIGUNG") + " ： " + updWide_("KEINE") + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updNoise_(2, 16, 3) + "\n" +
+         UPD_LINE + "\n" +
+         updAlienBlock_(alien) + "\n" +
+         UPD_LINE + "\n" +
          "きみは　えらばれて　いません。\n" +
-         "システムは　なにも　かわりません。\n" +
+         "スプシは　なにも　かわりません。\n" +
          "\n" +
          "そのかわり　これを　みなさい。\n" +
          "という　りくつな　わけだ。";
@@ -917,9 +1038,12 @@ function updHandleKata_(ev) {
       if (cc.get(kk)) return true;               // 少し前に送ったばかりなら、黙って見送る
       cc.put(kk, "1", 600);
     } catch (e) {}
+    const alien = updAlien_();
     if (typeof lineReply_ === "function") {
-      lineReply_((ev && ev.replyToken) || "", updKataDenied_() + "\n\n" + updFunLink_());
+      lineReply_((ev && ev.replyToken) || "", updKataDenied_(alien) + "\n\n" + updFunLink_());
     }
+    // 絵は、あとから別便で追いかけさせる（作るのに5〜15秒かかるため）
+    updAlienPicLater_(alien, updWhere_(ev));
     return true;
   }
 
@@ -965,7 +1089,9 @@ function updHandleKata_(ev) {
     say(updKataFail_("取り込みを始められませんでした：" + (e && e.message ? e.message : e)));
     return true;
   }
-  say(updKataStart_(where));
+  const alien = updAlien_();
+  say(updKataStart_(where, alien));
+  updAlienPicLater_(alien, updWhere_(ev));
   return true;
 }
 
