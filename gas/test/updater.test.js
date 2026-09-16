@@ -1918,14 +1918,19 @@ console.log('\n■ ふきだしで囲む');
   t(W('') === 0, '空は0');
   t(W(null) === 0, 'null でも落ちない');
 
-  // ★ふちの長さが、中身のいちばん長い行に合うこと
+  // ★ふちの長さは、いつも同じ（LINEで1行に収まるぎりぎりにそろえてある）
   const short = B('　ねぎ星人\n　　　でかい');
   const long  = B('　りょうしゅうしょ星人\n　　　りょうしゅうしょを５まいほしがる');
   const barOf = x => x.split('\n')[0].length;
-  t(barOf(short) < barOf(long), '★中身が長ければ、ふちも長くなる');
-  t(barOf(short) === Math.ceil(W('　　　でかい')) + 2, '  短いほうは、いちばん長い行に合う');
-  t(barOf(long) === Math.ceil(W('　　　りょうしゅうしょを５まいほしがる')) + 2,
-    '  長いほうも、いちばん長い行に合う');
+  t(barOf(short) === barOf(long), '★中身が長くても短くても、ふちの長さは同じ');
+  t(barOf(short) === F('updBubbleW_')() + 2, '  幅は「ふきだしの幅」のとおり');
+
+  // ★はみ出す行は、こちらで折り返す（LINEに勝手に折り返されると形がくずれる）
+  const w = F('updBubbleW_')();
+  const wrapped = B('　　　' + 'あ'.repeat(30)).split('\n');
+  t(wrapped.length > 3, '長い行は、自分で折り返す');
+  t(wrapped.slice(1, -1).every(x => W(x) <= w), '★どの行も、ふちからはみ出さない');
+  t(wrapped[2].indexOf('　　　　') === 0, '  続きの行は、1つ下げて出す（続きだと分かるように）');
 
   const ls = B('　あ\n　　い').split('\n');
   t(ls.length === 4, '上のふち＋中身2行＋下のふち');
@@ -1934,9 +1939,9 @@ console.log('\n■ ふきだしで囲む');
   t(ls[3].indexOf('⌄') !== -1, '下のふちの真ん中に、しっぽ');
   t(ls[0].length === ls[3].length, '★上と下のふちは、同じ長さ');
   t(B('').split('\n').length === 3, '中身が空でも形はくずれない');
-  t(B('').split('\n')[0].length === 8, '  そのときは、いちばん短い形');
+  t(B('').split('\n')[0].length === F('updBubbleW_')() + 2, '  そのときも、ふちの長さは同じ');
   t(B(null).split('\n')[0].indexOf('╭') === 0, 'null でも落ちない');
-  t(B('あ'.repeat(99)).split('\n')[0].length === 32, '★長すぎても、上限でとめる');
+  t(B('あ'.repeat(99)).split('\n')[0].length === F('updBubbleW_')() + 2, '★長い中身でも、ふちの長さは変わらない');
 
   // ★星人の紹介は、名前も特徴も、ぜんぶ ふきだしの中
   const card = F('updAlienBlock_')();
@@ -1945,6 +1950,7 @@ console.log('\n■ ふきだしで囲む');
   const to = cl.findIndex(x => x.indexOf('╰') === 0);
   t(from !== -1 && to > from, 'ふきだしがある');
   t(cl[from].length === cl[to].length, '★上と下のふちは、同じ長さ');
+  t(cl[from].length === F('updBubbleW_')() + 2, '  幅は、いつも同じ');
   const inside = cl.slice(from + 1, to);
   t(inside.join('\n').indexOf('星人') !== -1, '★名前も中');
   t(inside.join('\n').indexOf('特徴') !== -1, '★特徴も中');
@@ -1954,7 +1960,7 @@ console.log('\n■ ふきだしで囲む');
   t(inside.join('\n').indexOf('とくてん') !== -1, '  とくてんも中');
   // ★中身がふちからはみ出していないこと
   const barW = cl[from].length - 2;
-  t(inside.every(x => Math.ceil(W(x)) <= barW), '★どの行も、ふちからはみ出さない');
+  t(inside.every(x => W(x) <= barW), '★どの行も、ふちからはみ出さない');
   t(card.indexOf('この方を　乗車させて来て下ちい') !== -1, '見出しは、ふきだしの外');
   t(card.indexOf('▚') === -1, 'かすれた四角は使わない');
 }

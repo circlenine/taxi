@@ -2,7 +2,17 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U037ver  （2026/09/16）  ★★★
+ *  ★★★  U038ver  （2026/09/16）  ★★★
+ *
+ *  [U038ver]
+ *   ・ふきだしの幅を、毎回変えるのをやめて いつも同じにした
+ *     ★中身に合わせて伸び縮みさせると、日によって形が変わって落ち着かない。
+ *       「LINEで1行に収まるぎりぎり」にそろえておけば、変える必要がない。
+ *     既定は全角18文字ぶん（iPhone のふつうの文字の大きさ）。
+ *     合わなければ 設定タブ「ふきだしの幅」で 10〜24 に変えられる
+ *   ・はみ出す行は、こちらで折り返すようにした（updWrapLine_）
+ *     LINEに勝手に折り返されると、ふちからはみ出して形がくずれるため。
+ *     続きの行は1つ下げて出し、どの行の続きか分かるようにする
  *
  *  [U037ver]
  *   ・ふきだしのふちの長さを、中身に合わせるようにした（updZenkaku_）
@@ -1222,25 +1232,65 @@ function updZenkaku_(t) {
 }
 
 /**
- * ふきだしで囲む。
+ * ふきだしの幅（全角なん文字ぶんか）。
  *
- * ★ふちの長さを、中身のいちばん長い行に合わせて決める。
- *   決め打ちの長さにしていたので、中身が短い日は ふちだけ長く余り、
- *   長い日は はみ出していた。それでは囲んだ意味がない。
+ * ★毎回 中身に合わせて伸び縮みさせるのをやめた。
+ *   ふきだしは「同じ幅でいつも出る」ほうが、見ていて落ち着く。
+ *   長さは「LINEで1行に収まるぎりぎり」にそろえておけばよい。
+ *
+ *   ※ぎりぎりの文字数は、機種と文字の大きさの設定で少し変わります。
+ *     iPhone の ふつうの大きさで 全角18文字ほど。
+ *     合わなければ 設定タブ「ふきだしの幅」で変えられます（10〜24）。
+ */
+function updBubbleW_() {
+  let v = NaN;
+  try { v = parseInt(updCfg_("ふきだしの幅"), 10); } catch (e) {}
+  if (v >= 10 && v <= 24) return v;
+  return 18;
+}
+
+/**
+ * 長い行を、ふきだしの幅で折り返す。
+ *
+ * ★こちらで折り返しておけば、LINEに勝手に折り返されない。
+ *   勝手に折り返されると、ふちからはみ出して 形がくずれる。
+ *   折り返した先頭には、元の行と同じだけ空白を入れて、
+ *   どの行の続きなのかが分かるようにする。
+ */
+function updWrapLine_(line, w) {
+  const src = String(line == null ? "" : line);
+  const head = (src.match(/^[　\s]*/) || [""])[0];      // 行の頭の空白
+  const headW = updZenkaku_(head);
+  const out = [];
+  let cur = "", curW = 0, first = true;
+  for (const ch of src.slice(head.length)) {
+    const cw = updZenkaku_(ch);
+    const limit = w - (first ? headW : headW + 1);
+    if (curW + cw > limit && cur) {
+      out.push((first ? head : head + "　") + cur);
+      cur = ""; curW = 0; first = false;
+    }
+    cur += ch; curW += cw;
+  }
+  out.push((first ? head : head + "　") + cur);
+  return out;
+}
+
+/**
+ * ふきだしで囲む。ふちの長さは いつも同じ。
  *
  * ※LINEの字は1文字ずつ幅がちがう（プロポーショナル）ので、
  *   1ドットまでぴったりにはなりません。
- *   ここでは「全角1・半角0.5」で数えて、いちばん近い長さにそろえます。
+ *   「全角1・半角0.5」で数えて、いちばん近い長さにそろえます。
  */
 function updBubble_(text) {
-  const lines = String(text == null ? "" : text).split("\n");
-  let w = 0;
-  lines.forEach(function (ln) { w = Math.max(w, updZenkaku_(ln)); });
-  // 短すぎても長すぎても形がくずれるので、6〜30の間におさめる
-  const n = Math.max(6, Math.min(Math.ceil(w), 30));
-  const bar = "─".repeat(n);
+  const n = updBubbleW_();
+  const lines = [];
+  String(text == null ? "" : text).split("\n").forEach(function (ln) {
+    updWrapLine_(ln, n).forEach(function (x) { lines.push(x); });
+  });
   const left = Math.floor((n - 1) / 2);
-  return "╭" + bar + "╮\n" +
+  return "╭" + "─".repeat(n) + "╮\n" +
          lines.join("\n") + "\n" +
          "╰" + "─".repeat(left) + "⌄" + "─".repeat(n - 1 - left) + "╯";
 }
