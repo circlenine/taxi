@@ -2,7 +2,17 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U035ver  （2026/09/16）  ★★★
+ *  ★★★  U036ver  （2026/09/16）  ★★★
+ *
+ *  [U036ver]
+ *   ・ふきだしを作り直した
+ *     ★前のは、囲いの中に全部を詰めこんでいたので、
+ *       行の頭が「┃」でそろってしまい、かえって汚く見えた。
+ *     ・囲うのは 名前（見出し）だけ。1行だけ入れる
+ *     ・細い線にして、下の真ん中に しっぽ（⌄）を付ける
+ *     ・上と下のふちは、必ず同じ長さにする
+ *     ・特徴・好きなもの・口ぐせ・とくてんは、ふきだしの外に
+ *       しるし（🔸💛💢💬⭐）を付けて1行ずつ並べる
  *
  *  [U035ver]
  *   ・区切り線をやめて、星人の紹介をふきだしで囲むようにした（updBubble_）
@@ -972,25 +982,28 @@ function updAlienBlock_(a) {
   // （呼びまちがえたときに、途中で止まってしまわないように）
   const x = (a && a.name && Array.isArray(a.toku)) ? a : updAlien_();
   const pt = (1 + Math.floor(Math.random() * 8)) * 10;
+
+  // ★見た目の作り
+  //   ・名前は ふきだしの中に、大きく1行だけ（見出し）
+  //   ・中身は ふきだしの外に、しるし付きで1行ずつ
+  //   囲いの中に全部を詰めこむと、行の頭が「┃」でそろってしまい、
+  //   かえって読みにくかった。囲うのは見出しだけにする。
   const L = [];
-  L.push("　" + x.name);
-  L.push("　　特徴");
-  x.toku.forEach(function (t) { L.push("　　　" + t); });
-  L.push("　　好きなもの");
-  x.suki.forEach(function (t) { L.push("　　　" + t); });
-  if (x.kirai.length) {
-    L.push("　　きらいなもの");
-    x.kirai.forEach(function (t) { L.push("　　　" + t); });
-  }
-  L.push("　　口ぐせ");
-  L.push("　　　" + x.kuse);
-  L.push("　　とくてん　" + updWide_(String(pt)) + "てん");
+  L.push(updBubble_("🚕 " + x.name));
+  L.push("");
+  x.toku.forEach(function (t) { L.push("🔸 " + t); });
+  L.push("");
+  L.push("💛 好きなもの　" + x.suki.join("・"));
+  if (x.kirai.length) L.push("💢 きらいなもの　" + x.kirai.join("・"));
+  L.push("💬 口ぐせ　「" + x.kuse + "」");
+  L.push("⭐ とくてん　" + updWide_(String(pt)) + "てん");
+
   // ★頭の1行だけ、わざと崩す。
   //   意味のない記号を並べるより、読める言葉が壊れているほうがドキッとする。
   //   一瞬「バグった？」と見えて、次の行でちゃんと読める、という見せ方
   return updBleed_("てめえ達は今から", 7, 7) + "\n" +
          "この方を　乗車させて来て下ちい\n" +
-         "\n" + updBubble_(L.join("\n"));
+         "\n" + L.join("\n");
 }
 
 /* ---------------- 星人のすがた（絵） ---------------- */
@@ -1188,13 +1201,11 @@ const UPD_BALL = "　　　　　　●";
  *   ※LINEの字は1文字ずつ幅がちがうので、上下の線と中身の幅は
  *     きっちりは合いません（文字で飾るものは、どれもそうなります）。
  */
-function updBubble_(text) {
-  const top = "╭━━━━━━━━━━━━━╮";
-  const bot = "╰━┳━━━━━━━━━━╯";
-  const tail = "　 ▽";
-  const body = String(text == null ? "" : text).split("\n")
-    .map(function (ln) { return "┃" + ln; }).join("\n");
-  return top + "\n" + body + "\n" + bot + "\n" + tail;
+function updBubble_(title) {
+  const t = String(title == null ? "" : title);
+  return "╭───────────────╮\n" +
+         "　　" + t + "\n" +
+         "╰───────⌄───────╯";
 }
 
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
