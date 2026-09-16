@@ -390,6 +390,7 @@ const realUpdRepo = F('updRepo_');
 ctx.testRepo = () => (props['GH_REPO'] || (gh ? 'circlenine/test' : ''));
 vm.runInContext('updRepo_ = function(){ return testRepo(); };', ctx);
 // 「取り込みの見張り」だけを数える（星人の絵の見張りは別物なので、混ぜない）
+const panelChk = sh => F('panelChkCol_')(sh, F('panelTop_')(sh));
 const upTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updRunFromLine_');
 /*
  * ★合言葉の返事は、受け口の中では作らない。
@@ -807,6 +808,33 @@ t(lastPut() !== undefined, '更新が実際に走った');
 // 「結果」の行を探して書くので、入力らんが増えても付いていける
 const resRow = F('panelResultRow_')(panel);
 has(panel._cells[resRow + ',3'], '✅', '結果らんに出る');
+
+console.log('\n■ 「結果」は、上に置いても下に置いても、そこに書く');
+{
+  /*
+   * ★まーくさんが「結果」をボタンより上（3行目）に置き直された。
+   *   前は「ボタンより下」しか探していなかったので、
+   *   上に置いたほうには書かれず、下に書きつづけていた
+   */
+  const below = F('panelResultRow_')(panel);
+  t(below > 8, 'ボタンの下に置いてあれば、そこを使う');
+
+  // 上（2行目）に「結果」を置いてみる
+  panel._cells['2,2'] = '結果';
+  const above = F('panelResultRow_')(panel);
+  t(above === 3, '★上に置いたら、そのすぐ下（3行目）に書く');
+  const cell = F('panelResultCell_')(panel);
+  t(cell.col === 2, '  列も「結果」と同じ列にそろえる');
+
+  // 上下ふたつあるときは、上を使う
+  t(above < below, '★2つあるときは、上のほうに書く（目に入りやすいので）');
+
+  // 実際に押したときも、上に出る
+  Object.keys(panel._cells).forEach(k => { if (k === '3,2') delete panel._cells[k]; });
+  panel._cells[panelChk(panel) + ',' + 9] = true;   // 何か1つ押した形にする
+  delete panel._cells['2,2'];                        // もとに戻す
+  t(F('panelResultRow_')(panel) === below, '  戻せば、また下に書く');
+}
 has(panel._cells[resRow + ',3'], 'コードを更新する', 'どれを動かしたか分かる');
 
 console.log('\n■ チェックを外したときは動かない');

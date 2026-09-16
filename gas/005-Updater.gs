@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U066ver  （2026/09/16）  ★★★
+ *  ★★★  U067ver  （2026/09/17）  ★★★
+ *
+ *  [U067ver]
+ *   ・「結果」を、ボタンより上に置いてもそこに書くようにした
+ *     ★前は「ボタンより下」しか探していませんでした。
+ *       上（3行目）に置き直しても、下に書きつづけてしまいます。
+ *     ★いまは、いちばん上から探して、最初に見つかった「結果」に書きます。
+ *       上でも下でも、そこに書きます。2つあるときは上のほうを使います
+ *       （目に入りやすいので）
  *
  *  [U066ver]
  *   ・「きょかをもらう」という関数を足した
@@ -3734,14 +3742,26 @@ function panelResultCell_(sh) {
   const top = panelTop_(sh);
   if (!top) return null;
   const last = panelLastRow_(sh);
-  const from = (last || top + panelItems_().length - 1) + 1;
-  const room = Math.min(PANEL_GAP_MAX + 4, sh.getMaxRows() - from + 1);
+  const bottom = (last || top + panelItems_().length - 1) + 1 + PANEL_GAP_MAX + 4;
+
+  /*
+   * ★「結果」の場所は、ボタンの下とはかぎりません。
+   *
+   *   まーくさんが、ボタンより上（3行目）に置き直されました。
+   *   前は「ボタンより下」しか探していなかったので、
+   *   上に置いたほうには書かれず、下に書きつづけていました。
+   *
+   *   いまは、いちばん上から探して、最初に見つかった「結果」に書きます。
+   *   上に置いても下に置いても、そこに書きます。
+   *   2つあるときは、上のほうを使います（目に入りやすいので）。
+   */
+  const room = Math.min(bottom, sh.getMaxRows());
   if (room > 0) {
-    const grid = sh.getRange(from, 1, room, 6).getValues();
+    const grid = sh.getRange(1, 1, room, 6).getValues();
     for (let i = 0; i < grid.length; i++) {
       for (let c = 0; c < 6; c++) {
         if (String(grid[i][c]).trim() === "結果") {
-          return { row: from + i + 1, col: c + 1 };
+          return { row: i + 2, col: c + 1 };      // 「結果」のすぐ下の、同じ列
         }
       }
     }
