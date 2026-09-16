@@ -1798,6 +1798,59 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   delete props['UPD_KATA_JOBS'];
 }
 
+console.log('\n■ LINEに打つだけで、コードが本当に入れ替わるか（通しで確かめる）');
+{
+  /*
+   * ★「LINEで打つだけで、ほんとうに貼り替えなしで直るのか」
+   *   ここで、打つところから 書き込まれるところまで、通しで確かめる。
+   *   ・公式LINE（1対1）から
+   *   ・グループLINEから
+   *   どちらでも同じように入れ替わること
+   */
+  const kata = F('updHandleKata_');
+  const drain = function () {
+    // 見張りが立ったことにして、取り込みのほうを動かす
+    F('updRunFromLine_')();
+  };
+
+  [['公式LINE（1対1）', { userId: 'Umark' }, 'Umark'],
+   ['グループLINE',     { userId: 'Umark', groupId: 'Cgroup' }, 'Cgroup']
+  ].forEach(function (pair) {
+    reset([['001-Code.gs', 'あたらしい中身'], ['006-Venue.gs', 'イベント係']]);
+    props['GH_REPO'] = ''; props['GH_TOKEN'] = '';        // ドライブから読む形で試す
+    try {
+      const cc = ctx.CacheService.getScriptCache();
+      cc.remove('UPD_RUNNING'); cc.remove('KATA_FUN_Umark');
+    } catch (e) {}
+    delete props['UPD_KATA_JOBS'];
+    ctx.pu.length = 0; triggers.length = 0;
+
+    t(kata({ message: { text: 'Katastrophe' }, source: pair[1], replyToken: 'r' }) === true,
+      pair[0] + 'で「Katastrophe」を受ける');
+    t(props['UPD_LINE_TO'] === pair[2], '  結果の届け先は、打った場所（' + pair[2] + '）');
+    drain();
+    const put = lastPut();
+    t(put !== undefined, '★' + pair[0] + '　→　コードが本当に書き込まれた');
+    t(put.body.files.filter(f => f.name === '001-Code')[0].source === 'あたらしい中身',
+      '  中身も、新しいほうに入れ替わっている');
+    t(put.body.files.filter(f => f.name === '006-Venue').length === 1,
+      '  増えたファイルも足される');
+    t(ctx.pu.filter(x => String(x.msgs[0].text).indexOf('しっぱいしました') !== -1).length === 0,
+      '  ★うまくいったときは、しくじりの知らせを出さない');
+  });
+
+  // しくじったときだけ、もう1通お知らせする
+  reset([]);
+  props['GH_REPO'] = ''; props['GH_TOKEN'] = '';
+  props['UPD_LINE_TO'] = 'Umark'; props['UPD_LINE_KATA'] = '1';
+  ctx.pu.length = 0;
+  drain();
+  t(ctx.pu.length === 1, '★取り込むものが無ければ、そのことを知らせる');
+
+  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
+  delete props['UPD_KATA_JOBS'];
+}
+
 console.log('\n■ 僕以外が合言葉を打ったとき');
 {
   const kata = F('updHandleKata_');
