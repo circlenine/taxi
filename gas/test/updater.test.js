@@ -300,6 +300,11 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
     // 枝のいちばん新しい書き込みを聞かれたとき
     if (url.indexOf('/commits/') !== -1) {
       ghUrls.push(url);
+      // 置き場そのものが見えないときは、どの入口もだめになる
+      if (gh && gh.reposCode && gh.reposCode !== 200) {
+        return { getResponseCode: () => gh.reposCode,
+                 getContentText: () => JSON.stringify({ message: 'x' }) };
+      }
       if (gh && gh.headFail) {
         return { getResponseCode: () => gh.headFail,
                  getContentText: () => JSON.stringify({ message: 'Not Found' }) };
@@ -2049,8 +2054,14 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   has(ctx.rep[0], '自動に戻しました', '  そう伝える');
 
   // 「えだ」だけなら、いまの状態を返す
-  ctx.rep.length = 0;
+  ctx.rep.length = 0; ghUrls.length = 0;
   H({ message: { text: 'えだ' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  /*
+   * ★GitHubに聞く回数を減らすこと。
+   *   鍵を入れていないと1時間に60回までで、実際に使い切って止まった。
+   *   前はここで3回（置き場・枝の一覧・最新）聞いていた
+   */
+  t(ghUrls.length === 1, '★うまくいくときは、GitHubに1回しか聞かない');
   has(ctx.rep[0], '置き場：circlenine/test', '「えだ」だけなら、いまの読み先を答える');
   has(ctx.rep[0], '枝　　：', '  枝も');
   has(ctx.rep[0], '最新　：', '  その枝の最新も');

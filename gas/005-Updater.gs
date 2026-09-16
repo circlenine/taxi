@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U058ver  （2026/09/16）  ★★★
+ *  ★★★  U059ver  （2026/09/16）  ★★★
+ *
+ *  [U059ver]
+ *   ・GitHubに聞く回数を減らした
+ *     ★鍵を入れていないと、1時間に60回までしか聞けません。
+ *       それなのに「えだ」1回で3回も聞いていました（置き場・枝の一覧・最新）。
+ *       何度か試すだけで使い切ってしまい、実際に止まりました。
+ *     ★いまは、まず1回だけ聞いて、それで足りればおしまいにします。
+ *       だめだったときにだけ、理由をさがしに行きます
  *
  *  [U058ver]
  *   ・鍵（トークン）が無くても、GitHubから読めるようにした
@@ -2003,14 +2011,15 @@ function updBranchWord_(text) {
 }
 
 /** いまの設定を、そのまま読める文にする */
-function updBranchText_() {
+function updBranchText_(infoIn) {
   const setBy = updProps_().getProperty("GH_BRANCH") || updCfg_("コードの枝（ブランチ）");
   const L = [];
   L.push("🌿 いま読みにいく先");
   L.push("　置き場：" + (updRepo_() || "（まだ入っていません）"));
   L.push("　枝　　：" + updBranch_() + (setBy ? "" : "（自動で決めたもの）"));
   L.push("　フォルダ：" + updPath_());
-  L.push("　最新　：" + updHeadInfo_());
+  // ★すでに聞いてあれば、それを使う（同じことを二度聞かない）
+  L.push("　最新　：" + (infoIn || updHeadInfo_()));
   L.push("");
   L.push("変えたいときは、この形で送ってください。");
   L.push("　えだ claude/なんとか-かんとか");
@@ -2065,9 +2074,11 @@ function updHandleRepo_(ev) {
     say("📦 入れられませんでした：" + (e && e.message ? e.message : e));
     return true;
   }
-  const d = updDiag_("");
+  const info2 = updHeadInfo_();
+  const okNow = String(info2).indexOf("⚠️") === -1 &&
+                String(info2).indexOf("調べられませんでした") === -1;
   say("📦 置き場を「" + w.name + "」にしました。\n\n" +
-      (d.ok ? updBranchText_() : d.text));
+      (okNow ? updBranchText_(info2) : updDiag_("").text));
   return true;
 }
 
@@ -2087,9 +2098,20 @@ function updHandleBranch_(ev) {
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
 
   if (!w.name) {
+    /*
+     * ★GitHubに聞く回数を、できるだけ減らします。
+     *   鍵を入れていないと、1時間に60回までしか聞けません。
+     *   前はここで3回（置き場・枝の一覧・最新）聞いていました。
+     *   まず1回だけ聞いて、それで足りればおしまいにします。
+     *   だめだったときにだけ、理由をさがしに行きます。
+     */
+    const info = updHeadInfo_();
+    if (String(info).indexOf("⚠️") === -1 && String(info).indexOf("調べられませんでした") === -1) {
+      say(updBranchText_(info));
+      return true;
+    }
     const d0 = updDiag_("");
-    say(d0.ok ? updBranchText_()
-              : "🌿 いま、コードを読みにいけません。\n\n" + d0.text);
+    say("🌿 いま、コードを読みにいけません。\n\n" + (d0.ok ? info : d0.text));
     return true;
   }
 
@@ -2109,14 +2131,19 @@ function updHandleBranch_(ev) {
    *   無い名前を入れてしまうと、そのあと [1] を押しても
    *   何も取り込めなくなります。入れる前に止めるほうが安全です。
    */
-  // ★どこで止まっているのかを、先に言い当てる
-  const diag = updDiag_(w.name);
-  if (!diag.ok) {
-    say("🌿 読み先を変えられませんでした。\n\n" + diag.text + "\n\n" +
+  /*
+   * ★まず、その枝を1回だけ聞いてみます。
+   *   読めたら、それで決まりです（回数を食わないように）。
+   *   読めなかったときだけ、どこで止まっているのかをさがしに行きます。
+   */
+  const info = updHeadInfo_(w.name);
+  if (String(info).indexOf("⚠️") !== -1 || String(info).indexOf("調べられませんでした") !== -1) {
+    const diag = updDiag_(w.name);
+    say("🌿 読み先を変えられませんでした。\n\n" +
+        (diag.ok ? info : diag.text) + "\n\n" +
         "★読み先は、いまのまま変えていません。");
     return true;
   }
-  const info = updHeadInfo_(w.name);
   try {
     updProps_().setProperty("GH_BRANCH", w.name);
     // ★枝が変われば、どのファイルが変わったかの覚え書きも当てになりません。
