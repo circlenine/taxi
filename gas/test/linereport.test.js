@@ -100,7 +100,7 @@ eq(e403.indexOf('API key not valid') !== -1, true, '  APIからの理由もそ�
 reply = { code: 429, body: '{}' };
 eq(ctx.generateAIText(7500, 12, 20, []).indexOf('回数制限') !== -1, true, '429は回数制限と分かる');
 
-eq(ctx.generateAIText(5000, 1, 0, []), 'データ不足のため判断保留。', '1件だけならAIを呼ばない');
+eq(ctx.generateAIText(5000, 1, 0, []), 'データ不足（2件以上で表示）。', '1件だけならAIを呼ばない（言い方は全部そろえる）');
 delete props.GEMINI_API_KEY;
 eq(ctx.generateAIText(7500, 12, 20, []).indexOf('AI未設定') !== -1, true, 'キー未設定なら呼ばずに知らせる');
 props.GEMINI_API_KEY = 'dummy-key';
@@ -180,8 +180,13 @@ console.log('\n■ AIが使えないときの「傾向と対策」');
      '待った時間のわりに安ければ、そう言う');
   eq(f({name:'天満', avgSales:9000, count:1, waitAvg:0, times:[]}).indexOf('件数が少なく') !== -1, true,
      '1件だけなら判断を保留する');
-  eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('1時間待ち続けたら￥30,000') !== -1, true,
-     '待ち時間あたりの効率を、初心者にも分かる言い方で出す（6000円÷12分×60）');
+  // ★「1時間待ち続けたら」という書き方はしない。
+  //   繁華街でもないかぎり、1時間ただ待ち続ける走り方はしないため。
+  //   ありえない前提の数字は、もっともらしく見えるぶん判断をゆがめる
+  eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('待ち平均12分') !== -1, true,
+     '待ちの長さは、記録にある事実だけを書く');
+  eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('1時間待ち') === -1, true,
+     '★「1時間待ち続けたら」とは、どこにも書かない');
   eq(f({name:'天満', avgSales:6000, count:4, waitAvg:12, times:['01:10']}).indexOf('狙い目 01:10') !== -1, true,
      '狙い目の時刻も出す');
   eq(typeof f({name:'x', avgSales:0, count:0, waitAvg:0, times:null}), 'string', 'からっぽでも落ちない');
@@ -457,8 +462,9 @@ function mkFt(set) {
   eq(ctx.adviceForecastText_(a2).indexOf('短い乗車でも数を積む') !== -1, true, 'そのときは数を積むほうをすすめる');
   eq(a2.nextMonth, 12, '11/30までなら12月の予想');
   eq(ctx.adviceForecastText_(a2).indexOf('最需要期') !== -1, true, '12月は最需要期と言う');
-  eq(ctx.adviceReviewText_(a2).indexOf('3件以上') !== -1, true, '記録が足りなければ、そう言う');
-  eq(ctx.advicePickLines_(a2)[0].indexOf('まだありません') !== -1, true, 'オススメも同じ');
+  // 言い方は「データ不足（〇件以上で表示）」のひとつだけに統一してある
+  eq(ctx.adviceReviewText_(a2).indexOf('データ不足（3件以上で表示）') !== -1, true, '記録が足りなければ、そう言う');
+  eq(ctx.advicePickLines_(a2)[0].indexOf('データ不足（2件以上で表示）') !== -1, true, 'オススメも同じ言い方');
 
   // 年をまたぐ
   const a3 = ctx.buildMonthlyAdvice_({}, {}, mkFt([]), ADV_DT, ADV_HRS, new D(2026, 11, 15));
@@ -489,9 +495,11 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   })(flexList);
   eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
   eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
-  eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
-  eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 ⭕️[アツい 新地4 (月)23:51]',
-     '［アツい 乗り場 時刻］を1つの［］で閉じる');
+  eq(bands.every(t => t.length <= 45), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
+  eq(bands[0], 'ﾛﾝｸﾞ8件 平均￥13,270 待39分 ⭕️[アツい 新地4 (月)23:51]',
+     '［アツい 乗り場 時刻］を1つの［］で閉じ、金額には「平均」と書く');
+  eq(bands.every(t => /件 平均￥/.test(t)), true,
+     '★金額には必ず「平均」と書く（最高額と取りちがえないように）');
   // ★［］が2つに割れていると、どこまでが1つの話なのか読めない。
   //   「アツい」から時刻までで1組。ここが割れていたら必ず落とす
   eq(bands.every(t => (t.match(/\[/g) || []).length === (t.match(/\]/g) || []).length),
@@ -503,14 +511,19 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   // 乗り場の名前が長いときだけ、言葉を外して1行を守る
   {
     const w = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
-    eq(bands.every(t => w(t) <= 56), true,
+    eq(bands.every(t => w(t) <= 62), true,
        'どの行も1行に収まる幅（いちばん長くて ' + Math.max(...bands.map(w)) + '）');
   }
-  eq(J.indexOf('⭕️：アツい（狙う）') !== -1, true, '記号のうしろに「：」を付けて、何の説明か分かるようにする');
-  eq(J.indexOf('❎：避ける') !== -1, true, '  避けるほうも');
-  eq(J.indexOf('(月)：その曜日') !== -1, true, '  (月) の意味も');
-  eq((J.match(/⭕️：アツい（狙う）　／　❎：避ける/) || []).length, 1, '  1行に2つずつまとめる');
-  eq(J.indexOf('── この絵の読み方 ──') !== -1, true, '  読み方の見出しを付ける');
+  eq(J.indexOf('⭕️ 狙う') !== -1, true, '記号の意味を書く');
+  eq(J.indexOf('❎ 避ける') !== -1, true, '  避けるほうも');
+  eq(J.indexOf('(月) その曜日') !== -1, true, '  (月) の意味も');
+  eq(J.indexOf('この絵の読み方') !== -1, true, '  読み方の見出しを付ける');
+  // ★説明は、この箱1つにまとめる。同じ説明が何度も出てくると読み飛ばされる
+  eq((J.match(/この絵の読み方/g) || []).length, 1, '  読み方の箱は1つだけ');
+  eq((J.match(/1回あたりの売上（合計ではありません）/g) || []).length, 1,
+     '  平均￥の説明は1回だけ（あちこちで言い直さない）');
+  eq(J.indexOf('その時間帯でいちばん高かった乗車の時刻です') === -1, true,
+     '  「一晩の流し方」で同じ説明をくり返さない');
 }
 
 console.log('\n■ アドバイスとオプチャを入れても形がこわれない');
@@ -598,14 +611,25 @@ console.log('\n■ 大事なところだけ太字にする');
     mkFt([["平日",23,{name:"新地4",count:16,avg:10834}]]), ADV_DT, ADV_HRS, new D(2026, 7, 15));
 
   const bold = p => p.filter(x => x.b).map(x => x.t);
-  eq(bold(ctx.adviceReviewParts_(a)), ['「江坂」', '￥7,233', '22分', '￥19,726', '土曜 03:16、土曜 03:20、土曜 03:40'],
-     '振り返りは 乗り場・金額・待ち時間だけ太字');
+  // ★「1時間待ち続けたら￥19,726」をやめた。
+  //   繁華街でもないかぎり、1時間ただ待ち続ける走り方はしないため。
+  //   代わりに、待ちの長さを全体平均と見くらべる（どちらも記録にある事実）
+  eq(bold(ctx.adviceReviewParts_(a)), ['「江坂」', '￥7,233', '22分', '22分', '22分', '土曜 03:16、土曜 03:20、土曜 03:40'],
+     '振り返りは 乗り場・金額・待ちの長さだけ太字');
+  eq(ctx.advicePlain_(ctx.adviceReviewParts_(a)).indexOf('1時間待ち') === -1, true,
+     '★「1時間待ち続けたら」とは、どこにも書かない');
   eq(bold(ctx.advicePickParts_(a)[0]), ['土曜 03時台', '江坂', '￥7,233', '03:16、03:20、03:40'],
      'オススメは 時間帯・乗り場・金額・時刻だけ太字');
   eq(bold(ctx.adviceForecastParts_(a)), ['江坂', '￥7,233', '平日の23時台', '新地4', '1通り', '1通り', 'ふだんは数をこなし、その時間帯だけ粘る'],
      '予想は 強かった枠・件数・結論 だけ太字（全部太字だと、どこが大事か分からない）');
-  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 9月はこういう月') !== -1, true,
-     '  来月の行事や社会人の動きから始める');
+  // ★「こういう月」と「狙いどころ」は1つにまとめた。
+  //   月の説明だけ読まされても、で、どこへ行けばよいのかが分からない
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 9月はこういう月　→　どこを狙うか') !== -1, true,
+     '  来月の話は「こういう月 → だからどこを狙うか」を1つの見出しで出す');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('【狙う】') !== -1, true,
+     '  必ず「で、どこを狙うか」まで書く');
+  eq((ctx.advicePlain_(ctx.adviceForecastParts_(a)).match(/月の狙いどころ/g) || []).length, 0,
+     '  見出しを2つに分けない');
   eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ この期間の記録から') !== -1, true,
      '  そのあとに、この期間の数字');
   eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ おすすめの動き方') !== -1, true,
@@ -619,7 +643,7 @@ console.log('\n■ 大事なところだけ太字にする');
   // LINEの絵の span になるか
   const sp = ctx.adviceSpans_(ctx.adviceReviewParts_(a), "#333333");
   eq(sp.every(x => x.type === 'span' && typeof x.text === 'string'), true, 'LINEの span にできる');
-  eq(sp.filter(x => x.weight === 'bold').length, 5, '  太字の数も合う');
+  eq(sp.filter(x => x.weight === 'bold').length, 6, '  太字の数も合う');
   eq(sp.every(x => /^#[0-9a-f]{6}$/.test(x.color)), true, '  色がすべて入っている（既定の色も必ず付く）');
 
   // 記録が無いときでも落ちない

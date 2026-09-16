@@ -78,7 +78,7 @@ console.log('\n■ 記録が無い時間帯も、抜け落ちさせない');
      '20時台:新地4 / 21〜22時台:－ / 23時台:梅田 / 00〜04時台:－',
      '記録が無いところは「－」の区間としてそのまま残る');
   eq(ctx.nightMoves_(segs), 1, '動く回数には、記録なしの区間を数えない');
-  has(ctx.nightLine_(segs[1]), '記録なし', '文にすると「記録なし」と出る');
+  has(ctx.nightLine_(segs[1]), 'データ不足（3件以上で表示）', '文にすると「データ不足（3件以上で表示）」と出る（言い方は全部これひとつ）');
 }
 
 console.log('\n■ 1行の文にする');
@@ -156,25 +156,47 @@ console.log('\n■ 狙い目の詳細時間（その区間でいちばん高か�
   eq(ctx.nightLine_({ from: 1, to: 2, name: '' }).indexOf('狙い目'), -1, '記録なしの区間には付けない');
 }
 
-console.log('\n■ 記録が少ない乗り場は「おすすめ」にしない');
-// ★ここが今回いちばん大事。2件しかない乗り場を「おすすめ」と出していた。
+console.log('\n■ 記録が少ない乗り場は、数字は出すが「おすすめ」にはしない');
+// ★2件しかない乗り場を「おすすめ」と出していたのが、そもそもの間違い。
 //   たまたま高い1本があれば、それだけで1位になってしまう。
+//   かといって丸ごと消すと、01〜03時台のように記録の薄い時間が空欄になり、
+//   「その時間は走れない」と読めてしまう。それもうそになる。
+//   出すが、データ不足だと断る。そして軸には据えない。
 {
   const t = tl({});
   t['平日'][20] = { best: { name: 'ｺﾅﾝ像', avg: 18000, count: 2, wait: 5, max: 30000, at: '20:10' }, worst: null };
   t['平日'][21] = { best: { name: '新地4', avg: 9000,  count: 8, wait: 20, max: 15000, at: '21:30' }, worst: null };
   const segs = ctx.buildNightPlan_(t, DAY_TYPES)['平日'];
 
-  const names = segs.map(s => s.name);
-  eq(names.indexOf('ｺﾅﾝ像'), -1, '2件しかない乗り場は、道すじに出さない');
-  eq(names.indexOf('新地4') !== -1, true, '8件ある乗り場は出す');
-  eq(G('LR_NIGHT_MIN_N'), 3, '出す最低ラインは3件');
+  const konan = segs.find(s => s.name === 'ｺﾅﾝ像');
+  eq(!!konan, true, '2件しかない乗り場も、数字は出す（隠さない）');
+  eq(konan && konan.thin, true, '  ただし「データ不足」の印が付く');
+  has(ctx.nightLine_(konan), 'データ不足（3件以上で表示）', '  文にも必ずそう書く');
+  has(ctx.nightLine_(konan), '狙い目：[20:10]', '  狙い目の時刻は出す（抜け落ちさせない）');
+  has(ctx.nightLine_(konan), '平均￥18,000', '  平均も出す');
 
-  // 3件あれば出す（ちょうど境目）
+  const shinchi = segs.find(s => s.name === '新地4');
+  eq(!!shinchi, true, '8件ある乗り場は、そのまま出す');
+  eq(shinchi && !shinchi.thin, true, '  こちらには印が付かない');
+  eq(G('LR_NIGHT_MIN_N'), 3, 'おすすめにする最低ラインは3件');
+
+  // ★いちばん大事なところ。18,000円のほうが高いが、2件なので軸にはしない
+  const head = ctx.nightHeadline_(segs);
+  has(head, '新地4', '軸は、記録が十分にあるほうにする');
+  eq(head.indexOf('ｺﾅﾝ像'), -1, '2件しかない乗り場を「軸は」と言い切らない');
+
+  // 3件あれば、ふつうに出す（ちょうど境目）
   const t2 = tl({});
   t2['平日'][20] = { best: { name: 'ｺﾅﾝ像', avg: 18000, count: 3, wait: 5, max: 30000, at: '20:10' }, worst: null };
-  eq(ctx.buildNightPlan_(t2, DAY_TYPES)['平日'].map(s => s.name).indexOf('ｺﾅﾝ像') !== -1, true,
-     'ちょうど3件なら出す');
+  const s2 = ctx.buildNightPlan_(t2, DAY_TYPES)['平日'].find(s => s.name === 'ｺﾅﾝ像');
+  eq(!!s2 && !s2.thin, true, 'ちょうど3件なら、印は付かない');
+
+  // 同じ乗り場でも、確かなぶんと データ不足のぶんは、ひとつにまとめない
+  const t3 = tl({});
+  t3['平日'][20] = { best: { name: '梅田', avg: 9000, count: 8, wait: 20, max: 15000, at: '20:30' }, worst: null };
+  t3['平日'][21] = { best: { name: '梅田', avg: 9000, count: 1, wait: 20, max: 15000, at: '21:30' }, worst: null };
+  const s3 = ctx.buildNightPlan_(t3, DAY_TYPES)['平日'].filter(x => x.name === '梅田');
+  eq(s3.length, 2, '確かなぶんと データ不足のぶんは、別の区間として出す');
 }
 
 console.log('\n■ 何件にもとづく数字かを、必ず出す');
