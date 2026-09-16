@@ -2,7 +2,30 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U031ver  （2026/09/16）  ★★★
+ *  ★★★  U032ver  （2026/09/16）  ★★★
+ *
+ *  [U032ver]
+ *   ・合言葉を増やした。どれで打っても通る（その1文だけのときに限る）
+ *     ・katastrophe ／ jebanni ／ gevanni
+ *     ・カタストロフィ ／ ジェバンニ（ひらがな・半角カナも）
+ *     ・飾り文字（𝐊𝐀𝐓𝐀 ／ 𝕜𝕒𝕥𝕒 ／ Ⓚⓐⓣⓐ ／ 🅺🅰🆃🅰 ／ ᴋᴀᴛᴀ ／ ＫＡＴＡ）
+ *     ・そのうえに飾りを重ねて崩したもの
+ *     ★「カタストロフィの件」のように、ほかの言葉が混ざったら反応しない
+ *   ・「という　りくつな　わけだ。」→「という　りくつな　わけだす。」
+ *   ・1回の送信にまとめた（updPushOnce_）
+ *     ・「取り込みを開始しました」「完了の合図」をやめた
+ *     ・星人の絵も、その1通の中に入れる（別便をやめた）
+ *     ・絵ではねられたときだけ、文だけで送り直す（文まで消えては困る）
+ *     ・★うまくいったときは、それ以上なにも送らない。
+ *       おかしくなったときだけ、もう1通お知らせする
+ *   ・意味不明な文字の羅列をやめた
+ *     代わりに、頭の1行だけ「てめえ達は今から」を上下ににじませる（updBleed_）。
+ *     読める言葉が崩れているほうが、記号の羅列よりドキッとする
+ *   ・区切り線を減らした（▚8つ・1〜2本だけ）
+ *   ・おもしろ動画に TikTok と X も入れた。探し方も「笑えるもの」に寄せた
+ *     （腹筋崩壊・爆笑・面白すぎる・ハプニング など）
+ *   ・星人の絵を、その動画の雰囲気に寄せるようにした
+ *     動画の見出しがわりにもなる
  *
  *  [U031ver]
  *   ・星人の「すがた（絵）」を出すようにした（updAlienPic_）
@@ -51,7 +74,7 @@
  *
  *  [U028ver]
  *   ・返事を、あの黒い球（GANTZ）の言い方にした
- *     「という　りくつな　わけだ。」
+ *     「という　りくつな　わけだす。」
  *     ひらがな中心の、平たい言い方。とくてんも出る（90〜100てん）
  *   ・★「死」「命」という言葉は、どこにも使わない
  *     コードの話なので「ふるいコード／あたらしいコード」に置きかえた
@@ -516,14 +539,131 @@ function menuSetGitHub() {
  * 大文字・小文字、全角・半角、前後の空白は、どれでも通す。
  *   KATASTROPHE / katastrophe / Ｋａｔａｓｔｒｏｐｈｅ …すべて同じ
  */
+/* ---------------- 飾り文字を、ふつうの字に戻す ---------------- */
+/*
+ * ★「特殊文字でもカタストロフィと分かるように」というご要望への答え。
+ *   文字変換サイトで出てくる飾り文字は、見た目は同じでも別の文字なので、
+ *   そのままでは合言葉として通りません。ここでふつうの字に戻します。
+ *
+ *   戻せるもの：
+ *     𝐊𝐀𝐓𝐀 （太字）  𝘬𝘢𝘵𝘢 （斜体）  𝕜𝕒𝕥𝕒 （白抜き）  𝔨𝔞𝔱𝔞 （飾り）
+ *     𝚔𝚊𝚝𝚊 （等幅）  Ⓚⓐⓣⓐ （まる囲み）  🅺🅰🆃🅰 （四角囲み）
+ *     ᴋᴀᴛᴀ （小さい大文字）  ＫＡＴＡ （全角）
+ *     そのうえに重ねた飾り（ぐちゃぐちゃ）も落とします
+ */
+const UPD_MATH_STARTS = [
+  0x1D400, 0x1D434, 0x1D468, 0x1D49C, 0x1D4D0, 0x1D504, 0x1D538,
+  0x1D56C, 0x1D5A0, 0x1D5D4, 0x1D608, 0x1D63C, 0x1D670
+];
+const UPD_DIGIT_STARTS = [0x1D7CE, 0x1D7D8, 0x1D7E2, 0x1D7EC, 0x1D7F6];
+const UPD_SMALLCAPS = {
+  "ᴀ":"a","ʙ":"b","ᴄ":"c","ᴅ":"d","ᴇ":"e","ꜰ":"f","ɢ":"g","ʜ":"h","ɪ":"i","ᴊ":"j",
+  "ᴋ":"k","ʟ":"l","ᴍ":"m","ɴ":"n","ᴏ":"o","ᴘ":"p","ǫ":"q","ʀ":"r","ꜱ":"s","ᴛ":"t",
+  "ᴜ":"u","ᴠ":"v","ᴡ":"w","x":"x","ʏ":"y","ᴢ":"z"
+};
+
+/** 飾り文字1つを、ふつうの字に戻す（戻せなければ、そのまま返す） */
+function updDeFontChar_(cp, ch) {
+  // 数学記号の英字（太字・斜体・白抜き・等幅…）
+  for (let i = 0; i < UPD_MATH_STARTS.length; i++) {
+    const st = UPD_MATH_STARTS[i];
+    if (cp >= st && cp < st + 26)      return String.fromCharCode(65 + (cp - st));
+    if (cp >= st + 26 && cp < st + 52) return String.fromCharCode(97 + (cp - st - 26));
+  }
+  // 数学記号の数字
+  for (let i = 0; i < UPD_DIGIT_STARTS.length; i++) {
+    const st = UPD_DIGIT_STARTS[i];
+    if (cp >= st && cp < st + 10) return String.fromCharCode(48 + (cp - st));
+  }
+  if (cp >= 0x24B6 && cp <= 0x24CF) return String.fromCharCode(65 + (cp - 0x24B6));  // Ⓐ
+  if (cp >= 0x24D0 && cp <= 0x24E9) return String.fromCharCode(97 + (cp - 0x24D0));  // ⓐ
+  if (cp >= 0x1F130 && cp <= 0x1F149) return String.fromCharCode(65 + (cp - 0x1F130)); // 🄰
+  if (cp >= 0x1F150 && cp <= 0x1F169) return String.fromCharCode(65 + (cp - 0x1F150)); // 🅐
+  if (cp >= 0x1F170 && cp <= 0x1F189) return String.fromCharCode(65 + (cp - 0x1F170)); // 🅰
+  if (cp >= 0x1F110 && cp <= 0x1F129) return String.fromCharCode(65 + (cp - 0x1F110)); // 🄀
+  if (UPD_SMALLCAPS[ch]) return UPD_SMALLCAPS[ch];
+  return ch;
+}
+
+/** 飾り文字を、ふつうの字に戻す（重ねた飾りも落とす） */
+function updDeFont_(str) {
+  const src = String(str == null ? "" : str);
+  let out = "";
+  for (const ch of src) {
+    const cp = ch.codePointAt(0);
+    // 重ねた飾り・異体字セレクタは落とす
+    if (cp >= 0x0300 && cp <= 0x036F) continue;
+    if (cp >= 0x1AB0 && cp <= 0x1AFF) continue;
+    if (cp >= 0x1DC0 && cp <= 0x1DFF) continue;
+    if (cp >= 0x20D0 && cp <= 0x20F0) continue;
+    if (cp >= 0xFE00 && cp <= 0xFE0F) continue;
+    if (cp === 0x200B || cp === 0x200C || cp === 0x200D) continue;
+    out += updDeFontChar_(cp, ch);
+  }
+  return out;
+}
+
+/* 半角カナ → 全角カナ（001-Code が古くても動くよう、ここにも持っておく） */
+const UPD_KANA_H2F = {
+  "ｶﾞ":"ガ","ｷﾞ":"ギ","ｸﾞ":"グ","ｹﾞ":"ゲ","ｺﾞ":"ゴ","ｻﾞ":"ザ","ｼﾞ":"ジ","ｽﾞ":"ズ","ｾﾞ":"ゼ","ｿﾞ":"ゾ",
+  "ﾀﾞ":"ダ","ﾁﾞ":"ヂ","ﾂﾞ":"ヅ","ﾃﾞ":"デ","ﾄﾞ":"ド","ﾊﾞ":"バ","ﾋﾞ":"ビ","ﾌﾞ":"ブ","ﾍﾞ":"ベ","ﾎﾞ":"ボ",
+  "ﾊﾟ":"パ","ﾋﾟ":"ピ","ﾌﾟ":"プ","ﾍﾟ":"ペ","ﾎﾟ":"ポ","ｳﾞ":"ヴ",
+  "ｱ":"ア","ｲ":"イ","ｳ":"ウ","ｴ":"エ","ｵ":"オ","ｶ":"カ","ｷ":"キ","ｸ":"ク","ｹ":"ケ","ｺ":"コ",
+  "ｻ":"サ","ｼ":"シ","ｽ":"ス","ｾ":"セ","ｿ":"ソ","ﾀ":"タ","ﾁ":"チ","ﾂ":"ツ","ﾃ":"テ","ﾄ":"ト",
+  "ﾅ":"ナ","ﾆ":"ニ","ﾇ":"ヌ","ﾈ":"ネ","ﾉ":"ノ","ﾊ":"ハ","ﾋ":"ヒ","ﾌ":"フ","ﾍ":"ヘ","ﾎ":"ホ",
+  "ﾏ":"マ","ﾐ":"ミ","ﾑ":"ム","ﾒ":"メ","ﾓ":"モ","ﾔ":"ヤ","ﾕ":"ユ","ﾖ":"ヨ",
+  "ﾗ":"ラ","ﾘ":"リ","ﾙ":"ル","ﾚ":"レ","ﾛ":"ロ","ﾜ":"ワ","ｦ":"ヲ","ﾝ":"ン",
+  "ｧ":"ァ","ｨ":"ィ","ｩ":"ゥ","ｪ":"ェ","ｫ":"ォ","ｯ":"ッ","ｬ":"ャ","ｭ":"ュ","ｮ":"ョ","ｰ":"ー"
+};
+function updKanaFull_(str) {
+  let out = String(str == null ? "" : str);
+  // 濁点つき（2文字ぶん）を先に直さないと、1文字ずつに割れてしまう
+  Object.keys(UPD_KANA_H2F).sort(function (a, b) { return b.length - a.length; })
+    .forEach(function (k) { out = out.split(k).join(UPD_KANA_H2F[k]); });
+  return out;
+}
+
+/*
+ * 合言葉。どれで打っても通る。
+ *   ・ローマ字      katastrophe / jebanni / gevanni
+ *   ・カタカナ      カタストロフィ／ジェバンニ
+ *   ・ひらがな      かたすとろふぃ／じぇばんに
+ *   ・半角カナ      ｶﾀｽﾄﾛﾌｨ／ｼﾞｪﾊﾞﾝﾆ
+ *   ・全角の英字    Ｋａｔａｓｔｒｏｐｈｅ
+ * ★その1文だけのとき限り。「カタストロフィの件」のように
+ *   ほかの言葉が混ざっていたら、反応しない。
+ */
+const UPD_KATA_ROMA = ["katastrophe", "jebanni", "gevanni", "jyebanni"];
+const UPD_KATA_KANA = [
+  /^カタストロフ[ィイー]?ー?$/,
+  /^ジ[ェエ]バンニ[ー]?$/
+];
+
 function updKataWord_(text) {
-  let t = String(text == null ? "" : text);
+  // まず飾り文字を、ふつうの字に戻す
+  let t = updDeFont_(text);
   // 全角のアルファベットを、半角に直す
   t = t.replace(/[Ａ-Ｚａ-ｚ]/g, function (c) {
     return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
   });
-  t = t.replace(/[\s\u3000]/g, "").toLowerCase();
-  return t === "katastrophe";
+  t = t.replace(/[\s\u3000]/g, "");
+  if (!t) return false;
+
+  // ローマ字で打たれたとき
+  if (UPD_KATA_ROMA.indexOf(t.toLowerCase()) !== -1) return true;
+
+  // 日本語で打たれたとき。半角カナ・ひらがなも受ける
+  let k = t;
+  try { if (typeof toFullKana_ === "function") k = toFullKana_(k); } catch (e) {}
+  k = updKanaFull_(k);                                       // 001-Code が古くても効くように
+  k = k.replace(/[\u3041-\u3096]/g, function (c) {           // ひらがな → カタカナ
+    return String.fromCharCode(c.charCodeAt(0) + 0x60);
+  });
+  // ★この1文だけのときに限る。前後に何か付いていたら、ここで外れる
+  for (let i = 0; i < UPD_KATA_KANA.length; i++) {
+    if (UPD_KATA_KANA[i].test(k)) return true;
+  }
+  return false;
 }
 
 /** 返事を返す場所（グループで打たれたらグループ、個人なら個人） */
@@ -572,6 +712,48 @@ const UPD_ZALGO = [
   "\u0327", "\u0328", "\u031F", "\u0321", "\u0323", "\u0325",
   "\u0334", "\u0335", "\u0336"
 ];
+
+/* 上にのびる飾り／下にのびる飾り（わけて持つ） */
+const UPD_ZALGO_UP = [
+  "\u0300","\u0301","\u0302","\u0303","\u0304","\u0305","\u0306","\u0307","\u0308",
+  "\u0309","\u030A","\u030B","\u030C","\u030D","\u030E","\u030F","\u0310","\u0311",
+  "\u0312","\u0313","\u0314","\u033D","\u033E","\u033F","\u0342","\u0346","\u034A",
+  "\u034B","\u034C","\u0350","\u0351","\u0352","\u0357","\u035B","\u0363","\u0364",
+  "\u0365","\u0366","\u0367","\u0368","\u0369","\u036A","\u036B","\u036C","\u036D"
+];
+const UPD_ZALGO_DOWN = [
+  "\u0316","\u0317","\u0318","\u0319","\u031C","\u031D","\u031E","\u031F","\u0320",
+  "\u0323","\u0324","\u0325","\u0326","\u0329","\u032A","\u032B","\u032C","\u032D",
+  "\u032E","\u032F","\u0330","\u0331","\u0332","\u0333","\u0339","\u033A","\u033B",
+  "\u033C","\u0345","\u0347","\u0348","\u0349","\u034D","\u034E","\u0353","\u0354",
+  "\u0355","\u0356","\u0359","\u035A"
+];
+
+/**
+ * 文字を上下ににじませて、となりの行にかぶらせる。
+ *
+ * ★スクリーンショットで見せていただいた「文字が重なって見えるやつ」を、
+ *   LINEの文字だけで似せる方法。
+ *   飾りを上に何個も、下に何個も積むと、その分だけ文字が上下にはみ出して、
+ *   上の行・下の行に食い込む。一瞬「バグった？」と見える。
+ *
+ *   ※読めなくなってしまっては意味がないので、
+ *     いちばん上の1行だけに使うこと。本文には使わない。
+ */
+function updBleed_(t, up, down) {
+  const u = Math.max(0, Math.min(Number(up)   || 6, 12));
+  const d = Math.max(0, Math.min(Number(down) || 6, 12));
+  const src = String(t == null ? "" : t);
+  let out = "";
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    out += ch;
+    if (ch === " " || ch === "　" || ch === "\n") continue;
+    for (let k = 0; k < u; k++) out += UPD_ZALGO_UP[Math.floor(Math.random() * UPD_ZALGO_UP.length)];
+    for (let k = 0; k < d; k++) out += UPD_ZALGO_DOWN[Math.floor(Math.random() * UPD_ZALGO_DOWN.length)];
+  }
+  return out;
+}
 
 /** ③ ぐちゃぐちゃにする。n は重ねる数（1〜3くらいが読める範囲） */
 function updGlitch_(t, n) {
@@ -760,7 +942,10 @@ function updAlienBlock_(a) {
   const x = (a && a.name && Array.isArray(a.toku)) ? a : updAlien_();
   const pt = (1 + Math.floor(Math.random() * 8)) * 10;
   const L = [];
-  L.push("てめえ達は今から");
+  // ★頭の1行だけ、わざと崩す。
+  //   意味のない記号を並べるより、読める言葉が壊れているほうがドキッとする。
+  //   一瞬「バグった？」と見えて、次の行でちゃんと読める、という見せ方
+  L.push(updBleed_("てめえ達は今から", 7, 7));
   L.push("この方を　乗車させて来て下ちい");
   L.push("");
   L.push("　" + x.name);
@@ -802,10 +987,10 @@ function updPicOn_() {
 }
 
 /** 星人のすがたを1枚つくって、ドライブに置き、その場所を返す */
-function updAlienPic_(a) {
+function updAlienPic_(a, theme) {
   try {
-    if (!updPicOn_() || !a || !a.name) return "";
-    if (typeof geminiReady_ !== "function") return "";
+    if (!updPicOn_() || !a || !a.name) return { url: "", id: "" };
+    if (typeof geminiReady_ !== "function") return { url: "", id: "" };
     const g = geminiReady_();
     let model = "";
     try { model = updCfg_("星人の絵のモデル") || ""; } catch (e) {}
@@ -819,14 +1004,15 @@ function updAlienPic_(a) {
       "・へんてこで、少し不気味で、でも笑える見た目にしてください\n" +
       "・絵の中に文字は入れないでください\n" +
       "・実在の人物には似せないでください\n" +
-      "・血や、けがをしている様子は描かないでください";
+      "・血や、けがをしている様子は描かないでください" +
+      (theme ? "\n・雰囲気は「" + theme + "」に寄せてください（そういう顔つきにする）" : "");
 
     const res = UrlFetchApp.fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/" + model +
       ":generateContent?key=" + encodeURIComponent(g.key),
       { method: "post", contentType: "application/json", muteHttpExceptions: true,
         payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-    if (res.getResponseCode() !== 200) return "";
+    if (res.getResponseCode() !== 200) return { url: "", id: "" };
 
     const parts = (JSON.parse(res.getContentText()).candidates || [{}])[0].content.parts || [];
     let data = "", mime = "image/png";
@@ -834,20 +1020,46 @@ function updAlienPic_(a) {
       const d = pt.inlineData || pt.inline_data;
       if (d && d.data) { data = d.data; mime = d.mimeType || d.mime_type || mime; }
     });
-    if (!data) return "";
+    if (!data) return { url: "", id: "" };
 
     const blob = Utilities.newBlob(Utilities.base64Decode(data), mime,
                                    a.name + "_" + Date.now() + ".png");
     const file = DriveApp.createFile(blob);
     try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
-    return file.getUrl() || "";
+    return { url: file.getUrl() || "", id: file.getId() || "" };
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("updAlienPic", e);
-    return "";
+    return { url: "", id: "" };
   }
 }
 
-/** 絵づくりを、あとから別便でやるように頼む */
+/**
+ * 1回の送信にまとめる。
+ *
+ * ★「絵が出せなかったせいで、文まで届かない」のがいちばん困る。
+ *   絵を付けて送ってみて、はねられたら文だけで送り直す。
+ */
+function updPushOnce_(to, text, pic) {
+  if (!to || typeof lrPush_ !== "function") return;
+  const only = [{ type: "text", text: String(text).slice(0, 4900) }];
+  if (pic && pic.id) {
+    const direct = "https://drive.google.com/uc?export=view&id=" + pic.id;
+    const withPic = only.concat([{ type: "image",
+      originalContentUrl: direct, previewImageUrl: direct }]);
+    let err = "";
+    try { err = lrPush_(to, withPic) || ""; } catch (e) { err = String(e && e.message ? e.message : e); }
+    if (!err) return;                       // 絵つきで送れた
+    // 絵ではねられた。せめて文だけは必ず届ける（ありかは文の中に入れてある）
+  }
+  try { lrPush_(to, only); } catch (e) {}
+}
+
+/**
+ * 絵づくりを、あとから別便でやるように頼む。
+ *
+ * ※いまは使っていません（1回の送信にまとめる形にしたため）。
+ *   絵に時間がかかりすぎるようになったときのために、残してあります。
+ */
 function updAlienPicLater_(a, to) {
   try {
     if (!updPicOn_() || !to || !a) return;
@@ -872,13 +1084,10 @@ function updAlienPicJob_() {
   } catch (e) {}
   if (!job || !job.to || !job.a) return;
 
-  const url = updAlienPic_(job.a);
+  const pic = updAlienPic_(job.a, job.theme);
   // 絵が作れなかったら、黙って何も送らない（文はもう届いている）
-  if (!url || typeof lrPush_ !== "function") return;
-  try {
-    lrPush_(job.to, [{ type: "text",
-      text: UPD_LINE + "\n" + job.a.name + "　の　すがた\n" + UPD_LINE + "\n" + url }]);
-  } catch (e) {}
+  if (!pic || !pic.url) return;
+  updPushOnce_(job.to, UPD_LINE + "\n" + job.a.name + "　の　すがた\n" + UPD_LINE + "\n" + pic.url, pic);
 }
 
 /** あの黒い球 */
@@ -888,10 +1097,8 @@ const UPD_BALL = "　　　　　　●";
 const UPD_LINE = "▚▚▚▚▚▚▚▚";
 
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
-function updKataStart_(where, alien) {
+function updKataStart_(alien) {
   return UPD_BALL + "\n" +
-         updNoise_(2, 16, 2) + "\n" +
-         UPD_LINE + "\n" +
          updAlienBlock_(alien) + "\n" +
          UPD_LINE + "\n" +
          "きみたちの　ふるいスプシは\n" +
@@ -901,34 +1108,18 @@ function updKataStart_(where, alien) {
          "どう　アップデートしようと\n" +
          "わたしの　かってです。\n" +
          "\n" +
-         "という　りくつな　わけだ。\n" +
-         "\n" +
-         "取り込みを開始しました（" + where + "）。\n" +
-         "2〜3分で完了の合図を送ります。";
-}
-
-function updKataDone_(body) {
-  // 点数は、そのつど変わったほうが楽しい
-  const pt = 90 + Math.floor(Math.random() * 11);
-  return UPD_BALL + "\n" +
-         updNoise_(1, 16, 2) + "\n" +
-         UPD_LINE + "\n" +
-         "きみの　とくてんは　" + updWide_(String(pt)) + "てん　です。\n" +
-         (pt >= 100 ? "ひゃくてん。\nよくやりました。\n" : "あと　" + (100 - pt) + "てんで　ひゃくてん。\n") +
-         "\n" + String(body || "") + "\n\n" +
-         "つぎの　しれいを　まて。\n" +
-         "という　りくつな　わけだ。";
+         "という　りくつな　わけだす。";
 }
 
 function updKataFail_(body) {
   return UPD_BALL + "\n" +
-         updNoise_(1, 16, 3) + "\n" +
+         updBleed_("しっぱいしました", 5, 5) + "\n" +
          UPD_LINE + "\n" +
          "てんそうは　ちゅうしされました。\n" +
          "きみの　スプシは　そのままです。\n" +
          "\n" + String(body || "") + "\n\n" +
          "やりなおしても　かまいません。\n" +
-         "という　りくつな　わけだ。";
+         "という　りくつな　わけだす。";
 }
 
 /* ---------------- 合言葉を、ほかの人が打ったとき ---------------- */
@@ -968,24 +1159,42 @@ function updFunSheet_() {
 
 /** いつでも開ける、YouTubeの流行りの入口（無くならないページ） */
 const UPD_FUN_FALLBACK = [
-  "https://www.youtube.com/hashtag/shorts",
-  "https://www.youtube.com/results?search_query=" + encodeURIComponent("面白い shorts"),
-  "https://www.youtube.com/results?search_query=" + encodeURIComponent("爆笑 shorts"),
-  "https://www.youtube.com/results?search_query=" + encodeURIComponent("ドッキリ shorts"),
-  "https://www.youtube.com/results?search_query=" + encodeURIComponent("動物 面白 shorts"),
-  "https://www.youtube.com/feed/trending"
+  // ★ねらいは「とにかく笑えるやつ」。
+  //   ただ流行っているだけのものではなく、笑いに寄せた探し方にしてある。
+  // YouTube ショート
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("腹筋崩壊 shorts"),   from: "YouTube", theme: "笑いすぎて腹をかかえている人" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("面白すぎる shorts"), from: "YouTube", theme: "大笑いしている人" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("爆笑 ハプニング shorts"), from: "YouTube", theme: "しくじって固まっている人" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("ドッキリ 爆笑 shorts"), from: "YouTube", theme: "おどろいて飛び上がっている人" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("面白い 動物 shorts"), from: "YouTube", theme: "動物みたいな顔" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("笑ってはいけない shorts"), from: "YouTube", theme: "笑いをこらえている人" },
+  // TikTok
+  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("腹筋崩壊"),   from: "TikTok", theme: "笑いすぎて涙が出ている人" },
+  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("爆笑"),       from: "TikTok", theme: "口を開けて笑っている人" },
+  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("面白すぎる"), from: "TikTok", theme: "ふざけた顔" },
+  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("おもしろ動物"), from: "TikTok", theme: "動物みたいな顔" },
+  // X（旧Twitter）
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("腹筋崩壊"),     from: "X", theme: "笑いすぎて腹をかかえている人" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("爆笑 動画"),    from: "X", theme: "にやついている人" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("面白すぎる"),   from: "X", theme: "大笑いしている人" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("かわいい動物"), from: "X", theme: "動物みたいな顔" }
 ];
 
-/** おもしろ動画を1本えらぶ。貼ってあればそこから、無ければ流行りの一覧から */
-function updFunLink_() {
+/**
+ * おもしろ動画を1本えらぶ。
+ * 戻り値は { url, theme }。theme は、星人の顔をその動画に寄せるための手がかり。
+ * 貼ってあればそこから、無ければ流行りの一覧から。
+ */
+function updFunPick_() {
   const list = [];
   try {
     const sh = updFunSheet_();
     if (sh && sh.getLastRow() >= 2) {
-      sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().forEach(function (r) {
+      sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (r) {
         const u = String(r[0] == null ? "" : r[0]).trim();
+        const memo = String(r[1] == null ? "" : r[1]).trim();
         // ちゃんとしたリンクだけ。メモ書きが混ざっていても拾わない
-        if (/^https?:\/\//i.test(u)) list.push(u);
+        if (/^https?:\/\//i.test(u)) list.push({ url: u, from: "", theme: memo });
       });
     }
   } catch (e) {}
@@ -993,18 +1202,21 @@ function updFunLink_() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+/** 動画のリンクだけ欲しいとき */
+function updFunLink_() { return updFunPick_().url; }
+
 /** ほかの人が合言葉を打ったときの返事（近未来のロボットの声） */
-function updKataDenied_(alien) {
+function updKataDenied_(alien, fun) {
   return UPD_BALL + "\n" +
-         updNoise_(2, 16, 3) + "\n" +
-         UPD_LINE + "\n" +
          updAlienBlock_(alien) + "\n" +
          UPD_LINE + "\n" +
          "きみは　えらばれて　いません。\n" +
          "スプシは　なにも　かわりません。\n" +
          "\n" +
          "そのかわり　これを　みなさい。\n" +
-         "という　りくつな　わけだ。";
+         "という　りくつな　わけだす。\n" +
+         ((fun && fun.from) ? "（" + fun.from + "）\n" : "") +
+         String((fun && fun.url) || "");
 }
 
 /**
@@ -1038,12 +1250,14 @@ function updHandleKata_(ev) {
       if (cc.get(kk)) return true;               // 少し前に送ったばかりなら、黙って見送る
       cc.put(kk, "1", 600);
     } catch (e) {}
+    // ★1回の送信にまとめる。
+    //   動画を1本えらび、その動画にちなんだ顔で星人の絵を作り、
+    //   文と絵をいっしょに1回だけ送る（動画の見出しにもなる）
+    const fun = updFunPick_();
     const alien = updAlien_();
-    if (typeof lineReply_ === "function") {
-      lineReply_((ev && ev.replyToken) || "", updKataDenied_(alien) + "\n\n" + updFunLink_());
-    }
-    // 絵は、あとから別便で追いかけさせる（作るのに5〜15秒かかるため）
-    updAlienPicLater_(alien, updWhere_(ev));
+    const pic = updAlienPic_(alien, fun.theme);
+    updPushOnce_(updWhere_(ev), updKataDenied_(alien, fun) +
+                 (pic.url ? "\n" + pic.url : ""), pic);
     return true;
   }
 
@@ -1089,9 +1303,11 @@ function updHandleKata_(ev) {
     say(updKataFail_("取り込みを始められませんでした：" + (e && e.message ? e.message : e)));
     return true;
   }
+  // ★1回の送信にまとめる。うまくいけば、これ1通で終わり。
+  //   おかしくなったときだけ、あとからもう1通お知らせする
   const alien = updAlien_();
-  say(updKataStart_(where, alien));
-  updAlienPicLater_(alien, updWhere_(ev));
+  const pic = updAlienPic_(alien, "");
+  updPushOnce_(updWhere_(ev), updKataStart_(alien) + (pic.url ? "\n" + pic.url : ""), pic);
   return true;
 }
 
@@ -1116,8 +1332,14 @@ function updRunFromLine_() {
   catch (e) { out = "取り込みに失敗しました：" + (e && e.message ? e.message : e); bad = true; }
   if (/^❌/.test(String(out))) bad = true;
 
-  // 合言葉から始めたときは、近未来のロボットの声で返す
-  if (kata) out = bad ? updKataFail_(out) : updKataDone_(out);
+  // ★合言葉から始めたときは、うまくいったら何も送らない。
+  //   1回の通知で済ませたい、というご希望。
+  //   うまくいっているのに何度も鳴るほうが、うるさい。
+  //   おかしくなったときだけ、もう一度お知らせする。
+  if (kata) {
+    if (!bad) return;
+    out = updKataFail_(out);
+  }
 
   if (to && typeof lrPush_ === "function") {
     try { lrPush_(to, [{ type: "text", text: String(out).slice(0, 4900) }]); } catch (e) {}

@@ -1553,7 +1553,23 @@ console.log('\n■ 合言葉「katastrophe」');
   t(K('ＫＡＴＡＳＴＲＯＰＨＥ') === true, '  全角の大文字でも');
   t(K(' katastrophe ') === true, '前後に空白があっても');
   t(K('katastrophen') === false, '別の言葉は通さない');
-  t(K('カタストロフ') === false, 'カタカナは通さない');
+  t(K('カタストロフ') === true, '★カタカナでも通る');
+  t(K('カタストロフィ') === true, '  「ィ」が付いても');
+  t(K('かたすとろふぃ') === true, '  ひらがなでも');
+  t(K('ｶﾀｽﾄﾛﾌｨ') === true, '  半角カナでも');
+  t(K('ジェバンニ') === true, '★「ジェバンニ」でも通る');
+  t(K('じぇばんに') === true, '  ひらがなでも');
+  t(K('ｼﾞｪﾊﾞﾝﾆ') === true, '  半角カナでも');
+  t(K('jebanni') === true, '  ローマ字でも');
+  t(K('Gevanni') === true, '  つづりちがいでも');
+  t(K('𝐊𝐀𝐓𝐀𝐒𝐓𝐑𝐎𝐏𝐇𝐄') === true, '★飾り文字（太字）でも通る');
+  t(K('𝕜𝕒𝕥𝕒𝕤𝕥𝕣𝕠𝕡𝕙𝕖') === true, '  白抜きでも');
+  t(K('Ⓚⓐⓣⓐⓢⓣⓡⓞⓟⓗⓔ') === true, '  まる囲みでも');
+  t(K('🅺🅰🆃🅰🆂🆃🆁🅾🅿🅷🅴') === true, '  四角囲みでも');
+  t(K('ᴋᴀᴛᴀsᴛʀᴏᴘʜᴇ') === true, '  小さい大文字でも');
+  t(K('k̴a̵t̶a̷s̸t̴r̵o̶p̷h̸e̴') === true, '  ぐちゃぐちゃにしても');
+  t(K('カタストロフィの件') === false, '★ほかの言葉が混ざったら、反応しない');
+  t(K('ジェバンニが一晩で') === false, '  これも反応しない');
   t(K('') === false, '空でも落ちない');
   t(K(null) === false, 'null でも落ちない');
 
@@ -1564,25 +1580,27 @@ console.log('\n■ 合言葉「katastrophe」');
   props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
 
   // ほかの人が打っても、何も起きず、何も返さない
-  ctx.rep.length = 0; triggers.length = 0;
+  ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
   t(upTrig().length === 0, '  ★取り込みは絶対に始めない');
-  t(ctx.rep.length === 1 && ctx.rep[0].indexOf('きみは　えらばれて　いません') !== -1,
-    '  代わりに、あの黒い球の声で断る');
+  t(ctx.pu.length === 1, '  代わりに、1回だけ送る');
+  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれて　いません') !== -1,
+    '  あの黒い球の声で断る');
 
   // 個人LINEから
-  ctx.rep.length = 0; triggers.length = 0;
+  ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     'まーくさんが打つと動く');
   t(upTrig().length === 1, '  裏で取り込む見張りを作る');
   t(upTrig()[0]._kind === 'after', '  受け口の中では取り込まない');
-  t(ctx.rep[0].indexOf('きみたちの　ふるいスプシは') !== -1, '  あの黒い球の声で返す');
-  t(ctx.rep[0].indexOf('という　りくつな　わけだ') !== -1, '  あの言い回しも入る');
-  t(ctx.rep[0].indexOf('●') !== -1, '  黒い球も出る');
-  t(ctx.rep[0].indexOf('取り込みを開始しました') !== -1, '  ★日本語で中身も必ず添える');
-  t(ctx.rep[0].indexOf('死') === -1 && ctx.rep[0].indexOf('命') === -1,
-    '  ★「死」「命」という言葉は使わない');
+  t(ctx.pu.length === 1, '★送るのは1回だけ');
+  const kt = ctx.pu[0].msgs[0].text;
+  t(kt.indexOf('きみたちの　ふるいスプシは') !== -1, '  あの黒い球の声で返す');
+  t(kt.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
+  t(kt.indexOf('●') !== -1, '  黒い球も出る');
+  t(kt.indexOf('取り込みを開始しました') === -1, '★「取り込みを開始しました」は、もう書かない');
+  t(kt.indexOf('死') === -1 && kt.indexOf('命') === -1, '  ★「死」「命」という言葉は使わない');
   t(props['UPD_LINE_TO'] === 'Umark', '  結果の送り先を覚える');
   t(props['UPD_LINE_KATA'] === '1', '  合言葉から始めたことも覚える');
 
@@ -1593,15 +1611,25 @@ console.log('\n■ 合言葉「katastrophe」');
   t(upTrig().length === 0, '  ★二重には動かさない');
   t(ctx.rep[0].indexOf('IN BEARBEITUNG') !== -1, '  すでに動いていると伝える');
 
-  // 終わったら、ロボットの声で結果を返す
+  // ★うまくいったときは、もう何も送らない（1回の通知で済ませる）
   ctx.pu.length = 0;
   triggers.push({ getHandlerFunction: () => 'updRunFromLine_', _kind: 'after' });
   F('updRunFromLine_')();
-  t(ctx.pu.length === 1 && ctx.pu[0].to === 'Umark', '結果を送る');
-  const done = ctx.pu[0].msgs[0].text;
-  t(done.indexOf('という　りくつな　わけだ') !== -1, '  あの黒い球の声で返す');
-  t(done.indexOf('死') === -1 && done.indexOf('命') === -1, '  ★「死」「命」は使わない');
+  t(ctx.pu.length === 0, '★うまくいったら、完了の合図は送らない');
   t(props['UPD_LINE_KATA'] === undefined, '  合言葉の覚え書きは消す');
+
+  // おかしくなったときだけ、もう一度お知らせする
+  ctx.pu.length = 0;
+  props['UPD_LINE_TO'] = 'Umark'; props['UPD_LINE_KATA'] = '1';
+  gh = { fail: { code: 404, msg: 'not found' } };
+  triggers.push({ getHandlerFunction: () => 'updRunFromLine_', _kind: 'after' });
+  F('updRunFromLine_')();
+  t(ctx.pu.length === 1, '★しくじったときだけ、もう1通お知らせする');
+  const bad = ctx.pu[0].msgs[0].text;
+  t(bad.indexOf('きみの　スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
+  t(bad.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file', sha: 'z' }],
+         raw: { 'gas/001-Code.gs': 'function appsscript(){}' } };
 
   // グループLINEから打っても効く（結果はそのグループへ）
   ctx.rep.length = 0; triggers.length = 0; ctx.pu.length = 0;
@@ -1633,38 +1661,41 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
     cc.remove('UPD_RUNNING'); cc.remove('KATA_FUN_Uother'); cc.remove('KATA_FUN_Uthird');
   } catch (e) {}
 
-  ctx.rep.length = 0; triggers.length = 0;
+  ctx.pu.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     'ほかの人が打っても受ける');
   t(upTrig().length === 0, '★コードの取り込みは、絶対に動かさない');
   t(props['UPD_LINE_TO'] === undefined || props['UPD_LINE_TO'] !== 'Uother',
     '  結果の送り先にもならない');
-  t(ctx.rep.length === 1, '  返事は1回');
-  t(ctx.rep[0].indexOf('きみは　えらばれて　いません') !== -1, '  あの黒い球の声で断る');
-  t(ctx.rep[0].indexOf('スプシは　なにも　かわりません') !== -1,
+  t(ctx.pu.length === 1, '★送るのは1回だけ');
+  t(ctx.pu[0].to === 'Cgroup', '  打った場所（グループ）へ送る');
+  const dn = ctx.pu[0].msgs[0].text;
+  t(dn.indexOf('きみは　えらばれて　いません') !== -1, '  あの黒い球の声で断る');
+  t(dn.indexOf('スプシは　なにも　かわりません') !== -1,
     '  ★「なにも変わっていない」と、はっきり書く');
-  t(ctx.rep[0].indexOf('死') === -1 && ctx.rep[0].indexOf('命') === -1,
-    '  ★「死」「命」は使わない');
-  t(/https:\/\/www\.youtube\.com\//.test(ctx.rep[0]), '  ★おもしろ動画のリンクを送る');
+  t(dn.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
+  t(dn.indexOf('死') === -1 && dn.indexOf('命') === -1, '  ★「死」「命」は使わない');
+  t(/https:\/\/(www\.youtube\.com|www\.tiktok\.com|x\.com)\//.test(dn), '  ★おもしろ動画のリンクも、同じ1通に入れる');
+  t(dn.indexOf('星人') !== -1, '  星人も同じ1通に入る');
 
   // 何度も打たれても、グループが動画だらけにならない
-  ctx.rep.length = 0;
+  ctx.pu.length = 0;
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     '続けて打っても受ける');
-  t(ctx.rep.length === 0, '★続けて打たれても、二度は送らない（10分に1回まで）');
+  t(ctx.pu.length === 0, '★続けて打たれても、二度は送らない（10分に1回まで）');
 
   // 別の人なら送る
-  ctx.rep.length = 0;
-  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uthird', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
-    '別の人が打てば受ける');
-  t(ctx.rep.length === 1, '  その人にはちゃんと送る');
+  ctx.pu.length = 0;
+  t(kata({ message: { text: 'カタストロフィ' }, source: { userId: 'Uthird', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    '別の人が「カタストロフィ」と打っても受ける');
+  t(ctx.pu.length === 1, '  その人にはちゃんと送る');
   t(upTrig().length === 0, '  それでも取り込みは動かさない');
 
   // 動画のリンクは、何度呼んでも必ず開ける形
   const L = F('updFunLink_');
   const got = {};
-  for (let i = 0; i < 40; i++) { const u = L(); got[u] = 1; if (!/^https:\/\/www\.youtube\.com\//.test(u)) { ng++; console.log('  NG  リンクの形'); } }
-  t(true, '40回えらんでも、すべてYouTubeのリンク');
+  for (let i = 0; i < 40; i++) { const u = L(); got[u] = 1; if (!/^https:\/\/(www\.youtube\.com|www\.tiktok\.com|x\.com)\//.test(u)) { ng++; console.log('  NG  リンクの形', u); } }
+  t(true, '40回えらんでも、すべて YouTube・TikTok・X のどれかのリンク');
   t(Object.keys(got).length > 1, '  毎回おなじではない（ランダムにえらぶ）');
 }
 
@@ -1693,8 +1724,8 @@ console.log('\n■ 特殊な文字で、字を飾る');
   t(G('ABC', 2) !== G('ABC', 2) || true, '  毎回ちがう飾りになる');
 
   // LINEの1通（5,000文字）に、ちゃんと収まること
-  ['updKataStart_', 'updKataDone_', 'updKataFail_', 'updKataDenied_'].forEach(function (fn) {
-    const out = F(fn)('てすと');
+  ['updKataStart_', 'updKataFail_', 'updKataDenied_'].forEach(function (fn) {
+    const out = F(fn)();
     t(String(out).length < 4000, '★' + fn + ' は1通に収まる（' + String(out).length + '文字）');
   });
 }
@@ -1719,7 +1750,7 @@ console.log('\n■ 訳の分からない文字の壁');
   // セリフはもう入れない
   ['updKataStart_', 'updKataDenied_'].forEach(function (fn) {
     const out = F(fn)('てすと');
-    t(out.indexOf('なんか文字出てるぞ') === -1 && out.indexOf('な ん か 文 字 出 て る ぞ') === -1,
+    t(out.indexOf('なんか文字出てるぞ') === -1,
       '★' + fn + ' に、あのセリフは入れない');
     t(out.indexOf('●') !== -1, '  ' + fn + ' には黒い球が出る');
     t(out.length < 4000, '  ' + fn + ' は1通に収まる（' + out.length + '文字）');
@@ -1743,7 +1774,7 @@ console.log('\n■ 毎回ちがう星人が出る（特徴・好きなもの・�
   t(Object.keys(seen).length > 20, '毎回ちがう星人になる');
 
   const b = B();
-  t(b.indexOf('てめえ達は今から') !== -1, '★あの「今から」の言い方で始まる');
+  t(b.replace(/[\u0300-\u036F]/g,'').indexOf('てめえ達は今から') !== -1, '★あの「今から」の言い方で始まる');
   t(b.indexOf('下ちい') !== -1, '  わざと まちがえた字も、そのまま');
   t(b.indexOf('星人') !== -1, '  星人の名前が出る');
   t(b.indexOf('　　特徴') !== -1, '★「特徴」のらんが出る');
@@ -1788,51 +1819,41 @@ console.log('\n■ 毎回ちがう星人が出る（特徴・好きなもの・�
 }
 
 
-console.log('\n■ 星人のすがた（絵）');
+console.log('\n■ 星人のすがた（絵）は、同じ1通に入れる');
 {
-  // ★絵は5〜15秒かかる。受け口の中で待つと、LINEが合図を送り直してくる。
-  //   だから「あとから別便」で送る
-  const picTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updAlienPicJob_');
-  triggers.length = 0;
-  delete props['UPD_PIC'];
-  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
-  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok';
+  // ★1回の通知で済ませたい、というご希望。
+  //   文と絵を、同じ1回の送信にまとめる。
+  //   絵ではねられたときだけ、文だけで送り直す（文まで消えては困る）
+  const P = F('updPushOnce_');
 
-  const kata = F('updHandleKata_');
-  ctx.rep.length = 0;
-  kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' });
-  t(picTrig().length === 1, '★絵は、あとから別便で作る（受け口の中では待たない）');
-  t(picTrig()[0]._kind === 'after', '  1回だけ動く見張り');
-  const job = JSON.parse(props['UPD_PIC']);
-  t(job.to === 'Umark', '  送り先を覚えている');
-  t(/星人$/.test(job.a.name), '  どの星人の絵かも覚えている');
-  t(ctx.rep[0].indexOf(job.a.name) !== -1, '★文に出た星人と、絵にする星人は同じ');
-
-  // ほかの人のときも、絵は出る
-  triggers.length = 0; delete props['UPD_PIC']; ctx.rep.length = 0;
-  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Ufour'); } catch (e) {}
-  kata({ message: { text: 'katastrophe' }, source: { userId: 'Ufour', groupId: 'Cgroup' }, replyToken: 'r' });
-  t(picTrig().length === 1, '★ほかの人のときも、絵は出る');
-  t(JSON.parse(props['UPD_PIC']).to === 'Cgroup', '  打った場所（グループ）へ送る');
-  t(upTrig().length === 0, '  それでも取り込みは動かさない');
-
-  // 絵が作れなかったら、黙って何も送らない（文はもう届いている）
   ctx.pu.length = 0;
-  triggers.push({ getHandlerFunction: () => 'updAlienPicJob_', _kind: 'after' });
-  reply = { '*': { code: 500, body: '' } };          // 絵が作れない状況
-  F('updAlienPicJob_')();
-  t(ctx.pu.length === 0, '★絵が作れなければ、黙って何も送らない');
-  t(picTrig().length === 0, '  それでも自分の見張りは片づける');
-  t(props['UPD_PIC'] === undefined, '  覚え書きも消す');
+  P('Umark', 'ほんぶん', { url: 'https://drive.google.com/file/d/ID/view', id: 'ID' });
+  t(ctx.pu.length === 1, '★送るのは1回だけ');
+  t(ctx.pu[0].msgs.length === 2, '  文と絵を、いっしょに送る');
+  t(ctx.pu[0].msgs[0].type === 'text', '  1つめは文');
+  t(ctx.pu[0].msgs[1].type === 'image', '  2つめが絵');
+  t(ctx.pu[0].msgs[1].originalContentUrl.indexOf('ID') !== -1, '  その絵のありかを指す');
 
-  // 「いいえ」にすれば、絵は出ない
-  props['CFG_星人の絵を出す'] = 'いいえ';
+  // 絵が無いときは、文だけ
+  ctx.pu.length = 0;
+  P('Umark', 'ほんぶん', { url: '', id: '' });
+  t(ctx.pu.length === 1 && ctx.pu[0].msgs.length === 1, '絵が無ければ、文だけを1回');
+
+  // 絵ではねられたら、文だけで送り直す
+  let calls = 0;
+  vm.runInContext('function lrPush_(to, msgs){ pu.push({to:to,msgs:msgs}); return msgs.length > 1 ? "画像がだめでした" : ""; }', ctx);
+  ctx.pu.length = 0;
+  P('Umark', 'ほんぶん', { url: 'https://drive.google.com/file/d/ID/view', id: 'ID' });
+  t(ctx.pu.length === 2, '★絵ではねられたら、もう一度やり直す');
+  t(ctx.pu[1].msgs.length === 1 && ctx.pu[1].msgs[0].type === 'text',
+    '  ★そのときは文だけ。文まで消えては困る');
+  vm.runInContext('function lrPush_(to, msgs){ pu.push({ to: to, msgs: msgs }); }', ctx);
+
+  // 設定で「いいえ」にすれば、絵は作らない
   vm.runInContext('function updCfg_(k){ return k === "星人の絵を出す" ? "いいえ" : ""; }', ctx);
-  triggers.length = 0; delete props['UPD_PIC'];
-  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
-  kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' });
-  t(picTrig().length === 0, '★設定で「いいえ」にすれば、絵は作らない');
+  t(F('updPicOn_')() === false, '★設定で「いいえ」にすれば、絵は作らない');
   vm.runInContext('function updCfg_(k){ return ""; }', ctx);
+  t(F('updPicOn_')() === true, '  ふだんは作る');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
