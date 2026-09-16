@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U057ver  （2026/09/16）  ★★★
+ *  ★★★  U058ver  （2026/09/16）  ★★★
+ *
+ *  [U058ver]
+ *   ・鍵（トークン）が無くても、GitHubから読めるようにした
+ *     ★申し訳ありませんでした。circlenine/test は みんなに公開されている
+ *       置き場です。鍵は はじめから要りませんでした。
+ *       それなのに「鍵を入れてください」と言い続け、
+ *       GitHubでトークンを作る作業までお願いしてしまいました。
+ *     ★止まっていた ほんとうの理由は、2つです。
+ *       ① 鍵が空でも「Authorization: Bearer 」と、中身の無い鍵を
+ *          付けて送っていた。GitHubから見ると、これは
+ *          「壊れた鍵を出した」という意味になり、断られます。
+ *          鍵が無いときは、その行ごと付けないようにしました
+ *       ② 鍵が無いと ドライブのほうを読みにいく作りだった。
+ *          置き場さえ分かっていれば GitHubを読みます
+ *   ・「鍵が入っていません」で止めるのを、やめた
+ *     ほんとうに読めないときだけ、updDiag_ が理由を言い当てます
+ *   ・鍵なしで聞ける回数を使い切ったとき（403）も、言い当てるようにした
  *
  *  [U057ver]
  *   ・鍵を入れる画面で、鍵だけをきくようにした
@@ -654,8 +671,16 @@ function updBranch_() {
   return "main";
 }
 
-/** いまどこから読むか */
-function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive"; }
+/**
+ * いまどこから読むか。
+ *
+ * ★前は「鍵が無ければ ドライブ」でした。
+ *   けれど、みんなに公開されている置き場なら、鍵は要りません。
+ *   鍵が無いというだけでドライブを読みにいき、
+ *   古いコードが入ってしまう形になっていました。
+ *   置き場さえ分かっていれば、GitHubを読みにいきます。
+ */
+function updSource_() { return updRepo_() ? "github" : "drive"; }
 
 /**
  * 鍵の入れ方を、道順まで書いて返す。
@@ -694,12 +719,7 @@ function updTokenHow_() {
 function updGhTry_(url) {
   try {
     const res = UrlFetchApp.fetch(url, {
-      headers: {
-        "Authorization": "Bearer " + updToken_(),
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "taxi-gas-updater"
-      },
+      headers: updGhHeaders_(false),
       muteHttpExceptions: true
     });
     return { code: res.getResponseCode(), body: res.getContentText() };
@@ -732,13 +752,8 @@ function updDiag_(wantBranch) {
     L.push("　circlenine/test と入れてください。");
     return { ok: false, text: L.join("\n") };
   }
-  if (!tok) {
-    L.push("⚠️ GitHubの鍵が入っていません。");
-    L.push("　置き場：" + repo);
-    L.push("");
-    L.push(updTokenHow_());
-    return { ok: false, text: L.join("\n") };
-  }
+  // ★鍵が無くても、公開されている置き場なら読めます。
+  //   ここでは止めず、実際に聞いてみて決めます
 
   // ① 置き場そのものが見えるか
   const r1 = updGhTry_("https://api.github.com/repos/" + repo);
@@ -755,12 +770,18 @@ function updDiag_(wantBranch) {
     L.push("");
     L.push("　考えられるのは、この2つです。");
     L.push("　① 置き場の名前がちがう");
-    L.push("　　（設定タブ「コードの置き場（GitHub）」）");
-    L.push("　② 鍵に、この置き場を読む力が無い");
-    L.push("　　人に見せない置き場のとき、GitHubは鍵が足りなくても");
-    L.push("　　「無い」と答えます。②のほうが多いです。");
-    L.push("");
-    L.push(updTokenHow_());
+    L.push("　　「おきば ○○/○○」で直せます。");
+    L.push("　② 人に見せない置き場で、鍵が要る");
+    L.push("　　（公開されている置き場なら、鍵は要りません）");
+    if (!tok) { L.push(""); L.push(updTokenHow_()); }
+    return { ok: false, text: L.join("\n") };
+  }
+  if (r1.code === 403) {
+    L.push("⚠️ しばらく待ってください（403）。");
+    L.push("　鍵なしで聞ける回数（1時間に60回）を使い切りました。");
+    L.push("　1時間ほどおけば、また読めるようになります。");
+    L.push("　待てないときは、鍵を入れると回数がぐっと増えます。");
+    if (!tok) { L.push(""); L.push(updTokenHow_()); }
     return { ok: false, text: L.join("\n") };
   }
   if (r1.code !== 200) {
@@ -836,14 +857,33 @@ function updHeadInfo_(branchIn) {
 }
 
 /** GitHub を叩く */
+/**
+ * GitHubに聞くときの、あいさつの部分（ヘッダー）を作る。
+ *
+ * ★鍵が無いときは、鍵の行そのものを付けません。
+ *
+ *   前は、鍵が空でも「Authorization: Bearer 」と、中身の無い鍵を
+ *   付けて送っていました。GitHubから見ると、これは
+ *   「鍵を出したが、その鍵は壊れている」という意味になり、
+ *   鍵を出さないより ひどく扱われます（断られます）。
+ *
+ *   置き場が みんなに公開されているものなら、鍵は要りません。
+ *   何も付けずに聞けば、そのまま読めます。
+ */
+function updGhHeaders_(raw) {
+  const h = {
+    "Accept": raw ? "application/vnd.github.raw" : "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "taxi-gas-updater"
+  };
+  const tok = updToken_();
+  if (tok) h["Authorization"] = "Bearer " + tok;
+  return h;
+}
+
 function updGh_(url, raw) {
   const res = UrlFetchApp.fetch(url, {
-    headers: {
-      "Authorization": "Bearer " + updToken_(),
-      "Accept": raw ? "application/vnd.github.raw" : "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "taxi-gas-updater"
-    },
+    headers: updGhHeaders_(raw),
     muteHttpExceptions: true
   });
   const code = res.getResponseCode();
@@ -2132,15 +2172,9 @@ function updHandleKata_(ev) {
     // ★GitHubの置き場所は入っているのに鍵が無い、という半分だけの状態だと、
     //   黙ってドライブのほうを読みにいってしまう。
     //   それでは古いコードが入ってしまうので、ここで止める
-    // ★ここは「人が置き場を決めているのに、鍵だけ無い」ときの関所です。
-    //   はじめから入っている置き場まで数えてしまうと、
-    //   GitHubを使っていない人まで止めてしまうので、updRepoSet_ で見ます
-    if (updRepoSet_() && !updToken_()) {
-      say(updKataFail_("GitHubの置き場所は入っていますが、鍵（トークン）が入っていません。\n" +
-                       "このまま進めると、古いコードが入ってしまうので止めました。\n" +
-                       "[2] 更新できる状態か調べる で確かめてください。"));
-      return true;
-    }
+    // ★前はここで「鍵が無い」と言って止めていました。
+    //   公開されている置き場なら鍵は要らないので、止める理由がありません。
+    //   ほんとうに読めないときは、下の updDiag_ が理由を言い当てます。
     if (updSource_() === "github") {
       where = updRepo_() + " / " + updBranch_();
     } else {

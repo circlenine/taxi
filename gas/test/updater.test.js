@@ -369,6 +369,16 @@ vm.runInContext(`
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8'), ctx,
   { filename: '005-Updater.gs' });
 const F = n => vm.runInContext(n, ctx);
+
+/*
+ * ★置き場は、ほんとうは「何も決めていなければ circlenine/test」です。
+ *   でも、そうすると ドライブから読む道を試せなくなります。
+ *   そこで、テストのあいだだけ「GitHubの にせもの（gh）を用意したときだけ
+ *   置き場がある」ことにします。ほんものは realUpdRepo で呼べます。
+ */
+const realUpdRepo = F('updRepo_');
+ctx.testRepo = () => (props['GH_REPO'] || (gh ? 'circlenine/test' : ''));
+vm.runInContext('updRepo_ = function(){ return testRepo(); };', ctx);
 // 「取り込みの見張り」だけを数える（星人の絵の見張りは別物なので、混ぜない）
 const upTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updRunFromLine_');
 /*
@@ -434,6 +444,7 @@ t(d[0].source === 'あたらしい版', '新しいほうが勝つ');
 
 console.log('\n■ 更新の流れ');
 reset([['001-Code.gs', 'あたらしい'], ['005-Updater.gs', '更新係']]);
+
 /*
  * ★更新のあと、見張りをこちらでそろえること。
  *   前は「入れ替えたら、LINEに『なおして』と打ってください」とお願いしていた。
@@ -621,12 +632,27 @@ console.log('\n■ いま見ている枝の、いちばん新しい書き込み�
 }
 
 console.log('\n■ 読み元の選び方');
-reset([['001-Code.gs', 'x']]);
-t(F('updSource_')() === 'drive', '鍵が無ければドライブから読む');
-props['GH_REPO'] = 'circlenine/test';
-t(F('updSource_')() === 'drive', 'リポジトリだけではドライブのまま');
-props['GH_TOKEN'] = 'github_pat_xxx';
-t(F('updSource_')() === 'github', '両方そろえばGitHubから読む');
+{
+  /*
+   * ★みんなに公開されている置き場なら、鍵は要りません。
+   *   前は「鍵が無ければドライブ」だったので、鍵が無いというだけで
+   *   ドライブの古いコードを読みにいってしまう形でした
+   */
+  reset([['001-Code.gs', 'x']]);
+  gh = { dir: [] };
+  t(F('updSource_')() === 'github', '★鍵が無くても、GitHubを読みにいく');
+  props['GH_TOKEN'] = 'github_pat_xxx';
+  t(F('updSource_')() === 'github', '鍵があっても、もちろんGitHub');
+  delete props['GH_TOKEN'];
+
+  // ★鍵が無いときは、鍵の行そのものを付けない（空の鍵は かえって断られる）
+  const h1 = F('updGhHeaders_')(false);
+  t(h1.Authorization === undefined, '★鍵が無ければ、鍵の行を付けない');
+  props['GH_TOKEN'] = 'github_pat_xxx';
+  const h2 = F('updGhHeaders_')(false);
+  t(h2.Authorization === 'Bearer github_pat_xxx', '  鍵があれば、付ける');
+  delete props['GH_TOKEN'];
+}
 
 console.log('\n■ GitHubから読む');
 reset([]);
@@ -1781,15 +1807,19 @@ console.log('\n■ 合言葉「katastrophe」');
   t(upTrig().length === 1, '  取り込みを始める');
   t(props['UPD_LINE_TO'] === 'Cgroup', '  結果は、打った場所（グループ）へ返す');
 
-  // 置き場所が入っていなければ、動かさずに理由を返す
+  /*
+   * ★鍵が無くても、そのまま動くこと。
+   *   前はここで「鍵が入っていません」と言って止めていた。
+   *   けれど、みんなに公開されている置き場なら鍵は要らないので、
+   *   止める理由がなかった（実際に、鍵が無いせいで何もできなくなっていた）
+   */
   ctx.rep.length = 0; triggers.length = 0;
   try { F('CacheService').getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
   const keepTok = props['GH_TOKEN']; delete props['GH_TOKEN'];
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
-    '置き場所が無くても落ちない');
-  t(upTrig().length === 0, '  ★動かさない');
-  t(ctx.rep[0].indexOf('てんそうは　やめました') !== -1, '  理由を返す');
-  t(ctx.rep[0].indexOf('スプシは　そのままです') !== -1, '  何も壊れていないことも伝える');
+    '鍵が無くても受ける');
+  t(upTrig().length === 1, '★鍵が無くても、ちゃんと取り込みを始める');
+  t(ctx.rep.length === 0, '  「鍵が入っていません」とは、もう言わない');
   props['GH_TOKEN'] = keepTok;
 }
 
@@ -1947,13 +1977,20 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
    * ★「見つかりません」だけでは、どこで止まっているのか分からない。
    *   置き場・鍵・枝のどれが原因かを、言い当てること
    */
+  /*
+   * ★鍵が無くても、公開されている置き場なら読めるので、
+   *   「鍵が入っていません」で止めてはいけない
+   */
   const keepTok2 = props['GH_TOKEN'];
   ctx.rep.length = 0;
   delete props['GH_TOKEN'];
+  gh = { dir: [], head: { commit: { message: 'さいしんの直し', author: { date: '2026-09-16T14:20:00Z' } } },
+         branches: ['main', 'claude/abc'] };
   H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
-  has(ctx.rep[0], '鍵が入っていません', '★鍵が無いときは、そう言い当てる');
-  has(ctx.rep[0], '🔑 GitHubの鍵を設定', '  入れ方まで書く');
-  t(props['GH_BRANCH'] === keepBranch, '  そのときも、読み先は変えない');
+  t(String(ctx.rep[0]).indexOf('鍵が入っていません') === -1,
+    '★鍵が無いというだけでは、止めない');
+  t(props['GH_BRANCH'] === 'claude/abc', '  鍵なしでも、ちゃんと決められる');
+  props['GH_BRANCH'] = keepBranch;
   props['GH_TOKEN'] = keepTok2;
 
   ctx.rep.length = 0;
@@ -1965,8 +2002,10 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   gh = { dir: [], reposCode: 404 };
   H({ message: { text: 'えだ claude/abc' }, source: { userId: 'Umark' }, replyToken: 'r' });
   has(ctx.rep[0], '置き場が見つかりませんでした', '★置き場が見えないときも、そう言い当てる');
-  has(ctx.rep[0], '鍵に、この置き場を読む力が無い',
-      '★「無い」と言われても、鍵が原因のことが多いと書く');
+  has(ctx.rep[0], '人に見せない置き場で、鍵が要る',
+      '  人に見せない置き場なら、鍵が要ることも書く');
+  has(ctx.rep[0], '公開されている置き場なら、鍵は要りません',
+      '★公開されていれば鍵は要らない、とも書く');
 
   /*
    * ★置き場は、はじめから入れてあります。
@@ -1975,10 +2014,10 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
    */
   const keepRepo2 = props['GH_REPO'];
   delete props['GH_REPO'];
-  t(F('updRepo_')() === 'circlenine/test', '★置き場は、何もしなくても入っている');
+  t(realUpdRepo() === 'circlenine/test', '★置き場は、何もしなくても入っている');
   t(F('updRepoSet_')() === '', '  ただし「人が決めた置き場」としては、空のまま');
   props['GH_REPO'] = 'よそ/べつのところ';
-  t(F('updRepo_')() === 'よそ/べつのところ', '  決めればそちらが優先される');
+  t(realUpdRepo() === 'よそ/べつのところ', '  決めればそちらが優先される');
   props['GH_REPO'] = keepRepo2;
 
   // 「おきば」でも決められる
@@ -2036,8 +2075,13 @@ console.log('\n■ LINEに打つだけで、コードが本当に入れ替わる
   [['公式LINE（1対1）', { userId: 'Umark' }, 'Umark'],
    ['グループLINE',     { userId: 'Umark', groupId: 'Cgroup' }, 'Cgroup']
   ].forEach(function (pair) {
-    reset([['001-Code.gs', 'あたらしい中身'], ['006-Venue.gs', 'イベント係']]);
-    props['GH_REPO'] = ''; props['GH_TOKEN'] = '';        // ドライブから読む形で試す
+    // ★鍵を入れていない、ふつうの状態で通す（公開の置き場なので鍵は要らない）
+    reset([]);
+    props['GH_PATH'] = 'gas';
+    gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' },
+                 { name: '006-Venue.gs', path: 'gas/006-Venue.gs', type: 'file' }],
+           raw: { 'gas/001-Code.gs': 'あたらしい中身', 'gas/006-Venue.gs': 'イベント係' },
+           head: { commit: { message: 'さいしん', author: { date: '2026-09-16T14:20:00Z' } } } };
     try {
       const cc = ctx.CacheService.getScriptCache();
       cc.remove('UPD_RUNNING'); cc.remove('KATA_FUN_Umark');
@@ -2061,7 +2105,7 @@ console.log('\n■ LINEに打つだけで、コードが本当に入れ替わる
 
   // しくじったときだけ、もう1通お知らせする
   reset([]);
-  props['GH_REPO'] = ''; props['GH_TOKEN'] = '';
+  gh = { dir: [] };                       // .gs が1つも無い置き場
   props['UPD_LINE_TO'] = 'Umark'; props['UPD_LINE_KATA'] = '1';
   ctx.pu.length = 0;
   drain();
