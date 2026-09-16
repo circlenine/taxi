@@ -586,6 +586,34 @@ F('menuUpdateStatus')();
 has(alerts[0].b, '使えません', '使えないときもそう出る');
 has(alerts[0].b, 'usersettings', '直し方も出る');
 
+/*
+ * ★同じ「403」でも、意味が2つある。
+ *   「insufficient authentication scopes」は、APIのスイッチの話ではなく、
+ *   許可をもらい直す話。読みちがえると、関係ないところを何度も触ることになる
+ */
+{
+  const H = F('updApiHow_');
+  const scope = H({ message: '(403) Request had insufficient authentication scopes.' });
+  has(scope, '許可を、もらい直してください', '★「許可が足りない」ときは、承認のやり直しを案内する');
+  has(scope, 'APIのスイッチの話ではありません', '  スイッチの話ではないと、はっきり書く');
+  has(scope, '拡張機能', '  道順も書く');
+  has(scope, 'menuUpdateStatus', '  どの関数を動かすかも書く');
+  t(scope.indexOf('usersettings') === -1, '★このときは、スイッチの案内を出さない（まぎらわしいため）');
+
+  const off = H({ message: '(403) Apps Script API not enabled' });
+  has(off, 'usersettings', 'スイッチが切れているときは、スイッチの案内を出す');
+  t(off.indexOf('許可を、もらい直して') === -1, '  そちらでは、承認の話は出さない');
+  has(H(null), 'usersettings', 'null でも落ちない');
+
+  reset([['001-Code.gs', 'x']]);
+  apiFail = { path: '/content', method: 'get', code: 403,
+              msg: 'Request had insufficient authentication scopes.' };
+  F('menuUpdateCode')();
+  has(alerts[alerts.length - 1].b, '許可を、もらい直してください',
+      '★[1] を押したときも、正しい直し方が出る');
+  apiFail = null;
+}
+
 console.log('\n■ いま見ている枝の、いちばん新しい書き込みを出す');
 {
   /*

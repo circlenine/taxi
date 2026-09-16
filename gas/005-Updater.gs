@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U064ver  （2026/09/16）  ★★★
+ *  ★★★  U065ver  （2026/09/16）  ★★★
+ *
+ *  [U065ver]
+ *   ・Apps Script API の「403」を、2種類に見分けるようにした
+ *     ★申し訳ありませんでした。どちらの403でも
+ *       「usersettings で ON にしてください」と案内していました。
+ *       スイッチは入っているのに そう言われるので、
+ *       関係ないところを何度も触ることになります。
+ *     ★insufficient authentication scopes は、
+ *       「許可（権限）が足りない」という意味です。
+ *       appsscript.json に権限を書き足したあとは、
+ *       必ず許可を取り直す必要があります。
+ *       その道順（拡張機能 → Apps Script → 実行 → 許可）を出します
  *
  *  [U064ver]
  *   ・置き場を決める合図を「🧻」にした
@@ -782,6 +794,52 @@ function updBranch_() {
  *   置き場さえ分かっていれば、GitHubを読みにいきます。
  */
 function updSource_() { return updRepo_() ? "github" : "drive"; }
+
+/**
+ * Apps Script API が使えないときの、直し方を返す。
+ *
+ * ★同じ「403」でも、意味が2つあります。読みちがえると、
+ *   関係ないところを何度も触ることになります。
+ *
+ *   ① insufficient authentication scopes
+ *      … 使ってよい範囲（許可）が足りていない。
+ *        APIのスイッチの話ではありません。
+ *        許可を、もう一度もらい直す必要があります。
+ *        appsscript.json に権限を書き足したあとは、必ずこれが要ります。
+ *
+ *   ② それ以外（API not enabled など）
+ *      … APIのスイッチが切れている。
+ */
+function updApiHow_(err) {
+  const m = String((err && err.message) || err || "");
+  if (m.indexOf("insufficient authentication scopes") !== -1 ||
+      m.indexOf("ACCESS_TOKEN_SCOPE_INSUFFICIENT") !== -1) {
+    return [
+      "【許可を、もらい直してください（1回だけ）】",
+      "★APIのスイッチの話ではありません。切り忘れではありません。",
+      "　権限を書き足したので、許可を取り直す必要があります。",
+      "",
+      "　① ブラウザでスプシを開く",
+      "　② 上のメニュー「拡張機能」→「Apps Script」を押す",
+      "　③ ひらいた画面の上のほうで、動かす関数に",
+      "　　「menuUpdateStatus」を選ぶ",
+      "　④「▷ 実行」を押す",
+      "　⑤「承認が必要です」と出たら「権限を確認」を押す",
+      "　⑥ 自分のGoogleアカウントを選ぶ",
+      "　⑦「このアプリは確認されていません」と出たら",
+      "　　小さい「詳細」を押して、いちばん下の",
+      "　　「（安全でないページ）に移動」を押す",
+      "　⑧ いちばん下の「許可」を押す",
+      "",
+      "　これで終わりです。あとは [1] に☑を入れるだけです。"
+    ].join("\n");
+  }
+  return [
+    "【APIのスイッチを入れてください（1回だけ）】",
+    "　① ブラウザで script.google.com/home/usersettings を開く",
+    "　②「Google Apps Script API」を ON にする"
+  ].join("\n");
+}
 
 /**
  * 鍵の入れ方を、道順まで書いて返す。
@@ -2615,9 +2673,7 @@ function menuUpdateCode() {
     cur = updGetProject_();
   } catch (e) {
     return updTell_("❌ Apps Script API を使えませんでした",
-      e.message + "\n\n" +
-      "ブラウザで script.google.com/home/usersettings を開き、\n" +
-      "「Google Apps Script API」を ON にしてください。");
+      (e && e.message ? e.message : e) + "\n\n" + updApiHow_(e));
   }
 
   // 何が変わるかを数える
@@ -2815,8 +2871,8 @@ function menuUpdateStatus() {
       cur.files.map(function (f) { return f.name; }).join("、"));
   } catch (e) {
     L.push("❌ Apps Script API：使えません");
-    L.push("　" + e.message);
-    L.push("　script.google.com/home/usersettings で ON にしてください");
+    L.push("　" + (e && e.message ? e.message : e));
+    L.push(updApiHow_(e));
   }
 
   L.push("");
