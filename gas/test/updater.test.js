@@ -1908,31 +1908,53 @@ console.log('\n■ 動画は「いま話題のもの」から');
 
 console.log('\n■ ふきだしで囲む');
 {
-  const B = F('updBubble_');
-  const b = B('　あ\n　　い');
-  const ls = b.split('\n');
+  const B = F('updBubble_'), W = F('updZenkaku_');
+
+  // 字の幅の数え方（全角1・半角0.5・重ねた飾りは0）
+  t(W('あいう') === 3, '全角は1つぶん');
+  t(W('abc') === 1.5, '半角は半分');
+  t(W('ｱｲｳ') === 1.5, '半角カナも半分');
+  t(W('あ' + '̀́') === 1, '★重ねた飾りは、幅に数えない');
+  t(W('') === 0, '空は0');
+  t(W(null) === 0, 'null でも落ちない');
+
+  // ★ふちの長さが、中身のいちばん長い行に合うこと
+  const short = B('　ねぎ星人\n　　　でかい');
+  const long  = B('　りょうしゅうしょ星人\n　　　りょうしゅうしょを５まいほしがる');
+  const barOf = x => x.split('\n')[0].length;
+  t(barOf(short) < barOf(long), '★中身が長ければ、ふちも長くなる');
+  t(barOf(short) === Math.ceil(W('　　　でかい')) + 2, '  短いほうは、いちばん長い行に合う');
+  t(barOf(long) === Math.ceil(W('　　　りょうしゅうしょを５まいほしがる')) + 2,
+    '  長いほうも、いちばん長い行に合う');
+
+  const ls = B('　あ\n　　い').split('\n');
   t(ls.length === 4, '上のふち＋中身2行＋下のふち');
-  t(ls[0] === '╭───────────────╮', '上のふち');
   t(ls[1] === '　あ' && ls[2] === '　　い', '★中身は、そのまま。行の頭に何も足さない');
-  t(b.indexOf('┃') === -1, '★行の頭に「┃」を付けない（右端がガタガタに見えて汚いため）');
+  t(B('　あ').indexOf('┃') === -1, '★行の頭に「┃」を付けない');
   t(ls[3].indexOf('⌄') !== -1, '下のふちの真ん中に、しっぽ');
   t(ls[0].length === ls[3].length, '★上と下のふちは、同じ長さ');
   t(B('').split('\n').length === 3, '中身が空でも形はくずれない');
+  t(B('').split('\n')[0].length === 8, '  そのときは、いちばん短い形');
   t(B(null).split('\n')[0].indexOf('╭') === 0, 'null でも落ちない');
+  t(B('あ'.repeat(99)).split('\n')[0].length === 32, '★長すぎても、上限でとめる');
 
   // ★星人の紹介は、名前も特徴も、ぜんぶ ふきだしの中
   const card = F('updAlienBlock_')();
   const cl = card.split('\n');
-  const from = cl.indexOf('╭───────────────╮');
+  const from = cl.findIndex(x => x.indexOf('╭') === 0);
   const to = cl.findIndex(x => x.indexOf('╰') === 0);
   t(from !== -1 && to > from, 'ふきだしがある');
-  const inside = cl.slice(from + 1, to).join('\n');
-  t(inside.indexOf('星人') !== -1, '★名前も中');
-  t(inside.indexOf('特徴') !== -1, '★特徴も中');
-  t(inside.indexOf('好きなもの') !== -1, '  好きなものも中');
-  t(inside.indexOf('きらいなもの') !== -1, '  きらいなものも中');
-  t(inside.indexOf('口ぐせ') !== -1, '  口ぐせも中');
-  t(inside.indexOf('とくてん') !== -1, '  とくてんも中');
+  t(cl[from].length === cl[to].length, '★上と下のふちは、同じ長さ');
+  const inside = cl.slice(from + 1, to);
+  t(inside.join('\n').indexOf('星人') !== -1, '★名前も中');
+  t(inside.join('\n').indexOf('特徴') !== -1, '★特徴も中');
+  t(inside.join('\n').indexOf('好きなもの') !== -1, '  好きなものも中');
+  t(inside.join('\n').indexOf('きらいなもの') !== -1, '  きらいなものも中');
+  t(inside.join('\n').indexOf('口ぐせ') !== -1, '  口ぐせも中');
+  t(inside.join('\n').indexOf('とくてん') !== -1, '  とくてんも中');
+  // ★中身がふちからはみ出していないこと
+  const barW = cl[from].length - 2;
+  t(inside.every(x => Math.ceil(W(x)) <= barW), '★どの行も、ふちからはみ出さない');
   t(card.indexOf('この方を　乗車させて来て下ちい') !== -1, '見出しは、ふきだしの外');
   t(card.indexOf('▚') === -1, 'かすれた四角は使わない');
 }
