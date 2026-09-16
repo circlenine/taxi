@@ -2,7 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U027ver  （2026/09/16）  ★★★
+ *  ★★★  U028ver  （2026/09/16）  ★★★
+ *
+ *  [U028ver]
+ *   ・返事を、あの黒い球（GANTZ）の言い方にした
+ *     「な ん か 文 字 出 て る ぞ」「という　りくつな　わけだ。」
+ *     ひらがな中心の、平たい言い方。とくてんも出る（90〜100てん）
+ *   ・★「死」「命」という言葉は、どこにも使わない
+ *     コードの話なので「ふるいコード／あたらしいコード」に置きかえた
+ *   ・特殊な文字で、字を飾れるようにした
+ *     ・updWide_  … 全角にする（ＫＡＴＡＳＴＲＯＰＨＥ）
+ *     ・updMath_  … 太い記号にする（𝗞𝗔𝗧𝗔𝗦𝗧𝗥𝗢𝗣𝗛𝗘）
+ *     ・updGlitch_… 上下に飾りを重ねて、ぐちゃぐちゃにする
+ *     ぐちゃぐちゃは見出しの1行だけにしてある。
+ *     重ねるほど1文字が3〜4倍の長さになり、
+ *     本文まで全部やるとLINEの1通（5,000文字）に入らなくなるため。
+ *     重ねる数にも上限（4つまで）をかけてある
  *
  *  [U027ver]
  *   ・まーくさん以外が合言葉を打ったときの返しを足した
@@ -472,34 +487,119 @@ function updWhere_(ev) {
   return src.groupId || src.roomId || src.userId || "";
 }
 
+/* ---------------- 文字を、あの黒い球っぽく飾る ---------------- */
+/*
+ * ★「特殊な文字で、字をぐちゃぐちゃにできないか」というご相談への答え。
+ *   できます。3つ用意しました。
+ *
+ *   ① 全角にする      ： KATASTROPHE → ＫＡＴＡＳＴＲＯＰＨＥ
+ *   ② 太い記号にする  ： KATASTROPHE → 𝗞𝗔𝗧𝗔𝗦𝗧𝗥𝗢𝗣𝗛𝗘
+ *                        （数学で使う太字の記号。ふつうの文字ではないので、
+ *                          コピーしても検索には引っかからない）
+ *   ③ ぐちゃぐちゃ    ： KATASTROPHE → K̷̰̈A̸̮͝T̷̗̄A̵͇͐S̶̱̈T̴̜͝R̷̩̈O̶̗͐P̵̬̄H̸̪͝E̷̟̊
+ *                        （文字の上下に飾りを重ねる。重ねる数で濃さが変わる）
+ *
+ *   ※③は重ねるほど1文字が長くなる（3〜4倍）。
+ *     LINEの1通は5,000文字までなので、見出しの1行だけに使う。
+ *     本文まで全部やると、読めないうえに長さでも引っかかる。
+ */
+
+/** ① 全角にする */
+function updWide_(t) {
+  return String(t == null ? "" : t)
+    .replace(/[!-~]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) + 0xFEE0); })
+    .replace(/ /g, "　");
+}
+
+/** ② 太い記号にする（数学の sans-serif bold） */
+function updMath_(t) {
+  return String(t == null ? "" : t).replace(/[A-Za-z0-9]/g, function (c) {
+    const n = c.charCodeAt(0);
+    if (n >= 65 && n <= 90)  return String.fromCodePoint(0x1D5D4 + n - 65);   // A-Z
+    if (n >= 97 && n <= 122) return String.fromCodePoint(0x1D5EE + n - 97);   // a-z
+    return String.fromCodePoint(0x1D7EC + n - 48);                            // 0-9
+  });
+}
+
+/** 重ねる飾り（上・下・打ち消し線） */
+const UPD_ZALGO = [
+  "\u0300", "\u0301", "\u0302", "\u0303", "\u0304", "\u0306", "\u0308", "\u030A",
+  "\u0327", "\u0328", "\u031F", "\u0321", "\u0323", "\u0325",
+  "\u0334", "\u0335", "\u0336"
+];
+
+/** ③ ぐちゃぐちゃにする。n は重ねる数（1〜3くらいが読める範囲） */
+function updGlitch_(t, n) {
+  // 0 を渡されたら「重ねない」。Number(0) || 1 だと 1 になってしまうので、分けて書く
+  const num = Number(n);
+  const times = Math.max(0, Math.min(isFinite(num) ? num : 1, 4));
+  let out = "";
+  const src = String(t == null ? "" : t);
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    out += ch;
+    if (ch === " " || ch === "　" || ch === "\n") continue;
+    for (let k = 0; k < times; k++) {
+      out += UPD_ZALGO[Math.floor(Math.random() * UPD_ZALGO.length)];
+    }
+  }
+  return out;
+}
+
+/** あの黒い球 */
+const UPD_BALL = "　　　　　　●";
+
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
 function updKataStart_(where) {
-  return "▚▚▚  K A T A S T R O P H E  ▚▚▚\n" +
-         "SYSTEM INITIALISIERUNG …\n" +
-         "VERBINDUNG WIRD HERGESTELLT\n" +
+  return UPD_BALL + "\n" +
+         updGlitch_("Ｋ Ａ Ｔ Ａ Ｓ Ｔ Ｒ Ｏ Ｐ Ｈ Ｅ", 2) + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "な ん か 文 字 出 て る ぞ\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "きみたちの　ふるいコードは\n" +
+         "なくなりました。\n" +
+         "\n" +
+         "あたらしいコードを\n" +
+         "どう　つかおうと\n" +
+         "わたしの　かってです。\n" +
+         "\n" +
+         "という　りくつな　わけだ。\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updMath_("TRANSFER") + " ： " + updWide_("START") + "\n" +
          "ZIEL ： " + where + "\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "てんそう　かいし。\n" +
          "取り込みを開始しました。2〜3分で完了の合図を送ります。";
 }
 
 function updKataDone_(body) {
-  return "▚▚▚  Ü B E R T R A G U N G   K O M P L E T T  ▚▚▚\n" +
-         "ALLE MODULE SYNCHRONISIERT\n" +
-         "SICHERUNG ： ABGESCHLOSSEN\n" +
-         "STATUS ： BEREIT\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n\n" +
-         String(body || "") + "\n\n" +
-         "SYSTEM BEREIT. GUTEN TAG.";
+  // 点数は、そのつど変わったほうが楽しい（100点なら、ひとこと足す）
+  const pt = 90 + Math.floor(Math.random() * 11);
+  return UPD_BALL + "\n" +
+         updGlitch_("Ｍ Ｉ Ｓ Ｓ Ｉ Ｏ Ｎ 　 Ｃ Ｌ Ｅ Ａ Ｒ", 2) + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updMath_("SYNCHRONISATION") + " ： " + updWide_("KOMPLETT") + "\n" +
+         updMath_("SICHERUNG") + " ： " + updWide_("OK") + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "きみの　とくてんは　" + updWide_(String(pt)) + "てん　です。\n" +
+         (pt >= 100 ? "ひゃくてん。\nよくやりました。\n" : "あと　" + (100 - pt) + "てんで　ひゃくてん。\n") +
+         "\n" + String(body || "") + "\n\n" +
+         "つぎの　しれいを　まて。\n" +
+         "という　りくつな　わけだ。";
 }
 
 function updKataFail_(body) {
-  return "▚▚▚  F E H L E R  ▚▚▚\n" +
-         "SYSTEMSTÖRUNG ERKANNT\n" +
-         "ÜBERTRAGUNG ABGEBROCHEN\n" +
-         "KEINE ÄNDERUNG AM SYSTEM\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n\n" +
-         String(body || "") + "\n\n" +
-         "コードは元のままです。何も壊れていません。";
+  return UPD_BALL + "\n" +
+         updGlitch_("Ｆ Ｅ Ｈ Ｌ Ｅ Ｒ", 3) + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updMath_("STOERUNG") + " ： " + updWide_("ERKANNT") + "\n" +
+         updMath_("TRANSFER") + " ： " + updWide_("ABGEBROCHEN") + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "てんそうは　ちゅうしされました。\n" +
+         "きみの　コードは　そのままです。\n" +
+         "\n" + String(body || "") + "\n\n" +
+         "やりなおしても　かまいません。\n" +
+         "という　りくつな　わけだ。";
 }
 
 /* ---------------- 合言葉を、ほかの人が打ったとき ---------------- */
@@ -566,12 +666,19 @@ function updFunLink_() {
 
 /** ほかの人が合言葉を打ったときの返事（近未来のロボットの声） */
 function updKataDenied_() {
-  return "▚▚▚  Z U G R I F F   V E R W E I G E R T  ▚▚▚\n" +
-         "IDENTITÄT NICHT ERKANNT\n" +
-         "BERECHTIGUNG ： KEINE\n" +
-         "SYSTEM BLEIBT UNVERÄNDERT\n" +
-         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         "TROSTPREIS WIRD ÜBERTRAGEN …";
+  return UPD_BALL + "\n" +
+         updGlitch_("Ｖ Ｅ Ｒ Ｗ Ｅ Ｉ Ｇ Ｅ Ｒ Ｔ", 3) + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "な ん か 文 字 出 て る ぞ\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         updMath_("IDENTITAET") + " ： " + updWide_("UNBEKANNT") + "\n" +
+         updMath_("BERECHTIGUNG") + " ： " + updWide_("KEINE") + "\n" +
+         "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
+         "きみは　えらばれて　いません。\n" +
+         "システムは　なにも　かわりません。\n" +
+         "\n" +
+         "そのかわり　これを　みなさい。\n" +
+         "という　りくつな　わけだ。";
 }
 
 /**

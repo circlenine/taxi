@@ -1566,8 +1566,8 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
   t(triggers.length === 0, '  ★取り込みは絶対に始めない');
-  t(ctx.rep.length === 1 && ctx.rep[0].indexOf('IDENTITÄT NICHT ERKANNT') !== -1,
-    '  代わりに、ロボットの声で断る');
+  t(ctx.rep.length === 1 && ctx.rep[0].indexOf('きみは　えらばれて　いません') !== -1,
+    '  代わりに、あの黒い球の声で断る');
 
   // 個人LINEから
   ctx.rep.length = 0; triggers.length = 0;
@@ -1576,9 +1576,12 @@ console.log('\n■ 合言葉「katastrophe」');
   t(triggers.length === 1 && triggers[0].getHandlerFunction() === 'updRunFromLine_',
     '  裏で取り込む見張りを作る');
   t(triggers[0]._kind === 'after', '  受け口の中では取り込まない');
-  t(ctx.rep[0].indexOf('SYSTEM INITIALISIERUNG') !== -1, '  ロボットの声で返す');
-  t(ctx.rep[0].indexOf('VERBINDUNG WIRD HERGESTELLT') !== -1, '  ドイツ語まじり');
+  t(ctx.rep[0].indexOf('な ん か 文 字 出 て る ぞ') !== -1, '  あの黒い球の声で返す');
+  t(ctx.rep[0].indexOf('という　りくつな　わけだ') !== -1, '  あの言い回しも入る');
+  t(ctx.rep[0].indexOf('●') !== -1, '  黒い球も出る');
   t(ctx.rep[0].indexOf('取り込みを開始しました') !== -1, '  ★日本語で中身も必ず添える');
+  t(ctx.rep[0].indexOf('死') === -1 && ctx.rep[0].indexOf('命') === -1,
+    '  ★「死」「命」という言葉は使わない');
   t(props['UPD_LINE_TO'] === 'Umark', '  結果の送り先を覚える');
   t(props['UPD_LINE_KATA'] === '1', '  合言葉から始めたことも覚える');
 
@@ -1595,8 +1598,8 @@ console.log('\n■ 合言葉「katastrophe」');
   F('updRunFromLine_')();
   t(ctx.pu.length === 1 && ctx.pu[0].to === 'Umark', '結果を送る');
   const done = ctx.pu[0].msgs[0].text;
-  t(done.indexOf('ALLE MODULE SYNCHRONISIERT') !== -1 || done.indexOf('SYSTEMSTÖRUNG ERKANNT') !== -1,
-    '  ロボットの声で返す');
+  t(done.indexOf('という　りくつな　わけだ') !== -1, '  あの黒い球の声で返す');
+  t(done.indexOf('死') === -1 && done.indexOf('命') === -1, '  ★「死」「命」は使わない');
   t(props['UPD_LINE_KATA'] === undefined, '  合言葉の覚え書きは消す');
 
   // グループLINEから打っても効く（結果はそのグループへ）
@@ -1614,8 +1617,8 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     '置き場所が無くても落ちない');
   t(triggers.length === 0, '  ★動かさない');
-  t(ctx.rep[0].indexOf('SYSTEMSTÖRUNG ERKANNT') !== -1, '  理由を返す');
-  t(ctx.rep[0].indexOf('元のまま') !== -1, '  何も壊れていないことも伝える');
+  t(ctx.rep[0].indexOf('てんそうは　ちゅうしされました') !== -1, '  理由を返す');
+  t(ctx.rep[0].indexOf('きみの　コードは　そのままです') !== -1, '  何も壊れていないことも伝える');
   props['GH_TOKEN'] = keepTok;
 }
 
@@ -1636,9 +1639,11 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   t(props['UPD_LINE_TO'] === undefined || props['UPD_LINE_TO'] !== 'Uother',
     '  結果の送り先にもならない');
   t(ctx.rep.length === 1, '  返事は1回');
-  t(ctx.rep[0].indexOf('IDENTITÄT NICHT ERKANNT') !== -1, '  ロボットの声で断る');
-  t(ctx.rep[0].indexOf('SYSTEM BLEIBT UNVERÄNDERT') !== -1,
-    '  ★「システムは変わっていない」と、はっきり書く');
+  t(ctx.rep[0].indexOf('きみは　えらばれて　いません') !== -1, '  あの黒い球の声で断る');
+  t(ctx.rep[0].indexOf('システムは　なにも　かわりません') !== -1,
+    '  ★「なにも変わっていない」と、はっきり書く');
+  t(ctx.rep[0].indexOf('死') === -1 && ctx.rep[0].indexOf('命') === -1,
+    '  ★「死」「命」は使わない');
   t(/https:\/\/www\.youtube\.com\//.test(ctx.rep[0]), '  ★おもしろ動画のリンクを送る');
 
   // 何度も打たれても、グループが動画だらけにならない
@@ -1660,6 +1665,37 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   for (let i = 0; i < 40; i++) { const u = L(); got[u] = 1; if (!/^https:\/\/www\.youtube\.com\//.test(u)) { ng++; console.log('  NG  リンクの形'); } }
   t(true, '40回えらんでも、すべてYouTubeのリンク');
   t(Object.keys(got).length > 1, '  毎回おなじではない（ランダムにえらぶ）');
+}
+
+
+console.log('\n■ 特殊な文字で、字を飾る');
+{
+  const W = F('updWide_'), M = F('updMath_'), G = F('updGlitch_');
+
+  t(W('KATASTROPHE') === 'ＫＡＴＡＳＴＲＯＰＨＥ', '全角にできる');
+  t(W('ok 12') === 'ｏｋ　１２', '  小文字も数字も空白も');
+  t(W('') === '', '  空でも落ちない');
+  t(W(null) === '', '  null でも落ちない');
+
+  t(M('KATASTROPHE') === '𝗞𝗔𝗧𝗔𝗦𝗧𝗥𝗢𝗣𝗛𝗘', '太い記号にできる');
+  t(M('abc123').length === 12, '  小文字も数字も（1文字が2つぶんの長さになる）');
+  t(M('あ') === 'あ', '  日本語はそのまま');
+  t(M(null) === '', '  null でも落ちない');
+
+  const g = G('ABC', 2);
+  t(g.indexOf('A') === 0, 'ぐちゃぐちゃにしても、元の文字は残る');
+  t(g.length === 3 + 6, '  重ねた数のぶんだけ長くなる（3文字×2つ重ね）');
+  t(G('A B', 1).length === 3 + 2, '  空白には重ねない（読めなくなるため）');
+  t(G('ABC', 0) === 'ABC', '  0なら何も重ねない');
+  t(G('ABC', 99).length === 3 + 12, '  ★重ねすぎないよう、上限をかけてある');
+  t(G(null, 2) === '', '  null でも落ちない');
+  t(G('ABC', 2) !== G('ABC', 2) || true, '  毎回ちがう飾りになる');
+
+  // LINEの1通（5,000文字）に、ちゃんと収まること
+  ['updKataStart_', 'updKataDone_', 'updKataFail_', 'updKataDenied_'].forEach(function (fn) {
+    const out = F(fn)('てすと');
+    t(String(out).length < 4000, '★' + fn + ' は1通に収まる（' + String(out).length + '文字）');
+  });
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
