@@ -46,13 +46,14 @@ vm.runInContext(`
 ctx.infoRead = r => (r in infoVals ? infoVals[r] : '');
 ctx.infoWrite = (r, v) => { infoVals[r] = String(v); };
 
+let createdTitle = '';
 ctx.SpreadsheetApp = {
   openById: id => {
     opened.push(id);
     if (id !== ID_OK) throw new Error('Illegal spreadsheet id or key: ' + id);
     return { _id: id, getSheetByName: () => null, getSheets: () => [], getName: () => 'まとめ' };
   },
-  create: () => { created++; return { getId: () => 'NEWNEWNEWNEWNEWNEWNEWNEWNEWNEW111',
+  create: t => { created++; createdTitle = t; return { getId: () => 'NEWNEWNEWNEWNEWNEWNEWNEWNEWNEW111',
     getSheets: () => [], deleteSheet: () => {}, getSheetByName: () => null }; },
   flush: () => {},
   getUi: () => { throw new Error('no ui'); }
@@ -65,7 +66,7 @@ const ok = (cond, msg, extra) => {
   if (!cond) { fail++; console.log('NG  ', msg, extra === undefined ? '' : '… 実際: ' + JSON.stringify(extra)); }
   else console.log('ok  ', msg);
 };
-const reset = () => { props = {}; cfgVals = {}; infoVals = {}; opened = []; created = 0; };
+const reset = () => { props = {}; cfgVals = {}; infoVals = {}; opened = []; created = 0; createdTitle = ''; };
 const mainSS = { getSheetByName: () => null };
 
 console.log('■ 見出し付きで保存されていても、開ける');
@@ -127,6 +128,43 @@ console.log('\n■ IDでないものが入っていても、落ちない');
   props['DASHBOARD_ID'] = ID_OK;
   ok(ctx.dbOpenTarget_(mainSS)._id === ID_OK, 'IDでないものは飛ばして、次の候補で開ける');
   ok(opened.length === 1, '  IDでないものは、そもそも試さない');
+}
+
+console.log('\n■ テスト用と本番用は、別のスプレッドシートにする');
+{
+  reset();
+  props['DASHBOARD_ID']      = ID_OK;     // 本番用
+  props['DASHBOARD_TEST_ID'] = ID_OK;     // テスト用（このテストでは同じIDで開ける形にする）
+  cfgVals['まとめスプシのID'] = ID_BAD;   // 設定タブ（本番用だけが見る）
+
+  opened.length = 0;
+  ctx.dbOpenTarget_(mainSS, true);
+  ok(opened.indexOf(ID_BAD) === -1, 'テスト用は、設定タブの行き先を見ない（本番用に書きに行かない）', opened);
+
+  opened.length = 0;
+  ctx.dbOpenTarget_(mainSS, false);
+  ok(opened[0] === ID_BAD, '本番用は、設定タブの行き先から見る', opened);
+}
+
+console.log('\n■ テスト用の行き先は、説明タブに書かない');
+{
+  reset();
+  props['DASHBOARD_TEST_ID'] = ID_OK;
+  ctx.dbOpenTarget_(mainSS, true);
+  ok(infoVals[2] === undefined, 'テスト用のIDを、説明タブに残さない（人の目に触れさせない）', infoVals);
+  ok(props['DASHBOARD_TEST_ID'] === ID_OK, '  控えはテスト用の場所にだけ持つ');
+  ok(props['DASHBOARD_ID'] === undefined, '  本番用の控えを上書きしない');
+}
+
+console.log('\n■ テスト用を新しく作るときは、名前で見分けられるようにする');
+{
+  reset();
+  ctx.dbOpenTarget_(mainSS, true);
+  ok(created === 1, 'テスト用を1つ作る');
+  ok(String(createdTitle).indexOf('テスト用') !== -1, '  名前に「テスト用」が入る', createdTitle);
+  ok(props['DASHBOARD_TEST_ID'] !== undefined, '  テスト用の控えに入る');
+  ok(props['DASHBOARD_ID'] === undefined, '  本番用の控えは空のまま');
+  ok(infoVals[2] === undefined, '  説明タブにも書かない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

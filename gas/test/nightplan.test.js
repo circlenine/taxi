@@ -24,14 +24,17 @@ const has = (got, want, msg) => eq(String(got).indexOf(want) !== -1, true, msg);
 const DAY_TYPES = ['平日', '金曜', '土曜', '日祝'];
 const HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
 
-/** finalTimeline を組み立てる。spots は { 時: [乗り場, 平均, 件数, 待ち] } */
+/**
+ * finalTimeline を組み立てる。spots は { 時: [乗り場, 平均, 件数, 待ち] }
+ * 件数を書かなければ3件（＝出せる最低ライン）にする
+ */
 function tl(spec) {
   const t = {};
   DAY_TYPES.forEach(dt => {
     t[dt] = {};
     HOURS.forEach(hr => {
       const v = (spec[dt] || {})[hr];
-      t[dt][hr] = { best: v ? { name: v[0], avg: v[1], count: v[2] || 2, wait: v[3] || 0, max: 0, at: '' } : null,
+      t[dt][hr] = { best: v ? { name: v[0], avg: v[1], count: v[2] || 3, wait: v[3] || 0, max: 0, at: '' } : null,
                     worst: null };
     });
   });
@@ -41,16 +44,16 @@ function tl(spec) {
 console.log('■ 同じ乗り場が続く時間は、1つにまとめる');
 {
   const plan = ctx.buildNightPlan_(tl({ 平日: {
-    20: ['新地4', 12000, 5, 20], 21: ['新地4', 10000, 3, 10], 22: ['新地4', 8000, 2, 15],
-    23: ['梅田', 9000, 4, 12], 0: ['梅田', 9000, 2, 8],
-    1: ['難波', 6000, 2], 2: ['難波', 6000, 2], 3: ['難波', 6000, 2], 4: ['難波', 6000, 2]
+    20: ['新地4', 12000, 5, 20], 21: ['新地4', 10000, 3, 10], 22: ['新地4', 8000, 3, 15],
+    23: ['梅田', 9000, 4, 12], 0: ['梅田', 9000, 3, 8],
+    1: ['難波', 6000, 3], 2: ['難波', 6000, 3], 3: ['難波', 6000, 3], 4: ['難波', 6000, 3]
   } }), DAY_TYPES);
   const segs = plan['平日'];
   eq(segs.length, 3, '9つの時間帯が3つの区間になる');
   eq(ctx.nightSpan_(segs[0]), '20〜22時台', '1つめは 20〜22時台');
   eq(segs[0].name, '新地4', '  乗り場も正しい');
-  eq(segs[0].count, 10, '  件数は足し合わせる');
-  eq(segs[0].avg, Math.round((12000 * 5 + 10000 * 3 + 8000 * 2) / 10), '  平均は件数で重みづけする');
+  eq(segs[0].count, 11, '  件数は足し合わせる');
+  eq(segs[0].avg, Math.round((12000 * 5 + 10000 * 3 + 8000 * 3) / 11), '  平均は件数で重みづけする');
   eq(segs[0].wait, 15, '  待ち時間は区間の平均');
   eq(ctx.nightSpan_(segs[1]), '23〜00時台', '2つめは 23〜00時台（日をまたいでもつながる）');
   eq(ctx.nightSpan_(segs[2]), '01〜04時台', '3つめは 01〜04時台');
@@ -135,8 +138,8 @@ console.log('\n■ 狙い目の詳細時間（その区間でいちばん高か�
   // 21時台に最高額が出た区間 → 狙い目はその時刻になる
   const t = tl({});
   t['平日'][20] = { best: { name: '新地4', avg: 10000, count: 3, wait: 20, max: 15000, at: '20:41' }, worst: null };
-  t['平日'][21] = { best: { name: '新地4', avg: 12000, count: 2, wait: 10, max: 28000, at: '21:37' }, worst: null };
-  t['平日'][22] = { best: { name: '新地4', avg: 9000,  count: 2, wait: 10, max: 9000,  at: '22:10' }, worst: null };
+  t['平日'][21] = { best: { name: '新地4', avg: 12000, count: 3, wait: 10, max: 28000, at: '21:37' }, worst: null };
+  t['平日'][22] = { best: { name: '新地4', avg: 9000,  count: 3, wait: 10, max: 9000,  at: '22:10' }, worst: null };
   const seg = ctx.buildNightPlan_(t, DAY_TYPES)['平日'][0];
   eq(seg.max, 28000, '区間でいちばん高かった額を持つ');
   eq(seg.at, '21:37', '  その時刻が狙い目になる（区間の先頭の時刻ではない）');
@@ -151,6 +154,49 @@ console.log('\n■ 狙い目の詳細時間（その区間でいちばん高か�
   eq(/(^|[^均高])￥/.test(line), false, '　何の金額か分からない「￥」は、1つも出さない');
   eq(ctx.nightAim_({ name: 'あ', at: '' }), '', '時刻が取れていなければ、何も出さない');
   eq(ctx.nightLine_({ from: 1, to: 2, name: '' }).indexOf('狙い目'), -1, '記録なしの区間には付けない');
+}
+
+console.log('\n■ 記録が少ない乗り場は「おすすめ」にしない');
+// ★ここが今回いちばん大事。2件しかない乗り場を「おすすめ」と出していた。
+//   たまたま高い1本があれば、それだけで1位になってしまう。
+{
+  const t = tl({});
+  t['平日'][20] = { best: { name: 'ｺﾅﾝ像', avg: 18000, count: 2, wait: 5, max: 30000, at: '20:10' }, worst: null };
+  t['平日'][21] = { best: { name: '新地4', avg: 9000,  count: 8, wait: 20, max: 15000, at: '21:30' }, worst: null };
+  const segs = ctx.buildNightPlan_(t, DAY_TYPES)['平日'];
+
+  const names = segs.map(s => s.name);
+  eq(names.indexOf('ｺﾅﾝ像'), -1, '2件しかない乗り場は、道すじに出さない');
+  eq(names.indexOf('新地4') !== -1, true, '8件ある乗り場は出す');
+  eq(G('LR_NIGHT_MIN_N'), 3, '出す最低ラインは3件');
+
+  // 3件あれば出す（ちょうど境目）
+  const t2 = tl({});
+  t2['平日'][20] = { best: { name: 'ｺﾅﾝ像', avg: 18000, count: 3, wait: 5, max: 30000, at: '20:10' }, worst: null };
+  eq(ctx.buildNightPlan_(t2, DAY_TYPES)['平日'].map(s => s.name).indexOf('ｺﾅﾝ像') !== -1, true,
+     'ちょうど3件なら出す');
+}
+
+console.log('\n■ 何件にもとづく数字かを、必ず出す');
+{
+  const t = tl({});
+  t['平日'][20] = { best: { name: '新地4', avg: 9000, count: 8, wait: 20, max: 15000, at: '20:30' }, worst: null };
+  const seg = ctx.buildNightPlan_(t, DAY_TYPES)['平日'][0];
+  has(ctx.nightLine_(seg), '8件', '件数が入る（読む人が自分で確かめられるように）');
+  has(ctx.nightLine_(seg), '平均￥9,000', '2件以上なら「平均」');
+}
+
+console.log('\n■ 1件しかないものを「平均」と呼ばない');
+{
+  const t = tl({});
+  t['平日'][20] = { best: { name: '新地4', avg: 9000, count: 1, wait: 0, max: 9000, at: '20:30' }, worst: null };
+  // 1件は そもそも出ない（3件未満）ので、呼び方だけを直接確かめる
+  eq(ctx.nightMoneyLabel_({ count: 1 }), '売上', '1件なら「売上」');
+  eq(ctx.nightMoneyLabel_({ count: 2 }), '平均', '2件以上なら「平均」');
+  const one = { from: 20, to: 20, name: '新地4', count: 1, avg: 9000, wait: 0, max: 9000, at: '20:30' };
+  has(ctx.nightLine_(one), '売上￥9,000', '文にも「売上」と出る');
+  eq(ctx.nightLine_(one).indexOf('平均￥'), -1, '  「平均」とは書かない');
+  eq(ctx.nightLine_(one).indexOf('最高￥'), -1, '  1件なら「最高」も書かない（同じ数字なので）');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

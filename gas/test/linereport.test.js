@@ -409,15 +409,18 @@ function mkFt(set) {
   };
   const spotHotData = {
     "北4|新地4": { "4|23": { count: 4, sales: 43336, times: ["23:44","23:51","23:53","23:55"] },
-                   "6|1":  { count: 2, sales: 20310, times: ["01:22","01:53"] } },
-    "北他|江坂": { "6|3":  { count: 1, sales: 7233,  times: ["03:16"] },
+                   "6|1":  { count: 3, sales: 30465, times: ["01:22","01:40","01:53"] } },
+    "北他|江坂": { "6|3":  { count: 3, sales: 21699, times: ["03:16","03:20","03:40"] },
                    "5|1":  { count: 1, sales: 7233,  times: ["01:33"] } },
+    // 2件だけ＝まぐれ。平均はいちばん高いが「狙い目」とは言わない
     "ﾐﾅﾐ|大丸":  { "4|0":  { count: 2, sales: 40000, times: ["00:10","00:20"] } }
   };
   const ft = mkFt([["平日",23,{name:"新地4",count:16,avg:10834}],
-                   ["金曜",1, {name:"天満", count:2, avg:10425}],
-                   ["土曜",1, {name:"新地4",count:2, avg:10155}],
-                   ["日祝",3, {name:"天満", count:6, avg:4827}]]);
+                   ["金曜",1, {name:"天満", count:4, avg:10425}],
+                   ["土曜",1, {name:"新地4",count:5, avg:10155}],
+                   ["日祝",3, {name:"天満", count:6, avg:4827}],
+                   // 2件しかない時間帯は、数にも入れない
+                   ["日祝",1, {name:"ｺﾅﾝ像", count:2, avg:30000}]]);
   const a = ctx.buildMonthlyAdvice_(spotStats, spotHotData, ft, ADV_DT, ADV_HRS, new D(2026, 7, 15));
 
   eq(a.best.name, '江坂', '振り返りは「平均がいちばん高い」乗り場（件数の多さではない）');
@@ -427,14 +430,21 @@ function mkFt(set) {
   eq(ctx.adviceReviewText_(a).indexOf('実際の乗車：土曜 03:16') !== -1, true, '実際の乗車時刻も出す');
 
   eq(a.picks.length, 3, 'オススメは3つ');
-  eq(a.picks[0].name, '大丸', '平均単価が高い順（￥20,000）');
-  eq(a.picks[0].count >= 2, true, '  1件だけの組み合わせは「狙い目」と言わない');
-  eq(a.picks[1].name, '新地4', '2番目');
-  eq(ctx.advicePickLines_(a)[0].indexOf('木曜 00時台 の 大丸') !== -1, true, '曜日・時間帯・乗り場の順で書く');
-  eq(ctx.advicePickLines_(a)[0].indexOf('00:10、00:20') !== -1, true, '実際の時刻も添える');
+  eq(a.picks[0].name, '新地4', '平均単価が高い順');
+  eq(a.picks.every(p => p.count >= 3), true,
+     '★3件に満たない組み合わせは「狙い目」と言わない（まぐれを載せない）');
+  eq(a.picks.some(p => p.name === '大丸'), false,
+     '  2件しかない大丸は、平均がいちばん高くても出さない');
+  eq(ctx.advicePickLines_(a)[0].indexOf('木曜 23時台 の 新地4') !== -1, true, '曜日・時間帯・乗り場の順で書く');
+  eq(ctx.advicePickLines_(a)[0].indexOf('23:44') !== -1, true, '実際の時刻も添える');
 
   eq(a.nextMonth, 9, '8/15までの期間なら、予想するのは9月');
   eq(a.bigSlots, 3, '平均￥10,000超えの時間帯を数える');
+  eq(a.allSlots, 4, '数えるのは3件以上ある時間帯だけ（2件の ｺﾅﾝ像 は入れない）');
+  eq(ctx.adviceForecastText_(a).indexOf('通り') !== -1, true,
+     '「8個中」ではなく「〇通り」と、何を数えたかが分かる書き方にする');
+  eq(ctx.adviceForecastText_(a).indexOf('曜日区分×時間帯の組み合わせ') !== -1, true,
+     '  何の組み合わせかも書く');
   eq(ctx.adviceForecastText_(a).indexOf('その時間帯で粘って1本の単価を上げる') !== -1, true,
      '10,000超えが3個以上なら、粘って単価を上げるほうをすすめる');
   eq(ctx.adviceForecastText_(a).indexOf('残暑') !== -1, true, '9月なら9月らしい話をする');
@@ -499,7 +509,7 @@ console.log('\n■ アドバイスとオプチャを入れても形がこわれ�
 {
   const adv = ctx.buildMonthlyAdvice_(
     { "北他|江坂": { count: 3, sales: 21699, waitSum: 66, waitCount: 3 } },
-    { "北他|江坂": { "6|3": { count: 2, sales: 14466, times: ["03:16","03:20"] } } },
+    { "北他|江坂": { "6|3": { count: 3, sales: 21699, times: ["03:16","03:20","03:40"] } } },
     mkFt([["平日",23,{name:"新地4",count:16,avg:10834}]]), ADV_DT, ADV_HRS, new D(2026, 7, 15));
 
   const opucha = { count: 12, sales: 96000, waitSum: 120, waitCount: 8, kanku: 3,
@@ -576,15 +586,15 @@ console.log('\n■ 大事なところだけ太字にする');
 {
   const a = ctx.buildMonthlyAdvice_(
     { "北他|江坂": { count: 3, sales: 21699, waitSum: 66, waitCount: 3 } },
-    { "北他|江坂": { "6|3": { count: 2, sales: 14466, times: ["03:16","03:20"] } } },
+    { "北他|江坂": { "6|3": { count: 3, sales: 21699, times: ["03:16","03:20","03:40"] } } },
     mkFt([["平日",23,{name:"新地4",count:16,avg:10834}]]), ADV_DT, ADV_HRS, new D(2026, 7, 15));
 
   const bold = p => p.filter(x => x.b).map(x => x.t);
-  eq(bold(ctx.adviceReviewParts_(a)), ['「江坂」', '￥7,233', '22分', '￥19,726', '土曜 03:16、土曜 03:20'],
+  eq(bold(ctx.adviceReviewParts_(a)), ['「江坂」', '￥7,233', '22分', '￥19,726', '土曜 03:16、土曜 03:20、土曜 03:40'],
      '振り返りは 乗り場・金額・待ち時間だけ太字');
-  eq(bold(ctx.advicePickParts_(a)[0]), ['土曜 03時台', '江坂', '￥7,233', '03:16、03:20'],
+  eq(bold(ctx.advicePickParts_(a)[0]), ['土曜 03時台', '江坂', '￥7,233', '03:16、03:20、03:40'],
      'オススメは 時間帯・乗り場・金額・時刻だけ太字');
-  eq(bold(ctx.adviceForecastParts_(a)), ['平日の23時台', '新地4', '1個', 'ふだんは数をこなし、その時間帯だけ粘る'],
+  eq(bold(ctx.adviceForecastParts_(a)), ['平日の23時台', '新地4', '1通り', '1通り', 'ふだんは数をこなし、その時間帯だけ粘る'],
      '予想は 強かった枠・件数・結論 だけ太字（全部太字だと、どこが大事か分からない）');
   eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 9月はこういう月') !== -1, true,
      '  来月の行事や社会人の動きから始める');

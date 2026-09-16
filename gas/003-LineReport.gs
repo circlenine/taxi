@@ -2,7 +2,27 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L027ver  （2026/09/16）  ★★★
+ *  ★★★  L029ver  （2026/09/16）  ★★★
+ *
+ *  [L029ver]
+ *   ・記録が少ない乗り場を「おすすめ」として出さないようにした（LR_NIGHT_MIN_N＝3件）
+ *     2件しかない乗り場が「その時間帯のおすすめ」として出ていた。
+ *     2件の平均は平均とは呼べない。たまたま高い1本があれば1位になる。
+ *     人に配る資料で、それを「おすすめ」と書くのは誤りだった
+ *   ・出すときは必ず「何件の記録にもとづくか」を一緒に出すようにした
+ *   ・1件しかないものを「平均」と呼ぶのをやめた（「売上」と書く）
+ *   ・「8個中3個」を「〇通り（曜日区分×時間帯の組み合わせ）のうち〇通り」に直した
+ *   ・乗り場の名前が空のものを、表に出す直前でもう一度はじくようにした（dbHasPlace_）
+ *     集める側で1回はじくだけでは足りず、実際に空欄の行が残っていた
+ *   ・注釈（LR_DISCLAIMER）を、LINEの絵とまとめスプシの両方に必ず出すようにした
+ *     責任者の方も見る資料なので、どこまでが記録で、
+ *     どこからが推測なのかを黙っていてはいけない
+ *   ・帯の色を、いちばん最初の3色に戻した（#d93025 / #3b82f6 / #aaaaaa）
+ *     頼まれてもいないのに濃い色へ変えてしまい、赤も青も灰色も別物になっていた
+ *   ・まとめスプシの道すじを、LINEの絵と同じ詳しさにした
+ *   ・テスト送信のまとめスプシを、本番用とは別のスプレッドシートにした
+ *     本番用は5人に見せるものなので、試し書きをまぜない。
+ *     テスト用には見る権限を付けない（まーくさん以外には見えない）
  *
  *  [L028ver]
  *   ・まとめスプシの行き先を、3か所から順に試すようにした
@@ -303,7 +323,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L028ver";
+const LR_VERSION = "L029ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1170,8 +1190,22 @@ function menuAutoReportTestNow() {
 
 /* ============ 集計 → Flex Message → LINE送信 ============ */
 
-function sendCustomReport(targetId, customStartD, customEndD) {
+function sendCustomReport(targetId, customStartD, customEndD, isTestArg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet(); let startD = customStartD, endD = customEndD;
+
+  // ★テスト送信のときは、まとめスプシを「本番用」とは別に作る。
+  //   本番用はみんなに見せるものなので、作りかけの表や試し書きを
+  //   まぜてはいけない。テスト用は、まーくさん以外には見せない。
+  //   送り先がグループでなければテスト、と自動で判断する
+  //   （呼ぶ側が指定してくれれば、そちらを優先する）
+  let isTest;
+  if (isTestArg === true || isTestArg === false) {
+    isTest = isTestArg;
+  } else {
+    let group = "";
+    try { group = rpGroupTarget_(); } catch (e) {}
+    isTest = !(group && String(targetId) === String(group));
+  }
   const daysStr = ["日", "月", "火", "水", "木", "金", "土"]; const DAY_TYPES = ["平日", "金曜", "土曜", "日祝"];
   let totalRidesCount = 0; let tabRidesCount = { "北7":0, "北4":0, "北他":0, "ﾐﾅﾐ":0, "関空":0, "ほか":0 };
   let areaStats = {}; DAY_TYPES.forEach(dt => { areaStats[dt] = { "北": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}}, "ﾐﾅﾐ": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}}, "ほか": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}} }; });
@@ -1303,7 +1337,7 @@ function sendCustomReport(targetId, customStartD, customEndD) {
 
   if (typeof updProgress_ === "function") updProgress_("まとめスプシを作っています");
   // どのスプシに書いたかを、あとで確かめられるようにしておく
-  let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0));
+  let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0), isTest);
 
   const periodStr = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
   const bubbles = buildReportFlex_({
@@ -1452,15 +1486,22 @@ function buildReportFlex_(o) {
         // 前は帯の上に左詰めで並べていたので、どの色が何%なのか分からなかった。
         // ただし細い帯に文字を入れるとはみ出すので、入る幅があるときだけ入れる。
         const percentBars = [];
-        [[lrP, "#b71c1c", "ﾛﾝｸﾞ"], [mrP, "#1565c0", "ﾐﾄﾞﾙ"], [srP, "#616161", "ｼｮｰﾄ"]].forEach(function (x) {
-          const pct = x[0], color = x[1], name = x[2];
+        // ★帯の色は、いちばん最初の3色に戻してある（L007ver のもの）。
+        //   ここを勝手に濃くしてしまい、赤も青も灰色も別の色になっていた。
+        //   とくにショートを濃いグレーにしたせいで、となりの青との
+        //   境目が見分けられなくなっていた。
+        //   薄い灰色の帯の中の文字だけは、白では読めないので濃い文字にする。
+        [[lrP, "#d93025", "ﾛﾝｸﾞ", "#ffffff"],
+         [mrP, "#3b82f6", "ﾐﾄﾞﾙ", "#ffffff"],
+         [srP, "#aaaaaa", "ｼｮｰﾄ", "#333333"]].forEach(function (x) {
+          const pct = x[0], color = x[1], name = x[2], ink = x[3];
           if (pct <= 0) return;
           // 細い帯でも、半角の数字2文字は必ず入る幅を確保する。
           // flex は「割合」なので、下限を入れておけば細い帯もつぶれない
           let inner;
-          if (pct >= 20)     inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center" }];
-          else if (pct >= 8) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center" }];
-          else               inner = [{ "type": "text", "text": `${pct}`,         "size": "xxs", "weight": "bold", "color": "#ffffff", "align": "center" }];
+          if (pct >= 20)     inner = [{ "type": "text", "text": `${name}${pct}%`, "size": "xxs", "weight": "bold", "color": ink, "align": "center" }];
+          else if (pct >= 8) inner = [{ "type": "text", "text": `${pct}%`,        "size": "xxs", "weight": "bold", "color": ink, "align": "center" }];
+          else               inner = [{ "type": "text", "text": `${pct}`,         "size": "xxs", "weight": "bold", "color": ink, "align": "center" }];
           percentBars.push({ "type": "box", "layout": "vertical", "justifyContent": "center", "backgroundColor": color, "flex": Math.max(pct, LR_BAR_MIN), "contents": inner });
         });
         if (percentBars.length > 0) { boxContents.push({ "type": "box", "layout": "horizontal", "cornerRadius": "md", "height": "22px", "margin": "xs", "contents": percentBars }); } else { boxContents.push({ "type": "box", "layout": "horizontal", "cornerRadius": "md", "height": "22px", "margin": "xs", "contents": [ { "type": "box", "layout": "vertical", "backgroundColor": "#cccccc", "flex": 1, "contents": [] } ] }); }
@@ -1512,6 +1553,8 @@ function buildReportFlex_(o) {
       { "type": "text", "text": "狙い目：その時間帯でいちばん高かった乗車の時刻です。",
         "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true },
       { "type": "text", "text": "平均￥〇：その区間で1回あたり いくらになったかの平均です。",
+        "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true },
+      { "type": "text", "text": `〇件：その数字のもとになった記録の数。${LR_NIGHT_MIN_N}件未満の乗り場は出しません。`,
         "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true });
 
     DAY_TYPES.forEach(function (dType) {
@@ -1520,18 +1563,23 @@ function buildReportFlex_(o) {
         const aim = nightAim_(seg);
         const sp = [
           { "type": "span", "text": nightSpan_(seg) + "　", "weight": "bold", "color": "#1565c0" },
-          { "type": "span", "text": toHalfWidthKana(seg.name), "weight": "bold", "color": "#000000" }
+          { "type": "span", "text": toHalfWidthKana(seg.name), "weight": "bold", "color": "#000000" },
+          // 何件の記録にもとづくかは、必ず出す。読む人が自分で確かめられるように
+          { "type": "span", "text": "　" + seg.count + "件", "color": "#5f6368" }
         ];
         // 狙い目の時刻は、いちばん動きたくなるところなので赤の太字にする
         if (aim) sp.push({ "type": "span", "text": "　" + aim, "weight": "bold", "color": "#c62828" });
         // ★中身が空の span を作らないこと。
         //   LINEは text が空の span を受け付けず、400（invalid）で1通も届かなくなる
-        const tail = (seg.avg ? "　平均￥" + seg.avg.toLocaleString() : "") +
+        const tail = (seg.avg ? "　" + nightMoneyLabel_(seg) + "￥" + seg.avg.toLocaleString() : "") +
                      (seg.wait ? "　待ち平均" + seg.wait + "分" : "");
         if (tail) sp.push({ "type": "span", "text": tail, "color": "#444444" });
         return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": sp };
       });
-      if (!lines.length) lines.push({ "type": "text", "text": "データ不足", "size": "xs", "color": "#999999" });
+      if (!lines.length) {
+        lines.push({ "type": "text", "size": "xs", "color": "#999999", "wrap": true,
+          "text": `記録が足りません（同じ乗り場で${LR_NIGHT_MIN_N}件以上たまると出ます）` });
+      }
       const moves = nightMoves_(segs);
       const planBox = { "type": "box", "layout": "vertical", "backgroundColor": "#e3f2fd",
         "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
@@ -1641,6 +1689,20 @@ function buildReportFlex_(o) {
         { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": adviceSpans_(adviceForecastParts_(advice), "#333333") }
       ]});
   }
+
+  /* ---------- ※ 注釈（この資料の性格） ---------- */
+  // ★ここは絶対に削らない。責任者の方も見る資料なので、
+  //   どこまでが記録で、どこからが推測なのかを必ず示す。
+  //   trimFirst にも入れないので、混んでいても最後まで残る
+  section_();
+  flexContents.push({ "type": "separator", "margin": "lg" },
+    { "type": "box", "layout": "vertical", "backgroundColor": "#fff8e1",
+      "paddingAll": "8px", "cornerRadius": "md", "margin": "md",
+      "contents": LR_DISCLAIMER.map(function (t, i) {
+        return { "type": "text", "text": t, "wrap": true, "margin": i ? "xs" : "none",
+                 "size": "xxs", "color": i ? "#8d6e63" : "#bf360c",
+                 "weight": i ? "regular" : "bold" };
+      }) });
 
   return lrSplitBubbles_(flexContents, periodStr, dashboardUrl, trimFirst, sections);
 }
@@ -1987,6 +2049,8 @@ function collectOpucha_(ss, startD, endD, daysStr) {
 function opuchaTop_(opucha, n) {
   const list = [];
   for (const name in opucha.spots) {
+    // 名前の無い乗り場は出さない（どこに着ければよいか分からないため）
+    if (typeof dbHasPlace_ === "function" && !dbHasPlace_(name)) continue;
     const s = opucha.spots[name];
     list.push({ name: name, count: s.count, avg: Math.round(s.sales / s.count), max: s.max, at: s.at });
   }
@@ -2057,7 +2121,9 @@ function buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, t
     const name = key.split("|")[1];
     for (const dh in spotHotData[key]) {
       const hd = spotHotData[key][dh];
-      if (hd.count < 2) continue;            // 1件だけの組み合わせは「狙い目」と言えない
+      // ★2件では「狙い目」と言えない。たまたま高い1本があれば1位になってしまう。
+      //   人に配る資料なので、まぐれを「おすすめ」と書かない
+      if (hd.count < LR_NIGHT_MIN_N) continue;
       const p = dh.split("|");
       combos.push({
         day: daysStr[p[0]], hour: parseInt(p[1], 10), name: name,
@@ -2079,6 +2145,9 @@ function buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, t
     targetHours.forEach(function (hr) {
       const b = finalTimeline[dt] && finalTimeline[dt][hr] ? finalTimeline[dt][hr].best : null;
       if (!b) return;
+      // ここで数える「時間帯」も、記録が少ないものは入れない。
+      // 数だけ多く見せても、中身が2件ずつでは意味がないため
+      if ((b.count || 0) < LR_NIGHT_MIN_N) return;
       allSlots++;
       if (b.avg >= 10000) bigSlots++;
       if (!top || b.avg > top.avg) top = { dt: dt, hr: hr, avg: b.avg, name: b.name, count: b.count };
@@ -2166,14 +2235,19 @@ function adviceForecastParts_(a) {
     return out;
   }
   if (a.top) {
-    out.push({ t: "いちばん強かったのは " },
+    out.push({ t: "先月いちばん強かったのは " },
              { t: `${a.top.dt}の${("0" + a.top.hr).slice(-2)}時台`, b: true, c: "#0b5394" },
-             { t: "（" }, { t: a.top.name, b: true, c: "#b71c1c" },
-             { t: ` 平均￥${a.top.avg.toLocaleString()}／${a.top.count}件）。\n` });
+             { t: " の " }, { t: a.top.name, b: true, c: "#b71c1c" },
+             { t: `（${a.top.count}件の記録で、1回あたり平均￥${a.top.avg.toLocaleString()}）。\n` });
   }
-  out.push({ t: `平均￥10,000を超える時間帯は ${a.allSlots}個中 ` },
-           { t: `${a.bigSlots}個`, b: true, c: "#b71c1c" }, { t: "。\n" });
-  if (a.waitAvg > 0) out.push({ t: `待ち時間の平均は ${a.waitAvg}分。\n` });
+  // ★「8個中3個」だけでは、何のことか読み取れない。
+  //   曜日区分×時間帯の枠を数えていることを、言葉で書く
+  out.push({ t: "記録のあった時間帯は " },
+           { t: `${a.allSlots}通り`, b: true, c: "#0b5394" },
+           { t: "（曜日区分×時間帯の組み合わせ）。そのうち " },
+           { t: `${a.bigSlots}通り`, b: true, c: "#b71c1c" },
+           { t: " が、1回あたり平均￥10,000を超えていました。\n" });
+  if (a.waitAvg > 0) out.push({ t: `待ち時間は1回あたり平均 ${a.waitAvg}分でした。\n` });
 
   // ③ で、どう動くか
   out.push({ t: "\n▼ おすすめの動き方\n" });
@@ -2187,7 +2261,7 @@ function adviceForecastParts_(a) {
              { t: "ふだんは数をこなし、その時間帯だけ粘る", b: true, c: "#b71c1c" },
              { t: "のが無難です。" });
   } else {
-    out.push({ t: "平均￥10,000を超える時間帯がありません。" },
+    out.push({ t: "1回あたり平均￥10,000を超える時間帯は、ひとつもありませんでした。" },
              { t: "粘らずに、短い乗車でも数を積むほうが確実", b: true, c: "#b71c1c" },
              { t: "です。" });
   }
@@ -2249,6 +2323,39 @@ function advicePickLines_(a) { return advicePickParts_(a).map(advicePlain_); }
 const LR_NIGHT_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4];
 
 /**
+ * 「おすすめ」として出すのに、最低いくつの記録がいるか。
+ *
+ * ★ここを決めずに出していたのが、いちばんの間違いだった。
+ *   2件しかない乗り場が「その時間帯のおすすめ」として出てしまい、
+ *   実際には城ホールの催し次第でバラバラな乗り場だった。
+ *   2件の平均は平均とは呼べない。たまたま高い1本があれば、それだけで1位になる。
+ *   人に配る資料で、それを「おすすめ」と書くのは誤りだった。
+ *
+ *   ・この数に満たない乗り場は、道すじに出さない（「記録が足りません」と書く）
+ *   ・出すときは、必ず「何件の記録にもとづくか」を一緒に出す
+ *     読む人が自分で確かめられないものは、信用のしようがないため
+ */
+const LR_NIGHT_MIN_N = 3;
+
+/**
+ * 資料の性格を、必ず本人の目に入るところに書いておく。
+ *
+ * ★責任者の方も見る資料です。
+ *   数字は記録から数えたもの（確か）ですが、
+ *   「おすすめ」「予想」はそこから組み立てた推測です。
+ *   どこまでが記録で、どこからが推測なのかを黙っていると、
+ *   読む人は全部を確定した事実として受け取ってしまいます。
+ *   小さくてもよいので、必ず書く。
+ */
+const LR_DISCLAIMER = [
+  "※ この資料には、AIによる集計と推測が含まれています。あくまで参考資料としてご了承ください。",
+  "・件数・金額・待ち時間は、記録用スプレッドシートに入力された実績を数えたものです。",
+  "・「おすすめ」「戦略予想」は、その実績と暦（行事・曜日）から組み立てた推測です。",
+  "・記録が" + LR_NIGHT_MIN_N + "件に満たないものは、まぐれの可能性があるため載せていません。",
+  "・入力もれや書き間違いがあると、数字もそのぶんずれます。おかしいと感じたら記録をご確認ください。"
+];
+
+/**
  * finalTimeline（曜日区分 → 時 → {best, worst}）から、道すじを作る。
  * 戻り値は 曜日区分 → [{from, to, name, avg, wait, count, at}] の配列。
  */
@@ -2258,7 +2365,9 @@ function buildNightPlan_(finalTimeline, DAY_TYPES) {
     const segs = [];
     LR_NIGHT_HOURS.forEach(function (hr) {
       const cell = (finalTimeline && finalTimeline[dt]) ? finalTimeline[dt][hr] : null;
-      const b = cell ? cell.best : null;
+      let b = cell ? cell.best : null;
+      // 記録が少なすぎるものは「おすすめ」にしない。たまたまの1本で順位が決まるため
+      if (b && (b.count || 0) < LR_NIGHT_MIN_N) b = null;
       const name = b ? b.name : "";
       const last = segs[segs.length - 1];
       if (last && last.name === name) {
@@ -2310,12 +2419,21 @@ function nightLine_(seg) {
   if (!seg.name) return nightSpan_(seg) + "　記録なし";
   const aim = nightAim_(seg);
   // 「￥11,400」だけだと、平均なのか合計なのか最高額なのか分からない。
-  // 何の金額かは、いつでも数字のすぐ前に書く
-  return nightSpan_(seg) + "　" + seg.name +
+  // 何の金額かは、いつでも数字のすぐ前に書く。
+  // 件数も必ず添える。何件にもとづく数字かが分からなければ、信用のしようがない
+  return nightSpan_(seg) + "　" + seg.name + "　" + seg.count + "件" +
     (aim ? "　" + aim : "") +
-    (seg.avg  ? "　平均￥" + seg.avg.toLocaleString() : "") +
+    (seg.avg  ? "　" + nightMoneyLabel_(seg) + "￥" + seg.avg.toLocaleString() : "") +
     (seg.wait ? "　待ち平均" + seg.wait + "分" : "") +
-    (seg.max  ? "　最高￥" + seg.max.toLocaleString() : "");
+    (seg.count >= 2 && seg.max ? "　最高￥" + seg.max.toLocaleString() : "");
+}
+
+/**
+ * 金額の呼び方。1件しかないなら「平均」ではない。
+ * 1件を「平均￥12,000」と書くのは、数字の使い方として誤り。
+ */
+function nightMoneyLabel_(seg) {
+  return (seg && seg.count === 1) ? "売上" : "平均";
 }
 
 /** 動く回数（記録なしの区間は数えない） */
@@ -2651,8 +2769,16 @@ function dbTidy_(text) {
  * IDはコードにも GitHub にも書かない。人によって行き先が違ううえ、
  * リポジトリに他人のスプレッドシートの場所を残したくないため。
  */
-function dbOpenTarget_(mainSS) {
+/**
+ * まとめスプシの行き先を決める。
+ *
+ * ★テスト用と本番用は、別のスプレッドシートにする。
+ *   本番用は5人に見せるものなので、試し書きや作りかけの表を
+ *   まぜてはいけない。テスト用は、まーくさん以外には見せない。
+ */
+function dbOpenTarget_(mainSS, isTest) {
   const props = PropertiesService.getScriptProperties();
+  const KEY = isTest ? "DASHBOARD_TEST_ID" : "DASHBOARD_ID";
 
   // ★行き先の控えは3か所ある。1つが壊れていても止まらないよう、順に試す。
   //   前は最初の1つがダメなだけで、そこで投げて終わっていた。
@@ -2662,17 +2788,21 @@ function dbOpenTarget_(mainSS) {
     const id = (typeof infoIdOf_ === "function") ? infoIdOf_(raw) : String(raw || "").trim();
     if (id && !cands.some(function (c) { return c.id === id; })) cands.push({ id: id, from: from });
   };
-  try { if (typeof cfg_ === "function") add(cfg_("まとめスプシのID"), "設定タブ"); } catch (e) {}
-  try { if (typeof infoGet_ === "function") add(infoGet_(INFO_ROW.DASHBOARD), "説明タブ I2"); } catch (e) {}
-  add(props.getProperty("DASHBOARD_ID"), "スクリプトの控え");
+  if (!isTest) {
+    // 本番用だけ、設定タブと説明タブも見る。
+    // テスト用の行き先は、スクリプトの控えにだけ持つ（人の目に触れさせない）
+    try { if (typeof cfg_ === "function") add(cfg_("まとめスプシのID"), "設定タブ"); } catch (e) {}
+    try { if (typeof infoGet_ === "function") add(infoGet_(INFO_ROW.DASHBOARD), "説明タブ I2"); } catch (e) {}
+  }
+  add(props.getProperty(KEY), "スクリプトの控え");
 
   const why = [];
   for (let i = 0; i < cands.length; i++) {
     try {
       const ss = SpreadsheetApp.openById(cands[i].id);
-      // 開けたものを、3か所ぜんぶに書き直しておく（次からは1発で開ける）
-      try { infoSet_(INFO_ROW.DASHBOARD, cands[i].id, "まとめスプシID"); } catch (e) {}
-      props.setProperty("DASHBOARD_ID", cands[i].id);
+      // 開けたものを控えに書き直しておく（次からは1発で開ける）
+      if (!isTest) { try { infoSet_(INFO_ROW.DASHBOARD, cands[i].id, "まとめスプシID"); } catch (e) {} }
+      props.setProperty(KEY, cands[i].id);
       return ss;
     } catch (e) {
       why.push("・" + cands[i].from + "（" + cands[i].id.slice(0, 12) + "…）：" +
@@ -2686,10 +2816,11 @@ function dbOpenTarget_(mainSS) {
   }
   // ここに来るのは、行き先がどこにも残っていないときだけ。
   // 1回作ったら、次からは必ず同じものに追記する
-  const made = SpreadsheetApp.create("☣️僕はグールだッシュボード☣️");
+  const made = SpreadsheetApp.create(isTest ? "🧪【テスト用】僕はグールだッシュボード"
+                                             : "☣️僕はグールだッシュボード☣️");
   const newId = made.getId();
-  props.setProperty("DASHBOARD_ID", newId);   // いちばん消えにくいところへ先に
-  infoSet_(INFO_ROW.DASHBOARD, newId, "まとめスプシID");
+  props.setProperty(KEY, newId);              // いちばん消えにくいところへ先に
+  if (!isTest) infoSet_(INFO_ROW.DASHBOARD, newId, "まとめスプシID");
   SpreadsheetApp.flush();          // 書き終わる前に落ちても、行き先を見失わないように
 
   // 作ったときに勝手に付いてくる「シート1」は消す。
@@ -2723,7 +2854,7 @@ function dbViewerText_() {
   let dbSS = null, mainSS = null;
   try {
     mainSS = SpreadsheetApp.getActiveSpreadsheet();
-    dbSS = dbOpenTarget_(mainSS);
+    dbSS = dbOpenTarget_(mainSS, false);   // ここで見るのは本番用だけ
   } catch (e) {
     return "まとめスプシ：❌ 開けませんでした（" + (e && e.message ? e.message : e) + "）";
   }
@@ -2742,11 +2873,13 @@ function dbViewerText_() {
     });
   } catch (e) {}
 
-  L.push("まとめスプシ：" + dbSS.getName());
+  L.push("まとめスプシ（本番用）：" + dbSS.getName());
   L.push("見られる人（" + list.length + "人）");
   list.forEach(function (m) { L.push("　・" + m); });
   if (added) L.push("　→ " + added);
   L.push("※ 「リンクを知っている全員」にはしていません。ここに出ている人だけです。");
+  L.push("※ テスト送信のぶんは、これとは別のスプレッドシートに作られます。");
+  L.push("　 そちらは、まーくさん以外には見えません。");
   return L.join("\n");
 }
 
@@ -2773,6 +2906,24 @@ function dbShareWithTeam_(mainSS, dbSS) {
 }
 
 /** 合計 total 列を、割合 parts で分ける（合計は必ず total になる） */
+/**
+ * 乗り場の名前として使えるか。
+ *
+ * ★「乗り場が空のものは出さない」を、集める側で1回やっただけでは足りなかった。
+ *   実際に空欄の行が表に残っていた。どこかの道すじが漏れていたということ。
+ *   名前を書き出す直前で、もう一度ここを通す。
+ *   どんな道すじで来ても、名前が無いものは表に出ない。
+ *
+ *   空白・全角空白・改行・「-」「－」「なし」だけのものも、名前ではない。
+ */
+function dbHasPlace_(name) {
+  const t = String(name == null ? "" : name).replace(/[\s\u3000]/g, "");
+  if (!t) return false;
+  if (/^[-－ー—–]+$/.test(t)) return false;
+  if (/^(なし|無し|不明|未入力)$/.test(t)) return false;
+  return true;
+}
+
 function dbSplit_(total, parts) {
   const sum = parts.reduce(function (a, b) { return a + b; }, 0);
   if (sum <= 0) return parts.map(function (_, i) { return i === 0 ? total : 0; });
@@ -2863,14 +3014,17 @@ function dbGap_(sheet, row) {
   } catch (e) {}
 }
 
-function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlace) {
-  const dbSS = dbOpenTarget_(mainSS);
+function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlace, isTest) {
+  const dbSS = dbOpenTarget_(mainSS, isTest);
 
   // ★見る権限は、いちばん先に付ける。
   //   前は表を全部作り終えたあとに付けていたので、途中で1か所でも失敗すると
   //   「まとめスプシはできているのに、みんなが開けない」ことになっていた。
   //   権限だけでも先に通しておけば、あとで作り直せば見られる。
-  try { dbShareWithTeam_(mainSS, dbSS); } catch (e) { logErr_("dbShareEarly", e); }
+  //   ただしテスト用には付けない。作りかけを人に見せないため
+  if (!isTest) {
+    try { dbShareWithTeam_(mainSS, dbSS); } catch (e) { logErr_("dbShareEarly", e); }
+  }
 
   const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
   // タブ名は「📈 8/16(日)～9/15(火)」。いつからいつまでか、タブを見ただけで分かるように
@@ -2948,12 +3102,15 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       const floor_ = function (v) { return v > 0 ? Math.max(v, 8) : 0; };
       const widths = dbSplit_(DB_COLS, [floor_(lP), floor_(mP), floor_(sP)]);
       let c = 1;
-      [[widths[0], "#b71c1c", "ﾛﾝｸﾞ", lP], [widths[1], "#1565c0", "ﾐﾄﾞﾙ", mP], [widths[2], "#616161", "ｼｮｰﾄ", sP]]
+      // 帯の色は、LINEの絵とそろえる（いちばん最初の3色）
+      [[widths[0], "#d93025", "ﾛﾝｸﾞ", lP, "#ffffff"],
+       [widths[1], "#3b82f6", "ﾐﾄﾞﾙ", mP, "#ffffff"],
+       [widths[2], "#aaaaaa", "ｼｮｰﾄ", sP, "#333333"]]
         .forEach(function (x) {
           if (x[0] <= 0) return;
           const px = x[0] * DB_COL_W;
           const rg = sheet.getRange(curRow, c, 1, x[0]).merge()
-            .setBackground(x[1]).setFontColor("#ffffff").setFontSize(10).setFontWeight("bold")
+            .setBackground(x[1]).setFontColor(x[4]).setFontSize(10).setFontWeight("bold")
             .setHorizontalAlignment("center").setVerticalAlignment("middle");
           rg.setValue(px >= 75 ? (x[2] + x[3] + "%") : (px >= 40 ? (x[3] + "%") : String(x[3])));
           c += x[0];
@@ -2984,7 +3141,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     const blocks = [
       ["【この期間の振り返り】", [adviceReviewParts_(advice)], "#eef3f8", "#0b5394"],
       ["【オススメの乗車時間と乗り場】",
-        [[{ t: "同じ曜日・時間帯で2件以上あって、平均単価が高かった組み合わせです。", c: "#5f6368" }]].concat(pickParts),
+        [[{ t: `同じ曜日・時間帯で${LR_NIGHT_MIN_N}件以上の記録があり、平均単価が高かった組み合わせです。` +
+              `（${LR_NIGHT_MIN_N}件に満たないものは、まぐれの可能性があるので出していません）`, c: "#5f6368" }]].concat(pickParts),
         "#fdf0ef", "#b71c1c"],
       [`【${advice.nextMonth}月の戦略予想】`, [adviceForecastParts_(advice)], "#eaf4ec", "#2e7d32"]
     ];
@@ -3040,6 +3198,21 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     dbGap_(sheet, curRow); curRow++;
   }
 
+  /* ---------- ※ 注釈（この資料の性格） ---------- */
+  // 表より先に、いちばん上に出す。あとから見た人が見落とさないように
+  {
+    dbEnsureRows_(sheet, curRow + LR_DISCLAIMER.length + 1);
+    LR_DISCLAIMER.forEach(function (t, i) {
+      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(t)
+        .setFontSize(i ? 9 : 10).setFontWeight(i ? "normal" : "bold")
+        .setFontColor(i ? "#8d6e63" : "#bf360c").setBackground("#fff8e1")
+        .setWrap(true).setHorizontalAlignment("left").setVerticalAlignment("middle");
+      sheet.setRowHeight(curRow, i ? 16 : 20);
+      curRow++;
+    });
+    dbGap_(sheet, curRow); curRow++;
+  }
+
   /* ---------- 🚕 一晩の流し方（マス目） ---------- */
   //
   // 下の【時間詳細】は「見比べる表」で、ひと晩をどう動くかは読み取れない。
@@ -3055,7 +3228,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
     dbTitle_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）\n" +
       "同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です\n" +
-      "狙い目＝その時間帯でいちばん高かった乗車の時刻　／　平均￥＝1回あたりの平均売上", "#cfe2f3", 12); curRow++;
+      "狙い目＝その時間帯でいちばん高かった乗車の時刻　／　平均￥＝1回あたりの平均売上\n" +
+      "※ 同じ乗り場で" + LR_NIGHT_MIN_N + "件以上の記録があるものだけを出しています", "#cfe2f3", 12); curRow++;
 
     // 時間帯 ＋ 曜日区分4つ（合計26列ぴったり）
     const PL_SPANS = [6, 5, 5, 5, 5];
@@ -3115,17 +3289,15 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         const segs = (plan[dType] || []).filter(function (x) { return !!x.name; });
         if (!segs.length) return;
         dbEnsureRows_(sheet, curRow);
-        const text = "【" + dType + "】動くのは" + nightMoves_(segs) + "回　" +
-          segs.map(function (x) {
-            const aim = nightAim_(x);
-            return nightSpan_(x) + " " + toHalfWidthKana(x.name) +
-                   (aim ? " " + aim : "") +
-                   (x.avg ? "（平均￥" + x.avg.toLocaleString() + "）" : "");
-          }).join("　→　");
+        // ★LINEの絵と同じ詳しさにする。
+        //   こちらだけ短くすると、あとから見返したときに数字の裏が取れない
+        const text = "【" + dType + "】動くのは" + nightMoves_(segs) + "回\n" +
+          segs.map(function (x) { return "　" + nightLine_(x); }).join("\n");
+        const rows = text.split("\n").length;
         sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(text)
-          .setFontSize(dbFitSize_(text, DB_COLS, 10, 7, 2)).setWrap(true)
+          .setFontSize(dbFitSize_(text, DB_COLS, 10, 8, rows + 1)).setWrap(true)
           .setHorizontalAlignment("left").setVerticalAlignment("middle");
-        sheet.setRowHeight(curRow, 28);
+        sheet.setRowHeight(curRow, 16 * rows + 10);
         curRow++;
       });
     }
@@ -3223,6 +3395,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       });
       // 出すものが無ければ、下の「個別乗り場 実績」に回す（どこにも出ないのがいちばん困る）
       if (!hasAny) continue;
+      // 名前の無い乗り場は出さない。どこに着ければよいか分からない表になるため
+      if (!dbHasPlace_(spotName)) continue;
       heatmapSpotNames.push(spotName);
 
       if (typeof updBeat_ === "function") updBeat_("ヒートマップ " + spotName);
@@ -3355,7 +3529,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   let spotRowsData = [];
   for (let key in spotStats) {
-    let p = key.split("|"); let tab = p[0], name = p[1]; if(heatmapSpotNames.includes(name)) continue; let d = spotStats[key];
+    let p = key.split("|"); let tab = p[0], name = p[1]; if(heatmapSpotNames.includes(name)) continue;
+    if (!dbHasPlace_(name)) continue;          // 名前の無い乗り場は出さない
+    let d = spotStats[key];
     spotRowsData.push({tab: tab, name: name, d: d, avgSales: Math.round(d.sales / d.count), key: key});
   }
   // 金額（平均）の高い順。タブごとに固めるより、どこが強いかが一目で分かる
@@ -3429,7 +3605,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   /* ---------- 特別な一覧（再現したい・チケット・避けたい） ---------- */
   function createSpecialTable(title, dataArr0, startRow, bgC, isAvoid) {
-    let dataArr = (dataArr0 || []).slice();
+    // 名前の無い乗り場は、どこに着ければよいか分からないので出さない
+    let dataArr = (dataArr0 || []).filter(function (r) { return dbHasPlace_(r && r[2]); });
     let row = startRow;
     dbTitle_(row, (isAvoid ? "⚠️ " : "🔥 ") + title, bgC, 12); row++;
 
@@ -3519,8 +3696,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   // グラフを全部置き終わってから、まとめて点線にする
   dbDotLines_(dbSS, tabName);
 
-  // 記録用スプシを見られる人には、こちらも見せる
-  dbShareWithTeam_(mainSS, dbSS);
+  // 記録用スプシを見られる人には、こちらも見せる（本番用のときだけ）
+  if (!isTest) dbShareWithTeam_(mainSS, dbSS);
 
   // 開いたときに、いちばん上から見えるようにする。
   // 最後に書いた場所（ずっと下）が覚えられていて、開くとそこが出てしまうため
