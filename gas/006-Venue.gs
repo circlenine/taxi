@@ -2,11 +2,30 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V030ver  （2026/09/16）  ★★★
+ *  ★★★  V031ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V031ver]
+ *   ・写真からの読み取りが、いつも失敗していたのを直した
+ *     ★申し訳ありませんでした。フェスティバルホールの表が
+ *       読めなかったのは、写真のせいではありません。こちらの作りが原因でした。
+ *     ★AIに返事の長さを指定していませんでした。
+ *       1か月ぶん（30行）は返事が長く、終わりの ] が出る前に
+ *       打ち切られていました。そして打ち切られた返事を、
+ *       こちらは まるごと捨てていました。だから毎回「読めません」でした。
+ *       ・maxOutputTokens … 長い表でも書ききれる長さを指定
+ *       ・responseMimeType … 「JSONだけ返す」と約束させる
+ *       ・temperature 0 … 毎回おなじ読み方をさせる
+ *     ★それでも途中で切れたときは、そろっている分だけ拾います（vnJsonArray_）。
+ *       28件のうち25件でも読めれば、そのぶんは使えます
+ *     ★返事が2つに分かれてきても、つなげて読むようにしました。
+ *       前は1つめしか見ておらず、そこが空だと「読めません」で終わっていました
+ *     ★読めなかったときは、理由（MAX_TOKENS など）とAIの言い分も出します。
+ *       「エラーです」だけでは、どこが悪いのか分かりませんでした
+ *     ★混み合っているとき（429・503）は、1度だけ待ってやり直します
  *
  *  [V030ver]
  *   ・イベント名に下線を引き、そこを押すとページへ飛ぶようにした
@@ -1476,30 +1495,112 @@ function vnDocGet_(d, place) {
   } catch (e) { return ""; }
 }
 
+/**
+ * AIの返事から、予定の並び（JSONの配列）を取り出す。
+ *
+ * ★読めなければ null を返します（「1件も無かった」の [] とは別ものです）。
+ *   ここを取りちがえると、「読めていない」のに「無い」と言ってしまいます。
+ *
+ * ★返事が途中で切れていても、あきらめません。
+ *   1か月ぶん（30行ほど）を読ませると、返事が長くなって
+ *   終わりの ] が出る前に打ち切られることがあります。
+ *   これまでは、そのとき まるごと捨てていました。
+ *   いまは、そろっている {…} を1件ずつ拾い上げます。
+ *   28件のうち25件でも読めれば、そのぶんは使えます。
+ */
+function vnJsonArray_(text) {
+  const t = String(text == null ? "" : text);
+  const m = t.match(/\[[\s\S]*\]/);
+  if (m) {
+    try { const a = JSON.parse(m[0]); if (Array.isArray(a)) return a; } catch (e) {}
+  }
+  const out = [];
+  const re = /\{[^{}]*\}/g;
+  let x;
+  while ((x = re.exec(t)) !== null) {
+    try {
+      const o = JSON.parse(x[0]);
+      if (o && typeof o === "object") out.push(o);
+    } catch (e) {}
+  }
+  return out.length ? out : null;
+}
+
+/** AIが返したエラーの中身から、人が読める手がかりを1行だけ取り出す */
+function vnErrHint_(body) {
+  try {
+    const j = JSON.parse(String(body || ""));
+    const msg = (j.error && j.error.message) || "";
+    if (msg) return "\n" + String(msg).slice(0, 160);
+  } catch (e) {}
+  return "";
+}
+
 function vnImageJson_(messageId, prompt, blobIn) {
   if (typeof geminiReady_ !== "function") throw new Error("001-Code が古いので読み取れません");
   const g = geminiReady_();
   const blob = blobIn || vnFetchImage_(messageId);
 
-  const out = UrlFetchApp.fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/" + g.model +
-    ":generateContent?key=" + encodeURIComponent(g.key),
-    { method: "post", contentType: "application/json", muteHttpExceptions: true,
-      payload: JSON.stringify({ contents: [{ parts: [
-        { text: prompt },
-        { inline_data: { mime_type: blob.getContentType() || "image/jpeg",
-                         data: Utilities.base64Encode(blob.getBytes()) } }
-      ]}]})});
-  if (out.getResponseCode() !== 200) throw new Error("AIが読めませんでした（" + out.getResponseCode() + "）");
+  const payload = {
+    contents: [{ parts: [
+      { text: prompt },
+      { inline_data: { mime_type: blob.getContentType() || "image/jpeg",
+                       data: Utilities.base64Encode(blob.getBytes()) } }
+    ]}],
+    /*
+     * ★ここが抜けていました。申し訳ありませんでした。
+     *   何も指定しないと、返事の長さが短めに切られます。
+     *   1か月ぶんの表（30行）は それに収まらず、
+     *   終わりまで書ききる前に打ち切られていました。
+     *   ・maxOutputTokens … 長い表でも書ききれる長さにする
+     *   ・responseMimeType … 「JSONだけ返す」と約束させる（前置きが混ざらない）
+     *   ・temperature 0  … 毎回おなじ読み方をさせる（写真の読み取りに ゆらぎは要らない）
+     */
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 8192,
+      responseMimeType: "application/json"
+    }
+  };
 
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + g.model +
+              ":generateContent?key=" + encodeURIComponent(g.key);
+  let out = null, code = 0, body = "";
+  // 混み合っているときは1度だけ待って、やり直す
+  for (let i = 0; i < 2; i++) {
+    out = UrlFetchApp.fetch(url, { method: "post", contentType: "application/json",
+                                   muteHttpExceptions: true, payload: JSON.stringify(payload) });
+    code = out.getResponseCode();
+    body = out.getContentText();
+    if (code !== 429 && code !== 500 && code !== 503) break;
+    try { Utilities.sleep(2000); } catch (e) {}
+  }
+  if (code !== 200) throw new Error("AIが読めませんでした（" + code + "）" + vnErrHint_(body));
+
+  let js = null;
+  try { js = JSON.parse(body); } catch (e) { throw new Error("AIの返事が壊れていました"); }
+  const cand = ((js && js.candidates) || [])[0] || {};
+  // ★返事が2つ以上に分かれて来ることがあるので、全部つなげる。
+  //   前は1つめしか見ておらず、そこが空だと「読めません」で終わっていた
   let text = "";
-  try { text = JSON.parse(out.getContentText()).candidates[0].content.parts[0].text; }
-  catch (e) { throw new Error("AIの返事を読めませんでした"); }
-  const m = text.match(/\[[\s\S]*\]/);
-  if (!m) return [];
-  let arr;
-  try { arr = JSON.parse(m[0]); } catch (e) { return []; }
-  return Array.isArray(arr) ? arr : [];
+  try {
+    ((cand.content && cand.content.parts) || []).forEach(function (pp) {
+      if (pp && pp.text) text += pp.text;
+    });
+  } catch (e) {}
+  if (!text) {
+    const why = cand.finishReason ||
+                (js.promptFeedback && js.promptFeedback.blockReason) || "理由は分かりません";
+    throw new Error("AIが何も返しませんでした（" + why + "）");
+  }
+
+  const arr = vnJsonArray_(text);
+  if (arr === null) {
+    throw new Error("AIの返事を読み取れませんでした" +
+                    (cand.finishReason ? "（" + cand.finishReason + "）" : "") +
+                    "\n読んだ文字：" + String(text).slice(0, 120));
+  }
+  return arr;
 }
 
 /** "9/16" と基準日から、その年の日付を決める（年またぎも見る） */

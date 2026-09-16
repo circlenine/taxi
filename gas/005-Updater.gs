@@ -2,7 +2,23 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U048ver  （2026/09/16）  ★★★
+ *  ★★★  U049ver  （2026/09/16）  ★★★
+ *
+ *  [U049ver]
+ *   ・合言葉を打っても何も返ってこない、を直した
+ *     ★申し訳ありませんでした。「ジェバンニ」「Katastrophe」と打っても
+ *       うんともすんとも言わなかったのは、こちらの作りが悪かったためです。
+ *       言葉の聞き分けは合っていました。そのあとが問題でした。
+ *     ★受け口（LINEからの呼び出し）の中で、
+ *         ① 星人をAIに考えてもらう（数秒）
+ *         ② その星人の絵をAIに描いてもらう（5〜15秒）
+ *       をやってから返事を送っていました。
+ *       LINEもApps Scriptも、そんなに待ってくれません。
+ *       途中で打ち切られるので、送る前に終わっていました。
+ *     ★いまは、受け口では「やることを1件書いて、すぐ返す」だけ。
+ *       重たいところは1秒後に動く見張り（updKataFire）が引き受けます。
+ *       届くのは、これまでどおり1通だけです
+ *     ★AIが転んでも、文だけは必ず届くようにしました
  *
  *  [U048ver]
  *   ・そうさボタンに「▼ イベントの日付」の入力らんを足した
@@ -1628,14 +1644,8 @@ function updHandleKata_(ev) {
       if (cc.get(kk)) return true;               // 少し前に送ったばかりなら、黙って見送る
       cc.put(kk, "1", 600);
     } catch (e) {}
-    // ★1回の送信にまとめる。
-    //   動画を1本えらび、その動画にちなんだ顔で星人の絵を作り、
-    //   文と絵をいっしょに1回だけ送る（動画の見出しにもなる）
-    const fun = updFunPick_();
-    const alien = updAlien_();
-    const pic = updAlienPic_(alien);
-    updPushOnce_(updWhere_(ev), updKataDenied_(alien, fun) +
-                 (pic.url ? "\n" + pic.url : ""), pic);
+    // ★星人も絵も、ここでは作らない（下の「なぜ裏に逃がすのか」を参照）
+    updKataJobAdd_({ to: updWhere_(ev), kind: "deny" });
     return true;
   }
 
@@ -1682,11 +1692,94 @@ function updHandleKata_(ev) {
     return true;
   }
   // ★1回の送信にまとめる。うまくいけば、これ1通で終わり。
-  //   おかしくなったときだけ、あとからもう1通お知らせする
-  const alien = updAlien_();
-  const pic = updAlienPic_(alien);
-  updPushOnce_(updWhere_(ev), updKataStart_(alien) + (pic.url ? "\n" + pic.url : ""), pic);
+  //   おかしくなったときだけ、あとからもう1通お知らせする。
+  //   ★星人も絵も、ここでは作らない（下の「なぜ裏に逃がすのか」を参照）
+  updKataJobAdd_({ to: updWhere_(ev), kind: "start" });
   return true;
+}
+
+/* ================================================================
+ *  なぜ、星人と絵を「裏」で作るのか
+ *
+ *  ★申し訳ありませんでした。合言葉を打っても何も返ってこない、
+ *    という不具合の原因はここでした。
+ *
+ *    これまでは、LINEの受け口（doPost）の中で
+ *      ① 星人をAI（Gemini）に考えてもらう（数秒）
+ *      ② その星人の絵をAIに描いてもらう（5〜15秒）
+ *    をやってから、返事を送っていました。
+ *
+ *    LINEは、受け口がすぐ返事をしないと「届かなかった」とみなします。
+ *    Apps Script のほうも、長くかかると途中で打ち切ります。
+ *    打ち切られると、送る前に終わってしまうので、
+ *    こちらは動いているつもりなのに、手元には何も来ません。
+ *
+ *  ★そこで、受け口では「やることリストに1件書いて、すぐ返す」だけにしました。
+ *    重たいところは、1秒後に動く見張りが引き受けます。
+ *    見た目は変わりません（届くのは、これまでどおり1通だけです）。
+ * ================================================================ */
+
+/** やることリストのしまい場所 */
+const UPD_KATA_JOBS = "UPD_KATA_JOBS";
+
+/** やることを1件足して、1秒後に動く見張りを立てる */
+function updKataJobAdd_(job) {
+  try {
+    const pr = updProps_();
+    let list = [];
+    try { list = JSON.parse(pr.getProperty(UPD_KATA_JOBS) || "[]"); } catch (e) { list = []; }
+    list.push(job);
+    // たまりすぎないように、新しいほうから5件だけ
+    pr.setProperty(UPD_KATA_JOBS, JSON.stringify(list.slice(-5)));
+  } catch (e) {}
+  try {
+    ScriptApp.newTrigger("updKataFire").timeBased().after(1000).create();
+  } catch (e) {
+    // 見張りを立てられなかったときは、仕方ないのでその場で作って送る。
+    // 時間はかかるが、何も返さないよりはよい
+    try { updKataFire(); } catch (e2) {}
+  }
+}
+
+/**
+ * 1秒後に動いて、星人と絵を作って送る。
+ * ★見張りから名前で呼ばれるので、うしろに「_」は付けない
+ */
+function updKataFire() {
+  // 役目を終えた見張りを片づける（ためると20個の上限にぶつかる）
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === "updKataFire") {
+        try { ScriptApp.deleteTrigger(t); } catch (e) {}
+      }
+    });
+  } catch (e) {}
+
+  let list = [];
+  try {
+    const pr = updProps_();
+    list = JSON.parse(pr.getProperty(UPD_KATA_JOBS) || "[]");
+    pr.deleteProperty(UPD_KATA_JOBS);
+  } catch (e) { list = []; }
+
+  list.forEach(function (job) {
+    try {
+      if (!job || !job.to) return;
+      // ★星人も絵も、ここで作る。どれかが失敗しても、文だけは必ず送る
+      let alien = null, pic = { url: "", direct: "" }, fun = null;
+      try { alien = updAlien_(); } catch (e) { alien = updAlienFallback_(); }
+      try { pic = updAlienPic_(alien) || pic; } catch (e) {}
+      if (job.kind === "deny") {
+        try { fun = updFunPick_(); } catch (e) { fun = null; }
+      }
+      const body = (job.kind === "deny")
+        ? updKataDenied_(alien, fun)
+        : updKataStart_(alien);
+      updPushOnce_(job.to, body + (pic.url ? "\n" + pic.url : ""), pic);
+    } catch (e) {
+      if (typeof logErr_ === "function") logErr_("updKataFire", e);
+    }
+  });
 }
 
 /** LINEから頼まれた取り込みを、裏で1回だけ動かす */

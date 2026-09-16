@@ -804,6 +804,92 @@ console.log('\n■ イベントのテスト送信は、日付を指定できる'
   eq(ymd(P(null, base)), '2026/9/16', 'null でも落ちない');
 }
 
+console.log('\n■ 写真の読み取り：返事が途中で切れても、あきらめない');
+{
+  const J = ctx.vnJsonArray_;
+  eq(J('[{"a":1},{"a":2}]').length, 2, 'ちゃんと閉じていれば、そのまま読む');
+  eq(J('[]').length, 0, '★1件も無いときの [] は、そのまま「0件」（読めなかった、ではない）');
+  /*
+   * ★ここが、フェスティバルホールの表が読めなかった原因でした。
+   *   1か月ぶん（30行）は返事が長く、終わりの ] が出る前に打ち切られる。
+   *   前は、そのとき まるごと捨てていました。
+   */
+  const cut = '[{"date":"9/3","name":"JUJU","start":"18:30","end":"21:00"},' +
+              '{"date":"9/5","name":"ベリーグッドマン","start":"17:00","end":"18:45"},' +
+              '{"date":"9/6","name":"吉田兄弟","start":"15:0';
+  const got = J(cut);
+  eq(got && got.length, 2, '★途中で切れていても、そろっている分は拾う');
+  eq(got[0].name, 'JUJU', '  中身も読める');
+  eq(J('なにも入っていません'), null, '★本当に読めなければ null（0件とは別もの）');
+  eq(J(''), null, '空でも落ちない');
+  eq(J(null), null, 'null でも落ちない');
+
+  // ★本当に「長さの指定」を付けて送っているか、送る中身を見て確かめる
+  vm.runInContext('function geminiReady_(){ return { key: "k", model: "m" }; }', ctx);
+  const fakeBlob = { getContentType: () => 'image/png', getBytes: () => [1, 2, 3] };
+  const reqs = [];
+  const keepFetch = ctx.UrlFetchApp;
+  const say = (code, text) => ({
+    getResponseCode: () => code,
+    getContentText: () => JSON.stringify(
+      code === 200 ? { candidates: [{ content: { parts: [{ text: text }] } }] }
+                   : { error: { message: text } })
+  });
+  let nextReply = say(200, '[{"date":"9/3","name":"JUJU","start":"18:30","end":"21:00"}]');
+  ctx.UrlFetchApp = { fetch: (u, o) => { reqs.push({ u: u, o: o }); return nextReply; } };
+
+  const got2 = ctx.vnImageJson_('mid', 'よろしく', fakeBlob);
+  eq(got2.length, 1, '読めたら、そのまま返す');
+  const sent = JSON.parse(reqs[0].o.payload);
+  eq(sent.generationConfig.maxOutputTokens >= 4096, true,
+     '★返事の長さを、こちらで指定して送っている（指定しないと途中で切られる）');
+  eq(sent.generationConfig.responseMimeType, 'application/json',
+     '  JSONだけ返すよう、約束させている');
+  eq(sent.generationConfig.temperature, 0, '  毎回おなじ読み方をさせる');
+
+  // 返事が2つに分かれてきても、つなげて読む
+  nextReply = {
+    getResponseCode: () => 200,
+    getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [
+      { text: '[{"date":"9/3","name":"JUJU"' }, { text: ',"start":"18:30"}]' }] } }] })
+  };
+  reqs.length = 0;
+  eq(ctx.vnImageJson_('mid', 'x', fakeBlob).length, 1,
+     '★返事が2つに分かれてきても、つなげて読む');
+
+  // 何も返ってこなかったときは、理由まで言う
+  nextReply = {
+    getResponseCode: () => 200,
+    getContentText: () => JSON.stringify({ candidates: [{ finishReason: 'MAX_TOKENS' }] })
+  };
+  let msg = '';
+  try { ctx.vnImageJson_('mid', 'x', fakeBlob); } catch (e) { msg = e.message; }
+  has(msg, 'MAX_TOKENS', '★何も返らなかったら、その理由まで伝える');
+
+  // 開けなかったときは、AIの言い分も見せる
+  nextReply = say(400, 'model not found');
+  msg = '';
+  try { ctx.vnImageJson_('mid', 'x', fakeBlob); } catch (e) { msg = e.message; }
+  has(msg, '400', '開けなかったら、番号を出す');
+  has(msg, 'model not found', '★AIの言い分も、そのまま見せる（原因が分かるように）');
+
+  // 混み合っているときは、1度だけやり直す
+  let n = 0;
+  ctx.UrlFetchApp = { fetch: () => { n++; return n === 1 ? say(503, 'busy')
+    : say(200, '[{"date":"9/3","name":"x"}]'); } };
+  vm.runInContext('Utilities.sleep = function(){};', ctx);
+  eq(ctx.vnImageJson_('mid', 'x', fakeBlob).length, 1, '★混み合っていたら、1度だけやり直す');
+  eq(n, 2, '  やり直しは1度だけ');
+  ctx.UrlFetchApp = keepFetch;
+
+  // フェスティバルホールの合図
+  const W = ctx.vnHallWord_;
+  ['フェス', 'ふぇす', 'フェスティバルホール'].forEach(function (w) {
+    eq(W('↓' + w) && W('↓' + w).force, 'フェスティバルホール', '「↓' + w + '」で会場が決まる');
+  });
+  eq(W('↑フェス').up, true, '  「↑」なら、直前の写真を読み直す');
+}
+
 console.log('\n■ 🗓️ 台帳は、まーくさん専用のスプシに書く');
 {
   madeBooks.length = 0;

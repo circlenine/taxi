@@ -342,6 +342,14 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'u
 const F = n => vm.runInContext(n, ctx);
 // 「取り込みの見張り」だけを数える（星人の絵の見張りは別物なので、混ぜない）
 const upTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updRunFromLine_');
+/*
+ * ★合言葉の返事は、受け口の中では作らない。
+ *   星人と絵をAIに作らせると5〜15秒かかり、LINEにもApps Scriptにも
+ *   打ち切られて、1通も届かなくなっていた（実際に届かなかった）。
+ *   受け口は「やることを1件書いて、すぐ返す」だけ。作って送るのは、この見張り。
+ */
+const kataTrig = () => triggers.filter(x => x.getHandlerFunction() === 'updKataFire');
+const kataRun = () => { const n = kataTrig().length; F('updKataFire')(); return n; };
 
 let ng = 0;
 function t(c, l) { console.log((c ? '  ok   ' : '  NG   ') + l); if (!c) ng++; }
@@ -1626,9 +1634,12 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
   t(upTrig().length === 0, '  ★取り込みは絶対に始めない');
-  t(ctx.pu.length === 1, '  代わりに、1回だけ送る');
+  t(ctx.pu.length === 0, '  ★受け口の中では、まだ何も送らない（打ち切られないように）');
+  t(kataRun() === 1, '  代わりに、1秒後に動く見張りを立てる');
+  t(ctx.pu.length === 1, '  その見張りが、1回だけ送る');
   t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1,
     '  あの黒い球の声で断る');
+  t(kataTrig().length === 0, '  ★役目を終えた見張りは、自分で片づける');
 
   // 個人LINEから
   ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
@@ -1636,6 +1647,8 @@ console.log('\n■ 合言葉「katastrophe」');
     'まーくさんが打つと動く');
   t(upTrig().length === 1, '  裏で取り込む見張りを作る');
   t(upTrig()[0]._kind === 'after', '  受け口の中では取り込まない');
+  t(ctx.pu.length === 0, '  ★受け口の中では、まだ何も送らない');
+  kataRun();
   t(ctx.pu.length === 1, '★送るのは1回だけ');
   const kt = ctx.pu[0].msgs[0].text;
   t(kt.indexOf('まえの　バージョンは') !== -1, '  あの黒い球の声で返す');
@@ -1697,6 +1710,47 @@ console.log('\n■ 合言葉「katastrophe」');
 }
 
 
+console.log('\n■ 受け口の中では、重たいことをしない');
+{
+  /*
+   * ★合言葉を打っても何も返ってこなかったのは、ここが原因でした。
+   *   受け口の中で、星人と絵をAIに作らせていた（5〜15秒）。
+   *   LINEもApps Scriptも、それを待たずに打ち切るので、
+   *   送る前に処理ごと終わっていました。
+   */
+  const kata = F('updHandleKata_');
+  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
+  delete props['UPD_KATA_JOBS'];
+  ctx.pu.length = 0; triggers.length = 0;
+
+  // AIが固まっても（呼ばれた時点で例外）、受け口は止まらない
+  let aiCalls = 0;
+  const realAlien = vm.runInContext('updAlien_', ctx);
+  vm.runInContext('updAlien_ = function(){ aiHit(); throw new Error("AIが固まった"); };', ctx);
+  ctx.aiHit = function () { aiCalls++; };
+
+  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '合言葉を受ける');
+  t(aiCalls === 0, '★受け口の中では、AIを1回も呼ばない');
+  t(ctx.pu.length === 0, '  受け口の中では、まだ送らない');
+  t(kataTrig().length === 1, '★1秒後に動く見張りを立てる');
+  t(kataTrig()[0]._kind === 'after', '  「〇秒後に1回」の形で立てる');
+  t(String(props['UPD_KATA_JOBS'] || '').indexOf('"kind":"start"') !== -1,
+    '  やることも書き残す（見張りが読む）');
+
+  // 見張りのほうで AI が転んでも、文だけは必ず届く
+  F('updKataFire')();
+  t(aiCalls === 1, '  見張りのほうで、AIを呼ぶ');
+  t(ctx.pu.length === 1, '★AIが転んでも、文だけは必ず送る');
+  t(ctx.pu[0].msgs[0].text.indexOf('星人') !== -1, '  星人は、こちらの組み合わせ表で作る');
+  t(props['UPD_KATA_JOBS'] === undefined, '  送ったら、やることリストは空にする');
+
+  vm.runInContext('updAlien_ = null;', ctx);
+  ctx.updAlien_ = realAlien;
+  try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
+  delete props['UPD_KATA_JOBS'];
+}
+
 console.log('\n■ 僕以外が合言葉を打ったとき');
 {
   const kata = F('updHandleKata_');
@@ -1705,6 +1759,7 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
     const cc = ctx.CacheService.getScriptCache();
     cc.remove('UPD_RUNNING'); cc.remove('KATA_FUN_Uother'); cc.remove('KATA_FUN_Uthird');
   } catch (e) {}
+  delete props['UPD_KATA_JOBS'];          // 前のところで積んだぶんを持ちこさない
 
   ctx.pu.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
@@ -1712,6 +1767,8 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   t(upTrig().length === 0, '★コードの取り込みは、絶対に動かさない');
   t(props['UPD_LINE_TO'] === undefined || props['UPD_LINE_TO'] !== 'Uother',
     '  結果の送り先にもならない');
+  t(ctx.pu.length === 0, '  ★受け口の中では、まだ何も送らない');
+  kataRun();
   t(ctx.pu.length === 1, '★送るのは1回だけ');
   t(ctx.pu[0].to === 'Cgroup', '  打った場所（グループ）へ送る');
   const dn = ctx.pu[0].msgs[0].text;
@@ -1737,6 +1794,7 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   ctx.pu.length = 0;
   t(kata({ message: { text: 'カタストロフィ' }, source: { userId: 'Uthird', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     '別の人が「カタストロフィ」と打っても受ける');
+  kataRun();
   t(ctx.pu.length === 1, '  その人にはちゃんと送る');
   t(upTrig().length === 0, '  それでも取り込みは動かさない');
 
