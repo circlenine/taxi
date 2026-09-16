@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U068ver  （2026/09/17）  ★★★
+ *  ★★★  U069ver  （2026/09/17）  ★★★
+ *
+ *  [U069ver]
+ *   ・右下の知らせ（トースト）が見切れていたのを直した
+ *     ★あそこは数行しか入りません。長い文を入れると途中で切れて、
+ *       「見切れている」ばかりが目立ち、かえって読みにくくなっていました。
+ *       1〜2行だけにして、残りは「…ほか〇行（くわしくは結果らんへ）」に
+ *   ・LINEから「💩」で取り込んだとき、どれくらいで終わるかを書くようにした
+ *     はじめの1通に「とりこみ　かいし。／のこり　約3分。」と入ります
+ *   ・終わったことも、みじかく1行お知らせするようにした
+ *     ★前は「うまくいったら何も送らない」でした。
+ *       それだと、動いているのか 止まったのか 分かりません。
+ *       長い中身は書かず、終わったことと、入れ替えたファイル名だけです
+ *     しくじったときは、これまでどおり理由つきでお伝えします
  *
  *  [U068ver]
  *   ・APIのスイッチの案内に、入れる場所を2つとも出すようにした
@@ -2097,12 +2110,34 @@ function updKataStart_(alien) {
   return UPD_BALL + "\n" +
          updAlienBlock_(alien) + "\n" +
          "\n" +
+         "とりこみ　かいし。\n" +
+         "のこり　" + updKataEta_() + "。\n" +
+         "\n" +
          "まえの　バージョンは\n" +
          "なくなりました。\n" +
          "\n" +
          "いまの　スプシを\n" +
          "どう　アプデしようと\n" +
          "わたしの　かってです。\n" +
+         "\n" +
+         UPD_KATA_END;
+}
+
+/**
+ * 取り込みが終わったときの、みじかい知らせ。
+ *
+ * ★何が入れ替わったかの1行だけを拾って添えます。
+ *   全部書くと長くなり、読む気が失せるためです。
+ */
+function updKataDone_(body) {
+  let what = "";
+  try {
+    const m = String(body || "").match(/入れ替え：([^\n]*)/);
+    if (m) what = m[1].trim();
+  } catch (e) {}
+  return UPD_BALL + "\n" +
+         "とりこみ　かんりょう。\n" +
+         (what && what !== "なし" ? "　" + what.slice(0, 60) + "\n" : "") +
          "\n" +
          UPD_KATA_END;
 }
@@ -2526,6 +2561,22 @@ function updHandleKata_(ev) {
   return true;
 }
 
+/**
+ * 取り込みが どれくらいで終わるかの見込み。
+ *
+ * ★「動いているのか、止まったのか」が分からないのが、いちばん不安です。
+ *   はじめの1通に、おおよその時間を書いておきます。
+ */
+function updKataEta_() {
+  let sec = 180;
+  try {
+    panelItems_().forEach(function (it) {
+      if (it && it.key === "コードを更新" && it.sec) sec = it.sec;
+    });
+  } catch (e) {}
+  return updSecText_(sec);
+}
+
 /* ================================================================
  *  なぜ、星人と絵を「裏」で作るのか
  *
@@ -2642,13 +2693,16 @@ function updRunFromLine_() {
    */
   if (String(out).indexOf("新しいコードがありません") !== -1) bad = true;
 
-  // ★合言葉から始めたときは、うまくいったら何も送らない。
-  //   1回の通知で済ませたい、というご希望。
-  //   うまくいっているのに何度も鳴るほうが、うるさい。
-  //   おかしくなったときだけ、もう一度お知らせする。
+  /*
+   * ★合言葉から始めたときの、2通目。
+   *
+   *   前は「うまくいったら何も送らない」でした。
+   *   でも それだと、動いているのか 止まったのか 分かりません。
+   *   終わったことだけ、みじかく1行お伝えします（長い中身は書きません）。
+   *   しくじったときは、これまでどおり理由を書いてお伝えします。
+   */
   if (kata) {
-    if (!bad) return;
-    out = updKataFail_(out);
+    out = bad ? updKataFail_(out) : updKataDone_(out);
   }
 
   if (to && typeof lrPush_ === "function") {
@@ -3008,8 +3062,31 @@ function menuUpdateStatus() {
 /* ============ 中身 ============ */
 
 /** 結果を、出せる場所ぜんぶに出す（スマホだとダイアログが出ないことがある） */
+/**
+ * 右下にちらっと出る知らせ（トースト）に載せる、みじかい文。
+ *
+ * ★あそこは数行しか入りません。長い文を入れると、途中で切れて
+ *   「見切れている」ばかりが目立ち、かえって読みにくくなります。
+ *   くわしい中身は、画面のまん中の窓と、そうさボタンの結果らんに出ます。
+ *   ここでは「何が起きたか」の1〜2行だけにします。
+ */
+function updToastText_(body) {
+  const lines = String(body == null ? "" : body).split("\n")
+    .map(function (x) { return x.trim(); })
+    .filter(function (x) { return x !== ""; });
+  if (!lines.length) return "";
+  const out = [lines[0]];
+  if (lines[1] && lines[0].length + lines[1].length <= 70) out.push(lines[1]);
+  const rest = lines.length - out.length;
+  let t = out.join("\n");
+  if (rest > 0) t += "\n…ほか" + rest + "行（くわしくは結果らんへ）";
+  return t.slice(0, 120);
+}
+
 function updTell_(title, body) {
-  try { SpreadsheetApp.getActiveSpreadsheet().toast(String(body).slice(0, 400), title, 30); } catch (e) {}
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().toast(updToastText_(body), title, 12);
+  } catch (e) {}
   try { infoSet_(INFO_ROW.UPDATE, title + "\n" + body, "最後の更新"); } catch (e) {}
   try {
     const ui = SpreadsheetApp.getUi();

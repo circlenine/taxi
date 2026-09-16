@@ -1863,12 +1863,24 @@ console.log('\n■ 合言葉「katastrophe」');
   t(upTrig().length === 0, '  ★二重には動かさない');
   t(ctx.rep[0].indexOf('IN BEARBEITUNG') !== -1, '  すでに動いていると伝える');
 
-  // ★うまくいったときは、もう何も送らない（1回の通知で済ませる）
+  /*
+   * ★終わったことは、みじかく1行お知らせする。
+   *   前は「うまくいったら何も送らない」だったが、
+   *   それだと 動いているのか 止まったのか 分からなかった
+   */
   ctx.pu.length = 0;
   triggers.push({ getHandlerFunction: () => 'updRunFromLine_', _kind: 'after' });
   F('updRunFromLine_')();
-  t(ctx.pu.length === 0, '★うまくいったら、完了の合図は送らない');
+  t(ctx.pu.length === 1, '★終わったら、みじかく知らせる');
+  const done = ctx.pu[0].msgs[0].text;
+  has(done, 'とりこみ　かんりょう', '  終わったと分かる');
+  t(done.length < 300, '★長い中身は書かない（読む気が失せるため）');
   t(props['UPD_LINE_KATA'] === undefined, '  合言葉の覚え書きは消す');
+
+  // はじめの1通に、どれくらいで終わるかを書く
+  const st2 = F('updKataStart_')(F('updAlien_')());
+  has(st2, 'とりこみ　かいし', '★はじめの1通に、始めたと書く');
+  has(st2, 'のこり　', '★どれくらいで終わるかも書く（止まったのか分からない、を防ぐ）');
 
   // おかしくなったときだけ、もう一度お知らせする
   ctx.pu.length = 0;
@@ -1947,6 +1959,30 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   ctx.updAlien_ = realAlien;
   try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
   delete props['UPD_KATA_JOBS'];
+}
+
+console.log('\n■ 右下の知らせ（トースト）は、みじかくする');
+{
+  /*
+   * ★あそこは数行しか入らない。長い文を入れると途中で切れて、
+   *   「見切れている」ばかりが目立ち、かえって読みにくくなる
+   */
+  const T = F('updToastText_');
+  t(T('1行目\n2行目\n3行目\n4行目').indexOf('1行目') === 0, '1行目は必ず出す');
+  has(T('1行目\n2行目\n3行目\n4行目'), 'ほか2行', '★入りきらないぶんは「ほか〇行」とまとめる');
+  has(T('1行目\n2行目\n3行目\n4行目'), '結果らん', '  くわしくはどこを見ればよいか書く');
+  t(T('みじかい1行').indexOf('ほか') === -1, '  みじかければ、そのまま');
+  t(T('あ'.repeat(500)).length <= 120, '★長くても、上限で切る');
+  t(T('') === '', '空でも落ちない');
+  t(T(null) === '', 'null でも落ちない');
+  t(T('\n\n中身\n\n').indexOf('中身') === 0, '  空行は詰める');
+
+  // ★実際に知らせるときも、みじかいほうを渡していること
+  toasts.length = 0;
+  F('updTell_')('だい', ['1行目', '2行目', '3行目', '4行目', '5行目'].join('\n'));
+  t(toasts.length === 1, '  知らせは1回');
+  t(toasts[0].m.length <= 120, '★トーストに渡すのは、みじかいほう');
+  has(toasts[0].m, 'ほか', '  「ほか〇行」も付く');
 }
 
 console.log('\n■ 許可をもらうためだけの関数');
