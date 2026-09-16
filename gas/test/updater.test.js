@@ -1949,8 +1949,45 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   t(B('branch claude/abc').name === 'claude/abc', '  「branch」でも通る');
   t(B('えだ：claude/abc').name === 'claude/abc', '  「：」でも通る');
   t(B('えだ　claude/abc').name === 'claude/abc', '  全角の空白でも通る');
-  t(B('💩').name === '', '★「💩」だけでも通る（覚えやすいほうで打てるように）');
-  t(B('💩 claude/abc').name === 'claude/abc', '  「💩 ○○」でも通る');
+  /*
+   * ★💩 は、コードの取り込み（合言葉）のほうに譲った。
+   *   枝のほうは 🚽 で打つ
+   */
+  t(B('🚽').name === '', '★「🚽」だけでも通る');
+  t(B('🚽 claude/abc').name === 'claude/abc', '  「🚽 ○○」でも通る');
+  t(B('💩') === null, '★「💩」は、もう枝のものではない（取り込みのほうへ渡す）');
+  t(B('💩 claude/abc') === null, '  「💩 ○○」も同じ');
+  // ★その「💩」は、コードの取り込みの合言葉として効く
+  const K = F('updKataWord_');
+  t(K('💩') === true, '★「💩」だけで、コードの取り込みが始まる');
+  t(K(' 💩 ') === true, '  前後の空白は、そのまま通す');
+  t(K('💩 おはよう') === false, '  ★ほかの言葉が混ざったら、反応しない');
+  t(K('💩💩') === false, '  2つ続けても、反応しない');
+
+  /*
+   * ★「💩」だけは、まーくさん以外には何も返さない。
+   *   合言葉はほかの人に動画を返す約束だが、
+   *   「💩」はふだん使いの短い合図。なんとなく打つたびに動画が飛んでは うるさい
+   */
+  const kata2 = F('updHandleKata_');
+  try {
+    const cc = ctx.CacheService.getScriptCache();
+    cc.remove('UPD_RUNNING'); cc.remove('KATA_FUN_Uother');
+  } catch (e) {}
+  delete props['UPD_KATA_JOBS'];
+  ctx.pu.length = 0; ctx.rep.length = 0; triggers.length = 0;
+  t(kata2({ message: { text: '💩' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    'ほかの人が「💩」を打っても、受けはする');
+  t(kataTrig().length === 0, '★ほかの人のときは、何も動かさない');
+  t(ctx.pu.length === 0 && ctx.rep.length === 0, '★ほかの人には、何も返さない');
+  t(String(props['UPD_KATA_JOBS'] || '') === '', '  やることリストにも積まない');
+  // 合言葉のほうは、これまでどおり動画を返す
+  ctx.pu.length = 0; triggers.length = 0;
+  t(kata2({ message: { text: 'katastrophe' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
+    '合言葉のほうは、これまでどおり受ける');
+  t(kataTrig().length === 1, '  ★そちらは、これまでどおり返事を用意する');
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uother'); } catch (e) {}
+  delete props['UPD_KATA_JOBS']; triggers.length = 0; ctx.pu.length = 0;
   t(B('えだまめ') === null,
     '★「えだまめ」には反応しない（くっついた言葉を、枝の名前と読みちがえないように）');
   t(B('枝豆') === null, '  「枝豆」にも反応しない');
@@ -2105,8 +2142,8 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
    *   「💩 で打てます」と言いながら案内が「えだ」のままでは、
    *   どちらで打てばよいのか分からなくなる
    */
-  has(ctx.rep[0], '💩 じどう', '★もとに戻すやり方も、💩 の形で書いてある');
-  has(ctx.rep[0], '💩 claude/', '  変えるやり方も、💩 の形で');
+  has(ctx.rep[0], '🚽 じどう', '★もとに戻すやり方も、🚽 の形で書いてある');
+  has(ctx.rep[0], '🚽 claude/', '  変えるやり方も、🚽 の形で');
   has(ctx.rep[0], '「えだ」「枝」「ブランチ」でも同じ', '  ほかの言い方も使えると添える');
 }
 
