@@ -258,7 +258,7 @@ console.log('\n■ 自動発信は、はじめは切ってある');
   eq(pushed.length, 0, '  1通も送らない');
 }
 
-console.log('\n■ 入れても、16:45より前には送らない');
+console.log('\n■ 16:30 は確認用（まーくさんだけ）、17:00 にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -276,14 +276,28 @@ console.log('\n■ 入れても、16:45より前には送らない');
   };
   const back = () => { ctx.Date = RealDate; };
 
+  at(16, 0);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 0, '16:00 には、まだ何も送らない');
+
   at(16, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '16:30 には送らない');
+  eq(pushed.length, 1, '16:30 に確認用を1通');
+  eq(pushed[0].to, 'Umark', '  宛先はまーくさんだけ（グループではない）');
+
+  at(16, 46);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 0, '  16:46 には、まだグループへ送らない');
 
   at(18, 0);
+  pushed.length = 0;
   ctx.venueDailyJob();
   eq(pushed.length, 0, '18:00 になってしまったら、その日はもう送らない');
+  delete props['VNSENT_20260916_T'];
+  delete props['VNEDIT_20260916'];
   back();
 }
 
@@ -291,12 +305,13 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 {
   props.VN_AUTO = '1';
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 46); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
   pushed.length = 0;
   delete props.VNSENT_20260916;
+  props['VNSENT_20260916_T'] = '1';          // 確認用は済んでいることにする
   ctx.venueDailyJob();
   eq(pushed.length, 0, 'グループの宛先が無いので、1通も出さない');
   eq(props.VNSENT_20260916, undefined, '  「送った」印も残さない（分かったら送れるように）');
@@ -396,7 +411,11 @@ console.log('\n■ 合図を出したのに読めなかったときは、黙ら�
   ctx.vnHandleImage_({ message: { id: 'm11' }, source: { userId: 'U5' }, replyToken: 'r' }, new Date());
   has(ctx.lastReply, 'くそっ!!!!やられた!!!!', '自分で合図を出したぶんは、読めなくても伝える');
   has(ctx.lastReply, '帝国ホテル', '  どのホテルのことかも分かる');
-  eq(ctx.lastReply.split('\n').length, 1, '  それも1行だけ');
+  // ★ただ「読めません」では、なぜ読めないのかが分からない。
+  //   いちばん多いのは「資料の種類が違う」で、これは言葉ひとつで直せる。
+  //   その直し方まで必ず書く（ただし短く）
+  has(ctx.lastReply, '訂正：会場', '  直し方（言葉ひとつで読み直せること）まで書く');
+  eq(ctx.lastReply.split('\n').length <= 4, true, '  それでも4行まで（ポンポン喋らない）');
 }
 
 console.log('\n■ 話題と、触れない方がよいこと');
@@ -603,6 +622,157 @@ console.log('\n■ Discordの送り先は、シートには置かない');
   eq(ctx.vnDiscord_('てすと'), '', '設定してあれば送れる');
   eq(fetched[0].url, 'https://discord.com/api/webhooks/1/2', '  その送り先へ送る');
   has(fetched[0].opt.payload, 'てすと', '  中身も入っている');
+}
+
+
+console.log('\n■ ★時刻が読めないものは、絶対に出さない');
+// ★長居・万博で、その日に何も無いのに「時間不明」で出てしまっていた。
+//   読む人は「今日そこで何かある」と受け取り、向かえば空振りになる。
+//   分からないものを出すのは、間違いを出すのと同じ。
+{
+  const H = ctx.vnHasTime_;
+  eq(H({ start: '18:00', end: '' }), true, '開演だけでも分かれば出す');
+  eq(H({ start: '', end: '21:00' }), true, '終演だけでも分かれば出す');
+  eq(H({ start: '', end: '' }), false, '★どちらも無ければ出さない');
+  eq(H({}), false, '  空でも落ちない');
+  eq(H(null), false, '  null でも落ちない');
+  eq(ctx.vnInTimeRange_({ start: '', end: '' }), false, '時間帯のふるいも、時刻が無ければ通さない');
+
+  // カードにしても「時間不明」とは書かない
+  const c = JSON.stringify(ctx.vnCard_({ venue: '長居スタジアム', kind: 'event', title: 'なにか', start: '', end: '', url: '' }, 0, null));
+  eq(c.indexOf('時間不明'), -1, '★カードにも「時間不明」とは書かない');
+
+  // ページに日付だけあって時刻が無ければ、催しとして拾わない
+  const today = new Date();
+  const md = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+  reply = { '*': { code: 200, body: '<html><p>' + md + ' 更新</p><p>' + 'あ'.repeat(600) + '</p></html>' } };
+  const got = ctx.vnScrapeOne_({ name: '長居スタジアム', url: 'https://spocale.com/places/31' }, today);
+  eq(got.events.length, 0, '★日付だけで時刻が無い行は、催しにしない');
+
+  // 時刻があれば、ちゃんと拾う
+  reply = { '*': { code: 200, body: '<html><p>' + md + '</p><p>セレッソ大阪 キックオフ 19:00</p><p>' + 'あ'.repeat(600) + '</p></html>' } };
+  const got2 = ctx.vnScrapeOne_({ name: '長居スタジアム', url: 'https://spocale.com/places/31' }, today);
+  eq(got2.events.length >= 1, true, '時刻があれば拾う');
+  eq(got2.events[0].start, '19:00', '  開演も読める');
+}
+
+console.log('\n■ 読み取り先');
+{
+  const urls = ctx.VN_SOURCES ? ctx.VN_SOURCES.map(x => x.url) : vm.runInContext('VN_SOURCES.map(function(x){return x.url;})', ctx);
+  const names = vm.runInContext('VN_SOURCES.map(function(x){return x.name;})', ctx);
+  eq(urls.indexOf('https://spocale.com/places/31') !== -1, true, '長居はスポカレを見る');
+  eq(urls.indexOf('https://suitacityfootballstadium.jp/schedule/') !== -1, true, 'パナスタは公式を見る');
+  eq(names.indexOf('万博記念公園'), -1, '万博記念公園は、いったん読みに行かない');
+  eq(vm.runInContext('!!VN_VENUES["万博記念公園"]', ctx), true, '  ただし会場の情報そのものは消していない（戻せる）');
+  eq(vm.runInContext('!!VN_VENUES["フェスティバルホール"]', ctx), true, 'フェスティバルホールを足した');
+}
+
+console.log('\n■ 会場の月間スケジュール表（写真）を読む');
+{
+  for (const k in cache) delete cache[k];
+  for (const k in props) if (k.indexOf('VNV_') === 0) delete props[k];
+  const base = new Date(2026, 8, 16);
+
+  // 合図（↓フェス）→ 写真、の順
+  ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: '↓フェス' }, source: { userId: 'U9' }, replyToken: 'r' }, base), true,
+     '「↓フェス」を合図として受ける');
+  eq(ctx.lastReply, '', '  ここでは何も返さない');
+
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [{ text:
+    '[{"date":"9/16","hall":"フェスティバルホール","name":"玉置浩二 with 故郷楽団","start":"18:00","end":"20:00"},' +
+    ' {"date":"9/17","hall":"フェスティバルホール","name":"","start":"","end":""}]' }] } } ] }) } };
+  ctx.lastReply = '';
+  eq(ctx.vnHandleImage_({ message: { id: 'mh1' }, source: { userId: 'U9' }, replyToken: 'r' }, base), true,
+     '写真は会場の資料として扱われた（＝オプチャには回らない）');
+  has(ctx.lastReply, 'ジェバンニ', '  読み取れたときだけ返事する');
+  has(ctx.lastReply, '件数：1件', '  ★時刻の無い9/17は数えない');
+  has(ctx.lastReply, 'フェスティバルホール', '  場所が出る');
+
+  const day = ctx.vnHallForDay_(base);
+  eq(day.length, 1, 'その日の公演として残っている');
+  eq(day[0].venue, 'フェスティバルホール', '  会場名');
+  eq(day[0].start, '18:00', '  開演');
+  eq(day[0].kind, 'event', '  ホテルではなく、イベントとして扱う');
+  eq(ctx.vnHallForDay_(new Date(2026, 8, 17)).length, 0, '★時刻の無い日は、1件も残さない');
+}
+
+console.log('\n■ 種類を間違えて送っても、言葉ひとつで読み直せる');
+{
+  eq(ctx.vnFixWord_('訂正：会場').kind, 'hall', '「訂正：会場」で会場として読み直す');
+  eq(ctx.vnFixWord_('訂正：ホテル').kind, 'hotel', '「訂正：ホテル」でホテルとして読み直す');
+  eq(ctx.vnFixWord_('ホテルじゃない').kind, 'hall', '「ホテルじゃない」でも通じる');
+  eq(ctx.vnFixWord_('訂正：フェス').force, 'フェスティバルホール', '会場名まで決め打ちできる');
+  eq(ctx.vnFixWord_('ホテル'), null, '★ふつうの合図（「ホテル」だけ）は、言い直しとして受けない');
+  eq(ctx.vnFixWord_('おはよう'), null, '  雑談にも反応しない');
+
+  // 直前の写真を、別の種類として読み直せる
+  for (const k in cache) delete cache[k];
+  for (const k in props) if (k.indexOf('VNV_') === 0) delete props[k];
+  const base = new Date(2026, 8, 16);
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [{ text: '[]' }] } } ] }) } };
+  ctx.vnHandleImage_({ message: { id: 'mh2' }, source: { userId: 'U9' }, replyToken: 'r' }, base);  // 合図なし
+  reply = { '*': { code: 200, body: JSON.stringify({ candidates: [ { content: { parts: [{ text:
+    '[{"date":"9/16","hall":"フェスティバルホール","name":"山下達郎","start":"18:30","end":"21:00"}]' }] } } ] }) } };
+  ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: '訂正：会場' }, source: { userId: 'U9' }, replyToken: 'r' }, base), true,
+     '言い直しを受ける');
+  has(ctx.lastReply, '件数：1件', '  写真を送り直さずに読み直せる');
+}
+
+console.log('\n■ 確認用（16:30）の番号と、手直し');
+{
+  const base = new Date(2026, 8, 16);
+  const evs = [
+    { venue: '京セラドーム', kind: 'event', icon: '🎤', title: 'A', start: '18:00', end: '21:00', url: '' },
+    { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'B', start: '18:30', end: '21:00', url: '' },
+    { venue: 'フェスティバルホール', kind: 'event', icon: '🎤', title: 'C', start: '19:00', end: '21:00', url: '' }
+  ];
+  eq(ctx.vnNoMark_(1), '①', '番号は①②③…');
+  eq(ctx.vnNoMark_(3), '③', '  3つめも');
+  eq(ctx.vnNoParse_('①③削除'), [1, 3], '「①③削除」は1と3');
+  eq(ctx.vnNoParse_('1,3削除'), [1, 3], '「1,3削除」でも通じる');
+  eq(ctx.vnNoParse_('削除'), [], '  番号が無ければ空');
+
+  pushed.length = 0;
+  eq(ctx.vnSendTest_(base, evs), true, '確認用を送れる');
+  eq(pushed[0].to, 'Umark', '★まーくさんだけに行く（グループではない）');
+  const j = JSON.stringify(pushed[0].msgs[0]);
+  has(j, '①', '  番号が付く');
+  has(j, '③', '  3件目まで');
+  has(j, 'これは確認用です', '  確認用だと分かる');
+  has(j, '「①削除」', '  返し方の説明も入っている');
+  has(j, '17:00', '  何もしなければ17:00に出ることも書いてある');
+
+  // 「①③削除」
+  pushed.length = 0; ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: '①③削除' }, source: { userId: 'Umark' }, replyToken: 'r' }, base), true,
+     '「①③削除」を受ける');
+  has(ctx.lastReply, '残り1件', '  消した結果を伝える');
+  eq(pushed.length, 1, '  消したものをもう一度送る');
+  const j2 = JSON.stringify(pushed[0].msgs[0]);
+  has(j2, '大阪城ホール', '  残ったものは出る');
+  eq(j2.indexOf('京セラドーム'), -1, '  消したものは出ない');
+
+  // 「①修正：〜」
+  pushed.length = 0; ctx.lastReply = '';
+  ctx.vnHandleNote_({ message: { text: '①修正：雨天中止' }, source: { userId: 'Umark' }, replyToken: 'r' }, base);
+  has(JSON.stringify(pushed[0].msgs[0]), '雨天中止', '「①修正：〜」で書き足せる');
+  has(JSON.stringify(pushed[0].msgs[0]), '大阪城ホール', '  元の中身は消さない');
+
+  // 17:00 にグループへ出るのは、手直ししたほう
+  eq(ctx.vnFinalEvents_(base).length, 1, '★グループへ出るのは、手直ししたほう');
+
+  // 「全削除」
+  ctx.lastReply = '';
+  ctx.vnHandleNote_({ message: { text: '全削除' }, source: { userId: 'Umark' }, replyToken: 'r' }, base);
+  eq(ctx.vnFinalEvents_(base).length, 0, '「全削除」なら、その日は1件も出さない');
+
+  // ほかの人の「①削除」は効かない
+  pushed.length = 0; ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: '①削除' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), false,
+     '★まーくさん以外の「①削除」は受けない');
+  eq(pushed.length, 0, '  何も送らない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

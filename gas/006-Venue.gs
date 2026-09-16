@@ -2,11 +2,38 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V016ver  （2026/09/16）  ★★★
+ *  ★★★  V017ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V017ver]
+ *   ・★時刻が読めないものを、二度と出さないようにした（vnHasTime_）
+ *     その日に何もやっていない会場（長居・万博）が「時間不明」で
+ *     グループに出てしまった。読む人は「今日そこで何かある」と受け取る。
+ *     向かえば空振りになる。分からないものを出すのは、間違いを出すのと同じ。
+ *     ページの「9月16日」は、更新日や月間カレンダーのマス目としても出てくる。
+ *     それを催しの行だと思い込んでいたのが原因だった
+ *   ・長居の読み先を、日付だけのまとめサイトから スポカレ へ変えた
+ *   ・万博記念公園は、いったん読みに行かないようにした
+ *     （会場の情報そのものは消していないので、1行戻せば復活する）
+ *   ・16:30 に まーくさんだけへ「確認用」を送るようにした（番号つき）
+ *     ①②③… の番号を振り、「①削除」「①③削除」「①修正：〜」で手直しできる。
+ *     手直しした結果が 17:00 にグループへ出る。
+ *     確認用が出ていない日は、グループへは絶対に送らない
+ *     （人の目を通していないものを、みんなに流さないため）
+ *   ・確認用には、返し方の説明を必ず付けた（本番には付けない）
+ *   ・会場の「月間 公演スケジュール表」を写真から読めるようにした
+ *     （↓会場／↓ホール／↓フェス。フェスティバルホールを会場に追加）
+ *     フェスティバルホールの月間表が読めなかったのは、字のせいではない。
+ *     ホテル用の指示文に「宴会・催事でないものは含めない」と書いてあり、
+ *     AIは正直に「1件もありません」と答えていた。資料の種類が違えば、
+ *     読ませ方も分けなければいけなかった
+ *   ・種類を間違えて送ったときの言い直しを足した（「訂正：会場」「訂正：ホテル」）
+ *     写真は送り直さなくてよい（直前の1枚を1時間おぼえている）
+ *   ・読めなかったときの返事に、直し方を書くようにした
+ *     「読めません」だけでは、なぜ読めないのかが分からなかった
  *
  *  [V016ver]
  *   ・グループの宛先も、形を確かめてから使うようにした
@@ -45,7 +72,7 @@
  *     5分おきだと1日に288回も動く。Googleが1日にくれる「決められた時間」は
  *     決まっていて、1分おきのボタンの見張りと合わせると使い切ってしまい、
  *     見張りごと止まる（実際に止まった）。
- *     届く時刻は 16:45〜17:00 ごろ、お知らせは予定時刻から15分以内になる
+ *     確認用は 16:30〜、グループは 17:00〜17:15 ごろ、お知らせは予定時刻から15分以内になる
  *
  *  [V008ver]
  *   ・イベントの枠そのものを、公式ページへのボタンにした
@@ -107,7 +134,7 @@
  *   ・ホテルの予定表の写真を、オプチャのスクショと取り違えないようにした
  *     ①「ホテル」と打ってから写真を送る（「↑ホテル」で直前のぶんを読み直す）
  *     ② 合図が無くても、乗車記録が1件も読めなかったときだけ読み直す
- *   ・毎日16:45の自動発信を作った（はじめは切ってある）
+ *   ・毎日16:45の自動発信を作った（はじめは切ってある。V017verで16:30確認→17:00本番に変更）
  *     その日に出すものが1件も無ければ、1通も送らない。
  *     同じ日に二度は送らない。送り先が分からなければ送らない。
  *
@@ -147,7 +174,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V016ver";
+const VN_VERSION = "V017ver";
 
 /**
  * 見にいく先の一覧。
@@ -158,8 +185,14 @@ const VN_SOURCES = [
   { name: "京セラドーム",         kind: "event",  url: "https://www.kyoceradome-osaka.jp/schedule/" },
   { name: "インテックス大阪",     kind: "event",  url: "https://www.intex-osaka.com/jp/event/" },
   { name: "パナソニックスタジアム", kind: "event", url: "https://suitacityfootballstadium.jp/schedule/" },
-  { name: "万博記念公園",         kind: "event",  url: "https://live-events.a-jp.org/soko/plc/318.html" },
-  { name: "長居スタジアム",       kind: "event",  url: "https://live-events.a-jp.org/soko/plc/149.html" },
+  // ★長居は、まとめサイトから 公式に近いほう（スポカレ）へ変えた。
+  //   前のところは日付だけが並んでいて、開演時刻が取れず、
+  //   その日に何も無いのに「時間不明」で出てしまっていた。
+  { name: "長居スタジアム",       kind: "event",  url: "https://spocale.com/places/31" },
+  // ★万博記念公園は、いったん外す（まーくさんの指示）。
+  //   読み先だけを外してある。会場の情報（VN_VENUES）は消していないので、
+  //   戻すときは、この行を書き戻すだけでよい
+  // { name: "万博記念公園",      kind: "event",  url: "https://live-events.a-jp.org/soko/plc/318.html" },
   { name: "ワントゥワン",         kind: "barasi", url: "https://onetoone-jp.com/schedule.php" }
 ];
 
@@ -178,7 +211,9 @@ const VN_VENUES = {
   "長居スタジアム":         { cap: 47000, near: ["長居", "鶴ヶ丘"],               type: "スタジアム" },
   "ワントゥワン":           { cap: 0,     near: [],                               type: "バラシ" },
   "帝国ホテル":             { cap: 0,     near: ["帝国"],                         type: "ホテル" },
-  "リーガロイヤルホテル":   { cap: 0,     near: ["中之島", "リーガ"],             type: "ホテル" }
+  "リーガロイヤルホテル":   { cap: 0,     near: ["中之島", "リーガ"],             type: "ホテル" },
+  // 月間の公演スケジュール表（紙・PDFの写真）から読む会場
+  "フェスティバルホール":   { cap: 2700,  near: ["渡辺橋", "肥後橋", "中之島"],   type: "ホール" }
 };
 
 /** 対象にする時間帯（この中に「終わり」か「始まり」が入っていれば出す） */
@@ -188,9 +223,16 @@ const VN_TO_HOUR   = 28;   // 翌04:00（24＋4）
 /** これ未満の見込み人数は、タクシーの数に響かないので出さない */
 const VN_MIN_PEOPLE = 300;
 
-/** 自動で送る時刻（16:45）。5分おきに時計を見て、この時刻を過ぎたら1回だけ送る */
-const VN_SEND_HOUR = 16;
-const VN_SEND_MIN  = 45;
+/*
+ * 送る時刻は2段階。
+ *   16:30 … まーくさんだけに「確認用」を送る（番号つき）
+ *   17:00 … 確認・手直しが済んだものを、グループへ送る
+ * ★グループに出ていくものを、人の目を通さずに送らない、という決まり
+ */
+const VN_TEST_HOUR = 16;
+const VN_TEST_MIN  = 30;
+const VN_SEND_HOUR = 17;
+const VN_SEND_MIN  = 0;
 /** 送る時刻をどれだけ過ぎたら、その日はもうあきらめるか（分） */
 const VN_SEND_WINDOW = 45;
 
@@ -209,14 +251,29 @@ function vnHourOf_(hhmm) {
 }
 
 /**
+ * 時刻がひとつでも取れているか。
+ *
+ * ★ここが、いちばん大事な関所。
+ *   前は、時刻が分からないものを「時間不明」として残していた。
+ *   その結果、その日に何もやっていない会場（長居・万博）が
+ *   「時間不明」でグループに出てしまった。
+ *   読む人は「今日そこで何かある」と受け取る。そこへ向かえば空振りになる。
+ *   分からないものを出すのは、間違いを出すのと同じ。だから出さない。
+ */
+function vnHasTime_(ev) {
+  return vnHourOf_(ev && ev.start) !== null || vnHourOf_(ev && ev.end) !== null;
+}
+
+/**
  * 18:00〜翌04:00 にかかるか。
  * 終わりの時刻を優先して見る（タクシーが動くのは終演のとき）。
- * 時刻が分からないものは、捨てずに「時間不明」として残す（判断は人がする）。
+ *
+ * ★時刻が分からないものは、ここで落とす（前は残していた。上の vnHasTime_ 参照）。
  */
 function vnInTimeRange_(ev) {
   const end = vnHourOf_(ev.end);
   const start = vnHourOf_(ev.start);
-  if (end === null && start === null) return true;        // 分からないものは残す
+  if (end === null && start === null) return false;       // 時刻が無いものは出さない
   const h = (end !== null) ? end : start;
   return h >= VN_FROM_HOUR && h <= VN_TO_HOUR;
 }
@@ -465,14 +522,25 @@ function vnCard_(ev, idx, day, noBells) {
   const rows = [];
 
   // 1行目：会場と時間
+  // ★「時間不明」とは、もう書かない。
+  //   時刻の取れないものは、ここへ来る前に落としてある（vnHasTime_）。
+  //   もし万が一きても、時刻のところは空にして、うその時間を見せない
   const when = ev.start && ev.end ? `${ev.start}〜${ev.end}`
              : ev.end   ? `${ev.end} 終了`
              : ev.start ? `${ev.start} 開始`
-             : "時間不明";
-  rows.push({ "type": "text", "size": "sm", "wrap": true, "contents": [
-    { "type": "span", "text": (ev.icon || "📍") + " " + ev.venue, "weight": "bold", "color": VN_COLOR_TEXT },
-    { "type": "span", "text": "　" + when, "weight": "bold", "color": "#b71c1c" }
-  ]});
+             : "";
+  const head1 = [];
+  // 確認用のときだけ、頭に ①②… の番号を付ける。
+  // この番号で「①削除」「①修正：〜」と言えるようにするため
+  if (ev.no) head1.push({ "type": "span", "text": vnNoMark_(ev.no) + " ", "weight": "bold", "color": "#e65100" });
+  head1.push({ "type": "span", "text": (ev.icon || "📍") + " " + ev.venue, "weight": "bold", "color": VN_COLOR_TEXT });
+  if (when) head1.push({ "type": "span", "text": "　" + when, "weight": "bold", "color": "#b71c1c" });
+  rows.push({ "type": "text", "size": "sm", "wrap": true, "contents": head1 });
+  // 手直し（「①修正：〜」で書き足したこと）は、いちばん目立つところに出す
+  if (ev.note) {
+    rows.push({ "type": "text", "text": "✏️ " + ev.note, "size": "xs", "weight": "bold",
+                "color": "#e65100", "wrap": true, "margin": "xs" });
+  }
 
   // 2行目：何があるか・規模
   const size = [];
@@ -986,6 +1054,17 @@ const VN_HOTEL_PROMPT =
  * （帝国ホテルの資料は紙にホテル名が無いため）。
  */
 function vnHotelFromImage_(messageId, force) {
+  return vnImageJson_(messageId, VN_HOTEL_PROMPT +
+    (force ? "\n・このホテルは「" + force + "」です。hotel には必ず「" + force + "」と入れてください" : ""));
+}
+
+/**
+ * 写真を1枚わたして、指示文どおりの JSON を読み取る。
+ * ホテルの資料も、会場の月間表も、やることは同じなのでここにまとめる。
+ * 読めなかったときは、何が起きたのかが分かる文で throw する
+ * （黙って空を返すと、原因がまったく分からなくなるため）。
+ */
+function vnImageJson_(messageId, prompt) {
   if (!messageId) throw new Error("画像のIDが取れませんでした");
   if (typeof geminiReady_ !== "function" || typeof getToken_ !== "function") {
     throw new Error("001-Code が古いので読み取れません");
@@ -1005,8 +1084,7 @@ function vnHotelFromImage_(messageId, force) {
     ":generateContent?key=" + encodeURIComponent(g.key),
     { method: "post", contentType: "application/json", muteHttpExceptions: true,
       payload: JSON.stringify({ contents: [{ parts: [
-        { text: VN_HOTEL_PROMPT +
-                (force ? "\n・このホテルは「" + force + "」です。hotel には必ず「" + force + "」と入れてください" : "") },
+        { text: prompt },
         { inline_data: { mime_type: blob.getContentType() || "image/jpeg",
                          data: Utilities.base64Encode(blob.getBytes()) } }
       ]}]})});
@@ -1049,6 +1127,9 @@ function vnHotelSave_(list, base, force) {
   const pr = PropertiesService.getScriptProperties();
   const byDay = {};
   (list || []).forEach(function (x) {
+    // ★開演も終演も無いものは、しまわない。
+    //   しまってしまうと、あとで「時間不明」として出てくる
+    if (!String(x.start || "").trim() && !String(x.end || "").trim()) return;
     if (force) x.hotel = force;
     const d = vnHotelDate_(x.date, base);
     const k = vnHotelKey_(d);
@@ -1117,9 +1198,128 @@ function vnHotelTry_(messageId, base, force) {
          "場所：" + (places.join("・") || "（読み取れず）");
 }
 
+/* ================================================================
+ *  会場の「月間スケジュール表」を写真から読む
+ *
+ *  ★フェスティバルホールの月間表を送っていただいたのに、読めなかった。
+ *    字がかすれていたからではない。読ませ方が違っていた。
+ *    ホテル用の指示文（VN_HOTEL_PROMPT）には
+ *    「これはホテルの宴会・催事の予定表です」「宴会・催事でないものは
+ *    含めないでください」と書いてある。
+ *    月間の公演スケジュール表は、その指示に当てはまらないので、
+ *    AIは正直に「1件もありません」と答えていた。
+ *    そして「読めたときだけ返す」決まりのせいで、こちらは黙っていた。
+ *    資料の種類が違えば、読ませ方も分けなければいけなかった。
+ * ================================================================ */
+const VN_HALL_WORDS = [
+  { re: /^(フェス|ふぇす|フェスティバル|フェスティバルホール)$/, force: "フェスティバルホール" },
+  { re: /^(会場|かいじょう|ホール|ほーる|公演|🎤|🎭)$/,          force: "" }
+];
+
+/** 打たれた文字が、会場の合図かどうかを見る（↓会場／↑ホール など） */
+function vnHallWord_(text) {
+  const t = String(text || "").trim().replace(/[\s\u3000]/g, "");
+  const m = t.match(/^([↑↓⬆⬇])?(.+)$/);
+  if (!m) return null;
+  for (let i = 0; i < VN_HALL_WORDS.length; i++) {
+    if (VN_HALL_WORDS[i].re.test(m[2])) {
+      return { up: (m[1] === "↑" || m[1] === "⬆"), force: VN_HALL_WORDS[i].force };
+    }
+  }
+  return null;
+}
+
+const VN_HALL_PROMPT =
+  "これはコンサートホールや劇場の「月間 公演スケジュール表」の写真です。\n" +
+  "1行が1日ぶんで、日付・曜日・公演名・開演時間・終演予測 がならんでいます。\n" +
+  "写っている公演を全部抜き出してください。\n" +
+  "出力は JSON の配列だけ。前置きも説明も書かないでください。\n" +
+  "各要素の形:\n" +
+  '{"date":"9/16","hall":"フェスティバルホール","name":"公演名","start":"18:00","end":"20:00"}\n' +
+  "・date は月/日。表の上に「2026年9月」とあれば、その月と各行の日を組み合わせる\n" +
+  "・hall は表の題や社名。読み取れなければ空文字\n" +
+  "・start は開演時間、end は終演予測。片方しか無ければもう片方は空文字\n" +
+  "・★開演時間も終演予測も書かれていない行は、絶対に含めないでください\n" +
+  "　（公演名が空の日、「学校行事」「仕込み」など時間の無い行は、全部とばす）\n" +
+  "・1件も無ければ [] だけを返す";
+
+/**
+ * 写真を「会場の月間スケジュール表」として読む。
+ * 読めた公演の配列を返す。
+ */
+function vnHallFromImage_(messageId, force) {
+  return vnImageJson_(messageId, VN_HALL_PROMPT +
+    (force ? "\n・この会場は「" + force + "」です。hall には必ず「" + force + "」と入れてください" : ""));
+}
+
+/** 会場の公演を、日付ごとにしまう（時刻の無いものは入れない） */
+function vnHallSave_(list, base, force) {
+  const pr = PropertiesService.getScriptProperties();
+  const byDay = {};
+  (list || []).forEach(function (x) {
+    if (!String(x.start || "").trim() && !String(x.end || "").trim()) return;
+    const hall = String(force || x.hall || "").trim();
+    if (!hall) return;
+    const d = vnHotelDate_(x.date, base);
+    const k = "VNV_" + vnHotelKey_(d).slice(4);
+    (byDay[k] = byDay[k] || []).push({ hall: hall, name: String(x.name || ""),
+                                       start: String(x.start || ""), end: String(x.end || "") });
+  });
+  let wrote = 0;
+  for (const k in byDay) {
+    let cur = [];
+    try { cur = JSON.parse(pr.getProperty(k) || "[]"); } catch (e) { cur = []; }
+    const seen = {};
+    cur.forEach(function (x) { seen[x.hall + "|" + x.name + "|" + x.start] = 1; });
+    byDay[k].forEach(function (x) {
+      const id = x.hall + "|" + x.name + "|" + x.start;
+      if (seen[id]) return;
+      seen[id] = 1; cur.push(x); wrote++;
+    });
+    try { pr.setProperty(k, JSON.stringify(cur.slice(0, 40))); } catch (e) {}
+  }
+  return wrote;
+}
+
+/** その日の「写真から読んだ会場の公演」を、イベントの形にして返す */
+function vnHallForDay_(d) {
+  let list = [];
+  try { list = JSON.parse(PropertiesService.getScriptProperties()
+          .getProperty("VNV_" + vnHotelKey_(d).slice(4)) || "[]"); }
+  catch (e) { list = []; }
+  return list.map(function (x) {
+    return { venue: x.hall, kind: "event", icon: "🎤", title: String(x.name || ""),
+             start: String(x.start || ""), end: String(x.end || ""), people: 0, url: "" };
+  });
+}
+
+/**
+ * 写真を会場の資料として読んで、しまって、返事の文を作る。
+ * 読めなければ空文字を返す。
+ */
+function vnHallTry_(messageId, base, force) {
+  const t0 = Date.now();
+  let list = [];
+  try { list = vnHallFromImage_(messageId, force); }
+  catch (e) { if (typeof logErr_ === "function") logErr_("vnHallTry", e); return ""; }
+  if (!list.length) return "";
+  const n = vnHallSave_(list, base || new Date(), force);
+  const seen = {}, places = [];
+  list.forEach(function (x) {
+    const nm = String(force || x.hall || "").trim();
+    if (!nm || seen[nm]) return;
+    seen[nm] = 1; places.push(nm);
+  });
+  const sec = Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
+  return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
+         "件数：" + n + "件\n" +
+         "場所：" + (places.join("・") || "（読み取れず）");
+}
+
 /** 合図を覚える（15分だけ）。force は「帝国ホテル」など、決め打ちするホテル名 */
-function vnHotelHintSet_(userId, force) {
-  try { CacheService.getScriptCache().put("VNKIND_" + (userId || "anon"), "hotel|" + (force || ""), 900); }
+function vnHotelHintSet_(userId, force, kind) {
+  try { CacheService.getScriptCache().put("VNKIND_" + (userId || "anon"),
+          (kind || "hotel") + "|" + (force || ""), 900); }
   catch (e) {}
 }
 
@@ -1135,7 +1335,8 @@ function vnHotelHintGet_(userId) {
     if (v) {
       c.remove(k);
       const i = String(v).indexOf("|");
-      return { force: i >= 0 ? String(v).slice(i + 1) : "" };
+      return { kind: i >= 0 ? String(v).slice(0, i) : "hotel",
+               force: i >= 0 ? String(v).slice(i + 1) : "" };
     }
   } catch (e) {}
   return null;
@@ -1149,11 +1350,37 @@ function vnHotelHintGet_(userId) {
  *   ↑ を付ける          … 直前に送った写真のこと
  */
 function vnHandleNote_(ev, sentAt) {
-  const w = vnHotelWord_((ev.message && ev.message.text) || "");
-  if (!w) return false;
+  const text = (ev.message && ev.message.text) || "";
   const uid = (ev.source && ev.source.userId) || "anon";
   const reply = ev.replyToken || "";
-  const nameOf = w.force || "ホテル";
+
+  // ① 確認用の手直し（「①削除」「①③削除」「①修正：〜」など）
+  if (vnHandleEditCmd_(ev, sentAt)) return true;
+
+  // ② 種類を間違えて送ってしまったときの言い直し（「訂正：会場」など）
+  const fix = vnFixWord_(text);
+  if (fix) {
+    let mid = "";
+    try { mid = CacheService.getScriptCache().get("LASTIMG_" + uid) || ""; } catch (e) {}
+    if (!mid) {
+      if (typeof lineReply_ === "function") lineReply_(reply, "🔍 だ…ダメだ…直前の写真がない…");
+      return true;
+    }
+    const msg = (fix.kind === "hall")
+      ? vnHallTry_(mid, sentAt || new Date(), fix.force)
+      : vnHotelTry_(mid, sentAt || new Date(), fix.force);
+    if (typeof lineReply_ === "function") {
+      lineReply_(reply, msg || vnUnreadMsg_(fix.kind, fix.force));
+    }
+    return true;
+  }
+
+  // ③ ふつうの合図（↓ホテル／↓会場 など）
+  const h = vnHotelWord_(text);
+  const v = h ? null : vnHallWord_(text);
+  const w = h || v;
+  if (!w) return false;
+  const kind = h ? "hotel" : "hall";
 
   if (w.up) {
     // 先に写真を送ってしまったとき用。直前の写真を読み直す
@@ -1163,38 +1390,82 @@ function vnHandleNote_(ev, sentAt) {
       if (typeof lineReply_ === "function") lineReply_(reply, "🔍 だ…ダメだ…直前の写真がない…");
       return true;
     }
-    const msg = vnHotelTry_(mid, sentAt || new Date(), w.force);
-    // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える（1行だけ）
-    if (typeof lineReply_ === "function") {
-      lineReply_(reply, msg || ("🔍 くそっ!!!!やられた!!!!　" + nameOf +
-        "の予定が読めません。明るいところなら、いけるかもしれません"));
-    }
+    const msg = (kind === "hall") ? vnHallTry_(mid, sentAt || new Date(), w.force)
+                                  : vnHotelTry_(mid, sentAt || new Date(), w.force);
+    // 打った人が自分で合図を出しているので、読めなかったときも黙らずに伝える
+    if (typeof lineReply_ === "function") lineReply_(reply, msg || vnUnreadMsg_(kind, w.force));
     return true;
   }
 
   // ★ここでは何も返さない。
   //   グループは雑談の場なので、合図のたびに公式アカウントが口を出すと邪魔になる。
   //   写真が届いて、読み取れたときにだけ返す。
-  vnHotelHintSet_(uid, w.force);
+  vnHotelHintSet_(uid, w.force, kind);
   return true;
 }
 
 /**
- * 写真が来たときの受け口。合図が出ていればホテルとして読む。
+ * 「種類を間違えて送ってしまった」ときの言い直し。
+ *
+ * ★イベントの資料なのに「↓ホテル」で送ってしまうと、
+ *   ホテルの宴会表として読もうとして、当然1件も読めない。
+ *   写真を送り直させるのは手間なので、言葉ひとつで読み直せるようにする。
+ *   直前に送った写真（1時間おぼえている）を、別の種類として読み直す。
+ */
+function vnFixWord_(text) {
+  const t = String(text || "").trim().replace(/[\s\u3000]/g, "");
+  // ★「訂正：」で始まるときだけ、言い直しとして受ける。
+  //   これを外すと、ふつうの合図（「ホテル」だけ）まで
+  //   言い直しだと思ってしまい、写真を待たずに読み直してしまう
+  const m = t.match(/^(訂正|修正|まちがい|間違い|ちがう|違う)[:：]?(.+)$/);
+  let body = "";
+  if (m) body = m[2];
+  else if (/^(ホテルじゃない|ホテルではない|会場じゃない|会場ではない|イベントじゃない)$/.test(t)) body = t;
+  else return null;
+  // 「ホテルじゃない」「会場でした」のような言い方も受ける
+  if (/^(会場|ホール|イベント|公演|ホテルじゃない|ホテルではない)$/.test(body)) return { kind: "hall", force: "" };
+  if (/^(フェス|フェスティバル|フェスティバルホール)$/.test(body)) return { kind: "hall", force: "フェスティバルホール" };
+  if (/^(ホテル|会場じゃない|会場ではない|イベントじゃない)$/.test(body)) return { kind: "hotel", force: "" };
+  if (/^(帝国|帝国ホテル)$/.test(body)) return { kind: "hotel", force: "帝国ホテル" };
+  if (/^(リーガ|リーガロイヤル|リーガロイヤルホテル)$/.test(body)) return { kind: "hotel", force: "リーガロイヤルホテル" };
+  return null;
+}
+
+/**
+ * 読めなかったときの返事。
+ *
+ * ★ただ「読めません」とだけ返すと、なぜ読めないのかが分からない。
+ *   いちばん多いのは「資料の種類が違う」で、これは言葉ひとつで直せる。
+ *   その直し方まで、必ず一緒に書く。
+ */
+function vnUnreadMsg_(kind, force) {
+  const nameOf = force || (kind === "hall" ? "会場" : "ホテル");
+  return "🔍 くそっ!!!!やられた!!!!　" + nameOf + "の予定が読めません。\n" +
+         "・資料の種類が違うかもしれません。" +
+         (kind === "hall" ? "ホテルの宴会表なら「訂正：ホテル」"
+                          : "公演スケジュール表なら「訂正：会場」") +
+         "と送ってください（写真は送り直さなくて大丈夫です）\n" +
+         "・暗い・斜め・見きれている場合は、明るいところで撮り直すと通ります";
+}
+
+/**
+ * 写真が来たときの受け口。合図が出ていればホテル／会場として読む。
  * 扱ったら true（＝オプチャとしては読まない）。
  */
 function vnHandleImage_(ev, sentAt) {
   const uid = (ev.source && ev.source.userId) || "anon";
+  const mid = (ev.message && ev.message.id) || "";
+  // ★合図が無くても、直前の写真として1時間おぼえておく。
+  //   あとから「↑ホテル」「訂正：会場」と言い直せるようにするため
+  try { CacheService.getScriptCache().put("LASTIMG_" + uid, mid, 3600); } catch (e) {}
+
   const hint = vnHotelHintGet_(uid);
   if (!hint) return false;
-  const mid = (ev.message && ev.message.id) || "";
-  try { CacheService.getScriptCache().put("LASTIMG_" + uid, mid, 3600); } catch (e) {}
-  const msg = vnHotelTry_(mid, sentAt || new Date(), hint.force);
-  // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える（1行だけ）
+  const msg = (hint.kind === "hall") ? vnHallTry_(mid, sentAt || new Date(), hint.force)
+                                     : vnHotelTry_(mid, sentAt || new Date(), hint.force);
+  // 合図を出したうえでの写真なので、読めなかったときも黙らずに伝える
   if (typeof lineReply_ === "function") {
-    lineReply_(ev.replyToken || "",
-      msg || ("🔍 くそっ!!!!やられた!!!!　" + (hint.force || "ホテル") +
-        "の予定が読めません。明るいところなら、いけるかもしれません"));
+    lineReply_(ev.replyToken || "", msg || vnUnreadMsg_(hint.kind, hint.force));
   }
   return true;
 }
@@ -1332,6 +1603,13 @@ function vnScrapeOne_(src, day) {
     else if (times.length) start = times[0];
     if (fin) end = fin[2];
     else if (times.length >= 2 && times[1] !== start) end = times[1];
+
+    // ★開演も終演も読めないかたまりは、催しとして扱わない。
+    //   ページには「9月16日」という文字が、更新日や月間カレンダーの
+    //   マス目としても出てくる。それを催しだと思い込んで
+    //   「時間不明」で出してしまっていた。
+    //   時刻が1つも無いなら、それは催しの行ではない
+    if (!start && !end) return;
 
     let guessed = false;
     if (!end && start) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
@@ -1708,14 +1986,186 @@ function vnDecorate_(e) {
 function vnTodayEvents_(day) {
   let out = [];
   try { out = out.concat(vnHotelForDay_(day)); } catch (e) { if (typeof logErr_ === "function") logErr_("vnHotel", e); }
+  // 写真から読んだ会場の月間表（フェスティバルホールなど）
+  try { out = out.concat(vnHallForDay_(day)); } catch (e) { if (typeof logErr_ === "function") logErr_("vnHall", e); }
   if (typeof vnScrapeAll_ === "function") {
     try { out = out.concat(vnScrapeAll_(day) || []); } catch (e) { if (typeof logErr_ === "function") logErr_("vnScrape", e); }
   }
-  return out.filter(vnInTimeRange_).filter(vnBigEnough_).map(vnDecorate_);
+  // 時刻の関所は2回通す。集める側で1回はじくだけでは、取りこぼしが出る
+  return out.filter(vnHasTime_).filter(vnInTimeRange_).filter(vnBigEnough_).map(vnDecorate_);
 }
 
 
-/* ============ 毎日16:45の自動発信 ============ */
+/* ================================================================
+ *  確認用（16:30）と、その手直し
+ *
+ *  ★グループに出ていくものを、人の目を通さずに送らない。
+ *    16:30 にまーくさんだけへ、番号つきで送る。
+ *    見て、いらないものを「①削除」、直したいものを「①修正：〜」と返すと、
+ *    その場で直した確認用をもう一度送る。
+ *    17:00 に、その直したものがグループへ出る。
+ * ================================================================ */
+
+/** ①②③…の記号（20をこえたら「(21)」のように書く） */
+function vnNoMark_(n) {
+  const i = Number(n) || 0;
+  return (i >= 1 && i <= 20) ? String.fromCharCode(0x2460 + i - 1) : "(" + i + ")";
+}
+
+/** ①②③…や 1,3 のような書き方を、数の並びにする */
+function vnNoParse_(text) {
+  const out = [];
+  String(text || "").replace(/[\u2460-\u2473]/g, function (c) {
+    out.push(c.charCodeAt(0) - 0x2460 + 1); return c;
+  });
+  // 半角・全角の数字も受ける（「1削除」「1,3削除」「1、3削除」）
+  String(text || "").replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/\d+/g, function (d) { out.push(parseInt(d, 10)); return d; });
+  // 同じ番号は1つにして、小さい順に
+  return Array.from(new Set(out)).filter(function (n) { return n >= 1; }).sort(function (a, b) { return a - b; });
+}
+
+/** その日の「手直し中の一覧」をしまう鍵 */
+function vnEditKey_(d) {
+  return "VNEDIT_" + d.getFullYear() +
+         ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+}
+
+function vnEditLoad_(d) {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(vnEditKey_(d)) || "null"); }
+  catch (e) { return null; }
+}
+
+function vnEditSave_(d, list) {
+  try { PropertiesService.getScriptProperties().setProperty(vnEditKey_(d), JSON.stringify(list || [])); }
+  catch (e) {}
+}
+
+/**
+ * その日のグループに出す一覧。
+ * 手直ししたものがあればそれを、無ければ読み取ったままを返す。
+ */
+function vnFinalEvents_(d) {
+  const edited = vnEditLoad_(d);
+  if (edited && edited.length >= 0 && Array.isArray(edited)) return edited;
+  return vnTodayEvents_(d);
+}
+
+/** 確認用の説明（この返し方をすると、こうなります） */
+function vnTestHelpBox_() {
+  return { "type": "box", "layout": "vertical", "backgroundColor": "#fff8e1",
+    "paddingAll": "10px", "cornerRadius": "md", "margin": "md", "contents": [
+      { "type": "text", "text": "🧪 これは確認用です（まーくさんにだけ送っています）",
+        "size": "xs", "weight": "bold", "color": "#e65100", "wrap": true },
+      { "type": "text", "size": "xxs", "color": "#6d4c41", "wrap": true, "margin": "sm",
+        "text": "このまま何もしなければ、17:00 にグループへ送ります。\n" +
+                "直したいときは、この確認用に返信してください。" },
+      { "type": "text", "size": "xxs", "color": "#6d4c41", "wrap": true, "margin": "sm",
+        "text": "「①削除」… ①を消して、消したものをもう一度送ります\n" +
+                "「①③削除」… まとめて消せます（「1,3削除」でも可）\n" +
+                "「①修正：雨天中止」… ①に、その言葉を書き足します\n" +
+                "「もどす」… 手直しを全部やめて、読み取ったままに戻します\n" +
+                "「全削除」… 今日はグループへ送りません" },
+      { "type": "text", "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "sm",
+        "text": "※ 開演・終演の時刻が読めなかったものは、はじめから出していません（時間不明では出しません）" }
+    ]};
+}
+
+/**
+ * 確認用を、まーくさんだけに送る。
+ * 送った一覧は覚えておく（番号で指せるように）。
+ */
+function vnSendTest_(d, list) {
+  const to = vnTestTarget_();
+  if (!to || typeof lrPush_ !== "function") return false;
+  const evs = (list || []).map(function (e, i) {
+    const c = {}; for (const k in e) c[k] = e[k];
+    c.no = i + 1;                       // ①②③… の番号を振る
+    return c;
+  });
+  vnEditSave_(d, evs);
+  const msgs = vnFitMessages_(d, evs, "");
+  // 説明は絵の中ではなく、続けて1通の文で出す（絵を大きくしないため）
+  try {
+    const b = msgs[0] && msgs[0].contents;
+    if (b && b.body && b.body.contents) b.body.contents.unshift(vnTestHelpBox_());
+  } catch (e) {}
+  lrPush_(to, msgs);
+  return true;
+}
+
+/**
+ * 確認用への返信（「①削除」「①修正：〜」など）を受ける。
+ * 扱ったら true。
+ *
+ * ★まーくさん以外からは受けない。
+ *   グループの誰かが「①削除」と打っただけで消えては困る。
+ */
+function vnHandleEditCmd_(ev, sentAt) {
+  const text = String((ev.message && ev.message.text) || "").trim();
+  if (!text) return false;
+  const uid = (ev.source && ev.source.userId) || "";
+  const me = vnTestTarget_();
+  if (!me || uid !== me) return false;
+
+  const d = sentAt || new Date();
+  const reply = ev.replyToken || "";
+  const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
+
+  // 「もどす」… 読み取ったままに戻す
+  if (/^(もどす|戻す|リセット|やり直し|やりなおし)$/.test(text.replace(/[\s\u3000]/g, ""))) {
+    const fresh = vnTodayEvents_(d);
+    if (!vnSendTest_(d, fresh)) { say("🔍 わけがわからない…　確認用の送り先が分かりません"); return true; }
+    say("わ…私は仰せの通りに…　読み取ったままに戻しました（" + fresh.length + "件）");
+    return true;
+  }
+
+  // 「全削除」… 今日はグループへ送らない
+  if (/^(全削除|ぜんぶ削除|全部削除|今日はなし|送らない)$/.test(text.replace(/[\s\u3000]/g, ""))) {
+    vnEditSave_(d, []);
+    say("削除削除削除削除　今日はグループへ送りません");
+    return true;
+  }
+
+  const cur = vnEditLoad_(d);
+  if (!cur) return false;              // 確認用をまだ送っていない
+
+  // 「①修正：〜」
+  const fix = text.match(/^([^:：]*)[:：](.+)$/);
+  if (fix && /(修正|訂正|直し|なおし|補足)/.test(fix[1])) {
+    const ns = vnNoParse_(fix[1]);
+    if (!ns.length) { say("🔍 わけがわからない…　番号が読み取れません（例：①修正：雨天中止）"); return true; }
+    const add = fix[2].trim();
+    let hit = 0;
+    ns.forEach(function (n) {
+      const t = cur[n - 1];
+      if (!t) return;
+      t.note = add;                    // 書き足し（元の中身は消さない）
+      hit++;
+    });
+    if (!hit) { say("🔍 わけがわからない…　その番号は一覧にありません"); return true; }
+    vnSendTest_(d, cur);
+    say("ノートに書きました。" + ns.map(vnNoMark_).join("") + " に「" + add + "」を足しました");
+    return true;
+  }
+
+  // 「①削除」「①③削除」
+  if (/(削除|消して|けして|カット|いらない)/.test(text)) {
+    const ns = vnNoParse_(text);
+    if (!ns.length) { say("🔍 わけがわからない…　番号が読み取れません（例：①削除）"); return true; }
+    const del = {};
+    ns.forEach(function (n) { if (cur[n - 1]) del[n] = 1; });
+    if (!Object.keys(del).length) { say("🔍 わけがわからない…　その番号は一覧にありません"); return true; }
+    const left = cur.filter(function (x, i) { return !del[i + 1]; });
+    vnSendTest_(d, left);
+    say("削除削除削除削除　" + ns.map(vnNoMark_).join("") + " を消しました（残り" + left.length + "件）");
+    return true;
+  }
+
+  return false;
+}
+
+/* ============ 毎日17:00の自動発信 ============ */
 /*
  * ★グループに出ていくものなので、いちばん厳しくしてある。
  *   ・スイッチが「はい」のときしか送らない（はじめは切ってある）
@@ -1747,10 +2197,10 @@ function vnSentKey_(d) {
 }
 
 /**
- * 15分おきに呼ばれて、16:45 を過ぎていたらその日の分を1回だけ送る。
+ * 15分おきに呼ばれて、16:30 に確認用を、17:00 にグループ用を1回ずつ送る。
  *
  * Apps Script の「毎日この時刻」は前後に30分ほどずれることがあるため、
- * 時計を見る形にしてある（16:45〜17:00 ごろに届く）。
+ * 時計を見る形にしてある（確認用16:30〜、グループ17:00〜17:15ごろ）。
  */
 function venueDailyJob() {
   let lock = null;
@@ -1767,14 +2217,33 @@ function venueDailyJob() {
 
     const now = new Date();
     const mins = now.getHours() * 60 + now.getMinutes();
+    const pr = PropertiesService.getScriptProperties();
+
+    /* --- ① 16:30 まーくさんだけへ、確認用（番号つき） --- */
+    const tFrom = VN_TEST_HOUR * 60 + VN_TEST_MIN;
+    const tKey = vnSentKey_(now) + "_T";
+    // 16:30 を過ぎていて、まだ確認用を送っていなければ、まず確認用を送る
+    if (mins >= tFrom && !pr.getProperty(tKey)) {
+      const list = vnTodayEvents_(now);
+      // 1件も無い日は、確認用も送らない（何も無いのに鳴らさない）
+      if (!list.length) { pr.setProperty(tKey, "none"); vnEditSave_(now, []); }
+      else if (vnSendTest_(now, list)) pr.setProperty(tKey, "1");
+      return;                        // 確認用を送った回は、ここで終わる
+    }
+
+    /* --- ② 17:00 手直しが済んだものを、グループへ --- */
     const from = VN_SEND_HOUR * 60 + VN_SEND_MIN;
     if (mins < from || mins > from + VN_SEND_WINDOW) return;
 
-    const pr = PropertiesService.getScriptProperties();
     const key = vnSentKey_(now);
     if (pr.getProperty(key)) return;                    // その日はもう済んでいる
+    // ★確認用が出ていない日は、グループへは絶対に送らない。
+    //   人の目を通していないものを、みんなに流さないための最後の関所
+    if (!pr.getProperty(tKey)) return;
 
-    const events = vnTodayEvents_(now);
+    // ★確認用で手直ししたものがあれば、必ずそちらを使う。
+    //   「①削除」と言われたものが、そのままグループへ出ていってはいけない
+    const events = vnFinalEvents_(now);
     if (!events.length) { pr.setProperty(key, "none"); return; }   // 無い日は送らない
 
     const to = vnGroupTarget_();
@@ -1783,8 +2252,13 @@ function venueDailyJob() {
       return;                                            // 印は残さない（分かったら送れるように）
     }
     if (typeof lrPush_ !== "function") return;
-    vnDaySave_(now, events);          // ボタンが押されたとき、どの催しか引けるように
-    lrPush_(to, vnFitMessages_(now, events, ""));
+    // 本番には番号を出さない（確認用だけのもの）
+    const clean = events.map(function (e) {
+      const c = {}; for (const k in e) { if (k !== "no") c[k] = e[k]; }
+      return c;
+    });
+    vnDaySave_(now, clean);          // ボタンが押されたとき、どの催しか引けるように
+    lrPush_(to, vnFitMessages_(now, clean, ""));
     pr.setProperty(key, "1");
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("eventDaily", e);
@@ -1867,7 +2341,7 @@ function panelVenueProbe() {
 }
 
 /**
- * きょう16:45に出るはずのものを、そのまま自分のLINEにだけ送ってみる（テスト）。
+ * きょう17:00に出るはずのものを、そのまま自分のLINEにだけ送ってみる（テスト）。
  * グループに出す前に、本物と同じ中身を自分の目で確かめられる。
  */
 function menuVenueTestSend() {
