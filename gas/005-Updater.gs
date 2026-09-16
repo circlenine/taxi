@@ -2,11 +2,37 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U028ver  （2026/09/16）  ★★★
+ *  ★★★  U030ver  （2026/09/16）  ★★★
+ *
+ *  [U030ver]
+ *   ・毎回ちがう「星人」が出るようにした。まーくさんでも、ほかの人でも出る
+ *   ・並べ方は、原作の紹介画面をまねた
+ *       てめえ達は今から
+ *       この方に　あいさつして来て下ちい
+ *         〇〇星人
+ *           特徴 ／ 好きなもの ／ きらいなもの ／ 口ぐせ ／ とくてん
+ *     わざと まちがえた字（下ちい）も、そのまま
+ *   ・作り方は2段がまえ
+ *     ① AI（Gemini）に考えてもらう。毎回まったく違うものが出る
+ *     ② 鍵が無い・通信が詰まった・返事が半端なときは、こちらの組み合わせ表で作る
+ *        （必ず何か出る。中途半端なものは、そのまま出さない）
+ *   ・★「死」「殺」「血」は使わない。実在の人物や団体の名前も使わせない
+ *
+ *  [U029ver]
+ *   ・「な ん か 文 字 出 て る ぞ」のセリフをやめた
+ *     セリフを置くと、読めてしまって「おどろおどろしさ」が消える。
+ *     代わりに、読めない文字をびゃーっと4行ぶん出す（updNoise_）。
+ *     かすれた四角・ルーン文字・ギリシャ文字・半角カナ・16進の数字を
+ *     でたらめに並べ、そのうえに飾りを重ねて崩す。
+ *     ★意味のある言葉（ひらがな・カタカナ・漢字）は絶対に混ぜない。
+ *       混ざると、そこだけ読まれて興ざめになる
+ *   ・出しすぎないよう、行数（8行）と1行の長さ（30文字）に上限をかけた
+ *     崩すほど1文字が3〜4倍になり、LINEの1通（5,000文字）を
+ *     超えると、そもそも届かなくなるため
  *
  *  [U028ver]
  *   ・返事を、あの黒い球（GANTZ）の言い方にした
- *     「な ん か 文 字 出 て る ぞ」「という　りくつな　わけだ。」
+ *     「という　りくつな　わけだ。」
  *     ひらがな中心の、平たい言い方。とくてんも出る（90〜100てん）
  *   ・★「死」「命」という言葉は、どこにも使わない
  *     コードの話なので「ふるいコード／あたらしいコード」に置きかえた
@@ -546,6 +572,183 @@ function updGlitch_(t, n) {
   return out;
 }
 
+/* ---------------- 訳の分からない文字の壁 ---------------- */
+/*
+ * ★セリフを入れるのはやめて、ここは「読めない文字がびゃーっと出る」形にする。
+ *   何も知らない人が、一瞬ドキッとすればそれでいい。
+ *   意味のある言葉を混ぜないこと。混ぜると、そこだけ読まれて興ざめになる。
+ *
+ *   使う文字：かすれた四角・ルーン文字・ギリシャ文字・半角カナ・16進の数字。
+ *   そのうえに飾りを重ねて、何重にも崩す。
+ */
+const UPD_NOISE_CHARS = (
+  "▚▞▟▙▛▜█▓▒░╳╱╲┼╬┇┋⌇⌁⍜⍙⍚⧉⧗⨂⩚⫷⫸✠⸸҉ѪЖЩΨΩΔΣΞ" +
+  "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ" +
+  "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ" +
+  "0123456789ABCDEF"
+).split("");
+
+/**
+ * 読めない文字の壁を作る。
+ *   rows  … 何行ぶん（1〜8）
+ *   width … 1行に何文字（4〜30）
+ *   deep  … どれだけ崩すか（0〜4）
+ *
+ * ※長さに気をつける。崩すほど1文字が3〜4倍になり、
+ *   LINEの1通（5,000文字）を超えると、そもそも届かなくなる。
+ */
+function updNoise_(rows, width, deep) {
+  const r = Math.max(1, Math.min(Number(rows)  || 4, 8));
+  const w = Math.max(4, Math.min(Number(width) || 18, 30));
+  const d = (deep === 0) ? 0 : Math.max(0, Math.min(Number(deep) || 2, 4));
+  const out = [];
+  for (let i = 0; i < r; i++) {
+    let line = "";
+    for (let j = 0; j < w; j++) {
+      line += UPD_NOISE_CHARS[Math.floor(Math.random() * UPD_NOISE_CHARS.length)];
+    }
+    out.push(updGlitch_(line, d));
+  }
+  return out.join("\n");
+}
+
+/* ---------------- 今回の相手（星人） ---------------- */
+/*
+ * ★合言葉を打つたびに、相手（星人）がランダムで変わる。
+ *   まーくさんでも、ほかの人でも出る。
+ *
+ *   ① まずAI（Gemini）に考えてもらう。毎回まったく違うものが出る
+ *   ② AIが使えない・返事がおかしいときは、こちらの組み合わせ表で作る
+ *      （鍵が無くても、通信が詰まっても、必ず何か出る）
+ *
+ *   ※「たたかう」「やっつける」といった言い方はしない。
+ *     あくまで「出現した」「観測した」という言い方にとどめる。
+ */
+const UPD_ALIEN_PROMPT =
+  "GANTZ風の、へんてこな「星人」を1体、考えてください。\n" +
+  "出力は JSON ひとつだけ。前置きも説明も書かないでください。\n" +
+  '{"name":"あばれんぼう星人","toku":["つよい","でかい"],' +
+  '"suki":["せまいとこ","おこりんぼう"],"kirai":["つよいやつ"],"kuse":"ぬん"}\n' +
+  "・name は「〇〇星人」。性格・日用品・動物・妖怪・食べ物など、身近なものから取る\n" +
+  "・toku は 特徴。ひらがなの短い言葉を2〜3個（例：つよい／でかい／ぬるぬる）\n" +
+  "・suki は 好きなもの。1〜2個\n" +
+  "・kirai は きらいなもの。1〜2個\n" +
+  "・kuse は 口ぐせ。意味のない short な音がよい（例：ぬん／はっ／ぐへ）\n" +
+  "・ぜんぶ ひらがな か カタカナ で、短く。むずかしい漢字は使わない\n" +
+  "・血・死・殺といった言葉は使わないでください\n" +
+  "・実在の人物や団体の名前は使わないでください";
+
+/* 鍵も通信もいらない、こちらの組み合わせ表（いざというときの逃げ道） */
+const UPD_ALIEN_BASE = [
+  "あばれんぼう", "おこりんぼう", "なまけもの", "ねぎ", "たまねぎ", "ぬらりひょん",
+  "こけし", "だるま", "かっぱ", "ろくろくび", "でんでん", "まねきねこ",
+  "かさじぞう", "ざしきわらし", "てるてる", "わさび", "たこやき", "しゃちほこ",
+  "おきあがりこぼし", "ひとりごと", "はやおき", "よふかし", "くいしんぼう"
+];
+const UPD_ALIEN_TOKU = [
+  "つよい", "でかい", "はやい", "かたい", "ぬるぬる", "まるい", "ながい",
+  "うるさい", "しつこい", "ふとい", "ちいさい", "よくのびる", "しずか",
+  "よくはねる", "においがつよい", "つるつる", "ねばる", "おもい"
+];
+const UPD_ALIEN_SUKI = [
+  "せまいとこ", "おこりんぼう", "ラーメン", "あついふろ", "ひるね", "かがみ",
+  "あまいもの", "でんきゅう", "だんボール", "あしおと", "しずかなとこ",
+  "おふとん", "まるいもの", "あかいもの", "たかいとこ", "ゆげ"
+];
+const UPD_ALIEN_KIRAI = [
+  "つよいやつ", "おおきいおと", "みずたまり", "さむいひ", "はやいやつ",
+  "あかるいとこ", "ひとごみ", "すっぱいもの", "かぜ", "まちがいでんわ"
+];
+const UPD_ALIEN_KUSE = [
+  "ぬん", "はっ", "ぐへ", "ほい", "むむ", "ぜっ", "んなぁ", "うへ",
+  "ぱお", "ずずっ", "どすこい", "ふごっ", "きゅい", "のん"
+];
+
+/** AIが使えないときの星人 */
+function updAlienFallback_() {
+  const pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+  const some = function (a, n) {
+    const c = a.slice(), out = [];
+    for (let i = 0; i < n && c.length; i++) out.push(c.splice(Math.floor(Math.random() * c.length), 1)[0]);
+    return out;
+  };
+  return {
+    name:  pick(UPD_ALIEN_BASE) + "星人",
+    toku:  some(UPD_ALIEN_TOKU, 2 + Math.floor(Math.random() * 2)),
+    suki:  some(UPD_ALIEN_SUKI, 1 + Math.floor(Math.random() * 2)),
+    kirai: some(UPD_ALIEN_KIRAI, 1),
+    kuse:  pick(UPD_ALIEN_KUSE)
+  };
+}
+
+/** 文字の並びを、かならず配列にそろえる（AIが1個だけ文字で返すことがある） */
+function updAlienArr_(v) {
+  if (Array.isArray(v)) return v.map(function (x) { return String(x).slice(0, 12); }).filter(String).slice(0, 3);
+  const t = String(v == null ? "" : v).slice(0, 12);
+  return t ? [t] : [];
+}
+
+/** 今回の星人を1体もらう。AIがだめでも、必ず何か返す */
+function updAlien_() {
+  try {
+    if (typeof geminiReady_ !== "function") return updAlienFallback_();
+    const g = geminiReady_();
+    const res = UrlFetchApp.fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + g.model +
+      ":generateContent?key=" + encodeURIComponent(g.key),
+      { method: "post", contentType: "application/json", muteHttpExceptions: true,
+        payload: JSON.stringify({
+          contents: [{ parts: [{ text: UPD_ALIEN_PROMPT }] }],
+          generationConfig: { temperature: 1.2 }
+        }) });
+    if (res.getResponseCode() !== 200) return updAlienFallback_();
+    const txt = JSON.parse(res.getContentText()).candidates[0].content.parts[0].text;
+    const m = String(txt).match(/\{[\s\S]*\}/);
+    if (!m) return updAlienFallback_();
+    const o = JSON.parse(m[0]);
+    const a = {
+      name:  String((o && o.name) || "").slice(0, 20),
+      toku:  updAlienArr_(o && o.toku),
+      suki:  updAlienArr_(o && o.suki),
+      kirai: updAlienArr_(o && o.kirai),
+      kuse:  String((o && o.kuse) || "").slice(0, 10)
+    };
+    // どれか1つでも欠けていたら、こちらの表で作る（中途半端に出さない）
+    if (!a.name || !a.toku.length || !a.suki.length || !a.kuse) return updAlienFallback_();
+    if (!a.kirai.length) a.kirai = [UPD_ALIEN_KIRAI[Math.floor(Math.random() * UPD_ALIEN_KIRAI.length)]];
+    return a;
+  } catch (e) {
+    return updAlienFallback_();
+  }
+}
+
+/**
+ * 星人の表示。あの「特徴／好きなもの／口ぐせ」の並べ方をまねる。
+ * 点数は 10〜80てん、10きざみ。
+ */
+function updAlienBlock_() {
+  const a = updAlien_();
+  const pt = (1 + Math.floor(Math.random() * 8)) * 10;
+  const L = [];
+  L.push("▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚");
+  L.push("てめえ達は今から");
+  L.push("この方に　あいさつして来て下ちい");
+  L.push("▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚");
+  L.push("　" + a.name);
+  L.push("　　特徴");
+  a.toku.forEach(function (x) { L.push("　　　" + x); });
+  L.push("　　好きなもの");
+  a.suki.forEach(function (x) { L.push("　　　" + x); });
+  if (a.kirai.length) {
+    L.push("　　きらいなもの");
+    a.kirai.forEach(function (x) { L.push("　　　" + x); });
+  }
+  L.push("　　口ぐせ");
+  L.push("　　　" + a.kuse);
+  L.push("　　とくてん　" + updWide_(String(pt)) + "てん");
+  return L.join("\n");
+}
+
 /** あの黒い球 */
 const UPD_BALL = "　　　　　　●";
 
@@ -554,7 +757,8 @@ function updKataStart_(where) {
   return UPD_BALL + "\n" +
          updGlitch_("Ｋ Ａ Ｔ Ａ Ｓ Ｔ Ｒ Ｏ Ｐ Ｈ Ｅ", 2) + "\n" +
          "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         "な ん か 文 字 出 て る ぞ\n" +
+         updNoise_(4, 18, 2) + "\n" +
+         updAlienBlock_() + "\n" +
          "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
          "きみたちの　ふるいコードは\n" +
          "なくなりました。\n" +
@@ -669,7 +873,8 @@ function updKataDenied_() {
   return UPD_BALL + "\n" +
          updGlitch_("Ｖ Ｅ Ｒ Ｗ Ｅ Ｉ Ｇ Ｅ Ｒ Ｔ", 3) + "\n" +
          "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
-         "な ん か 文 字 出 て る ぞ\n" +
+         updNoise_(4, 18, 2) + "\n" +
+         updAlienBlock_() + "\n" +
          "▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚▚\n" +
          updMath_("IDENTITAET") + " ： " + updWide_("UNBEKANNT") + "\n" +
          updMath_("BERECHTIGUNG") + " ： " + updWide_("KEINE") + "\n" +

@@ -1576,7 +1576,7 @@ console.log('\n■ 合言葉「katastrophe」');
   t(triggers.length === 1 && triggers[0].getHandlerFunction() === 'updRunFromLine_',
     '  裏で取り込む見張りを作る');
   t(triggers[0]._kind === 'after', '  受け口の中では取り込まない');
-  t(ctx.rep[0].indexOf('な ん か 文 字 出 て る ぞ') !== -1, '  あの黒い球の声で返す');
+  t(ctx.rep[0].indexOf('きみたちの　ふるいコードは') !== -1, '  あの黒い球の声で返す');
   t(ctx.rep[0].indexOf('という　りくつな　わけだ') !== -1, '  あの言い回しも入る');
   t(ctx.rep[0].indexOf('●') !== -1, '  黒い球も出る');
   t(ctx.rep[0].indexOf('取り込みを開始しました') !== -1, '  ★日本語で中身も必ず添える');
@@ -1695,6 +1695,93 @@ console.log('\n■ 特殊な文字で、字を飾る');
   ['updKataStart_', 'updKataDone_', 'updKataFail_', 'updKataDenied_'].forEach(function (fn) {
     const out = F(fn)('てすと');
     t(String(out).length < 4000, '★' + fn + ' は1通に収まる（' + String(out).length + '文字）');
+  });
+}
+
+
+console.log('\n■ 訳の分からない文字の壁');
+{
+  const N = F('updNoise_');
+  const w = N(4, 18, 2);
+  t(w.split('\n').length === 4, '行数のとおりに出る');
+  t(w.split('\n').every(l => l.length > 18), '  飾りが重なって、1行が長くなっている');
+  t(N(1, 6, 0).split('\n')[0].length === 6, '  飾り0なら、文字数ぴったり');
+  t(N(99, 99, 99).split('\n').length === 8, '★行数に上限がある（出しすぎない）');
+  t(N(99, 99, 99).split('\n')[0].length <= 30 * 5, '  1行の長さにも上限がある');
+  t(N(4, 18, 2) !== N(4, 18, 2), '毎回ちがう並びになる');
+
+  // ★意味のある言葉が混ざらないこと。混ざると、そこだけ読まれて興ざめになる
+  const big = N(8, 30, 0);
+  t(/^[^ぁ-んァ-ヶ一-龠]*$/.test(big.replace(/\n/g, '')),
+    '★ひらがな・カタカナ・漢字は混ぜない（読める言葉にしない）');
+
+  // セリフはもう入れない
+  ['updKataStart_', 'updKataDenied_'].forEach(function (fn) {
+    const out = F(fn)('てすと');
+    t(out.indexOf('なんか文字出てるぞ') === -1 && out.indexOf('な ん か 文 字 出 て る ぞ') === -1,
+      '★' + fn + ' に、あのセリフは入れない');
+    t(out.indexOf('●') !== -1, '  ' + fn + ' には黒い球が出る');
+    t(out.length < 4000, '  ' + fn + ' は1通に収まる（' + out.length + '文字）');
+  });
+}
+
+
+console.log('\n■ 毎回ちがう星人が出る（特徴・好きなもの・口ぐせつき）');
+{
+  const A = F('updAlienFallback_'), B = F('updAlienBlock_');
+
+  const a = A();
+  t(/星人$/.test(a.name), '名前は「〇〇星人」');
+  t(Array.isArray(a.toku) && a.toku.length >= 2, '★特徴が2つ以上つく');
+  t(Array.isArray(a.suki) && a.suki.length >= 1, '  好きなものもつく');
+  t(Array.isArray(a.kirai) && a.kirai.length >= 1, '  きらいなものもつく');
+  t(typeof a.kuse === 'string' && a.kuse.length > 0, '  口ぐせもつく');
+
+  const seen = {};
+  for (let i = 0; i < 40; i++) { const x = A(); seen[x.name + x.toku.join() + x.kuse] = 1; }
+  t(Object.keys(seen).length > 20, '毎回ちがう星人になる');
+
+  const b = B();
+  t(b.indexOf('てめえ達は今から') !== -1, '★あの「今から」の言い方で始まる');
+  t(b.indexOf('下ちい') !== -1, '  わざと まちがえた字も、そのまま');
+  t(b.indexOf('星人') !== -1, '  星人の名前が出る');
+  t(b.indexOf('　　特徴') !== -1, '★「特徴」のらんが出る');
+  t(b.indexOf('　　好きなもの') !== -1, '  「好きなもの」も');
+  t(b.indexOf('　　きらいなもの') !== -1, '  「きらいなもの」も');
+  t(b.indexOf('　　口ぐせ') !== -1, '  「口ぐせ」も');
+  t(/とくてん　[０-９]+てん/.test(b), '  とくてんも出る（全角）');
+
+  // ★「死」「殺」「血」といった言い方は、どこにも出さない
+  let bad = 0;
+  for (let i = 0; i < 60; i++) {
+    const x = A();
+    const all = x.name + x.toku.join() + x.suki.join() + x.kirai.join() + x.kuse;
+    if (/[死殺血]/.test(all)) bad++;
+  }
+  t(bad === 0, '★60回作っても「死」「殺」「血」は出ない');
+
+  // 見に覚えのない外国語がまぎれていないこと（前に韓国語・ロシア語が混ざっていた）
+  let alien = 0;
+  for (let i = 0; i < 60; i++) {
+    const x = A();
+    const all = x.name + x.toku.join() + x.suki.join() + x.kirai.join() + x.kuse;
+    if (/[가-힣Ѐ-ӿ]/.test(all)) alien++;
+  }
+  t(alien === 0, '★見に覚えのない外国語がまぎれていない');
+
+  // AIの返事が半端でも、そのまま出さずに、こちらの表で作り直すこと
+  const AA = F('updAlienArr_');
+  t(JSON.stringify(AA(['あ', 'い'])) === '["あ","い"]', '並びはそのまま');
+  t(JSON.stringify(AA('あ')) === '["あ"]', '  1個だけ文字で返ってきても、並びに直す');
+  t(JSON.stringify(AA(null)) === '[]', '  空でも落ちない');
+  t(AA(['1','2','3','4','5']).length === 3, '  多すぎるときは3つまで');
+
+  // まーくさんの分にも、ほかの人の分にも出る
+  ['updKataStart_', 'updKataDenied_'].forEach(function (fn) {
+    const out = F(fn)('てすと');
+    t(out.indexOf('星人') !== -1, '★' + fn + ' にも星人が出る');
+    t(out.indexOf('特徴') !== -1, '  ' + fn + ' にも特徴が出る');
+    t(out.length < 4000, '  それでも1通に収まる（' + out.length + '文字）');
   });
 }
 
