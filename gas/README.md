@@ -9,9 +9,9 @@
 | **C** | `001-Code.gs`（統合スクリプト） | C047ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L033ver | `003-LineReport` |
-| **W** | `004-WebApp.gs`（みんなの記録ページ） | W010ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U047ver | `005-Updater` |
-| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V029ver | `006-Venue` |
+| **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U048ver | `005-Updater` |
+| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V030ver | `006-Venue` |
 
 > **ボタンにチェックを入れても何も起きないとき**
 > グループLINEに **「なおして」** と打ってください。見張りを入れ直して、結果を返します。

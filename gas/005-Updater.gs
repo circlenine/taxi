@@ -2,7 +2,14 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U047ver  （2026/09/16）  ★★★
+ *  ★★★  U048ver  （2026/09/16）  ★★★
+ *
+ *  [U048ver]
+ *   ・そうさボタンに「▼ イベントの日付」の入力らんを足した
+ *     [11] の すぐ上。ここで選んだ日のイベントを試し送りします。
+ *     一覧から選ぶほか、9/20 のように打つこともできます
+ *   ・[11] の名前を「きょうのイベントを試し送りする」→
+ *     「イベントを試し送りする」に変えた（きょうに限らなくなったため）
  *
  *  [U047ver]
  *   ・コードを入れ替えたら、見張りをその場で自分でそろえるようにした
@@ -2323,9 +2330,10 @@ function panelItems_() {
     { key: "イベントの絵の見本",   label: "[10] イベントの絵の見本を見る", fn: "menuVenueSample",
       sec: 25,
       note: "どんな見た目でイベント情報が届くか、まーく個人のLINEにだけ送って見せます" },
-    { key: "きょうのイベントを試",  label: "[11] きょうのイベントを試し送りする", fn: "menuVenueTestSend",
+    { key: "イベントを試し送り",  label: "[11] イベントを試し送りする", fn: "menuVenueTestSend",
       sec: 45, stall: 180,
-      note: "きょう17:00に出るはずの中身を、そのまままーく個人のLINEにだけ送ります" },
+      note: "すぐ上の「イベントの日付」の日に出るはずの中身を、" +
+            "そのまままーく個人のLINEにだけ送ります（一覧から選ぶか、9/20 のように打てます）" },
     { key: "イベントの自動発信",   label: "[12] イベントの自動発信を入切する", fn: "panelVenueAuto",
       sec: 20,
       note: "16:30にまーくさんへ確認用、17:00にグループへ送るかどうかを切り替えます。" +
@@ -2342,6 +2350,8 @@ function panelItems_() {
 /** 入力らんの見出し。この文字でセルを探すので、変えると読めなくなる */
 const PANEL_IN_PERIOD = "▼ レポートの期間";
 const PANEL_IN_DEST   = "▼ レポートの送り先";
+/* [11] イベントのテスト送信で、どの日を送るか */
+const PANEL_IN_VDATE  = "▼ イベントの日付";
 const PANEL_DEST_TEST  = "🧪 自分だけ（テスト）";
 const PANEL_DEST_GROUP = "👥 グループ全員（本番）";
 
@@ -2376,6 +2386,26 @@ function panelPeriodChoices_(today) {
 }
 
 /**
+ * イベントの日付のプルダウンに出す一覧。
+ *
+ * ★きょうだけでなく、先の日も試せるようにするため。
+ *   17:00にグループへ出る中身を、前もって見ておけます。
+ * ★一覧に無い日も打ち込めます（「9/20」「20260920」など）。
+ */
+function panelVenueDateChoices_(today) {
+  const now = today || new Date();
+  const dow = ["日", "月", "火", "水", "木", "金", "土"];
+  const md = function (d) { return (d.getMonth() + 1) + "/" + d.getDate() + "(" + dow[d.getDay()] + ")"; };
+  const out = [];
+  for (let i = 0; i <= 14; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const name = i === 0 ? "今日" : i === 1 ? "明日" : i === 2 ? "明後日" : (i + "日後");
+    out.push(name + "（" + md(d) + "）");
+  }
+  return out;
+}
+
+/**
  * 見出しの文字からセルを探して、そのすぐ右のセルを返す。無ければ null。
  * 行も列も決め打ちにしない（見やすいように動かしても付いていけるように）。
  */
@@ -2402,6 +2432,29 @@ function panelInputSet_(sh, label, value) {
   if (!c) return false;
   try { sh.getRange(c.row, c.col).setValue(value); return true; }
   catch (e) { return false; }
+}
+
+/** イベントの日付のプルダウンを作り直す（日が変われば中身も変わる） */
+function panelSetVenueDateList_(sh) {
+  const c = panelInputCell_(sh, PANEL_IN_VDATE);
+  if (!c) return false;
+  try {
+    const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(panelVenueDateChoices_(), true)
+      .setAllowInvalid(true)
+      .setHelpText("一覧から選ぶか、9/20 や 20260920 のように打ってください")
+      .build();
+    sh.getRange(c.row, c.col).setDataValidation(rule);
+    return true;
+  } catch (e) { return false; }
+}
+
+/** いま入っている「イベントの日付」の文字（空なら ""） */
+function panelVenueDateText_() {
+  try {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
+    return panelInputGet_(sh, PANEL_IN_VDATE);
+  } catch (e) { return ""; }
 }
 
 /** 期間のプルダウンを作り直す（日が変われば中身も変わるので、置くたびに入れ直す） */
@@ -2445,9 +2498,12 @@ function panelSetDestList_(sh) {
  */
 function panelEnsureInputs_(sh) {
   if (!sh) return false;
+  // ★イベントの日付のらんは、あとから足したもの。
+  //   もう [7] のらんが置いてある人にも、ここだけ足せるようにしておく
+  const madeV = panelEnsureVenueDate_(sh);
   if (panelInputCell_(sh, PANEL_IN_PERIOD)) {
     panelSetPeriodList_(sh); panelSetDestList_(sh);
-    return false;
+    return madeV;
   }
 
   // [7] の行を探す。無ければ、いちばん下のボタンの下に置く
@@ -2478,6 +2534,37 @@ function panelEnsureInputs_(sh) {
 
   panelSetPeriodList_(sh);
   panelSetDestList_(sh);
+  return true;
+}
+
+/**
+ * [11] の上に「▼ イベントの日付」を1行だけ置く。
+ * すでにあれば、プルダウンの中身だけ入れ直す（位置も文言も触らない）。
+ */
+function panelEnsureVenueDate_(sh) {
+  if (!sh) return false;
+  if (panelInputCell_(sh, PANEL_IN_VDATE)) { panelSetVenueDateList_(sh); return false; }
+
+  const rows = panelReadRows_(sh);
+  let at = 0;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].item && rows[i].item.key === "イベントを試し送り") { at = rows[i].row; break; }
+  }
+  if (!at) at = panelLastRow_(sh);
+  if (!at) return false;
+
+  const top = panelTop_(sh);
+  const chk = panelChkCol_(sh, top);
+  sh.insertRowsBefore(at, 1);
+  sh.getRange(at, chk + 1).setValue(PANEL_IN_VDATE);
+  sh.getRange(at, chk + 2).setValue(panelVenueDateChoices_()[0]);
+  sh.getRange(at, chk + 1).setFontWeight("bold").setFontSize(11).setVerticalAlignment("middle");
+  sh.getRange(at, chk + 2).setFontSize(12).setVerticalAlignment("middle")
+    .setHorizontalAlignment("left").setWrap(true);
+  // チェックの列は空に（ここにチェックがあると、ボタンと間違えて動いてしまう）
+  try { sh.getRange(at, chk).clearDataValidations().setValue(""); } catch (e) {}
+  try { sh.setRowHeights(at, 1, 34); } catch (e) {}
+  panelSetVenueDateList_(sh);
   return true;
 }
 

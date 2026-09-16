@@ -746,8 +746,8 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B23',
-  'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らんも含む）');
+t(panel._prot[0]._a1 === 'B9:B24',
+  'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
 has(alerts[alerts.length - 1].b, 'あなただけが触れるように', 'そう伝える');

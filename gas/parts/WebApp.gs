@@ -33,9 +33,19 @@ function doGet(e) {
     if (e && e.parameter && e.parameter.ics && typeof vnIcsServe_ === "function") {
       const ics = vnIcsServe_(e.parameter.d, e.parameter.i);
       if (ics) {
+        /*
+         * ★downloadAsFile を付けてはいけません。
+         *
+         *   付けると「これはダウンロードするファイルです」という札が立ち、
+         *   iPhone の Safari はいったん「ファイル」に落とそうとします。
+         *   ところが iPhone は、落とした .ics を開けません。
+         *   「ファイルを開くことができません」と出ていたのは、これが原因でした。
+         *
+         *   札を付けず、中身をそのまま返せば、Safari が
+         *   「カレンダーに追加しますか」と聞いてくれます。
+         */
         return ContentService.createTextOutput(ics.text)
-          .setMimeType(ContentService.MimeType.ICAL)
-          .downloadAsFile(ics.name);
+          .setMimeType(ContentService.MimeType.ICAL);
       }
       return ContentService.createTextOutput("その予定が見つかりませんでした")
         .setMimeType(ContentService.MimeType.TEXT);

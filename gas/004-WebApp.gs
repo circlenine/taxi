@@ -2,11 +2,17 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W010ver  （2026/09/16）  ★★★
+ *  ★★★  W011ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
+ *
+ *  [W011ver] 予定ファイル(.ics)を、ダウンロードさせずに そのまま返すようにした
+ *    ★downloadAsFile を付けていたため、iPhone がいったん「ファイル」に
+ *      落とそうとして、「ファイルを開くことができません」と出ていた。
+ *      札を付けずに中身をそのまま返せば、Safari が
+ *      「カレンダーに追加しますか」と聞いてくれる
  *
  *  [W010ver] 予定ファイル（.ics）を渡せるようにした
  *    イベントの絵の「⏰スマホのアラーム」を押すと、ここに来る。
@@ -52,7 +58,7 @@
  * ================================================================
  */
 
-const WB_VERSION = "W010ver";
+const WB_VERSION = "W011ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
@@ -72,9 +78,19 @@ function doGet(e) {
     if (e && e.parameter && e.parameter.ics && typeof vnIcsServe_ === "function") {
       const ics = vnIcsServe_(e.parameter.d, e.parameter.i);
       if (ics) {
+        /*
+         * ★downloadAsFile を付けてはいけません。
+         *
+         *   付けると「これはダウンロードするファイルです」という札が立ち、
+         *   iPhone の Safari はいったん「ファイル」に落とそうとします。
+         *   ところが iPhone は、落とした .ics を開けません。
+         *   「ファイルを開くことができません」と出ていたのは、これが原因でした。
+         *
+         *   札を付けず、中身をそのまま返せば、Safari が
+         *   「カレンダーに追加しますか」と聞いてくれます。
+         */
         return ContentService.createTextOutput(ics.text)
-          .setMimeType(ContentService.MimeType.ICAL)
-          .downloadAsFile(ics.name);
+          .setMimeType(ContentService.MimeType.ICAL);
       }
       return ContentService.createTextOutput("その予定が見つかりませんでした")
         .setMimeType(ContentService.MimeType.TEXT);

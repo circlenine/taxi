@@ -2,11 +2,38 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V029ver  （2026/09/16）  ★★★
+ *  ★★★  V030ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V030ver]
+ *   ・イベント名に下線を引き、そこを押すとページへ飛ぶようにした
+ *     ★「各イベントの枠を押すと」という言い方が紛らわしいうえ、
+ *       枠の中には通知のボタンも入っていて、どこを押すと何が起きるのか
+ *       見ただけでは分かりませんでした。
+ *       いまは「下線の引いてある名前」だけが入り口です。
+ *       会場名でも催し名でも、どちらを押しても同じページへ飛びます
+ *     ★時刻には下線を引きません（押すところが2つあるように見えるため）
+ *     ★リンクが無いものには、下線も引きません（押せないのに押せるように見せない）
+ *   ・ボタンの字が、幅で切れていたのを直した
+ *     「📱個人LINEへ通知」→「📱LINE」
+ *     「⏰スマホのアラーム」→「⏰ﾘﾏｲﾝﾀﾞｰ」
+ *     ★申し訳ありませんでした。「📱個人LINEへ…」「⏰スマホのア…」と
+ *       途中で切れて、何のボタンか分からなくなっていました
+ *   ・注意書きを、薄い黄色の下じきに置いた
+ *     まわりと同じ色だと、ただの説明文にまぎれて読み飛ばされるため。
+ *     かっこは半角の () にし、1行を短くして折り返さないようにした
+ *   ・言葉づかいを変えた
+ *     「💬 話題：」→「💬 一言：」／「🚫 触れない：」→「🚫 禁止：」
+ *     台帳のらんの名前も、同じ言い方にそろえた
+ *   ・「この乗り場の記録がまだ少ないので〜」を書かないようにした
+ *     読む人の役に立たず、場所を食うだけだったため
+ *   ・イベントのテスト送信で、日付を指定できるようにした
+ *     そうさボタンの「▼ イベントの日付」で選びます。
+ *     一覧から選ぶほか、9/20・9月20日・20260920・明日・3日後 でも通ります。
+ *     もう過ぎている日を打ったときは、来年のぶんと見ます
  *
  *  [V029ver]
  *   ・読み取り台帳を、まーくさん専用の「べつのスプシ」に出すようにした
@@ -504,9 +531,12 @@ const VN_SEND_WINDOW = 45;
  */
 const VN_DISCLAIMER = [
   "※注意（必ずお読みください）※",
+  // ★1行を短くしてあります。長いと折り返して、読む気が失せるため。
+  //   かっこは半角の () にしています（全角だと、そのぶん幅を食うため）
   "AIによる自動読み取りの案内です。\n" +
-  "読み取り違いや、そのあとの予定変更（時刻の前後・延長・中止）があります。\n" +
-  "動く前に、必ず各会場の公式ページでお確かめください。"
+  "読み違いや、予定変更があります。\n" +
+  "(時刻の前後・延長・中止)\n" +
+  "動く前に必ず公式ページでご確認を。"
 ];
 
 /** Flex（絵）1通の上限。LINEの決まりは10KB。ぶつからないよう手前で止める */
@@ -808,9 +838,18 @@ function vnCard_(ev, idx, day, noBells) {
   // 確認用のときだけ、頭に ❶❷… の番号を付ける。
   // この番号で「❶削除」「❶修正：〜」と言えるようにするため
   if (ev.no) head1.push({ "type": "span", "text": vnNoMark_(ev.no) + " ", "weight": "bold", "color": "#e65100" });
-  head1.push({ "type": "span", "text": (ev.icon || "📍") + " " + ev.venue, "weight": "bold", "color": VN_COLOR_TEXT });
+  /*
+   * ★イベント名には下線を引く。
+   *   下線が無いと、押せるものだと気づけません。
+   *   時刻のほうには引きません（押すところが2つあるように見えるため）
+   */
+  head1.push({ "type": "span", "text": (ev.icon || "📍") + " " + ev.venue,
+               "weight": "bold", "color": VN_COLOR_TEXT,
+               "decoration": ev.url ? "underline" : "none" });
   if (when) head1.push({ "type": "span", "text": "　" + when, "weight": "bold", "color": "#b71c1c" });
-  rows.push({ "type": "text", "size": "sm", "wrap": true, "contents": head1 });
+  const headRow = { "type": "text", "size": "sm", "wrap": true, "contents": head1 };
+  if (ev.url) headRow.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
+  rows.push(headRow);
   // ★見出しのすぐ下に置く。
   //   前は枠のいちばん下に「この枠を押すと〇〇の公式ページが開きます」と
   //   書いていたが、下にボタンが並んでいるので、どれの話か紛らわしかった。
@@ -829,8 +868,17 @@ function vnCard_(ev, idx, day, noBells) {
   const size = [];
   if (ev.people > 0) size.push(ev.people.toLocaleString() + "人");
   else if (v.cap > 0) size.push("最大" + v.cap.toLocaleString() + "人の会場");
-  const what = [ev.title].concat(size).filter(String).join("／");
-  if (what) rows.push({ "type": "text", "text": what, "size": "xs", "color": "#333333", "wrap": true, "margin": "xs" });
+  if (ev.title || size.length) {
+    // 催しの名前にも下線を引く。ここを押しても、同じページへ飛ぶ
+    const sp = [];
+    if (ev.title) sp.push({ "type": "span", "text": ev.title, "color": "#333333",
+                            "decoration": ev.url ? "underline" : "none" });
+    if (size.length) sp.push({ "type": "span", "text": (ev.title ? "／" : "") + size.join("／"),
+                               "color": "#333333" });
+    const whatRow = { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": sp };
+    if (ev.url) whatRow.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
+    rows.push(whatRow);
+  }
 
   // 3行目：自社の記録から言えること（これは「実績」。確かな数字）
   if (ev.stats) rows.push({ "type": "text", "text": ev.stats, "size": "xxs", "color": "#5f6368", "wrap": true, "margin": "xs" });
@@ -838,8 +886,8 @@ function vnCard_(ev, idx, day, noBells) {
   // 4行目：客層の見当（これは「推定」。当たり外れがあるので、実績とは色も言葉も分ける）
   if (ev.guess) rows.push({ "type": "text", "text": "👥 推定：" + ev.guess, "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "xs" });
 
-  // 5行目：知っておくと話が弾むこと
-  if (ev.know) rows.push({ "type": "text", "text": "💬 話題：" + ev.know, "size": "xxs", "color": "#00695c", "wrap": true, "margin": "xs" });
+  // 5行目：ひと言そえられること（長い説明ではなく、ひと言で）
+  if (ev.know) rows.push({ "type": "text", "text": "💬 一言：" + ev.know, "size": "xxs", "color": "#00695c", "wrap": true, "margin": "xs" });
 
   // 気をつけること（徹夜など）。いちばん目立つところに、赤の太字で
   if (ev.warn) {
@@ -847,8 +895,8 @@ function vnCard_(ev, idx, day, noBells) {
                 "weight": "bold", "wrap": true, "margin": "xs" });
   }
 
-  // 6行目：触れない方がよいこと（ここは赤。ひと目で分かるように）
-  if (ev.avoid) rows.push({ "type": "text", "text": "🚫 触れない：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
+  // 6行目：禁止（触れてはいけないこと）。ここは赤。ひと目で分かるように
+  if (ev.avoid) rows.push({ "type": "text", "text": "🚫 禁止：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
 
   // 5行目：この1件についての助言
   if (ev.advice) rows.push({ "type": "text", "text": "▶ " + ev.advice, "size": "xs", "color": "#1b5e20", "wrap": true, "margin": "sm", "weight": "bold" });
@@ -859,12 +907,13 @@ function vnCard_(ev, idx, day, noBells) {
   if (day && !noBells && (ev.start || ev.end) && ev.kind !== "barasi") {
     rows.push(vnBellRow_(ev, idx, day));
   }
-  // ★この枠そのものがボタン。押すと、その催しの公式ページが開く。
-  //   下にリンクのボタンを別に並べるのはやめた。
-  //   「どのリンクがどの催しのものか」を目で探させることになるうえ、
-  //   場所も文字数も食う。催しの枠を押せば、その催しのページへ行くのが素直。
-  //   押せることが分からないと意味がないので、必ず案内を出す。
-  if (ev.url) box.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
+  /*
+   * ★枠ぜんたいを押せるのは、やめました。
+   *   「枠を押すと」という言い方が、そもそも分かりにくいうえ、
+   *   枠の中には通知のボタンも入っています。
+   *   どこを押すと何が起きるのかが、見ただけでは分かりませんでした。
+   *   いまは「下線の引いてある名前」だけが、ページへの入り口です。
+   */
   return box;
 }
 
@@ -889,7 +938,7 @@ function vnBuildMessages_(day, events, note, noBells) {
     "paddingAll": "10px", "cornerRadius": "md", "contents": [
       { "type": "text", "text": "対象は 18:00〜翌04:00 に動きがあるものだけです", "size": "xxs", "color": "#6a1b9a", "wrap": true },
       { "type": "text", "text": "小さすぎてタクシーに響かないものは省いています", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs" },
-      { "type": "text", "text": "👆 各イベントの枠を押すと、その公式ページが開きます", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs", "weight": "bold" }
+      { "type": "text", "text": "👆 各イベント名（下線）を押すと、その公式ページが開きます", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs", "weight": "bold" }
     ]});
 
   const kinds = VN_KIND_ORDER.map(function (k) { return [k, VN_KIND_LABEL[k]]; });
@@ -916,10 +965,13 @@ function vnBuildMessages_(day, events, note, noBells) {
 
   // ★注釈は必ず最後に入れる。削る対象にもしない（危ないので）
   contents.push({ "type": "separator", "margin": "lg" },
-    { "type": "box", "layout": "vertical", "backgroundColor": "#fbf7fd",
+    // ★注意書きは、薄い黄色の下じきに置く。
+    //   まわりと同じ色だと、ただの説明文にまぎれて読み飛ばされるため
+    { "type": "box", "layout": "vertical", "backgroundColor": "#fff8e1",
+      "borderWidth": "1px", "borderColor": "#f0c36d",
       "paddingAll": "8px", "cornerRadius": "md", "margin": "md", "contents": [
-        { "type": "text", "text": VN_DISCLAIMER[0], "size": "xxs", "weight": "bold", "color": "#6a1b9a", "wrap": true },
-        { "type": "text", "text": VN_DISCLAIMER[1], "size": "xxs", "color": "#7b5e8a", "wrap": true, "margin": "xs" }
+        { "type": "text", "text": VN_DISCLAIMER[0], "size": "xxs", "weight": "bold", "color": "#a05a00", "wrap": true },
+        { "type": "text", "text": VN_DISCLAIMER[1], "size": "xxs", "color": "#6b5300", "wrap": true, "margin": "xs" }
       ]});
 
   // ★送る前に、中身が空のところを取りのぞく。
@@ -972,7 +1024,7 @@ function vnFitMessages_(day, events, note, reserve) {
   if (size(msgs[0]) <= LIMIT) return msgs;
 
   // ① 客層の行（実績・推定）と話題を落とす。
-  //    「触れない方がよいこと」だけは、トラブルに直結するので最後まで残す
+  //    「禁止」だけは、トラブルに直結するので最後まで残す
   evs = copy(evs, ["stats", "guess", "know"]);
   msgs = vnBuildMessages_(day, evs, note, bells);
   if (size(msgs[0]) <= LIMIT) return msgs;
@@ -1142,9 +1194,9 @@ function vnAdvice_(venue, end, st) {
     } else {
       L.push(`この乗り場は普段 平均￥${avg.toLocaleString()}`);
     }
-  } else {
-    L.push("この乗り場の記録がまだ少ないので、実績からの判断はできません");
   }
+  // ★記録が少ないときは、何も書きません。
+  //   「判断できません」と書いても、読む人の役には立たず、場所を食うだけでした
   return L.join("。");
 }
 
@@ -2110,7 +2162,7 @@ function vnLedgerBuild_(days, withGuess) {
     sh.clear();
     const head = ["日付", "会場", "カテゴリー", "催しの名前", "開演", "終演",
                   "LINEに出す？", "出さない理由",
-                  "客層・年齢層（推定）", "知っておくとよい話題", "触れない方がよいこと",
+                  "客層・年齢層（推定）", "一言（話のきっかけ）", "禁止（触れてはいけないこと）",
                   "近い乗り場", "どこから読んだか", "確かめる（押すと開きます）"];
     const LINK = head.length, FROM = head.length - 1, OK = 7, WHY = 8, AVOID = 11;
     sh.getRange(1, 1, 1, head.length).setValues([head])
@@ -2169,7 +2221,7 @@ function vnLedgerBuild_(days, withGuess) {
   L.push("公式ページに催しが出ているのに ⚠️ なら、読み取りが効いていません。");
   L.push("");
   L.push("台帳には、日付・カテゴリー・催しの名前・開演・終演・出す出さない・その理由・" +
-         "客層・話題・触れない方がよいこと・近い乗り場・出所・確かめるリンク をならべてあります。");
+         "客層・一言・禁止・近い乗り場・出所・確かめるリンク をならべてあります。");
   L.push("いちばん右のらんを押すと、公式ページか、送ってもらったスクショが開きます。");
   L.push("灰色の行が「落としたもの」です。となりのらんに理由が入っています。");
   L.push("「📋 いまの条件」タブに、いま効いている決まりごとを全部ならべてあります。");
@@ -2826,6 +2878,9 @@ function vnIcsText_(ev, day) {
     "DTSTART:" + vnIcsStamp_(st),
     "DTEND:" + vnIcsStamp_(en),
     "SUMMARY:" + vnIcsEsc_(title),
+    "STATUS:CONFIRMED",
+    "TRANSP:OPAQUE",
+    "SEQUENCE:0",
     "DESCRIPTION:" + vnIcsEsc_("終了予定の" + lead + "分前に鳴ります。\n" +
                                "※ 時刻は前後することがあります。公式ページでお確かめください。" +
                                (ev.url ? "\n" + ev.url : "")),
@@ -2869,6 +2924,8 @@ function vnIcsServe_(ymd, idx) {
   const list = vnDayLoad_(day);
   const ev = list[Number(idx)];
   if (!ev) return null;
+  // name は目印です。ファイルとして落とさせないので、ここでは使いません
+  //（落とさせると iPhone が開けませんでした。004-WebApp のコメントを参照）
   return { name: "event.ics", text: vnIcsText_(ev, day) };
 }
 
@@ -2938,11 +2995,13 @@ function vnBellRow_(ev, idx, day) {
     "contents": [
       { "type": "text", "text": "🔔通知設定", "size": "xxs", "weight": "bold",
         "color": VN_COLOR_HEAD, "gravity": "center", "align": "center", "flex": 3, "wrap": true },
-      vnBellBtn_("me", "📱個人LINEへ通知", ymd, idx, 5)
+      vnBellBtn_("me", "📱LINE", ymd, idx, 4)
     ].concat(ics ? [
-      // ★スマホ自身を鳴らすほう。LINEが開けなくても、電波が無くても鳴る
-      { "type": "button", "style": "link", "height": "sm", "flex": 5,
-        "action": { "type": "uri", "label": "⏰スマホのアラーム", "uri": ics } }
+      // ★スマホ自身を鳴らすほう。LINEが開けなくても、電波が無くても鳴る。
+      //   ★字は短くする。長いと、ボタンの幅で切れて「⏰スマホのア…」になり、
+      //     何のボタンか分からなくなる（実際に切れていました）
+      { "type": "button", "style": "link", "height": "sm", "flex": 4,
+        "action": { "type": "uri", "label": "⏰ﾘﾏｲﾝﾀﾞｰ", "uri": ics } }
     ] : [])};
 }
 
@@ -4314,18 +4373,23 @@ function panelVenueProbe() {
  * グループに出す前に、本物と同じ中身を自分の目で確かめられる。
  */
 function menuVenueTestSend() {
-  const err = vnSendTodayToMe();
-  const n = vnTodayEvents_(new Date()).length;
+  // ★どの日を送るかは、そうさボタンの「▼ イベントの日付」で決めます。
+  //   きょうのぶんしか試せないと、先の日の中身を前もって確かめられません
+  const day = vnPanelDay_();
+  const err = vnSendTodayToMe(day);
+  const n = vnTodayEvents_(day).length;
+  const label = vnDayLabel_(day);
   try {
     const ui = SpreadsheetApp.getUi();
     ui.alert("🧪 イベント情報のテスト送信",
       err ? "送れませんでした：\n" + err
-          : "まーく個人のLINEにだけ送りました（きょうの分：" + n + "件）。\n" +
+          : "まーく個人のLINEにだけ送りました。\n" +
+            "日付：" + label + "（" + n + "件）\n" +
             "グループには送っていません。",
       ui.ButtonSet.OK);
   } catch (e) {}
   return err ? "❌ " + err
-             : "🧪 きょうの分（" + n + "件）を、まーく個人のLINEにだけ送りました（グループには送っていません）";
+             : "🧪 " + label + " の分（" + n + "件）を、まーく個人のLINEにだけ送りました（グループには送っていません）";
 }
 
 /** 見本のイベント情報を、自分のLINEにだけ送る（メニュー） */
@@ -4409,8 +4473,8 @@ function menuVenueAuto() {
  * 「きょう送るはずのもの」を、自分のLINEにだけ送ってみる。
  * グループに出す前に、中身を自分の目で確かめるための道。
  */
-function vnSendTodayToMe() {
-  const day = new Date();
+function vnSendTodayToMe(dayIn) {
+  const day = dayIn || new Date();
   const events = vnTodayEvents_(day);
   const to = vnTestTarget_();
   if (!to) return "自分の送り先が分かりません（設定タブ「テスト送信先（自分のLINE）」）";
@@ -4421,6 +4485,57 @@ function vnSendTodayToMe() {
     lrPush_(to, vnFitMessages_(day, events, note));
     return "";
   } catch (e) { return (e && e.message ? e.message : String(e)); }
+}
+
+/**
+ * 打ち込まれた文字から、日を読み取る。読めなければ きょう。
+ *
+ * ★出先で打つものなので、どんな書き方でも受けます。
+ *     今日／きょう／明日／あした／明後日／3日後
+ *     9/20 ／ 9月20日 ／ 2026/9/20 ／ 20260920
+ *     「明日（9/17(木)）」のように、プルダウンから選んだそのままの形も
+ * ★月だけの指定（9/20 など）で、その日がもう過ぎていたら来年のぶんと見ます。
+ *   先の予定を見たくて打つものなので、過去を出しても役に立たないためです。
+ */
+function vnParseDay_(text, base) {
+  const now = base || new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let t = String(text == null ? "" : text).trim()
+    .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+  if (!t) return today;
+
+  // かっこの中に日付があれば、そちらを見る（プルダウンから選んだ形）
+  const inParen = t.match(/[（(]\s*(\d{1,2})\s*\/\s*(\d{1,2})/);
+  if (inParen) t = inParen[1] + "/" + inParen[2];
+
+  if (/^(今日|きょう|本日)/.test(t)) return today;
+  if (/^(明日|あした|あす)/.test(t)) return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  if (/^(明後日|あさって)/.test(t)) return new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+  const ago = t.match(/^(\d+)\s*日後/);
+  if (ago) return new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(ago[1]));
+
+  // 20260920
+  let m = t.match(/(20\d{2})(\d{2})(\d{2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  // 2026/9/20 ・ 2026年9月20日
+  m = t.match(/(20\d{2})\s*[\/年\-\.]\s*(\d{1,2})\s*[\/月\-\.]\s*(\d{1,2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  // 9/20 ・ 9月20日（年は書かれていない）
+  m = t.match(/(\d{1,2})\s*[\/月\-\.]\s*(\d{1,2})/);
+  if (m) {
+    const d = new Date(today.getFullYear(), Number(m[1]) - 1, Number(m[2]));
+    // もう過ぎている日なら、来年のぶんと見る
+    if (d < today) d.setFullYear(d.getFullYear() + 1);
+    return d;
+  }
+  return today;
+}
+
+/** そうさボタンの「▼ イベントの日付」に入っている日（無ければ きょう） */
+function vnPanelDay_() {
+  let t = "";
+  try { if (typeof panelVenueDateText_ === "function") t = panelVenueDateText_(); } catch (e) {}
+  return vnParseDay_(t);
 }
 
 

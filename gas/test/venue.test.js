@@ -208,7 +208,9 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
      (json.match(/"height":"sm"/g) || []).length, 'ボタンはどれもいちばん小さい "sm"');
   has(json, '通知設定', '★「お知らせ」ではなく「通知設定」と書く（初見で分かるように）');
   eq(json.indexOf('お知らせ：'), -1, '  「お知らせ：」の言い方は、もう使わない');
-  has(json, '📱個人LINEへ通知', '★ボタンは「個人LINEへ通知」だけ（どこへ届くか分かるように）');
+  // ★ボタンの字は短く。長いと幅で切れて「📱個人LINEへ…」になり、何のボタンか分からない
+  has(json, '📱LINE', '★ボタンの字は短く（切れないように）');
+  eq(json.indexOf('個人LINEへ通知'), -1, '  ★前の長い字は、もう使わない（途中で切れていた）');
   eq(json.indexOf('ﾃﾞｨｽｺｰﾄﾞ'), -1, '★ディスコードのボタンは出さない（設定がややこしいため）');
   eq(json.indexOf('💬DC'), -1, '  「DC」も出さない');
   eq(json.indexOf('⏰カレンダー'), -1,
@@ -225,9 +227,10 @@ console.log('\n■ イベントの枠そのものが、公式ページへのボ�
     { venue: '京セラドーム', kind: 'event', icon: '🏟', title: 'コンサート',
       start: '18:00', end: '21:00', people: 0,
       url: 'https://www.kyoceradome-osaka.jp/schedule/' }, 0, day);
-  eq(card.action.type, 'uri', '枠を押すとリンクが開く');
-  eq(card.action.uri, 'https://www.kyoceradome-osaka.jp/schedule/', '  その催しのページへ行く');
   const j = JSON.stringify(card);
+  // ★枠ぜんたいを押せるのは、やめた。押すのは「下線の引いてある名前」だけ
+  eq(card.action, undefined, '枠ぜんたいは押せない（どこを押すのか紛らわしかった）');
+  has(j, '"uri":"https://www.kyoceradome-osaka.jp/schedule/"', '  名前を押すと、その催しのページへ行く');
   has(j, '👆 詳細はクリック（該当ページに移ります）',
       '★案内は、見出しのすぐ下に短く出す');
   eq(j.indexOf('この枠を押すと'), -1, '  紛らわしい言い方は、もう使わない');
@@ -242,7 +245,7 @@ console.log('\n■ イベントの枠そのものが、公式ページへのボ�
 
   // 絵ぜんたいでも、案内がちゃんと出る
   const whole = JSON.stringify(ctx.vnFitMessages_(day, ctx.vnSampleEvents_(), '')[0]);
-  has(whole, '👆 各イベントの枠を押すと、その公式ページが開きます', '読み方のところにも書いてある');
+  has(whole, '👆 各イベント名（下線）を押すと、その公式ページが開きます', '読み方のところにも書いてある');
   eq(whole.indexOf('🔗 もとのページ'), -1, 'URLを下にまとめて並べるのは、もうやめた');
 }
 
@@ -510,7 +513,7 @@ console.log('\n■ 催しを落とす前に、まずボタンのほうを消す'
   eq(ctx.lrBytes_(fit) <= 9500, true,
      '見本4件でも1通に収まる（' + ctx.lrBytes_(fit) + 'バイト）');
   has(fit, 'vn=me', '  お知らせのボタンも消えていない（催しより先に細かい話を削る）');
-  has(fit, '公式ページでお確かめください', '  注釈は、どんなに詰めても必ず残す');
+  has(fit, '動く前に必ず公式ページでご確認を', '  注釈は、どんなに詰めても必ず残す');
 
   // 催しが増えて入りきらなくなったら、催しより先にボタンを消す
   const many = evs.concat(evs);                       // 8件
@@ -719,6 +722,88 @@ console.log('\n■ 🔕 通知解除のボタン');
   ctx.Date = RealDate;
 }
 
+console.log('\n■ イベント名は、下線つきで押せる');
+{
+  const day = new Date(2026, 8, 16);
+  const ev = { venue: '京セラドーム大阪', kind: 'event', icon: '🎤', title: 'ライブ',
+               start: '18:00', end: '21:00', url: 'https://k/', people: 0 };
+  const card = ctx.vnCard_(ev, 0, day, true);
+  const j = JSON.stringify(card);
+  has(j, '"decoration":"underline"', '★イベント名に下線を引く（押せると分かるように）');
+  eq(j.indexOf('"text":"京セラドーム大阪"') !== -1 || j.indexOf('京セラドーム大阪') !== -1, true, '  会場名が出る');
+  eq(card.action, undefined, '★枠ぜんたいを押せるのは、やめた（どこを押すのか紛らわしかった）');
+  // 見出しの行と、催し名の行の両方から、同じページへ飛べる
+  const acts = (j.match(/"uri":"https:\/\/k\/"/g) || []).length;
+  eq(acts >= 2, true, '  ★イベント名（見出し・催し名）のどちらを押しても、同じページへ');
+  // 時刻には下線を引かない（押すところが2つあるように見えるため）
+  const head = card.contents[0];
+  const und = head.contents.filter(x => x.decoration === 'underline');
+  eq(und.length, 1, '  下線は名前だけ。時刻には引かない');
+  has(und[0].text, '京セラドーム大阪', '    下線が付くのは会場名');
+
+  // リンクが無いときは、下線も引かない（押せないのに押せるように見せない）
+  const noUrl = JSON.stringify(ctx.vnCard_({ venue: 'あ', kind: 'event', title: 'い', start: '18:00', end: '21:00' }, 0, day, true));
+  eq(noUrl.indexOf('"decoration":"underline"'), -1, '★リンクが無ければ、下線も引かない');
+
+  // 上の案内文
+  const msg = JSON.stringify(ctx.vnFitMessages_(day, [ev], ''));
+  has(msg, '各イベント名（下線）を押すと', '★案内も「枠」ではなく「イベント名」と書く');
+  eq(msg.indexOf('各イベントの枠を押すと'), -1, '  前の紛らわしい言い方は、もう使わない');
+}
+
+console.log('\n■ 注意書きと、言葉づかい');
+{
+  const d = vm.runInContext('VN_DISCLAIMER', ctx).join('\n');
+  has(d, '(時刻の前後・延長・中止)', '★かっこは半角の ()');
+  eq(d.indexOf('（時刻の前後'), -1, '  全角のかっこは、もう使わない');
+  d.split('\n').forEach(function (x) {
+    if (ctx.width_ && ctx.width_(x) > 22) { console.log('  NG  注意書きの行が長い：' + x); }
+  });
+  eq(d.split('\n').every(x => x.length <= 22), true, '★どの行も、折り返さない長さ');
+
+  const day = new Date(2026, 8, 16);
+  const ev = { venue: 'あ', kind: 'event', title: 'い', start: '18:00', end: '21:00',
+               know: 'デビュー20周年', avoid: '脱退した元メンバーの話' };
+  const card = JSON.stringify(ctx.vnCard_(ev, 0, day, true));
+  has(card, '💬 一言：', '★「話題」ではなく「一言」');
+  eq(card.indexOf('💬 話題：'), -1, '  前の言い方は、もう使わない');
+  has(card, '🚫 禁止：', '★「触れない」ではなく「禁止」');
+  eq(card.indexOf('🚫 触れない：'), -1, '  前の言い方は、もう使わない');
+
+  // 注意書きの下じきは、薄い黄色
+  const msg = JSON.stringify(ctx.vnFitMessages_(day, [ev], ''));
+  has(msg, '#fff8e1', '★注意書きは、薄い黄色の下じきに置く');
+  has(msg, '※注意（必ずお読みください）※', '  見出しはそのまま');
+}
+
+console.log('\n■ 記録が少ないときは、よけいなことを書かない');
+{
+  const line = ctx.vnAdvice_('どこか', '21:00', { count: 0, sales: 0, waitSum: 0, waitCount: 0 });
+  eq(String(line).indexOf('記録がまだ少ない'), -1,
+     '★「記録がまだ少ないので〜」は、もう書かない（場所を食うだけだった）');
+}
+
+console.log('\n■ イベントのテスト送信は、日付を指定できる');
+{
+  const P = ctx.vnParseDay_;
+  const base = new Date(2026, 8, 16);           // 2026/09/16(水)
+  const ymd = d => d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+  eq(ymd(P('', base)), '2026/9/16', '空なら きょう');
+  eq(ymd(P('今日', base)), '2026/9/16', '「今日」');
+  eq(ymd(P('明日', base)), '2026/9/17', '「明日」');
+  eq(ymd(P('あさって', base)), '2026/9/18', '「あさって」');
+  eq(ymd(P('3日後', base)), '2026/9/19', '「3日後」');
+  eq(ymd(P('明日（9/17(木)）', base)), '2026/9/17', '★プルダウンから選んだそのままの形でも通る');
+  eq(ymd(P('9/20', base)), '2026/9/20', '「9/20」');
+  eq(ymd(P('9月20日', base)), '2026/9/20', '「9月20日」');
+  eq(ymd(P('２０２６/９/２０', base)), '2026/9/20', '★全角の数字でも通る');
+  eq(ymd(P('20261105', base)), '2026/11/5', '「20261105」');
+  eq(ymd(P('2026/11/5', base)), '2026/11/5', '「2026/11/5」');
+  eq(ymd(P('3/1', base)), '2027/3/1', '★もう過ぎている日は、来年のぶんと見る');
+  eq(ymd(P('わけのわからない字', base)), '2026/9/16', '読めなければ きょう（落ちない）');
+  eq(ymd(P(null, base)), '2026/9/16', 'null でも落ちない');
+}
+
 console.log('\n■ 🗓️ 台帳は、まーくさん専用のスプシに書く');
 {
   madeBooks.length = 0;
@@ -804,13 +889,14 @@ console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
   // ボタンが絵に出る
   ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
   const row = JSON.stringify(ctx.vnBellRow_({ venue: '京セラドーム' }, 0, day));
-  has(row, '⏰スマホのアラーム', '★通知設定のらんに、アラームのボタンが出る');
-  has(row, '📱個人LINEへ通知', '  個人LINEのボタンも、そのまま残る');
+  has(row, '⏰ﾘﾏｲﾝﾀﾞｰ', '★通知設定のらんに、リマインダーのボタンが出る');
+  eq(row.indexOf('スマホのアラーム'), -1, '  ★前の長い字は、もう使わない（途中で切れていた）');
+  has(row, '📱LINE', '  LINEのボタンも、そのまま残る');
 
   // まだ1度も公開していないときは、開かないボタンを出さない
   vm.runInContext('function wbUrl_(){ return ""; }', ctx);
   eq(ctx.vnIcsUrl_(day, 0), '', 'ページを公開していなければ、リンクは作れない');
-  eq(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)).indexOf('⏰スマホのアラーム'), -1,
+  eq(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)).indexOf('⏰ﾘﾏｲﾝﾀﾞｰ'), -1,
      '★そのときは、押しても開かないボタンを出さない');
   vm.runInContext('function wbUrl_(){ return "https://script.google.com/macros/s/AAA/exec"; }', ctx);
 }
