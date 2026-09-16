@@ -2,11 +2,40 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V020ver  （2026/09/16）  ★★★
+ *  ★★★  V021ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V021ver]
+ *   ・「👆 この枠を押すと〇〇の公式ページが開きます」をやめた
+ *     枠のいちばん下にあって、下のボタンの説明と紛らわしかった。
+ *     見出しのすぐ下に「👆 詳細はクリック（該当ページに移ります）」と短く出す
+ *   ・「お知らせ」→「通知設定」に言いかえた（初見で分かる言葉に）
+ *   ・「DC」→「ﾃﾞｨｽｺｰﾄﾞ」に（DCは一般的な言い方ではない）
+ *   ・カレンダーのボタンを「押したら その場で開く」形にした
+ *     前は合図を返してリンクを送る形で、もう一度押す必要があった。
+ *     終わりの時刻まで入った予定が、1回押すだけで作れる。
+ *     そのぶんURLは短く詰めた（題・始まり・終わり・場所だけ。1件289バイト）
+ *   ・ﾃﾞｨｽｺｰﾄﾞは、送り先が入っていないときに、その取り方を手順で案内し、
+ *     アプリへのリンクも一緒に出すようにした
+ *     （入っていれば、終了予定の〇分前に自動で届きます）
+ *   ・返事は1回だけにした。うまくいっているのに、何度も鳴らさない
+ *   ・「終了」→「終了予定」に、ぜんぶ直した
+ *     催しの終わりは ほぼ必ず前後する。言い切ると、
+ *     それを信じて動いた人が損をする
+ *   ・送ってもらった紙を、PDFではなく 写真のまま置くようにした
+ *     PDFだとリンクを押しても開かないことがあった
+ *     （リーガロイヤルのぶんが、実際に開けなかった）
+ *   ・注釈の頭を「※注意（必ずお読みください）※」にした
+ *   ・連日の催しに「（2日目／3日間）」を付けた（vnDayNo_）
+ *     写真から読んだぶんは先の日付まで持っているので、正確に数えられる。
+ *     ホームページから読んだぶんは その日しか見ていないので、無理に書かない
+ *   ・ワントゥワンは、詳細のページまで必ず開くようにした（vnDetailNote_）
+ *     「徹夜」と書かれていたら、こちらの営業時間内にバラシが終わらない。
+ *     待っても無駄足になるので、赤字ではっきり書き添える。
+ *     ついでに 対象の公演名と「〇日目／〇日間」も拾う
  *
  *  [V020ver]
  *   ・読み取り台帳を「中身まで見える」形に作り直した
@@ -258,7 +287,12 @@ const VN_SOURCES = [
   //   読み先だけを外してある。会場の情報（VN_VENUES）は消していないので、
   //   戻すときは、この行を書き戻すだけでよい
   // { name: "万博記念公園",      kind: "event",  url: "https://live-events.a-jp.org/soko/plc/318.html" },
-  { name: "ワントゥワン",         kind: "barasi", url: "https://onetoone-jp.com/schedule.php" },
+  // ★ワントゥワンは、一覧だけでは足りない。
+  //   詳細に「徹夜」と書かれていることがあり、そうなると
+  //   こちらの営業時間内にバラシが終わらず、待つ意味がなくなる。
+  //   detail: true を付けると、必ず詳細のページまで開いて中を見る
+  { name: "ワントゥワン",         kind: "barasi", detail: true,
+    url: "https://onetoone-jp.com/schedule.php" },
   // ★ニューオータニは、一覧のページに時刻が載っていない。
   //   deep: true を付けると、一覧から催しのページを開いて、そこで時刻を探す。
   //   時刻が見つからなければ、その催しは出さない（時間不明では出さないため）
@@ -316,9 +350,10 @@ const VN_SEND_WINDOW = 45;
  *   はっきり書いていないのは、不親切を通りこして危ない。
  */
 const VN_DISCLAIMER = [
-  "※ AIが自動で読み取った案内です",
+  "※注意（必ずお読みください）※",
+  "AIによる自動読み取りの案内です。\n" +
   "読み取り違いや、そのあとの予定変更（時刻の前後・延長・中止）があります。\n" +
-  "動く前に、必ず各会場の公式ページでお確かめください（枠を押すと開きます）。"
+  "動く前に、必ず各会場の公式ページでお確かめください。"
 ];
 
 /** Flex（絵）1通の上限。LINEの決まりは10KB。ぶつからないよう手前で止める */
@@ -610,8 +645,10 @@ function vnCard_(ev, idx, day, noBells) {
   // ★「時間不明」とは、もう書かない。
   //   時刻の取れないものは、ここへ来る前に落としてある（vnHasTime_）。
   //   もし万が一きても、時刻のところは空にして、うその時間を見せない
-  const when = ev.start && ev.end ? `${ev.start}〜${ev.end}`
-             : ev.end   ? `${ev.end} 終了`
+  // ★「終了」とは書かない。催しの終わりは ほぼ必ず前後するので、
+  //   言い切ると、それを信じて動いた人が損をする。必ず「終了予定」と書く
+  const when = ev.start && ev.end ? `${ev.start}〜${ev.end}予定`
+             : ev.end   ? `${ev.end} 終了予定`
              : ev.start ? `${ev.start} 開始`
              : "";
   const head1 = [];
@@ -621,6 +658,14 @@ function vnCard_(ev, idx, day, noBells) {
   head1.push({ "type": "span", "text": (ev.icon || "📍") + " " + ev.venue, "weight": "bold", "color": VN_COLOR_TEXT });
   if (when) head1.push({ "type": "span", "text": "　" + when, "weight": "bold", "color": "#b71c1c" });
   rows.push({ "type": "text", "size": "sm", "wrap": true, "contents": head1 });
+  // ★見出しのすぐ下に置く。
+  //   前は枠のいちばん下に「この枠を押すと〇〇の公式ページが開きます」と
+  //   書いていたが、下にボタンが並んでいるので、どれの話か紛らわしかった。
+  //   見出しの真下なら、この枠のことだと ひと目で分かる
+  if (ev.url) {
+    rows.push({ "type": "text", "text": "👆 詳細はクリック（該当ページに移ります）",
+                "size": "xxs", "color": VN_COLOR_HEAD, "weight": "bold", "margin": "xs", "wrap": true });
+  }
   // 手直し（「①修正：〜」で書き足したこと）は、いちばん目立つところに出す
   if (ev.note) {
     rows.push({ "type": "text", "text": "✏️ " + ev.note, "size": "xs", "weight": "bold",
@@ -643,6 +688,12 @@ function vnCard_(ev, idx, day, noBells) {
   // 5行目：知っておくと話が弾むこと
   if (ev.know) rows.push({ "type": "text", "text": "💬 話題：" + ev.know, "size": "xxs", "color": "#00695c", "wrap": true, "margin": "xs" });
 
+  // 気をつけること（徹夜など）。いちばん目立つところに、赤の太字で
+  if (ev.warn) {
+    rows.push({ "type": "text", "text": ev.warn, "size": "xs", "color": "#c62828",
+                "weight": "bold", "wrap": true, "margin": "xs" });
+  }
+
   // 6行目：触れない方がよいこと（ここは赤。ひと目で分かるように）
   if (ev.avoid) rows.push({ "type": "text", "text": "🚫 触れない：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
 
@@ -653,8 +704,8 @@ function vnCard_(ev, idx, day, noBells) {
                 "paddingAll": "10px", "cornerRadius": "md", "margin": "sm", "contents": rows };
   // お知らせの受け取り方を3つならべる（時間が分かっている催しだけ）
   if (day && !noBells && (ev.start || ev.end) && ev.kind !== "barasi") {
-    rows.push({ "type": "text", "text": "お知らせ：⏰カレンダー ／ 💬Discord ／ 📱自分のLINE",
-                "size": "xxs", "color": "#7b1fa2", "margin": "sm" });
+    rows.push({ "type": "text", "text": "🔔 通知設定（終了予定の前に知らせます）",
+                "size": "xxs", "color": "#7b1fa2", "weight": "bold", "margin": "sm", "wrap": true });
     rows.push(vnBellRow_(ev, idx, day));
   }
   // ★この枠そのものがボタン。押すと、その催しの公式ページが開く。
@@ -662,14 +713,7 @@ function vnCard_(ev, idx, day, noBells) {
   //   「どのリンクがどの催しのものか」を目で探させることになるうえ、
   //   場所も文字数も食う。催しの枠を押せば、その催しのページへ行くのが素直。
   //   押せることが分からないと意味がないので、必ず案内を出す。
-  if (ev.url) {
-    box.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
-    rows.push({ "type": "box", "layout": "vertical", "backgroundColor": "#ede7f6",
-      "cornerRadius": "md", "paddingAll": "6px", "margin": "sm", "contents": [
-        { "type": "text", "size": "xxs", "color": VN_COLOR_HEAD, "weight": "bold", "wrap": true,
-          "text": "👆 この枠を押すと「" + ev.venue + "」の公式ページが開きます" }
-      ]});
-  }
+  if (ev.url) box.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
   return box;
 }
 
@@ -1193,17 +1237,14 @@ function vnDocSave_(blob, label, d) {
     if (typeof DriveApp === "undefined") return "";
     const ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
     const name = ymd + "_" + String(label || "資料");
+    // ★PDFにするのをやめた。
+    //   PDFにすると、リンクを押しても うまく開かないことがあった
+    //   （リーガロイヤルのぶんが、実際に開けなかった）。
+    //   送ってもらった写真を、そのまま置くのがいちばん確かに開ける。
+    const mime = blob.getContentType() || "image/jpeg";
+    const ext = (String(mime).indexOf("png") >= 0) ? ".png" : ".jpg";
     let file = null;
-    try {
-      // 写真1枚のPDFにする（紙の資料は、PDFのほうが見やすいため）
-      const html = '<img src="data:' + (blob.getContentType() || "image/jpeg") + ";base64," +
-                   Utilities.base64Encode(blob.getBytes()) + '" style="width:100%">';
-      file = DriveApp.createFile(Utilities.newBlob(html, "text/html", name + ".html")
-                                  .getAs("application/pdf").setName(name + ".pdf"));
-    } catch (e) {
-      // PDFにできなければ、写真のまま置く（見られればよい）
-      try { file = DriveApp.createFile(blob.setName(name + ".jpg")); } catch (e2) { return ""; }
-    }
+    try { file = DriveApp.createFile(blob.setName(name + ext)); } catch (e) { return ""; }
     try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
     return file.getUrl() || "";
   } catch (e) {
@@ -1326,7 +1367,7 @@ function vnHotelForDay_(d) {
     const hotel = raw.indexOf("帝国") >= 0 ? "帝国ホテル"
                 : raw.indexOf("リーガ") >= 0 ? "リーガロイヤルホテル"
                 : raw ? raw : "ホテル";
-    const title = [x.name, x.room].filter(String).join("／");
+    const title = [x.name, x.room].filter(String).join("／") + vnDayNo_("VNH", hotel, x.name, d);
     return { venue: hotel, kind: "hotel", icon: "🍽", title: title,
              start: String(x.start || ""), end: String(x.end || ""),
              people: Number(x.people) > 0 ? Number(x.people) : 0,
@@ -1456,6 +1497,41 @@ function vnHallSave_(list, base, force, docUrl) {
   return wrote;
 }
 
+/**
+ * 連日の催しに「（2日目／3日間）」を付ける。
+ *
+ * ★同じ催しが何日も続くとき、今日が何日目なのかが分からないと、
+ *   終わりの日の混み方（バラシ・物販の撤収）が読めない。
+ *
+ *   写真から読んだぶん（会場の月間表・ホテルの予定表）は、
+ *   先の日付まで全部しまってあるので、正確に数えられる。
+ *   ホームページから読んだぶんは その日しか見ていないので、
+ *   数えられない（無理に書かない）。
+ */
+function vnDayNo_(prefix, venue, title, d) {
+  try {
+    const key = String(venue) + "|" + String(title || "");
+    const days = [];
+    const props = PropertiesService.getScriptProperties().getProperties() || {};
+    for (const k in props) {
+      const m = k.match(new RegExp("^" + prefix + "_(\\d{4})(\\d{2})(\\d{2})$"));
+      if (!m) continue;
+      let list = [];
+      try { list = JSON.parse(props[k] || "[]"); } catch (e) { continue; }
+      const hit = list.some(function (x) {
+        return (String(x.hall || x.hotel || "") + "|" + String(x.name || "")) === key;
+      });
+      if (hit) days.push(m[1] + m[2] + m[3]);
+    }
+    if (days.length < 2) return "";                  // 1日だけなら、何も付けない
+    days.sort();
+    const ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+    const i = days.indexOf(ymd);
+    if (i < 0) return "";
+    return "（" + (i + 1) + "日目／" + days.length + "日間）";
+  } catch (e) { return ""; }
+}
+
 /** その日の「写真から読んだ会場の公演」を、イベントの形にして返す */
 function vnHallForDay_(d) {
   let list = [];
@@ -1463,7 +1539,9 @@ function vnHallForDay_(d) {
           .getProperty("VNV_" + vnHotelKey_(d).slice(4)) || "[]"); }
   catch (e) { list = []; }
   return list.map(function (x) {
-    return { venue: x.hall, kind: "event", icon: "🎤", title: String(x.name || ""),
+    const no = vnDayNo_("VNV", x.hall, x.name, d);
+    return { venue: x.hall, kind: "event", icon: "🎤",
+             title: String(x.name || "") + no,
              start: String(x.start || ""), end: String(x.end || ""), people: 0,
              url: String(x.doc || "") || vnDocGet_(d, x.hall) };
   });
@@ -1850,7 +1928,7 @@ function vnHandleListCmd_(ev, sentAt) {
     L.push("", "⏰ お知らせを受け取る約束になっているもの");
     mine.forEach(function (r) {
       L.push("・" + r.venue + (r.title ? "　" + r.title : "") +
-             "（" + (r.end ? r.end + " 終了" : r.start + " 開始") + "）");
+             "（" + (r.end ? r.end + " 終了予定" : r.start + " 開始") + "）");
     });
   }
 
@@ -2052,6 +2130,64 @@ function vnScrapeDeep_(src, day, html) {
   return out;
 }
 
+/*
+ * 詳細のページまで開いて、気をつけることを拾う。
+ *
+ * ★「徹夜」と書かれていたら、こちらの営業時間（〜翌04:00）内に
+ *   バラシが終わらない。待っても無駄足になるので、必ず書き添える。
+ *   ついでに「〇日目／〇日間」や、対象の公演名も拾えたら拾う。
+ */
+const VN_NIGHT_WORDS = /(徹夜|オールナイト|夜通し|翌朝まで|朝まで|明け方)/;
+
+function vnDetailNote_(src, day, html) {
+  const out = { warn: "", days: "", show: "" };
+  try {
+    const dre = vnDateRe_(day);
+    const host = String(src.url).replace(/^(https?:\/\/[^\/]+).*$/, "$1");
+    const links = vnLinks_(html, src.url).filter(function (l) {
+      return l.url.indexOf(host) === 0 && l.url !== src.url && l.text;
+    }).slice(0, 10);
+
+    let opened = 0;
+    for (let i = 0; i < links.length && opened < 4; i++) {
+      let res;
+      try {
+        res = UrlFetchApp.fetch(links[i].url, {
+          muteHttpExceptions: true, followRedirects: true,
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+        });
+      } catch (e) { continue; }
+      opened++;
+      if (res.getResponseCode() !== 200) continue;
+      let h2 = "";
+      try { h2 = res.getContentText(); } catch (e) { continue; }
+      const lines = vnLines_(h2);
+      if (!lines.some(function (x) { return dre.test(x); })) continue;   // 今日のページでなければ見ない
+      const text = lines.join("　");
+
+      if (!out.warn && VN_NIGHT_WORDS.test(text)) {
+        const w = text.match(VN_NIGHT_WORDS)[1];
+        out.warn = "⚠️ 詳細に「" + w + "」とあります。" +
+                   "こちらの営業時間内にバラシが終わらない見込みです（待たないほうが無難）";
+      }
+      if (!out.days) {
+        const m = text.match(/([0-9１-９]+)\s*日目[^0-9]{0,4}([0-9１-９]+)\s*日間/);
+        if (m) out.days = "（" + m[1] + "日目／" + m[2] + "日間）";
+        else {
+          const m2 = text.match(/(全|計)?\s*([0-9１-９]+)\s*日間/);
+          if (m2) out.days = "（全" + m2[2] + "日間）";
+        }
+      }
+      if (!out.show) {
+        const m3 = text.match(/(公演|イベント|催事)[名]?\s*[:：]\s*([^　]{2,30})/);
+        if (m3) out.show = m3[2].trim();
+      }
+      if (out.warn && out.days) break;
+    }
+  } catch (e) {}
+  return out;
+}
+
 /** その日を表す書き方（9月15日 / 9/15 / 09-15）にあたるか */
 function vnDateRe_(d) {
   const m = d.getMonth() + 1, day = d.getDate();
@@ -2177,6 +2313,18 @@ function vnScrapeOne_(src, day, htmlIn) {
       raw: text.slice(0, 120)
     });
   });
+
+  // ★詳細を必ず見る会場（ワントゥワン）は、ここで中まで確かめる
+  if (out.events.length && src.detail) {
+    try {
+      const note = vnDetailNote_(src, day, html);
+      out.events.forEach(function (e) {
+        if (note.warn) e.warn = note.warn;
+        if (note.show) e.title = note.show + (e.title && e.title.indexOf("読み取れません") < 0 ? "／" + e.title : "");
+        if (note.days) e.title = String(e.title || "") + note.days;
+      });
+    } catch (e) {}
+  }
 
   // 一覧のページに時刻が無い会場は、催しのページまで開いて読む
   if (!out.events.length && src.deep) {
@@ -2321,17 +2469,13 @@ function vnCalUrl_(ev, day) {
   };
   const s = at(ev.start || ev.end, 20);
   const e = at(ev.end || ev.start, 22);
-  const v = VN_VENUES[ev.venue] || {};
-  const title = "🚕 " + ev.venue + "　" + (ev.title || "");
-  const detail = [
-    ev.start || ev.end ? "時間：" + [ev.start, ev.end].filter(String).join("〜") : "",
-    v.near && v.near.length ? "近い乗り場：" + v.near.join("・") : "",
-    ev.url || ""
-  ].filter(String).join("\n");
+  // ★ここは絵の中のボタンに直に入れる。長いとLINEの1通（10KB）に入らず、
+  //   催しが丸ごと消える。入れるのは「題・始まり・終わり・場所」だけにする。
+  //   （前は details に乗り場やURLまで入れていて、1件で1,700バイトあった）
+  const t = (ev.venue + "　" + String(ev.title || "")).slice(0, 24);
   return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
-         "&text=" + encodeURIComponent(title) +
+         "&text=" + encodeURIComponent("🚕" + t) +
          "&dates=" + s + "/" + e +
-         "&details=" + encodeURIComponent(detail) +
          "&location=" + encodeURIComponent(ev.venue);
 }
 
@@ -2339,7 +2483,7 @@ function vnCalUrl_(ev, day) {
  * お知らせのボタン3つ。
  *
  * ★どれも「押したら合図を送るだけ」のボタンにしてある。
- *   カレンダーのリンクをボタンに直接입れると、URLが長いので
+ *   カレンダーのリンクをボタンに直接入れると、URLが長いので
  *   1件あたり1,700バイトにもなり、催しが1通に入りきらなくなる。
  *   （実測：見本4件で12,358バイト。LINEの上限は10,000バイト）
  *   押されたあとに、返事としてリンクを送る形にすれば 1件450バイトで済む。
@@ -2357,9 +2501,13 @@ function vnBellRow_(ev, idx, day) {
     "backgroundColor": "#ffffff", "cornerRadius": "md",
     "borderWidth": "1px", "borderColor": "#b39ddb",
     "contents": [
-      vnBellBtn_("cal", "⏰予定", ymd, idx),
-      vnBellBtn_("dc",  "💬DC",  ymd, idx),
-      vnBellBtn_("me",  "📱自分", ymd, idx)
+      // ★カレンダーだけは「押したらその場で開く」形にする。
+      //   合図を返してリンクを送る形だと、もう一度押さないと開けなかった。
+      //   終わりの時刻まで入った予定が、1回押すだけで作れる
+      { "type": "button", "style": "link", "height": "sm", "color": VN_COLOR_HEAD,
+        "action": { "type": "uri", "label": "⏰カレンダー", "uri": vnCalUrl_(ev, day) } },
+      vnBellBtn_("dc",  "💬ﾃﾞｨｽｺｰﾄﾞ", ymd, idx),
+      vnBellBtn_("me",  "📱自分のLINE", ymd, idx)
     ]};
 }
 
@@ -2391,7 +2539,7 @@ function vnRemAdd_(at, how, to, ev) {
 /** 知らせる文 */
 function vnRemText_(r) {
   const v = VN_VENUES[r.venue] || {};
-  const when = r.end ? r.end + " 終了" : (r.start ? r.start + " 開始" : "時間不明");
+  const when = r.end ? r.end + " 終了予定" : (r.start ? r.start + " 開始" : "時間不明");
   return "⏰ 早くなんとかしないと…\n" +
          "🎪 " + r.venue + (r.title ? "　" + r.title : "") + "\n" +
          "🕒 " + when + "\n" +
@@ -2467,14 +2615,10 @@ function vnHandlePostback_(ev) {
   const item = list[Number(q.i)];
   if (!item) { say("だ…ダメだ…その催しが見つからない…"); return true; }
 
-  // ⏰ カレンダー … リンクを返事で送る（ボタンに直接入れると長すぎるため）
+  // ⏰ カレンダー … いまは「押したらその場で開く」ボタンにしてある。
+  //   古い絵から押されたときのために、ここも残しておく
   if (q.vn === "cal") {
-    const v = VN_VENUES[item.venue] || {};
-    say("⏰ わ…私は仰せの通りに…\n" +
-        "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
-        "🕒 " + ([item.start, item.end].filter(String).join("〜") || "時間不明") + "\n" +
-        (v.near && v.near.length ? "📍 " + v.near.join("・") + "\n" : "") +
-        vnCalUrl_(item, day));
+    say("⏰ " + vnCalUrl_(item, day));
     return true;
   }
 
@@ -2482,7 +2626,7 @@ function vnHandlePostback_(ev) {
   if (!at) { say("⏰ だ…ダメだ…時間が分からない…"); return true; }
 
   const lead = vnLeadMin_();
-  const base = item.end ? "終わり" : "始まり";
+  const base = item.end ? "終了予定" : "始まり";
   if (at <= Date.now()) {
     // もう過ぎている。いま1回だけ送る
     const r = { how: q.vn, to: (ev.source && ev.source.userId) || "", venue: item.venue,
@@ -2490,7 +2634,7 @@ function vnHandlePostback_(ev) {
     const err = (q.vn === "dc") ? vnDiscord_(vnRemText_(r))
               : (typeof lrPush_ === "function" && r.to) ? (lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]), "")
               : "送り先が分かりませんでした";
-    say(err ? "⚠️ " + err : "⏰ 遅い!!!! …が、いま届けました。計★画★通★り");
+    say(err ? "⚠️ " + err : "⏰ その時刻は過ぎていたので、いまお届けしました");
     return true;
   }
 
@@ -2499,11 +2643,33 @@ function vnHandlePostback_(ev) {
   const added = vnRemAdd_(at, q.vn, to, item);
   const hhmm = ("0" + new Date(at).getHours()).slice(-2) + ":" + ("0" + new Date(at).getMinutes()).slice(-2);
   const mins = Math.max(1, Math.round((at - Date.now()) / 60000));
-  say(added
-    ? "⏰ ノートに書きました。あと" + mins + "分…\n" +
-      hhmm + " に" + (q.vn === "dc" ? "Discordへ" : "あなたのLINEへ") +
-      "（" + item.venue + " の" + base + "の" + lead + "分前）"
-    : "⏰ それはもうノートに書いてある");
+  if (!added) { say("⏰ その通知設定は、もう入っています"); return true; }
+
+  // ★返事は1回だけ。これ以上は送らない（うまくいっているのに何度も鳴らさない）
+  if (q.vn === "dc") {
+    // ディスコードは、送り先（Webhook）が入っていないと届かない。
+    // 入っていないなら、そのことだけを はっきり伝える
+    let ok = "";
+    try { ok = PropertiesService.getScriptProperties().getProperty("DISCORD_WEBHOOK") || ""; } catch (e) {}
+    if (!ok) {
+      say("⚠️ ﾃﾞｨｽｺｰﾄﾞの送り先が、まだ入っていません。\n" +
+          "ﾃﾞｨｽｺｰﾄﾞのアプリで 通知したいチャンネル →\n" +
+          "「チャンネルの編集」→「連携サービス」→「ウェブフック」→\n" +
+          "「新しいウェブフック」→「ウェブフックURLをコピー」\n" +
+          "そのURLを、まーくさんに渡してください。\n" +
+          "入れば、" + hhmm + " に自動で届きます。\n" +
+          "https://discord.com/app");
+      return true;
+    }
+    say("⏰ 通知設定をしました。\n" +
+        hhmm + "（" + item.venue + " の" + base + "の" + lead + "分前）に\n" +
+        "ﾃﾞｨｽｺｰﾄﾞへ自動で届きます。\n" +
+        "https://discord.com/app");
+    return true;
+  }
+  say("⏰ 通知設定をしました。\n" +
+      hhmm + "（" + item.venue + " の" + base + "の" + lead + "分前）に\n" +
+      "あなたのLINEへ自動で届きます。");
   return true;
 }
 

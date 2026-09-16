@@ -151,10 +151,12 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
 
   eq((json.match(/"type":"button"/g) || []).length,
      (json.match(/"height":"sm"/g) || []).length, 'ボタンはどれもいちばん小さい "sm"');
-  has(json, '"type":"postback"', 'お知らせのボタン（Discord・自分のLINE）が入る');
-  has(json, 'vn=cal', 'カレンダーのボタンも入る（リンクは押したあとに返す）');
-  eq(json.indexOf('calendar.google.com'), -1,
-     '  長いリンクは絵の中に入れない（催しが入りきらなくなるため）');
+  has(json, '"type":"postback"', '通知設定のボタン（ﾃﾞｨｽｺｰﾄﾞ・自分のLINE）が入る');
+  has(json, 'ﾃﾞｨｽｺｰﾄﾞ', '★「DC」ではなく「ﾃﾞｨｽｺｰﾄﾞ」と書く（初見で分かるように）');
+  has(json, '通知設定', '★「お知らせ」ではなく「通知設定」と書く');
+  eq(json.indexOf('お知らせ：'), -1, '  「お知らせ：」の言い方は、もう使わない');
+  has(json, 'calendar.google.com',
+      '★カレンダーは、押したらその場で開く（もう一度押させない）');
   eq(json.indexOf('長押しでコピー'), -1, 'URLを文字で並べる通は、もう出さない');
 }
 
@@ -168,8 +170,9 @@ console.log('\n■ イベントの枠そのものが、公式ページへのボ�
   eq(card.action.type, 'uri', '枠を押すとリンクが開く');
   eq(card.action.uri, 'https://www.kyoceradome-osaka.jp/schedule/', '  その催しのページへ行く');
   const j = JSON.stringify(card);
-  has(j, '👆 この枠を押すと「京セラドーム」の公式ページが開きます',
-      '押せることが分かる案内が、枠の中に入っている');
+  has(j, '👆 詳細はクリック（該当ページに移ります）',
+      '★案内は、見出しのすぐ下に短く出す');
+  eq(j.indexOf('この枠を押すと'), -1, '  紛らわしい言い方は、もう使わない');
 
   // URLが無い催し（ホテルの資料など）には、案内も行き先も付けない
   const noUrl = ctx.vnCard_({ venue: '帝国ホテル', kind: 'hotel', title: '周年記念', end: '21:00', url: '' }, 1, day);
@@ -572,14 +575,15 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(took, true, 'ボタンはこの受け口が扱う');
   has(ctx.lastReply, '20:00', '21:00の60分前＝20:00にお知らせすると返す');
-  has(ctx.lastReply, 'ノートに書きました', '  デスノート調で返す');
-  eq(/あと[0-9]+分…/.test(ctx.lastReply), true, '  あと何分かも出る');
+  has(ctx.lastReply, '通知設定をしました', '  ★「通知設定」という言い方で返す');
+  has(ctx.lastReply, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
+  eq(ctx.lastReply.split('\n').length <= 4, true, '  ★返事は1回・短く（連投しない）');
   eq(JSON.parse(props['VN_REMIND']).length, 1, '予約が1つ入る');
 
   ctx.vnHandlePostback_({ type: 'postback', replyToken: 'r',
     source: { userId: 'Umark' }, postback: { data: 'vn=me&d=20260915&i=0' } });
   eq(JSON.parse(props['VN_REMIND']).length, 1, '同じものを二度押しても、二重にならない');
-  has(ctx.lastReply, 'もうノートに書いてある', '  そう伝える');
+  has(ctx.lastReply, 'もう入っています', '  そう伝える');
 
   // 時間になったら送る
   pushed.length = 0;
@@ -802,7 +806,7 @@ console.log('\n■ 「イベント一覧」で、いつでも引ける');
   has(ctx.lastReply, '18:00〜21:00', '  時刻も出る');
   has(ctx.lastReply, '①', '  番号つきで出る');
   has(ctx.lastReply, 'ドーム前', '  近い乗り場も出る');
-  has(ctx.lastReply, 'AIが自動で読み取った', '  注釈も必ず付ける');
+  has(ctx.lastReply, '※注意（必ずお読みください）※', '  ★注釈は「注意」として必ず付ける');
 
   ctx.vnEditSave_(base, []);
   ctx.lastReply = '';
@@ -971,6 +975,83 @@ console.log('\n■ 見張りは、こちらで勝手にそろえる（お願い�
   made.length = 0;
   eq(ctx.vnSelfHeal_(), false, '★同じ日には、もう確かめない');
   eq(made.length, 0, '  何も呼ばない');
+}
+
+
+console.log('\n■ 連日の催しには（〇日目／〇日間）を付ける');
+{
+  for (const k in props) if (/^VN[VH]_/.test(k)) delete props[k];
+  const mk = n => JSON.stringify([{ hall: 'フェスティバルホール', name: 'ディズニー・オン・クラシック', start: '18:00', end: '20:30' }]);
+  props['VNV_20260920'] = mk(); props['VNV_20260921'] = mk(); props['VNV_20260922'] = mk();
+  props['VNV_20261001'] = JSON.stringify([{ hall: 'フェスティバルホール', name: '吉川晃司', start: '18:00', end: '20:30' }]);
+
+  const d1 = ctx.vnHallForDay_(new Date(2026, 8, 20));
+  const d2 = ctx.vnHallForDay_(new Date(2026, 8, 21));
+  const d3 = ctx.vnHallForDay_(new Date(2026, 8, 22));
+  has(d1[0].title, '（1日目／3日間）', '★1日目と分かる');
+  has(d2[0].title, '（2日目／3日間）', '  2日目も');
+  has(d3[0].title, '（3日目／3日間）', '  3日目も');
+
+  const one = ctx.vnHallForDay_(new Date(2026, 9, 1));
+  eq(one[0].title.indexOf('日目'), -1, '★1日だけの催しには、何も付けない');
+  for (const k in props) if (/^VN[VH]_/.test(k)) delete props[k];
+}
+
+console.log('\n■ ワントゥワンは、詳細まで開いて「徹夜」を見る');
+{
+  const today = new Date();
+  const md = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+  const listing = '<html><p>' + md + '</p><p>バラシ 22:00</p>' +
+                  '<a href="https://onetoone-jp.com/detail.php?id=1">くわしく</a>' +
+                  '<p>' + 'あ'.repeat(600) + '</p></html>';
+  const detail = '<html><p>' + md + '</p><p>公演名：ＢＡＢＹＭＯＮＳＴＥＲ</p>' +
+                 '<p>作業：搬出　徹夜作業となります</p><p>2日目／3日間</p>' +
+                 '<p>' + 'あ'.repeat(600) + '</p></html>';
+  reply = { 'https://onetoone-jp.com/schedule.php': { code: 200, body: listing },
+            'https://onetoone-jp.com/detail.php?id=1': { code: 200, body: detail },
+            '*': { code: 404, body: '' } };
+  const got = ctx.vnScrapeOne_({ name: 'ワントゥワン', kind: 'barasi', detail: true,
+                                 url: 'https://onetoone-jp.com/schedule.php' }, today);
+  eq(got.events.length >= 1, true, '一覧から拾える');
+  has(got.events[0].warn, '徹夜', '★詳細の「徹夜」を拾って、はっきり書く');
+  has(got.events[0].warn, '待たないほうが無難', '  どうすればよいかも書く');
+  has(got.events[0].title, 'ＢＡＢＹＭＯＮＳＴＥＲ', '★対象の公演名も拾う');
+  has(got.events[0].title, '（2日目／3日間）', '★何日目かも拾う');
+
+  // 「徹夜」が無ければ、よけいなことは書かない
+  reply['https://onetoone-jp.com/detail.php?id=1'] =
+    { code: 200, body: '<html><p>' + md + '</p><p>公演名：テスト</p><p>作業：搬出</p><p>' + 'あ'.repeat(600) + '</p></html>' };
+  const got2 = ctx.vnScrapeOne_({ name: 'ワントゥワン', kind: 'barasi', detail: true,
+                                  url: 'https://onetoone-jp.com/schedule.php' }, today);
+  eq(!got2.events[0].warn, true, '★「徹夜」が無ければ、注意は書かない');
+
+  // カードにも出ること
+  const card = JSON.stringify(ctx.vnCard_({ venue: 'ワントゥワン', kind: 'barasi', title: 'x',
+    start: '22:00', end: '', url: '', warn: '⚠️ 詳細に「徹夜」とあります。' }, 0, null));
+  has(card, '徹夜', '  絵にも、はっきり出る');
+}
+
+
+console.log('\n■ 「終了」とは書かない（必ず「終了予定」）');
+{
+  // ★催しの終わりは ほぼ必ず前後する。言い切ると、それを信じて動いた人が損をする
+  const c1 = JSON.stringify(ctx.vnCard_({ venue: '京セラドーム', kind: 'event', title: 'x',
+    start: '18:00', end: '21:00', url: '' }, 0, null));
+  has(c1, '18:00〜21:00予定', '★始まりと終わりが分かるときも「予定」と付ける');
+  eq(/21:00[^予]/.test(c1.replace('18:00〜21:00予定', '')), false, '  言い切らない');
+
+  const c2 = JSON.stringify(ctx.vnCard_({ venue: '京セラドーム', kind: 'event', title: 'x',
+    end: '21:00', url: '' }, 0, null));
+  has(c2, '21:00 終了予定', '★終わりだけ分かるときも「終了予定」');
+  eq(c2.indexOf('21:00 終了"'), -1, '  「終了」で言い切らない');
+
+  const c3 = JSON.stringify(ctx.vnCard_({ venue: '京セラドーム', kind: 'event', title: 'x',
+    start: '18:00', url: '' }, 0, null));
+  has(c3, '18:00 開始', '始まりだけのときは「開始」');
+
+  // 予約のお知らせの文も同じ
+  const r = ctx.vnRemText_({ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' });
+  has(r, '終了予定', '★お知らせの文も「終了予定」');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
