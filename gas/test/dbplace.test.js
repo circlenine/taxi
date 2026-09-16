@@ -43,6 +43,7 @@ function fakeSheet(name, rows) {
   const at = (r, c) => { while (cells.length < r) cells.push([]); const row = cells[r - 1]; while (row.length < c) row.push(''); return row; };
   const sh = {
     _name: name, _cells: cells, _bg: {},
+    getName: () => name,
     getLastRow: () => cells.length,
     getRange(r, c, nr, nc) {
       nr = nr || 1; nc = nc || 1;
@@ -69,6 +70,7 @@ function fakeSS(sheets) {
   (sheets || []).forEach(s => { map[s._name] = s; });
   return {
     getSheetByName: n => map[n] || null,
+    getSheets: () => Object.keys(map).map(k => map[k]),
     insertSheet(n) { const s = fakeSheet(n, []); map[n] = s; return s; },
     _sheets: map
   };
@@ -201,6 +203,43 @@ console.log('■ 登録表を作る／足す（すでに貼ったリンクは絶
   const before = sh._cells.length;
   ctx.mapEnsureSheet_(ss, ['新地4', '梅田', 'ｺﾅﾝ像']);
   ok(sh._cells.length === before, '2回動かしても増えない');
+}
+
+console.log('■ タブの名前を変えても、見失わない');
+{
+  /*
+   * ★「🗺️乗り場マップ」を「地図」に変えた、というようなことは ふつうに起こる。
+   *   そのたびに登録したものが読まれなくなり、おまけに同じ中身のタブが
+   *   もう1枚できてしまう、では困る
+   */
+  const ctx = makeCtx();
+  const sh = fakeSheet('地図', [HEAD, ['新地4', 'https://example.com/keep', '登録ずみ', '']]);
+  const ss = fakeSS([sh]);
+
+  ok(ctx.mapFindSheet_(ss) === sh, '★「地図」という名前でも、ちゃんと見つける');
+  ctx.mapEnsureSheet_(ss, ['新地4', '梅田']);
+  ok(Object.keys(ss._sheets).length === 1, '★新しいタブを、よけいに作らない');
+  ok(sh._cells.slice(1).map(r => r[0]).indexOf('梅田') !== -1, '  そのタブに足す');
+
+  // 登録したリンクも、ちゃんと読める
+  const reg = ctx.mapLoadRegistry_(ss);
+  ok(reg[ctx.mapKey_('新地4')] === 'https://example.com/keep',
+     '★名前を変えたタブからも、登録したリンクを読む');
+
+  // 「マップ」でも見つける
+  const sh2 = fakeSheet('🗺 のりばマップ', [HEAD]);
+  ok(ctx.mapFindSheet_(fakeSS([sh2])) === sh2, '  「マップ」の入った名前でも見つける');
+
+  // 決めてある名前が いちばん強い
+  const a = fakeSheet(ctx.MAP_TAB, [HEAD]);
+  const b = fakeSheet('地図', [HEAD]);
+  ok(ctx.mapFindSheet_(fakeSS([b, a])) === a, '  決めてある名前があれば、そちらを使う');
+
+  // どちらも無ければ、作る
+  const empty = fakeSS([fakeSheet('記録', [])]);
+  ok(ctx.mapFindSheet_(empty) === null, '  どちらも無ければ null');
+  ctx.mapEnsureSheet_(empty, ['新地4']);
+  ok(empty._sheets[ctx.MAP_TAB] !== undefined, '  そのときは、決めてある名前で作る');
 }
 
 console.log('■ 表が無い・読めないときでも止まらない');

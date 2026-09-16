@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U051ver  （2026/09/16）  ★★★
+ *  ★★★  U052ver  （2026/09/16）  ★★★
+ *
+ *  [U052ver]
+ *   ・「えだ」で、どこのコードを読むかを LINEから決められるようにした
+ *     ★申し訳ありませんでした。「設定タブの◯◯に打ち込んでください」では、
+ *       スマホしか無い場面で通りませんでした。案内のしかたが悪かったです。
+ *         えだ                 … いまどこを読む設定かを答える
+ *         えだ claude/なんとか … そこを読むようにする
+ *         えだ じどう          … 設定をやめて、GitHubの既定の枝に戻す
+ *       「枝」「ブランチ」「branch」でも同じです
+ *     ★打てるのは まーくさんだけ。ほかの人が打っても、何も起きません
+ *     ★無い枝を打ったら「その枝が見つかりません」と、その場で返します
+ *     ★枝を変えたら、覚え書き（GH_SHAS）も消します。
+ *       消さないと「すでに最新です」と言って、何も入れ替えないことがあります
  *
  *  [U051ver]
  *   ・LINEから打ったとき、取り込むものが1つも見つからなかったら、
@@ -1672,6 +1685,98 @@ function updKataDenied_(alien, fun) {
  *   そのかわり、書き換える前に必ず今のコードを保存するので、
  *   おかしくなっても [4] 前のコードに戻す で戻せる。
  */
+/* ================================================================
+ *  「えだ」… どこのコードを読むかを、LINEから決める
+ *
+ *  ★スマホしか無いのに、設定タブの何行目を探して、
+ *    となりの黄色いセルに打ち込んでください、では通りません。
+ *    LINEに1行打てば済むようにしました。
+ *
+ *      えだ                      … いまどこを読む設定か、答える
+ *      えだ claude/なんとか      … そこを読むようにする
+ *      えだ じどう               … 設定をやめて、GitHubの既定の枝に戻す
+ *
+ *    「ブランチ」「branch」「枝」でも同じです。
+ *  ★打てるのは まーくさんだけ。ほかの人が打っても、何も起きません。
+ * ================================================================ */
+
+/** 打たれた文が「えだ」の合図かどうか。合図なら { name } を返す */
+function updBranchWord_(text) {
+  const t = String(text == null ? "" : text).trim();
+  const m = t.match(/^(えだ|エダ|枝|ブランチ|ぶらんち|branch|Branch|BRANCH)[\s\u3000:：]*(.*)$/);
+  if (!m) return null;
+  return { name: String(m[2] || "").trim() };
+}
+
+/** いまの設定を、そのまま読める文にする */
+function updBranchText_() {
+  const setBy = updProps_().getProperty("GH_BRANCH") || updCfg_("コードの枝（ブランチ）");
+  const L = [];
+  L.push("🌿 いま読みにいく先");
+  L.push("　置き場：" + (updRepo_() || "（まだ入っていません）"));
+  L.push("　枝　　：" + updBranch_() + (setBy ? "" : "（自動で決めたもの）"));
+  L.push("　フォルダ：" + updPath_());
+  L.push("　最新　：" + updHeadInfo_());
+  L.push("");
+  L.push("変えたいときは、この形で送ってください。");
+  L.push("　えだ claude/なんとか-かんとか");
+  L.push("もとの自動に戻すときは");
+  L.push("　えだ じどう");
+  return L.join("\n");
+}
+
+/** 「えだ」を受ける。扱ったら true */
+function updHandleBranch_(ev) {
+  const w = updBranchWord_((ev && ev.message && ev.message.text) || "");
+  if (!w) return false;
+
+  // ★まーくさん以外は、何も起きない（読み元は、触られては困るところ）
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
+  if (!me || uid !== me) return true;              // 黙って見送る
+
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  if (!w.name) { say(updBranchText_()); return true; }
+
+  // 「じどう」に戻す
+  if (/^(じどう|自動|オート|auto|かいじょ|解除|なし|空)$/i.test(w.name)) {
+    try {
+      updProps_().deleteProperty("GH_BRANCH");
+      updProps_().deleteProperty("GH_BRANCH_AUTO");   // 調べ直させる
+      updProps_().deleteProperty("GH_SHAS");          // 別の枝のぶんは、当てにならない
+    } catch (e) {}
+    say("🌿 自動に戻しました。\n\n" + updBranchText_());
+    return true;
+  }
+
+  try {
+    updProps_().setProperty("GH_BRANCH", w.name);
+    // ★枝が変われば、どのファイルが変わったかの覚え書きも当てになりません。
+    //   消しておかないと「すでに最新です」と言って、何も入れ替えないことがあります
+    updProps_().deleteProperty("GH_SHAS");
+  } catch (e) {
+    say("🌿 入れられませんでした：" + (e && e.message ? e.message : e));
+    return true;
+  }
+  const info = updHeadInfo_();
+  if (String(info).indexOf("見つかりません") !== -1) {
+    say("🌿「" + w.name + "」にしました。\n" +
+        "⚠️ ただし、その枝が見つかりません。名前をお確かめください。\n" +
+        "　（大文字・小文字も、そのままでないと通りません）\n\n" +
+        "もとの自動に戻すときは「えだ じどう」と送ってください。");
+    return true;
+  }
+  say("🌿「" + w.name + "」を読むようにしました。\n" +
+      "　最新：" + info + "\n\n" +
+      "この先は、スプシの [1] に☑を入れるか、\n" +
+      "合言葉を送るだけで、ここのコードが入ります。");
+  return true;
+}
+
 function updHandleKata_(ev) {
   if (!updKataWord_((ev && ev.message && ev.message.text) || "")) return false;
 

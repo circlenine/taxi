@@ -1798,6 +1798,68 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   delete props['UPD_KATA_JOBS'];
 }
 
+console.log('\n■ 「えだ」… どこを読むかを、LINEから決める');
+{
+  /*
+   * ★設定タブの何行目を探して、となりの黄色いセルに打ち込んでください、
+   *   ではスマホで通りません。LINEに1行打てば済むようにした
+   */
+  const B = F('updBranchWord_');
+  t(B('えだ').name === '', '「えだ」だけなら、いまの設定を答える');
+  t(B('えだ claude/abc').name === 'claude/abc', '「えだ ○○」で、その枝にする');
+  t(B('枝 claude/abc').name === 'claude/abc', '  「枝」でも通る');
+  t(B('ブランチ claude/abc').name === 'claude/abc', '  「ブランチ」でも通る');
+  t(B('branch claude/abc').name === 'claude/abc', '  「branch」でも通る');
+  t(B('えだ：claude/abc').name === 'claude/abc', '  「：」でも通る');
+  t(B('えだ　claude/abc').name === 'claude/abc', '  全角の空白でも通る');
+  t(B('えだまめ') !== null, '  ※「えだまめ」も合図として受ける（枝の名前として扱う）');
+  t(B('こんにちは') === null, 'ふつうの話には反応しない');
+  t(B('') === null, '空でも落ちない');
+  t(B(null) === null, 'null でも落ちない');
+
+  const H = F('updHandleBranch_');
+  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok';
+  gh = { dir: [], head: { commit: { message: 'さいしんの直し', author: { date: '2026-09-16T14:20:00Z' } } } };
+
+  // ★ほかの人は、読み元を触れない
+  ctx.rep.length = 0;
+  t(H({ message: { text: 'えだ わるいところ' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    'ほかの人が打っても、受けはする');
+  t(props['GH_BRANCH'] !== 'わるいところ', '★ほかの人には、絶対に変えさせない');
+  t(ctx.rep.length === 0, '  何も返さない（あると分かってしまうため）');
+
+  // まーくさんが変える
+  ctx.rep.length = 0;
+  props['GH_SHAS'] = '{"a":"b"}';
+  t(H({ message: { text: 'えだ claude/gas-code-info-collection-e5mxw3' },
+        source: { userId: 'Umark' }, replyToken: 'r' }) === true, 'まーくさんなら変えられる');
+  t(props['GH_BRANCH'] === 'claude/gas-code-info-collection-e5mxw3', '★その枝を読むようになる');
+  t(props['GH_SHAS'] === undefined,
+    '★覚え書きも消す（消さないと「すでに最新です」で何も入らないことがある）');
+  has(ctx.rep[0], 'さいしんの直し', '  その枝の最新も、いっしょに返す');
+
+  // 打ちまちがえたら、はっきり言う
+  ctx.rep.length = 0;
+  gh = { dir: [], headFail: 404 };
+  H({ message: { text: 'えだ うっかりまちがえた' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], 'その枝が見つかりません', '★無い枝を打ったら、はっきりそう言う');
+
+  // 自動に戻す
+  ctx.rep.length = 0;
+  gh = { dir: [], head: { commit: { message: 'もとの枝', author: { date: '2026-09-16T10:00:00Z' } } } };
+  H({ message: { text: 'えだ じどう' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  t(props['GH_BRANCH'] === undefined, '★「えだ じどう」で、設定をやめる');
+  has(ctx.rep[0], '自動に戻しました', '  そう伝える');
+
+  // 「えだ」だけなら、いまの状態を返す
+  ctx.rep.length = 0;
+  H({ message: { text: 'えだ' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '置き場：circlenine/test', '「えだ」だけなら、いまの読み先を答える');
+  has(ctx.rep[0], '枝　　：', '  枝も');
+  has(ctx.rep[0], '最新　：', '  その枝の最新も');
+  has(ctx.rep[0], 'えだ じどう', '  もとに戻すやり方も書いてある');
+}
+
 console.log('\n■ LINEに打つだけで、コードが本当に入れ替わるか（通しで確かめる）');
 {
   /*

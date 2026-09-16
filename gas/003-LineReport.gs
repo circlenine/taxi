@@ -2,7 +2,16 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L033ver  （2026/09/16）  ★★★
+ *  ★★★  L034ver  （2026/09/16）  ★★★
+ *
+ *  [L034ver]
+ *   ・乗り場マップのタブの名前を変えても、見失わないようにした（mapFindSheet_）
+ *     ★「🗺️乗り場マップ」を「地図」に変えた、というようなことは ふつうに起こります。
+ *       前は、決めてある名前でしか さがしていなかったので、
+ *       登録したリンクが読まれなくなり、おまけに同じ中身のタブが
+ *       もう1枚できてしまう形でした
+ *     ★いまは「地図」「マップ」の入ったタブなら見つけます。
+ *       どちらも無いときだけ、決めてある名前で新しく作ります
  *
  *  [L033ver]
  *   ・毎月のレポートも2段階にした
@@ -3545,6 +3554,31 @@ function dbHasPlace_(name) {
  *  登録できたものから順に反映されるので、一度に全部そろえる必要はない。
  * ================================================================ */
 const MAP_TAB  = "🗺️乗り場マップ";
+
+/**
+ * 乗り場マップのタブを探す。
+ *
+ * ★名前を変えても、見失わないようにするためのものです。
+ *   「🗺️乗り場マップ」を「地図」に変えた、というようなことは
+ *   ふつうに起こります。そのたびに登録したものが読まれなくなり、
+ *   おまけに同じ中身のタブがもう1枚できてしまう、では困ります。
+ *
+ *   ① まず、決めてある名前でさがす
+ *   ② 無ければ「地図」か「マップ」の入ったタブをさがす
+ *   どちらも無ければ null（呼んだ側で、新しく作ります）
+ */
+function mapFindSheet_(ss) {
+  if (!ss) return null;
+  try {
+    const exact = ss.getSheetByName(MAP_TAB);
+    if (exact) return exact;
+    const hit = ss.getSheets().filter(function (sh) {
+      const n = String(sh.getName() || "");
+      return n.indexOf("地図") !== -1 || n.indexOf("マップ") !== -1 || n.indexOf("map") !== -1;
+    });
+    return hit.length ? hit[0] : null;
+  } catch (e) { return null; }
+}
 const MAP_HEAD = ["乗り場名",
                   "Googleマップのリンク（ここに貼ると反映されます）",
                   "状態",
@@ -3560,7 +3594,7 @@ let LR_MAP_REG = null;
 function mapLoadRegistry_(ss) {
   LR_MAP_REG = {};
   try {
-    const sh = ss && ss.getSheetByName(MAP_TAB);
+    const sh = mapFindSheet_(ss);
     if (!sh) return LR_MAP_REG;
     const last = sh.getLastRow();
     if (last < 2) return LR_MAP_REG;
@@ -3600,7 +3634,7 @@ function mapRegisteredUrl_(name) {
 function mapEnsureSheet_(ss, names) {
   try {
     if (!ss) return;
-    let sh = ss.getSheetByName(MAP_TAB);
+    let sh = mapFindSheet_(ss);
     if (!sh) {
       sh = ss.insertSheet(MAP_TAB);
       sh.getRange(1, 1, 1, MAP_HEAD.length).setValues([MAP_HEAD])
@@ -4181,7 +4215,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       heatmapSpotNames.push(spotName);
 
       if (typeof updBeat_ === "function") updBeat_("ヒートマップ " + spotName);
-      dbTitle_(curRow, `⭕️ 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績／「${MAP_TAB}」タブに登録した乗り場は、名前を押すとマップが開きます)`, TAB_COLORS[tName] || "#e8eef5", 12);
+      dbTitle_(curRow, `⭕️ 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績／地図のタブに登録した乗り場は、名前を押すとマップが開きます)`, TAB_COLORS[tName] || "#e8eef5", 12);
       // 見出しの乗り場名だけにリンクを張る（押すとマップが開く）
       try {
         {
