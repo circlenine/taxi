@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U065ver  （2026/09/16）  ★★★
+ *  ★★★  U066ver  （2026/09/16）  ★★★
+ *
+ *  [U066ver]
+ *   ・「きょかをもらう」という関数を足した
+ *     ★申し訳ありませんでした。編集画面の「関数を選ぶ」らんは、
+ *       いま開いているファイルのぶんしか出ません。
+ *       それを書かずに「menuUpdateStatus を選んで」と案内したので、
+ *       見つからなくなってしまいました。
+ *     ★名前で見つけやすいよう、ひらがなにしてあります。
+ *       中身は「触るだけ」で、何も書き換えません。何度押しても大丈夫です。
+ *       足りないところがあれば、その場で直し方まで出します
+ *   ・許可の道順に「左の一覧から 005-Updater を押す」を足した
  *
  *  [U065ver]
  *   ・Apps Script API の「403」を、2種類に見分けるようにした
@@ -796,6 +807,47 @@ function updBranch_() {
 function updSource_() { return updRepo_() ? "github" : "drive"; }
 
 /**
+ * 許可（権限）をもらうためだけの関数。
+ *
+ * ★編集画面の「関数を選ぶ」らんは、いま開いているファイルのぶんしか出ません。
+ *   そのせいで「menuUpdateStatus が見つかりません」となってしまいました。
+ *   申し訳ありませんでした。
+ *
+ * ★この関数は、名前で見つけやすいように ひらがなにしてあります。
+ *   中身は「触るだけ」で、何も書き換えません。何度押しても大丈夫です。
+ *   ★Googleは、関数を動かす前に許可をききます。
+ *     なので、ここで許可さえもらえれば、目的は果たせます。
+ */
+function きょかをもらう() {
+  const L = [];
+  // 使う先を、ひととおり触っておく（そのぶんの許可がまとめて出る）
+  try { SpreadsheetApp.getActiveSpreadsheet().getName(); L.push("スプシ：OK"); }
+  catch (e) { L.push("スプシ：" + e.message); }
+  try { PropertiesService.getScriptProperties().getProperty("GH_REPO"); L.push("覚え書き：OK"); }
+  catch (e) { L.push("覚え書き：" + e.message); }
+  try { ScriptApp.getProjectTriggers().length; L.push("見張り：OK"); }
+  catch (e) { L.push("見張り：" + e.message); }
+  try { DriveApp.getRootFolder().getName(); L.push("ドライブ：OK"); }
+  catch (e) { L.push("ドライブ：" + e.message); }
+  try { UrlFetchApp.fetch("https://api.github.com/", { muteHttpExceptions: true }); L.push("通信：OK"); }
+  catch (e) { L.push("通信：" + e.message); }
+  try { MailApp.getRemainingDailyQuota(); L.push("メール：OK"); }
+  catch (e) { L.push("メール：" + e.message); }
+  // ★ここがいちばん大事。[1] で使う力が、ちゃんともらえたかどうか
+  let api = "";
+  try { updGetProject_(); api = "コードの書き換え：OK"; }
+  catch (e) { api = "コードの書き換え：" + ((e && e.message) || e); }
+  L.push(api);
+
+  const ok = api.indexOf("OK") !== -1;
+  const body = L.join("\n") + "\n\n" +
+    (ok ? "✅ 全部そろいました。スプシに戻って [1] に☑を入れてください。"
+        : "⚠️ まだ足りません。\n" + updApiHow_({ message: api }));
+  try { updTell_(ok ? "✅ 許可がそろいました" : "⚠️ まだ足りません", body); } catch (e) {}
+  return body;
+}
+
+/**
  * Apps Script API が使えないときの、直し方を返す。
  *
  * ★同じ「403」でも、意味が2つあります。読みちがえると、
@@ -821,9 +873,10 @@ function updApiHow_(err) {
       "",
       "　① ブラウザでスプシを開く",
       "　② 上のメニュー「拡張機能」→「Apps Script」を押す",
-      "　③ ひらいた画面の上のほうで、動かす関数に",
-      "　　「menuUpdateStatus」を選ぶ",
-      "　④「▷ 実行」を押す",
+      "　③ 左の一覧から「005-Updater」を押す",
+      "　　（関数の一覧は、開いているファイルのぶんしか出ません）",
+      "　④ 上のほうの「関数を選ぶ」らんで",
+      "　　「きょかをもらう」を選び、「▷ 実行」を押す",
       "　⑤「承認が必要です」と出たら「権限を確認」を押す",
       "　⑥ 自分のGoogleアカウントを選ぶ",
       "　⑦「このアプリは確認されていません」と出たら",

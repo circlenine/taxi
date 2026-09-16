@@ -597,7 +597,13 @@ has(alerts[0].b, 'usersettings', '直し方も出る');
   has(scope, '許可を、もらい直してください', '★「許可が足りない」ときは、承認のやり直しを案内する');
   has(scope, 'APIのスイッチの話ではありません', '  スイッチの話ではないと、はっきり書く');
   has(scope, '拡張機能', '  道順も書く');
-  has(scope, 'menuUpdateStatus', '  どの関数を動かすかも書く');
+  has(scope, 'きょかをもらう', '  どの関数を動かすかも書く');
+  /*
+   * ★編集画面の「関数を選ぶ」らんは、いま開いているファイルのぶんしか出ない。
+   *   そのせいで「menuUpdateStatus が見つかりません」となってしまった
+   */
+  has(scope, '005-Updater', '★どのファイルを開くかも書く');
+  has(scope, '開いているファイルのぶんしか出ません', '  なぜファイルを開くのかも書く');
   t(scope.indexOf('usersettings') === -1, '★このときは、スイッチの案内を出さない（まぎらわしいため）');
 
   const off = H({ message: '(403) Apps Script API not enabled' });
@@ -1901,6 +1907,32 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   ctx.updAlien_ = realAlien;
   try { ctx.CacheService.getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
   delete props['UPD_KATA_JOBS'];
+}
+
+console.log('\n■ 許可をもらうためだけの関数');
+{
+  /*
+   * ★名前で見つけやすいよう、ひらがなにしてある。
+   *   中身は「触るだけ」で、何も書き換えない。何度押しても大丈夫
+   */
+  reset([]);
+  alerts.length = 0;
+  const out = F('きょかをもらう')();
+  has(out, 'コードの書き換え：OK', '★[1] で使う力が、そろっているか見る');
+  has(out, 'スプシ：', '  スプシも触ってみる');
+  has(out, '見張り：', '  見張りも');
+  has(out, '☑を入れてください', '  そろっていれば、次にすることを書く');
+  t(alerts.length === 1, '  画面にも1回だけ出す');
+
+  // 足りないときは、直し方まで出す
+  reset([]);
+  alerts.length = 0;
+  apiFail = { path: '/content', method: 'get', code: 403,
+              msg: 'Request had insufficient authentication scopes.' };
+  const out2 = F('きょかをもらう')();
+  has(out2, 'まだ足りません', '★足りないときは、そう言う');
+  has(out2, '許可を、もらい直してください', '  直し方も出す');
+  apiFail = null;
 }
 
 console.log('\n■ 鍵を入れる画面では、鍵だけをきく');
