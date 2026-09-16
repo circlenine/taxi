@@ -2013,20 +2013,37 @@ console.log('\n■ 🔁 新しいコードに、自分で気づいて取り込�
   t(props['GH_HEAD_SEEN'] === 'AAA111', '  見た印を覚える');
   t(lastPut() !== undefined, '★ちゃんと書き込まれる');
   /*
-   * ★うまくいったときは、LINEに何も送らない。
-   *   こちらで気づいて こちらで取り込むので、知らせる必要がない。
-   *   直したことは、話しているところで伝える
+   * ★終わったら、個人LINEにお知らせする。
+   *   黙って終わられると、入ったのか入っていないのか分からない
    */
-  t(ctx.pu.length === 0, '★うまくいったら、LINEには何も送らない');
+  t(ctx.pu.length === 1, '★うまくいったら、個人LINEにお知らせする');
+  t(ctx.pu[0].to === 'Umark', '  ★まーくさんにだけ（グループには流さない）');
+  has(ctx.pu[0].msgs[0].text, 'かんりょう', '  終わったと分かる');
+  has(ctx.pu[0].msgs[0].text, 'じどう', '  ★どこから始まったものかが分かる');
 
-  // しくじったときだけ、知らせる
+  // しくじったときも、知らせる
   props['GH_HEAD_SEEN'] = 'ふるい';
   gh = { dir: [], head: { sha: 'CCC333', commit: { message: 'x', author: { date: '2026-09-17T08:00:00Z' } } } };
   ctx.pu.length = 0;
   F('updAutoPull_')();
-  t(ctx.pu.length === 1, '★しくじったときだけ、お知らせする');
+  t(ctx.pu.length === 1, '★しくじったときも、お知らせする');
   t(ctx.pu[0].to === 'Umark', '  ★まーくさんにだけ（グループには流さない）');
   has(ctx.pu[0].msgs[0].text, 'しっぱいしました', '  しくじったと分かる');
+  has(ctx.pu[0].msgs[0].text, 'じどう', '  こちらが勝手にやったものだと分かる');
+
+  /*
+   * ★お知らせを「切」にしたら、1通も送らない。
+   *   うるさくなったときに止められないと、切りようがない
+   */
+  props['UPD_TELL'] = 'off';
+  props['GH_HEAD_SEEN'] = 'ふるい';
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' }],
+         raw: { 'gas/001-Code.gs': 'べつの中身' },
+         head: { sha: 'DDD444', commit: { message: 'x', author: { date: '2026-09-17T09:00:00Z' } } } };
+  ctx.pu.length = 0;
+  t(F('updAutoPull_')() === true, '★切にしても、取り込みそのものは動く');
+  t(ctx.pu.length === 0, '★切にしたら、LINEには1通も送らない');
+  delete props['UPD_TELL'];
 
   // もとに戻して、続きを見る
   props['GH_HEAD_SEEN'] = 'AAA111';
@@ -2066,6 +2083,31 @@ console.log('\n■ 🔁 新しいコードに、自分で気づいて取り込�
   ctx.pu.length = 0;
   t(F('updAutoPull_')() === false, 'GitHubが見えなければ、何もしない');
   t(ctx.pu.length === 0, '  そのときは、何も送らない');
+
+  /*
+   * ★見にいく回数をしぼるところ（updAutoPullTick_）。
+   *   ボタンの見張りは1分おきに動くので、毎回GitHubへ聞くと
+   *   1時間に60回になり、鍵なしで聞ける上限にぶつかる。
+   *   3分に1回までにしぼれているかを見る
+   */
+  try { ctx.CacheService.getScriptCache().remove('UPD_PULL_WAIT'); } catch (e) {}
+  props['UPD_TELL'] = 'off';
+  props['GH_HEAD_SEEN'] = 'ふるい';
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' }],
+         raw: { 'gas/001-Code.gs': 'またべつの中身' },
+         head: { sha: 'EEE555', commit: { message: 'x', author: { date: '2026-09-17T10:00:00Z' } } } };
+  t(F('updAutoPullTick_')() === true, '★1回目は、見にいく');
+  props['GH_HEAD_SEEN'] = 'ふるい';
+  gh.head.sha = 'FFF666';
+  apiCalls = [];
+  t(F('updAutoPullTick_')() === false, '★すぐもう一度呼ばれても、見にいかない（3分に1回まで）');
+  t(props['GH_HEAD_SEEN'] === 'ふるい', '  だから、印も触らない');
+  try { ctx.CacheService.getScriptCache().remove('UPD_PULL_WAIT'); } catch (e) {}
+  // 中身も変えておく（同じ中身だと「すでに最新です」で終わってしまうため）
+  gh.raw['gas/001-Code.gs'] = 'さらに あたらしい中身';
+  t(F('updAutoPullTick_')() === true, '★3分たてば、また見にいく');
+  try { ctx.CacheService.getScriptCache().remove('UPD_PULL_WAIT'); } catch (e) {}
+  delete props['UPD_TELL'];
 }
 
 console.log('\n■ 右下の知らせ（トースト）は、みじかくする');
@@ -2209,6 +2251,60 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   t(K(' 💩 ') === true, '  前後の空白は、そのまま通す');
   t(K('💩 おはよう') === false, '  ★ほかの言葉が混ざったら、反応しない');
   t(K('💩💩') === false, '  2つ続けても、反応しない');
+  t(K('💩🆗') === false, '★「💩🆗」では、取り込みは始まらない（お知らせの入切だから）');
+  t(K('💩🆖') === false, '★「💩🆖」でも、取り込みは始まらない');
+
+  /*
+   * ★「💩🆗」でお知らせを入、「💩🆖」で切。
+   *   取り込みは勝手にやってよいが、鳴りっぱなしは困る。
+   *   スプシを開かずに、LINEだけで切り替えられるようにした
+   */
+  const PT = F('updPoopTell_');
+  t(PT('💩🆗') === 'on', '★「💩🆗」は、お知らせを入');
+  t(PT('💩🆖') === 'off', '★「💩🆖」は、お知らせを切');
+  t(PT('💩 🆗') === 'on', '  あいだに空白が入っても通す');
+  t(PT('\u202a💩\u202a🆗') === 'on',
+    '★目に見えない字がまぎれても通す（スマホから送ると入ることがある）');
+  t(PT('💩🆗\uFE0F') === 'on', '  絵文字の飾り（異体字セレクタ）が付いても通す');
+  t(PT('💩OK') === 'on', '  「OK」でも通す');
+  t(PT('💩ng') === 'off', '  「ng」でも通す');
+  t(PT('💩オン') === 'on', '  「オン」でも通す');
+  t(PT('💩オフ') === 'off', '  「オフ」でも通す');
+  t(PT('💩') === '', '★「💩」だけは、取り込みのほう（入切ではない）');
+  t(PT('💩だよ') === '', '  ほかの言葉が続けば、反応しない');
+  t(PT('🆗') === '', '  「🆗」だけでは、反応しない');
+  t(PT('') === '' && PT(null) === '', '  空でも null でも落ちない');
+
+  const TL = F('updHandleTell_');
+  // ほかの人には、触らせない
+  delete props['UPD_TELL']; ctx.rep.length = 0;
+  t(TL({ message: { text: '💩🆖' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    'ほかの人が打っても、受けはする');
+  t(props['UPD_TELL'] === undefined, '★ほかの人には、絶対に変えさせない');
+  t(ctx.rep.length === 0, '  何も返さない（あると分かってしまうため）');
+
+  // まーくさんなら、切り替えられる
+  ctx.rep.length = 0;
+  t(TL({ message: { text: '💩🆖' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    'まーくさんなら、切り替えられる');
+  t(props['UPD_TELL'] === 'off', '★「💩🆖」で、お知らせが切になる');
+  t(F('updTellOn_')() === false, '  切になったことが、ちゃんと読める');
+  has(ctx.rep[0], 'きりました', '  切ったと分かる返事');
+
+  ctx.rep.length = 0;
+  t(TL({ message: { text: '💩🆗' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '入にも戻せる');
+  t(props['UPD_TELL'] === 'on', '★「💩🆗」で、お知らせが入になる');
+  t(F('updTellOn_')() === true, '  入になったことが、ちゃんと読める');
+  has(ctx.rep[0], 'いれました', '  入れたと分かる返事');
+
+  // 何も決めていないときは「入」（黙って終わるより、鳴るほうが安全）
+  delete props['UPD_TELL'];
+  t(F('updTellOn_')() === true, '★何も決めていないときは、お知らせは入');
+
+  t(TL({ message: { text: '💩' }, source: { userId: 'Umark' }, replyToken: 'r' }) === false,
+    '★「💩」だけのときは、こちらでは受け止めない（取り込みのほうへ渡す）');
+  ctx.rep.length = 0;
 
   /*
    * ★「💩」だけは、まーくさん以外には何も返さない。

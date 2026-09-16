@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C051ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C052ver  （2026/09/17）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,12 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C052ver]
+ *   ・LINEの合図に「💩🆗」「💩🆖」を足した（005-Updater の updHandleTell_ を呼ぶ）
+ *     取り込みが終わったときのお知らせを、入・切します。
+ *     ★かならず「💩」（取り込み）より先に見ます。あとに置くと、
+ *       入・切のつもりが 取り込みが始まってしまいます
  *
  *  [C051ver]
  *   ・設定に「コードを自動で取り込む」を足した（既定：はい）
@@ -1545,6 +1551,13 @@ function handleEvent_(ev) {
   if (typeof updHandleRepo_ === "function" && updHandleRepo_(ev)) return;
   // --- 「えだ」… どこのコードを読むかを、LINEから決める（まーくさんだけ）---
   if (typeof updHandleBranch_ === "function" && updHandleBranch_(ev)) return;
+  /*
+   * --- 「💩🆗」「💩🆖」… 取り込みが終わったときのお知らせを、入・切する ---
+   *     ★かならず updHandleKata_ より先に見ます。
+   *       あとに置くと「💩」のほうが先に当たってしまい、
+   *       入・切のつもりが 取り込みが始まってしまいます。
+   */
+  if (typeof updHandleTell_ === "function" && updHandleTell_(ev)) return;
   if (typeof updHandleKata_ === "function" && updHandleKata_(ev)) return;
 
   if (typeof updHandleNote_ === "function" && updHandleNote_(ev)) return;

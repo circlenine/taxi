@@ -4304,6 +4304,9 @@ function venueDailyJob() {
 
     // ★コードが新しくなっていたら、こちらで取り込む。
     //   「伝えるだけで終わる」ようにするため（005-Updater の updAutoPull_）
+    //   ★ふだんは、ボタンの見張りのほうが3分おきに先に気づきます（U071ver〜）。
+    //     ここはその保険です。ボタンの見張りが止まっていても、
+    //     15分おきのこちらが動いていれば、取り込みは進みます。
     try {
       if (typeof updAutoPull_ === "function" && updAutoPull_()) return;
     } catch (e) { if (typeof logErr_ === "function") logErr_("updAutoPull", e); }

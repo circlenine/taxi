@@ -6,11 +6,11 @@
 
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
-| **C** | `001-Code.gs`（統合スクリプト） | C051ver | `001-Code` |
+| **C** | `001-Code.gs`（統合スクリプト） | C052ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L034ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U070ver | `005-Updater` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U071ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V032ver | `006-Venue` |
 
 > **コードの貼り替えは、ふだん要りません。**
