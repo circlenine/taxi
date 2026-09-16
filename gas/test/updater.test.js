@@ -1953,6 +1953,7 @@ console.log('\n■ ふきだしで囲む');
   t(cl[from].length === F('updBubbleW_')() + 2, '  幅は、いつも同じ');
   const inside = cl.slice(from + 1, to);
   t(inside.join('\n').indexOf('星人') !== -1, '★名前も中');
+  t(/【.+星人】/.test(inside.join('\n')), '★名前は【】で囲む（いちばん先に目が行くように）');
   t(inside.join('\n').indexOf('特徴') !== -1, '★特徴も中');
   t(inside.join('\n').indexOf('好きなもの') !== -1, '  好きなものも中');
   t(inside.join('\n').indexOf('きらいなもの') !== -1, '  きらいなものも中');

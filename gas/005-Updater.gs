@@ -2,7 +2,11 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U038ver  （2026/09/16）  ★★★
+ *  ★★★  U039ver  （2026/09/16）  ★★★
+ *
+ *  [U039ver]
+ *   ・星人の名前を【】で囲んだ
+ *     ふきだしの中で、いちばん先に目が行くようにするため
  *
  *  [U038ver]
  *   ・ふきだしの幅を、毎回変えるのをやめて いつも同じにした
@@ -1002,7 +1006,8 @@ function updAlienBlock_(a) {
   const x = (a && a.name && Array.isArray(a.toku)) ? a : updAlien_();
   const pt = (1 + Math.floor(Math.random() * 8)) * 10;
   const L = [];
-  L.push("　" + x.name);
+  // ★名前は【】で囲む。ふきだしの中で、いちばん先に目が行くように
+  L.push("　【" + x.name + "】");
   L.push("　　特徴");
   x.toku.forEach(function (t) { L.push("　　　" + t); });
   L.push("　　好きなもの");
