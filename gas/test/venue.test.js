@@ -153,13 +153,13 @@ console.log('\n■ 絵は1通だけ。リンクはボタンにして中へ入れ
      (json.match(/"height":"sm"/g) || []).length, 'ボタンはどれもいちばん小さい "sm"');
   has(json, '通知設定', '★「お知らせ」ではなく「通知設定」と書く（初見で分かるように）');
   eq(json.indexOf('お知らせ：'), -1, '  「お知らせ：」の言い方は、もう使わない');
-  has(json, '⏰カレンダー', '★ボタンは「カレンダー」');
-  has(json, '📱リマインダー', '★もう1つは「リマインダー」');
+  has(json, '📱リマインダー', '★ボタンは「リマインダー」だけ');
   eq(json.indexOf('ﾃﾞｨｽｺｰﾄﾞ'), -1, '★ディスコードのボタンは出さない（設定がややこしいため）');
   eq(json.indexOf('💬DC'), -1, '  「DC」も出さない');
+  eq(json.indexOf('⏰カレンダー'), -1,
+     '★カレンダーのボタンも出さない（その日の催しを予定表に入れる意味がないため）');
+  eq(json.indexOf('calendar.google.com'), -1, '  長いリンクも絵の中に入れない');
   eq(json.indexOf('終了予定の前に知らせます'), -1, '★ボタンの上の説明文は出さない');
-  has(json, 'calendar.google.com',
-      '★カレンダーは、押したらその場で開く（もう一度押させない）');
   eq(json.indexOf('長押しでコピー'), -1, 'URLを文字で並べる通は、もう出さない');
 }
 
@@ -1055,6 +1055,36 @@ console.log('\n■ 「終了」とは書かない（必ず「終了予定」）'
   // 予約のお知らせの文も同じ
   const r = ctx.vnRemText_({ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' });
   has(r, '終了予定', '★お知らせの文も「終了予定」');
+}
+
+
+console.log('\n■ リマインダーは、終了予定を基準に、少し早めに届ける');
+{
+  // ★見張りは15分おきにしか動かない。時刻を過ぎてから送る形だと
+  //   いちばん遅いときで15分おくれ、60分前のつもりが45分前になる。
+  //   向かうかどうかの判断が間に合わないので、少し早めに出す
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', at: Date.now() + 10 * 60000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' },
+    { id: 'b', at: Date.now() + 40 * 60000, how: 'me', to: 'Umark',
+      venue: '大阪城ホール', title: 'y', start: '18:00', end: '21:00', url: '' }
+  ]);
+  pushed.length = 0;
+  ctx.vnRemindTick_();
+  eq(pushed.length, 1, '★あと10分のものは、いま送る（15分おくれるより早いほうが安全）');
+  has(pushed[0].msgs[0].text, '京セラドーム', '  そのイベントのもの');
+  has(pushed[0].msgs[0].text, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
+  eq(JSON.parse(props['VN_REMIND']).length, 1, '  まだ先のものは、残しておく');
+
+  // 何分前にするかは、終了予定から数える
+  const at = ctx.vnRemindAt_({ start: '18:00', end: '21:00' }, new Date(2026, 8, 16));
+  const d = new Date(at);
+  eq(d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2), '20:00',
+     '★21:00 終了予定の60分前＝20:00に知らせる');
+  const at2 = ctx.vnRemindAt_({ start: '18:00', end: '' }, new Date(2026, 8, 16));
+  eq(new Date(at2).getHours(), 17, '  終わりが分からなければ、始まりから数える');
+  eq(ctx.vnRemindAt_({ start: '', end: '' }, new Date(2026, 8, 16)), 0, '  時刻が無ければ 0（入れない）');
+  delete props['VN_REMIND'];
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
