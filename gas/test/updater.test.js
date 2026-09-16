@@ -1676,6 +1676,8 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   t(dn.indexOf('という　りくつな　わけだす') !== -1, '  「わけだす」で終わる');
   t(dn.indexOf('死') === -1 && dn.indexOf('命') === -1, '  ★「死」「命」は使わない');
   t(/https:\/\/(www\.youtube\.com|www\.tiktok\.com|x\.com)\//.test(dn), '  ★おもしろ動画のリンクも、同じ1通に入れる');
+  t(dn.indexOf('▚') === -1, '★かすれた四角の区切り線は、もう使わない');
+  t(dn.indexOf('────') !== -1, '  細い1本の線にした');
   t(dn.indexOf('星人') !== -1, '  星人も同じ1通に入る');
 
   // 何度も打たれても、グループが動画だらけにならない
@@ -1863,16 +1865,42 @@ console.log('\n■ 星人のすがた（絵）は、同じ1通に入れる');
   // AIがだめなときは、この逃げ道に落ちること
   const PIC = F('updAlienPic_');
   reply = { '*': { code: 500, body: '' } };          // AIが動かない状況
-  const p2 = PIC({ name: 'ねぎ星人', toku: ['でかい'], kuse: 'ぬん' }, '');
+  const p2 = PIC({ name: 'ねぎ星人', toku: ['でかい'], kuse: 'ぬん' });
   t(/^https:\/\//.test(p2.direct), '★AIが動かなくても、絵は出る');
 
   // 設定で「いいえ」にすれば、絵は作らない
   vm.runInContext('function updCfg_(k){ return k === "星人の絵を出す" ? "いいえ" : ""; }', ctx);
   t(F('updPicOn_')() === false, '★設定で「いいえ」にすれば、絵は作らない');
-  t(PIC({ name: 'ねぎ星人', toku: ['でかい'], kuse: 'ぬん' }, '').direct === '',
+  t(PIC({ name: 'ねぎ星人', toku: ['でかい'], kuse: 'ぬん' }).direct === '',
     '  そのときは、絵のありかも返さない');
   vm.runInContext('function updCfg_(k){ return ""; }', ctx);
   t(F('updPicOn_')() === true, '  ふだんは作る');
+}
+
+
+console.log('\n■ 絵の手がかりは、動画ではなく星人の特徴から');
+{
+  const TH = F('updAlienTheme_');
+  const th = TH({ name: 'ワンメーター星人', toku: ['さけくさい', 'ワンメーター'], kuse: 'ここでいい' });
+  t(th.indexOf('さけくさい') !== -1, '★星人の特徴が、手がかりに入る');
+  t(th.indexOf('ワンメーター') !== -1, '  ぜんぶ入る');
+  t(th.indexOf('ここでいい') !== -1, '  口ぐせも入る');
+  t(TH({}) === '', '  中身が無くても落ちない');
+  t(TH(null) === '', '  null でも落ちない');
+}
+
+console.log('\n■ 動画は「いま話題のもの」から');
+{
+  const P = F('updFunPick_');
+  const froms = {}, urls = {};
+  for (let i = 0; i < 60; i++) { const x = P(); froms[x.from] = 1; urls[x.url] = 1; }
+  t(Object.keys(urls).length > 5, '毎回ちがうところから出る');
+  const all = Object.keys(froms).join(' ');
+  t(/急上昇|話題|トレンド|おすすめ/.test(all), '★「急上昇」「話題」から探す');
+  t(all.indexOf('YouTube') !== -1, '  YouTube も');
+  t(all.indexOf('TikTok') !== -1, '  TikTok も');
+  t(all.indexOf('X') !== -1, '  X も');
+  t(Object.keys(urls).every(u => /^https:\/\//.test(u)), '  どれも ちゃんとしたリンク');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

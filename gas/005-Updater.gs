@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U033ver  （2026/09/16）  ★★★
+ *  ★★★  U034ver  （2026/09/16）  ★★★
+ *
+ *  [U034ver]
+ *   ・区切り線を ▚▚▚ から ──── に変えた
+ *     かすれた四角がびっしり並んで、かえって読みにくかった。
+ *     細い1本の線のほうが、目が休まって、区切りとして働く
+ *   ・星人の絵を、その星人の特徴に合わせるようにした（updAlienTheme_）
+ *     ★動画の雰囲気に寄せていたのをやめた。
+ *       「ワンメーター星人」なのに、ねこ顔が出てきては意味がない。
+ *       特徴と口ぐせを、そのまま絵の手がかりにする
+ *   ・動画を「いま話題で、思わず見たくなるもの」に寄せた
+ *     「面白すぎる」で探すと、古いものや質の低いものが混ざる。
+ *     各サービスが「いま伸びているもの」を出してくれる入口を先に置いた
+ *     （YouTube 急上昇／TikTok おすすめ・バズり・神回／X トレンド）
  *
  *  [U033ver]
  *   ・AIで絵が作れなかったときの逃げ道を足した（updAlienPicFree_）
@@ -1026,8 +1039,22 @@ function updPicOn_() {
 }
 
 /** 星人のすがたを1枚つくって、ドライブに置き、その場所を返す */
-function updAlienPic_(a, theme) {
-  const pic = updAlienPicAi_(a, theme);
+/**
+ * 絵にするときの手がかり。
+ * ★動画の雰囲気ではなく、その星人の特徴そのものを優先する。
+ *   「ワンメーター星人」なのに、ねこ顔が出てきては意味がない。
+ */
+function updAlienTheme_(a) {
+  const t = (a && a.toku) ? a.toku.join("、") : "";
+  const k = (a && a.kuse) ? a.kuse : "";
+  const parts = [];
+  if (t) parts.push("この星人は、こういう感じです：" + t);
+  if (k) parts.push("いつも「" + k + "」と言っています。その顔つきにしてください");
+  return parts.join("\n・");
+}
+
+function updAlienPic_(a) {
+  const pic = updAlienPicAi_(a, updAlienTheme_(a));
   if (pic && pic.direct) return pic;
   // AIで作れなかった。無料の絵置き場から1枚もらう（絵が1枚も出ない、を避ける）
   if (!updPicOn_()) return { url: "", id: "", direct: "" };
@@ -1053,7 +1080,7 @@ function updAlienPicAi_(a, theme) {
       "・絵の中に文字は入れないでください\n" +
       "・実在の人物には似せないでください\n" +
       "・血や、けがをしている様子は描かないでください" +
-      (theme ? "\n・雰囲気は「" + theme + "」に寄せてください（そういう顔つきにする）" : "");
+      (theme ? "\n・" + theme : "");
 
     const res = UrlFetchApp.fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/" + model +
@@ -1134,7 +1161,7 @@ function updAlienPicJob_() {
   } catch (e) {}
   if (!job || !job.to || !job.a) return;
 
-  const pic = updAlienPic_(job.a, job.theme);
+  const pic = updAlienPic_(job.a);
   // 絵が作れなかったら、黙って何も送らない（文はもう届いている）
   if (!pic || !pic.url) return;
   updPushOnce_(job.to, UPD_LINE + "\n" + job.a.name + "　の　すがた\n" + UPD_LINE + "\n" + pic.url, pic);
@@ -1143,8 +1170,12 @@ function updAlienPicJob_() {
 /** あの黒い球 */
 const UPD_BALL = "　　　　　　●";
 
-/** 区切り線（短く。多いと読みづらい） */
-const UPD_LINE = "▚▚▚▚▚▚▚▚";
+/**
+ * 区切り線。
+ * ★▚▚▚ は、かすれた四角がびっしり並んで、かえって読みにくかった。
+ *   細い1本の線のほうが、目が休まって、区切りとして働く。
+ */
+const UPD_LINE = "────────────────";
 
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
 function updKataStart_(alien) {
@@ -1209,30 +1240,24 @@ function updFunSheet_() {
 
 /** いつでも開ける、YouTubeの流行りの入口（無くならないページ） */
 const UPD_FUN_FALLBACK = [
-  // ★ねらいは「とにかく笑えるやつ」。
-  //   ただ流行っているだけのものではなく、笑いに寄せた探し方にしてある。
-  // YouTube ショート
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("腹筋崩壊 shorts"),   from: "YouTube", theme: "笑いすぎて腹をかかえている人" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("面白すぎる shorts"), from: "YouTube", theme: "大笑いしている人" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("爆笑 ハプニング shorts"), from: "YouTube", theme: "しくじって固まっている人" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("ドッキリ 爆笑 shorts"), from: "YouTube", theme: "おどろいて飛び上がっている人" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("面白い 動物 shorts"), from: "YouTube", theme: "動物みたいな顔" },
-  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("笑ってはいけない shorts"), from: "YouTube", theme: "笑いをこらえている人" },
-  // TikTok
-  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("腹筋崩壊"),   from: "TikTok", theme: "笑いすぎて涙が出ている人" },
-  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("爆笑"),       from: "TikTok", theme: "口を開けて笑っている人" },
-  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("面白すぎる"), from: "TikTok", theme: "ふざけた顔" },
-  { url: "https://www.tiktok.com/search?q=" + encodeURIComponent("おもしろ動物"), from: "TikTok", theme: "動物みたいな顔" },
-  // X（旧Twitter）
-  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("腹筋崩壊"),     from: "X", theme: "笑いすぎて腹をかかえている人" },
-  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("爆笑 動画"),    from: "X", theme: "にやついている人" },
-  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("面白すぎる"),   from: "X", theme: "大笑いしている人" },
-  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("かわいい動物"), from: "X", theme: "動物みたいな顔" }
+  // ★ねらいは「いま話題で、思わず見たくなるもの」。
+  //   ただ「面白い」と検索しても、古いものや質の低いものが混ざる。
+  //   各サービスが「いま伸びているもの」を出してくれる入口を、先に置く。
+  { url: "https://www.youtube.com/feed/trending",                                             from: "YouTube 急上昇" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("急上昇 shorts"), from: "YouTube 急上昇" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("バズ動画 shorts"), from: "YouTube 話題" },
+  { url: "https://www.youtube.com/results?search_query=" + encodeURIComponent("話題 shorts 2026"), from: "YouTube 話題" },
+  { url: "https://www.tiktok.com/explore",                                                    from: "TikTok おすすめ" },
+  { url: "https://www.tiktok.com/tag/" + encodeURIComponent("バズり"),                         from: "TikTok 話題" },
+  { url: "https://www.tiktok.com/tag/" + encodeURIComponent("神回"),                           from: "TikTok 話題" },
+  { url: "https://x.com/explore/tabs/trending",                                               from: "X トレンド" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("バズ 動画"),                   from: "X 話題" },
+  { url: "https://x.com/search?f=video&q=" + encodeURIComponent("神動画"),                      from: "X 話題" }
 ];
 
 /**
  * おもしろ動画を1本えらぶ。
- * 戻り値は { url, theme }。theme は、星人の顔をその動画に寄せるための手がかり。
+ * 戻り値は { url, from }。from は「どこの動画か」（YouTube 急上昇 など）。
  * 貼ってあればそこから、無ければ流行りの一覧から。
  */
 function updFunPick_() {
@@ -1244,7 +1269,7 @@ function updFunPick_() {
         const u = String(r[0] == null ? "" : r[0]).trim();
         const memo = String(r[1] == null ? "" : r[1]).trim();
         // ちゃんとしたリンクだけ。メモ書きが混ざっていても拾わない
-        if (/^https?:\/\//i.test(u)) list.push({ url: u, from: "", theme: memo });
+        if (/^https?:\/\//i.test(u)) list.push({ url: u, from: memo });
       });
     }
   } catch (e) {}
@@ -1305,7 +1330,7 @@ function updHandleKata_(ev) {
     //   文と絵をいっしょに1回だけ送る（動画の見出しにもなる）
     const fun = updFunPick_();
     const alien = updAlien_();
-    const pic = updAlienPic_(alien, fun.theme);
+    const pic = updAlienPic_(alien);
     updPushOnce_(updWhere_(ev), updKataDenied_(alien, fun) +
                  (pic.url ? "\n" + pic.url : ""), pic);
     return true;
@@ -1356,7 +1381,7 @@ function updHandleKata_(ev) {
   // ★1回の送信にまとめる。うまくいけば、これ1通で終わり。
   //   おかしくなったときだけ、あとからもう1通お知らせする
   const alien = updAlien_();
-  const pic = updAlienPic_(alien, "");
+  const pic = updAlienPic_(alien);
   updPushOnce_(updWhere_(ev), updKataStart_(alien) + (pic.url ? "\n" + pic.url : ""), pic);
   return true;
 }
