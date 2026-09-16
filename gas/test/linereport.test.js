@@ -490,8 +490,16 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
   eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
   eq(bands.every(t => t.length <= 40), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
-  eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 ⭕️[アツい]新地4[(月)23:51]',
-     '［アツい］の文字も入れて1行に収める');
+  eq(bands[0], 'ﾛﾝｸﾞ8件 ￥13,270 待39分 ⭕️[アツい 新地4 (月)23:51]',
+     '［アツい 乗り場 時刻］を1つの［］で閉じる');
+  // ★［］が2つに割れていると、どこまでが1つの話なのか読めない。
+  //   「アツい」から時刻までで1組。ここが割れていたら必ず落とす
+  eq(bands.every(t => (t.match(/\[/g) || []).length === (t.match(/\]/g) || []).length),
+     true, '［と］の数が合っている');
+  eq(bands.every(t => (t.match(/\[/g) || []).length <= 1),
+     true, '1行に［］は1組だけ（アツい・避ける〜時刻をまとめて閉じる）');
+  eq(bands.filter(t => t.indexOf('[') !== -1).every(t => /(⭕️|❎)\[/.test(t)),
+     true, '［］は必ず記号のすぐうしろから始まる');
   // 乗り場の名前が長いときだけ、言葉を外して1行を守る
   {
     const w = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
