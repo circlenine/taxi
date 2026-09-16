@@ -610,6 +610,18 @@ has(alerts[0].b, 'usersettings', '直し方も出る');
   const off = H({ message: '(403) Apps Script API not enabled' });
   has(off, 'usersettings', 'スイッチが切れているときは、スイッチの案内を出す');
   t(off.indexOf('許可を、もらい直して') === -1, '  そちらでは、承認の話は出さない');
+  /*
+   * ★「has not been used in project …」のときは、入れる場所が2か所ある。
+   *   片方だけでは通らないことがあるので、どちらも出す
+   */
+  const off2 = H({ message: '(403) Apps Script API has not been used in project 545100114464 ' +
+    'before or it is disabled. Enable it by visiting ' +
+    'https://console.developers.google.com/apis/api/script.googleapis.com/overview?project=545100114464 then retry.' });
+  has(off2, 'usersettings', '★まず usersettings を案内する');
+  has(off2, 'console.developers.google.com/apis/api/script.googleapis.com/overview?project=545100114464',
+      '★だめなときのために、そのページのリンクもそのまま出す');
+  has(off2, '有効にする', '  そこで押すボタンの名前も書く');
+  has(off2, '数分かかります', '★入れてすぐは効かないことも書く（失敗と思わせないため）');
   has(H(null), 'usersettings', 'null でも落ちない');
 
   reset([['001-Code.gs', 'x']]);
