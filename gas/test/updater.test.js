@@ -1812,7 +1812,11 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   t(B('branch claude/abc').name === 'claude/abc', '  「branch」でも通る');
   t(B('えだ：claude/abc').name === 'claude/abc', '  「：」でも通る');
   t(B('えだ　claude/abc').name === 'claude/abc', '  全角の空白でも通る');
-  t(B('えだまめ') !== null, '  ※「えだまめ」も合図として受ける（枝の名前として扱う）');
+  t(B('💩').name === '', '★「💩」だけでも通る（覚えやすいほうで打てるように）');
+  t(B('💩 claude/abc').name === 'claude/abc', '  「💩 ○○」でも通る');
+  t(B('えだまめ') === null,
+    '★「えだまめ」には反応しない（くっついた言葉を、枝の名前と読みちがえないように）');
+  t(B('枝豆') === null, '  「枝豆」にも反応しない');
   t(B('こんにちは') === null, 'ふつうの話には反応しない');
   t(B('') === null, '空でも落ちない');
   t(B(null) === null, 'null でも落ちない');
@@ -1838,11 +1842,15 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
     '★覚え書きも消す（消さないと「すでに最新です」で何も入らないことがある）');
   has(ctx.rep[0], 'さいしんの直し', '  その枝の最新も、いっしょに返す');
 
-  // 打ちまちがえたら、はっきり言う
+  // 打ちまちがえたら、はっきり言う。そして★読み先は変えない
   ctx.rep.length = 0;
+  const keepBranch = props['GH_BRANCH'];
   gh = { dir: [], headFail: 404 };
   H({ message: { text: 'えだ うっかりまちがえた' }, source: { userId: 'Umark' }, replyToken: 'r' });
   has(ctx.rep[0], 'その枝が見つかりません', '★無い枝を打ったら、はっきりそう言う');
+  t(props['GH_BRANCH'] === keepBranch,
+    '★そのときは、読み先を変えない（変えると、そのあと何も取り込めなくなる）');
+  has(ctx.rep[0], '変えていません', '  変えていないことも、はっきり伝える');
 
   // 自動に戻す
   ctx.rep.length = 0;

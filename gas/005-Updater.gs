@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U052ver  （2026/09/16）  ★★★
+ *  ★★★  U053ver  （2026/09/16）  ★★★
+ *
+ *  [U053ver]
+ *   ・「💩」でも読み先を決められるようにした（覚えやすいほうで打てるように）
+ *   ・「えだまめ」「枝豆」に反応しないようにした
+ *     ★言葉と名前のあいだに、空白か「：」が要る形にしました。
+ *       前は「えだまめ」が「えだ＋まめ」と読まれて、
+ *       読み先が「まめ」に変わってしまうところでした。あぶない作りでした
+ *   ・無い枝を打ったときは、読み先を変えないようにした
+ *     ★前は、先に書きこんでから「見つかりません」と言っていました。
+ *       それでは、そのあと [1] を押しても何も取り込めなくなります。
+ *       いまは、あるかどうかを確かめてから書きこみます
  *
  *  [U052ver]
  *   ・「えだ」で、どこのコードを読むかを LINEから決められるようにした
@@ -584,10 +595,11 @@ function updSource_() { return (updRepo_() && updToken_()) ? "github" : "drive";
  *   たいていは 枝（ブランチ）がちがっています。
  *   ここに日時と題が出るので、取り込む前に見分けられます。
  */
-function updHeadInfo_() {
+function updHeadInfo_(branchIn) {
   try {
+    const br = branchIn || updBranch_();
     const j = JSON.parse(updGh_("https://api.github.com/repos/" + updRepo_() +
-                                "/commits/" + encodeURIComponent(updBranch_()), false));
+                                "/commits/" + encodeURIComponent(br), false));
     const c = (j && j.commit) || {};
     const when = String((c.author && c.author.date) || "").replace("T", " ").replace("Z", "");
     const msg = String(c.message || "").split("\n")[0];
@@ -1703,7 +1715,13 @@ function updKataDenied_(alien, fun) {
 /** 打たれた文が「えだ」の合図かどうか。合図なら { name } を返す */
 function updBranchWord_(text) {
   const t = String(text == null ? "" : text).trim();
-  const m = t.match(/^(えだ|エダ|枝|ブランチ|ぶらんち|branch|Branch|BRANCH)[\s\u3000:：]*(.*)$/);
+  /*
+   * ★言葉と名前のあいだには、空白か「：」が要ります。
+   *   これが無いと「えだまめ」が「えだ＋まめ」と読まれて、
+   *   読み先が「まめ」に変わってしまいます。実際に危ないところでした。
+   * ★💩 でも通ります（覚えやすいほうで打っていただくため）。
+   */
+  const m = t.match(/^(えだ|エダ|枝|ブランチ|ぶらんち|branch|Branch|BRANCH|💩)(?:[\s\u3000:：]+(.+))?$/);
   if (!m) return null;
   return { name: String(m[2] || "").trim() };
 }
@@ -1753,6 +1771,20 @@ function updHandleBranch_(ev) {
     return true;
   }
 
+  /*
+   * ★先に「その枝が本当にあるか」を確かめます。
+   *   無い名前を入れてしまうと、そのあと [1] を押しても
+   *   何も取り込めなくなります。入れる前に止めるほうが安全です。
+   */
+  const info = updHeadInfo_(w.name);
+  if (String(info).indexOf("見つかりません") !== -1) {
+    say("🌿 その枝が見つかりませんでした。\n" +
+        "　打った名前：" + w.name + "\n" +
+        "　（大文字・小文字も、そのままでないと通りません）\n\n" +
+        "★読み先は、いまのまま変えていません。\n" +
+        "　いまは「" + updBranch_() + "」を読みます。");
+    return true;
+  }
   try {
     updProps_().setProperty("GH_BRANCH", w.name);
     // ★枝が変われば、どのファイルが変わったかの覚え書きも当てになりません。
@@ -1760,14 +1792,6 @@ function updHandleBranch_(ev) {
     updProps_().deleteProperty("GH_SHAS");
   } catch (e) {
     say("🌿 入れられませんでした：" + (e && e.message ? e.message : e));
-    return true;
-  }
-  const info = updHeadInfo_();
-  if (String(info).indexOf("見つかりません") !== -1) {
-    say("🌿「" + w.name + "」にしました。\n" +
-        "⚠️ ただし、その枝が見つかりません。名前をお確かめください。\n" +
-        "　（大文字・小文字も、そのままでないと通りません）\n\n" +
-        "もとの自動に戻すときは「えだ じどう」と送ってください。");
     return true;
   }
   say("🌿「" + w.name + "」を読むようにしました。\n" +
