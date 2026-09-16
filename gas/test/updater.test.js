@@ -314,6 +314,11 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
     }
     // 置き場そのものを聞かれたとき（既定の枝を知るため）
     if (url.indexOf('/contents/') === -1) {
+      // gh.only を決めておくと、その置き場だけが見つかる（名前が変わった様子を作る）
+      if (gh && gh.only && url.indexOf('/repos/' + gh.only) === -1) {
+        return { getResponseCode: () => 404,
+                 getContentText: () => JSON.stringify({ message: 'Not Found' }) };
+      }
       if (gh && gh.reposCode && gh.reposCode !== 200) {
         return { getResponseCode: () => gh.reposCode,
                  getContentText: () => JSON.stringify({ message: 'Not Found' }) };
@@ -2028,10 +2033,31 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
    */
   const keepRepo2 = props['GH_REPO'];
   delete props['GH_REPO'];
-  t(realUpdRepo() === 'circlenine/test', '★置き場は、何もしなくても入っている');
+  t(realUpdRepo() === 'circlenine/taxi', '★置き場は、何もしなくても入っている');
   t(F('updRepoSet_')() === '', '  ただし「人が決めた置き場」としては、空のまま');
   props['GH_REPO'] = 'よそ/べつのところ';
   t(realUpdRepo() === 'よそ/べつのところ', '  決めればそちらが優先される');
+  props['GH_REPO'] = keepRepo2;
+
+  /*
+   * ★GitHubでは、置き場の名前を好きなときに変えられる（test → taxi など）。
+   *   そのたびに こちらを直さないと読めなくなる、では困る。
+   *   心当たりの名前を順に試して、通ったものを覚える
+   */
+  delete props['GH_REPO']; delete props['GH_REPO_OK'];
+  gh = { dir: [], only: 'circlenine/test' };      // 新しい名前はまだ無い、という形
+  const keepTestRepo = ctx.testRepo;
+  ctx.testRepo = () => (props['GH_REPO'] || props['GH_REPO_OK'] || 'circlenine/taxi');
+  props['GH_SHAS'] = '{"001-Code":"aaa"}';        // 前の置き場のぶんの覚え書き
+  t(F('updRepoHeal_')() === true, '★名前が変わっていたら、こちらでさがし当てる');
+  t(props['GH_REPO_OK'] === 'circlenine/test', '  通ったほうを覚える');
+  t(realUpdRepo() === 'circlenine/test', '  次からは、そちらを見にいく');
+  t(props['GH_SHAS'] === undefined, '  覚え書きは消す（別の置き場のぶんは当てにならない）');
+
+  props['GH_REPO'] = 'ひと/がきめた';
+  t(F('updRepoHeal_')() === false, '★人が決めているときは、勝手に変えない');
+  ctx.testRepo = keepTestRepo;
+  delete props['GH_REPO']; delete props['GH_REPO_OK'];
   props['GH_REPO'] = keepRepo2;
 
   // 「おきば」でも決められる

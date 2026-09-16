@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U061ver  （2026/09/16）  ★★★
+ *  ★★★  U062ver  （2026/09/16）  ★★★
+ *
+ *  [U062ver]
+ *   ・置き場の名前が変わっても、自分でさがし当てるようにした
+ *     ★GitHubでは、置き場の名前を好きなときに変えられます（test → taxi など）。
+ *       そのたびに こちらを直さないと読めなくなる、では困ります。
+ *     ★心当たりの名前（UPD_REPO_CANDIDATES）を上から試して、
+ *       通ったものを覚えます。次からは、そこだけを見にいきます
+ *     ★人が決めた置き場（設定タブ・「おきば」）があるときは、
+ *       勝手に変えません
+ *     ★置き場が変われば、枝も覚え書きも消します
+ *       （別の置き場のぶんは、当てにならないため）
  *
  *  [U061ver]
  *   ・案内に出す言葉を「💩」にそろえた
@@ -657,14 +668,63 @@ function updCfg_(key) {
  *   よその置き場に変えたいときは、設定タブか、
  *   LINEに「おきば ○○/○○」と送れば、そちらが優先されます。
  */
-const UPD_REPO_DEFAULT = "circlenine/test";
+const UPD_REPO_DEFAULT = "circlenine/taxi";
+
+/*
+ * ★置き場の名前は、あとから変わることがあります。
+ *
+ *   GitHubでは、置き場の名前を好きなときに変えられます。
+ *   （たとえば test → taxi のように）
+ *   そのたびに、こちらも直さないと読めなくなる、では困ります。
+ *
+ *   そこで、心当たりのある名前を ここに並べておきます。
+ *   上から順に試して、通ったものを覚えます。
+ *   一度覚えれば、次からは そこだけを見にいきます。
+ *
+ *   ★人が決めた置き場（設定タブ・「おきば」）があれば、必ずそちらが勝ちます。
+ */
+const UPD_REPO_CANDIDATES = ["circlenine/taxi", "circlenine/test"];
 
 /** 人が決めた置き場だけを返す（はじめから入っている値は含めない） */
 function updRepoSet_() {
   return updProps_().getProperty("GH_REPO") || updCfg_("コードの置き場（GitHub）") || "";
 }
 
-function updRepo_() { return updRepoSet_() || UPD_REPO_DEFAULT; }
+function updRepo_() {
+  const set = updRepoSet_();
+  if (set) return set;
+  try {
+    const ok = updProps_().getProperty("GH_REPO_OK");
+    if (ok) return ok;
+  } catch (e) {}
+  return UPD_REPO_DEFAULT;
+}
+
+/**
+ * 置き場が見つからないとき、心当たりの名前を順に試す。
+ * 通るものがあれば、それを覚えて true を返す。
+ *
+ * ★名前を変えたあと、こちらで何もしなくても つながり直すためのものです。
+ */
+function updRepoHeal_() {
+  if (updRepoSet_()) return false;          // 人が決めているなら、勝手に変えない
+  const now = updRepo_();
+  for (let i = 0; i < UPD_REPO_CANDIDATES.length; i++) {
+    const c = UPD_REPO_CANDIDATES[i];
+    if (c === now) continue;                 // いま試してだめだったものは、飛ばす
+    const r = updGhTry_("https://api.github.com/repos/" + c);
+    if (r.code === 200) {
+      try {
+        updProps_().setProperty("GH_REPO_OK", c);
+        // 置き場が変われば、枝も覚え書きも当てになりません
+        updProps_().deleteProperty("GH_BRANCH_AUTO");
+        updProps_().deleteProperty("GH_SHAS");
+      } catch (e) {}
+      return true;
+    }
+  }
+  return false;
+}
 function updPath_() {
   return updProps_().getProperty("GH_PATH") || updCfg_("コードのフォルダ") || "gas";
 }
@@ -789,6 +849,10 @@ function updDiag_(wantBranch) {
     L.push("");
     L.push(updTokenHow_());
     return { ok: false, text: L.join("\n") };
+  }
+  if (r1.code === 404 && updRepoHeal_()) {
+    // 名前が変わっていただけだった。つなぎ直せたので、もう一度やり直す
+    return updDiag_(wantBranch);
   }
   if (r1.code === 404) {
     L.push("⚠️ 置き場が見つかりませんでした（404）。");
