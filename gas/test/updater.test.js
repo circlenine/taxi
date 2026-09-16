@@ -1825,9 +1825,11 @@ console.log('\n■ 星人のすがた（絵）は、同じ1通に入れる');
   //   文と絵を、同じ1回の送信にまとめる。
   //   絵ではねられたときだけ、文だけで送り直す（文まで消えては困る）
   const P = F('updPushOnce_');
+  const DRV = { url: 'https://drive.google.com/file/d/ID/view', id: 'ID',
+                direct: 'https://drive.google.com/uc?export=view&id=ID' };
 
   ctx.pu.length = 0;
-  P('Umark', 'ほんぶん', { url: 'https://drive.google.com/file/d/ID/view', id: 'ID' });
+  P('Umark', 'ほんぶん', DRV);
   t(ctx.pu.length === 1, '★送るのは1回だけ');
   t(ctx.pu[0].msgs.length === 2, '  文と絵を、いっしょに送る');
   t(ctx.pu[0].msgs[0].type === 'text', '  1つめは文');
@@ -1836,22 +1838,39 @@ console.log('\n■ 星人のすがた（絵）は、同じ1通に入れる');
 
   // 絵が無いときは、文だけ
   ctx.pu.length = 0;
-  P('Umark', 'ほんぶん', { url: '', id: '' });
+  P('Umark', 'ほんぶん', { url: '', id: '', direct: '' });
   t(ctx.pu.length === 1 && ctx.pu[0].msgs.length === 1, '絵が無ければ、文だけを1回');
 
   // 絵ではねられたら、文だけで送り直す
-  let calls = 0;
   vm.runInContext('function lrPush_(to, msgs){ pu.push({to:to,msgs:msgs}); return msgs.length > 1 ? "画像がだめでした" : ""; }', ctx);
   ctx.pu.length = 0;
-  P('Umark', 'ほんぶん', { url: 'https://drive.google.com/file/d/ID/view', id: 'ID' });
+  P('Umark', 'ほんぶん', DRV);
   t(ctx.pu.length === 2, '★絵ではねられたら、もう一度やり直す');
   t(ctx.pu[1].msgs.length === 1 && ctx.pu[1].msgs[0].type === 'text',
     '  ★そのときは文だけ。文まで消えては困る');
   vm.runInContext('function lrPush_(to, msgs){ pu.push({ to: to, msgs: msgs }); }', ctx);
 
+  // ★AIで作れなくても、絵は必ず1枚出る（無料の絵置き場から）
+  const FREE = F('updAlienPicFree_');
+  const f1 = FREE({ name: 'ワンメーター星人' });
+  t(/^https:\/\//.test(f1.direct), 'AIがだめでも、絵のありかは必ず返る');
+  t(/robohash\.org|dicebear\.com/.test(f1.direct), '  無料の絵置き場から');
+  t(f1.direct.indexOf('.png') !== -1 || f1.direct.indexOf('png') !== -1, '  そのまま絵（PNG）で返るところ');
+  const seen = {};
+  for (let i = 0; i < 30; i++) seen[FREE({ name: 'ワンメーター星人' }).direct] = 1;
+  t(Object.keys(seen).length > 3, '  毎回ちがう絵になる');
+
+  // AIがだめなときは、この逃げ道に落ちること
+  const PIC = F('updAlienPic_');
+  reply = { '*': { code: 500, body: '' } };          // AIが動かない状況
+  const p2 = PIC({ name: 'ねぎ星人', toku: ['でかい'], kuse: 'ぬん' }, '');
+  t(/^https:\/\//.test(p2.direct), '★AIが動かなくても、絵は出る');
+
   // 設定で「いいえ」にすれば、絵は作らない
   vm.runInContext('function updCfg_(k){ return k === "星人の絵を出す" ? "いいえ" : ""; }', ctx);
   t(F('updPicOn_')() === false, '★設定で「いいえ」にすれば、絵は作らない');
+  t(PIC({ name: 'ねぎ星人', toku: ['でかい'], kuse: 'ぬん' }, '').direct === '',
+    '  そのときは、絵のありかも返さない');
   vm.runInContext('function updCfg_(k){ return ""; }', ctx);
   t(F('updPicOn_')() === true, '  ふだんは作る');
 }

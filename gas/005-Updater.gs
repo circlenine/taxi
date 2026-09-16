@@ -2,7 +2,17 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U032ver  （2026/09/16）  ★★★
+ *  ★★★  U033ver  （2026/09/16）  ★★★
+ *
+ *  [U033ver]
+ *   ・AIで絵が作れなかったときの逃げ道を足した（updAlienPicFree_）
+ *     ★「絵が1枚も出ない」ことにならないように。
+ *       鍵が使えない・絵のモデルが無い・通信が詰まった、どれでも同じ。
+ *     名前を渡すと その名前だけの顔を作ってくれる、無料の絵置き場を使う
+ *     （robohash の怪物／ロボット、dicebear のロボット／へんな顔）。
+ *     鍵はいらず、そのまま絵（PNG）が返るので、LINEにそのまま出せる。
+ *     ただの写真を借りるより、星人の顔として意味がある
+ *   ・絵のありかを direct（LINEにそのまま出せる形）で持つようにした
  *
  *  [U032ver]
  *   ・合言葉を増やした。どれで打っても通る（その1文だけのときに限る）
@@ -977,6 +987,35 @@ function updAlienBlock_(a) {
  *   絵が出ないせいで、肝心の取り込みが止まってはいけないからです。
  */
 
+/*
+ * ★AIでの絵づくりが うまくいかないときの逃げ道。
+ *
+ *   鍵が使えない・絵のモデルが無い・通信が詰まった……
+ *   そんなときでも「絵が1枚も出ない」ことにならないよう、
+ *   だれでも使える無料の絵置き場から、1枚もらってくる。
+ *
+ *   ここで使うのは、名前を渡すと その名前だけの絵を作ってくれるところ。
+ *   同じ星人なら いつも同じ絵、ちがう星人なら ちがう絵になる。
+ *   （ただの写真を貼るより、星人の顔として ちゃんと意味がある）
+ *
+ *   ・robohash … 名前から、ロボットや怪物の顔を作る
+ *   ・dicebear … 名前から、ロボットや変な顔を作る
+ *   どちらも 鍵はいらず、そのまま絵（PNG）が返ってくる。
+ */
+function updAlienPicFree_(a) {
+  const seed = encodeURIComponent(String((a && a.name) || "seijin") + "_" + Math.floor(Math.random() * 100000));
+  const pool = [
+    "https://robohash.org/" + seed + ".png?set=set2&size=512x512",   // 怪物
+    "https://robohash.org/" + seed + ".png?set=set1&size=512x512",   // ロボット
+    "https://robohash.org/" + seed + ".png?set=set3&size=512x512",   // ロボットの頭
+    "https://api.dicebear.com/9.x/bottts/png?size=512&seed=" + seed,
+    "https://api.dicebear.com/9.x/fun-emoji/png?size=512&seed=" + seed,
+    "https://api.dicebear.com/9.x/adventurer/png?size=512&seed=" + seed
+  ];
+  const url = pool[Math.floor(Math.random() * pool.length)];
+  return { url: url, id: "", direct: url };
+}
+
 /** 絵を出すかどうか（設定タブで「いいえ」にすると止まる） */
 function updPicOn_() {
   try {
@@ -988,9 +1027,18 @@ function updPicOn_() {
 
 /** 星人のすがたを1枚つくって、ドライブに置き、その場所を返す */
 function updAlienPic_(a, theme) {
+  const pic = updAlienPicAi_(a, theme);
+  if (pic && pic.direct) return pic;
+  // AIで作れなかった。無料の絵置き場から1枚もらう（絵が1枚も出ない、を避ける）
+  if (!updPicOn_()) return { url: "", id: "", direct: "" };
+  return updAlienPicFree_(a);
+}
+
+/** AIに絵を作ってもらう（できなければ空を返す） */
+function updAlienPicAi_(a, theme) {
   try {
-    if (!updPicOn_() || !a || !a.name) return { url: "", id: "" };
-    if (typeof geminiReady_ !== "function") return { url: "", id: "" };
+    if (!updPicOn_() || !a || !a.name) return { url: "", id: "", direct: "" };
+    if (typeof geminiReady_ !== "function") return { url: "", id: "", direct: "" };
     const g = geminiReady_();
     let model = "";
     try { model = updCfg_("星人の絵のモデル") || ""; } catch (e) {}
@@ -1012,7 +1060,7 @@ function updAlienPic_(a, theme) {
       ":generateContent?key=" + encodeURIComponent(g.key),
       { method: "post", contentType: "application/json", muteHttpExceptions: true,
         payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-    if (res.getResponseCode() !== 200) return { url: "", id: "" };
+    if (res.getResponseCode() !== 200) return { url: "", id: "", direct: "" };
 
     const parts = (JSON.parse(res.getContentText()).candidates || [{}])[0].content.parts || [];
     let data = "", mime = "image/png";
@@ -1020,16 +1068,19 @@ function updAlienPic_(a, theme) {
       const d = pt.inlineData || pt.inline_data;
       if (d && d.data) { data = d.data; mime = d.mimeType || d.mime_type || mime; }
     });
-    if (!data) return { url: "", id: "" };
+    if (!data) return { url: "", id: "", direct: "" };
 
     const blob = Utilities.newBlob(Utilities.base64Decode(data), mime,
                                    a.name + "_" + Date.now() + ".png");
     const file = DriveApp.createFile(blob);
     try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
-    return { url: file.getUrl() || "", id: file.getId() || "" };
+    const id = file.getId() || "";
+    return { url: file.getUrl() || "",
+             id: id,
+             direct: id ? ("https://drive.google.com/uc?export=view&id=" + id) : "" };
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("updAlienPic", e);
-    return { url: "", id: "" };
+    return { url: "", id: "", direct: "" };
   }
 }
 
@@ -1042,10 +1093,9 @@ function updAlienPic_(a, theme) {
 function updPushOnce_(to, text, pic) {
   if (!to || typeof lrPush_ !== "function") return;
   const only = [{ type: "text", text: String(text).slice(0, 4900) }];
-  if (pic && pic.id) {
-    const direct = "https://drive.google.com/uc?export=view&id=" + pic.id;
+  if (pic && pic.direct) {
     const withPic = only.concat([{ type: "image",
-      originalContentUrl: direct, previewImageUrl: direct }]);
+      originalContentUrl: pic.direct, previewImageUrl: pic.direct }]);
     let err = "";
     try { err = lrPush_(to, withPic) || ""; } catch (e) { err = String(e && e.message ? e.message : e); }
     if (!err) return;                       // 絵つきで送れた
