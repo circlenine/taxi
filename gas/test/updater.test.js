@@ -2103,13 +2103,18 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   t(R('おきば circlenine/test').name === 'circlenine/test', '「おきば ○○/○○」で決める');
   t(R('置き場 a/b').name === 'a/b', '  「置き場」でも通る');
   t(R('repo a/b').name === 'a/b', '  「repo」でも通る');
+  t(R('🧻').name === '', '★「🧻」だけでも通る（💩・🚽 とひと並びに）');
+  t(R('🧻 circlenine/taxi').name === 'circlenine/taxi', '  「🧻 ○○/○○」でも通る');
   t(R('おきばしょ') === null, '  くっついた言葉には反応しない');
+  t(R('💩') === null, '  「💩」は取り込みのもの。ここでは受けない');
+  t(R('🚽') === null, '  「🚽」は枝のもの。ここでは受けない');
   t(R('こんにちは') === null, '  ふつうの話にも反応しない');
 
   const HR = F('updHandleRepo_');
   ctx.rep.length = 0;
   HR({ message: { text: 'おきば へんな名前' }, source: { userId: 'Umark' }, replyToken: 'r' });
   has(ctx.rep[0], '形になっていません', '★「だれか/なにか」の形でなければ、入れない');
+  has(ctx.rep[0], '🧻 circlenine/taxi', '  例も 🧻 の形で書いてある');
   ctx.rep.length = 0;
   HR({ message: { text: 'おきば よそ/べつ' }, source: { userId: 'Uother' }, replyToken: 'r' });
   t(props['GH_REPO'] !== 'よそ/べつ', '★ほかの人には、絶対に変えさせない');
