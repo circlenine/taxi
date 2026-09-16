@@ -1677,7 +1677,9 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   t(dn.indexOf('死') === -1 && dn.indexOf('命') === -1, '  ★「死」「命」は使わない');
   t(/https:\/\/(www\.youtube\.com|www\.tiktok\.com|x\.com)\//.test(dn), '  ★おもしろ動画のリンクも、同じ1通に入れる');
   t(dn.indexOf('▚') === -1, '★かすれた四角の区切り線は、もう使わない');
-  t(dn.indexOf('────') !== -1, '  細い1本の線にした');
+  t(dn.indexOf('────') === -1, '★区切り線そのものをやめた');
+  t(dn.indexOf('╭━') !== -1 && dn.indexOf('╰━┳') !== -1, '★星人の紹介は、ふきだしで囲む');
+  t(dn.indexOf('▽') !== -1, '  しっぽも付く（しゃべっているように見せる）');
   t(dn.indexOf('星人') !== -1, '  星人も同じ1通に入る');
 
   // 何度も打たれても、グループが動画だらけにならない
@@ -1901,6 +1903,28 @@ console.log('\n■ 動画は「いま話題のもの」から');
   t(all.indexOf('TikTok') !== -1, '  TikTok も');
   t(all.indexOf('X') !== -1, '  X も');
   t(Object.keys(urls).every(u => /^https:\/\//.test(u)), '  どれも ちゃんとしたリンク');
+}
+
+
+console.log('\n■ ふきだしで囲む');
+{
+  const B = F('updBubble_');
+  const b = B('あ\nい');
+  const ls = b.split('\n');
+  t(ls[0].indexOf('╭━') === 0, '上のふち');
+  t(ls[1] === '┃あ' && ls[2] === '┃い', '★中の行は、ぜんぶ左のふちが付く');
+  t(ls[3].indexOf('╰━┳') === 0, '下のふち');
+  t(ls[4].indexOf('▽') !== -1, 'しっぽ（しゃべっているように見せる）');
+  t(B('').split('\n').length === 4, '中身が空でも形はくずれない');
+  t(B(null).indexOf('╭━') === 0, 'null でも落ちない');
+
+  // 星人の紹介が、ちゃんとふきだしの中に入ること
+  const card = F('updAlienBlock_')();
+  const cl = card.split('\n');
+  t(card.indexOf('この方を　乗車させて来て下ちい') !== -1, '見出しは、ふきだしの外に出す');
+  t(cl.filter(x => x.indexOf('┃') === 0).length >= 8, '★星人の中身は、ぜんぶふきだしの中');
+  t(cl.filter(x => x.indexOf('┃') === 0).some(x => x.indexOf('特徴') !== -1), '  特徴も中に入る');
+  t(cl.filter(x => x.indexOf('┃') === 0).some(x => x.indexOf('口ぐせ') !== -1), '  口ぐせも中に入る');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

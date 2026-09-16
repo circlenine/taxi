@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U034ver  （2026/09/16）  ★★★
+ *  ★★★  U035ver  （2026/09/16）  ★★★
+ *
+ *  [U035ver]
+ *   ・区切り線をやめて、星人の紹介をふきだしで囲むようにした（updBubble_）
+ *     囲ってあるだけで「ここはひとかたまり」と目で分かるので、
+ *     線を引く必要そのものが無くなる。
+ *     しっぽ（▽）を付けて、あの黒い球がしゃべっているように見せる
+ *     ※LINEの字は1文字ずつ幅がちがうので、上下の線と中身の幅は
+ *       きっちりは合いません（文字で飾るものは、どれもそうなります）
  *
  *  [U034ver]
  *   ・区切り線を ▚▚▚ から ──── に変えた
@@ -965,12 +973,6 @@ function updAlienBlock_(a) {
   const x = (a && a.name && Array.isArray(a.toku)) ? a : updAlien_();
   const pt = (1 + Math.floor(Math.random() * 8)) * 10;
   const L = [];
-  // ★頭の1行だけ、わざと崩す。
-  //   意味のない記号を並べるより、読める言葉が壊れているほうがドキッとする。
-  //   一瞬「バグった？」と見えて、次の行でちゃんと読める、という見せ方
-  L.push(updBleed_("てめえ達は今から", 7, 7));
-  L.push("この方を　乗車させて来て下ちい");
-  L.push("");
   L.push("　" + x.name);
   L.push("　　特徴");
   x.toku.forEach(function (t) { L.push("　　　" + t); });
@@ -983,7 +985,12 @@ function updAlienBlock_(a) {
   L.push("　　口ぐせ");
   L.push("　　　" + x.kuse);
   L.push("　　とくてん　" + updWide_(String(pt)) + "てん");
-  return L.join("\n");
+  // ★頭の1行だけ、わざと崩す。
+  //   意味のない記号を並べるより、読める言葉が壊れているほうがドキッとする。
+  //   一瞬「バグった？」と見えて、次の行でちゃんと読める、という見せ方
+  return updBleed_("てめえ達は今から", 7, 7) + "\n" +
+         "この方を　乗車させて来て下ちい\n" +
+         "\n" + updBubble_(L.join("\n"));
 }
 
 /* ---------------- 星人のすがた（絵） ---------------- */
@@ -1164,24 +1171,37 @@ function updAlienPicJob_() {
   const pic = updAlienPic_(job.a);
   // 絵が作れなかったら、黙って何も送らない（文はもう届いている）
   if (!pic || !pic.url) return;
-  updPushOnce_(job.to, UPD_LINE + "\n" + job.a.name + "　の　すがた\n" + UPD_LINE + "\n" + pic.url, pic);
+  updPushOnce_(job.to, updBubble_("　" + job.a.name + "　の　すがた") + "\n" + pic.url, pic);
 }
 
 /** あの黒い球 */
 const UPD_BALL = "　　　　　　●";
 
 /**
- * 区切り線。
- * ★▚▚▚ は、かすれた四角がびっしり並んで、かえって読みにくかった。
- *   細い1本の線のほうが、目が休まって、区切りとして働く。
+ * ふきだしで囲む。
+ *
+ * ★区切り線をやめて、星人の紹介をふきだしの中に入れる。
+ *   囲ってあるだけで「ここはひとかたまり」と目で分かるので、
+ *   線を引く必要そのものが無くなる。
+ *   しっぽ（▽）を付けると、あの黒い球がしゃべっているように見える。
+ *
+ *   ※LINEの字は1文字ずつ幅がちがうので、上下の線と中身の幅は
+ *     きっちりは合いません（文字で飾るものは、どれもそうなります）。
  */
-const UPD_LINE = "────────────────";
+function updBubble_(text) {
+  const top = "╭━━━━━━━━━━━━━╮";
+  const bot = "╰━┳━━━━━━━━━━╯";
+  const tail = "　 ▽";
+  const body = String(text == null ? "" : text).split("\n")
+    .map(function (ln) { return "┃" + ln; }).join("\n");
+  return top + "\n" + body + "\n" + bot + "\n" + tail;
+}
 
 /** 近未来のロボットの声（ドイツ語まじり）。中身は日本語で必ず添える */
 function updKataStart_(alien) {
   return UPD_BALL + "\n" +
          updAlienBlock_(alien) + "\n" +
-         UPD_LINE + "\n" +
+         "\n" +
          "きみたちの　ふるいスプシは\n" +
          "なくなりました。\n" +
          "\n" +
@@ -1195,7 +1215,7 @@ function updKataStart_(alien) {
 function updKataFail_(body) {
   return UPD_BALL + "\n" +
          updBleed_("しっぱいしました", 5, 5) + "\n" +
-         UPD_LINE + "\n" +
+         "\n" +
          "てんそうは　ちゅうしされました。\n" +
          "きみの　スプシは　そのままです。\n" +
          "\n" + String(body || "") + "\n\n" +
@@ -1284,7 +1304,7 @@ function updFunLink_() { return updFunPick_().url; }
 function updKataDenied_(alien, fun) {
   return UPD_BALL + "\n" +
          updAlienBlock_(alien) + "\n" +
-         UPD_LINE + "\n" +
+         "\n" +
          "きみは　えらばれて　いません。\n" +
          "スプシは　なにも　かわりません。\n" +
          "\n" +
