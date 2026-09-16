@@ -90,6 +90,8 @@ ctx.ScriptApp = { getOAuthToken: () => 'tok', getScriptId: () => 'SID',
     const api = {
       forSpreadsheet: () => api, onEdit: () => { b._kind = 'edit'; return api; },
       timeBased: () => api, everyMinutes: () => { b._kind = 'min'; return api; },
+      after: () => { b._kind = 'after'; return api; },
+      atHour: () => api, nearMinute: () => api, everyDays: () => api,
       create: () => { triggers.push({ getHandlerFunction: () => b._fn, _kind: b._kind });
                       return b; }
     };
@@ -1466,6 +1468,75 @@ console.log('\n■ 見張りが止まったとき、スマホだけで直せる'
   has(text, '持ち時間を使い切る', '  長く止まっていたら、その理由も書く');
   t(F('panelTriggersOk_')() === true, '入れ直したあとは、しくみがそろっている');
   props['PANEL_WATCH_AT'] = before;
+}
+
+
+console.log('\n■ LINEから「コード更新」（スマホだけで貼り替えずに済むように）');
+{
+  // ★スマホしか無いのに、コードを1本ずつ貼り替えるのは無理がある。
+  //   GitHubから取り込む仕掛けを、LINEからも押せるようにした
+  const cache = {};
+  ctx.CacheService = { getScriptCache: () => ({
+    get: k => (k in cache ? cache[k] : null),
+    put: (k, v) => { cache[k] = String(v); },
+    remove: k => { delete cache[k]; } }) };
+  let replies = [], pushes = [];
+  vm.runInContext('function lineReply_(tok, t){ rep.push(t); }', ctx);
+  vm.runInContext('function lrPush_(to, msgs){ pu.push({ to: to, msgs: msgs }); }', ctx);
+  vm.runInContext('var SENDER_MAP = { "Umark": "ﾏｰｸ", "Uother": "ｼｭﾝ" };', ctx);
+  ctx.rep = replies; ctx.pu = pushes;
+
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file', sha: 'a' }],
+         raw: { 'gas/001-Code.gs': 'function appsscript(){}' } };
+  props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok'; props['GH_PATH'] = 'gas';
+
+  const note = F('updHandleNote_'), yes = F('updHandleYes_');
+
+  // ほかの人は使えない
+  replies.length = 0;
+  t(note({ message: { text: 'コード更新' }, source: { userId: 'Uother' }, replyToken: 'r' }) === false,
+    '★まーくさん以外は、コード更新を使えない');
+  t(replies.length === 0, '  何も返さない');
+
+  // いきなり「はい」では始まらない
+  triggers.length = 0;
+  t(yes({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }) === false,
+    '★確かめていない「はい」では、取り込みを始めない');
+  t(triggers.length === 0, '  見張りも作らない');
+
+  // 1段目：聞き返すだけ
+  replies.length = 0; triggers.length = 0;
+  t(note({ message: { text: 'コード更新' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '「コード更新」を受ける');
+  t(triggers.length === 0, '  ★1段目では、まだ取り込まない');
+  t(replies[0].indexOf('よろしいですか') !== -1, '  聞き返す');
+  t(replies[0].indexOf('001-Code') !== -1, '  何が入るのかも見せる');
+  t(replies[0].indexOf('保存します') !== -1, '  先に保存することも伝える');
+
+  // 2段目：裏で動かす見張りを作って、すぐ返事する
+  replies.length = 0; triggers.length = 0;
+  t(yes({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '2段目で取り込みを始める');
+  t(triggers.length === 1, '  1回だけ動く見張りを作る');
+  t(triggers[0].getHandlerFunction() === 'updRunFromLine_', '  その見張りが取り込みをする');
+  t(triggers[0]._kind === 'after', '  ★受け口の中では取り込まない（LINEの送り直しで二重になるため）');
+  t(replies[0].indexOf('取り込みを始めました') !== -1, '  すぐ返事する');
+  t(props['UPD_LINE_TO'] === 'Umark', '  結果の送り先も覚えておく');
+
+  // 同じ「はい」をもう一度打っても、二度は始まらない
+  triggers.length = 0;
+  t(yes({ message: { text: 'はい' }, source: { userId: 'Umark' }, replyToken: 'r' }) === false,
+    '★二度目の「はい」では始まらない');
+  t(triggers.length === 0, '  見張りも作らない');
+
+  // 裏の見張りは、終わったら自分を片づけて、結果を送る
+  triggers.push({ getHandlerFunction: () => 'updRunFromLine_', _kind: 'after' });
+  pushes.length = 0;
+  F('updRunFromLine_')();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updRunFromLine_').length === 0,
+    '★終わったら、自分の見張りを片づける（見張りの数を食わないように）');
+  t(pushes.length === 1 && pushes[0].to === 'Umark', '  結果をまーくさんに送る');
+  t(props['UPD_LINE_TO'] === undefined, '  送り先の覚え書きも消す');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

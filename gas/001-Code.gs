@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C044ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C045ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,9 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C045ver]
+ *   ・LINEの「コード更新」を受けるようにした（updHandleNote_ / updHandleYes_）
  *
  *  [C044ver]
  *   ・レポートの確認用【はい】【いいえ】と、手直しの文字を受けるようにした
@@ -1503,6 +1506,12 @@ function handleEvent_(ev) {
   //   LINEのウェブフックは時計の見張りではないので、
   //   見張りが全部止まっていてもここは動く。
   if (typeof handleRepairNote_ === "function" && handleRepairNote_(ev)) return;
+
+  // --- 「コード更新」 ＝ GitHubの新しいコードを取り込む（まーくさんだけ・2段階）---
+  //     スマホしか無いのに、コードを1本ずつ貼り替えるのは無理がある。
+  //     ここから押せれば、貼り替えそのものが要らなくなる
+  if (typeof updHandleNote_ === "function" && updHandleNote_(ev)) return;
+  if (typeof updHandleYes_ === "function" && updHandleYes_(ev)) return;
 
   // --- 「ｼﾞﾝ登録」 ＝ このIDはこのタブの人、と覚える ---
   if (handleSenderRegister_(ev)) return;

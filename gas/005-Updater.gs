@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U024ver  （2026/09/16）  ★★★
+ *  ★★★  U025ver  （2026/09/16）  ★★★
+ *
+ *  [U025ver]
+ *   ・LINEから「コード更新」と打つだけで、GitHubの新しいコードを取り込めるようにした
+ *     ★スマホしか無いのに、コードを1本ずつ貼り替えるのは無理がある、というご指摘。
+ *       取り込みの仕掛け（[1]）はもとからあったので、LINEからも押せるようにした。
+ *       これで貼り替えそのものが要らなくなる。
+ *     ・まーくさんだけ。必ず2段階（何が入るかを見せて、「はい」で始める）
+ *     ・取り込みは2〜3分かかる。LINEの受け口の中でやると、
+ *       LINEが「返事が無い」と思って同じ合図を送り直し、二重に取り込んでしまう。
+ *       1秒後に1回だけ動く見張りを置いて、取り込みは裏でやる。
+ *       終わったら結果をLINEに送り、その見張りは自分で片づける
  *
  *  [U024ver]
  *   ・そうさパネルの説明を、新しい流れに直した
@@ -392,6 +403,113 @@ function menuSetGitHub() {
   } catch (e) {
     updTell_("❌ つながりませんでした", e.message);
   }
+}
+
+
+/* ================================================================
+ *  LINEから「コード更新」と打って、そのまま取り込む
+ *
+ *  ★スマホしか無いのに、コードを1本ずつ貼り替えるのは無理がある。
+ *    GitHubから取り込む仕掛け（[1]）はもとからあるので、
+ *    それをLINEからも押せるようにする。これで貼り替えは要らなくなる。
+ *
+ *  ★取り込みは2〜3分かかる。LINEの受け口の中でそのままやると、
+ *    LINEが「返事が無い」と思って同じ合図を送り直してくる。
+ *    すると二重に取り込んでしまう。
+ *    そこで「1秒後に1回だけ動く見張り」を置いて、すぐ返事を返し、
+ *    取り込みそのものは裏でやる。終わったら結果を送る。
+ * ================================================================ */
+
+/** LINEから頼まれた取り込みを、裏で1回だけ動かす */
+function updRunFromLine_() {
+  const pr = updProps_();
+  const to = pr.getProperty("UPD_LINE_TO") || "";
+  pr.deleteProperty("UPD_LINE_TO");
+
+  // 自分（この一度きりの見張り）を片づける。残すと見張りの数を食う
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === "updRunFromLine_") ScriptApp.deleteTrigger(t);
+    });
+  } catch (e) {}
+
+  let out = "";
+  try { out = menuUpdateCode() || "終わりました"; }
+  catch (e) { out = "❌ 取り込みに失敗しました\n" + (e && e.message ? e.message : e); }
+
+  if (to && typeof lrPush_ === "function") {
+    try { lrPush_(to, [{ type: "text", text: String(out).slice(0, 4900) }]); } catch (e) {}
+  }
+}
+
+/**
+ * LINEからの「コード更新」を受ける。扱ったら true。
+ * まーくさん以外からは受けない。必ず2段階で確かめる。
+ */
+function updHandleNote_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
+  if (!/^(コード更新|コードを更新|更新|アップデート|コード取り込み)$/.test(t)) return false;
+
+  const uid = (ev.source && ev.source.userId) || "";
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
+  if (!me || uid !== me) return false;
+
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+  const c = CacheService.getScriptCache();
+  const k = "UPDOK_" + uid;
+
+  // 1段目：何が入るのかを見せて、聞き返す
+  if (!c.get(k)) {
+    let where = "";
+    try {
+      where = updSource_() === "github"
+        ? "GitHub（" + updRepo_() + " / " + updBranch_() + "）" : "ドライブ";
+    } catch (e) { where = "（読み元が分かりません）"; }
+    let names = "";
+    try { names = updListNew_().join("、"); } catch (e) { names = "（一覧を読めませんでした：" + (e && e.message ? e.message : e) + "）"; }
+    c.put(k, "1", 300);
+    say("🔄 コードを取り込みます。よろしいですか\n" +
+        "読み元：" + where + "\n" +
+        "対象：" + (names || "なし") + "\n" +
+        "・書き換える前に、いまのコードをドライブに保存します\n" +
+        "・よければ5分以内に「はい」と返してください");
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 「はい」を受けて、実際に取り込みを始める。扱ったら true。
+ * 上の updHandleNote_ で聞き返したあと、5分以内のときだけ効く。
+ */
+function updHandleYes_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
+  if (!/^(はい|ハイ|OK|ok|お願い|おねがい)$/.test(t)) return false;
+  const uid = (ev.source && ev.source.userId) || "";
+  const c = CacheService.getScriptCache();
+  const k = "UPDOK_" + uid;
+  if (!c.get(k)) return false;                 // 聞き返していないなら、ただの雑談
+  c.remove(k);
+
+  const reply = (ev && ev.replyToken) || "";
+  try { updProps_().setProperty("UPD_LINE_TO", uid); } catch (e) {}
+  try {
+    // 1秒後に1回だけ動く見張り。LINEの受け口はここですぐ終わらせる
+    ScriptApp.newTrigger("updRunFromLine_").timeBased().after(1000).create();
+  } catch (e) {
+    if (typeof lineReply_ === "function") {
+      lineReply_(reply, "🔍 くそっ!!!!やられた!!!!　取り込みを始められません：" + (e && e.message ? e.message : e));
+    }
+    return true;
+  }
+  if (typeof lineReply_ === "function") {
+    lineReply_(reply, "ジェバンニが一晩でやってくれます…\n" +
+                      "取り込みを始めました。2〜3分で結果をお送りします");
+  }
+  return true;
 }
 
 
