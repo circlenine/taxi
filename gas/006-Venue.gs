@@ -2,11 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V031ver  （2026/09/16）  ★★★
+ *  ★★★  V032ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V032ver]
+ *   ・15分おきの見張りで、コードの自動取り込みも見るようにした
+ *     （005-Updater の updAutoPull_ を呼ぶだけ）
  *
  *  [V031ver]
  *   ・写真からの読み取りが、いつも失敗していたのを直した
@@ -4297,6 +4301,12 @@ function venueDailyJob() {
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。
     try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }
+
+    // ★コードが新しくなっていたら、こちらで取り込む。
+    //   「伝えるだけで終わる」ようにするため（005-Updater の updAutoPull_）
+    try {
+      if (typeof updAutoPull_ === "function" && updAutoPull_()) return;
+    } catch (e) { if (typeof logErr_ === "function") logErr_("updAutoPull", e); }
 
     if (!vnAutoOn_()) return;
 

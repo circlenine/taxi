@@ -2,7 +2,27 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U069ver  （2026/09/17）  ★★★
+ *  ★★★  U070ver  （2026/09/17）  ★★★
+ *
+ *  [U070ver]
+ *   ・🔁 新しいコードに、自分で気づいて取り込むようにした（updAutoPull_）
+ *     ★「伝えるだけで終わる」ようにするためのものです。
+ *       これまでは、直したあとに [1] に☑を入れるか「💩」と送る必要がありました。
+ *       押し忘れれば、直したものは入りません。
+ *     ★15分おきの見張りのついでに、GitHubのいちばん新しい書き込みを
+ *       1回だけ見にいきます。変わっていれば、そのまま取り込みます。
+ *       終わったら、まーくさんの個人LINEに1通だけお知らせします
+ *     ★安全のために
+ *       ・取り込む前に、いまのコードを必ず保存します（[4] で戻せます）
+ *       ・同じ書き込みで二度は動きません（見た印を覚えます）
+ *       ・「すでに最新」のときは、黙っています
+ *       ・設定タブ「コードを自動で取り込む」を「いいえ」で止まります
+ *   ・🧹「リセット」のチェックで、結果のらんを空にできるようにした
+ *     ★場所は決め打ちにしません。「リセット」と書いてあるセルの
+ *       すぐ左のチェックを見ます。動かしても付いていけます
+ *     ★空にしたら、チェックは □ に戻します
+ *   ・右下の知らせを、さらにみじかくした（1行＋「ほか〇行は結果らんへ」）
+ *     2行入れると、機種によっては まだ見切れていたため
  *
  *  [U069ver]
  *   ・右下の知らせ（トースト）が見切れていたのを直した
@@ -3075,12 +3095,16 @@ function updToastText_(body) {
     .map(function (x) { return x.trim(); })
     .filter(function (x) { return x !== ""; });
   if (!lines.length) return "";
-  const out = [lines[0]];
-  if (lines[1] && lines[0].length + lines[1].length <= 70) out.push(lines[1]);
-  const rest = lines.length - out.length;
-  let t = out.join("\n");
-  if (rest > 0) t += "\n…ほか" + rest + "行（くわしくは結果らんへ）";
-  return t.slice(0, 120);
+  /*
+   * ★1行だけにします。
+   *   2行入れると、機種によっては まだ見切れます。
+   *   「終わったかどうか」さえ分かればよく、
+   *   中身は 結果らん と まん中の窓で読めます。
+   */
+  let head = lines[0];
+  if (head.length > 34) head = head.slice(0, 33) + "…";
+  const rest = lines.length - 1;
+  return rest > 0 ? head + "\n（ほか" + rest + "行は結果らんへ）" : head;
 }
 
 function updTell_(title, body) {
@@ -4236,6 +4260,12 @@ function panelOnEdit(e) {
     const sh = e.range.getSheet();
     const top = panelTop_(sh);
     if (!top) return;
+    // 「結果を空にする」のチェックは、ボタンの列とは別のところにある
+    const rc = panelResetCell_(sh);
+    if (rc && e.range.getRow() === rc.row && e.range.getColumn() === rc.col) {
+      panelResetIfAsked_(sh);
+      return;
+    }
     if (e.range.getColumn() !== panelChkCol_(sh, top)) return;
     const row = e.range.getRow();
     const last = panelLastRow_(sh);
@@ -4274,6 +4304,148 @@ function panelAutoSync_(sh) {
   }
 }
 
+/* ================================================================
+ *  🔁 自分で気づいて、自分で取り込む（自動更新）
+ *
+ *  ★「伝えるだけで終わる」ようにするためのものです。
+ *
+ *    これまでは、直したあとに まーくさんが
+ *    [1] に☑を入れるか「💩」と送る必要がありました。
+ *    それも手間です。押し忘れれば、直したものは入りません。
+ *
+ *    そこで、15分おきの見張りのついでに
+ *    「GitHubのいちばん新しい書き込み」を1回だけ見にいきます。
+ *    前に見たときと変わっていれば、そのまま取り込みます。
+ *    終わったら、まーくさんの個人LINEに1通だけお知らせします。
+ *
+ *  ★安全のために、こうしてあります。
+ *    ・取り込む前に、いまのコードを必ず保存します（[4] で戻せます）
+ *    ・同じ書き込みで二度は動きません（見た印を覚えます）
+ *    ・失敗したら、そのまま止まります（半端に書き換えません）
+ *    ・設定タブ「コードを自動で取り込む」を「いいえ」にすれば止まります
+ * ================================================================ */
+
+/** 自動で取り込んでよいか（設定タブ。空なら はい） */
+function updAutoOn_() {
+  try {
+    const v = String(updCfg_("コードを自動で取り込む") || "").trim();
+    if (!v) return true;
+    return /^(はい|ON|on|yes|Yes|YES|する|入|有効)$/.test(v);
+  } catch (e) { return true; }
+}
+
+/**
+ * GitHubが新しくなっていたら、取り込む。
+ * 15分おきの見張りから呼ばれる。
+ */
+function updAutoPull_() {
+  if (!updAutoOn_()) return false;
+  if (updSource_() !== "github") return false;
+
+  const pr = updProps_();
+  // 取り込みの最中なら、何もしない
+  try { if (CacheService.getScriptCache().get("UPD_RUNNING")) return false; } catch (e) {}
+
+  // いちばん新しい書き込みの印（sha）を1回だけ見る
+  let sha = "";
+  try {
+    const r = updGhTry_("https://api.github.com/repos/" + updRepo_() +
+                        "/commits/" + updRefPath_(updBranch_()));
+    if (r.code !== 200) return false;
+    sha = String((JSON.parse(r.body) || {}).sha || "");
+  } catch (e) { return false; }
+  if (!sha) return false;
+
+  const seen = pr.getProperty("GH_HEAD_SEEN") || "";
+  if (seen === sha) return false;                  // 変わっていない
+
+  // ★先に印を覚える。ここで覚えないと、失敗したときに
+  //   15分ごとに何度も同じことをやり直してしまう
+  try { pr.setProperty("GH_HEAD_SEEN", sha); } catch (e) {}
+
+  let out = "";
+  try {
+    CacheService.getScriptCache().put("UPD_RUNNING", "1", 600);
+    out = menuUpdateCode() || "";
+  } catch (e) {
+    out = "❌ 取り込みに失敗しました：" + ((e && e.message) || e);
+  }
+  try { CacheService.getScriptCache().remove("UPD_RUNNING"); } catch (e) {}
+
+  // すでに最新だったときは、黙っている（毎回鳴らさない）
+  if (String(out).indexOf("すでに最新です") !== -1) return false;
+
+  // まーくさんにだけ、1通お知らせする
+  try {
+    let me = "";
+    try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+    // 003-LineReport が古いときのために、こちらでも探す（合言葉のときと同じ）
+    if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
+    if (me && typeof lrPush_ === "function") {
+      const bad = /^❌/.test(String(out)) ||
+                  String(out).indexOf("新しいコードがありません") !== -1;
+      lrPush_(me, [{ type: "text",
+        text: bad ? updKataFail_(out) : updKataDone_(out) }]);
+    }
+  } catch (e) {}
+  return true;
+}
+
+/* ---- 🧹 結果を空にするボタン（リセット） ---- */
+
+/*
+ * ★「結果」のらんは、前の結果が残ったままだと
+ *   いまのものか 前のものか 分からなくなります。
+ *   そこで、押すと空にできるチェックを置けるようにしました。
+ *
+ * ★場所は決め打ちにしません。
+ *   「リセット」と書いてあるセルをさがし、そのすぐ左のチェックを見ます。
+ *   まーくさんが動かしても、付いていけるようにするためです。
+ */
+const PANEL_RESET_WORD = "リセット";
+
+/** 「リセット」と書いてあるセルの、すぐ左のチェックの場所。無ければ null */
+function panelResetCell_(sh) {
+  if (!sh) return null;
+  try {
+    const hit = sh.createTextFinder(PANEL_RESET_WORD).matchEntireCell(false).findNext();
+    if (!hit) return null;
+    const col = hit.getColumn() - 1;
+    if (col < 1) return null;
+    return { row: hit.getRow(), col: col };
+  } catch (e) { return null; }
+}
+
+/**
+ * リセットのチェックが押されていたら、結果を空にして、チェックを外す。
+ * 押されていなければ false。
+ */
+function panelResetIfAsked_(sh) {
+  const c = panelResetCell_(sh);
+  if (!c) return false;
+  let on = false;
+  try { on = sh.getRange(c.row, c.col).getValue() === true; } catch (e) { return false; }
+  if (!on) return false;
+  // ★panelSay_ は時刻を頭に付けるので、空にするには使えません。
+  //   ここは、セルそのものを空にします
+  try {
+    const rc = panelResultCell_(sh);
+    if (rc) {
+      let rg = sh.getRange(rc.row, rc.col);
+      try {
+        if (rg.isPartOfMerge()) {
+          const m = rg.getMergedRanges();
+          if (m && m.length) rg = m[0].getCell(1, 1);
+        }
+      } catch (e) {}
+      rg.setValue("");
+      try { sh.setRowHeight(rc.row, PANEL_RESULT_H); } catch (e) {}
+    }
+  } catch (e) {}
+  try { sh.getRange(c.row, c.col).setValue(false); } catch (e) {}   // □ に戻す
+  return true;
+}
+
 /** 1分おきの見張り。onEdit が効かない機種のための保険 */
 function panelWatch() {
   try {
@@ -4281,6 +4453,9 @@ function panelWatch() {
 
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
     if (!sh) return;
+
+    // 「結果を空にする」が押されていたら、まずそれ
+    if (panelResetIfAsked_(sh)) return;
 
     // 動きっぱなしになっていないか、先に見る
     if (panelCheckStuck_(sh)) return;

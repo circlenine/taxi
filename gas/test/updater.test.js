@@ -1961,6 +1961,94 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   delete props['UPD_KATA_JOBS'];
 }
 
+console.log('\n■ 🧹 結果を空にするボタン（リセット）');
+{
+  /*
+   * ★前の結果が残ったままだと、いまのものか前のものか分からない。
+   *   場所は決め打ちにせず、「リセット」と書いてあるセルの
+   *   すぐ左のチェックを見る（動かしても付いていけるように）
+   */
+  reset([['001-Code.gs', 'x']]);
+  F('menuMakePanel')();
+  panel._cells['4,8'] = 'リセットボタン';     // H4 に名前
+  panel._cells['4,7'] = false;                // G4 にチェック
+
+  const c = F('panelResetCell_')(panel);
+  t(c && c.row === 4 && c.col === 7, '★「リセット」の、すぐ左のチェックを見つける');
+
+  // 押していなければ、何もしない
+  const rr = F('panelResultRow_')(panel);
+  panel._cells[rr + ',3'] = 'のこっている結果';
+  t(F('panelResetIfAsked_')(panel) === false, '押していなければ、何もしない');
+  t(panel._cells[rr + ',3'] === 'のこっている結果', '  結果もそのまま');
+
+  // 押したら、空にして、チェックを戻す
+  panel._cells['4,7'] = true;
+  t(F('panelResetIfAsked_')(panel) === true, '★押したら、空にする');
+  t(String(panel._cells[rr + ',3'] || '') === '', '  結果が空になる');
+  t(panel._cells['4,7'] === false, '★チェックは □ に戻す');
+
+  // 「リセット」の文字が無ければ、何も起きない
+  delete panel._cells['4,8']; delete panel._cells['4,7'];
+  t(F('panelResetCell_')(panel) === null, '  「リセット」が無ければ、何もしない');
+  t(F('panelResetIfAsked_')(panel) === false, '  そのときも落ちない');
+}
+
+console.log('\n■ 🔁 新しいコードに、自分で気づいて取り込む');
+{
+  /*
+   * ★「伝えるだけで終わる」ようにするためのもの。
+   *   15分おきの見張りのついでに、GitHubのいちばん新しい書き込みを
+   *   1回だけ見にいき、変わっていれば取り込む
+   */
+  reset([]);
+  props['GH_REPO'] = 'circlenine/taxi';
+  props['GH_PATH'] = 'gas';
+  gh = { dir: [{ name: '001-Code.gs', path: 'gas/001-Code.gs', type: 'file' }],
+         raw: { 'gas/001-Code.gs': 'あたらしい中身' },
+         head: { sha: 'AAA111', commit: { message: 'なおした', author: { date: '2026-09-17T07:00:00Z' } } } };
+  ctx.pu.length = 0;
+
+  t(F('updAutoPull_')() === true, '★新しくなっていたら、自分で取り込む');
+  t(props['GH_HEAD_SEEN'] === 'AAA111', '  見た印を覚える');
+  t(lastPut() !== undefined, '★ちゃんと書き込まれる');
+  t(ctx.pu.length === 1, '★終わったら、まーくさんに1通だけ知らせる');
+  has(ctx.pu[0].msgs[0].text, 'とりこみ　かんりょう', '  終わったと分かる');
+  t(ctx.pu[0].to === 'Umark', '  ★まーくさんにだけ（グループには流さない）');
+
+  /*
+   * ★同じ書き込みでは、二度と動かないこと。
+   *   中身をわざと変えておいて、それでも動かないことを見る
+   *   （印だけで止めていないと、ここで書き込みが起きてしまう）
+   */
+  ctx.pu.length = 0; apiCalls = [];
+  gh.raw['gas/001-Code.gs'] = 'さらに べつの中身';
+  t(F('updAutoPull_')() === false, '★同じ書き込みでは、二度と動かない');
+  t(ctx.pu.length === 0, '  だから、何度も鳴らない');
+  t(lastPut() === undefined, '★中身が変わっていても、書き込みにいかない（印で止める）');
+
+  /*
+   * ★設定で止められること。
+   *   こちらも、中身と印の両方を変えておいて、
+   *   それでも動かないことを見る
+   */
+  props['GH_HEAD_SEEN'] = 'ふるい';
+  gh.head.sha = 'BBB222';
+  apiCalls = []; ctx.pu.length = 0;
+  vm.runInContext('function cfg_(k){ return k === "コードを自動で取り込む" ? "いいえ" : ""; }', ctx);
+  t(F('updAutoPull_')() === false, '★設定で「いいえ」にすれば、止まる');
+  t(lastPut() === undefined, '  そのときは、書き込みにもいかない');
+  t(props['GH_HEAD_SEEN'] === 'ふるい', '  印も、触らない');
+  vm.runInContext('cfg_ = function(){ return ""; };', ctx);
+
+  // GitHubが見えないときは、何もしない（黙って見送る）
+  props['GH_HEAD_SEEN'] = 'ふるい';
+  gh = { dir: [], reposCode: 404 };
+  ctx.pu.length = 0;
+  t(F('updAutoPull_')() === false, 'GitHubが見えなければ、何もしない');
+  t(ctx.pu.length === 0, '  そのときは、何も送らない');
+}
+
 console.log('\n■ 右下の知らせ（トースト）は、みじかくする');
 {
   /*
@@ -1969,7 +2057,10 @@ console.log('\n■ 右下の知らせ（トースト）は、みじかくする'
    */
   const T = F('updToastText_');
   t(T('1行目\n2行目\n3行目\n4行目').indexOf('1行目') === 0, '1行目は必ず出す');
-  has(T('1行目\n2行目\n3行目\n4行目'), 'ほか2行', '★入りきらないぶんは「ほか〇行」とまとめる');
+  has(T('1行目\n2行目\n3行目\n4行目'), 'ほか3行', '★入りきらないぶんは「ほか〇行」とまとめる');
+  t(T('1行目\n2行目\n3行目\n4行目').split('\n').length === 2,
+    '★1行＋案内の2行だけ（2行入れると、機種によっては まだ見切れる）');
+  t(T('あ'.repeat(80)).split('\n')[0].length <= 34, '  1行が長すぎるときは、そこも切る');
   has(T('1行目\n2行目\n3行目\n4行目'), '結果らん', '  くわしくはどこを見ればよいか書く');
   t(T('みじかい1行').indexOf('ほか') === -1, '  みじかければ、そのまま');
   t(T('あ'.repeat(500)).length <= 120, '★長くても、上限で切る');
