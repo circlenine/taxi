@@ -1897,7 +1897,16 @@ console.log('\n■ 鍵を入れる画面では、鍵だけをきく');
   t(props['GH_TOKEN'] === 'github_pat_ABCDEF', '★入れた鍵が、ちゃんとしまわれる');
   t(props['GH_REPO'] === 'circlenine/test', '  置き場は、勝手に書きかえない');
   t(props['GH_BRANCH'] === 'claude/gas-code-info-collection-e5mxw3', '  枝も、そのまま');
+  /*
+   * ★ここで「n.map is not a function」と出て止まっていた。
+   *   updReadGitHub_ が返すのは並びではなく { files, skipped, shas } なのに、
+   *   並びとして扱っていたため
+   */
   t(alerts.length > 0, '  つながったかどうかを、その場で知らせる');
+  t(String(alerts[alerts.length - 1].b).indexOf('is not a function') === -1,
+    '★途中で落ちない');
+  has(alerts[alerts.length - 1].t, 'つながりました', '  つながったと言える');
+  has(alerts[alerts.length - 1].b, '001-Code', '  見つかったファイルの名前も出る');
 
   // 空のまま OK を押したら、いまの鍵をそのまま使う
   prompts.length = 0; alerts.length = 0; promptText = '';
