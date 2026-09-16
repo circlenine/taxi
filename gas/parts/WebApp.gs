@@ -20,6 +20,32 @@ const WB_DAYS = 190;
 
 /** ブラウザからページを開いたとき */
 function doGet(e) {
+  /*
+   * ★予定ファイル（.ics）を取りに来たとき。
+   *
+   *   イベントの絵の「⏰スマホのアラーム」を押すと、ここに来ます。
+   *   返すのは、会場名・時刻・アラームだけの小さなファイルです。
+   *   乗車の記録はいっさい入っていないので、
+   *   「見せてよい相手か」の関所（wbGate_）は通しません。
+   *   （関所を通すと、押した人がログインしていないときに開けません）
+   */
+  try {
+    if (e && e.parameter && e.parameter.ics && typeof vnIcsServe_ === "function") {
+      const ics = vnIcsServe_(e.parameter.d, e.parameter.i);
+      if (ics) {
+        return ContentService.createTextOutput(ics.text)
+          .setMimeType(ContentService.MimeType.ICAL)
+          .downloadAsFile(ics.name);
+      }
+      return ContentService.createTextOutput("その予定が見つかりませんでした")
+        .setMimeType(ContentService.MimeType.TEXT);
+    }
+  } catch (err) {
+    try { logErr_("webapp-ics", err); } catch (e2) {}
+    return ContentService.createTextOutput("予定ファイルを作れませんでした")
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+
   const all = !!(e && e.parameter && e.parameter.all);
   const gate = wbGate_();
 

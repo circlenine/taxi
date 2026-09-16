@@ -2,11 +2,63 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V025ver  （2026/09/16）  ★★★
+ *  ★★★  V027ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V027ver]
+ *   ・番号を ❶❷❸… にして、上から通しで振るようにした
+ *     ★前は、もらった並びのまま番号を振っていたのに、
+ *       絵のほうは イベント → バラシ → ホテル宴会 と並べ直して出していたので、
+ *       番号が飛んだり、種類ごとに ❶ から始まったように見えて、
+ *       どれを指しているのか分からなくなっていました。申し訳ありませんでした。
+ *       先に並べ直してから番号を振るようにして、直しました
+ *     ★白ぬき（①）から背景ぬり（❶）に変えました。
+ *       小さい画面では ① は細くて、会場名にまぎれて見落とすため
+ *     ★番号の書き方は問いません。❶ でも ① でも ➊ でも ⓵ でも
+ *       1 でも １ でも (1) でも「1,3」「1、3」「1と3」でも通ります
+ *   ・⏰「スマホのアラーム」ボタンを足した
+ *     ★iPhone の「リマインダー」アプリに、リンクを押すだけで入れる方法は
+ *       ありません（Apple がその入り口を出していないため）。
+ *       代わりに、世界共通の予定ファイル（.ics）を1つ渡します。
+ *       押すと「カレンダーに追加しますか」と出て、追加すると
+ *       終了予定の5分前に、スマホ自身が鳴ります。
+ *       LINEが開けなくても、電波が無くても鳴ります。
+ *       公式LINEの送信数も使いません。Android でも同じものが使えます
+ *     ★まだ1度も「みんなの記録ページ」を公開していないと
+ *       リンクが作れないので、そのときはボタンを出しません
+ *       （押しても開かないボタンは、出さないほうがよいため）
+ *   ・📧 メールを、アドレスだけ送っても入れられるようにした
+ *     ★「メール通知」という言葉を覚えて、そのうえアドレスも打つのは
+ *       出先では面倒です。公式LINE（1対1）に、自分のアドレスを
+ *       そのまま送るだけで通ります
+ *     ★グループでは受けません。雑談にアドレスが出たときに、
+ *       勝手に登録してしまわないため
+ *     ★予約の返事ですすめるのも、メールに戻しました。
+ *       アプリを入れずに済むのは、これだけのため
+ *
+ *  [V026ver]
+ *   ・📣 スマホ通知を足した。LINEが開けないときの本命はこちらです
+ *     ★メールは、いまどきあまり見られません。
+ *       ﾃﾞｨｽｺｰﾄﾞは受け取れるようにするまで8手かかりました。
+ *       「ntfy」という無料アプリなら3手で済みます。
+ *         ① アプリを入れる（会員登録もパスワードも無し）
+ *         ② こちらから送るリンクを1回押す
+ *         ③ すぐテストが1通とどく
+ *       Android にも iPhone にもあり、ふつうのスマホの通知として
+ *       画面の上に出て、音も鳴ります
+ *     ★公式LINEに「スマホ通知」と1回送るだけで、案内が届きます。
+ *       「スマホ通知 解除」で止まり、
+ *       「スマホ通知 入れ直し」で合言葉を作り直せます
+ *     ★お知らせを押すと、その会場のページが開きます（click）
+ *     ★合言葉（トピック）は、人に当てられない長さのものを自動で作ります。
+ *       スクリプトプロパティにだけ置き、シートにもリポジトリにも書きません。
+ *       返事も必ず本人の個人LINEへ返します（グループには出しません）
+ *     ★題に会場名を入れてあるので、開かなくても何の話か分かります
+ *   ・メール通知は、消さずに残してあります（メールがよい人のために）。
+ *     ただし、予約の返事ですすめるのはスマホ通知のほうに変えました
  *
  *  [V025ver]
  *   ・リマインダーを「終了予定の5分前」に変えた（前は60分前）
@@ -177,7 +229,8 @@
  *   ・万博記念公園は、いったん読みに行かないようにした
  *     （会場の情報そのものは消していないので、1行戻せば復活する）
  *   ・16:30 に まーくさんだけへ「確認用」を送るようにした（番号つき）
- *     ①②③… の番号を振り、「①削除」「①③削除」「①修正：〜」で手直しできる。
+ *     ❶❷❸… の番号を上から通しで振り、「❶削除」「❶❸削除」「❶修正：〜」で
+ *     手直しできる。番号は ❶ でも ① でも 1 でも１でも通じる。
  *     手直しした結果が 17:00 にグループへ出る。
  *     確認用が出ていない日は、グループへは絶対に送らない
  *     （人の目を通していないものを、みんなに流さないため）
@@ -716,8 +769,8 @@ function vnCard_(ev, idx, day, noBells) {
              : ev.start ? `${ev.start} 開始`
              : "";
   const head1 = [];
-  // 確認用のときだけ、頭に ①②… の番号を付ける。
-  // この番号で「①削除」「①修正：〜」と言えるようにするため
+  // 確認用のときだけ、頭に ❶❷… の番号を付ける。
+  // この番号で「❶削除」「❶修正：〜」と言えるようにするため
   if (ev.no) head1.push({ "type": "span", "text": vnNoMark_(ev.no) + " ", "weight": "bold", "color": "#e65100" });
   head1.push({ "type": "span", "text": (ev.icon || "📍") + " " + ev.venue, "weight": "bold", "color": VN_COLOR_TEXT });
   if (when) head1.push({ "type": "span", "text": "　" + when, "weight": "bold", "color": "#b71c1c" });
@@ -730,7 +783,7 @@ function vnCard_(ev, idx, day, noBells) {
     rows.push({ "type": "text", "text": "👆 詳細はクリック（該当ページに移ります）",
                 "size": "xxs", "color": VN_COLOR_HEAD, "weight": "bold", "margin": "xs", "wrap": true });
   }
-  // 手直し（「①修正：〜」で書き足したこと）は、いちばん目立つところに出す
+  // 手直し（「❶修正：〜」で書き足したこと）は、いちばん目立つところに出す
   if (ev.note) {
     rows.push({ "type": "text", "text": "✏️ " + ev.note, "size": "xs", "weight": "bold",
                 "color": "#e65100", "wrap": true, "margin": "xs" });
@@ -803,7 +856,7 @@ function vnBuildMessages_(day, events, note, noBells) {
       { "type": "text", "text": "👆 各イベントの枠を押すと、その公式ページが開きます", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs", "weight": "bold" }
     ]});
 
-  const kinds = [["event", "🎤 イベント"], ["barasi", "🔧 バラシ（搬出）"], ["hotel", "🍽 ホテル宴会"]];
+  const kinds = VN_KIND_ORDER.map(function (k) { return [k, VN_KIND_LABEL[k]]; });
   let shown = 0;
   kinds.forEach(function (k) {
     const list = (events || []).filter(function (e) { return (e.kind || "event") === k[0]; });
@@ -1682,10 +1735,13 @@ function vnHandleNote_(ev, sentAt) {
   // ⓪「イベント一覧」… だれでも、いつでも今日のぶんを見られるように
   if (vnHandleListCmd_(ev, sentAt)) return true;
 
-  // ⓪-2「メール通知 〇〇@〇〇」… LINEが開けないときの受け取り口
+  // ⓪-2「スマホ通知」… LINEが開けないときの、いちばんかんたんな受け取り口
+  if (vnHandlePushCmd_(ev)) return true;
+
+  // ⓪-3「メール通知 〇〇@〇〇」… メールがよければ、こちらでも
   if (vnHandleMailCmd_(ev)) return true;
 
-  // ① 確認用の手直し（「①削除」「①③削除」「①修正：〜」など）
+  // ① 確認用の手直し（「❶削除」「❶❸削除」「❶修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
 
   // ② 種類を間違えて送ってしまったときの言い直し（「訂正：会場」など）
@@ -2526,6 +2582,115 @@ function vnRemindAt_(ev, day) {
   return ms;
 }
 
+/* ---- ⏰ スマホ自身のアラームに入れる（.ics）---- */
+
+/*
+ * ★iPhone の「リマインダー」アプリに、リンクを押すだけで入れる方法は
+ *   ありません。Apple がそういう入り口を出していないためです。
+ *   （ショートカットを自分で作れば できますが、それこそ手数が増えます）
+ *
+ *   そこで、同じことができる正攻法にしました。
+ *   「.ics」という、世界共通の予定ファイルを1つ渡します。
+ *   これを押すと iPhone は「カレンダーに追加しますか」と聞いてきます。
+ *   追加すると、終了予定の5分前に、**スマホ自身が鳴ります**。
+ *
+ *   ここが肝心です。鳴らすのはスマホ自身なので、
+ *   ・LINEが開けなくても鳴る
+ *   ・電波が無くても鳴る
+ *   ・公式LINEの送信数も使わない
+ *   出先でいちばん頼りになるのは、これです。
+ *   Android（Googleカレンダー）でも、同じファイルが使えます。
+ */
+
+/** .ics の中で使う日時の形（世界標準時。20260916T120000Z） */
+function vnIcsStamp_(ms) {
+  const z = function (n) { return ("0" + n).slice(-2); };
+  const u = new Date(ms);
+  return u.getUTCFullYear() + z(u.getUTCMonth() + 1) + z(u.getUTCDate()) + "T" +
+         z(u.getUTCHours()) + z(u.getUTCMinutes()) + "00Z";
+}
+
+/** .ics の中では、カンマ・セミコロン・改行に「\」を付ける決まり */
+function vnIcsEsc_(t) {
+  return String(t == null ? "" : t)
+    .replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,")
+    .replace(/[\r\n]+/g, "\\n");
+}
+
+/**
+ * 予定ファイル（.ics）の中身を作る。
+ * 終了予定の◯分前に鳴るよう、アラーム（VALARM）も入れておく。
+ */
+function vnIcsText_(ev, day) {
+  const hourMs = function (hhmm, fallback) {
+    const h = vnHourOf_(hhmm);
+    const use = (h === null) ? fallback : h;
+    const d = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    d.setHours(0, 0, 0, 0);
+    // 日本時間 → 世界標準時（9時間ひく）
+    return d.getTime() + Math.round(use * 60) * 60000 - 9 * 3600000;
+  };
+  const st = hourMs(ev.start || ev.end, 20);
+  const en = hourMs(ev.end || ev.start, 23);
+  const lead = vnLeadMin_();
+  const title = (ev.venue || "") + (ev.title ? "　" + ev.title : "");
+  const uid = "vn-" + vnIcsStamp_(st) + "-" +
+              String(ev.venue || "").length + String(ev.title || "").length + "@taxi";
+  const L = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//taxi//venue//JA", "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + uid,
+    "DTSTAMP:" + vnIcsStamp_(Date.now()),
+    "DTSTART:" + vnIcsStamp_(st),
+    "DTEND:" + vnIcsStamp_(en),
+    "SUMMARY:" + vnIcsEsc_(title),
+    "DESCRIPTION:" + vnIcsEsc_("終了予定の" + lead + "分前に鳴ります。\n" +
+                               "※ 時刻は前後することがあります。公式ページでお確かめください。" +
+                               (ev.url ? "\n" + ev.url : "")),
+    "LOCATION:" + vnIcsEsc_(ev.venue || ""),
+    ev.url ? "URL:" + vnIcsEsc_(ev.url) : "",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:" + vnIcsEsc_(title + "　もうすぐ終了予定"),
+    // 終わりの◯分前に鳴らす（終わりを基準にするので END からさかのぼる）
+    "TRIGGER;RELATED=END:-PT" + lead + "M",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ];
+  return L.filter(String).join("\r\n") + "\r\n";
+}
+
+/**
+ * その予定の .ics を取りに行くリンク。
+ * ★みんなの記録ページ（WebApp）と同じ入口を使います。
+ *   まだ1度も公開していないとリンクが作れないので、そのときは空を返し、
+ *   ボタンそのものを出しません（押しても開かないボタンは、出さないほうがよい）。
+ */
+function vnIcsUrl_(day, idx) {
+  let base = "";
+  try { if (typeof wbUrl_ === "function") base = wbUrl_() || ""; } catch (e) {}
+  if (!base) return "";
+  const ymd = day.getFullYear() + ("0" + (day.getMonth() + 1)).slice(-2) +
+              ("0" + day.getDate()).slice(-2);
+  return base + (base.indexOf("?") === -1 ? "?" : "&") + "ics=1&d=" + ymd + "&i=" + idx;
+}
+
+/**
+ * WebApp から呼ばれる。.ics の中身を組み立てて返す。
+ * 見つからなければ null（呼んだ側で、ふつうのページを出す）。
+ */
+function vnIcsServe_(ymd, idx) {
+  if (!/^\d{8}$/.test(String(ymd || ""))) return null;
+  const day = new Date(Number(String(ymd).slice(0, 4)), Number(String(ymd).slice(4, 6)) - 1,
+                       Number(String(ymd).slice(6, 8)));
+  const list = vnDayLoad_(day);
+  const ev = list[Number(idx)];
+  if (!ev) return null;
+  return { name: "event.ics", text: vnIcsText_(ev, day) };
+}
+
 /** Googleカレンダーに予定を入れるためのURL */
 function vnCalUrl_(ev, day) {
   const z = function (n) { return ("0" + n).slice(-2); };
@@ -2585,14 +2750,19 @@ function vnBellBtn_(mark, label, ymd, idx, flex) {
  */
 function vnBellRow_(ev, idx, day) {
   const ymd = day.getFullYear() + ("0" + (day.getMonth() + 1)).slice(-2) + ("0" + day.getDate()).slice(-2);
+  const ics = vnIcsUrl_(day, idx);
   return { "type": "box", "layout": "horizontal", "margin": "sm",
     "backgroundColor": "#ffffff", "cornerRadius": "md",
     "borderWidth": "1px", "borderColor": "#b39ddb",
     "contents": [
       { "type": "text", "text": "🔔通知設定", "size": "xxs", "weight": "bold",
-        "color": VN_COLOR_HEAD, "gravity": "center", "align": "center", "flex": 4, "wrap": true },
-      vnBellBtn_("me", "📱個人LINEへ通知", ymd, idx, 6)
-    ]};
+        "color": VN_COLOR_HEAD, "gravity": "center", "align": "center", "flex": 3, "wrap": true },
+      vnBellBtn_("me", "📱個人LINEへ通知", ymd, idx, 5)
+    ].concat(ics ? [
+      // ★スマホ自身を鳴らすほう。LINEが開けなくても、電波が無くても鳴る
+      { "type": "button", "style": "link", "height": "sm", "flex": 5,
+        "action": { "type": "uri", "label": "⏰スマホのアラーム", "uri": ics } }
+    ] : [])};
 }
 
 /* ---- 予約のしまい場所 ---- */
@@ -2664,7 +2834,181 @@ function vnRemDrop_(key, uid) {
   return hit;
 }
 
-/* ---- 📧 メールでも受け取れるようにする ---- */
+/* ---- 📣 スマホ通知（アプリに直接とどく）---- */
+
+/*
+ * ★これが、LINEが使えないときの いちばん おすすめの受け取り方です。
+ *
+ *   ntfy（エヌティーエフワイ）という、無料の通知アプリを使います。
+ *   Android にも iPhone にも あります。
+ *
+ *   やることは、たったこれだけです。
+ *     ① アプリを入れる（無料。会員登録もパスワードもありません）
+ *     ② こちらから送るリンクを、1回押す（これで受け取る用意ができます）
+ *     ③ すぐテストが1通とどくので、鳴ったか確かめる
+ *
+ *   ﾃﾞｨｽｺｰﾄﾞは8手かかりました。メールは、いまどきあまり見ません。
+ *   これは3手で、しかも ふつうのスマホの通知として、画面の上に出ます。
+ *   音も鳴ります。LINEを開かなくても気づけます。
+ *
+ * ★「合言葉（トピック）」について
+ *   この しくみは、長い合言葉を1本つくって、それを宛先にします。
+ *   合言葉さえ合っていれば とどく、という かんたんな作りです。
+ *   裏を返すと、合言葉を知られると、他人にも読めてしまいます。
+ *   そこで、人には まず当てられない長さのものを、こちらで自動で作ります。
+ *   合言葉は スクリプトプロパティにだけ置き、
+ *   シートにもリポジトリにも書きません。人にも教えないでください。
+ *   （とどくのは 会場名と終了予定の時刻だけで、お金の話は入れていません）
+ */
+const VN_PUSH_HOST = "https://ntfy.sh";
+
+/** その人の合言葉のしまい場所 */
+function vnPushKey_(uid) { return "VNPUSH_" + String(uid || ""); }
+
+/** その人の合言葉を読む。入れていなければ空 */
+function vnPushGet_(uid) {
+  if (!uid) return "";
+  try { return PropertiesService.getScriptProperties().getProperty(vnPushKey_(uid)) || ""; }
+  catch (e) { return ""; }
+}
+
+/** 合言葉を入れる／消す */
+function vnPushSet_(uid, topic) {
+  if (!uid) return false;
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    if (topic) pr.setProperty(vnPushKey_(uid), topic);
+    else pr.deleteProperty(vnPushKey_(uid));
+    return true;
+  } catch (e) { return false; }
+}
+
+/**
+ * 当てられない合言葉をつくる。
+ *
+ * ★みじかいと、たまたま同じものを使った他人にとどいてしまいます。
+ *   ここでは20文字ぶんのでたらめな字を使うので、まず当たりません。
+ */
+function vnPushNewTopic_() {
+  let r = "";
+  // ★Google がくれるでたらめな番号と、こちらのでたらめな字を、両方まぜる。
+  //   片方だけに頼ると、そちらが偏っていたときに同じものが出てしまう
+  try { r += String(Utilities.getUuid()).replace(/-/g, ""); } catch (e) {}
+  while (r.length < 40) r += Math.random().toString(36).slice(2);
+  // 前と後ろから半分ずつ取って混ぜる（前だけだと、似た番号のとき同じになる）
+  const mix = r.slice(0, 10) + r.slice(-10) + Math.random().toString(36).slice(2, 6);
+  return "taxi-" + mix.slice(0, 20).toLowerCase().replace(/[^a-z0-9]/g, "x");
+}
+
+/**
+ * スマホ通知を1通送る。うまくいけば空文字、だめなら理由を返す。
+ *
+ * ★日本語の題名を、通信の「見出し」に直接入れると はじかれます。
+ *   なので、ぜんぶ JSON（データのかたまり）にして送ります。
+ *   この形なら、日本語がそのまま通ります。
+ */
+function vnPushSend_(topic, title, body, clickUrl) {
+  if (!topic) return "スマホ通知の宛先が入っていません";
+  const payload = { topic: topic, title: String(title || ""), message: String(body || ""),
+                    priority: 4, tags: ["alarm_clock"] };
+  // 押したら、その会場のページが開くようにする
+  if (clickUrl && /^https?:\/\//.test(clickUrl)) payload.click = clickUrl;
+  try {
+    const res = UrlFetchApp.fetch(VN_PUSH_HOST, {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      payload: JSON.stringify(payload)
+    });
+    const c = res.getResponseCode();
+    return (c >= 200 && c < 300) ? "" : "スマホ通知を送れませんでした（" + c + "）";
+  } catch (e) {
+    return "スマホ通知を送れませんでした（" + (e && e.message ? e.message : e) + "）";
+  }
+}
+
+/**
+ * 打たれた文が「スマホ通知」の合図かどうかを見る。
+ *
+ *   スマホ通知            … 入れる（まだなら新しく作る）／いまの状態
+ *   スマホ通知 解除       … 止める
+ *   スマホ通知 入れ直し   … 合言葉を作り直す（人に知られてしまったとき用）
+ */
+function vnPushWord_(text) {
+  let t = String(text == null ? "" : text).trim();
+  if (!t) return null;
+  const head = t.match(/^(スマホ|すまほ|ｽﾏﾎ|アプリ|あぷり|ntfy|Ntfy|NTFY)\s*(通知|つうち|ツウチ)?/);
+  if (!head) return null;
+  // 「スマホ」だけ、「アプリ」だけでは動かさない（ふつうの話に反応しないように）
+  if (!head[2] && !/^(ntfy|Ntfy|NTFY)$/.test(head[1])) return null;
+  const rest = t.slice(head[0].length).replace(/^[\s\u3000:：、,]+/, "").trim();
+  if (!rest) return { kind: "on" };
+  if (/^(解除|かいじょ|やめる|やめ|止める|とめる|オフ|off|OFF|停止|なし)$/.test(rest)) return { kind: "off" };
+  if (/^(入れ直し|入れなおし|いれなおし|作り直し|つくりなおし|やり直し|リセット|reset)$/.test(rest)) return { kind: "reset" };
+  return { kind: "on" };
+}
+
+/**
+ * 「スマホ通知」の合図を受ける。扱ったら true。
+ *
+ * ★返事は、必ず打った本人の個人LINEへ。
+ *   グループに返すと、合言葉がみんなに見えてしまいます。
+ */
+function vnHandlePushCmd_(ev) {
+  const w = vnPushWord_((ev && ev.message && ev.message.text) || "");
+  if (!w) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const reply = (ev && ev.replyToken) || "";
+  const tell = function (t) {
+    if (uid && typeof lrPush_ === "function") {
+      try { lrPush_(uid, [{ type: "text", text: t }]); return; }
+      catch (e) {}
+    }
+    if (typeof lineReply_ === "function") lineReply_(reply, t);
+  };
+
+  if (!uid) {
+    if (typeof lineReply_ === "function") lineReply_(reply, "📣 どなたか分からず、入れられませんでした");
+    return true;
+  }
+  if (w.kind === "off") {
+    vnPushSet_(uid, "");
+    tell("📣 スマホ通知を止めました。\n" +
+         "アプリのほうも、その名前を長押しして消しておいてください。\n" +
+         "また使いたくなったら「スマホ通知」と送ってください。");
+    return true;
+  }
+
+  const had = vnPushGet_(uid);
+  const topic = (w.kind === "reset" || !had) ? vnPushNewTopic_() : had;
+  vnPushSet_(uid, topic);
+  const link = VN_PUSH_HOST + "/" + topic;
+
+  const err = vnPushSend_(topic, "とどきました",
+      "この形で、イベントのお知らせがとどきます。", "");
+  tell(
+    (w.kind === "reset" ? "📣 スマホ通知を、入れ直しました。\n\n"
+     : had ? "📣 スマホ通知は、もう入っています。\n\n"
+           : "📣 スマホ通知を入れます。3つだけです。\n\n") +
+    "① 無料アプリ「ntfy」を入れる\n" +
+    "　Android　https://play.google.com/store/apps/details?id=io.heckel.ntfy\n" +
+    "　iPhone　　https://apps.apple.com/app/ntfy/id1625396347\n" +
+    "　※ 会員登録もパスワードもありません。\n\n" +
+    "② アプリを入れたら、この下のリンクを1回押す\n" +
+    "　" + link + "\n" +
+    "　アプリが開いて「登録しますか」と出たら、はいを押してください。\n" +
+    "　（開かないときは、アプリの「＋」を押して、下の名前を打ってください）\n" +
+    "　" + topic + "\n\n" +
+    "③ いま、テストを1通送りました。\n" +
+    (err ? "　⚠️ ただし、送るところで つまずきました。\n　" + err + "\n"
+         : "　スマホが鳴ったか、見てください。\n" +
+           "　鳴っていなければ、②をもう一度お願いします。\n") +
+    "\n" +
+    "※ この名前は、あなた専用の合言葉です。人に教えないでください。\n" +
+    "※ 止めたいときは「スマホ通知 解除」と送ってください。\n" +
+    "※ 名前を知られてしまったら「スマホ通知 入れ直し」で作り直せます。");
+  return true;
+}
+
+/* ---- 📧 メールでも受け取れるようにする（ふるい人向けに残してあります）---- */
 
 /*
  * ★なぜ、メールを足したのか。
@@ -2720,6 +3064,19 @@ function vnMailSet_(uid, addr) {
 function vnMailWord_(text) {
   let t = String(text == null ? "" : text).trim();
   if (!t) return null;
+
+  /*
+   * ★アドレスだけを打ってもらっても、受けるようにしています。
+   *
+   *   「メール通知」という言葉を覚えて、そのうえアドレスも打つ、
+   *   というのは 出先では面倒です。手が止まります。
+   *   公式LINE（1対1）に、自分のアドレスをそのまま送るだけで通ります。
+   *   ★グループでは受けません（bare を見て、呼ぶ側ではじきます）。
+   *     雑談にアドレスが出たときに、勝手に登録してしまわないため。
+   */
+  const only = t.match(/^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/);
+  if (only) return { kind: "on", addr: only[0], bare: true };
+
   const head = t.match(/^(メール|めーる|ﾒｰﾙ|mail|Mail|MAIL)\s*(通知|つうち|ツウチ|notify)?/);
   if (!head) return null;
   let rest = t.slice(head[0].length).replace(/^[\s\u3000:：、,]+/, "").trim();
@@ -2763,6 +3120,9 @@ function vnHandleMailCmd_(ev) {
   const uid = (ev && ev.source && ev.source.userId) || "";
   const reply = (ev && ev.replyToken) || "";
   const inGroup = !!(ev && ev.source && (ev.source.groupId || ev.source.roomId));
+  // ★アドレスだけの打ち込みを受けるのは、公式LINE（1対1）のときだけ。
+  //   グループの雑談にアドレスが出たとき、勝手に登録してしまわないため
+  if (w.bare && inGroup) return false;
   const tell = function (t) {
     if (uid && typeof lrPush_ === "function") {
       try { lrPush_(uid, [{ type: "text", text: t }]); return; }
@@ -2827,8 +3187,26 @@ function vnHandleMailCmd_(ev) {
 function vnMailHint_(uid) {
   const ad = vnMailGet_(uid);
   if (ad) return "📧 メールにも届きます（" + ad + "）";
-  return "📧 LINEが開けないときのために、メールでも受け取れます。\n" +
-         "　　「メール通知 じぶんのアドレス」と送るだけです。";
+  // ★アプリを入れずに済むのは、これだけです。
+  //   Android にも iPhone にも Gmail が最初から入っているので、
+  //   入れるものは何もありません。打つのは1回だけ
+  return "📧 LINEが開けないときは、メールでも受け取れます。\n" +
+         "　　この公式LINEに、じぶんのアドレスを1回送るだけです。\n" +
+         "　　（例）taro@gmail.com　←そのまま送ってOK\n" +
+         "　　入れるアプリはありません。止めるときは「メール通知 解除」。";
+}
+
+/**
+ * 予約の返事に添える、スマホ通知の案内文。
+ *
+ * ★入れている人には「アプリにも届く」と伝えるだけ。
+ *   入れていない人にだけ、入れ方をひと言そえる。
+ *   もう入れている人に毎回すすめるのは、うるさいだけなので出さない。
+ */
+function vnPushHint_(uid) {
+  if (vnPushGet_(uid)) return "📣 スマホのアプリにも届きます";
+  return "📣 LINEが開けないときは、スマホのアプリに直接とどく形にもできます。\n" +
+         "　　「スマホ通知」と送ると、入れ方をお伝えします（3手・無料）。";
 }
 
 /**
@@ -2985,9 +3363,12 @@ function vnRemindTick_() {
     try {
       if (r.how === "dc") vnDiscord_(vnRemText_(r));
       else if (typeof lrPush_ === "function") lrPush_(r.to, [{ type: "text", text: vnRemText_(r) }]);
-      // ★メールを入れている人には、メールでも送る。
-      //   出先でLINEが開けないときや、Androidで通知を見落としたときの受け皿。
-      //   件名に会場名を入れておけば、開かなくても画面の上で分かる
+      // ★スマホ通知を入れている人には、アプリにも送る。
+      //   出先でLINEが開けないときの本命。ふつうの通知として画面の上に出て、音も鳴る。
+      //   題に会場名を入れておけば、開かなくても何の話か分かる
+      const tp = vnPushGet_(r.to);
+      if (tp) vnPushSend_(tp, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r), r.url);
+      // ★メールを入れている人には、メールでも送る（こちらは昔ながらの受け皿）
       const ad = vnMailGet_(r.to);
       if (ad) vnMailSend_(ad, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r));
     } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemind", e); }
@@ -3229,28 +3610,72 @@ function vnTodayEvents_(day) {
  *
  *  ★グループに出ていくものを、人の目を通さずに送らない。
  *    16:30 にまーくさんだけへ、番号つきで送る。
- *    見て、いらないものを「①削除」、直したいものを「①修正：〜」と返すと、
+ *    見て、いらないものを「❶削除」、直したいものを「❶修正：〜」と返すと、
  *    その場で直した確認用をもう一度送る。
  *    17:00 に、その直したものがグループへ出る。
  * ================================================================ */
 
-/** ①②③…の記号（20をこえたら「(21)」のように書く） */
+/**
+ * ❶❷❸…の記号（20をこえたら「(21)」のように書く）
+ *
+ * ★白ぬき（①）から、背景ぬり（❶）に変えました。
+ *   小さい画面では ① は細くて、会場名にまぎれて見落とします。
+ *   ❶ は黒くつぶれているので、ぱっと目に入ります。
+ * ★1〜10 と 11〜20 で、文字の置き場所が離れているので、分けて数えます。
+ */
 function vnNoMark_(n) {
   const i = Number(n) || 0;
-  return (i >= 1 && i <= 20) ? String.fromCharCode(0x2460 + i - 1) : "(" + i + ")";
+  if (i >= 1 && i <= 10) return String.fromCharCode(0x2776 + i - 1);   // ❶〜❿
+  if (i >= 11 && i <= 20) return String.fromCharCode(0x24EB + i - 11); // ⓫〜⓴
+  return "(" + i + ")";
 }
 
-/** ①②③…や 1,3 のような書き方を、数の並びにする */
+/**
+ * 「❶削除」「①③削除」「1,3削除」などの書き方を、数の並びにする。
+ *
+ * ★どんな形で来ても受けます。出先で打つものなので、
+ *   形を1つに決めてしまうと、違う打ち方をしたときに通らなくて困ります。
+ *     ❶❷❸…（背景ぬり）  ⓫⓬…
+ *     ①②③…（白ぬき）    ⑪⑫…
+ *     ⓵⓶⓷…（二重まる）
+ *     1 / １ / (1) / 1. / 1、3 / 1,3 / 1と3
+ */
 function vnNoParse_(text) {
   const out = [];
-  String(text || "").replace(/[\u2460-\u2473]/g, function (c) {
-    out.push(c.charCodeAt(0) - 0x2460 + 1); return c;
-  });
+  const t = String(text || "");
+  const pick = function (re, base, from) {
+    t.replace(re, function (c) { out.push(c.charCodeAt(0) - base + from); return c; });
+  };
+  pick(/[\u2460-\u2473]/g, 0x2460, 1);    // ①〜⑳（白ぬき）
+  pick(/[\u2776-\u277F]/g, 0x2776, 1);    // ❶〜❿（背景ぬり）
+  pick(/[\u24EB-\u24F4]/g, 0x24EB, 11);   // ⓫〜⓴（背景ぬり）
+  pick(/[\u24F5-\u24FE]/g, 0x24F5, 1);    // ⓵〜⓾（二重まる）
+  pick(/[\u2780-\u2789]/g, 0x2780, 1);    // ➀〜➉（細まる）
+  pick(/[\u278A-\u2793]/g, 0x278A, 1);    // ➊〜➓（太い背景ぬり）
   // 半角・全角の数字も受ける（「1削除」「1,3削除」「1、3削除」）
-  String(text || "").replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+  t.replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
     .replace(/\d+/g, function (d) { out.push(parseInt(d, 10)); return d; });
   // 同じ番号は1つにして、小さい順に
   return Array.from(new Set(out)).filter(function (n) { return n >= 1; }).sort(function (a, b) { return a - b; });
+}
+
+/**
+ * 絵に出すときの並び順。ここ1か所で決める。
+ * ★番号を振るところと、絵を組み立てるところで別々に持つと、
+ *   片方だけ直したときに、番号と見た目がずれてしまうため。
+ */
+const VN_KIND_ORDER = ["event", "barasi", "hotel"];
+const VN_KIND_LABEL = { "event": "🎤 イベント", "barasi": "🔧 バラシ（搬出）", "hotel": "🍽 ホテル宴会" };
+
+/** 画面に出てくる順に並べ直す（種類の順。同じ種類の中は、もらった順のまま） */
+function vnSortForShow_(list) {
+  const rank = function (e) {
+    const i = VN_KIND_ORDER.indexOf((e && e.kind) || "event");
+    return i === -1 ? VN_KIND_ORDER.length : i;
+  };
+  return (list || []).map(function (e, i) { return { e: e, i: i }; })
+    .sort(function (a, b) { return (rank(a.e) - rank(b.e)) || (a.i - b.i); })
+    .map(function (x) { return x.e; });
 }
 
 /** その日の「手直し中の一覧」をしまう鍵 */
@@ -3316,11 +3741,15 @@ function vnTestAskBox_(day) {
 function vnTestHelpText_() {
   return "わ…私は仰せの通りに…　直し方はこちらです\n" +
          "\n" +
-         "「①削除」… ①を消します\n" +
-         "「①③削除」… まとめて消せます（「1,3削除」でも可）\n" +
-         "「①修正：雨天中止」… ①に、その言葉を書き足します\n" +
+         "「❶削除」… ❶を消します\n" +
+         "「❶❸削除」… まとめて消せます\n" +
+         "「❶修正：雨天中止」… ❶に、その言葉を書き足します\n" +
          "「もどす」… 手直しを全部やめて、読み取ったままに戻します\n" +
          "「全削除」… 今日はグループへ送りません\n" +
+         "\n" +
+         "※ 番号は、どんな書き方でも通じます。\n" +
+         "　　❶ でも ① でも 1 でも １ でも大丈夫です。\n" +
+         "　　「1,3削除」「1、3削除」「1と3削除」も同じ意味です。\n" +
          "\n" +
          "返信をいただいたら、直したものを もう一度お送りします。\n" +
          "※ 開演・終演の時刻が読めなかったものは、はじめから出していません";
@@ -3333,9 +3762,19 @@ function vnTestHelpText_() {
 function vnSendTest_(d, list) {
   const to = vnTestTarget_();
   if (!to || typeof lrPush_ !== "function") return false;
-  const evs = (list || []).map(function (e, i) {
+  /*
+   * ★番号は「画面に出てくる順」で、上から通しで振ります。
+   *
+   *   前は、もらった並びのまま番号を振っていました。
+   *   ところが絵のほうは イベント → バラシ → ホテル宴会 と
+   *   種類ごとに並べ直して出すので、番号が飛んだり、
+   *   種類ごとに ❶ から始まったように見えて、どれを指しているのか
+   *   分からなくなっていました。
+   *   だから先に並べ直してから、上から ❶❷❸… と振ります。
+   */
+  const evs = vnSortForShow_(list).map(function (e, i) {
     const c = {}; for (const k in e) c[k] = e[k];
-    c.no = i + 1;                       // ①②③… の番号を振る
+    c.no = i + 1;
     return c;
   });
   vnEditSave_(d, evs);
@@ -3350,11 +3789,11 @@ function vnSendTest_(d, list) {
 }
 
 /**
- * 確認用への返信（「①削除」「①修正：〜」など）を受ける。
+ * 確認用への返信（「❶削除」「❶修正：〜」など）を受ける。
  * 扱ったら true。
  *
  * ★まーくさん以外からは受けない。
- *   グループの誰かが「①削除」と打っただけで消えては困る。
+ *   グループの誰かが「❶削除」と打っただけで消えては困る。
  */
 function vnHandleEditCmd_(ev, sentAt) {
   const text = String((ev.message && ev.message.text) || "").trim();
@@ -3419,11 +3858,11 @@ function vnHandleEditCmd_(ev, sentAt) {
   const cur = vnEditLoad_(d);
   if (!cur) return false;              // 確認用をまだ送っていない
 
-  // 「①修正：〜」
+  // 「❶修正：〜」
   const fix = text.match(/^([^:：]*)[:：](.+)$/);
   if (fix && /(修正|訂正|直し|なおし|補足)/.test(fix[1])) {
     const ns = vnNoParse_(fix[1]);
-    if (!ns.length) { say("🔍 わけがわからない…　番号が読み取れません（例：①修正：雨天中止）"); return true; }
+    if (!ns.length) { say("🔍 わけがわからない…　番号が読み取れません（例：❶修正：雨天中止）"); return true; }
     const add = fix[2].trim();
     let hit = 0;
     ns.forEach(function (n) {
@@ -3438,10 +3877,10 @@ function vnHandleEditCmd_(ev, sentAt) {
     return true;
   }
 
-  // 「①削除」「①③削除」
+  // 「❶削除」「❶❸削除」
   if (/(削除|消して|けして|カット|いらない)/.test(text)) {
     const ns = vnNoParse_(text);
-    if (!ns.length) { say("🔍 わけがわからない…　番号が読み取れません（例：①削除）"); return true; }
+    if (!ns.length) { say("🔍 わけがわからない…　番号が読み取れません（例：❶削除）"); return true; }
     const del = {};
     ns.forEach(function (n) { if (cur[n - 1]) del[n] = 1; });
     if (!Object.keys(del).length) { say("🔍 わけがわからない…　その番号は一覧にありません"); return true; }
@@ -3537,7 +3976,7 @@ function venueDailyJob() {
     if (!pr.getProperty(tKey)) return;
 
     // ★確認用で手直ししたものがあれば、必ずそちらを使う。
-    //   「①削除」と言われたものが、そのままグループへ出ていってはいけない。
+    //   「❶削除」と言われたものが、そのままグループへ出ていってはいけない。
     // ★【はい】が押されていなくても送る。
     //   寝ていて見られないこともある。そのときは止めるより、
     //   いちばん新しい内容のまま出すほうがよい、という決めごと

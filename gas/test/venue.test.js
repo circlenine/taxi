@@ -47,7 +47,9 @@ ctx.MailApp = {
   getRemainingDailyQuota: () => 100,
   sendEmail: o => { mails.push(o); }
 };
+let uuidN = 0;
 ctx.Utilities = {
+  getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' + ('00000000000' + (++uuidN)).slice(-12),
   DigestAlgorithm: { MD5: 'MD5' }, Charset: { UTF_8: 'UTF_8' },
   computeDigest: (a, t) => { const o = []; for (let i = 0; i < 16; i++) o.push((t.charCodeAt(i % t.length) * (i + 7)) & 255); return o; },
   base64Encode: () => 'x'
@@ -680,6 +682,134 @@ console.log('\n■ 🔕 通知解除のボタン');
   ctx.Date = RealDate;
 }
 
+console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
+{
+  const day = new Date(2026, 8, 16);
+  ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'コンサート', start: '18:00', end: '21:00', url: 'https://kyocera/' }]);
+  vm.runInContext('function wbUrl_(){ return "https://script.google.com/macros/s/AAA/exec"; }', ctx);
+
+  const u = ctx.vnIcsUrl_(day, 0);
+  has(u, 'ics=1&d=20260916&i=0', 'みんなの記録ページと同じ入口に、予定ファイルを取りに行く');
+
+  const got = ctx.vnIcsServe_('20260916', 0);
+  eq(got && got.name, 'event.ics', '★押すと .ics が返る');
+  const t = got.text;
+  has(t, 'BEGIN:VCALENDAR', '世界共通の予定ファイルの形');
+  has(t, 'SUMMARY:京セラドーム\\u3000コンサート'.replace('\\u3000', '　'), '  題は会場名と催し名');
+  has(t, 'DTSTART:20260916T090000Z', '  日本時間18:00を世界標準時に直している');
+  has(t, 'DTEND:20260916T120000Z', '  終わりは21:00');
+  has(t, 'BEGIN:VALARM', '★アラームが入っている（スマホ自身が鳴る）');
+  has(t, 'TRIGGER;RELATED=END:-PT5M', '★終了予定の5分前に鳴る');
+  has(t, 'LOCATION:京セラドーム', '  場所も入る');
+  has(t, 'https://kyocera/', '  公式ページのリンクも入る');
+  eq(t.indexOf('\r\n') !== -1, true, '  行の区切りは決まりどおり（CRLF）');
+  eq(ctx.vnIcsServe_('20260916', 9), null, '  無い番号なら null（ふつうのページを出す）');
+  eq(ctx.vnIcsServe_('あ', 0), null, '  日付がおかしくても落ちない');
+
+  // カンマや「;」が題に入っても壊れない
+  ctx.vnDaySave_(day, [{ venue: 'A,B', title: 'C;D', start: '18:00', end: '21:00', url: '' }]);
+  has(ctx.vnIcsServe_('20260916', 0).text, 'SUMMARY:A\\,B　C\\;D', '★カンマや「;」が入っても壊れない');
+
+  // ボタンが絵に出る
+  ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  const row = JSON.stringify(ctx.vnBellRow_({ venue: '京セラドーム' }, 0, day));
+  has(row, '⏰スマホのアラーム', '★通知設定のらんに、アラームのボタンが出る');
+  has(row, '📱個人LINEへ通知', '  個人LINEのボタンも、そのまま残る');
+
+  // まだ1度も公開していないときは、開かないボタンを出さない
+  vm.runInContext('function wbUrl_(){ return ""; }', ctx);
+  eq(ctx.vnIcsUrl_(day, 0), '', 'ページを公開していなければ、リンクは作れない');
+  eq(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)).indexOf('⏰スマホのアラーム'), -1,
+     '★そのときは、押しても開かないボタンを出さない');
+  vm.runInContext('function wbUrl_(){ return "https://script.google.com/macros/s/AAA/exec"; }', ctx);
+}
+
+console.log('\n■ 📣 スマホ通知（LINEが開けないときの本命）');
+{
+  const W = ctx.vnPushWord_;
+  eq(W('スマホ通知').kind, 'on', '「スマホ通知」で入れる');
+  eq(W('すまほ通知').kind, 'on', '  ひらがなでも通る');
+  eq(W('アプリ通知').kind, 'on', '  「アプリ通知」でも通る');
+  eq(W('ntfy').kind, 'on', '  アプリの名前でも通る');
+  eq(W('スマホ通知 解除').kind, 'off', '「解除」で止める');
+  eq(W('スマホ通知 入れ直し').kind, 'reset', '「入れ直し」で合言葉を作り直す');
+  eq(W('スマホ'), null, '★「スマホ」だけでは動かない（ふつうの話に反応しない）');
+  eq(W('アプリ'), null, '  「アプリ」だけでも動かない');
+  eq(W('スマホが壊れた'), null, '  ふつうの話には反応しない');
+  eq(W(''), null, '空でも落ちない');
+  eq(W(null), null, 'null でも落ちない');
+
+  // 入れる
+  fetched.length = 0; pushed.length = 0;
+  delete props['VNPUSH_Umark'];
+  reply['*'] = { code: 200, body: '' };
+  const took = ctx.vnHandlePushCmd_({ replyToken: 'r', source: { userId: 'Umark' },
+    message: { text: 'スマホ通知' } });
+  eq(took, true, '「スマホ通知」の合図は、ここが扱う');
+  const topic = props['VNPUSH_Umark'];
+  eq(typeof topic === 'string' && topic.indexOf('taxi-') === 0, true,
+     '★合言葉を自動で作る（スクリプトプロパティにだけ置く）');
+  eq(topic.length >= 25, true, '  ★人に当てられない長さにする');
+  eq(pushed[0].to, 'Umark', '★案内は本人の個人LINEへ（グループに合言葉を出さない）');
+  const tx = msgText(pushed[0].msgs[0]);
+  has(tx, 'ntfy', '  アプリの名前を出す');
+  has(tx, 'play.google.com', '  ★Android の入れ先も出す');
+  has(tx, 'apps.apple.com', '  iPhone の入れ先も出す');
+  has(tx, 'https://ntfy.sh/' + topic, '★押すだけで登録できるリンクを出す');
+  has(tx, '会員登録もパスワードもありません', '  手数が少ないことも伝える');
+  has(tx, '人に教えないでください', '  ★合言葉は人に教えないよう、はっきり書く');
+  eq(fetched.length, 1, '  入れたらすぐ、テストを1通送る');
+  eq(fetched[0].url, 'https://ntfy.sh', '  ★日本語が通るよう、JSONの形で送る');
+  const body = JSON.parse(fetched[0].opt.payload);
+  eq(body.topic, topic, '  宛先はその合言葉');
+
+  // 二度目は、同じ合言葉のまま
+  pushed.length = 0;
+  ctx.vnHandlePushCmd_({ replyToken: 'r', source: { userId: 'Umark' }, message: { text: 'スマホ通知' } });
+  eq(props['VNPUSH_Umark'], topic, '★二度目に打っても、合言葉は変わらない');
+  has(msgText(pushed[0].msgs[0]), 'もう入っています', '  もう入っていると伝える');
+
+  // 入れ直すと、別の合言葉になる
+  ctx.vnHandlePushCmd_({ replyToken: 'r', source: { userId: 'Umark' }, message: { text: 'スマホ通知 入れ直し' } });
+  eq(props['VNPUSH_Umark'] !== topic, true, '★「入れ直し」で、合言葉が変わる');
+  const topic2 = props['VNPUSH_Umark'];
+
+  // リマインダーが、アプリにも飛ぶ
+  fetched.length = 0; pushed.length = 0;
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 5000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: 'https://kyocera/' }]);
+  ctx.vnRemindTick_();
+  eq(pushed.length, 1, 'LINEにも届く');
+  const sent = fetched.filter(f => f.url === 'https://ntfy.sh');
+  eq(sent.length, 1, '★スマホのアプリにも届く');
+  const b2 = JSON.parse(sent[0].opt.payload);
+  eq(b2.topic, topic2, '  宛先は、その人の合言葉');
+  has(b2.title, '京セラドーム', '  ★題に会場名（開かなくても分かる）');
+  has(b2.message, '終了予定', '  中身も同じ');
+  eq(b2.click, 'https://kyocera/', '★押したら、その会場のページが開く');
+  eq(b2.priority >= 4, true, '  音が鳴るよう、強さを上げておく');
+
+  // 止めたら、飛ばない
+  ctx.vnHandlePushCmd_({ replyToken: 'r', source: { userId: 'Umark' }, message: { text: 'スマホ通知 解除' } });
+  eq(props['VNPUSH_Umark'], undefined, '★解除すると、合言葉は消える');
+  fetched.length = 0; pushed.length = 0;
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 5000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  ctx.vnRemindTick_();
+  eq(fetched.filter(f => f.url === 'https://ntfy.sh').length, 0, '  解除したら、もう飛ばない');
+  eq(pushed.length, 1, '  LINEのほうは、そのまま届く');
+
+  // 送れなかったときは、そう言う（黙って終わらない）
+  reply['*'] = { code: 500, body: '' };
+  pushed.length = 0;
+  ctx.vnHandlePushCmd_({ replyToken: 'r', source: { userId: 'Umark' }, message: { text: 'スマホ通知' } });
+  has(msgText(pushed[0].msgs[0]), 'つまずきました', '★テストが送れなければ、はっきりそう言う');
+  reply['*'] = { code: 200, body: '' };
+  delete props['VNPUSH_Umark'];
+}
+
 console.log('\n■ 📧 メールでも受け取れる（LINEが開けないとき用）');
 {
   const W = ctx.vnMailWord_;
@@ -693,6 +823,10 @@ console.log('\n■ 📧 メールでも受け取れる（LINEが開けないと�
   eq(W('メール通知 やめる').kind, 'off', '  「やめる」でも止まる');
   eq(W('メール通知 あいうえお').kind, 'bad', 'アドレスとして読めなければ、そう言う');
   eq(W('こんにちは'), null, 'ふつうの話には反応しない');
+  // ★アドレスだけを打っても通る（「メール通知」を覚えなくてよい）
+  eq(W('taro@example.com').kind, 'on', '★アドレスだけ送っても通る');
+  eq(W('taro@example.com').bare, true, '  「アドレスだけ」と分かるようにしておく');
+  eq(W('メール通知 taro@example.com').bare, undefined, '  言葉つきのときは、そうではない');
   eq(W(''), null, '空でも落ちない');
   eq(W(null), null, 'null でも落ちない');
 
@@ -706,6 +840,20 @@ console.log('\n■ 📧 メールでも受け取れる（LINEが開けないと�
   eq(mails.length, 1, '  入れたらすぐ、テストのメールを1通送る');
   eq(mails[0].to, 'taro@example.com', '  宛先はそのアドレス');
   eq(pushed[0].to, 'Umark', '★返事は本人の個人LINEへ（グループにアドレスを出さない）');
+
+  // ★アドレスだけの打ち込みは、公式LINE（1対1）のときだけ受ける
+  delete props['VNMAIL_Umark'];
+  pushed.length = 0; mails.length = 0;
+  eq(ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark' },
+       message: { text: 'taro@example.com' } }), true, 'アドレスだけでも、公式LINEなら受ける');
+  eq(props['VNMAIL_Umark'], 'taro@example.com', '  それで登録できる');
+  delete props['VNMAIL_Umark'];
+  eq(ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark', groupId: 'Cgroup' },
+       message: { text: 'taro@example.com' } }), false,
+     '★グループでアドレスが流れても、勝手に登録しない');
+  eq(props['VNMAIL_Umark'], undefined, '  登録されていない');
+  ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark' },
+    message: { text: 'メール通知 taro@example.com' } });
 
   // グループで打たれたら、そのことも伝える
   pushed.length = 0; mails.length = 0;
@@ -866,18 +1014,44 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
     { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'B', start: '18:30', end: '21:00', url: '' },
     { venue: 'フェスティバルホール', kind: 'event', icon: '🎤', title: 'C', start: '19:00', end: '21:00', url: '' }
   ];
-  eq(ctx.vnNoMark_(1), '①', '番号は①②③…');
-  eq(ctx.vnNoMark_(3), '③', '  3つめも');
-  eq(ctx.vnNoParse_('①③削除'), [1, 3], '「①③削除」は1と3');
-  eq(ctx.vnNoParse_('1,3削除'), [1, 3], '「1,3削除」でも通じる');
+  eq(ctx.vnNoMark_(1), '❶', '★番号は❶❷❸…（背景ぬり。細い①は見落とすため）');
+  eq(ctx.vnNoMark_(3), '❸', '  3つめも');
+  eq(ctx.vnNoMark_(10), '❿', '  10まで');
+  eq(ctx.vnNoMark_(11), '⓫', '  11から先も、ちゃんと出る');
+  eq(ctx.vnNoMark_(21), '(21)', '  20をこえたら「(21)」');
+  // ★どんな書き方でも通じること
+  [['❶❸削除', '背景ぬり'], ['①③削除', '白ぬき'], ['➊➌削除', '太い背景ぬり'],
+   ['⓵⓷削除', '二重まる'], ['1,3削除', '半角の数字'], ['１、３削除', '全角の数字'],
+   ['1と3削除', '「と」でつないでも'], ['(1)(3)削除', 'かっこ付き'], ['1.3削除', '点でつないでも']
+  ].forEach(function (pair) { eq(ctx.vnNoParse_(pair[0]), [1, 3], '★' + pair[1] + '：' + pair[0]); });
+  eq(ctx.vnNoParse_('⓫削除'), [11], '  ⓫も読み取れる');
   eq(ctx.vnNoParse_('削除'), [], '  番号が無ければ空');
+
+  // ★番号は「画面に出る順」で、上から通しで振る
+  const mixed = [
+    { venue: 'ホテルA', kind: 'hotel', title: 'H1', start: '18:00', end: '21:00', url: '' },
+    { venue: '会場A', kind: 'event', title: 'E1', start: '18:00', end: '21:00', url: '' },
+    { venue: 'ホテルB', kind: 'hotel', title: 'H2', start: '18:00', end: '21:00', url: '' },
+    { venue: '会場B', kind: 'event', title: 'E2', start: '18:00', end: '21:00', url: '' }
+  ];
+  const sorted = ctx.vnSortForShow_(mixed).map(e => e.venue);
+  eq(sorted, ['会場A', '会場B', 'ホテルA', 'ホテルB'], '絵に出る順（イベント→バラシ→ホテル）に並べ直す');
+  pushed.length = 0;
+  ctx.vnSendTest_(base, mixed);
+  const saved = JSON.parse(props[ctx.vnEditKey_(base)]);
+  eq(saved.map(e => e.venue + e.no), ['会場A1', '会場B2', 'ホテルA3', 'ホテルB4'],
+     '★番号は上から通し。カテゴリーごとに❶へ戻らない');
+  eq(new Set(saved.map(e => e.no)).size, saved.length, '★同じ番号は二度と出ない');
+  // 絵の中でも、❶❷❸❹が上から順に出てくる
+  const order = JSON.stringify(pushed[0].msgs[0]).match(/[\u2776-\u277F]/g);
+  eq(order, ['❶', '❷', '❸', '❹'], '★絵の中も、上から❶❷❸❹の順にならぶ');
 
   pushed.length = 0;
   eq(ctx.vnSendTest_(base, evs), true, '確認用を送れる');
   eq(pushed[0].to, 'Umark', '★まーくさんだけに行く（グループではない）');
   const j = JSON.stringify(pushed[0].msgs[0]);
-  has(j, '①', '  番号が付く');
-  has(j, '③', '  3件目まで');
+  has(j, '❶', '  番号が付く');
+  has(j, '❸', '  3件目まで');
   has(j, '確認用', '  確認用だと分かる');
   has(j, 'この内容でよろしいですか', '  最後に「よろしいですか」と聞く');
   has(j, 'vn=ok&d=20260916', '  【はい】のボタンが付く');
@@ -888,8 +1062,9 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
   // 【いいえ】を押したときだけ、直し方の手順を出す
   ctx.lastReply = '';
   eq(ctx.vnHandlePostback_({ postback: { data: 'vn=ng&d=20260916' }, replyToken: 'r' }), true, '【いいえ】を受ける');
-  has(ctx.lastReply, '「①削除」', '  そのときに直し方をお伝えする');
-  has(ctx.lastReply, '「①修正：', '  修正のしかたも');
+  has(ctx.lastReply, '「❶削除」', '  そのときに直し方をお伝えする');
+  has(ctx.lastReply, '「❶修正：', '  修正のしかたも');
+  has(ctx.lastReply, 'どんな書き方でも通じます', '  ★番号の書き方は問わないと、はっきり書く');
   ctx.lastReply = '';
   eq(ctx.vnHandlePostback_({ postback: { data: 'vn=ok&d=20260916' }, replyToken: 'r' }), true, '【はい】も受ける');
   has(ctx.lastReply, '17:00', '  このまま17:00に送ると伝える');
@@ -937,7 +1112,7 @@ console.log('\n■ 「イベント一覧」で、いつでも引ける');
      '「イベント一覧」を受ける');
   has(ctx.lastReply, '京セラドーム', '  今日のイベントが出る');
   has(ctx.lastReply, '18:00〜21:00', '  時刻も出る');
-  has(ctx.lastReply, '①', '  番号つきで出る');
+  has(ctx.lastReply, '❶', '  番号つきで出る');
   has(ctx.lastReply, 'ドーム前', '  近い乗り場も出る');
   has(ctx.lastReply, '※注意（必ずお読みください）※', '  ★注釈は「注意」として必ず付ける');
 

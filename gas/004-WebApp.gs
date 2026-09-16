@@ -2,11 +2,17 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W009ver  （2026/09/16）  ★★★
+ *  ★★★  W010ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
+ *
+ *  [W010ver] 予定ファイル（.ics）を渡せるようにした
+ *    イベントの絵の「⏰スマホのアラーム」を押すと、ここに来る。
+ *    会場名・時刻・アラームだけの小さなファイルを返すので、
+ *    乗車の記録はいっさい入っていない。だから関所（wbGate_）は通さない
+ *    （通すと、押した人がログインしていないときに開けないため）
  *
  *  [W009ver] グループの宛先を、形を確かめてから使うようにした
  *   ・見出しが混ざったままLINEに渡すと、理由の分からない400になる
@@ -46,13 +52,39 @@
  * ================================================================
  */
 
-const WB_VERSION = "W009ver";
+const WB_VERSION = "W010ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
 
 /** ブラウザからページを開いたとき */
 function doGet(e) {
+  /*
+   * ★予定ファイル（.ics）を取りに来たとき。
+   *
+   *   イベントの絵の「⏰スマホのアラーム」を押すと、ここに来ます。
+   *   返すのは、会場名・時刻・アラームだけの小さなファイルです。
+   *   乗車の記録はいっさい入っていないので、
+   *   「見せてよい相手か」の関所（wbGate_）は通しません。
+   *   （関所を通すと、押した人がログインしていないときに開けません）
+   */
+  try {
+    if (e && e.parameter && e.parameter.ics && typeof vnIcsServe_ === "function") {
+      const ics = vnIcsServe_(e.parameter.d, e.parameter.i);
+      if (ics) {
+        return ContentService.createTextOutput(ics.text)
+          .setMimeType(ContentService.MimeType.ICAL)
+          .downloadAsFile(ics.name);
+      }
+      return ContentService.createTextOutput("その予定が見つかりませんでした")
+        .setMimeType(ContentService.MimeType.TEXT);
+    }
+  } catch (err) {
+    try { logErr_("webapp-ics", err); } catch (e2) {}
+    return ContentService.createTextOutput("予定ファイルを作れませんでした")
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+
   const all = !!(e && e.parameter && e.parameter.all);
   const gate = wbGate_();
 
