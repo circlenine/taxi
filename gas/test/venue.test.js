@@ -1042,6 +1042,10 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
   eq(saved.map(e => e.venue + e.no), ['会場A1', '会場B2', 'ホテルA3', 'ホテルB4'],
      '★番号は上から通し。カテゴリーごとに❶へ戻らない');
   eq(new Set(saved.map(e => e.no)).size, saved.length, '★同じ番号は二度と出ない');
+  // ★ボタンの引き当て先も、同じ並びでそろっていること。
+  //   ここがずれると、押したのと別の催しのリマインダーが入ってしまう
+  eq(ctx.vnDayLoad_(base).map(e => e.venue), sorted,
+     '★ボタンが引き当てる並びも、画面と同じ順にそろえる');
   // 絵の中でも、❶❷❸❹が上から順に出てくる
   const order = JSON.stringify(pushed[0].msgs[0]).match(/[\u2776-\u277F]/g);
   eq(order, ['❶', '❷', '❸', '❹'], '★絵の中も、上から❶❷❸❹の順にならぶ');
