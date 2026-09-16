@@ -2,7 +2,22 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L032ver  （2026/09/16）  ★★★
+ *  ★★★  L033ver  （2026/09/16）  ★★★
+ *
+ *  [L033ver]
+ *   ・毎月のレポートも2段階にした
+ *     16日 AM03:00 … まーくさんだけに確認用（LINEの絵＋テスト用まとめスプシ）。
+ *                     いちばん下に「この内容でよろしいですか」【はい】【いいえ】
+ *     16日 AM05:30 … グループへ本番。ここでもう一度ぜんぶ集計し直すので、
+ *                     3:00〜5:30 に増えた記録もちゃんと入る
+ *     何も押されなくても 5:30 に送る（寝ていても止めない）。
+ *     「中止」と言われた月だけは送らない
+ *   ・外出中でも、スマホのLINEだけで直せるようにした（rpHandleNote_）
+ *     「メモ：〇〇」… レポートの先頭にひとことを入れる
+ *     「除外：新地4」… その乗り場を集計から丸ごと外す（平均にも混ぜない）
+ *     「除外解除：新地4」／「やり直し」／「中止」／「手直し確認」
+ *     返信をもらうたびに、LINEの絵とテスト用まとめスプシを作り直して送り直す
+ *   ・外した件数は、黙って減らさずレポートに書く（数字が合わなくなるため）
  *
  *  [L032ver]
  *   ・Googleマップのリンクを「登録制」にした（MAP_TAB／mapEnsureSheet_）
@@ -1068,6 +1083,204 @@ function menuSendReportPanel() {
     "\n　期間：" + span + (r.label ? "（" + r.label + "）" : "");
 }
 
+/* ================================================================
+ *  毎月のレポートも、2段階にする
+ *
+ *  ★グループに出ていくものを、人の目を通さずに送らない。
+ *    16日 AM03:00 … まーくさんだけに、確認用（LINEの絵＋テスト用まとめスプシ）
+ *                    いちばん下に「この内容でよろしいですか」【はい】【いいえ】
+ *    16日 AM05:30 … グループへ本番。ここでもう一度集計し直すので、
+ *                    03:00〜05:30 に増えた記録もちゃんと入る。
+ *
+ *  ★外出中でも、スマホのLINEだけで直せるようにしてある。
+ *    スプレッドシートを開く必要はない。
+ * ================================================================ */
+
+/** その期間の「手直し」をしまう鍵 */
+function rpFixKey_(span) { return "RPFIX_" + String(span || ""); }
+
+function rpFixGet_(span) {
+  try {
+    const v = PropertiesService.getScriptProperties().getProperty(rpFixKey_(span));
+    const o = v ? JSON.parse(v) : {};
+    return { memo: String(o.memo || ""), exclude: Array.isArray(o.exclude) ? o.exclude : [],
+             cancel: !!o.cancel, ok: !!o.ok };
+  } catch (e) { return { memo: "", exclude: [], cancel: false, ok: false }; }
+}
+
+function rpFixSet_(span, o) {
+  try { PropertiesService.getScriptProperties().setProperty(rpFixKey_(span), JSON.stringify(o || {})); }
+  catch (e) {}
+}
+
+/** いま手直しの対象になっている期間（16日の朝に作ったもの） */
+function rpFixSpanGet_() {
+  try { return PropertiesService.getScriptProperties().getProperty("RPFIX_SPAN") || ""; }
+  catch (e) { return ""; }
+}
+function rpFixSpanSet_(span) {
+  try { PropertiesService.getScriptProperties().setProperty("RPFIX_SPAN", String(span || "")); }
+  catch (e) {}
+}
+
+/** 除外に指定された乗り場か（名前のゆれは normalizePlace_ で吸収する） */
+function rpExcluded_(name, list) {
+  if (!list || !list.length) return false;
+  let key = String(name || "");
+  try { if (typeof normalizePlace_ === "function") key = normalizePlace_(key); } catch (e) {}
+  for (let i = 0; i < list.length; i++) {
+    let k2 = String(list[i] || "");
+    try { if (typeof normalizePlace_ === "function") k2 = normalizePlace_(k2); } catch (e) {}
+    if (k2 && k2 === key) return true;
+  }
+  return false;
+}
+
+/** 期間の名札（8/16-9/15 の形）。手直しの覚え書きの鍵に使う */
+function rpSpanOf_(startD, endD) { return lrVal_(startD) + "-" + lrVal_(endD); }
+
+/**
+ * 確認用のしめくくり。「この内容でよろしいですか」＋【はい】【いいえ】。
+ * 押すのは まーくさん。LINEだけで完結する。
+ */
+function rpAskBox_(span) {
+  return { "type": "box", "layout": "vertical", "backgroundColor": "#fff8e1",
+    "paddingAll": "12px", "cornerRadius": "md", "margin": "lg", "contents": [
+      { "type": "text", "text": "🧪 確認用（まーくさんにだけ送っています）",
+        "size": "xs", "weight": "bold", "color": "#e65100", "wrap": true },
+      { "type": "text", "text": "この内容でよろしいですか？",
+        "size": "md", "weight": "bold", "color": "#e65100", "wrap": true, "margin": "sm" },
+      { "type": "box", "layout": "horizontal", "spacing": "sm", "margin": "md", "contents": [
+        { "type": "button", "style": "primary", "height": "sm", "color": "#2e7d32",
+          "action": { "type": "postback", "label": "はい", "data": "rp=ok&s=" + encodeURIComponent(span),
+                      "displayText": "はい" } },
+        { "type": "button", "style": "primary", "height": "sm", "color": "#b71c1c",
+          "action": { "type": "postback", "label": "いいえ", "data": "rp=ng&s=" + encodeURIComponent(span),
+                      "displayText": "いいえ" } }
+      ]},
+      { "type": "text", "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "md",
+        "text": "何も押さなくても、5:30 にグループへ送ります。\n" +
+                "そのときは 3:00〜5:30 に増えた記録も入れて、作り直してから送ります。" }
+    ]};
+}
+
+/** 【いいえ】のときに出す、直し方の手順（スマホのLINEだけで完結します） */
+function rpHelpText_() {
+  return "わ…私は仰せの通りに…　直し方はこちらです（LINEだけで終わります）\n" +
+         "\n" +
+         "「メモ：〇〇」… レポートの先頭に、ひとことを入れます\n" +
+         "「除外：新地4」… その乗り場を、集計から丸ごと外します\n" +
+         "「除外解除：新地4」… 外したのを戻します\n" +
+         "「やり直し」… いまの手直しを入れて、もう一度 確認用を作ります\n" +
+         "「中止」… 今月はグループへ送りません\n" +
+         "「手直し確認」… いま何を直しているかを見ます\n" +
+         "\n" +
+         "返信をいただいたら、LINEの絵と まとめスプシ（まーくさんだけが見られるもの）を\n" +
+         "作り直して、もう一度お送りします。";
+}
+
+/**
+ * レポートの手直しを、LINEの文字で受ける。
+ * 扱ったら true。まーくさん以外からは受けない。
+ */
+function rpHandleNote_(ev) {
+  const text = String((ev && ev.message && ev.message.text) || "").trim();
+  if (!text) return false;
+  const uid = (ev.source && ev.source.userId) || "";
+  let me = "";
+  try { me = rpTestTarget_(); } catch (e) {}
+  if (!me || uid !== me) return false;
+
+  const span = rpFixSpanGet_();
+  if (!span) return false;                       // 確認用をまだ作っていない
+  const flat = text.replace(/[\s\u3000]/g, "");
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (t) { if (typeof lineReply_ === "function") lineReply_(reply, t); };
+  const fix = rpFixGet_(span);
+
+  const m = text.match(/^([^:：]*)[:：](.+)$/);
+  const head = m ? m[1].replace(/[\s\u3000]/g, "") : "";
+
+  if (head === "メモ" || head === "ひとこと") {
+    fix.memo = m[2].trim(); rpFixSet_(span, fix);
+    say("ノートに書きました。ひとことを入れて、作り直します…");
+    rpRebuild_(span, "メモを入れました");
+    return true;
+  }
+  if (head === "除外" || head === "のぞく") {
+    const nm = m[2].trim();
+    if (!rpExcluded_(nm, fix.exclude)) fix.exclude.push(nm);
+    rpFixSet_(span, fix);
+    say("削除削除削除削除　「" + nm + "」を集計から外して、作り直します…");
+    rpRebuild_(span, "「" + nm + "」を外しました");
+    return true;
+  }
+  if (head === "除外解除" || head === "もどす対象") {
+    const nm = m[2].trim();
+    fix.exclude = fix.exclude.filter(function (x) { return !rpExcluded_(nm, [x]); });
+    rpFixSet_(span, fix);
+    say("わ…私は仰せの通りに…　「" + nm + "」を戻して、作り直します…");
+    rpRebuild_(span, "「" + nm + "」を戻しました");
+    return true;
+  }
+  if (/^(やり直し|やりなおし|再作成|作り直し)$/.test(flat)) {
+    say("ジェバンニが一晩でやってくれます…　作り直します");
+    rpRebuild_(span, "作り直しました");
+    return true;
+  }
+  if (/^(中止|今月はなし|送らない|レポート中止)$/.test(flat)) {
+    fix.cancel = true; rpFixSet_(span, fix);
+    say("削除削除削除削除　今月はグループへ送りません");
+    return true;
+  }
+  if (/^(中止取消|中止やめ|やっぱり送る)$/.test(flat)) {
+    fix.cancel = false; rpFixSet_(span, fix);
+    say("計★画★通★り　5:30 にグループへ送ります");
+    return true;
+  }
+  if (/^(手直し確認|手直し|いまの手直し)$/.test(flat)) {
+    say("いまの手直し（" + span + "）\n" +
+        "ひとこと：" + (fix.memo || "なし") + "\n" +
+        "外している乗り場：" + (fix.exclude.length ? fix.exclude.join("・") : "なし") + "\n" +
+        "今月の送信：" + (fix.cancel ? "中止" : "5:30 にグループへ") + "\n" +
+        "\n" + rpHelpText_());
+    return true;
+  }
+  return false;
+}
+
+/** 手直しを入れて、確認用を作り直して送り直す */
+function rpRebuild_(span, why) {
+  try {
+    const d = rpSpanDates_(span);
+    if (!d) return;
+    const to = rpTestTarget_();
+    if (!to) return;
+    sendCustomReport(to, d.startD, d.endD, true, { ask: true, note: why || "" });
+  } catch (e) {
+    logErr_("rpRebuild", e);
+    try { lrPush_(rpTestTarget_(), [{ type: "text",
+      text: "🔍 くそっ!!!!やられた!!!!　作り直しに失敗しました：" + (e && e.message ? e.message : e) }]); } catch (e2) {}
+  }
+}
+
+/** 名札（8/16-9/15）から、その期間の日付に戻す */
+function rpSpanDates_(span) {
+  const m = String(span || "").match(/^(\d{1,2})\/(\d{1,2})-(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+  const now = new Date();
+  const eM = Number(m[3]) - 1, eD = Number(m[4]);
+  let eY = now.getFullYear();
+  // 1月に「12/16-1/15」なら、始まりは前の年
+  const endD = new Date(eY, eM, eD, 23, 59, 59);
+  if (endD > now) { eY -= 1; }
+  const end2 = new Date(eY, eM, eD, 23, 59, 59);
+  const sM = Number(m[1]) - 1, sD = Number(m[2]);
+  let sY = eY;
+  if (sM > eM) sY -= 1;                          // 12/16-1/15 のような年またぎ
+  return { startD: new Date(sY, sM, sD, 0, 0, 0), endD: end2 };
+}
+
 /* ============ ⏰ 毎月の自動送信 ============ */
 /*
  * ★これまで、自動で送るしくみは1つも入っていませんでした。
@@ -1145,19 +1358,66 @@ function autoReportOn_() {
  * 毎日よばれる。送る日でなければ、何もしないで終わる。
  * トリガーから動くので、画面には何も出せない。結果は説明タブとログに残す。
  */
+/** その月の期間（16日に送るのは「前月16日 〜 当月15日」） */
+function rpMonthSpan_(now) {
+  const endD   = new Date(now.getFullYear(), now.getMonth(), autoReportDay_() - 1, 23, 59, 59);
+  const startD = new Date(endD.getFullYear(), endD.getMonth() - 1, autoReportDay_(), 0, 0, 0);
+  return { startD: startD, endD: endD, span: lrVal_(startD) + "-" + lrVal_(endD) };
+}
+
+/**
+ * 16日 AM03:00。まーくさんだけに、確認用を送る。
+ *
+ *   ・LINEの絵（いちばん下に「この内容でよろしいですか」【はい】【いいえ】）
+ *   ・まとめスプシは「テスト用」に書く（まーくさん以外には見えない）
+ *
+ * ★ここで送るのは 03:00 時点の集計。
+ *   03:00〜05:30 に増えたぶんは、5:30 の本番でもう一度集計し直して入れる。
+ */
+function monthlyReportTestJob() {
+  try {
+    if (!autoReportOn_()) return;
+    const now = new Date();
+    if (now.getDate() !== autoReportDay_()) return;
+
+    const m = rpMonthSpan_(now);
+    const props = PropertiesService.getScriptProperties();
+    if (props.getProperty("AUTO_REPORT_TEST") === m.span) return;   // もう送ってある
+
+    const to = rpTestTarget_();
+    if (!to) { autoReportLog_("❌ 確認用を送れません：まーくさんの送り先が未設定です"); return; }
+
+    // 先に印を残す。途中で時間切れになっても、二重に送らないため
+    props.setProperty("AUTO_REPORT_TEST", m.span);
+    rpFixSpanSet_(m.span);                       // これからの「メモ：〜」はこの期間のもの
+    rpFixSet_(m.span, { memo: "", exclude: [], cancel: false, ok: false });
+    sendCustomReport(to, m.startD, m.endD, true, { ask: true });
+    autoReportLog_("🧪 " + m.span + " の確認用を、まーく個人のLINEに送りました（5:30にグループへ）");
+  } catch (e) {
+    logErr_("monthlyReportTestJob", e);
+    autoReportLog_("❌ 確認用の作成に失敗しました：" + (e && e.message ? e.message : e));
+  }
+}
+
 function monthlyReportJob() {
   try {
     if (!autoReportOn_()) return;
     const now = new Date();
     if (now.getDate() !== autoReportDay_()) return;
 
-    // 16日に送るのは「前月16日 〜 当月15日」
-    const endD   = new Date(now.getFullYear(), now.getMonth(), autoReportDay_() - 1, 23, 59, 59);
-    const startD = new Date(endD.getFullYear(), endD.getMonth() - 1, autoReportDay_(), 0, 0, 0);
-    const span   = lrVal_(startD) + "-" + lrVal_(endD);
+    const m = rpMonthSpan_(now);
+    const endD = m.endD, startD = m.startD, span = m.span;
 
     const props = PropertiesService.getScriptProperties();
     if (props.getProperty("AUTO_REPORT_SENT") === span) return;   // もう送ってある
+
+    // ★「中止」と言われた月は、グループへ送らない
+    const fix = rpFixGet_(span);
+    if (fix.cancel) {
+      props.setProperty("AUTO_REPORT_SENT", span);
+      autoReportLog_("⏹ " + span + " は「中止」のため、グループへは送りませんでした");
+      return;
+    }
 
     const to = rpGroupTarget_();
     if (!to) {
@@ -1168,12 +1428,48 @@ function monthlyReportJob() {
     // 先に「送った」と記録する。送信の途中で時間切れになっても、
     // 次の実行で二重に送ってしまわないようにするため
     props.setProperty("AUTO_REPORT_SENT", span);
-    sendCustomReport(to, startD, endD);
-    autoReportLog_("✅ " + lrFull_(startD) + "〜" + lrFull_(endD) + " のレポートを、グループLINEに自動送信しました");
+    // ★ここでもう一度、最初から集計し直す。
+    //   03:00 の確認用から 05:30 までに増えた記録も、これで入る
+    sendCustomReport(to, startD, endD, false, { fix: fix });
+    rpFixSpanSet_("");                            // 手直しの受付は、ここで終わり
+    autoReportLog_("✅ " + lrFull_(startD) + "〜" + lrFull_(endD) + " のレポートを、グループLINEに自動送信しました" +
+                   (fix.memo ? "（ひとこと入り）" : "") +
+                   (fix.exclude.length ? "（" + fix.exclude.join("・") + " を外しました）" : ""));
   } catch (e) {
     logErr_("monthlyReportJob", e);
     autoReportLog_("❌ 自動送信に失敗しました：" + (e && e.message ? e.message : e));
   }
+}
+
+/**
+ * 確認用の【はい】【いいえ】を受ける。扱ったら true。
+ */
+function rpHandlePostback_(ev) {
+  const data = (ev && ev.postback && ev.postback.data) || "";
+  if (String(data).indexOf("rp=") !== 0) return false;
+  const q = {};
+  String(data).split("&").forEach(function (kv) {
+    const i = kv.indexOf("=");
+    if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+  });
+  const say = function (t) { if (typeof lineReply_ === "function") lineReply_((ev && ev.replyToken) || "", t); };
+  const span = String(q.s || rpFixSpanGet_() || "");
+  if (!span) { say("わけがわからない…　どの期間のことでしょう"); return true; }
+  const fix = rpFixGet_(span);
+
+  if (q.rp === "ok") {
+    fix.ok = true; fix.cancel = false; rpFixSet_(span, fix);
+    say("計★画★通★り　5:30 にグループへ送ります\n" +
+        "※ 3:00〜5:30 に増えた記録も入れて、作り直してから送ります");
+    return true;
+  }
+  if (q.rp === "ng") {
+    fix.ok = false; rpFixSet_(span, fix);
+    rpFixSpanSet_(span);                          // 手直しの受付をひらく
+    say(rpHelpText_());
+    return true;
+  }
+  return false;
 }
 
 /** 自動送信の結果を、あとから見られるところに残す（説明タブ I列・非表示） */
@@ -1201,6 +1497,36 @@ function ensureAutoReportTrigger_(force) {
   ScriptApp.newTrigger("monthlyReportJob").timeBased()
     .atHour(hour).nearMinute(min).everyDays(1).create();
   props.setProperty("AUTO_REPORT_TRIGGER", want);
+  ensureAutoReportTestTrigger_(true);
+  return true;
+}
+
+/** 何時に確認用を出すか（設定タブで変えられる。既定は3時） */
+function autoReportTestHour_() {
+  let v = NaN;
+  try { if (typeof cfg_ === "function") v = parseInt(cfg_("確認用を送る時刻（時）"), 10); } catch (e) {}
+  return (v >= 0 && v <= 23) ? v : 3;
+}
+
+/**
+ * 確認用（AM3:00）の見張りを用意する。
+ *
+ * ★本番（5:30）とは別の見張りにしてある。
+ *   1つの見張りで両方やろうとすると、Apps Script の時刻のずれ（前後30分ほど）で
+ *   確認用と本番が続けて動いてしまうことがある。2時間半あけておけば、それが起きない。
+ */
+function ensureAutoReportTestTrigger_(force) {
+  const hour = autoReportTestHour_();
+  const props = PropertiesService.getScriptProperties();
+  const want = "monthlyReportTestJob@" + hour;
+  const cur = ScriptApp.getProjectTriggers().filter(function (t) {
+    return t.getHandlerFunction() === "monthlyReportTestJob";
+  });
+  if (!force && cur.length === 1 && props.getProperty("AUTO_REPORT_TEST_TRIGGER") === want) return false;
+  cur.forEach(function (t) { try { ScriptApp.deleteTrigger(t); } catch (e) {} });
+  ScriptApp.newTrigger("monthlyReportTestJob").timeBased()
+    .atHour(hour).nearMinute(0).everyDays(1).create();
+  props.setProperty("AUTO_REPORT_TEST_TRIGGER", want);
   return true;
 }
 
@@ -1267,8 +1593,9 @@ function menuAutoReportTestNow() {
 
 /* ============ 集計 → Flex Message → LINE送信 ============ */
 
-function sendCustomReport(targetId, customStartD, customEndD, isTestArg) {
+function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
   const ss = SpreadsheetApp.getActiveSpreadsheet(); let startD = customStartD, endD = customEndD;
+  const rpOpt = opt || {};
 
   // ★テスト送信のときは、まとめスプシを「本番用」とは別に作る。
   //   本番用はみんなに見せるものなので、作りかけの表や試し書きを
@@ -1289,6 +1616,10 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg) {
 
   let spotStats = {}; let spotHotData = {}; let spotDayBreakdown = {}; let timelineStats = {}; DAY_TYPES.forEach(dt => { timelineStats[dt] = {}; [20,21,22,23,0,1,2,3,4,5].forEach(h => { timelineStats[dt][h] = {}; }); });
   let spotHeatmapSales = {}; let spotHeatmapTimes = {}; let recordsForGraph = []; let ticketRides = []; let avoidRides = []; let reproRides = []; let barasiRides = []; let noPlaceCount = 0;
+  // 手直し（LINEから「メモ：〜」「除外：〜」で入れてもらったもの）
+  const rpSpanKey = rpSpanOf_(startD, endD);
+  const rpFix = (rpOpt.fix) ? rpOpt.fix : rpFixGet_(rpSpanKey);
+  let rpCut = 0;                                  // 「除外」で外した件数
   const avoidWords = ["ゲロ", "ガキ", "障割", "カス", "ババア", "ジジイ", "元3"];
 
   PERSONAL_TABS.forEach(tabName => {
@@ -1305,6 +1636,9 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg) {
       // 表に名前のない行が並んでも、どこの話か分からず読みようがないため。
       // 何件そうだったかは数えておき、見出しに出す（黙って減らさない）
       if (!String(place).replace(/[\s\u3000]/g, "")) { noPlaceCount++; continue; }
+      // ★「除外：〇〇」で外された乗り場は、集める段階で落とす。
+      //   表から消すだけでは、平均や件数には残ってしまい、数字が合わなくなる
+      if (rpFix.exclude.length && rpExcluded_(place, rpFix.exclude)) { rpCut++; continue; }
       // バラシ（1件の乗車を分けて書いたもの）は、平均に混ぜると数字が狂う。
       // 数には入れないが、捨てずに一覧として残す
       if (remarks.includes("バラシ") || place.includes("バラシ")) {
@@ -1422,6 +1756,7 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg) {
     DAY_TYPES: DAY_TYPES, areaStats: areaStats, finalTimeline: finalTimeline,
     targetHours: targetHours, dashboardUrl: dashboardUrl, getBestTimeStr: getBestTimeStr,
     advice: advice, opucha: opucha,
+    memo: rpFix.memo, cutCount: rpCut, cutNames: rpFix.exclude,
     noPlace: noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0)
   });
   // 裏メッセージ（通知やトーク一覧に出る文字）
@@ -1434,6 +1769,14 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg) {
   }
   // 裏メッセージは400文字まで。超えると送信そのものが失敗する
   if (altText.length > 400) altText = altText.slice(0, 397) + "…";
+
+  // 確認用のときだけ、いちばん最後に「この内容でよろしいですか」を足す
+  if (rpOpt.ask && bubbles.length) {
+    try {
+      const last = bubbles[bubbles.length - 1];
+      if (last && last.body && last.body.contents) last.body.contents.push(rpAskBox_(rpSpanKey));
+    } catch (e) { logErr_("rpAskBox", e); }
+  }
 
   const messages = bubbles.map(function (b, i) {
     return { type: "flex",
@@ -1507,6 +1850,9 @@ function buildReportFlex_(o) {
   const targetHours = o.targetHours, dashboardUrl = o.dashboardUrl;
   const advice = o.advice, opucha = o.opucha || { count: 0 };
   const noPlace = o.noPlace || 0;
+  const rpMemo = String(o.memo || "");
+  const rpCutN = Number(o.cutCount) || 0;
+  const rpCutNames = o.cutNames || [];
   const getBestTimeStr = o.getBestTimeStr || function () { return ""; };
   let flexContents = [];
   // 入りきらないときに、先に削ってよい箱（細かい話）を覚えておく。
@@ -1517,6 +1863,21 @@ function buildReportFlex_(o) {
   // （前は「時間詳細」の真ん中で次のメッセージに移っていた）
   const sections = [];
   const section_ = function () { sections.push(flexContents.length); };
+  // ★まーくさんのひとこと（LINEで「メモ：〜」と入れてもらったもの）。
+  //   いちばん上に置く。あとから付け足した話は、先に目に入らないと意味がない
+  if (rpMemo) {
+    flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fffde7",
+      "paddingAll": "10px", "cornerRadius": "md", "contents": [
+        { "type": "text", "text": "📌 ひとこと", "size": "xs", "weight": "bold", "color": "#e65100" },
+        { "type": "text", "text": rpMemo, "size": "sm", "weight": "bold", "color": "#5d4037", "wrap": true, "margin": "xs" }
+      ]});
+  }
+  // 集計から外した乗り場は、黙って減らさずに書く（数字が合わなくなるため）
+  if (rpCutN > 0) {
+    flexContents.push({ "type": "text", "wrap": true, "size": "xxs", "color": "#8d6e63", "margin": "xs",
+      "text": "※ " + (rpCutNames.length ? "「" + rpCutNames.join("」「") + "」" : "指定された乗り場") +
+              " の " + rpCutN + "件は、この集計から外しています" });
+  }
   flexContents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#fff4e5", "paddingAll": "10px", "cornerRadius": "md", "contents": [ { "type": "text", "text": `📊 この期間の総乗車数: ${totalRidesCount}件`, "weight": "bold", "size": "sm", "color": "#e65100" }, { "type": "text", "text": `北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件 ・ ﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件` +
     (noPlace > 0 ? `\n※ 乗り場の記入がない ${noPlace}件は、この集計から外しています` : ""), "size": "xxs", "color": "#666666", "wrap": true, "margin": "xs" } ] });
   // 記号の意味は、ここで1回だけ説明する。

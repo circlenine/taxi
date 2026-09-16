@@ -2,11 +2,26 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V018ver  （2026/09/16）  ★★★
+ *  ★★★  V019ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V019ver]
+ *   ・読み取り台帳を作った（「読み取り確認」とまーく個人LINEから打つ）
+ *     ★「今日のぶんが出た／出ない」だけでは、そもそも読めているのか
+ *       分からない、というご指摘に対するもの。
+ *     ・ホームページ … 先の日付まで並べて「何日ぶん拾えたか」を会場ごとに出す
+ *       （既定14日。「読み取り確認30」のように日数を付けられる。最大31日）
+ *       ページは会場ごとに1回だけ読む（何度も叩かないため）
+ *     ・写真から読んだぶん（フェス・帝国・リーガ）… しまってある全部を出す。
+ *       何か月先のものでも、送ってもらっていれば全部出る
+ *     記録用スプシに「🗓️イベント台帳」タブを作って、日付・会場・名前・
+ *     開演・終演・どこから読んだか を書く。スマホでそのまま見ていける
+ *   ・⚠️ が出た会場は「催しが無い」か「読めていない」かのどちらか、と明記した
+ *     公式に催しが出ているのに ⚠️ なら、読み取りが効いていないと分かる
+ *   ・同じページを何度も読まずに、何日ぶんも調べられるようにした
  *
  *  [V018ver]
  *   ・確認用のいちばん下に「この内容でよろしいですか」＋【はい】【いいえ】を付けた
@@ -1546,6 +1561,128 @@ function vnHandleNote_(ev, sentAt) {
   return true;
 }
 
+/* ================================================================
+ *  読み取り台帳（何がどこまで読めているかを、目で確かめるための表）
+ *
+ *  ★「今日のぶんが出た／出ない」だけでは、
+ *    そもそも読めているのかどうかが分からない。
+ *    ・ホームページは、先の日付まで並べて「何日ぶん拾えたか」を見る
+ *    ・写真から読んだぶん（フェス・帝国・リーガ）は、
+ *      しまってある全部を出す（何か月先まででも）
+ *    記録用スプシに「🗓️イベント台帳」タブを作って書くので、
+ *    スマホでも、そのまま上下に見ていける。
+ * ================================================================ */
+const VN_LEDGER_TAB = "🗓️イベント台帳";
+
+/** 写真から読んだぶんを、日付ごとに全部集める（先の月も含めて） */
+function vnLedgerFromPhotos_() {
+  const out = [];
+  let props = {};
+  try { props = PropertiesService.getScriptProperties().getProperties() || {}; } catch (e) { props = {}; }
+  for (const k in props) {
+    const mv = k.match(/^VNV_(\d{4})(\d{2})(\d{2})$/);      // 会場（月間表）
+    const mh = k.match(/^VNH_(\d{4})(\d{2})(\d{2})$/);      // ホテル
+    const m = mv || mh;
+    if (!m) continue;
+    let list = [];
+    try { list = JSON.parse(props[k] || "[]"); } catch (e) { list = []; }
+    const ymd = m[1] + "/" + m[2] + "/" + m[3];
+    list.forEach(function (x) {
+      out.push([ymd,
+                String(x.hall || x.hotel || ""),
+                String(x.name || ""),
+                String(x.start || ""),
+                String(x.end || ""),
+                mv ? "写真（会場の月間表）" : "写真（ホテルの予定表）"]);
+    });
+  }
+  out.sort(function (a, b) { return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0); });
+  return out;
+}
+
+/** ホームページから、これから何日ぶん拾えるかを調べる（ページは1回だけ読む） */
+function vnLedgerFromWeb_(days) {
+  const n = Math.max(1, Math.min(Number(days) || 14, 31));
+  const rows = [], notes = [];
+  const today = new Date();
+  VN_SOURCES.forEach(function (src) {
+    let html = "";
+    try {
+      const res = UrlFetchApp.fetch(src.url, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+      });
+      if (res.getResponseCode() !== 200) { notes.push("❌ " + src.name + "：開けません（" + res.getResponseCode() + "）"); return; }
+      try { html = res.getContentText(); }
+      catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
+    } catch (e) {
+      notes.push("❌ " + src.name + "：つながりません"); return;
+    }
+    if (!html) { notes.push("❌ " + src.name + "：中身が空です"); return; }
+
+    let hit = 0;
+    for (let i = 0; i < n; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      let got = [];
+      // 詳細ページまで開く会場は、1日ぶんだけにする（よそのサーバーを叩きすぎないため）
+      try { got = vnScrapeOne_(src, d, (src.deep && i > 0) ? html : (src.deep ? null : html)).events || []; }
+      catch (e) { got = []; }
+      got.filter(vnHasTime_).forEach(function (e) {
+        rows.push([d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2),
+                   e.venue, e.title, e.start, e.end, "ホームページ"]);
+        hit++;
+      });
+    }
+    notes.push((hit > 0 ? "✅ " : "⚠️ ") + src.name + "：" + n + "日ぶんを見て " + hit + "件");
+  });
+  return { rows: rows, notes: notes };
+}
+
+/**
+ * 台帳を作って、記録用スプシの「🗓️イベント台帳」タブに書く。
+ * 戻り値は、LINEに返す短い文。
+ */
+function vnLedgerBuild_(days) {
+  const photos = vnLedgerFromPhotos_();
+  const web = vnLedgerFromWeb_(days);
+  const rows = web.rows.concat(photos);
+  rows.sort(function (a, b) { return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0); });
+
+  let url = "";
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = ss.getSheetByName(VN_LEDGER_TAB);
+    if (!sh) sh = ss.insertSheet(VN_LEDGER_TAB);
+    sh.clear();
+    const head = ["日付", "会場", "催しの名前", "開演", "終演", "どこから読んだか"];
+    sh.getRange(1, 1, 1, head.length).setValues([head])
+      .setFontWeight("bold").setBackground("#e8d5f0");
+    if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
+    sh.setFrozenRows(1);
+    [90, 150, 260, 60, 60, 150].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+    url = ss.getUrl() + "#gid=" + sh.getSheetId();
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("vnLedger", e);
+  }
+
+  const L = ["🗓️ 読み取り台帳をつくりました", ""];
+  L.push("ホームページ：" + web.rows.length + "件");
+  L.push("写真から読んだぶん：" + photos.length + "件（先の月のぶんも全部）");
+  L.push("");
+  web.notes.forEach(function (x) { L.push(x); });
+  if (photos.length) {
+    const byPlace = {};
+    photos.forEach(function (r) { byPlace[r[1]] = (byPlace[r[1]] || 0) + 1; });
+    L.push("");
+    for (const k in byPlace) L.push("📷 " + k + "：" + byPlace[k] + "件");
+  }
+  L.push("");
+  L.push("⚠️ の会場は、その期間に催しが無いか、読み取れていないかのどちらかです。");
+  L.push("公式ページに催しが出ているのに ⚠️ のときは、読み取りが効いていません。");
+  if (url) L.push("", "一覧（日付・会場・名前・時刻）はこちら", url);
+  return L.join("\n");
+}
+
 /**
  * 「イベント一覧」と打たれたときの受け口。
  *
@@ -1555,6 +1692,17 @@ function vnHandleNote_(ev, sentAt) {
  */
 function vnHandleListCmd_(ev, sentAt) {
   const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
+  // 「読み取り確認」…先の日付まで、ちゃんと読めているかを見る（まーくさんだけ）
+  if (/^(読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?$/.test(t)) {
+    let me = "";
+    try { me = vnTestTarget_(); } catch (e) {}
+    if (!me || ((ev.source && ev.source.userId) || "") !== me) return false;
+    const dm = t.match(/(\d+)/);
+    const say0 = function (x) { if (typeof lineReply_ === "function") lineReply_(ev.replyToken || "", x); };
+    try { say0(vnLedgerBuild_(dm ? Number(dm[1]) : 14)); }
+    catch (e) { say0("🔍 くそっ!!!!やられた!!!!　台帳を作れませんでした：" + (e && e.message ? e.message : e)); }
+    return true;
+  }
   if (!/^(イベント一覧|いべんと一覧|イベント確認|今日のイベント|イベント)$/.test(t)) return false;
   const d = sentAt || new Date();
   const reply = ev.replyToken || "";
@@ -1829,22 +1977,28 @@ function vnGuessEnd_(venue, start) {
 }
 
 /** 1つのサイトから、その日のぶんを読む。戻り値は {events, note} */
-function vnScrapeOne_(src, day) {
+function vnScrapeOne_(src, day, htmlIn) {
   const out = { events: [], note: "", size: 0, code: 0 };
-  let res;
-  try {
-    res = UrlFetchApp.fetch(src.url, {
-      muteHttpExceptions: true, followRedirects: true,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
-    });
-  } catch (e) {
-    out.note = "❌ つながりませんでした（" + (e && e.message ? e.message : e) + "）";
-    return out;
-  }
-  out.code = res.getResponseCode();
   let html = "";
-  try { html = res.getContentText(); }
-  catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
+  if (htmlIn) {
+    // すでに読んである中身を使う（何日ぶんも調べるとき、同じページを何度も読まないため）
+    html = String(htmlIn);
+    out.code = 200;
+  } else {
+    let res;
+    try {
+      res = UrlFetchApp.fetch(src.url, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+      });
+    } catch (e) {
+      out.note = "❌ つながりませんでした（" + (e && e.message ? e.message : e) + "）";
+      return out;
+    }
+    out.code = res.getResponseCode();
+    try { html = res.getContentText(); }
+    catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
+  }
   out.size = html.length;
   if (out.code !== 200 || !html) { out.note = "❌ 中身が取れませんでした（" + out.code + "）"; return out; }
 

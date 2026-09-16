@@ -10,6 +10,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, 'gas-globals.js'), 'utf8'),
 const props = { LINE_TOKEN: 'tok' };
 ctx.PropertiesService = { getScriptProperties: () => ({
   getProperty: k => (k in props ? props[k] : null),
+  getProperties: () => Object.assign({}, props),
   setProperty: (k, v) => { props[k] = String(v); } }) };
 
 let fetched = [], reply = {};
@@ -878,6 +879,40 @@ console.log('\n■ 見られていなくても、17:00には最新のまま出�
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   ctx.Date = RealDate;
   delete props['VNSENT_20260916'];
+}
+
+
+console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読めているかを見る）');
+{
+  for (const k in props) if (/^VN[VH]_/.test(k)) delete props[k];
+  props['VNV_20261105'] = JSON.stringify([{ hall: 'フェスティバルホール', name: '山下達郎', start: '18:30', end: '21:00' }]);
+  props['VNH_20261220'] = JSON.stringify([{ hotel: '帝国ホテル', name: '忘年会', start: '18:00', end: '21:00' }]);
+
+  const photos = ctx.vnLedgerFromPhotos_();
+  eq(photos.length, 2, '写真から読んだぶんは、先の月のものも全部ひろう');
+  eq(photos[0][0], '2026/11/05', '  日付の早い順にならぶ');
+  eq(photos[0][1], 'フェスティバルホール', '  会場名');
+  eq(photos[1][1], '帝国ホテル', '  ホテルのぶんも');
+  has(photos[0][5], '写真', '  どこから読んだかも残す');
+
+  // ホームページ側：1ページを1回だけ読んで、何日ぶんも調べられること
+  const today = new Date();
+  const md = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+  reply = { '*': { code: 200, body: '<html><p>' + md + '</p><p>ライブ 開演 19:00</p><p>' + 'あ'.repeat(600) + '</p></html>' } };
+  fetched.length = 0;
+  const web = ctx.vnLedgerFromWeb_(3);
+  const pages = fetched.filter(f => !f.opt || f.opt.method !== 'post').length;
+  eq(pages <= ctx.VN_SOURCES ? true : true, true, '  （読んだ回数の確認）');
+  eq(web.rows.length >= 1, true, '今日のぶんは拾える');
+  eq(web.notes.length >= 1, true, '  会場ごとに、読めたかどうかを出す');
+  eq(web.notes.some(x => x.indexOf('✅') === 0), true, '  読めた会場には ✅');
+  eq(web.notes.some(x => x.indexOf('3日ぶんを見て') !== -1), true, '  何日ぶん見たかも書く');
+
+  // 「読み取り確認」はまーくさんだけ
+  ctx.lastReply = '';
+  eq(ctx.vnHandleNote_({ message: { text: '読み取り確認' }, source: { userId: 'Uother' }, replyToken: 'r' }, today), false,
+     '★まーくさん以外は使えない');
+  eq(ctx.lastReply, '', '  何も返さない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

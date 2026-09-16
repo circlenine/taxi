@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C043ver  （2026/09/16）  ★★★   ← もとは version 232
+ *  ★★★  C044ver  （2026/09/16）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,10 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C044ver]
+ *   ・レポートの確認用【はい】【いいえ】と、手直しの文字を受けるようにした
+ *     （rpHandlePostback_ / rpHandleNote_ を 003-LineReport に置いて、ここから呼ぶ）
  *
  *  [C043ver]
  *   ・イベント自動発信の説明を、新しい流れに直した
@@ -1468,6 +1472,8 @@ function handleEvent_(ev) {
   }
   // --- ボタン（お知らせの受け取り方）を押したとき ---
   if (ev.type === "postback") {
+    // レポートの確認用【はい】【いいえ】が先（イベントのボタンとは別の合図）
+    if (typeof rpHandlePostback_ === "function" && rpHandlePostback_(ev)) return;
     if (typeof vnHandlePostback_ === "function") vnHandlePostback_(ev);
     return;
   }
@@ -1500,6 +1506,10 @@ function handleEvent_(ev) {
 
   // --- 「ｼﾞﾝ登録」 ＝ このIDはこのタブの人、と覚える ---
   if (handleSenderRegister_(ev)) return;
+
+  // --- レポートの手直し（「メモ：〜」「除外：〜」「やり直し」「中止」）---
+  //     16日の朝、確認用を出したあとだけ効く。まーくさん以外からは受けない
+  if (typeof rpHandleNote_ === "function" && rpHandleNote_(ev)) return;
 
   // --- 「ホテル」「↑ホテル」 ＝ 次（または直前）の写真はホテルの予定表 ---
   if (typeof vnHandleNote_ === "function" && vnHandleNote_(ev, sentAt)) return;
