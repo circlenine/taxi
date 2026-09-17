@@ -2,7 +2,20 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L044ver  （2026/09/17）  ★★★
+ *  ★★★  L045ver  （2026/09/17）  ★★★
+ *
+ *  [L045ver]
+ *   ・🧹 下のほうの、いらない空っぽの行を片づけるようにした（ご指示）
+ *     ★グラフのもとになる表は、本文とぶつからないよう、ずっと下
+ *       （5000行目のあたり）に置いています。そのせいで、本文が終わっても
+ *       空っぽの行がどこまでも続き、スクロールしても終わりが見えませんでした
+ *     ★本文のすぐ下から、もとの表の終わりまでを「隠し」ます。
+ *       消すとグラフが描けなくなるので、消さずに隠します
+ *     ★その先の行は、まるごと消します
+ *     ★本文のすぐ下には、3行だけ空きを残します
+ *       （いちばん下まで行ったとき、ぴったり詰まっていると窮屈なため）
+ *     ★作り直すたびに、前に隠した行は出し直します
+ *       （clear() では、隠した行は戻らないためです）
  *
  *  [L044ver]
  *   ・📐 見出しと説明書きを、はっきり分けた（まーくさんのご指示）
@@ -4628,6 +4641,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   try { sheet.getRange(1, 1, sheet.getMaxRows(), DB_COLS).breakApart(); } catch (e) {}
   // clear() では固定行も外れない。前に固定したものが残るので、はっきり0に戻す
   try { sheet.setFrozenRows(0); sheet.setFrozenColumns(0); } catch (e) {}
+  // clear() では「隠した行」も戻らない。前に隠したものが残るので、全部出し直す
+  try { sheet.showRows(1, sheet.getMaxRows()); } catch (e) {}
   for(let i=1; i<=DB_COLS; i++) sheet.setColumnWidth(i, DB_COL_W);
 
   /** 横いっぱいの見出し行 */
@@ -5067,6 +5082,13 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   // グラフのもとになる数字の置き場所。本文がここまで伸びてくると上書きしてしまうので、
   // うんと下から始める。足りなくなったら行は自動で足す（dbEnsureRows_）
   let hiddenDataRow = 5000;
+  /*
+   * ★グラフのもとになる表を、どこからどこまで使ったか覚えておきます。
+   *   あとで、そこを隠して、その先の行はまるごと消すためです。
+   *   （消さないと、下にどこまでも空っぽの行が続いて、
+   *     スクロールしても終わりが見えません）
+   */
+  let dataFrom = 0, dataTo = 0;
   for (let key in spotStats) {
     if(spotStats[key].heatmapValidCount >= 3 && spotHeatmapSales[key]) {
       let parts = key.split("|"); let tName = parts[0]; let spotName = parts[1];
@@ -5217,7 +5239,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             .setOption('legend', {position: 'bottom', textStyle: {fontSize: 11}})
             .setOption('chartArea', {left: '16%', top: '12%', width: '80%', height: '62%'}).setOption('interpolateNulls', true)
             .setOption('width', CHART_W).setOption('height', CHART_H).build();
-          sheet.insertChart(chart); hiddenDataRow += table.length + 6; chartPlaced = true;
+          sheet.insertChart(chart);
+          if (!dataFrom) dataFrom = hiddenDataRow;
+          hiddenDataRow += table.length + 6; chartPlaced = true;
+          if (hiddenDataRow > dataTo) dataTo = hiddenDataRow;
           // グラフが乗る行の高さをそろえる。ここをやらないと、前に書いた表の
           // 高い行がそのまま残り、グラフの下に大きな空白ができる
           dbEnsureRows_(sheet, curRow + CHART_ROWS);
@@ -5509,6 +5534,31 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   // 開いたときに、いちばん上から見えるようにする。
   // 最後に書いた場所（ずっと下）が覚えられていて、開くとそこが出てしまうため
+  /*
+   * ★下のほうの、いらない空っぽの行を片づけます（まーくさんのご指示）。
+   *
+   *   グラフのもとになる表は、本文とぶつからないよう、ずっと下
+   *   （5000行目のあたり）に置いています。
+   *   そのせいで、本文が終わったあとも空っぽの行がどこまでも続き、
+   *   スクロールしても終わりが見えませんでした。
+   *
+   *   ・本文のすぐ下から、もとの表の終わりまでを「隠し」ます
+   *     （消すとグラフが描けなくなるので、消さずに隠します）
+   *   ・その先の行は、まるごと消します
+   *   ・本文のすぐ下には、数行だけ空きを残します
+   *     （いちばん下まで行ったとき、ぴったり詰まっていると窮屈なため）
+   */
+  try {
+    const spare = 3;                            // 本文の下に残す、空きの行数
+    const lastText = curRow + spare;
+    if (dataFrom && dataTo > lastText + 1) {
+      sheet.hideRows(lastText + 1, dataTo - lastText);
+    }
+    const keepTo = Math.max(lastText, dataTo);
+    const maxR2 = sheet.getMaxRows();
+    if (maxR2 > keepTo + 1) sheet.deleteRows(keepTo + 1, maxR2 - keepTo - 1);
+  } catch (e) { logErr_("dbTrimTail", e); }
+
   try {
     dbSS.setActiveSheet(sheet);
     sheet.setActiveSelection(sheet.getRange("A1"));

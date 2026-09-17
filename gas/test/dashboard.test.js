@@ -500,5 +500,57 @@ console.log('\n■ 見出しと説明書きを、はっきり分ける');
   eq(inner.length >= 3, true, '  表の中では、結合するほうを使う（' + inner.length + 'か所）');
 }
 
+console.log('\n■ 下のほうの、いらない空っぽの行を片づける');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+
+  /*
+   * ★グラフのもとの表を、ずっと下（5000行目のあたり）に置いているので、
+   *   本文が終わったあとも空っぽの行がどこまでも続いていた（まーくさんのご指示）
+   */
+  eq(src.indexOf('let dataFrom = 0, dataTo = 0;') !== -1, true,
+     '★もとの表を、どこからどこまで使ったか覚えている');
+  eq(src.indexOf('if (!dataFrom) dataFrom = hiddenDataRow;') !== -1, true,
+     '  はじめて使ったところを覚える');
+  eq(src.indexOf('if (hiddenDataRow > dataTo) dataTo = hiddenDataRow;') !== -1, true,
+     '  最後に使ったところも覚える');
+
+  eq(src.indexOf('sheet.hideRows(lastText + 1, dataTo - lastText);') !== -1, true,
+     '★本文の下から、もとの表の終わりまでを「隠す」（消すとグラフが描けなくなる）');
+  eq(src.indexOf('if (maxR2 > keepTo + 1) sheet.deleteRows(keepTo + 1, maxR2 - keepTo - 1);') !== -1, true,
+     '★その先の行は、まるごと消す');
+  eq(src.indexOf('const spare = 3;') !== -1, true,
+     '  本文のすぐ下には、数行だけ空きを残す（ぴったり詰まっていると窮屈なため）');
+
+  // 作り直すたびに、前に隠した行が残らないこと
+  eq(src.indexOf('try { sheet.showRows(1, sheet.getMaxRows()); } catch (e) {}') !== -1, true,
+     '★作り直しのはじめに、前に隠した行を出し直す（clear() では戻らないため）');
+
+  // 消す量の計算（実際の数字で確かめる）
+  const calc = function (curRow, dataFrom, dataTo, maxRows) {
+    const spare = 3;
+    const lastText = curRow + spare;
+    const hide = (dataFrom && dataTo > lastText + 1) ? [lastText + 1, dataTo - lastText] : null;
+    const keepTo = Math.max(lastText, dataTo);
+    const del = (maxRows > keepTo + 1) ? [keepTo + 1, maxRows - keepTo - 1] : null;
+    return { hide: hide, del: del, keepTo: keepTo };
+  };
+  const c1 = calc(634, 5000, 5120, 6000);
+  eq(c1.hide, [638, 4483], '★本文(634)の下から、もとの表の終わり(5120)までを隠す');
+  eq(c1.del, [5121, 879], '★5120より下は、まるごと消す');
+  eq(c1.keepTo, 5120, '  残すのは5120行目まで');
+
+  // グラフが1つも無かったとき（もとの表を使っていないとき）
+  const c2 = calc(200, 0, 0, 900);
+  eq(c2.hide, null, 'グラフが無ければ、隠す行も無い');
+  eq(c2.del, [204, 696], '★そのときは、本文のすぐ下から先を消す');
+
+  // すでに短いときは、何もしない
+  const c3 = calc(200, 0, 0, 204);
+  eq(c3.del, null, 'もう短ければ、消さない');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
