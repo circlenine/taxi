@@ -314,16 +314,38 @@ console.log('\n■ 年をまたぐ日付も取り違えない');
   eq(d2.getFullYear(), 2026, '1月に「12/30」とあれば、前年');
 }
 
-console.log('\n■ 自動発信は、はじめは切ってある');
+console.log('\n■ 自動発信は、はじめから「入」');
 {
+  /*
+   * ★前は「切」が既定だった（まーくさんのご指示で変えた）。
+   *   そのため、設定タブで「はい」にしないかぎり、
+   *   イベントの案内もリマインダーも1回も動かなかった。
+   *   こちらから「まず設定してください」とお願いする作りが、
+   *   そもそもまちがっていた。何もしなくても動くのが、あるべき形
+   */
   delete props.VN_AUTO;
-  eq(ctx.vnAutoOn_(), false, '何も決めていなければ、送らない');
+  vm.runInContext('function cfg_(){ return ""; }', ctx);
+  eq(ctx.vnAutoOn_(), true, '★何も決めていなければ、送る');
+
+  // 設定タブで はっきり「いいえ」にすれば、止まる
+  vm.runInContext('function cfg_(k){ return k === "イベント情報を自動で送る" ? "いいえ" : ""; }', ctx);
+  eq(ctx.vnAutoOn_(), false, '★設定タブで「いいえ」にすれば、止まる');
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '  1通も送らない');
+  eq(pushed.length, 0, '  そのときは1通も送らない');
+
+  // 設定タブで「はい」なら、もちろん送る
+  vm.runInContext('function cfg_(k){ return k === "イベント情報を自動で送る" ? "はい" : ""; }', ctx);
+  eq(ctx.vnAutoOn_(), true, '「はい」なら、もちろん送る');
+
+  // ボタンで切ったぶん（VN_AUTO）は、設定タブより強い
+  vm.runInContext('function cfg_(){ return ""; }', ctx);
+  props.VN_AUTO = '0';
+  eq(ctx.vnAutoOn_(), false, 'ボタンで切ってあれば、止まったまま');
+  delete props.VN_AUTO;
 }
 
-console.log('\n■ 16:30 は確認用（まーくさんだけ）、17:00 にグループ');
+console.log('\n■ 18:00 は確認用（まーくさんだけ）、18:30 にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -341,26 +363,26 @@ console.log('\n■ 16:30 は確認用（まーくさんだけ）、17:00 にグ�
   };
   const back = () => { ctx.Date = RealDate; };
 
-  at(16, 0);
+  at(17, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '16:00 には、まだ何も送らない');
-
-  at(16, 30);
-  pushed.length = 0;
-  ctx.venueDailyJob();
-  eq(pushed.length, 1, '16:30 に確認用を1通');
-  eq(pushed[0].to, 'Umark', '  宛先はまーくさんだけ（グループではない）');
-
-  at(16, 46);
-  pushed.length = 0;
-  ctx.venueDailyJob();
-  eq(pushed.length, 0, '  16:46 には、まだグループへ送らない');
+  eq(pushed.length, 0, '17:30 には、まだ何も送らない');
 
   at(18, 0);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '18:00 になってしまったら、その日はもう送らない');
+  eq(pushed.length, 1, '★18:00 に確認用を1通');
+  eq(pushed[0].to, 'Umark', '  宛先はまーくさんだけ（グループではない）');
+
+  at(18, 16);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 0, '  18:16 には、まだグループへ送らない');
+
+  at(19, 30);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 0, '19:30 になってしまったら、その日はもう送らない');
   delete props['VNSENT_20260916_T'];
   delete props['VNEDIT_20260916'];
   back();
@@ -370,7 +392,8 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 {
   props.VN_AUTO = '1';
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  // ★グループへ出すのは 18:30（確認用の30分あと）
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 18, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
@@ -1438,7 +1461,7 @@ console.log('\n■ 個人LINEから、その場でグループへ出す（必ず
   delete props['VNSENT_20260916'];
 }
 
-console.log('\n■ 見られていなくても、17:00には最新のまま出す');
+console.log('\n■ 見られていなくても、18:30には最新のまま出す');
 {
   const base = new Date(2026, 8, 16);
   props.VN_AUTO = '1';
@@ -1449,12 +1472,12 @@ console.log('\n■ 見られていなくても、17:00には最新のまま出�
     { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'ライブ', start: '18:00', end: '21:00', url: '' }
   ]);
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 18, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★【はい】が押されていなくても、17:00には送る');
+  eq(pushed.length, 1, '★【はい】が押されていなくても、18:30には送る');
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   ctx.Date = RealDate;
   delete props['VNSENT_20260916'];
@@ -1504,8 +1527,8 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   has(flat, '18:00', '「いまの条件」に、時間帯が出る');
   has(flat, '04:00（翌日）', '  終わりの時刻も');
   has(flat, '300人', '  人数の下限も');
-  has(flat, '16:30', '  確認用の時刻も');
-  has(flat, '17:00', '  グループへ送る時刻も');
+  has(flat, '18:00', '  確認用の時刻も');
+  has(flat, '18:30', '  グループへ送る時刻も');
   has(flat, '5 分前', '  リマインダーの何分前かも');
   has(flat, '大阪城ホール', '  見に行くページの名前も');
   has(flat, '万博記念公園', '  外しているところも、はっきり書く');
@@ -1758,7 +1781,42 @@ console.log('\n■ 同じ公演が2つならばないようにする');
   eq(ctx.vnDedup_(null).length, 0, 'null でも落ちない');
 }
 
-console.log('\n■ 16:30 と 17:00 も、時刻ぴったりに動かす');
+console.log('\n■ イベントの見張りは、何もしなくても立ち上がる');
+{
+  /*
+   * ★これまでは、見張りを作り直すしくみ（vnSelfHeal_）が
+   *   venueDailyJob の「中から」しか呼ばれていなかった。
+   *   つまり、その見張りが1つも無いと、永遠に作られない。
+   *   たまごが先か にわとりが先か、になっていた。
+   *   実際、イベントの案内もリマインダーも1回も動かなかった（ご指摘）
+   */
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  eq(src.indexOf("if (typeof vnSelfHeal_ === \"function\") vnSelfHeal_();") !== -1, true,
+     '★1分おきのボタンの見張りから、イベントの見張りの面倒を見る');
+  const pw = src.slice(src.indexOf('function panelWatch()'),
+                       src.indexOf('function panelWatch()') + 1800);
+  eq(pw.indexOf('vnSelfHeal_') !== -1, true, '  呼んでいるのは panelWatch の中');
+
+  // 1日1回しか、実際の点検はしない（持ち時間を食わないため）
+  delete props['VN_HEAL_YMD'];
+  triggers.length = 0;
+  const made1 = ctx.vnSelfHeal_();
+  const made2 = ctx.vnSelfHeal_();
+  eq(made2, false, '★同じ日に二度は点検しない（持ち時間を食わないため）');
+  eq(!!props['VN_HEAL_YMD'], true, '  その日はもうやらない、と覚える');
+  eq(typeof made1, typeof false, '  1回目は点検する');
+
+  // 見張りが無ければ、作る
+  delete props['VN_HEAL_YMD'];
+  triggers.length = 0;
+  ctx.vnSelfHeal_();
+  eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
+     '★イベントの見張りが無ければ、ここで作る');
+  delete props['VN_HEAL_YMD'];
+}
+
+console.log('\n■ 18:00 と 18:30 も、時刻ぴったりに動かす');
 {
   /*
    * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
@@ -1772,28 +1830,28 @@ console.log('\n■ 16:30 と 17:00 も、時刻ぴったりに動かす');
 
   delete props[keyOf()]; delete props[keyOf() + '_T'];
 
-  // ① 16:20 … 確認用(16:30)まで10分。ぴったりの見張りを立てる
+  // ① 17:50 … 確認用(18:00)まで10分。ぴったりの見張りを立てる
   triggers.length = 0;
-  eq(ctx.vnAimTick_(day(16, 20)), true, '★16:30 が近づいたら、見張りを立てる');
+  eq(ctx.vnAimTick_(day(17, 50)), true, '★18:00 が近づいたら、見張りを立てる');
   eq(aims().length, 1, '  立つのは1つだけ');
   eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝16:30ぴったり）に動く');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝18:00ぴったり）に動く');
 
   // ② 10:00 … まだ先。立てない（次のふだんの見張りでまた考える）
   triggers.length = 0;
   eq(ctx.vnAimTick_(day(10, 0)), false, '★まだ先のときは、立てない');
   eq(aims().length, 0, '  見張りを増やさない（持ち時間を使い切らないため）');
 
-  // ③ 16:50 … 確認用は済み。次はグループ用(17:00)を狙う
+  // ③ 18:20 … 確認用は済み。次はグループ用(18:30)を狙う
   triggers.length = 0;
   props[keyOf() + '_T'] = '1';
-  eq(ctx.vnAimTick_(day(16, 50)), true, '★確認用が済んだら、次は17:00を狙う');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝17:00ぴったり）に動く');
+  eq(ctx.vnAimTick_(day(18, 20)), true, '★確認用が済んだら、次は18:30を狙う');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝18:30ぴったり）に動く');
 
   // ④ きょうのぶんが両方とも済んでいたら、もう立てない
   triggers.length = 0;
   props[keyOf()] = '1';
-  eq(ctx.vnAimTick_(day(16, 50)), false, '★両方とも済んでいたら、立てない');
+  eq(ctx.vnAimTick_(day(18, 20)), false, '★両方とも済んでいたら、立てない');
   eq(aims().length, 0, '  むだに動かさない');
 
   // ⑤ 立て直すときは、前のものを片づける（見張りは20個までしか作れない）
@@ -1802,7 +1860,7 @@ console.log('\n■ 16:30 と 17:00 も、時刻ぴったりに動かす');
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 1 });
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 2 });
   triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
-  ctx.vnAimTick_(day(16, 20));
+  ctx.vnAimTick_(day(17, 50));
   eq(aims().length, 1, '★古いものは片づけて、1つだけにする');
   eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
      '  ふだんの見張りは、消さない');
@@ -1811,7 +1869,7 @@ console.log('\n■ 16:30 と 17:00 も、時刻ぴったりに動かす');
   triggers.length = 0;
   const keepAuto = props['VN_AUTO'];
   props['VN_AUTO'] = '0';
-  eq(ctx.vnAimTick_(day(16, 20)), false, '★自動発信を切っていたら、何もしない');
+  eq(ctx.vnAimTick_(day(17, 50)), false, '★自動発信を切っていたら、何もしない');
   eq(aims().length, 0, '  そのときは、見張りも立てない');
   if (keepAuto === undefined) delete props['VN_AUTO']; else props['VN_AUTO'] = keepAuto;
 
