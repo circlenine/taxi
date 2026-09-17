@@ -2,7 +2,26 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L040ver  （2026/09/17）  ★★★
+ *  ★★★  L041ver  （2026/09/17）  ★★★
+ *
+ *  [L041ver]
+ *   ・🔥 アツいエリアの1行を直した（ご指示）
+ *     ★記号（⭕️❎）も［］の中に入れました。
+ *       前は ⭕️［アツい 新地4 23:51］と記号だけ外に出ていて、
+ *       ひとまとまりの話なのに、目で切れてしまっていました
+ *     ★「アツい」「避ける」は、乗り場の名前が長くても必ず入れます。
+ *       前は長いときだけ言葉を外していました。
+ *       言葉がある行と無い行が混ざると、無い行が何なのか分かりません。
+ *       入りきらないときは、言葉ではなく 名前のほうを短くします（うしろに …）
+ *   ・✏️ アドバイスを、句読点のところで改行するようにした（lrWrapJa_）
+ *     ★スプシはマスの幅で勝手に折り返すので、言葉のまん中で切れて、
+ *       読むほうが一度つまずいていました
+ *     ★切るのは「。」「、」「！」「？」のうしろだけです。
+ *       句読点が1つも無い長い文は、こちらでは切りません
+ *       （切れば必ず言葉のまん中で切れるので、本末転倒なためです）
+ *   ・➖ 戦略予想の ▼ の前に、区切り線を入れた（ご指示）
+ *     ★▼が3つ4つ並ぶと、どこで話が変わったのか分かりませんでした
+ *     ★いちばん上には出しません（先頭に線だけあると不格好なため）
  *
  *  [L040ver]
  *   ・🗺 乗り場名を押すと、必ずGoogleマップへ行けるようにした（ご指示）
@@ -2113,26 +2132,10 @@ function buildReportFlex_(o) {
         // 記号だけだと分かりにくいので［アツい］［避ける］も入れる。
         // ただし乗り場の名前が長いと1行に収まらないので、そのときだけ言葉を外す
         //（1行に入る量を、全角2・半角1で数えて見積もる）
-        const width_ = function (t) {
-          let w = 0;
-          for (let i = 0; i < t.length; i++) w += t.charCodeAt(i) < 0x100 ? 1 : 2;
-          return w;
-        };
         const band_ = function (label, cnt, avg, wait, mark, word, spot, times) {
-          // ★「￥13,270」だけでは、平均なのか最高額なのか分からない。
-          //   何の金額かは、いつでも数字のすぐ前に書く
-          const head = `${label}${cnt}件 平均￥${avg.toLocaleString()} 待${wait}分`;
-          if (spot === "-") return head;
-          // ★［］は「アツい（避ける）」から時刻までを、ひとまとまりで閉じる。
-          //   前は ［アツい］新地4［23:51］ と2つに割れていて、
-          //   どこからどこまでが1つの話なのか分かりにくかった。
-          //   ［アツい 新地4 23:51］で「この乗り場へ、この時刻に」と1つに読める
           const at = String(getBestTimeStr(times) || "").replace(/[\[\] ]/g, "");
-          const body = `${toHalfWidthKana(spot)}${at ? " " + at : ""}`;
-          const full = `${head} ${mark}[${word} ${body}]`;
-          // 乗り場の名前が長くて1行に入らないときだけ、言葉（アツい／避ける）を外す。
-          //［］そのものは外さない（付いている行と付いていない行が混ざらないように）
-          return width_(full) <= 62 ? full : `${head} ${mark}[${body}]`;
+          return lrBand_(label, cnt, avg, wait, mark, word,
+                         spot === "-" ? "-" : toHalfWidthKana(spot), at);
         };
         // 3行を1つの文にまとめる（見た目は同じ3行のまま）。
         // 1行ずつ別々に作ると、中身（JSON）だけが増えて1通に入りにくくなる
@@ -2949,6 +2952,21 @@ function adviceForecastTitle_(advice) {
 }
 
 /** 翌月の戦略予想を、太字つきで返す */
+/*
+ * ★見出し（▼）の前に、区切り線を入れます（まーくさんのご指示）。
+ *   ▼が3つ4つと並ぶと、どこで話が変わったのかが分かりません。
+ *   線が1本あるだけで、かたまりの切れ目がはっきりします。
+ */
+const LR_ADV_HR = "────────────\n";
+
+/** 戦略予想の見出し1つぶん（区切り線つき）。1つめは線を出さない */
+function adviceHead_(title, first) {
+  const out = [];
+  if (!first) out.push({ t: LR_ADV_HR, c: "#9e9e9e" });
+  out.push({ t: "▼ " + title + "\n" });
+  return out;
+}
+
 function adviceForecastParts_(a) {
   const out = [];
 
@@ -2957,14 +2975,17 @@ function adviceForecastParts_(a) {
   //    月の説明だけ読まされても、で、どこへ行けばよいのかが分からない。
   //    ひとつにまとめて、必ず「だからどこを狙うか」まで書く
   if (a.season) {
-    out.push({ t: "▼ " + a.nextMonth + "月はこういう月　→　どこを狙うか\n" },
-             { t: a.season + "\n\n" });
+    // ★見出しの月も、季節の話を選んだ月にそろえる（食いちがうと読む人が混乱する）
+    const m = a.nextPlanMonth || a.nextMonth;
+    adviceHead_(m + "月はこういう月　→　どこを狙うか", true)
+      .forEach(function (x) { out.push(x); });
+    out.push({ t: a.season + "\n\n" });
   }
 
   // ②-1 実際に稼げている乗り場を、記録から名指しする。
   //     暦の話だけでは「で、どこへ行けばいいのか」が分からないため
   if (a.topSpots && a.topSpots.length) {
-    out.push({ t: "▼ この期間に稼げていた乗り場\n" });
+    adviceHead_("この期間に稼げていた乗り場", !a.season).forEach(function (x) { out.push(x); });
     a.topSpots.forEach(function (sp, i) {
       out.push({ t: `${i + 1}. ` },
                { t: sp.name, b: true, c: "#b71c1c" },
@@ -2976,7 +2997,8 @@ function adviceForecastParts_(a) {
   }
 
   // ② この期間の数字から言えること
-  out.push({ t: "▼ この期間の記録から\n" });
+  adviceHead_("この期間の記録から",
+              !a.season && !(a.topSpots && a.topSpots.length)).forEach(function (x) { out.push(x); });
   if (a.allSlots === 0) {
     out.push({ t: lrThin_() + "。乗り場と待ち時間の記入を増やしてください。" });
     return out;
@@ -3005,7 +3027,8 @@ function adviceForecastParts_(a) {
   if (a.waitAvg > 0) out.push({ t: `待ち時間は1回あたり平均 ${a.waitAvg}分でした。\n` });
 
   // ③ で、どう動くか
-  out.push({ t: "\n▼ おすすめの動き方\n" });
+  out.push({ t: "\n" });
+  adviceHead_("おすすめの動き方", false).forEach(function (x) { out.push(x); });
   if (a.bigSlots >= 3) {
     out.push({ t: "高く出る時間帯が多いので、" },
              { t: "数をこなすより、その時間帯で粘って1本の単価を上げる", b: true, c: "#b71c1c" },
@@ -3276,6 +3299,130 @@ function buildNightPlan_(finalTimeline, DAY_TYPES) {
     plan[dt] = segs;
   });
   return plan;
+}
+
+/**
+ * 長い文を、句読点のところで改行する。
+ *
+ * ★まーくさんのご指示です。
+ *   スプシは、マスの幅で勝手に折り返します。
+ *   そのままだと「新地4の23時台は待ちが長いので、早め
+ *   に入って…」のように、言葉のまん中で切れてしまいます。
+ *   読むほうは、そこで一度つまずきます。
+ *
+ * ★そこで、こちらで先に改行を入れておきます。
+ *   切るのは「。」「、」「！」「？」のうしろだけです。
+ *   1行に入る量をこえたら、その手前にある いちばん近い句読点で切ります。
+ *   句読点が1つも無い長い文は、そのときだけ幅で切ります
+ *   （切らないと、行の高さの見積もりが外れて下が隠れるため）。
+ *
+ * limit … 1行に入る量（全角2・半角1で数えた数）
+ */
+function lrWrapJa_(text, limit) {
+  const src = String(text == null ? "" : text);
+  const lim = Math.max(8, limit || 40);
+  const w_ = function (t) {
+    let w = 0;
+    for (let i = 0; i < t.length; i++) w += t.charCodeAt(i) < 0x100 ? 1 : 2;
+    return w;
+  };
+  const out = [];
+
+  src.split("\n").forEach(function (line) {
+    /*
+     * ① まず、句読点のうしろで ひとかたまりずつに分ける。
+     *    ここで分けておけば、あとは「かたまり単位」で詰めるだけなので、
+     *    言葉のまん中で切れることがありません。
+     */
+    const chunks = [];
+    let cur = "";
+    for (let i = 0; i < line.length; i++) {
+      cur += line[i];
+      if ("。、！？".indexOf(line[i]) !== -1) { chunks.push(cur); cur = ""; }
+    }
+    if (cur) chunks.push(cur);
+
+    // ② かたまりを、1行に入るだけ詰めていく
+    let acc = "";
+    chunks.forEach(function (c) {
+      if (!acc) {
+        acc = c;
+      } else if (w_(acc + c) <= lim) {
+        acc += c;
+      } else {
+        out.push(acc);
+        acc = c;
+      }
+      /*
+       * ③ ひとかたまりだけで幅をこえても、そこでは切りません。
+       *    切れば、かならず言葉のまん中で切れてしまいます。
+       *    それをやめるための仕掛けなので、ここで切っては本末転倒です。
+       *    はみ出したぶんは、スプシがそのマスの中で折り返します。
+       *    行の高さも、折り返したぶんを数えて決めています（dbLines_）。
+       */
+    });
+    out.push(acc);
+  });
+
+  return out.join("\n").replace(/\n+$/, "");
+}
+
+/** そのマスの幅（列数）に、全角で何文字ぶん入るか */
+function lrFitChars_(span, fontSize) {
+  const px = (span || 1) * DB_COL_W - 6;
+  return Math.max(8, Math.floor(px / ((fontSize || 11) * 0.62)));
+}
+
+/** 1行に入る量を見積もる（全角2・半角1で数える） */
+function lrWidth_(t) {
+  const x = String(t == null ? "" : t);
+  let w = 0;
+  for (let i = 0; i < x.length; i++) w += x.charCodeAt(i) < 0x100 ? 1 : 2;
+  return w;
+}
+
+/** 金額帯の1行が、これ以上長いとLINEで折り返される */
+const LR_BAND_MAX = 62;
+
+/**
+ * 「アツいエリア」の金額帯1行を作る。
+ *
+ * ★記号（⭕️❎）も［］の中に入れます（まーくさんのご指示）。
+ *   前は ⭕️［アツい 新地4 23:51］と、記号だけ外に出ていました。
+ *   ひとまとまりの話なのに、記号だけ外にあると
+ *   どこからが1つの話なのか、目で切れてしまいます。
+ *
+ * ★「アツい」「避ける」は、乗り場の名前が長くても必ず入れます。
+ *   前は長いときだけ言葉を外していました。
+ *   でも、言葉が入っている行と入っていない行が混ざると、
+ *   「言葉が無い行は何なのか」が分からなくなります。
+ *   どうしても入りきらないときは、
+ *   言葉ではなく 乗り場の名前のほうを短くします（うしろに …）。
+ *   言葉は意味そのものなので、いちばん最後まで残します。
+ */
+function lrBand_(label, cnt, avg, wait, mark, word, spot, at) {
+  // ★「￥13,270」だけでは、平均なのか最高額なのか分からない。
+  //   何の金額かは、いつでも数字のすぐ前に書く
+  const head = String(label) + (cnt || 0) + "件 平均￥" +
+               Number(avg || 0).toLocaleString() + " 待" + (wait || 0) + "分";
+  const name = String(spot == null ? "-" : spot);
+  if (name === "-") return head;
+
+  const tail = at ? " " + at : "";
+  const mk = function (nm) { return head + " [" + mark + word + " " + nm + tail + "]"; };
+  const full = mk(name);
+  if (lrWidth_(full) <= LR_BAND_MAX) return full;
+
+  // 入りきらないぶんだけ、名前を削る（削りすぎないよう、最低4つぶんは残す）
+  // 「…」は全角なので2つぶん。ここを1にしていると、1つぶんだけはみ出す
+  const room = Math.max(4, LR_BAND_MAX - lrWidth_(mk("")) - lrWidth_("…"));
+  let cut = "", w = 0;
+  for (let i = 0; i < name.length; i++) {
+    const cw = name.charCodeAt(i) < 0x100 ? 1 : 2;
+    if (w + cw > room) break;
+    cut += name[i]; w += cw;
+  }
+  return mk((cut || name.slice(0, 2)) + "…");
 }
 
 /** 「20時台」「20〜22時台」 */
@@ -4856,8 +5003,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     // タブと乗り場名は、このあと2行ぶんまとめて結合する。
     // ★ここに乗り場名を書き足していたのをやめた。
     //   すぐ左のマスに同じ名前があるので、二重に書く意味がない
-    const ai = "🤖 " + aiTexts[i];
+    // ★句読点のところで改行しておく。
+    //   そのままだと、言葉のまん中で折り返されて、読むほうがつまずく
     const aiFrom = SP_SPANS[0] + SP_SPANS[1] + 1;
+    const ai = lrWrapJa_("🤖 " + aiTexts[i], lrFitChars_(DB_COLS - aiFrom + 1, 11));
     sheet.getRange(curRow, aiFrom, 1, DB_COLS - aiFrom + 1).merge().setValue(ai)
       .setFontSize(11).setFontWeight("bold").setFontColor("#274e13").setBackground("#f6fbf2")
       .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);

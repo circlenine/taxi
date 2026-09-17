@@ -22,6 +22,7 @@ ctx.SpreadsheetApp = { getUi: () => ({}) };
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8'), ctx);
 
 let fail = 0;
+const ok2 = (cond, msg) => { if (!cond) { fail++; console.log('FAIL', msg); } };
 const has = (got, want, msg) => eq(String(got).indexOf(want) !== -1, true, msg);
 const eq = (a, b, msg) => {
   const ok = JSON.stringify(a) === JSON.stringify(b);
@@ -463,6 +464,102 @@ function mkFt(set) {
   eq(ctx.adviceForecastText_(a).indexOf('お盆') !== -1, true, '  8月なら8月らしい話をする');
 }
 
+console.log('\n■ 句読点のところで改行する／▼の前に区切り線');
+{
+  const WJ = ctx.lrWrapJa_;
+
+  /*
+   * ★スプシはマスの幅で勝手に折り返す。そのままだと言葉のまん中で切れて、
+   *   読むほうが一度つまずく。こちらで先に、句読点で改行しておく
+   */
+  const t1 = WJ('新地4は待ちが長いので、早めに入ってください。23時台がいちばん強いです。', 20);
+  const ls = t1.split('\n');
+  eq(ls.length >= 2, true, '★長い文は、こちらで改行する（' + ls.length + '行）');
+  eq(ls.slice(0, -1).every(x => /[。、！？]$/.test(x)), true,
+     '★切れ目は、かならず句読点のうしろ');
+  eq(t1.replace(/\n/g, ''), '新地4は待ちが長いので、早めに入ってください。23時台がいちばん強いです。',
+     '★言葉は1文字も足さない・減らさない');
+
+  /*
+   * ★句読点が1つも無い長い文は、こちらでは切らない。
+   *   切れば、かならず言葉のまん中で切れてしまう。
+   *   それをやめるための仕掛けなので、ここで切っては本末転倒。
+   *   はみ出したぶんは、スプシがそのマスの中で折り返す
+   *   （行の高さも、折り返したぶんを数えて決めている）
+   */
+  const t2 = WJ('あ'.repeat(60), 20);
+  eq(t2.indexOf('\n'), -1, '★句読点が無い長い文は、こちらでは切らない（まん中で切れるため）');
+  eq(t2.length, 60, '  言葉は1文字も減らさない');
+
+  eq(WJ('みじかい文。', 40), 'みじかい文。', '短い文は、そのまま');
+  eq(WJ('', 20), '', '空でも落ちない');
+  eq(WJ(null, 20), '', 'null でも落ちない');
+  eq(WJ('あいう', 0).replace(/\n/g, ''), 'あいう', '幅が変でも、言葉は残る');
+
+  // マスの幅から、1行に入る量を出す
+  const FC = ctx.lrFitChars_;
+  eq(FC(15, 11) > FC(8, 11), true, '★らんが広いほど、1行に多く入る');
+  eq(FC(1, 11) >= 8, true, '  どんなに狭くても、8つぶんは見込む（0で割らないため）');
+
+  /*
+   * ★戦略予想は、▼の前に区切り線を入れる。
+   *   ▼が3つ4つ並ぶと、どこで話が変わったのか分からない
+   */
+  const a2 = ctx.buildMonthlyAdvice_({}, {}, mkFt([["平日",23,{name:"新地4",count:5,avg:12000}]]),
+                                     ADV_DT, ADV_HRS, new D(2026, 8, 15));
+  const plain = ctx.advicePlain_(ctx.adviceForecastParts_(a2));
+  const heads = (plain.match(/▼/g) || []).length;
+  const hrs = plain.split('\n').filter(x => /^─+$/.test(x)).length;
+  eq(heads >= 2, true, '見出しが2つ以上ある（' + heads + 'つ）');
+  eq(hrs, heads - 1, '★区切り線は、2つめ以降の▼の前に入る（' + hrs + '本）');
+  eq(plain.indexOf('────') !== 0, true, '★いちばん上には、線を出さない（先頭に線だけあると不格好）');
+  // 線のすぐ次の行が ▼ であること
+  plain.split('\n').forEach(function (ln, i, arr) {
+    if (/^────/.test(ln)) {
+      ok2(String(arr[i + 1] || '').indexOf('▼') === 0, '  線のすぐ下は、必ず ▼');
+    }
+  });
+}
+
+console.log('\n■ アツいエリアの1行（記号も［］の中・言葉は必ず入れる）');
+{
+  const B = ctx.lrBand_, W = ctx.lrWidth_;
+
+  const a = B('ﾛﾝｸﾞ', 8, 13270, 39, '⭕️', 'アツい', '新地4', '(月)23:51');
+  eq(a, 'ﾛﾝｸﾞ8件 平均￥13,270 待39分 [⭕️アツい 新地4 (月)23:51]',
+     '★［⭕️アツい 乗り場 時刻］を1つの［］で閉じる');
+  eq(a.indexOf('⭕️[') === -1, true, '★記号が［］の外に出ていない');
+  eq(/件 平均￥/.test(a), true, '  金額には必ず「平均」と書く');
+
+  const b = B('ｼｮｰﾄ', 3, 1200, 5, '❎', '避ける', 'ｺﾅﾝ像', '(日)02:10');
+  eq(b.indexOf('[❎避ける') !== -1, true, '★避けるほうも、同じ形');
+
+  /*
+   * ★乗り場の名前が長くても、「アツい」「避ける」は必ず入れる。
+   *   言葉が入っている行と入っていない行が混ざると、
+   *   「言葉が無い行は何なのか」が分からなくなる
+   */
+  const longName = 'ながいながいながいながいながい乗り場の名前';
+  const c = B('ﾐﾄﾞﾙ', 12, 8800, 21, '⭕️', 'アツい', longName, '(火)22:05');
+  eq(c.indexOf('アツい') !== -1, true, '★名前が長くても「アツい」は必ず入れる');
+  const MAXW = vm.runInContext('LR_BAND_MAX', ctx);
+  eq(W(c) <= MAXW, true, '★それでも1行に収まる（' + W(c) + ' ≦ ' + MAXW + '）');
+  eq(c.indexOf('…') !== -1, true, '★入りきらないぶんは、名前のほうを短くする');
+  eq(c.indexOf('(火)22:05') !== -1, true, '  時刻は削らない（いつ行くかが分からなくなるため）');
+  eq(c.indexOf(']') === c.length - 1, true, '  ］でちゃんと閉じる');
+
+  // 乗り場が決まらないときは、［］ごと出さない
+  const d = B('ｼｮｰﾄ', 2, 900, 0, '❎', '避ける', '-', '');
+  eq(d.indexOf('[') === -1, true, '乗り場が無いときは、［］を出さない');
+  eq(d, 'ｼｮｰﾄ2件 平均￥900 待0分', '  件数と金額だけ出す');
+
+  eq(typeof B('ﾛﾝｸﾞ', 0, 0, 0, '⭕️', 'アツい', null, null), 'string', 'null でも落ちない');
+  eq(W(''), 0, '幅の数え方：空は0');
+  eq(W('あい'), 4, '  全角は2つぶん');
+  eq(W('ab'), 2, '  半角は1つぶん');
+  eq(W(null), 0, '  null でも落ちない');
+}
+
 console.log('\n■ むずかしい言い方を、ふつうの言葉にする');
 {
   /*
@@ -551,8 +648,8 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
   eq(bands.length > 0, true, '金額帯の行がある（' + bands.length + '行）');
   eq(bands.every(t => t.indexOf('\n') === -1), true, 'どれも改行なし＝1行に収まる');
   eq(bands.every(t => t.length <= 45), true, '短い（いちばん長くて ' + Math.max(...bands.map(t=>t.length)) + '文字）');
-  eq(bands[0], 'ﾛﾝｸﾞ8件 平均￥13,270 待39分 ⭕️[アツい 新地4 (月)23:51]',
-     '［アツい 乗り場 時刻］を1つの［］で閉じ、金額には「平均」と書く');
+  eq(bands[0], 'ﾛﾝｸﾞ8件 平均￥13,270 待39分 [⭕️アツい 新地4 (月)23:51]',
+     '★［⭕️アツい 乗り場 時刻］を1つの［］で閉じる（記号も［］の中）');
   eq(bands.every(t => /件 平均￥/.test(t)), true,
      '★金額には必ず「平均」と書く（最高額と取りちがえないように）');
   // ★［］が2つに割れていると、どこまでが1つの話なのか読めない。
@@ -561,9 +658,23 @@ console.log('\n■ 帯・ロング／ミドル／ショートは1行');
      true, '［と］の数が合っている');
   eq(bands.every(t => (t.match(/\[/g) || []).length <= 1),
      true, '1行に［］は1組だけ（アツい・避ける〜時刻をまとめて閉じる）');
-  eq(bands.filter(t => t.indexOf('[') !== -1).every(t => /(⭕️|❎)\[/.test(t)),
-     true, '［］は必ず記号のすぐうしろから始まる');
-  // 乗り場の名前が長いときだけ、言葉を外して1行を守る
+  /*
+   * ★記号（⭕️❎）も［］の中に入れる（まーくさんのご指示）。
+   *   ひとまとまりの話なのに、記号だけ外にあると
+   *   どこからが1つの話なのか、目で切れてしまう
+   */
+  eq(bands.filter(t => t.indexOf('[') !== -1).every(t => /\[(⭕️|❎)/.test(t)),
+     true, '★記号は［］の中に入っている');
+  eq(bands.every(t => !/(⭕️|❎)\[/.test(t)),
+     true, '★記号が［］の外に出ている行は、1つも無い');
+  /*
+   * ★「アツい」「避ける」は、乗り場の名前が長くても必ず入れる。
+   *   言葉が入っている行と入っていない行が混ざると、
+   *   「言葉が無い行は何なのか」が分からなくなる
+   */
+  eq(bands.filter(t => t.indexOf('[') !== -1)
+          .every(t => /\[(⭕️アツい|❎避ける)/.test(t)),
+     true, '★どの行にも「アツい」か「避ける」が入っている');
   {
     const w = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
     eq(bands.every(t => w(t) <= 62), true,
@@ -691,8 +802,15 @@ console.log('\n■ 大事なところだけ太字にする');
      '予想は 強かった枠・件数・結論 だけ太字（全部太字だと、どこが大事か分からない）');
   // ★「こういう月」と「狙いどころ」は1つにまとめた。
   //   月の説明だけ読まされても、で、どこへ行けばよいのかが分からない
-  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 9月はこういう月　→　どこを狙うか') !== -1, true,
+  /*
+   * ★見出しの月は、季節の話を選んだ月にそろえる。
+   *   8/15までの集計なら、次に走るのは 8/16〜9/15。
+   *   8月が16日ぶん・9月が15日ぶんなので、話すのは8月
+   */
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 8月はこういう月　→　どこを狙うか') !== -1, true,
      '  来月の話は「こういう月 → だからどこを狙うか」を1つの見出しで出す');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ 9月はこういう月') === -1, true,
+     '  ★季節の話の月と、見出しの月が食いちがわない');
   eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('【狙う】') !== -1, true,
      '  必ず「で、どこを狙うか」まで書く');
   eq((ctx.advicePlain_(ctx.adviceForecastParts_(a)).match(/月の狙いどころ/g) || []).length, 0,
