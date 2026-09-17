@@ -2,7 +2,26 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L037ver  （2026/09/17）  ★★★
+ *  ★★★  L038ver  （2026/09/17）  ★★★
+ *
+ *  [L038ver]
+ *   ・📋 個別乗り場の表を、まとめて直した（まーくさんのご指示）
+ *     ★並び順：いちばん優先するのは タブの順（北7→北4→北他→ﾐﾅﾐ→関空→ほか）。
+ *       そのうえで、同じタブの中では金額の高い順。
+ *       前は金額だけで並べていたので、北とﾐﾅﾐが交互に出てきて、
+ *       どのエリアを見ているのか分からなくなっていました
+ *     ★乗り場名の幅を K列まで（4＋7）に。「再現したい乗車」の表と同じです。
+ *       同じ乗り場名が表によって違う幅で出ていると、
+ *       同じものを見ている気がしません
+ *     ★「件数/平均」と「待ち時間」を入れかえ、待ち時間をいちばん右に
+ *     ★アツい時間の書き方を「(月) 23時台」→「月曜 23:00」に。
+ *       「23時台」だと1時間の幅があって、いつ行けばよいか決められません
+ *     ★1件しかないものは「1件　￥12,000」だけ。
+ *       2件以上のときは、合計と読みちがえないよう「1件あたり」と必ず書きます
+ *     ★背景の色分けを、平均金額のらん → アツい時間のらん に移しました。
+ *       見たいのは「いつ行けば高いか」なので、色が付くべきは時間のらんです
+ *     ★表のすぐ上に、曜日の注釈を太字で置きました。
+ *       「月曜 00:05」を「月曜の朝」と読まれないようにするためです
  *
  *  [L037ver]
  *   ・📅 戦略予想を「次の16日〜翌月15日」の話にした
@@ -550,6 +569,34 @@ const GRAPH_COLORS = ["#d32f2f", "#13a4ec", "#0da50d", "#270da5", "#ec13ec",
 
 const TAB_COLORS = { "北7": "#e3f2fd", "北4": "#e8eaf6", "北他": "#e0f7fa",
                      "ﾐﾅﾐ": "#fce4ec", "関空": "#fff3e0", "ほか": "#f5f5f5" };
+
+/*
+ * ★タブを並べる順。記録用スプシのタブの並びと同じにします。
+ *   ここに無いタブは、いちばん後ろに回します。
+ */
+const TAB_ORDER = ["北7", "北4", "北他", "ﾐﾅﾐ", "関空", "ほか"];
+
+/** そのタブが何番目か（並べ替えに使う）。知らないタブは後ろ */
+function tabRank_(tab) {
+  const i = TAB_ORDER.indexOf(String(tab == null ? "" : tab));
+  return i === -1 ? TAB_ORDER.length : i;
+}
+
+/*
+ * ★曜日についての注釈。
+ *
+ *   出勤した日の曜日で数えています。
+ *   月曜に出勤して、日付をまたいで火曜の 00:05 になった乗車も、
+ *   「月曜 00:05」と書きます。夜の仕事はひと晩がひとつながりなので、
+ *   日付が変わったところで曜日を切り替えると、
+ *   同じ晩の話が2つの曜日に散らばってしまうためです。
+ *
+ *   これを書いておかないと、「月曜 00:05」を見た人が
+ *   「月曜の朝」のことだと読んでしまいます。
+ */
+const LR_DOW_NOTE =
+  "【曜日について】出勤した曜日を基準にしています。" +
+  "例）月曜に出勤して日付をまたいだ【火曜 00:05】は、【月曜 00:05】と書いています。";
 
 /** 祝日判定。HOLIDAYS は v232 側の定義を使う */
 function isHolidayFunc(dateObj) {
@@ -3018,6 +3065,25 @@ function dbWaitText_(v) {
   return t;
 }
 
+/**
+ * 個別乗り場の「⭕️アツい時間」のマスに書く文。
+ *
+ * ★「〇曜 00:00」の形にします（まーくさんのご指示）。
+ *   「23時台」だと1時間の幅があって、いつ行けばよいのか決められません。
+ * ★1件しかないものを「平均」とは呼びません。
+ *   1件の平均は平均ではないからです。2件以上のときだけ、
+ *   合計と読みちがえないよう「1件あたり」と必ず書きます。
+ */
+function dbHotTimeText_(dow, hour, count, avg, times) {
+  const d = String(dow == null ? "" : dow).replace(/曜$/, "") + "曜";
+  const h = ("0" + String(hour == null ? 0 : hour)).slice(-2) + ":00";
+  const n = count || 0;
+  const money = "￥" + Number(avg || 0).toLocaleString();
+  const money2 = n >= 2 ? (n + "件　1件あたり " + money) : (n + "件　" + money);
+  const list = (times && times.length) ? "\n[" + times.join(", ") + "]" : "";
+  return d + " " + h + "\n" + money2 + list;
+}
+
 function dbMainTitle_(periodTab, total) {
   return "📈 【" + String(periodTab == null ? "" : periodTab) + "】" +
          "分析・戦略レポート(詳細)（全" + (total || 0) + "件）";
@@ -4593,9 +4659,27 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   /* ---------- 個別乗り場 実績（1か所を2行つかって縦長に） ---------- */
   dbTitle_(curRow, "⭕️ 個別乗り場 実績 (条件: ヒートマップ基準にとどかない、月間1〜2件の乗り場)", "#cfe2f3", 12); curRow++;
-  const SP_SPANS = [4, 8, 6, 4, 4];
+  /*
+   * ★曜日の注釈を、表のすぐ上に置きます（まーくさんのご指示）。
+   *   下の表には「月曜 00:05」のような書き方が並びます。
+   *   何を基準にした曜日なのかを先に言っておかないと、読みちがえます。
+   */
+  sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(LR_DOW_NOTE)
+    .setFontSize(11).setFontWeight("bold").setFontColor("#b71c1c").setBackground("#fff8e1")
+    .setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true);
+  dbFit_(sheet, curRow, [{ text: LR_DOW_NOTE, span: DB_COLS, size: 11 }], 30); curRow++;
+
+  /*
+   * ★らんの幅は「再現したい乗車」の表にそろえました（まーくさんのご指示）。
+   *   乗り場名は K列まで（4＋7）です。
+   *   同じ乗り場名が、表によって違う幅で出ていると、
+   *   同じものを見ている気がしません。
+   * ★「件数/平均」と「待ち時間」を入れかえ、待ち時間をいちばん右にしました。
+   *   待ち時間は「読めたら書く」ものなので、端にあるほうが読みやすいためです。
+   */
+  const SP_SPANS = [4, 7, 7, 4, 4];
   let shRngs = getGridRange(sheet, curRow, 1, 1, SP_SPANS);
-  ["タブ", "乗り場名", "⭕️アツい時間", "待ち時間", "件数/平均"].forEach(function (t, i) {
+  ["タブ", "乗り場名", "⭕️アツい時間", "件数/平均", "待ち時間"].forEach(function (t, i) {
     shRngs[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
       .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
   });
@@ -4608,8 +4692,21 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     let d = spotStats[key];
     spotRowsData.push({tab: tab, name: name, d: d, avgSales: Math.round(d.sales / d.count), key: key});
   }
-  // 金額（平均）の高い順。タブごとに固めるより、どこが強いかが一目で分かる
-  spotRowsData.sort((a, b) => b.avgSales - a.avgSales);
+  /*
+   * ★並べ方（まーくさんのご指示）。
+   *   いちばん優先するのは タブの順（北7→北4→北他→ﾐﾅﾐ→関空→ほか）。
+   *   そのうえで、同じタブの中では 金額の高い順にします。
+   *
+   *   前は金額だけで並べていたので、北とﾐﾅﾐが交互に出てきて、
+   *   「どのエリアを見ているのか」が分からなくなっていました。
+   *   走る人は、まずエリアを決めてから乗り場を選ぶので、
+   *   エリアでまとまっているほうが使えます。
+   */
+  spotRowsData.sort(function (a, b) {
+    const r = tabRank_(a.tab) - tabRank_(b.tab);
+    if (r !== 0) return r;
+    return b.avgSales - a.avgSales;
+  });
 
   // AIは乗り場ごとに呼ばず、1回でまとめて作る（回数制限に当たらないように）
   for (let item of spotRowsData) {
@@ -4621,7 +4718,17 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         item.allTimes.push(...hd.times);
         if(hd.count > bC || (hd.count===bC && hd.sales>bS)) {
           bC=hd.count; bS=hd.sales; let p2=dh.split("|");
-          item.bestT=`(${daysStr[p2[0]]}) ${("0"+p2[1]).slice(-2)}時台\n${bC}件 平均￥${Math.round(bS/bC).toLocaleString()}\n[${Array.from(new Set(hd.times)).sort().join(", ")}]`;
+          item.bestAvg = Math.round(bS / bC);
+          /*
+           * ★書き方を「(月) 23時台」から「月曜 23:00」に変えました（ご指示）。
+           *   「23時台」だと1時間の幅があって、いつ行けばよいのか決められません。
+           *   時刻の形で書けば、そのまま予定に置けます。
+           * ★1件しかないものを「平均」とは呼びません。
+           *   1件の平均は平均ではないので、そのときは「1件 ￥12,000」だけ。
+           *   2件以上のときは、合計と読みちがえないよう「1件あたり」と必ず書きます。
+           */
+          item.bestT = dbHotTimeText_(daysStr[p2[0]], p2[1], bC, item.bestAvg,
+                                      Array.from(new Set(hd.times)).sort());
         }
       }
     }
@@ -4650,15 +4757,23 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     const blockTop = curRow;                 // この乗り場のかたまりの先頭行
     let drngs = getGridRange(sheet, curRow, 1, 1, SP_SPANS);
     // 乗り場名は、このかたまりの2行ぶんをまとめて1マスにする（下のほうで書く）
-    drngs[2].merge().setValue(item.bestT).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
-    drngs[3].merge().setValue(item.waitText.trim()).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-    drngs[4].merge().setValue(priceStyleText).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
-      .setFontColor(dbMoneyColor_(item.avgSales))
-      // ★平均金額にも、ほかの表と同じ背景色を付ける。
-      //   ここだけ色が無いと、同じ金額でも表によって見え方が変わってしまう
-      .setBackground(dbMoneyBg_(item.avgSales));
+    /*
+     * ★背景の色分けは「アツい時間」のほうに付けます（まーくさんのご指示）。
+     *   見たいのは「いつ行けば高いか」なので、色が付いているべきは時間のらんです。
+     *   平均金額のらんは、文字の色だけで強さが分かります。
+     * ★色のもとにするのは、その時間帯の金額（item.bestAvg）です。
+     *   その乗り場ぜんたいの平均で色を付けると、
+     *   時間のらんの数字と色が食いちがって見えます。
+     */
+    const hotAvg = item.bestAvg || item.avgSales;
+    drngs[2].merge().setValue(item.bestT).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
+      .setBackground(dbMoneyBg_(hotAvg));
+    // ★「件数/平均」と「待ち時間」を入れかえ、待ち時間をいちばん右にした
+    drngs[3].merge().setValue(priceStyleText).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
+      .setFontColor(dbMoneyColor_(item.avgSales));
+    drngs[4].merge().setValue(dbWaitText_(item.waitText.trim())).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
     dbFit_(sheet, curRow, [{ text: item.bestT, span: SP_SPANS[2], size: 10 },
-                           { text: item.waitText, span: SP_SPANS[3], size: 10 },
+                           { text: item.waitText, span: SP_SPANS[4], size: 10 },
                            { text: item.name, span: SP_SPANS[1], size: 12 }], 44);
     curRow++;
 

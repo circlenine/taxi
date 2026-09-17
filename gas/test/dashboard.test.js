@@ -219,5 +219,70 @@ console.log('\n■ 待ち時間が読み取れなかったら「－」だけ');
   eq(ctx.dbWaitText_('  '), '－', '空白だけでも「－」');
 }
 
+console.log('\n■ 個別乗り場の表（並び順・アツい時間の書き方・曜日の注釈）');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+
+  /*
+   * ★並びは、まずタブの順（北7→北4→北他→ﾐﾅﾐ→関空→ほか）。
+   *   そのうえで、同じタブの中では金額の高い順。
+   *   前は金額だけで並べていたので、北とﾐﾅﾐが交互に出てきて、
+   *   どのエリアを見ているのか分からなくなっていた
+   */
+  const R = ctx.tabRank_;
+  eq(R('北7') < R('北4'), true, '★北7 が いちばん先');
+  eq(R('北4') < R('北他'), true, '  北4 → 北他');
+  eq(R('北他') < R('ﾐﾅﾐ'), true, '  北他 → ﾐﾅﾐ');
+  eq(R('ﾐﾅﾐ') < R('関空'), true, '  ﾐﾅﾐ → 関空');
+  eq(R('関空') < R('ほか'), true, '  関空 → ほか');
+  eq(R('しらないタブ') >= R('ほか'), true, '知らないタブは、いちばん後ろ');
+
+  // 実際に並べてみる
+  const rows = [
+    { tab: 'ﾐﾅﾐ', name: '道頓堀', avgSales: 20000 },
+    { tab: '北7', name: '新地7A',  avgSales: 8000 },
+    { tab: '北7', name: '新地7B',  avgSales: 15000 },
+    { tab: 'ほか', name: 'どこか', avgSales: 30000 }
+  ];
+  rows.sort(function (a, b) {
+    const r = ctx.tabRank_(a.tab) - ctx.tabRank_(b.tab);
+    if (r !== 0) return r;
+    return b.avgSales - a.avgSales;
+  });
+  eq(rows.map(x => x.name), ['新地7B', '新地7A', '道頓堀', 'どこか'],
+     '★タブの順が最優先。同じタブの中では金額の高い順');
+
+  /*
+   * ★アツい時間は「〇曜 00:00」の形（まーくさんのご指示）。
+   *   「23時台」だと1時間の幅があって、いつ行けばよいのか決められない
+   */
+  const H = ctx.dbHotTimeText_;
+  const t3 = H('月', 23, 3, 12000, ['23:10', '23:44']);
+  eq(t3.split('\n')[0], '月曜 23:00', '★「月曜 23:00」の形で書く');
+  eq(t3.indexOf('時台'), -1, '★「〇〇時台」とは、もう書かない');
+  eq(t3.indexOf('1件あたり') !== -1, true, '★2件以上なら「1件あたり」と必ず書く');
+  eq(t3.indexOf('3件') !== -1, true, '  件数も書く');
+  eq(t3.indexOf('￥12,000') !== -1, true, '  金額も書く');
+  eq(t3.indexOf('[23:10, 23:44]') !== -1, true, '  実際の時刻も添える');
+
+  const t1 = H('日', 1, 1, 9000, ['01:20']);
+  eq(t1.split('\n')[0], '日曜 01:00', '  1時台は「01:00」と ゼロを付ける');
+  eq(t1.indexOf('1件あたり'), -1, '★1件しかないときは「1件あたり」と書かない');
+  eq(t1.indexOf('平均'), -1, '★1件を「平均」とも呼ばない');
+  eq(t1.indexOf('1件　￥9,000') !== -1, true, '  「1件 ￥9,000」とだけ書く');
+
+  eq(H('月曜', 0, 2, 5000, []).split('\n')[0], '月曜 00:00', '「月曜」と渡しても「月曜曜」にならない');
+  eq(typeof H(null, null, 0, 0, null), 'string', 'null でも落ちない');
+
+  /*
+   * ★曜日の注釈。「月曜 00:05」を「月曜の朝」と読まれないように、
+   *   表のすぐ上に、目立つ形で置く
+   */
+  const note = ctx.LR_DOW_NOTE || vm.runInContext('LR_DOW_NOTE', ctx);
+  eq(note.indexOf('出勤した曜日') !== -1, true, '★何を基準にした曜日かを書く');
+  eq(note.indexOf('火曜 00:05') !== -1 && note.indexOf('月曜 00:05') !== -1, true,
+     '★具体例も書く（言葉だけでは伝わらない）');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
