@@ -2,7 +2,25 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L043ver  （2026/09/17）  ★★★
+ *  ★★★  L044ver  （2026/09/17）  ★★★
+ *
+ *  [L044ver]
+ *   ・📐 見出しと説明書きを、はっきり分けた（まーくさんのご指示）
+ *     ★前は、説明まで見出しの中に入れて、同じ太さ・同じ大きさで
+ *       書いていました。「何の表か」と「どういう条件の表か」が
+ *       同じ重さに見え、どこを読めばよいのか分かりませんでした
+ *     ★いまは、こう分けています。
+ *         見出し　　… 太字・大きめ・色つきの背景（まず目に入るもの）
+ *         説明書き … 細字・ひとまわり小さい（9）・グレー
+ *     ★説明書きも、句読点のところで改行します。
+ *       らんの数から1行に入る量を逆算しているので、
+ *       右側をむだに空けることも、言葉のまん中で切れることもありません
+ *     ★アドバイスの中の説明書きも、同じように小さくしました
+ *   ・🧹 表と表のあいだの「あき行」を、結合しないようにした（ご指摘）
+ *     ★中身が何も無いのに26らんまとめていました。まとめる意味がなく、
+ *       そのあたりを選んだだけで26らんぜんぶが選ばれてしまいます
+ *     ★前に結合していたぶんは、ほどきます
+ *       （作り直しても、結合だけは残ってしまうためです）
  *
  *  [L043ver]
  *   ・🎨 一晩の流し方の【平日】【金曜】の行を、見やすくした（ご指示）
@@ -4516,10 +4534,27 @@ function dbEnsureRows_(sheet, upto) {
 }
 
 /** 区切りの空行。どこまでが1つのまとまりか分かるようにする */
+/**
+ * 表と表のあいだの、あき行。
+ *
+ * ★ここは結合しません（まーくさんのご指摘）。
+ *   中身が何も無いあき行を、26らんまとめて1つのマスにしていました。
+ *   まとめる意味がありません。それどころか、
+ *   ・そのあたりを選んだだけで、26らんぜんぶが選ばれてしまう
+ *   ・列の幅を変えたいときに、結合が じゃまをする
+ *   ・作り直すたびに、結合をほどく手間がかかる
+ *   と、困ることのほうが多い作りでした。
+ *   白く塗って、高さを決めるだけで足ります。
+ *
+ * ★前に結合していたぶんは、ここでほどきます。
+ *   作り直しても結合だけは残るので、ほどかないと ずっと残ります。
+ */
 function dbGap_(sheet, row) {
   try {
     dbEnsureRows_(sheet, row);
-    sheet.getRange(row, 1, 1, DB_COLS).merge().setBackground("#ffffff");
+    const rg = sheet.getRange(row, 1, 1, DB_COLS);
+    try { rg.breakApart(); } catch (e) {}      // 前に結合していたぶんをほどく
+    rg.setBackground("#ffffff");
     sheet.setRowHeight(row, 30);
   } catch (e) {}
 }
@@ -4581,6 +4616,43 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   for(let i=1; i<=DB_COLS; i++) sheet.setColumnWidth(i, DB_COL_W);
 
   /** 横いっぱいの見出し行 */
+  /*
+   * ★見出しの下の「説明書き」は、注釈として別に出します（まーくさんのご指示）。
+   *
+   *   前は、説明まで見出しの中に入れて、同じ太さ・同じ大きさで書いていました。
+   *   そのせいで「何の表か」と「どういう条件の表か」が同じ重さに見え、
+   *   どこを読めばよいのか分かりませんでした。
+   *
+   *   いまは、こう分けています。
+   *     ・見出し　　… 太字・大きめ・色つきの背景（まず目に入るもの）
+   *     ・説明書き … 細字・ひとまわり小さい・グレー（あとで読めばよいもの）
+   *
+   *   説明書きは、句読点のところで改行します。
+   *   らんの数から1行に入る量を逆算しているので、
+   *   右側をむだに空けることも、言葉のまん中で切れることもありません。
+   */
+  const DB_NOTE_SIZE = 9;                     // 説明書きの字の大きさ（見出しより小さい）
+
+  function dbNote_(row, text, bg) {
+    const t = String(text == null ? "" : text).trim();
+    if (!t) return false;
+    dbEnsureRows_(sheet, row);
+    const wrapped = lrWrapJa_(t, lrFitChars_(DB_COLS, DB_NOTE_SIZE));
+    sheet.getRange(row, 1, 1, DB_COLS).merge().setValue(wrapped)
+      .setFontSize(DB_NOTE_SIZE).setFontWeight("normal").setFontColor("#6b6b6b")
+      .setBackground(bg || "#fbfbfb")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    sheet.setRowHeight(row, 15 * wrapped.split("\n").length + 5);
+    return true;
+  }
+
+  /** 見出し＋説明書き。使った行数ぶん進めた row を返す */
+  function dbTitleNote_(row, title, note, bg, size) {
+    dbTitle_(row, title, bg, size); row++;
+    if (dbNote_(row, note, bg)) row++;
+    return row;
+  }
+
   function dbTitle_(row, text, bg, size) {
     dbEnsureRows_(sheet, row);
     sheet.getRange(row, 1, 1, DB_COLS).merge().setValue(text)
@@ -4622,7 +4694,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   /* ---------- 📊 エリア別 実績＆パーセント（LINEの絵と同じもの） ---------- */
   // v185からの作り直しのときに、まるごと抜け落ちていた部分。
   // LINEの絵にはあるのに、スプシには無いという状態だった
-  dbTitle_(curRow, "📊 エリア別 実績＆パーセント（ﾛﾝｸﾞ／ﾐﾄﾞﾙ／ｼｮｰﾄの割合）", "#e8eef5", 12); curRow++;
+  curRow = dbTitleNote_(curRow, "📊 エリア別 実績＆パーセント",
+    "帯は、ﾛﾝｸﾞ／ﾐﾄﾞﾙ／ｼｮｰﾄが何％だったかを表しています。",
+    "#e8eef5", 12);
   DAY_TYPES.forEach(function (type) {
     const ranks = [];
     ["北", "ﾐﾅﾐ", "ほか"].forEach(function (area) {
@@ -4694,8 +4768,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     const blocks = [
       ["【この期間の振り返り】", [adviceReviewParts_(advice)], "#eef3f8", "#0b5394"],
       ["【オススメの乗車時間と乗り場】",
+        // ★この1行目は説明書き。注釈の印（n: true）を付けて、小さい細字で出す
         [[{ t: `同じ曜日・時間帯で${LR_NIGHT_MIN_N}件以上の記録があり、平均単価が高かった組み合わせです。` +
-              `（${LR_NIGHT_MIN_N}件に満たないものは、まぐれの可能性があるので出していません）`, c: "#5f6368" }]].concat(pickParts),
+              `${LR_NIGHT_MIN_N}件に満たないものは、まぐれの可能性があるので出していません。`,
+             c: "#6b6b6b", n: true }]].concat(pickParts),
         "#fdf0ef", "#b71c1c"],
       [adviceForecastTitle_(advice), [adviceForecastParts_(advice)], "#eaf4ec", "#2e7d32"]
     ];
@@ -4706,12 +4782,16 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       sheet.setRowHeight(curRow, 26); curRow++;
       // 乗り場・金額・時刻だけを太字にする。全部同じ太さだと、どこが大事か分からない
       b[1].forEach(function (parts0) {
+        // ★説明書き（n: true）は、ひとまわり小さい細字で出す。
+        //   本文と同じ大きさだと、どれが説明でどれが中身か分からない
+        const isNote = (parts0 || []).length === 1 && parts0[0] && parts0[0].n;
+        const size = isNote ? DB_NOTE_SIZE : 11;
         // ★句読点のところで改行しておく。
         //   そのままだと、マスの幅で言葉のまん中から折り返されてしまう。
         //   幅は、らんの数から逆算しているので、右側をむだに空けることもない
-        const parts = lrWrapParts_(parts0, lrFitChars_(DB_COLS, 11));
-        const txt = dbRich_(sheet, curRow, 1, DB_COLS, parts, 11, b[2]);
-        dbFit_(sheet, curRow, [{ text: txt, span: DB_COLS, size: 11 }], 26);
+        const parts = lrWrapParts_(parts0, lrFitChars_(DB_COLS, size));
+        const txt = dbRich_(sheet, curRow, 1, DB_COLS, parts, size, b[2]);
+        dbFit_(sheet, curRow, [{ text: txt, span: DB_COLS, size: size }], isNote ? 18 : 26);
         curRow++;
       });
       dbGap_(sheet, curRow); curRow++;
@@ -4722,7 +4802,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   /* ---------- 📣 オプチャ（他社の人の投稿） ---------- */
   if (opucha && opucha.count > 0) {
-    dbTitle_(curRow, "📣 オプチャ情報（他社ぶん・自社の平均には混ぜていません）", "#f3e5f5", 12); curRow++;
+    curRow = dbTitleNote_(curRow, "📣 オプチャ情報",
+      "他社の方の投稿から読んだものです。自社の平均には混ぜていません。",
+      "#f3e5f5", 12);
     const opuFrom = curRow;
     sheet.getRange(curRow, 1, 1, DB_COLS).merge()
       .setValue(`${opucha.count}件 ／ 平均￥${Math.round(opucha.sales / opucha.count).toLocaleString()}` +
@@ -4800,10 +4882,12 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       return (plan[dt] || []).some(function (x) { return !!x.name; });
     });
 
-    dbTitle_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）\n" +
-      "同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です\n" +
-      "狙い目＝その時間帯でいちばん高かった乗車の時刻　／　平均￥＝1回あたりの平均売上\n" +
-      "※ 同じ乗り場で" + LR_NIGHT_MIN_N + "件以上の記録があるものだけを出しています", "#cfe2f3", 12); curRow++;
+    curRow = dbTitleNote_(curRow, "🚕 一晩の流し方（20:00〜翌04:00）",
+      "同じ色が続く間は動かなくてOK。色の変わり目が「動くとき」です。" +
+      "狙い目＝その時間帯でいちばん高かった乗車の時刻。" +
+      "平均￥＝1回あたりの平均売上。" +
+      "同じ乗り場で" + LR_NIGHT_MIN_N + "件以上の記録があるものだけを出しています。",
+      "#cfe2f3", 12);
 
     // 時間帯 ＋ 曜日区分4つ（合計26列ぴったり）
     const PL_SPANS = [6, 5, 5, 5, 5];
@@ -4893,7 +4977,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   /* ---------- ⭕️アツい ✖️ ❎避ける【時間詳細】 ---------- */
   // 横が曜日区分、縦が時間帯。曜日をまたいで「この時間はどこが強いか」を
   // 横に見比べられる形にする（縦に積むと、見比べるのにスクロールが要る）
-  dbTitle_(curRow, "⭕️アツい乗り場 ✖️ ❎避ける乗り場【時間詳細】\n(アツい=平均売上が最高 / 避ける=平均￥1,500以下、又はアツいより￥2,000以上低い)", "#d9ead3", 12); curRow++;
+  curRow = dbTitleNote_(curRow, "⭕️アツい乗り場 ✖️ ❎避ける乗り場【時間詳細】",
+    "アツい＝その時間帯で平均売上がいちばん高かった乗り場。" +
+    "避ける＝平均￥1,500以下、または アツいより￥2,000以上低かった乗り場。",
+    "#d9ead3", 12);
 
   let targetHours = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
   // 時間帯 ＋ 曜日区分ごとに（アツい・避ける）の2列
@@ -4987,7 +5074,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       // ★地図の説明は、ここには書きません（まーくさんのご指示）。
       //   この見出しで言うべきは「何の表か」と「どういう条件の表か」だけです。
       //   使い方の説明が混ざると、肝心の条件が読み飛ばされます
-      dbTitle_(curRow, `⭕️ 【${spotName}】曜日×時間帯別ヒートマップ\n(条件: 20〜29時台で月間3件以上の実績)`, TAB_COLORS[tName] || "#e8eef5", 12);
+      curRow = dbTitleNote_(curRow, `⭕️ 【${spotName}】曜日×時間帯別ヒートマップ`,
+        "20〜29時台で、月に3件以上の記録がある乗り場だけを出しています。",
+        TAB_COLORS[tName] || "#e8eef5", 12) - 1;
       // 見出しの乗り場名だけにリンクを張る（押すとマップが開く）
       try {
         {
@@ -5128,7 +5217,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   }
 
   /* ---------- 個別乗り場 実績（1か所を2行つかって縦長に） ---------- */
-  dbTitle_(curRow, "⭕️ 個別乗り場 実績 (条件: ヒートマップ基準にとどかない、月間1〜2件の乗り場)", "#cfe2f3", 12); curRow++;
+  curRow = dbTitleNote_(curRow, "⭕️ 個別乗り場 実績",
+    "ヒートマップに出ない乗り場（月に1〜2件）を、ここにまとめています。",
+    "#cfe2f3", 12);
   /*
    * ★曜日の注釈を、表のすぐ上に置きます（まーくさんのご指示）。
    *   下の表には「月曜 00:05」のような書き方が並びます。
@@ -5286,11 +5377,12 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
 
   /* ---------- 特別な一覧（再現したい・チケット・避けたい） ---------- */
-  function createSpecialTable(title, dataArr0, startRow, bgC, isAvoid) {
+  function createSpecialTable(title, dataArr0, startRow, bgC, isAvoid, note) {
     // 名前の無い乗り場は、どこに着ければよいか分からないので出さない
     let dataArr = (dataArr0 || []).filter(function (r) { return dbHasPlace_(r && r[2]); });
     let row = startRow;
-    dbTitle_(row, (isAvoid ? "❎ " : "⭕️ ") + title, bgC, 12); row++;
+    // ★見出しは「何の表か」だけ。条件は、その下に注釈として小さく出す
+    row = dbTitleNote_(row, (isAvoid ? "❎ " : "⭕️ ") + title, note, bgC, 12);
 
     const hSpans = [4, 7, 7, 4, 4];
     let hRngs = getGridRange(sheet, row, 1, 1, hSpans);
@@ -5383,12 +5475,16 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     return row;
   }
 
-  curRow = createSpecialTable("再現したい乗車 一覧 (条件: 再現性を含む 又は 備考ありで￥5,000以上)", reproRides, curRow, "#cfe2f3", false);
-  curRow = createSpecialTable("チケット乗車 一覧 (条件: 備考にチケを含み、かつ￥5,000以上)", ticketRides, curRow, "#fce5cd", false);
-  curRow = createSpecialTable("避けたい乗車 一覧 (条件: NGワードを含む 又は ￥999以下)", avoidRides, curRow, "#f4cccc", true);
+  curRow = createSpecialTable("再現したい乗車 一覧", reproRides, curRow, "#cfe2f3", false,
+    "備考に「再現性」と書いたもの、または 備考があって￥5,000以上だったものです。");
+  curRow = createSpecialTable("チケット乗車 一覧", ticketRides, curRow, "#fce5cd", false,
+    "備考に「チケ」と書いたもので、￥5,000以上だったものです。");
+  curRow = createSpecialTable("避けたい乗車 一覧", avoidRides, curRow, "#f4cccc", true,
+    "備考に避けたい言葉があったもの、または ￥999以下だったものです。");
   // バラシは平均に混ぜていない（1件の乗車を分けて書いたものなので、数えると二重になる）。
   // ただし捨てはしない。ここで一覧として見られるようにする
-  curRow = createSpecialTable("バラシ 一覧 (平均には数えていません。記録として残すぶん)", barasiRides || [], curRow, "#ead1dc", false);
+  curRow = createSpecialTable("バラシ 一覧", barasiRides || [], curRow, "#ead1dc", false,
+    "1回の乗車を分けて書いたものです。二重に数えてしまうので、平均には入れていません。");
 
   // グラフを全部置き終わってから、まとめて点線にする
   dbDotLines_(dbSS, tabName);

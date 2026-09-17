@@ -345,8 +345,14 @@ console.log('\n■ 乗り場名を押すと、Googleマップへ飛ぶ');
   const src = require('fs').readFileSync(
     require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
   eq(src.indexOf('曜日×時間帯別ヒートマップ') !== -1, true, '  ヒートマップの見出しはある');
-  eq(src.indexOf('(条件: 20〜29時台で月間3件以上の実績)') !== -1, true,
-     '★見出しに残すのは、条件だけ');
+  /*
+   * ★条件は、見出しの中ではなく、その下の注釈として出すようにした。
+   *   見出しは「何の表か」だけ。条件は、ひとまわり小さい細字で下に
+   */
+  eq(src.indexOf('`⭕️ 【${spotName}】曜日×時間帯別ヒートマップ`') !== -1, true,
+     '★見出しは「何の表か」だけ');
+  eq(src.indexOf('20〜29時台で、月に3件以上の記録がある乗り場だけを出しています。') !== -1, true,
+     '★条件は、その下の注釈として出す');
   eq(src.indexOf('地図のタブに登録した乗り場は、名前を押すとマップが開きます'), -1,
      '★ヒートマップの見出しに、地図の説明は書かない');
 }
@@ -397,7 +403,7 @@ console.log('\n■ 長い文は、右側を空けずに詰めて、句読点で�
   // ★作っただけで、使っていなければ意味がない。使っているところも見る
   const src = require('fs').readFileSync(
     require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
-  eq(src.indexOf('lrWrapParts_(parts0, lrFitChars_(DB_COLS, 11))') !== -1, true,
+  eq(src.indexOf('lrWrapParts_(parts0, lrFitChars_(DB_COLS, size))') !== -1, true,
      '★月間戦略アドバイスを書くところで、ちゃんと使っている');
 }
 
@@ -421,6 +427,67 @@ console.log('\n■ 注釈は、とちゅうに線を入れない');
   eq(D[0].indexOf('AI') !== -1, true, '★AIが入っていることは、いちばん上に必ず書く');
   eq(D.slice(1).join('\n').indexOf('実績を数えたもの') !== -1, true,
      '  どこまでが記録かも、これまでどおり書く');
+}
+
+console.log('\n■ 見出しと説明書きを、はっきり分ける');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+
+  /*
+   * ★前は、説明まで見出しの中に入れて、同じ太さ・同じ大きさで書いていた。
+   *   「何の表か」と「どういう条件の表か」が同じ重さに見え、
+   *   どこを読めばよいのか分からなかった（まーくさんのご指示）
+   */
+  eq(src.indexOf('function dbNote_(row, text, bg)') !== -1, true,
+     '★説明書きは、見出しとは別に書く仕掛けがある');
+  eq(src.indexOf('function dbTitleNote_(row, title, note, bg, size)') !== -1, true,
+     '  見出し＋説明書きを、まとめて置ける');
+  eq(src.indexOf('const DB_NOTE_SIZE = 9;') !== -1, true,
+     '★説明書きは、見出し（12）より小さい字（9）');
+  eq(src.indexOf('.setFontSize(DB_NOTE_SIZE).setFontWeight("normal").setFontColor("#6b6b6b")') !== -1, true,
+     '★説明書きは、太字にしない・グレーにする');
+  eq(src.indexOf('lrWrapJa_(t, lrFitChars_(DB_COLS, DB_NOTE_SIZE))') !== -1, true,
+     '★説明書きも、句読点のところで改行する（変なところで切らない）');
+
+  // 見出しの中に、条件を書き込んだままのところが残っていないこと
+  ['(条件: ヒートマップ基準にとどかない',
+   '(条件: 再現性を含む',
+   '(条件: 備考にチケを含み',
+   '(条件: NGワードを含む',
+   '(アツい=平均売上が最高'].forEach(function (x) {
+    eq(src.indexOf(x), -1, '★見出しの中に条件を書いたままのところが無い（' + x.slice(0, 12) + '…）');
+  });
+
+  // それぞれの説明書きが、ちゃんと用意されていること
+  ['ヒートマップに出ない乗り場（月に1〜2件）を、ここにまとめています。',
+   '備考に「再現性」と書いたもの、または 備考があって￥5,000以上だったものです。',
+   '備考に「チケ」と書いたもので、￥5,000以上だったものです。',
+   '備考に避けたい言葉があったもの、または ￥999以下だったものです。',
+   '1回の乗車を分けて書いたものです。二重に数えてしまうので、平均には入れていません。',
+   'アツい＝その時間帯で平均売上がいちばん高かった乗り場。'].forEach(function (x) {
+    eq(src.indexOf(x) !== -1, true, '  説明書きがある（' + x.slice(0, 14) + '…）');
+  });
+
+  // アドバイスの中の説明書きも、小さい細字にする
+  eq(src.indexOf('const isNote = (parts0 || []).length === 1 && parts0[0] && parts0[0].n;') !== -1, true,
+     '★アドバイスの中の説明書きも、見分けて小さくする');
+  eq(src.indexOf('const size = isNote ? DB_NOTE_SIZE : 11;') !== -1, true,
+     '  説明書きは9、中身は11');
+
+  /*
+   * ★表と表のあいだのあき行は、結合しない（まーくさんのご指摘）。
+   *   中身が何も無いのにまとめる意味がなく、
+   *   そのあたりを選んだだけで26らんぜんぶが選ばれてしまう
+   */
+  const gap = src.slice(src.indexOf('function dbGap_(sheet, row)'),
+                        src.indexOf('function dbGap_(sheet, row)') + 700);
+  eq(gap.indexOf('.merge()'), -1, '★あき行は、結合しない');
+  eq(gap.indexOf('breakApart()') !== -1, true,
+     '★前に結合していたぶんは、ほどく（作り直しても結合だけは残るため）');
+  eq(gap.indexOf('setRowHeight(row, 30)') !== -1, true, '  高さは、これまでどおり');
+  eq(gap.indexOf('setBackground("#ffffff")') !== -1, true, '  白く塗るのも、これまでどおり');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
