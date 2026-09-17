@@ -2,7 +2,21 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U082ver  （2026/09/17）  ★★★
+ *  ★★★  U083ver  （2026/09/17）  ★★★
+ *
+ *  [U083ver]
+ *   ・🗓 おつかいの「イベントの確認用」を、あすのぶんにした（ご指摘）
+ *     ★確認用は そもそも「あすのぶんを、前の日のうちに人の目で見ておく」
+ *       ためのものです。きょうのぶんを見ても、直す時間がありません。
+ *       これまでは、そうさパネルの日付らん（空なら きょう）を見ていました
+ *     ★メモに "day": "あさって" と書けば、その日のぶんにもできます
+ *   ・📮 1枚のメモに、頼みごとを いくつか書けるようにした（"do" を並びに）
+ *     ★ただし、やるのは 1回に1つだけです。
+ *       まとめレポートは作るのに時間がかかり、2つ続けてやると
+ *       持ち時間（6分）を超えて途中で止まってしまうためです。
+ *       3分おきに見にきているので、2つなら6分でぜんぶ終わります
+ *     ★知らない頼みごとが混ざっていても、そこで止まりません
+ *       （1つで詰まると、あとの頼みごとが永遠に始まらないため）
  *
  *  [U082ver]
  *   ・🚑 取り込みが ずっと失敗していたのを直した
@@ -5444,30 +5458,77 @@ function updErrandRead_() {
  * おつかいメモを、1回だけやる。
  * やったら true。
  */
+function updErrandJobs_(j) {
+  const v = (j && j.do) || "";
+  return (Array.isArray(v) ? v : [v]).map(function (x) { return String(x || "").trim(); })
+                                     .filter(function (x) { return !!x; });
+}
+
+/**
+ * おつかいメモを、1回だけやる。
+ * やったら true。
+ *
+ * ★1枚のメモに、頼みごとを いくつか書けます（"do" を並びにする）。
+ *   ただし、1回にやるのは かならず1つだけです。
+ *   まとめレポートのように、作るのに時間のかかるものがあり、
+ *   2つを続けてやると Apps Script の持ち時間（6分）を
+ *   超えて、途中で止まってしまうためです。
+ *   3分おきに見にきているので、2つなら6分でぜんぶ終わります。
+ *
+ * ★どこまでやったかは「メモの番号#何番目」で覚えます。
+ */
 function updErrandTick_() {
   const j = updErrandRead_();
   if (!j) return false;
-  if (!UPD_ERRAND_OK[j.do]) return false;          // 知らない頼みごとは、何もしない
+  const jobs = updErrandJobs_(j);
+  if (!jobs.length) return false;
 
   const pr = updProps_();
-  if (String(pr.getProperty("UPD_ERRAND_DONE") || "") === String(j.id)) return false;
+  const done = String(pr.getProperty("UPD_ERRAND_DONE") || "");
+  let idx = 0;
+  const m = done.match(/^([\s\S]*)#(\d+)$/);
+  if (m && m[1] === String(j.id)) idx = Number(m[2]) + 1;
+  else if (done === String(j.id)) return false;    // 前の形（1つだけ）で、やり終えている
+  if (idx >= jobs.length) return false;            // ぜんぶ やり終えた
+
+  const task = jobs[idx];
+  if (!UPD_ERRAND_OK[task]) {                      // 知らない頼みごとは、何もしない
+    // ★ただし「やった」印は進めます。そうしないと、
+    //   知らない頼みごと1つで、あとの頼みごとが永遠に始まりません
+    try { pr.setProperty("UPD_ERRAND_DONE", String(j.id) + "#" + idx); } catch (e) {}
+    return false;
+  }
   // ★先に印を覚える。ここで覚えないと、しくじったときに何度もやり直してしまう
-  try { pr.setProperty("UPD_ERRAND_DONE", String(j.id)); } catch (e) {}
+  try { pr.setProperty("UPD_ERRAND_DONE", String(j.id) + "#" + idx); } catch (e) {}
 
   const me = updMe_();
   let out = "";
   try {
-    if (j.do === "ping") {
+    if (task === "ping") {
       out = "うごいています。";
-    } else if (j.do === "event-test") {
+    } else if (task === "event-test") {
       /*
-       * ★イベントの確認用（まーくさんだけ）。
-       *   これは menuVenueTestSend と同じもので、グループへは出ません。
-       *   グループへの本番送信は、おつかいからは絶対にできません
+       * ★イベントの確認用（まーくさんだけ）。グループへは出ません。
+       *   グループへの本番送信は、おつかいからは絶対にできません。
+       *
+       * ★日付は、何も書かなければ「あす」です。
+       *   確認用というのは、そもそも
+       *   「あすのぶんを、前の日のうちに人の目で見ておく」ためのものです。
+       *   きょうのぶんを見ても、直す時間がありません。
+       *   メモに "day": "あさって" のように書けば、その日にできます
        */
-      if (typeof menuVenueTestSend === "function") out = menuVenueTestSend();
-      else out = "イベントのしくみが、まだ入っていません。";
-    } else if (j.do === "report-test") {
+      if (typeof vnSendTodayToMe === "function" && typeof vnParseDay_ === "function") {
+        const d = vnParseDay_(String(j.day || "あす"));
+        const err = vnSendTodayToMe(d);
+        const label = (typeof vnDayLabel_ === "function") ? vnDayLabel_(d) : "";
+        const n = (typeof vnTodayEvents_ === "function") ? vnTodayEvents_(d).length : 0;
+        out = err ? "❌ " + err
+                  : "🧪 " + label + " の分（" + n + "件）を、あなたのLINEにだけ送りました" +
+                    "（グループには送っていません）";
+      } else if (typeof menuVenueTestSend === "function") {
+        out = menuVenueTestSend();
+      } else out = "イベントのしくみが、まだ入っていません。";
+    } else if (task === "report-test") {
       /*
        * ★レポートの確認用。送り先は、かならず まーくさんの個人LINEです。
        *   そうさパネルの「送り先」らんが「グループ」になっていても、
@@ -5483,7 +5544,7 @@ function updErrandTick_() {
           out = "レポートの確認用を、あなたのLINEにだけ送りました。";
         }
       } else out = "レポートのしくみが、まだ入っていません。";
-    } else if (j.do === "venue-probe") {
+    } else if (task === "venue-probe") {
       if (typeof panelVenueProbe === "function") out = panelVenueProbe();
       else out = "イベントのしくみが、まだ入っていません。";
     }
@@ -5494,8 +5555,9 @@ function updErrandTick_() {
   try {
     if (me && typeof lrPush_ === "function") {
       lrPush_(me, [{ type: "text",
-        text: "📮 クロちゃんからのおつかい\n" +
-              "　" + UPD_ERRAND_OK[j.do] + "\n\n" + String(out || "おわりました。") }]);
+        text: "📮 クロちゃんからのおつかい" +
+              (jobs.length > 1 ? "（" + (idx + 1) + "／" + jobs.length + "）" : "") + "\n" +
+              "　" + UPD_ERRAND_OK[task] + "\n\n" + String(out || "おわりました。") }]);
     }
   } catch (e) {}
   return true;

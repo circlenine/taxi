@@ -3233,13 +3233,20 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   gh = { raw: { 'errand.json': JSON.stringify({ id: 'x1', do: 'グループに送って' }) } };
   ctx.pu.length = 0;
   t(E() === false, '★知らない頼みごとは、何もしない');
-  t(props['UPD_ERRAND_DONE'] === undefined, '  やった印も残さない');
+  t(ctx.pu.length === 0, '  何も送らない');
+  /*
+   * ★印だけは、次へ進めます。
+   *   1枚に いくつか書けるようにしたので、知らない頼みごとが1つあると、
+   *   そこで止まって、あとの頼みごとが永遠に始まらなくなるためです
+   */
+  t(props['UPD_ERRAND_DONE'] === 'x1#0', '  印は次へ進める（1つで詰まらせない）');
+  delete props['UPD_ERRAND_DONE'];
 
   // ping は、返事だけ
   gh = { raw: { 'errand.json': JSON.stringify({ id: 'x2', do: 'ping' }) } };
   ctx.pu.length = 0;
   t(E() === true, '★メモのとおり、1回やる');
-  t(props['UPD_ERRAND_DONE'] === 'x2', '  やった印を覚える');
+  t(props['UPD_ERRAND_DONE'] === 'x2#0', '  やった印を覚える（メモの番号#何番目）');
   t(ctx.pu.length === 1, '★結果を知らせる');
   t(ctx.pu[0].to === 'Umark', '★送り先は まーくさんの個人LINEだけ');
   has(ctx.pu[0].msgs[0].text, 'おつかい', '  おつかいだと分かる');
@@ -3254,7 +3261,7 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   gh = { raw: { 'errand.json': JSON.stringify({ id: 'x3', do: 'ping' }) } };
   ctx.pu.length = 0;
   t(E() === true, '★新しいメモなら、またやる');
-  t(props['UPD_ERRAND_DONE'] === 'x3', '  印も新しくする');
+  t(props['UPD_ERRAND_DONE'] === 'x3#0', '  印も新しくする');
 
   // 中身がこわれていても、落ちない
   gh = { raw: { 'errand.json': 'こわれた中身' } };
@@ -3264,6 +3271,62 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   t(E() === false, '  番号（id）が無いメモも、やらない');
 
   delete props['UPD_ERRAND_DONE'];
+  ctx.pu.length = 0;
+
+  /* ---- イベントの確認用は「あすのぶん」 ---- */
+  /*
+   * ★確認用というのは、そもそも
+   *   「あすのぶんを、前の日のうちに人の目で見ておく」ためのものです。
+   *   きょうのぶんを見せても、直す時間がありません。
+   *   前は、そうさパネルの日付らん（空なら「きょう」）を見ていました
+   */
+  let asked = null;
+  ctx.vnParseDay_      = function (x) { asked = x; return new Date(2026, 8, 18); };
+  ctx.vnSendTodayToMe  = function () { return ""; };
+  ctx.vnDayLabel_      = function () { return '9/18(金)'; };
+  ctx.vnTodayEvents_   = function () { return [1, 2]; };
+
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'e1', do: 'event-test' }) } };
+  ctx.pu.length = 0;
+  t(E() === true, 'イベントの確認用をやる');
+  t(asked === 'あす', '★日付を書かなければ「あす」のぶん（前の日に見ておくためのもの）');
+  has(ctx.pu[0].msgs[0].text, '9/18(金)', '  どの日のぶんを送ったか、はっきり書く');
+  has(ctx.pu[0].msgs[0].text, 'グループには送っていません', '★グループには出ないと、はっきり書く');
+
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'e2', do: 'event-test', day: 'あさって' }) } };
+  ctx.pu.length = 0;
+  t(E() === true, '日付を書いたメモも、やる');
+  t(asked === 'あさって', '★メモに日付を書けば、その日のぶんにできる');
+
+  /* ---- 1枚のメモに、いくつか頼める（1回に1つずつ）---- */
+  /*
+   * ★まとめレポートは作るのに時間がかかります。
+   *   2つを続けてやると、持ち時間（6分）を超えて途中で止まります。
+   *   3分おきに見にきているので、2つなら6分でぜんぶ終わります
+   */
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'e3', do: ['ping', 'event-test'] }) } };
+  ctx.pu.length = 0;
+  t(E() === true, '★1つめをやる');
+  has(ctx.pu[0].msgs[0].text, 'うごいています', '  1つめは ping');
+  has(ctx.pu[0].msgs[0].text, '（1／2）', '  何番目かも書く');
+  ctx.pu.length = 0;
+  t(E() === true, '★次の回に、2つめをやる（1回に1つだけ）');
+  has(ctx.pu[0].msgs[0].text, '（2／2）', '  2つめだと分かる');
+  ctx.pu.length = 0;
+  t(E() === false, '★やり終えたら、それ以上くり返さない');
+  t(ctx.pu.length === 0, '  だから、何度も鳴らない');
+
+  // 知らない頼みごとが混ざっていても、あとの頼みごとが止まらない
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'e4', do: ['そとへ送って', 'ping'] }) } };
+  ctx.pu.length = 0;
+  t(E() === false, '★知らない頼みごとは、やらない');
+  t(ctx.pu.length === 0, '  何も送らない');
+  t(E() === true, '★でも、あとの頼みごとは ちゃんと始まる（1つで詰まらせない）');
+  has(ctx.pu[0].msgs[0].text, 'うごいています', '  2つめは、やってくれる');
+
+  delete props['UPD_ERRAND_DONE'];
+  delete ctx.vnParseDay_; delete ctx.vnSendTodayToMe;
+  delete ctx.vnDayLabel_; delete ctx.vnTodayEvents_;
   ctx.pu.length = 0;
 }
 
