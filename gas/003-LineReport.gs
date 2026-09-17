@@ -2,7 +2,25 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L050ver  （2026/09/17）  ★★★
+ *  ★★★  L051ver  （2026/09/17）  ★★★
+ *
+ *  [L051ver]
+ *   ・📈 グラフが「データの可視化をするには…」の空箱になっていたのを直した（ご指摘）
+ *     ★下のほうの空き行を片づけるときに、グラフのもとになる数字の置き場
+ *       （隠してある行）まで隠していました。
+ *       スプレッドシートのグラフは、ふつう 隠れた行を読みません。
+ *       「隠れていても読む」と言っておく必要がありました。わたしの見落としです
+ *   ・📏 一晩の流し方（マス目）の行の高さを、ぜんぶ同じにした（ご指示）
+ *     ★何も無い時間帯（20時台・21時台・04時台）だけ低く、ガタガタでした
+ *   ・📏 ヒートマップの行の高さも、ぜんぶ同じにした（ご指示）
+ *   ・📐 1行目のタイトルを、かならず1行にした（ご指示）
+ *     ★年（2026/）と【】を外しました。固定したときに、見えるところを減らさないため
+ *   ・📐 2行目（タブごとの件数）を、幅いっぱいまで横に詰めた（ご指示）
+ *   ・🔲 かたまりとかたまりのあいだの空き行は、結合しないようにそろえた（ご指摘）
+ *     ★結合したままだと、表と表の境目が見えませんでした
+ *   ・📝 曜日の注釈を「◆ 曜日について」にし、「例）」の前で改行した（ご指示）
+ *     ★見出しに【】を使うと、本文の【火曜 00:05】と見分けがつきませんでした
+ *   ・🗑 戦略予想の区切り線を、まとめスプシでも引かないようにした（ご指示）
  *
  *  [L050ver]
  *   ・🔤 アツい／避ける の乗り場名を、最後まで出すようにした（ご指摘）
@@ -804,8 +822,16 @@ function tabRank_(tab) {
  *   これを書いておかないと、「月曜 00:05」を見た人が
  *   「月曜の朝」のことだと読んでしまいます。
  */
+/*
+ * ★「例）」の前で、かならず改行します（ご指示）。
+ *   決まりの話と、その例が ひとつながりに流れていると、
+ *   どこからが例なのか、ぱっと見て分かりませんでした。
+ */
 const LR_DOW_NOTE =
-  "【曜日について】出勤した曜日を基準にしています。" +
+  // ★見出しに【】は使いません（ご指摘）。
+  //   本文にも【火曜 00:05】と【】が出てくるので、同じ記号だと
+  //   どれが見出しで、どれが中身なのか 見分けがつきませんでした
+  "◆ 曜日について　出勤した曜日を基準にしています。\n" +
   "例）月曜に出勤して日付をまたいだ【火曜 00:05】は、【月曜 00:05】と書いています。";
 
 /** 祝日判定。HOLIDAYS は v232 側の定義を使う */
@@ -3161,9 +3187,15 @@ const LR_ADV_HR = "────────────\n";
 /** 戦略予想の見出し1つぶん（区切り線つき）。1つめは線を出さない */
 function adviceHead_(title, first) { return advHead_(title, first); }
 
+/*
+ * ★区切り線（────）は、もう引きません（ご指示）。
+ *   まとめスプシでも、LINEの絵でも引きません。
+ *   見出し（▼）そのものが かたまりの切れ目になっているので、
+ *   線はただ1行を使うだけでした。
+ *   ※ 決まりだけ残してあります（LR_ADV_HR）。戻したくなったときのためです
+ */
 function advHead_(title, first) {
   const out = [];
-  if (!first) out.push({ t: LR_ADV_HR, c: "#9e9e9e" });
   out.push({ t: "▼ " + title + "\n" });
   return out;
 }
@@ -3497,8 +3529,18 @@ function dbFunBlock_(sheet, row) {
 }
 
 function dbMainTitle_(periodTab, total) {
-  return "📈 【" + String(periodTab == null ? "" : periodTab) + "】" +
-         "分析・戦略レポート(詳細)（全" + (total || 0) + "件）";
+  /*
+   * ★かならず1行に収めます（まーくさんのご指示）。
+   *   タイトルが2行になると、いちばん上を固定したときに
+   *   そのぶん見えるところが減ってしまいます。
+   *   年（2026/）と【】を外すだけで、ぐっと短くなります。
+   *   どの年のことかは、下の表を見れば分かります
+   */
+  const t = String(periodTab == null ? "" : periodTab)
+    .replace(/\d{4}[\/\-年]/g, "")        // 2026/08/16 → 08/16
+    .replace(/0(\d)\//g, "$1/")           // 08/16 → 8/16
+    .replace(/[\s\u3000]/g, "");
+  return "📈 " + t + " 分析・戦略レポート(詳細) 全" + (total || 0) + "件";
 }
 
 /**
@@ -3512,6 +3554,15 @@ function dbMainTitle_(periodTab, total) {
 function dbFreezeTitle_(sheet) {
   try { sheet.setFrozenRows(1); return true; } catch (e) { return false; }
 }
+
+/*
+ * 一晩の流し方（マス目）の行の高さ。
+ *
+ * ★どの行も同じ高さにします。中身のある時間帯だけ高いと、
+ *   空いている時間帯（20時台・21時台・04時台）との段差で
+ *   表がガタガタに見えます（ご指摘）。
+ */
+const DB_NIGHT_ROW_H = 34;
 
 /** ひと晩の時間帯（20:00〜翌04:00） */
 const LR_NIGHT_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4];
@@ -3809,6 +3860,28 @@ const LR_AVOID_MAX = 2000;
 function lrAvoidSpot_(name, avg) {
   if (!name || name === "-") return "-";
   return (Number(avg) >= LR_AVOID_MAX) ? "-" : name;
+}
+
+/**
+ * ならんだ言葉を、決めた幅まで横に詰める。
+ *
+ * ★「北7 12件」「北4 8件」…のように、短いものをいくつも並べるときに使います。
+ *   決め打ちで改行すると、右側が空いたまま行数だけ増えます。
+ *   入るだけ横に並べてから改行すれば、たいてい1行で済みます。
+ */
+function lrPackItems_(items, sep, limit) {
+  const lim = Math.max(8, Number(limit) || 40);
+  const out = [];
+  let cur = "";
+  (items || []).forEach(function (x) {
+    const t = String(x == null ? "" : x);
+    if (!t) return;
+    if (!cur) { cur = t; return; }
+    if (lrWidth_(cur + sep + t) <= lim * 2) { cur += sep + t; return; }
+    out.push(cur); cur = t;
+  });
+  if (cur) out.push(cur);
+  return out.join("\n");
 }
 
 /** 金額帯の1行が、これ以上長いとLINEで折り返される */
@@ -4236,6 +4309,21 @@ function dbLines_(text, widthPx, fontSize) {
     n += Math.max(1, Math.ceil(w / per));
   });
   return n;
+}
+
+/**
+ * その行に必要な高さ（数）だけを返す。行そのものには何もしない。
+ *
+ * ★表の中の行の高さを「そろえる」ために使います。
+ *   1行ずつ決めてしまうと、中身の多い行だけ高くなり、
+ *   同じ表なのに段差ができて、ひどく読みにくくなります（ご指摘）
+ */
+function dbFitH_(cells, minH) {
+  let lines = 1;
+  (cells || []).forEach(function (c) {
+    lines = Math.max(lines, dbLines_(c.text, c.span * DB_COL_W - 6, c.size || 11));
+  });
+  return Math.min(400, Math.max(minH || 28, lines * 16 + 10));
 }
 
 /** その行に入る文字量から、行の高さを決める */
@@ -4945,11 +5033,23 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
    *   （まとめスプシのほうが細かいので、うしろに「(詳細)」と付けています）
    */
   dbTitle_(curRow, dbMainTitle_(periodTab, totalRidesCount), "#e3f2fd", 14); curRow++;
+  /*
+   * ★2行目（タブごとの件数）も、幅いっぱいまで詰めます（ご指示）。
+   *   前は「北のぶん」「ﾐﾅﾐのぶん」で決め打ちに改行していたので、
+   *   右側が大きく空いたまま、2行も3行も使っていました。
+   *   いまは、入るだけ横に並べてから改行します。
+   *   たいていは1行に収まります
+   */
+  const cntItems = ["北7", "北4", "北他", "ﾐﾅﾐ", "関空", "ほか"].map(function (k) {
+    return k + " " + (tabRidesCount[k] || 0) + "件";
+  });
+  if ((noPlace || 0) > 0) cntItems.push("乗り場の記入なし " + noPlace + "件（集計から外しています）");
+  const cntText = lrPackItems_(cntItems, "・", lrFitChars_(DB_COLS, 11));
+  const cntLines = cntText.split("\n").length;
   sheet.getRange(curRow, 1, 1, DB_COLS).merge()
-    .setValue(`北7 ${tabRidesCount["北7"]}件 ・ 北4 ${tabRidesCount["北4"]}件 ・ 北他 ${tabRidesCount["北他"]}件\nﾐﾅﾐ ${tabRidesCount["ﾐﾅﾐ"]}件 ・ 関空 ${tabRidesCount["関空"]}件 ・ ほか ${tabRidesCount["ほか"]}件` +
-      ((noPlace || 0) > 0 ? `\n※ 乗り場の記入がない ${noPlace}件は、この集計から外しています` : ""))
+    .setValue(cntText)
     .setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
-  sheet.setRowHeight(curRow, (noPlace || 0) > 0 ? 56 : 40); curRow++;
+  sheet.setRowHeight(curRow, Math.max(24, cntLines * 20)); curRow++;
 
   /*
    * ★1行目（タイトル）を固定します（まーくさんのご指示）。
@@ -5022,7 +5122,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         { t: `ｼｮｰﾄ ${r.s}件 平均￥${r.sA.toLocaleString()}`, b: true, c: "#616161" }
       ], 10);
       sheet.setRowHeight(curRow, 22); curRow++;
-      dbGap_(sheet, curRow); curRow++;
+      // ★かたまりとかたまりのあいだは、結合しない（結合すると境目が見えなくなる）
+      dbGapSection_(sheet, curRow); curRow++;
     });
     sheet.getRange(from - 1, 1, curRow - from + 1, DB_COLS)
       .setBorder(true, true, true, true, null, null, "#000000", SpreadsheetApp.BorderStyle.SOLID);
@@ -5063,7 +5164,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         dbFit_(sheet, curRow, [{ text: txt, span: DB_COLS, size: size }], isNote ? 18 : 26);
         curRow++;
       });
-      dbGap_(sheet, curRow); curRow++;
+      // ★かたまりとかたまりのあいだは、結合しない（ご指摘）
+      dbGapSection_(sheet, curRow); curRow++;
     });
     sheet.getRange(advFrom - 1, 1, curRow - advFrom + 1, DB_COLS)
       .setBorder(true, true, true, true, null, null, "#000000", SpreadsheetApp.BorderStyle.SOLID);
@@ -5190,9 +5292,14 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           // （毎行くり返すと、どこが区間のはじまりか分からなくなる）
           const head = seg && seg.name && seg.from === hr;
           const aim  = head ? nightAim_(seg) : "";
+          /*
+           * ★区間のはじまりでも、2行までにおさめます。
+           *   3行になると、その行だけ高くなって段差ができます。
+           *   狙い目と平均は、同じ行に横に並べれば入ります
+           */
           const text = !name ? "－"
-                     : head ? [name, aim, (seg.avg ? "平均￥" + seg.avg.toLocaleString() : "")]
-                                .filter(String).join("\n")
+                     : head ? [name, [aim, (seg.avg ? "平均￥" + seg.avg.toLocaleString() : "")]
+                                       .filter(String).join(" ")].filter(String).join("\n")
                             : name;
           rngs[1 + i].merge().setValue(text)
             .setFontSize(dbFitSize_(text, 5, 10, 7, head ? 3 : 2))
@@ -5201,13 +5308,13 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             .setBackground(name ? (colors[seg.name] || "#ffffff") : "#ffffff")
             .setFontColor(name ? "#000000" : "#b7b7b7");
         });
-        // 区間のはじまりの行は、狙い目と金額のぶん少し高くする。
-        // 高さが変わること自体が「ここが区切り」の目印にもなる
-        const isHead = DAY_TYPES.some(function (dType) {
-          const sg = nightAt_(plan[dType], hr);
-          return sg && sg.name && sg.from === hr;
-        });
-        sheet.setRowHeight(curRow, isHead ? 44 : 26);
+        /*
+         * ★行の高さは、ぜんぶ同じにします（ご指示）。
+         *   前は、区間のはじまりだけ高くしていました。
+         *   そのせいで、何も無い時間帯（20時台・21時台・04時台）だけが
+         *   低くなり、表がガタガタに見えていました
+         */
+        sheet.setRowHeight(curRow, DB_NIGHT_ROW_H);
         curRow++;
       });
 
@@ -5391,6 +5498,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       let top3 = [...new Set(hmAvgSalesList)].sort((a,b)=>b-a).slice(0,3);
 
       const hmFrom = curRow;
+      const hmHeights = [];
       useHours.forEach(hr => {
         let rngs = getGridRange(sheet, curRow, 1, 1, hmSpans);
         rngs[0].merge().setValue(`${("0"+hr).slice(-2)}時台`).setFontSize(12).setFontWeight("bold")
@@ -5423,10 +5531,19 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           colIdx++;
         });
         if (rest > 0) rngs[hmSpans.length - 1].merge();
-        // グラフと並べて1画面に収めたいので、行はできるだけ低くする
-        dbFit_(sheet, curRow, cellTexts.map(t => ({ text: t, span: hmEach, size: 11 })), 34);
+        /*
+         * ★行の高さは、あとで まとめてそろえます（ご指示）。
+         *   1行ずつ決めると、中身の多い時間帯だけ高くなって段差ができ、
+         *   同じ表なのに ちぐはぐに見えていました
+         */
+        hmHeights.push(dbFitH_(cellTexts.map(t => ({ text: t, span: hmEach, size: 11 })), 34));
         curRow++;
       });
+      // いちばん高い行に合わせて、ぜんぶ同じ高さにする
+      try {
+        const hmH = hmHeights.length ? Math.max.apply(null, hmHeights) : 34;
+        sheet.setRowHeights(hmFrom, curRow - hmFrom, hmH);
+      } catch (e) {}
       sheet.getRange(hmFrom - 1, 1, curRow - hmFrom + 1, DB_COLS)
         .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
 
@@ -5477,7 +5594,18 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
             // 横が狭いので、日付の一覧は右ではなく下に置く
             .setOption('legend', {position: 'bottom', textStyle: {fontSize: 11}})
             .setOption('chartArea', {left: '16%', top: '12%', width: '80%', height: '62%'}).setOption('interpolateNulls', true)
-            .setOption('width', CHART_W).setOption('height', CHART_H).build();
+            .setOption('width', CHART_W).setOption('height', CHART_H)
+            /*
+             * ★これが無いと、グラフが「データの可視化をするには…」の
+             *   空っぽの箱になります（ご指摘）。
+             *   下のほうの空き行を片づけるときに、グラフのもとになる
+             *   数字の置き場（隠してある行）まで隠しています。
+             *   スプレッドシートのグラフは、ふつう 隠れた行を読みません。
+             *   「隠れていても読む」と、ここで言っておく必要がありました。
+             *   わたしが行を隠すようにしたときの、見落としです
+             */
+            .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.SHOW_BOTH)
+            .build();
           sheet.insertChart(chart);
           if (!dataFrom) dataFrom = hiddenDataRow;
           hiddenDataRow += table.length + 6; chartPlaced = true;
@@ -5507,6 +5635,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(LR_DOW_NOTE)
     .setFontSize(11).setFontWeight("bold").setFontColor("#b71c1c").setBackground("#fff8e1")
     .setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true);
+  sheet.getRange(curRow, 1, 1, DB_COLS).setWrap(true);
   dbFit_(sheet, curRow, [{ text: LR_DOW_NOTE, span: DB_COLS, size: 11 }], 30); curRow++;
 
   /*
@@ -5645,7 +5774,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     dbPlace_(nameRng.merge().setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true),
              item.name, { size: dbFitSize_(item.name, SP_SPANS[1], 12, 7, 2) });
     // ここまでで1つの乗り場。次との境が分かるように、細い空行を挟む
-    dbGap_(sheet, curRow); curRow++;
+    // ★ここも結合しない。結合すると、どこで乗り場が変わったのか分からなくなる
+    dbGapSection_(sheet, curRow); curRow++;
   });
   if(spotRowsData.length === 0) {
     sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(lrThin_(1))

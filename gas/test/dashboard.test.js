@@ -181,7 +181,13 @@ console.log('\n■ まとめスプシの1行目（タイトル）');
      '★呼び名は「分析・戦略レポート(詳細)」');
   ok(t.indexOf('営業ダッシュボード') === -1 === true, '★「営業ダッシュボード」とは、もう呼ばない');
   ok(t.indexOf('\n') === -1 === true, '★かならず1行（改行を入れない）');
-  ok(t.indexOf('2026/08/16〜2026/09/15') !== -1 === true, '  期間が入る');
+  /*
+   * ★年（2026/）は外します（ご指示）。
+   *   タイトルが2行になると、いちばん上を固定したときに
+   *   見えるところが そのぶん減ってしまうためです
+   */
+  ok(t.indexOf('8/16〜9/15') !== -1, '  期間が入る（年は外して短く）');
+  ok(t.indexOf('2026') === -1, '★年は入れない（2行になるのを防ぐため）');
   ok(t.indexOf('全214件') !== -1 === true, '  総件数も入る');
   ok(ctx.dbMainTitle_('', 0).indexOf('\n') === -1 === true, '空でも1行のまま');
   ok(typeof ctx.dbMainTitle_(null, null) === 'string', 'null でも落ちない');
@@ -496,8 +502,13 @@ console.log('\n■ 見出しと説明書きを、はっきり分ける');
   // どちらがどこで使われているか
   const used = src.split('\n').filter(x => x.indexOf('dbGapSection_(sheet') !== -1 && x.indexOf('function') === -1);
   eq(used.length >= 5, true, '★表の区切りでは、結合しないほうを使う（' + used.length + 'か所）');
+  /*
+   * ★かたまりとかたまりのあいだは、ぜんぶ「結合しないほう」にそろえました（ご指摘）。
+   *   結合したままだと、表と表の境目が見えなくなっていました。
+   *   結合してよいのは、同じ乗り場が続くときのように「表の中」だけです
+   */
   const inner = src.split('\n').filter(x => /dbGap_\(sheet/.test(x) && x.indexOf('function') === -1);
-  eq(inner.length >= 3, true, '  表の中では、結合するほうを使う（' + inner.length + 'か所）');
+  eq(inner.length >= 1, true, '  表の中では、結合するほうを使う（' + inner.length + 'か所）');
 }
 
 console.log('\n■ 下のほうの、いらない空っぽの行を片づける');
@@ -675,6 +686,53 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
      '★おまけで失敗しても、レポートは止めない（' + (fn.match(/catch/g) || []).length + 'か所で受け止める）');
   eq(fn.indexOf('if (!a || !a.name || !Array.isArray(a.toku)) return row;') !== -1, true,
      '  星人が作れなければ、何も置かずに帰る');
+}
+
+console.log('\n■ まとめスプシを、もっとコンパクトに（ご指示）');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+
+  // ① 1行目のタイトルは、かならず1行
+  const T = ctx.dbMainTitle_('2026/08/16〜2026/09/15', 135);
+  ok(T.indexOf('\n') === -1, '★タイトルは1行（固定したときに、見えるところを減らさない）');
+  ok(T.indexOf('2026') === -1, '★年は入れない（そのぶん短くなる）');
+  ok(T.indexOf('8/16〜9/15') !== -1, '  期間は残す', T);
+  ok(T.indexOf('全135件') !== -1, '  件数も残す');
+
+  // ② 短いものは、横に詰めてから改行する
+  const P = ctx.lrPackItems_;
+  const items = ['北7 12件', '北4 8件', '北他 3件', 'ﾐﾅﾐ 20件', '関空 2件', 'ほか 5件'];
+  ok(P(items, '・', 60).indexOf('\n') === -1, '★幅があるときは、1行にまとめる');
+  ok(P(items, '・', 12).split('\n').length > 1, '  入らないときだけ、改行する');
+  ok(P(items, '・', 60) === items.join('・'), '★言葉は1つも落とさない');
+  ok(P([], '・', 20) === '', '  空でも落ちない');
+  ok(P(null, '・', 20) === '', '  null でも落ちない');
+
+  // ③ 一晩の流し方のマス目は、どの行も同じ高さ
+  ok(/const DB_NIGHT_ROW_H = \d+;/.test(src), '★一晩の流し方の行の高さを、1か所で決めている');
+  ok(src.indexOf('isHead ? 44 : 26') === -1,
+     '★中身のある行だけ高くするのは、もうやめた（空いている時間帯と段差ができていた）');
+  ok(src.indexOf('sheet.setRowHeight(curRow, DB_NIGHT_ROW_H)') !== -1,
+     '  どの時間帯も、同じ高さで書いている');
+
+  // ④ ヒートマップも、行の高さをそろえる
+  ok(src.indexOf('hmHeights.push(') !== -1, '★ヒートマップは、先に必要な高さを集める');
+  ok(/sheet\.setRowHeights\(hmFrom, curRow - hmFrom, hmH\)/.test(src),
+     '★そのうえで、いちばん高い行に合わせて ぜんぶ同じ高さにする');
+  ok(typeof ctx.dbFitH_ === 'function', '  高さだけを返す道具がある（そろえるために要る）');
+  ok(ctx.dbFitH_([{ text: 'あ', span: 4, size: 11 }], 34) === 34, '  短ければ、決めた下限のまま');
+  ok(ctx.dbFitH_([{ text: 'あ\nい\nう\nえ', span: 4, size: 11 }], 34) > 34, '  中身が多ければ、高くなる');
+
+  // ⑤ グラフが空っぽになっていたのを直した
+  ok(src.indexOf('ChartHiddenDimensionStrategy.SHOW_BOTH') !== -1,
+     '★隠した行も、グラフが読むようにする（「データの可視化をするには…」になっていた）');
+
+  // ⑥ 注釈の書き方
+  const N = vm.runInContext('LR_DOW_NOTE', ctx);
+  ok(N.indexOf('\n例）') !== -1, '★「例）」の前で改行する（どこからが例か、ひと目で分かるように）');
+  ok(N.indexOf('【曜日について】') === -1,
+     '★見出しに【】は使わない（本文の【火曜 00:05】と見分けがつかなかった）');
+  ok(N.indexOf('◆') === 0, '  見出しは、べつの記号で立てる');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

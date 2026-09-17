@@ -521,14 +521,12 @@ console.log('\n■ 句読点のところで改行する／▼の前に区切り�
   const heads = (plain.match(/▼/g) || []).length;
   const hrs = plain.split('\n').filter(x => /^─+$/.test(x)).length;
   eq(heads >= 2, true, '見出しが2つ以上ある（' + heads + 'つ）');
-  eq(hrs, heads - 1, '★区切り線は、2つめ以降の▼の前に入る（' + hrs + '本）');
-  eq(plain.indexOf('────') !== 0, true, '★いちばん上には、線を出さない（先頭に線だけあると不格好）');
-  // 線のすぐ次の行が ▼ であること
-  plain.split('\n').forEach(function (ln, i, arr) {
-    if (/^────/.test(ln)) {
-      ok2(String(arr[i + 1] || '').indexOf('▼') === 0, '  線のすぐ下は、必ず ▼');
-    }
-  });
+  /*
+   * ★区切り線（────）は、もう引きません（ご指示）。
+   *   見出し（▼）そのものが かたまりの切れ目になっているので、
+   *   線はただ1行を使うだけでした。まとめスプシでも、LINEの絵でも引きません
+   */
+  eq(hrs, 0, '★区切り線は、どこにも引かない（ご指示）');
 }
 
 console.log('\n■ アツいエリアの1行（記号も［］の中・言葉は必ず入れる）');
@@ -1336,7 +1334,7 @@ console.log('\n■ 戦略予想の区切り線は、LINEの絵では出さない
               allSlots: 2, bigSlots: 1, waitAvg: 20, top: null };
   const sheet = ctx.advicePlain_(ctx.adviceForecastParts_(a));
   const line  = ctx.advicePlain_(ctx.adviceForecastParts_(a, { noHr: true }));
-  eq(sheet.indexOf('────') !== -1, true, 'まとめスプシのほうは、これまでどおり線を引く');
+  eq(sheet.indexOf('────'), -1, '★まとめスプシでも、線は引かない（ご指示）');
   eq(line.indexOf('────'), -1, '★LINEの絵では、線を引かない（幅がせまく、線だけで1行使うため）');
   eq(line.indexOf('▼ おすすめの動き方') !== -1, true, '  見出しそのものは、ちゃんと残る');
 }
