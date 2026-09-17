@@ -2,11 +2,30 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V036ver  （2026/09/17）  ★★★
+ *  ★★★  V037ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V037ver]
+ *   ・🏷 こちらのお知らせを「リマインダー」と呼ぶのをやめた（ご指摘）
+ *     ★iPhone の「リマインダー」アプリと まぎれるためです。
+ *       こちらのものは「お知らせ」と呼びます。
+ *       iPhone のアプリを指すときは「iPhoneの『リマインダー』アプリ」と書きます
+ *   ・💬 ディスコードの用意を、まーくさんの1回だけで済むようにした（ご指摘）
+ *     ★前は、使いたい人ぜんぶに
+ *       「ウェブフックを作ってURLを渡してください」とお願いしていました。
+ *       これでは、通知のためだけに みんなの手間が増えます
+ *     ★LINEに「ディスコード用意して」と送ると、道順が返ります。
+ *       サーバーを作る →送り先（ウェブフック）→招待リンク の3つだけです
+ *     ★以後、ほかの人は「招待リンクを1回押すだけ」。設定はゼロです
+ *     ★招待リンクは覚えておいて、通知を入れた人に自動で見せます
+ *   ・⚠️ 正直に書いておきます。
+ *     「まったく何もしない」ことは、どのやり方でもできません。
+ *     スマホに通知を出すには、そのスマホにアプリが入っていて、
+ *     そのアプリが「この人あて」と分かっている必要があるためです。
+ *     減らせるのは手間の量だけで、ディスコードがいちばん少なくて済みます
  *
  *  [V036ver]
  *   ・🐛 イベントの案内もリマインダーも、1回も動いていなかったのを直した
@@ -2107,6 +2126,9 @@ function vnHandleNote_(ev, sentAt) {
   // ⓪-3「メール通知 〇〇@〇〇」… メールがよければ、こちらでも
   if (vnHandleMailCmd_(ev)) return true;
 
+  // ⓪-4「ディスコード用意して」… まーくさんが1回だけ用意する。以後みんな設定不要
+  if (vnHandleDiscordCmd_(ev)) return true;
+
   // ① 確認用の手直し（「❶削除」「❶❸削除」「❶修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
 
@@ -2282,7 +2304,7 @@ function vnLedgerRules_() {
      "番号つきで届きます。「❶削除」「❶修正：〜」で手直しできます"],
     ["グループへ送る時刻", VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2),
      "確認用を送っていない日は、グループには絶対に送りません"],
-    ["リマインダー", "終了予定の " + vnLeadMin_() + " 分前",
+    ["お知らせ（iPhoneの「リマインダー」アプリとは別）", "終了予定の " + vnLeadMin_() + " 分前",
      "設定タブ「イベントのお知らせは何分前」で変えられます（1〜300）"],
     ["1件も無い日", "1通も送りません", "何も無いのに鳴らさない、という決まりです"],
     ["連日の催し", "（〇日目／〇日間）を付ける", "全会場。ワントゥワンは対象の公演にも付けます"],
@@ -3657,7 +3679,7 @@ function vnHandleMailCmd_(ev) {
         "止めたいときは「メール通知 解除」と送ってください。"
       : "📧 メール通知：まだ入っていません\n" +
         "「メール通知 じぶんのアドレス」と送ると、\n" +
-        "リマインダーがメールにも届くようになります。\n" +
+        "お知らせがメールにも届くようになります。\n" +
         "（例）メール通知 taro@gmail.com\n" +
         "※ LINEが開けないときでも、Gmailの通知で気づけます。");
     return true;
@@ -3680,7 +3702,7 @@ function vnHandleMailCmd_(ev) {
   }
   vnMailSet_(uid, w.addr);
   const err = vnMailSend_(w.addr, "【テスト】メール通知を入れました",
-      "この公式LINEから、イベントのリマインダーをこのアドレスへお送りします。\n\n" +
+      "この公式LINEから、イベントのお知らせをこのアドレスへお送りします。\n\n" +
       "・届く時刻は、催しの終了予定の少し前です。\n" +
       "・止めたいときは、LINEで「メール通知 解除」と送ってください。\n");
   tell(err
@@ -3764,6 +3786,117 @@ function vnRemText_(r) {
          "🕒 " + when + "\n" +
          (v.near && v.near.length ? "📍 近い乗り場：" + v.near.join("・") + "\n" : "") +
          (r.url ? r.url : "");
+}
+
+/* ================================================================
+ *  💬 ディスコードの用意（まーくさんが1回だけ）
+ *
+ *  ★なぜ、これが要るのか。
+ *
+ *    LINEは、出先で開けないことがあります。
+ *    iPhoneなら「スマホ通知」でも届きますが、
+ *    Androidの人にも、確実に届く道が要ります。
+ *    その本命がディスコードです。
+ *
+ *  ★どうしても「まったく何もしない」ことはできません。
+ *
+ *    スマホに通知を出すには、そのスマホに何かのアプリが入っていて、
+ *    そのアプリが「この人あて」と分かっている必要があります。
+ *    ここだけは、どんなやり方でも避けられません。
+ *
+ *    ただし「どれだけ少なくできるか」は変えられます。
+ *    ディスコードなら、こうなります。
+ *
+ *      ・まーくさん … 1回だけ。ここに書いた道順のとおり
+ *      ・ほかの人　 … 招待リンクを1回押すだけ（設定はゼロ）
+ *
+ *    ほかのやり方（メール・スマホ通知）は、
+ *    ひとりずつ自分のアドレスや合言葉を登録する必要があります。
+ *    ディスコードが、いちばん手間が少ないやり方です。
+ * ================================================================ */
+
+/** ディスコードの合図（「ディスコード用意して」「ﾃﾞｨｽｺｰﾄﾞ …」など） */
+function vnDiscordWord_(text) {
+  let t = String(text == null ? "" : text).replace(/[\s\u3000]+/g, " ").trim();
+  if (!t) return null;
+  // 半角カナ・全角、どちらの書き方でも受ける
+  const head = t.match(/^(ディスコード|ﾃﾞｨｽｺｰﾄﾞ|でぃすこーど|discord|Discord|DISCORD)(.*)$/);
+  if (!head) return null;
+  const rest = String(head[2] || "").trim();
+  if (!rest || /^(用意|よto|よう意|準備|したい|して|用意して|準備して)/.test(rest)) return { kind: "how" };
+  const url = (rest.match(/https?:\/\/\S+/) || [""])[0];
+  if (!url) return { kind: "how" };
+  if (url.indexOf("/api/webhooks/") !== -1) return { kind: "hook", url: url };
+  return { kind: "invite", url: url };
+}
+
+/** ディスコードの用意（まーくさんだけ） */
+function vnHandleDiscordCmd_(ev) {
+  const q = vnDiscordWord_((ev && ev.message && ev.message.text) || "");
+  if (!q) return false;
+
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_((ev && ev.replyToken) || "", x); };
+
+  // まーくさん以外には、招待リンクだけを返す（設定は触らせない）
+  if (!me || uid !== me) {
+    const inv = vnDiscordInvite_();
+    say(inv
+      ? ("💬 ﾃﾞｨｽｺｰﾄﾞの入り口はこちらです。\n" +
+         "アプリを入れて、このリンクを1回押すだけです。\n" + inv)
+      : "💬 ﾃﾞｨｽｺｰﾄﾞは、まだ用意ができていません。\nまーくさんにお願いしてください。");
+    return true;
+  }
+
+  if (q.kind === "hook") {
+    const pr = PropertiesService.getScriptProperties();
+    pr.setProperty("DISCORD_WEBHOOK", q.url);
+    const err = vnDiscord_("✅ つながりました（おためし）");
+    say(err ? ("⚠️ 入れましたが、送れませんでした。\n" + err)
+            : ("✅ ﾃﾞｨｽｺｰﾄﾞの送り先を入れました。\n" +
+               "つぎは、招待リンクを送ってください。\n" +
+               "（ﾃﾞｨｽｺｰﾄﾞ https://discord.gg/〜）"));
+    return true;
+  }
+  if (q.kind === "invite") {
+    PropertiesService.getScriptProperties().setProperty("DISCORD_INVITE", q.url);
+    say("✅ 招待リンクを覚えました。\n\n" +
+        "これで用意は終わりです。\n" +
+        "みんなには、このリンクを1回押してもらうだけです。\n" +
+        q.url);
+    return true;
+  }
+
+  // 道順（1回だけ・まーくさん）
+  say("💬 ﾃﾞｨｽｺｰﾄﾞの用意（まーくさんが1回だけ）\n\n" +
+      "【1】アプリを入れて、サーバーを作る\n" +
+      "　ﾃﾞｨｽｺｰﾄﾞを開く →\n" +
+      "　左はしの「＋」→「オリジナルの作成」→\n" +
+      "　「自分と友達のため」→ 名前は何でもOK\n\n" +
+      "【2】送り先（ウェブフック）をつくる\n" +
+      "　できたサーバーの「一般」チャンネルを長押し →\n" +
+      "　「編集」→「連携サービス」→「ウェブフック」→\n" +
+      "　「新しいウェブフック」→「URLをコピー」\n" +
+      "　そのURLを、このLINEにそのまま送ってください\n" +
+      "　（ﾃﾞｨｽｺｰﾄﾞ https://discord.com/api/webhooks/〜）\n\n" +
+      "【3】みんなを呼ぶリンクをつくる\n" +
+      "　サーバー名を長押し →「招待」→「リンクをコピー」→\n" +
+      "　有効期限は「無期限」にしてください\n" +
+      "　そのURLも、このLINEに送ってください\n" +
+      "　（ﾃﾞｨｽｺｰﾄﾞ https://discord.gg/〜）\n\n" +
+      "これで終わりです。\n" +
+      "ほかの人は、招待リンクを1回押すだけで、\n" +
+      "あとは何も設定せずに通知が届きます。");
+  return true;
+}
+
+/** みんなを呼ぶための招待リンク（無ければ空） */
+function vnDiscordInvite_() {
+  try { return PropertiesService.getScriptProperties().getProperty("DISCORD_INVITE") || ""; }
+  catch (e) { return ""; }
 }
 
 /** Discord に流す（送り先は スクリプトプロパティ DISCORD_WEBHOOK にだけ置く） */
@@ -4031,12 +4164,12 @@ function vnHandlePostback_(ev) {
     const key = decodeURIComponent(String(q.k || ""));
     const gone = vnRemDrop_(key, uid);
     if (!gone) {
-      tellMe(uid, "🔕 そのリマインダーは、もうありません。\n" +
+      tellMe(uid, "🔕 そのお知らせは、もうありません。\n" +
                   "（すでに解除されたか、もう送られたあとです）");
       return true;
     }
     tellMe(uid,
-        "🔕 リマインダーを解除しました。\n" +
+        "🔕 お知らせを解除しました。\n" +
         "🎪 " + gone.venue + (gone.title ? "　" + gone.title : "") + "\n" +
         "このぶんの通知は届きません。\n" +
         "また入れたいときは、イベントの絵から\n" +
@@ -4100,7 +4233,7 @@ function vnHandlePostback_(ev) {
   const me = (ev.source && ev.source.userId) || "";
   if (!reg.added) {
     // すでに入っている。止めたくなったときのために、解除ボタンは添える
-    tellMe(me, "🔔 そのリマインダーは、もう入っています。\n" +
+    tellMe(me, "🔔 そのお知らせは、もう入っています。\n" +
                "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
                "📩 " + hhmm + "ごろに届きます。", reg.key);
     return true;
@@ -4118,23 +4251,31 @@ function vnHandlePostback_(ev) {
     let ok = "";
     try { ok = PropertiesService.getScriptProperties().getProperty("DISCORD_WEBHOOK") || ""; } catch (e) {}
     if (!ok) {
-      say("⚠️ ﾃﾞｨｽｺｰﾄﾞの送り先が、まだ入っていません。\n" +
-          "ﾃﾞｨｽｺｰﾄﾞのアプリで 通知したいチャンネル →\n" +
-          "「チャンネルの編集」→「連携サービス」→「ウェブフック」→\n" +
-          "「新しいウェブフック」→「ウェブフックURLをコピー」\n" +
-          "そのURLを、まーくさんに渡してください。\n" +
-          "入れば、" + hhmm + " に自動で届きます。\n" +
-          "https://discord.com/app");
+      /*
+       * ★押した人に「ウェブフックを作ってURLを渡してください」と
+       *   お願いしていました。これは重すぎます。
+       *   使いたい人ぜんぶに、その作業をさせることになります。
+       *   用意するのは まーくさんが1回だけで、
+       *   ほかの人は何もしなくてよい形にしました。
+       */
+      say("⚠️ ﾃﾞｨｽｺｰﾄﾞの用意が、まだできていません。\n\n" +
+          "まーくさんが1回だけ用意すれば、\n" +
+          "みんな 何も設定せずに使えるようになります。\n" +
+          "「ﾃﾞｨｽｺｰﾄﾞ用意して」と、このLINEに送ってください。");
       return true;
     }
+    // ★まだ入っていない人のために、入り口（招待リンク）も添える。
+    //   「届きます」と言われても、入っていなければ届きようがない
+    const inv = vnDiscordInvite_();
     say("⏰ 通知設定をしました。\n" +
         hhmm + "（" + item.venue + " の" + base + "の" + lead + "分前）に\n" +
         "ﾃﾞｨｽｺｰﾄﾞへ自動で届きます。\n" +
-        "https://discord.com/app");
+        (inv ? ("\nまだ入っていない人は、このリンクを1回押すだけです。\n" + inv)
+             : "https://discord.com/app"));
     return true;
   }
   tellMe(me,
-      "🔔 リマインダーを入れました。\n" +
+      "🔔 お知らせを入れました。\n" +
       "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
       "🕒 " + base + " " + ([item.end, item.start].filter(String)[0] || "") + "\n" +
       "📩 " + hhmm + "ごろ（" + lead + "分前）に、\n" +

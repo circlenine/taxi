@@ -665,7 +665,13 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   eq(pushed[0].to, 'Umark', '  宛先は、押した人');
   const rep0 = msgText(pushed[0].msgs[0]);
   has(rep0, '20:55', '★21:00の5分前＝20:55に届くと伝える（60分前は早すぎた）');
-  has(rep0, 'リマインダーを入れました', '  ★「リマインダー」という言い方で返す');
+  /*
+   * ★「リマインダー」は iPhone のアプリの名前とまぎれる（まーくさんのご指摘）。
+   *   こちらのものは「お知らせ」と呼ぶ
+   */
+  has(rep0, 'お知らせを入れました', '★こちらのものは「お知らせ」と呼ぶ');
+  eq(rep0.indexOf('リマインダーを入れました'), -1,
+     '★「リマインダー」とは呼ばない（iPhoneのアプリ名とまぎれるため）');
   has(rep0, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
   has(rep0, 'あなたの個人LINEへ', '★公式アカウントから個人LINEへ届く、と分かるように書く');
   has(rep0, 'アプリは開きません', '  アプリは開かないことも、はっきり書く');
@@ -1779,6 +1785,71 @@ console.log('\n■ 同じ公演が2つならばないようにする');
 
   eq(ctx.vnDedup_([]).length, 0, '空でも落ちない');
   eq(ctx.vnDedup_(null).length, 0, 'null でも落ちない');
+}
+
+console.log('\n■ 💬 ディスコードの用意（まーくさんが1回だけ）');
+{
+  /*
+   * ★Androidの人にも確実に届く道が要る（まーくさんのご指摘）。
+   *   押した人に「ウェブフックを作ってURLを渡して」とお願いしていたのは重すぎた。
+   *   用意は まーくさんが1回だけ。ほかの人は招待リンクを1回押すだけ
+   */
+  const W = ctx.vnDiscordWord_;
+  eq(W('ディスコード用意して').kind, 'how', '★「ディスコード用意して」で道順が出る');
+  eq(W('ﾃﾞｨｽｺｰﾄﾞ用意して').kind, 'how', '  半角カナでも通る');
+  eq(W('discord').kind, 'how', '  英語でも通る');
+  eq(W('ディスコード https://discord.com/api/webhooks/1/abc').kind, 'hook',
+     '★ウェブフックのURLは、送り先として覚える');
+  eq(W('ディスコード https://discord.gg/abc').kind, 'invite',
+     '★招待のURLは、みんなを呼ぶリンクとして覚える');
+  eq(W('こんにちは'), null, 'ふつうの話には反応しない');
+  eq(W(''), null, '空でも落ちない');
+  eq(W(null), null, 'null でも落ちない');
+
+  const H = ctx.vnHandleDiscordCmd_;
+  const rep = [];
+  vm.runInContext('function lineReply_(tok, t){ rep2.push(t); }', ctx);
+  ctx.rep2 = rep;
+
+  // まーくさん以外は、設定を触れない
+  delete props['DISCORD_WEBHOOK']; delete props['DISCORD_INVITE'];
+  rep.length = 0;
+  eq(H({ message: { text: 'ディスコード https://discord.com/api/webhooks/1/abc' },
+         source: { userId: 'Uother' }, replyToken: 'r' }), true, 'ほかの人が打っても、受けはする');
+  eq(props['DISCORD_WEBHOOK'], undefined, '★ほかの人には、設定を触らせない');
+  has(rep[0], 'まだ用意ができていません', '  代わりに、いまの状態を返す');
+
+  // まーくさん → 道順
+  rep.length = 0;
+  eq(H({ message: { text: 'ディスコード用意して' }, source: { userId: 'Umark' }, replyToken: 'r' }), true,
+     'まーくさんには、道順を返す');
+  has(rep[0], 'サーバーを作る', '★【1】サーバーを作る');
+  has(rep[0], 'ウェブフック', '★【2】送り先（ウェブフック）');
+  has(rep[0], '招待', '★【3】みんなを呼ぶリンク');
+  has(rep[0], '無期限', '  招待リンクは無期限にする（切れると入れなくなるため）');
+  has(rep[0], 'あとは何も設定せずに', '★ほかの人は設定ゼロ、と書いてある');
+
+  // ウェブフックを覚える
+  rep.length = 0;
+  eq(H({ message: { text: 'ディスコード https://discord.com/api/webhooks/1/abc' },
+         source: { userId: 'Umark' }, replyToken: 'r' }), true, '送り先を入れられる');
+  eq(props['DISCORD_WEBHOOK'], 'https://discord.com/api/webhooks/1/abc', '★送り先を覚える');
+
+  // 招待リンクを覚える
+  rep.length = 0;
+  eq(H({ message: { text: 'ディスコード https://discord.gg/abc' },
+         source: { userId: 'Umark' }, replyToken: 'r' }), true, '招待リンクも入れられる');
+  eq(props['DISCORD_INVITE'], 'https://discord.gg/abc', '★招待リンクを覚える');
+  eq(ctx.vnDiscordInvite_(), 'https://discord.gg/abc', '  あとから取り出せる');
+
+  // 用意ができていれば、ほかの人にも入り口を教える
+  rep.length = 0;
+  eq(H({ message: { text: 'ディスコード' }, source: { userId: 'Uother' }, replyToken: 'r' }), true,
+     'ほかの人が聞いたら');
+  has(rep[0], 'https://discord.gg/abc', '★入り口（招待リンク）を返す');
+  has(rep[0], '1回押すだけ', '  押すだけでよい、と書いてある');
+
+  delete props['DISCORD_WEBHOOK']; delete props['DISCORD_INVITE'];
 }
 
 console.log('\n■ イベントの見張りは、何もしなくても立ち上がる');
