@@ -1952,6 +1952,12 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   F('updKataFire')();
   t(aiCalls === 1, '  見張りのほうで、AIを呼ぶ');
   t(ctx.pu.length === 1, '★AIが転んでも、文だけは必ず送る');
+  /*
+   * ★絵のありか（https://…）は、文のうしろに付けない（まーくさんのご指示）。
+   *   長いアドレスがぶら下がると、ふきだしの形がくずれて じゃまなだけ
+   */
+  t(String(ctx.pu[0].msgs[0].text).indexOf('http') === -1,
+    '★文のうしろに、絵のアドレスを付けない');
   t(ctx.pu[0].msgs[0].text.indexOf('星人') !== -1, '  星人は、こちらの組み合わせ表で作る');
   t(props['UPD_KATA_JOBS'] === undefined, '  送ったら、やることリストは空にする');
 
@@ -2908,12 +2914,28 @@ console.log('\n■ ふきだしで囲む');
   t(W('') === 0, '空は0');
   t(W(null) === 0, 'null でも落ちない');
 
-  // ★ふちの長さは、いつも同じ（LINEで1行に収まるぎりぎりにそろえてある）
+  /*
+   * ★ふちの長さは、いちばん長い行に合わせる。
+   *
+   *   前は、中身が短くても いつも決まった長さ（幅＋2）にしていた。
+   *   ふちの「╭」「─」「╮」はどれも全角1文字ぶんの幅があるので、
+   *   ふちだけが中身より2文字ぶん長くなり、LINEのふきだしからはみ出して
+   *   線だけが2行に折り返されていた（実際にそうなった）
+   */
   const short = B('　ねぎ星人\n　　　でかい');
   const long  = B('　りょうしゅうしょ星人\n　　　りょうしゅうしょを５まいほしがる');
   const barOf = x => x.split('\n')[0].length;
-  t(barOf(short) === barOf(long), '★中身が長くても短くても、ふちの長さは同じ');
-  t(barOf(short) === F('updBubbleW_')() + 2, '  幅は「ふきだしの幅」のとおり');
+  t(barOf(short) < barOf(long), '★中身が短ければ、ふちも短くする');
+  t(barOf(long) <= F('updBubbleW_')(), '★ふちは、ふきだしの幅をこえない（こえると折り返される）');
+  t(barOf(short) >= 6, '  短すぎて形がくずれることもない');
+  // 中身の いちばん長い行と、ふちの長さがそろっていること
+  {
+    const ln = long.split('\n');
+    const inner = ln.slice(1, -1);
+    let widest = 0;
+    inner.forEach(x => { const z = W(x); if (z > widest) widest = z; });
+    t(barOf(long) === Math.ceil(widest), '★ふちは、いちばん長い行と同じ長さ');
+  }
 
   // ★はみ出す行は、こちらで折り返す（LINEに勝手に折り返されると形がくずれる）
   const w = F('updBubbleW_')();
@@ -2929,9 +2951,10 @@ console.log('\n■ ふきだしで囲む');
   t(ls[3].indexOf('⌄') !== -1, '下のふちの真ん中に、しっぽ');
   t(ls[0].length === ls[3].length, '★上と下のふちは、同じ長さ');
   t(B('').split('\n').length === 3, '中身が空でも形はくずれない');
-  t(B('').split('\n')[0].length === F('updBubbleW_')() + 2, '  そのときも、ふちの長さは同じ');
+  t(B('').split('\n')[0].length >= 6, '  そのときも、形になる長さは保つ');
   t(B(null).split('\n')[0].indexOf('╭') === 0, 'null でも落ちない');
-  t(B('あ'.repeat(99)).split('\n')[0].length === F('updBubbleW_')() + 2, '★長い中身でも、ふちの長さは変わらない');
+  t(B('あ'.repeat(99)).split('\n')[0].length === F('updBubbleW_')(),
+    '★長い中身でも、ふきだしの幅どまり（それ以上は長くしない）');
 
   // ★星人の紹介は、名前も特徴も、ぜんぶ ふきだしの中
   const card = F('updAlienBlock_')();
@@ -2940,7 +2963,7 @@ console.log('\n■ ふきだしで囲む');
   const to = cl.findIndex(x => x.indexOf('╰') === 0);
   t(from !== -1 && to > from, 'ふきだしがある');
   t(cl[from].length === cl[to].length, '★上と下のふちは、同じ長さ');
-  t(cl[from].length === F('updBubbleW_')() + 2, '  幅は、いつも同じ');
+  t(cl[from].length <= F('updBubbleW_')(), '★ふちも、ふきだしの幅に収まる（線だけ折り返されない）');
   const inside = cl.slice(from + 1, to);
   t(inside.join('\n').indexOf('星人') !== -1, '★名前も中');
   t(/【.+星人】/.test(inside.join('\n')), '★名前は【】で囲む（いちばん先に目が行くように）');
@@ -2949,8 +2972,8 @@ console.log('\n■ ふきだしで囲む');
   t(inside.join('\n').indexOf('きらいなもの') !== -1, '  きらいなものも中');
   t(inside.join('\n').indexOf('口ぐせ') !== -1, '  口ぐせも中');
   t(inside.join('\n').indexOf('〖とくてん') !== -1, '  とくてんも中（〖〗で囲む）');
-  // ★中身がふちからはみ出していないこと
-  const barW = cl[from].length - 2;
+  // ★中身がふちからはみ出していないこと（ふちは中身に合わせてあるので、同じ長さまで）
+  const barW = cl[from].length;
   t(inside.every(x => W(x) <= barW), '★どの行も、ふちからはみ出さない');
   t(card.indexOf('この方を　乗車して下ちい') !== -1, '見出しは、ふきだしの外');
   // ★見出しも、ふきだしの幅に収まっていること（はみ出すと折り返して台なしになる）
@@ -2960,6 +2983,22 @@ console.log('\n■ ふきだしで囲む');
       });
   t(true, '★どの行も、ふきだしの幅に収まる');
   t(card.indexOf('▚') === -1, 'かすれた四角は使わない');
+  t(card.indexOf('http') === -1, '★星人の紹介に、絵のアドレス（https://…）は入れない');
+
+  /*
+   * ★長い名前は、ふきだしの中で1行に収まるところまで短くする。
+   *   折り返されると「】」だけが次の行に落ちて、
+   *   かっこが片方だけ ぽつんと残る。いちばん見苦しい形
+   */
+  const N = F('updAlienName_'), w2 = F('updBubbleW_')();
+  t(W('【' + N('スマホだいおんりょう星人') + '】') <= w2,
+    '★長い名前は、1行に収まるところまで短くする');
+  t(N('スマホだいおんりょう星人').slice(-2) === '星人',
+    '★「星人」は残す（削ると、何なのか分からなくなる）');
+  t(N('ねぎ星人') === 'ねぎ星人', '短い名前は、そのまま');
+  t(N('') === '星人', '空でも形になる');
+  t(N(null) === '星人', 'null でも落ちない');
+  t(W('【' + N('あ'.repeat(40)) + '】') <= w2, 'とんでもなく長くても、収まる');
 
   // ★行の頭に空白を入れない（下げて書くと、そのぶん長くなって折り返す）
   inside.forEach(function (x) {
