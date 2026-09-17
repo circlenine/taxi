@@ -3193,7 +3193,7 @@ console.log('\n■ コードではないファイルは、取り込まない');
   gh = { dir: [
     { name: '001-Code.gs',    path: 'gas/001-Code.gs',    type: 'file', sha: 'a' },
     { name: 'appsscript.json', path: 'gas/appsscript.json', type: 'file', sha: 'b' },
-    { name: 'errand.json',    path: 'gas/errand.json',    type: 'file', sha: 'c' }
+    { name: 'errand.json',    path: 'errand.json',    type: 'file', sha: 'c' }
   ], raw: { 'gas/001-Code.gs': 'x', 'gas/appsscript.json': '{}' } };
   const names = F('updListGitHub_')().map(function (x) { return x.name; });
   t(names.indexOf('errand') === -1 && names.indexOf('errand.json') === -1,
@@ -3230,13 +3230,13 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   t(ctx.pu.length === 0, '  何も送らない');
 
   // 知らない頼みごとは、何もしない
-  gh = { raw: { 'gas/errand.json': JSON.stringify({ id: 'x1', do: 'グループに送って' }) } };
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'x1', do: 'グループに送って' }) } };
   ctx.pu.length = 0;
   t(E() === false, '★知らない頼みごとは、何もしない');
   t(props['UPD_ERRAND_DONE'] === undefined, '  やった印も残さない');
 
   // ping は、返事だけ
-  gh = { raw: { 'gas/errand.json': JSON.stringify({ id: 'x2', do: 'ping' }) } };
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'x2', do: 'ping' }) } };
   ctx.pu.length = 0;
   t(E() === true, '★メモのとおり、1回やる');
   t(props['UPD_ERRAND_DONE'] === 'x2', '  やった印を覚える');
@@ -3251,16 +3251,16 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   t(ctx.pu.length === 0, '  だから、何度も鳴らない');
 
   // 新しいメモなら、またやる
-  gh = { raw: { 'gas/errand.json': JSON.stringify({ id: 'x3', do: 'ping' }) } };
+  gh = { raw: { 'errand.json': JSON.stringify({ id: 'x3', do: 'ping' }) } };
   ctx.pu.length = 0;
   t(E() === true, '★新しいメモなら、またやる');
   t(props['UPD_ERRAND_DONE'] === 'x3', '  印も新しくする');
 
   // 中身がこわれていても、落ちない
-  gh = { raw: { 'gas/errand.json': 'こわれた中身' } };
+  gh = { raw: { 'errand.json': 'こわれた中身' } };
   ctx.pu.length = 0;
   t(E() === false, 'こわれたメモでも、落ちない');
-  gh = { raw: { 'gas/errand.json': JSON.stringify({ do: 'ping' }) } };
+  gh = { raw: { 'errand.json': JSON.stringify({ do: 'ping' }) } };
   t(E() === false, '  番号（id）が無いメモも、やらない');
 
   delete props['UPD_ERRAND_DONE'];
@@ -3446,6 +3446,39 @@ console.log('\n■ りょうきんは、危なそうな星人ほど高い');
     if (!(f >= 0 && f <= 100) || f !== Math.round(f)) over++;
   }
   t(over === 0, '★200回ためしても、0〜100の整数に収まる');
+}
+
+console.log('\n■ 取り込みを まるごと止めてしまうファイルが、置き場に無いか');
+{
+  /*
+   * ★ここは、コードではなく「置き場そのもの」を見るテストです。
+   *
+   *   おつかいメモ（errand.json）を gas/ の中に置いたせいで、
+   *   取り込みが (400) Invalid manifest で、ずっと まるごと失敗していました。
+   *   Apps Script は .json を「設定ファイル」としてしか受け取らないためです。
+   *
+   *   「取り込まない」という決まりを書いても、その決まり自体が
+   *   取り込めないのでは意味がありません。
+   *   ですので、置き場に そういうファイルが増えた時点で気づけるようにします。
+   */
+  const gasDir = path.join(__dirname, '..');
+  const bad = fs.readdirSync(gasDir).filter(function (n) {
+    return /\.json$/i.test(n) && n.toLowerCase() !== 'appsscript.json';
+  });
+  t(bad.length === 0,
+    '★gas/ に置いてよい .json は appsscript.json だけ' +
+    (bad.length ? '（見つかった：' + bad.join('・') + '）' : ''));
+
+  const root = path.join(gasDir, '..');
+  t(fs.existsSync(path.join(root, 'errand.json')) === true,
+    '★おつかいメモは、置き場のいちばん上（gas/ の外）に置く');
+  t(fs.existsSync(path.join(gasDir, 'errand.json')) === false,
+    '  gas/ の中には、絶対に置かない');
+
+  // メモを読みにいく先も、gas/ の外であること
+  const src = fs.readFileSync(path.join(gasDir, '005-Updater.gs'), 'utf8');
+  t(src.indexOf('const path = UPD_ERRAND_FILE;') !== -1,
+    '★読みにいく先も、置き場のいちばん上（フォルダ名を足さない）');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
