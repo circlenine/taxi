@@ -231,8 +231,9 @@ console.log('\n■ イベントの枠そのものが、公式ページへのボ�
   // ★枠ぜんたいを押せるのは、やめた。押すのは「下線の引いてある名前」だけ
   eq(card.action, undefined, '枠ぜんたいは押せない（どこを押すのか紛らわしかった）');
   has(j, '"uri":"https://www.kyoceradome-osaka.jp/schedule/"', '  名前を押すと、その催しのページへ行く');
-  has(j, '👆 詳細はクリック（該当ページに移ります）',
+  has(j, '👆 詳細はタップ（該当ページに移ります）',
       '★案内は、見出しのすぐ下に短く出す');
+  eq(j.indexOf('クリック'), -1, '  スマホで見るものなので「クリック」とは言わない');
   eq(j.indexOf('この枠を押すと'), -1, '  紛らわしい言い方は、もう使わない');
 
   // URLが無い催し（ホテルの資料など）には、案内も行き先も付けない
@@ -1087,8 +1088,17 @@ console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
   vm.runInContext('function wbUrl_(){ return "https://script.google.com/macros/s/AAA/exec"; }', ctx);
 }
 
-console.log('\n■ 📣 スマホ通知（LINEが開けないときの本命）');
+console.log('\n■ 📣 スマホ通知（いまは使いませんが、仕掛けは残してあります）');
 {
+  /*
+   * ★いまは「スマホ通知もメールも いりません」とのご指示で、止めてあります
+   *   （006-Venue.gs の VN_PUSH_MAIL_USE）。
+   *   ここは、また使いたくなったときのために、仕掛けそのものが
+   *   ちゃんと動くことを確かめておく場所です。
+   *   ですので、この中でだけ「使う」ことにして確かめます。
+   */
+  const keepOn = ctx.vnPushMailOn_;
+  ctx.vnPushMailOn_ = () => true;
   const W = ctx.vnPushWord_;
   eq(W('スマホ通知').kind, 'on', '「スマホ通知」で入れる');
   eq(W('すまほ通知').kind, 'on', '  ひらがなでも通る');
@@ -1171,10 +1181,13 @@ console.log('\n■ 📣 スマホ通知（LINEが開けないときの本命）'
   has(msgText(pushed[0].msgs[0]), 'つまずきました', '★テストが送れなければ、はっきりそう言う');
   reply['*'] = { code: 200, body: '' };
   delete props['VNPUSH_Umark'];
+  ctx.vnPushMailOn_ = keepOn;           // 確かめ終わったら、止めた状態に戻す
 }
 
-console.log('\n■ 📧 メールでも受け取れる（LINEが開けないとき用）');
+console.log('\n■ 📧 メール通知（いまは使いませんが、仕掛けは残してあります）');
 {
+  const keepOn = ctx.vnPushMailOn_;     // ここでだけ「使う」ことにして確かめる
+  ctx.vnPushMailOn_ = () => true;
   const W = ctx.vnMailWord_;
   eq(W('メール通知 taro@example.com').kind, 'on', 'アドレスを送ると、入れる合図');
   eq(W('メール通知 taro@example.com').addr, 'taro@example.com', '  アドレスを取り出せる');
@@ -1246,6 +1259,55 @@ console.log('\n■ 📧 メールでも受け取れる（LINEが開けないと�
   ctx.vnRemindTick_();
   eq(mails.length, 0, '  解除したら、もうメールは飛ばない');
   eq(pushed.length, 1, '  LINEのほうは、そのまま届く');
+  ctx.vnPushMailOn_ = keepOn;           // 確かめ終わったら、止めた状態に戻す
+}
+
+console.log('\n■ 📵 スマホ通知とメールは、いまは使わない（ご指示）');
+{
+  pushed.length = 0; fetched.length = 0; mails.length = 0;
+  delete props['VNPUSH_Unew']; delete props['VNMAIL_Unew'];
+  props['VNPUSH_Umark'] = 'taxi-aaaaaaaaaaaaaaaaaaaaaaaaaa';
+  props['VNMAIL_Umark'] = 'taro@example.com';
+
+  // ① 合図が来ても、登録しない。ただし黙らない
+  const t1 = ctx.vnHandlePushCmd_({ replyToken: 'r', source: { userId: 'Unew' },
+    message: { text: 'スマホ通知' } });
+  eq(t1, true, '★「スマホ通知」と送られたら、ちゃんと返事はする（無反応にしない）');
+  eq(props['VNPUSH_Unew'], undefined, '★登録はしない');
+  has(msgText(pushed[0].msgs[0]), 'いまは使っていません', '  使っていないと、はっきり伝える');
+  eq(fetched.filter(f => f.url === 'https://ntfy.sh').length, 0, '  テストの通知も送らない');
+
+  pushed.length = 0; mails.length = 0;
+  const t2 = ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Unew' },
+    message: { text: 'メール通知 taro@example.com' } });
+  eq(t2, true, '★「メール通知」にも、返事はする');
+  eq(props['VNMAIL_Unew'], undefined, '★登録はしない');
+  eq(mails.length, 0, '  テストのメールも送らない');
+  has(msgText(pushed[0].msgs[0]), 'いまは使っていません', '  使っていないと、はっきり伝える');
+
+  // アドレスだけを打たれたときは、何も言わずに ほかへ渡す（おせっかいをしない）
+  eq(ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Unew' },
+       message: { text: 'taro@example.com' } }), false,
+     '★アドレスだけのときは、口を出さない');
+
+  // ② 前に入れてある人にも、もう送らない
+  fetched.length = 0; pushed.length = 0; mails.length = 0;
+  props['VN_REMIND'] = JSON.stringify([
+    { id: 'a', k: 'aaaaaa', at: Date.now() + 5000, how: 'me', to: 'Umark',
+      venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  ctx.vnRemindTick_();
+  eq(pushed.length, 1, 'LINEには、これまでどおり届く');
+  eq(fetched.filter(f => f.url === 'https://ntfy.sh').length, 0, '★スマホ通知は、もう送らない');
+  eq(mails.length, 0, '★メールも、もう送らない');
+  eq(props['VNPUSH_Umark'] !== undefined, true, '  前の登録は、勝手に消さない');
+  eq(props['VNMAIL_Umark'] !== undefined, true, '  メールの登録も、勝手に消さない');
+
+  // ③ こちらから、すすめない
+  eq(ctx.vnMailHint_('Umark'), '', '★予約の返事で、メールをすすめない');
+  eq(ctx.vnPushHint_('Umark'), '', '★スマホ通知も、すすめない');
+
+  delete props['VNPUSH_Umark']; delete props['VNMAIL_Umark'];
+  delete props['VN_REMIND'];
 }
 
 console.log('\n■ カレンダーに入れるリンク');
@@ -2105,6 +2167,55 @@ console.log('\n■ リマインダーは、終了予定の5分前ぴったりに
   eq(new Date(at2).getHours(), 17, '  終わりが分からなければ、始まりから数える');
   eq(ctx.vnRemindAt_({ start: '', end: '' }, new Date(2026, 8, 16)), 0, '  時刻が無ければ 0（入れない）');
   delete props['VN_REMIND'];
+}
+
+console.log('\n■ 「〇〇から動きはじめます」とは言い切らない');
+{
+  const line = ctx.vnAdvice_('京セラドーム', '21:00', null);
+  has(line, '20:30〜動く予想', '★終了予定の30分前から「動く予想」と書く');
+  eq(line.indexOf('動きはじめます'), -1, '  言い切りの書き方は、もう使わない');
+  eq(line.indexOf('ごろから'), -1, '  「ごろから」も使わない');
+}
+
+console.log('\n■ 送ってもらった資料（写真）は、あとからでも開ける');
+{
+  for (const k in props) if (k.indexOf('VN') === 0) delete props[k];
+  const day = new Date(2026, 8, 17);
+
+  // ① しまうときと出すときで名前がずれていても、ちゃんと引ける
+  //    （リーガロイヤルの資料が押せなかったのは、これが原因でした）
+  ctx.vnDocSet_(day, 'リーガロイヤル', 'https://drive.example/doc1');
+  eq(ctx.vnDocGet_(day, 'リーガロイヤルホテル'), 'https://drive.example/doc1',
+     '★「リーガロイヤル」でしまって「リーガロイヤルホテル」で引ける');
+
+  // ② 予定そのものが「ありか」を持っていなくても、その日のぶんから引ける
+  ctx.vnHotelSave_([{ date: '9/17', hotel: 'リーガロイヤル', name: '招待会',
+                      start: '18:00', end: '20:00', people: 370 }], day);
+  const list = ctx.vnHotelForDay_(day);
+  eq(list.length, 1, 'その日の予定として残っている');
+  eq(list[0].url, 'https://drive.example/doc1',
+     '★古い予定（ありかを持たないもの）でも、資料が開ける');
+
+  // ③ 日付のぶんが無くても、最後に受け取った1枚で開ける
+  const other = new Date(2026, 8, 19);
+  ctx.vnHotelSave_([{ date: '9/19', hotel: 'リーガロイヤル', name: '祝賀会',
+                      start: '18:00', end: '20:00', people: 200 }], other);
+  eq(ctx.vnDocGet_(other, 'リーガロイヤルホテル'), '', 'その日のぶんは、しまっていない');
+  eq(ctx.vnHotelForDay_(other)[0].url, 'https://drive.example/doc1',
+     '★それでも、最後に受け取った1枚で確かめられる');
+
+  // ④ だから、カードにも「詳細はタップ」が出る
+  const card = JSON.stringify(ctx.vnCard_(list[0], 0, day));
+  has(card, '👆 詳細はタップ（該当ページに移ります）',
+     '★ホテルの枠にも、資料への入り口が出る');
+
+  // ⑤ 写真から読んだ会場の公演も、同じように開ける
+  ctx.vnDocSet_(day, 'フェス', 'https://drive.example/doc2');
+  props['VNV_' + '20260917'] = JSON.stringify([
+    { hall: 'フェスティバルホール', name: '公演', start: '18:00', end: '20:30', doc: '' }]);
+  eq(ctx.vnHallForDay_(day)[0].url, 'https://drive.example/doc2',
+     '★会場の月間表も、名前がそろっていれば開ける');
+  for (const k in props) if (k.indexOf('VN') === 0) delete props[k];
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

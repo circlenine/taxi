@@ -2826,8 +2826,9 @@ console.log('\n■ 毎回ちがう星人が出る（特徴・好きなもの・�
   t(b.indexOf('▼きらいなもの') !== -1, '  「▼きらいなもの」も');
   t(b.indexOf('▼口ぐせ') !== -1, '  「▼口ぐせ」も');
   t((b.match(/▼/g) || []).length === 4, '★▼は、この4つの見出しだけに付ける');
-  t(/〖とくてん　[０-９]+てん〗/.test(b), '★とくてんは〖〗で囲む');
-  t(b.split('\n').some(x => x.indexOf('〖') === 0), '★とくてんの行は、先頭に空白を入れない');
+  t(/〖りょうきん　[０-９]+えん〗/.test(b), '★りょうきんは〖〗で囲む');
+  t(b.indexOf('とくてん') === -1, '★「とくてん　〇てん」は、もう出さない');
+  t(b.split('\n').some(x => x.indexOf('〖') === 0), '★りょうきんの行は、先頭に空白を入れない');
 
   // ★「死」「殺」「血」といった言い方は、どこにも出さない
   let bad = 0;
@@ -3028,7 +3029,7 @@ console.log('\n■ ふきだしで囲む');
   t(inside.join('\n').indexOf('好きなもの') !== -1, '  好きなものも中');
   t(inside.join('\n').indexOf('きらいなもの') !== -1, '  きらいなものも中');
   t(inside.join('\n').indexOf('口ぐせ') !== -1, '  口ぐせも中');
-  t(inside.join('\n').indexOf('〖とくてん') !== -1, '  とくてんも中（〖〗で囲む）');
+  t(inside.join('\n').indexOf('〖りょうきん') !== -1, '  りょうきんも中（〖〗で囲む）');
   // ★中身がふちからはみ出していないこと（ふちは中身に合わせてあるので、同じ長さまで）
   const barW = cl[from].length;
   t(inside.every(x => W(x) <= barW), '★どの行も、ふちからはみ出さない');
@@ -3410,6 +3411,41 @@ console.log('\n■ 📖 終わったときの知らせに、ひとことを添�
   t(Object.keys(seen).length >= 50,
     '★毎回おなじにはならない（600回で ' + Object.keys(seen).length + '通り出た）');
   ctx.rep.length = 0;
+}
+
+console.log('\n■ りょうきんは、危なそうな星人ほど高い');
+{
+  const FEE = F('updAlienFee_');
+  const abunai = { name: 'はいてない星人', toku: ['くつをぬぐ', 'さけくさい'],
+                   suki: ['ワンメーター'], kirai: ['のりばのれつ'], kuse: 'ここでいい' };
+  const yasui  = { name: 'ためいき星人', toku: ['ためいき'], suki: [], kirai: [], kuse: '' };
+  const sirow  = { name: 'ふつう星人', toku: ['まばたき'], suki: ['あめ'], kirai: ['あめ'], kuse: 'はい' };
+
+  t(FEE(abunai) > FEE(yasui), '★危なそうな星人のほうが、高い');
+  t(FEE(sirow) === 0, '★何も当てはまらない星人は 0えん（いちばん安全）');
+  t(FEE(abunai) <= 100, '★100えんを超えない');
+  t(FEE(abunai) >= 0 && FEE(yasui) >= 0, '  0えんを下回らない');
+  t(FEE(null) === 0, '  星人が無ければ 0えん（落ちない）');
+
+  // ★同じ星人なら、いつ見ても同じ金額。見るたびに変わると、数字の意味が消える
+  t(FEE(abunai) === FEE(abunai), '★同じ星人なら、何度見ても同じ金額');
+
+  // ★口ぐせ・好きなもの・きらいなものも、ちゃんと数える（名前だけ見ていない）
+  t(FEE({ name: 'なぞ星人', toku: [], suki: [], kirai: [], kuse: 'そこまげて' }) > 0,
+    '★口ぐせだけでも、危なさとして数える');
+  t(FEE({ name: 'なぞ星人', toku: [], suki: ['ねぎる'], kirai: [], kuse: '' }) > 0,
+    '  好きなものも数える');
+  // 文字で1つだけ返ってきても落ちない（AIがそう返すことがある）
+  t(FEE({ name: 'なぞ星人', toku: 'くつをぬぐ', suki: '', kirai: '', kuse: '' }) > 0,
+    '  並びでなく文字1つで来ても、数えられる');
+
+  // ★どんな星人でも、必ず 0〜100 の整数に収まる
+  let over = 0;
+  for (let i = 0; i < 200; i++) {
+    const f = FEE(F('updAlienFallback_')());
+    if (!(f >= 0 && f <= 100) || f !== Math.round(f)) over++;
+  }
+  t(over === 0, '★200回ためしても、0〜100の整数に収まる');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

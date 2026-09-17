@@ -2,11 +2,32 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V039ver  （2026/09/17）  ★★★
+ *  ★★★  V040ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V040ver]
+ *   ・🖐 「クリック」という言い方をやめ、「タップ」にした（ご指摘）
+ *     ★見るのは、ほぼ iPhone です。スマホに「クリック」はありません
+ *   ・🗣 「〇〇ごろから動きはじめます」という言い切りをやめ、
+ *     「〇〇〜動く予想」にした（ご指摘）
+ *     ★催しの終わりは前後します。言い切りを信じて動いて
+ *       空振りしたら、こちらの責任です。予想だと分かる書き方にしました
+ *   ・📄 送ってもらった資料（写真）が開けなかったのを直した（ご指摘）
+ *     ★原因は、名前のずれでした。しまうときは写真に書いてあったまま
+ *       （例「リーガロイヤル」）、出すときは こちらで整えた名前
+ *       （例「リーガロイヤルホテル」）を使っていたので、引けませんでした。
+ *       いまは vnDocName_ で、しまうときも出すときも同じ名前にそろえます
+ *     ★さらに、探す順を3段にしました。
+ *       ① その予定が持っているもの → ② その日のぶん → ③ 最後に受け取った1枚。
+ *       この決まりができる前にしまった予定も、これで開けます
+ *   ・📵 スマホ通知（ntfy）とメール通知を、止めた（ご指示）
+ *     ★「スマホ通知やメールはいりません」とのことでしたので、
+ *       ① すすめない ② 合図が来ても登録しない ③ もう送らない、にしました
+ *     ★仕掛けそのものは消していません（VN_PUSH_MAIL_USE を true に戻せば動きます）。
+ *       前に入れてくださった方の登録も、勝手には消しません
  *
  *  [V039ver]
  *   ・🕔 送る日と時刻を、まーくさんのご指示どおりにした
@@ -314,7 +335,7 @@
  *  [V021ver]
  *   ・「👆 この枠を押すと〇〇の公式ページが開きます」をやめた
  *     枠のいちばん下にあって、下のボタンの説明と紛らわしかった。
- *     見出しのすぐ下に「👆 詳細はクリック（該当ページに移ります）」と短く出す
+ *     見出しのすぐ下に「👆 詳細はタップ（該当ページに移ります）」と短く出す
  *   ・「お知らせ」→「通知設定」に言いかえた（初見で分かる言葉に）
  *   ・「DC」→「ﾃﾞｨｽｺｰﾄﾞ」に（DCは一般的な言い方ではない）
  *   ・カレンダーのボタンを「押したら その場で開く」形にした
@@ -1100,7 +1121,7 @@ function vnCard_(ev, idx, day, noBells) {
   //   書いていたが、下にボタンが並んでいるので、どれの話か紛らわしかった。
   //   見出しの真下なら、この枠のことだと ひと目で分かる
   if (ev.url) {
-    rows.push({ "type": "text", "text": "👆 詳細はクリック（該当ページに移ります）",
+    rows.push({ "type": "text", "text": "👆 詳細はタップ（該当ページに移ります）",
                 "size": "xxs", "color": VN_COLOR_HEAD, "weight": "bold", "margin": "xs", "wrap": true });
   }
   // 手直し（「❶修正：〜」で書き足したこと）は、いちばん目立つところに出す
@@ -1428,7 +1449,14 @@ function vnAdvice_(venue, end, st) {
   const h = vnHourOf_(end);
   if (h !== null) {
     const m = Math.floor((h - 0.5) % 24), mm = Math.round(((h - 0.5) % 1) * 60);
-    L.push(("0" + m).slice(-2) + ":" + ("0" + mm).slice(-2) + "ごろから動きはじめます");
+    /*
+     * ★「〇〇から動きはじめます」とは書きません。
+     *   それは言い切りです。催しの終わりは前後しますし、
+     *   お客さんが出てくる時刻も、その日によって変わります。
+     *   読んだ人が言い切りを信じて動いて、空振りしたら こちらの責任です。
+     *   ですので「〇〇〜動く予想」と、予想だと分かる書き方にしています。
+     */
+    L.push(("0" + m).slice(-2) + ":" + ("0" + mm).slice(-2) + "〜動く予想");
   }
   if (v.near && v.near.length) L.push("近いのは " + v.near.join("・"));
   if (st && st.count >= 3) {
@@ -1701,6 +1729,27 @@ function vnDocSave_(blob, label, d) {
   }
 }
 
+/**
+ * 資料（写真）を引くときの「名前のそろえ方」。
+ *
+ * ★ここが、リーガロイヤルの資料を押せなかった原因でした。
+ *   しまうときは、写真に書いてあったままの名前（例「リーガロイヤル」）、
+ *   出すときは、こちらで整えた名前（例「リーガロイヤルホテル」）を
+ *   使っていました。字が1文字でも違えば、引けません。
+ *   しまうときも出すときも、この関数を通して同じ名前にそろえます。
+ */
+function vnDocName_(name) {
+  const t = String(name || "").replace(/[\s\u3000]/g, "");
+  if (t.indexOf("リーガ") >= 0) return "リーガロイヤルホテル";
+  if (t.indexOf("帝国") >= 0) return "帝国ホテル";
+  if (t.indexOf("フェス") >= 0) return "フェスティバルホール";
+  if (t.indexOf("大阪城音楽堂") >= 0) return "大阪城音楽堂";
+  return t;
+}
+
+/** 最後に受け取った資料を、場所ごとに覚えておく置き場 */
+const VN_DOC_LAST = "VNDOC_LAST";
+
 /** その日の「資料の写真」の置き場所をしまう／引く */
 function vnDocKey_(d) {
   return "VNDOC_" + d.getFullYear() +
@@ -1708,17 +1757,48 @@ function vnDocKey_(d) {
 }
 function vnDocSet_(d, place, url) {
   if (!place || !url) return;
+  const key = vnDocName_(place);
+  if (!key) return;
   const pr = PropertiesService.getScriptProperties();
   let map = {};
   try { map = JSON.parse(pr.getProperty(vnDocKey_(d)) || "{}"); } catch (e) { map = {}; }
-  map[place] = url;
+  map[key] = url;
   try { pr.setProperty(vnDocKey_(d), JSON.stringify(map)); } catch (e) {}
+  // ★「最後に受け取った1枚」も、日付とは別に覚えておきます。
+  //   資料は、何日も先のぶんまで1枚に載っています。
+  //   その日ぴったりのぶんが見つからなくても、
+  //   もとの紙が開ければ、読み違いを目で確かめられます
+  let last = {};
+  try { last = JSON.parse(pr.getProperty(VN_DOC_LAST) || "{}"); } catch (e) { last = {}; }
+  last[key] = url;
+  try { pr.setProperty(VN_DOC_LAST, JSON.stringify(last)); } catch (e) {}
 }
 function vnDocGet_(d, place) {
   try {
+    const key = vnDocName_(place);
     const map = JSON.parse(PropertiesService.getScriptProperties().getProperty(vnDocKey_(d)) || "{}");
-    return map[place] || "";
+    return map[key] || "";
   } catch (e) { return ""; }
+}
+
+/** 最後に受け取った資料（日付が合わなかったときの最後の頼り） */
+function vnDocLast_(place) {
+  try {
+    const key = vnDocName_(place);
+    const last = JSON.parse(PropertiesService.getScriptProperties().getProperty(VN_DOC_LAST) || "{}");
+    return last[key] || "";
+  } catch (e) { return ""; }
+}
+
+/**
+ * 資料（写真）のありかを、順ぐりに探す。
+ *   ① その予定が持っているもの → ② その日のぶん → ③ 最後に受け取った1枚
+ *
+ * ★①しか見ていなかったので、この決まりができる前にしまった予定は、
+ *   ずっと押せないままでした。古いぶんも、これで開けます。
+ */
+function vnDocFind_(own, d, place) {
+  return String(own || "") || vnDocGet_(d, place) || vnDocLast_(place);
 }
 
 /**
@@ -1901,8 +1981,8 @@ function vnHotelForDay_(d) {
     return { venue: hotel, kind: "hotel", icon: "🍽", title: title,
              start: String(x.start || ""), end: String(x.end || ""),
              people: Number(x.people) > 0 ? Number(x.people) : 0,
-             // 送ってもらった紙そのもの。枠を押すと開く（AIの読み違いを、目で確かめられるように）
-             url: String(x.doc || "") || vnDocGet_(d, hotel) };
+             // 送ってもらった紙そのもの。名前を押すと開く（AIの読み違いを、目で確かめられるように）
+             url: vnDocFind_(x.doc, d, hotel) };
   });
 }
 
@@ -1940,7 +2020,7 @@ function vnHotelTry_(messageId, base, force) {
   return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
          "場所：" + (places.join("・") || "（読み取れず）") +
-         (doc ? "\n資料：この案内の枠を押すと、送ってもらった紙が開きます" : "");
+         (doc ? "\n資料：イベント名（下線）を押すと、送ってもらった紙が開きます" : "");
 }
 
 /* ================================================================
@@ -2073,7 +2153,7 @@ function vnHallForDay_(d) {
     return { venue: x.hall, kind: "event", icon: "🎤",
              title: String(x.name || "") + no,
              start: String(x.start || ""), end: String(x.end || ""), people: 0,
-             url: String(x.doc || "") || vnDocGet_(d, x.hall) };
+             url: vnDocFind_(x.doc, d, x.hall) };
   });
 }
 
@@ -2106,7 +2186,7 @@ function vnHallTry_(messageId, base, force) {
   return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
          "場所：" + (places.join("・") || "（読み取れず）") +
-         (doc ? "\n資料：この案内の枠を押すと、送ってもらった紙が開きます" : "");
+         (doc ? "\n資料：イベント名（下線）を押すと、送ってもらった紙が開きます" : "");
 }
 
 /** 合図を覚える（15分だけ）。force は「帝国ホテル」など、決め打ちするホテル名 */
@@ -3404,6 +3484,31 @@ function vnRemDrop_(key, uid) {
   return hit;
 }
 
+/* ================================================================
+ *  📵 スマホ通知（ntfy）と、メール通知は「いまは使いません」
+ *
+ *  ★まーくさんのご指示「スマホ通知やメールはいりません」。
+ *
+ *  ★仕掛けそのものは、消していません。
+ *    消してしまうと、あとで「やっぱり要る」となったときに
+ *    また一から作り直すことになるためです。
+ *    下の VN_PUSH_MAIL_USE を true に戻せば、すぐに元どおり動きます。
+ *
+ *  ★「使わない」というのは、この3つのことです。
+ *    ① こちらから、すすめない（案内の文を、どこにも出さない）
+ *    ② 「スマホ通知」「メール通知」と送られても、登録しない
+ *    ③ 前に登録してある人にも、もう送らない
+ *      （登録そのものは残します。勝手に消すことはしません）
+ *
+ *  ★イベントのお知らせは、これまでどおり
+ *    「この公式LINEから個人LINEへ」と
+ *    「iPhoneの『リマインダー』アプリ」で受け取れます。
+ * ================================================================ */
+const VN_PUSH_MAIL_USE = false;
+
+/** スマホ通知・メール通知を使う約束になっているか */
+function vnPushMailOn_() { return VN_PUSH_MAIL_USE === true; }
+
 /* ---- 📣 スマホ通知（アプリに直接とどく）---- */
 
 /*
@@ -3534,6 +3639,15 @@ function vnHandlePushCmd_(ev) {
     }
     if (typeof lineReply_ === "function") lineReply_(reply, t);
   };
+
+  // ★いまは使わない約束なので、登録しません。
+  //   だまって無視すると「送ったのに反応が無い」がいちばん困るので、必ず返事はします
+  if (!vnPushMailOn_()) {
+    tell("📵 スマホ通知は、いまは使っていません。\n" +
+         "イベントのお知らせは、この公式LINEから あなたの個人LINEへ届きます。\n" +
+         "（iPhoneの方は、案内の「⏰ﾘﾏｲﾝﾀﾞｰ」も使えます）");
+    return true;
+  }
 
   if (!uid) {
     if (typeof lineReply_ === "function") lineReply_(reply, "📣 どなたか分からず、入れられませんでした");
@@ -3701,6 +3815,18 @@ function vnHandleMailCmd_(ev) {
     if (typeof lineReply_ === "function") lineReply_(reply, t);
   };
 
+  // ★いまは使わない約束なので、登録しません。
+  //   ただし、アドレスだけを打ち込まれたとき（w.bare）は、何も言わずに
+  //   ほかの受け止め口へ渡します。ふつうの会話にアドレスが出ただけのときに
+  //   「メールは使っていません」と返すのは、おせっかいだからです
+  if (!vnPushMailOn_()) {
+    if (w.bare) return false;
+    tell("📵 メール通知は、いまは使っていません。\n" +
+         "イベントのお知らせは、この公式LINEから あなたの個人LINEへ届きます。\n" +
+         "（iPhoneの方は、案内の「⏰ﾘﾏｲﾝﾀﾞｰ」も使えます）");
+    return true;
+  }
+
   if (w.kind === "status") {
     const now = vnMailGet_(uid);
     tell(now
@@ -3755,6 +3881,7 @@ function vnHandleMailCmd_(ev) {
  *   もう入れている人に毎回すすめるのは、うるさいだけなので出さない。
  */
 function vnMailHint_(uid) {
+  if (!vnPushMailOn_()) return "";      // いまは使わない約束なので、すすめない
   const ad = vnMailGet_(uid);
   if (ad) return "📧 メールにも届きます（" + ad + "）";
   // ★アプリを入れずに済むのは、これだけです。
@@ -3774,6 +3901,7 @@ function vnMailHint_(uid) {
  *   もう入れている人に毎回すすめるのは、うるさいだけなので出さない。
  */
 function vnPushHint_(uid) {
+  if (!vnPushMailOn_()) return "";      // いまは使わない約束なので、すすめない
   if (vnPushGet_(uid)) return "📣 スマホのアプリにも届きます";
   return "📣 LINEが開けないときは、スマホのアプリに直接とどく形にもできます。\n" +
          "　　「スマホ通知」と送ると、入れ方をお伝えします（3手・無料）。";
@@ -4168,11 +4296,15 @@ function vnRemindTick_() {
       // ★スマホ通知を入れている人には、アプリにも送る。
       //   出先でLINEが開けないときの本命。ふつうの通知として画面の上に出て、音も鳴る。
       //   題に会場名を入れておけば、開かなくても何の話か分かる
-      const tp = vnPushGet_(r.to);
-      if (tp) vnPushSend_(tp, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r), r.url);
-      // ★メールを入れている人には、メールでも送る（こちらは昔ながらの受け皿）
-      const ad = vnMailGet_(r.to);
-      if (ad) vnMailSend_(ad, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r));
+      //   ★いまは使わない約束（VN_PUSH_MAIL_USE）なので、送りません。
+      //     前に入れてくださった人の登録は、消さずに残してあります
+      if (vnPushMailOn_()) {
+        const tp = vnPushGet_(r.to);
+        if (tp) vnPushSend_(tp, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r), r.url);
+        // ★メールを入れている人には、メールでも送る（こちらは昔ながらの受け皿）
+        const ad = vnMailGet_(r.to);
+        if (ad) vnMailSend_(ad, "⏰ " + r.venue + "　もうすぐ終了予定", vnRemText_(r));
+      }
     } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemind", e); }
   });
   vnRemSave_(keep);
@@ -4345,8 +4477,9 @@ function vnHandlePostback_(ev) {
       "　　この公式アカウントから あなたの個人LINEへ\n" +
       "　　メッセージが届きます。\n" +
       "※ アプリは開きません。届く時刻は1〜2分ほど前後します。\n" +
-      "※ やめたいときは、下の「🔕 通知解除」を押してください。\n" +
-      vnMailHint_(me),
+      // ★案内が空のときに、うしろへ空っぽの行が付かないようにする
+      "※ やめたいときは、下の「🔕 通知解除」を押してください。" +
+      (vnMailHint_(me) ? "\n" + vnMailHint_(me) : ""),
       reg.key);
   return true;
 }

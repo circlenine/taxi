@@ -2,7 +2,13 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L048ver  （2026/09/17）  ★★★
+ *  ★★★  L049ver  （2026/09/17）  ★★★
+ *
+ *  [L049ver]
+ *   ・💰 まとめスプシの「おまけ星人」も、
+ *     「とくてん　〇てん」→「りょうきん　〇えん」にそろえた（ご指示）
+ *     ★金額の決め方は 005-Updater.gs の updAlienFee_ と同じものを使います。
+ *       同じ星人なのに、LINEとスプシで金額が違っては おかしいためです
  *
  *  [L048ver]
  *   ・🛸 星人の説明を、グループのみんなに向けた書き方に直した
@@ -3409,7 +3415,10 @@ function dbFunBlock_(sheet, row) {
     if ((a.suki || []).length) { L.push("▼好きなもの"); a.suki.forEach(function (t) { L.push("　" + t); }); }
     if ((a.kirai || []).length) { L.push("▼きらいなもの"); a.kirai.forEach(function (t) { L.push("　" + t); }); }
     if (a.kuse) { L.push("▼口ぐせ"); L.push("　" + a.kuse); }
-    L.push("〖とくてん　" + ((1 + Math.floor(Math.random() * 8)) * 10) + "てん〗");
+    // ★「とくてん　〇てん」→「りょうきん　〇えん」（まーくさんのご指示）。
+    //   危なそうな星人ほど高くなります。LINEに出るものと同じ決め方です
+    L.push("〖りょうきん　" +
+           (typeof updAlienFee_ === "function" ? updAlienFee_(a) : 0) + "えん〗");
     // ★星人の決まり文句。LINEで出るものと同じにそろえる（別ものに見えないように）
     L.push("");
     L.push("てめえ達は今から");
