@@ -2,7 +2,7 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U076ver  （2026/09/17）  ★★★
+ *  ★★★  U077ver  （2026/09/17）  ★★★
  *
  *  [U074ver]
  *   ・📖 ひとことを 19通り → 108通り（39作品）に増やした
@@ -3279,27 +3279,34 @@ function updHandleBranch_(ev) {
 }
 
 function updHandleKata_(ev) {
-  if (!updKataWord_((ev && ev.message && ev.message.text) || "")) return false;
+  const text = (ev && ev.message && ev.message.text) || "";
+  if (!updKataWord_(text)) return false;
 
   const uid = (ev && ev.source && ev.source.userId) || "";
   let me = "";
   try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
   if (!me) { try { for (const id in SENDER_MAP) { if (SENDER_MAP[id] === "ﾏｰｸ") me = id; } } catch (e) {} }
-  // ★まーくさん以外は、コードの取り込みを絶対にしない。
-  //   ここから下（取り込みの処理）には、1歩も進まない。
-  //   代わりに、ロボットの声で断って、おもしろ動画を1本送る
-  if (!me || uid !== me) {
-    /*
-     * ★「💩」だけは、まーくさん以外には何も返しません。
-     *
-     *   合言葉（katastrophe など）は、ほかの人が打ったときに
-     *   星人と おもしろ動画を返す約束でした。
-     *   でも「💩」は、ふだん使いの短い合図です。
-     *   だれかが なんとなく打つたびに動画が飛んでは、うるさいだけです。
-     *   まーくさん以外のときは、黙って見送ります。
-     */
-    if (updKataPoop_((ev && ev.message && ev.message.text) || "")) return true;
 
+  /*
+   * ★役わりを、はっきり2つに分けました（まーくさんのご指示）。
+   *
+   *   「カタストロフィ」…… だれが打っても “遊び” です。
+   *       ひらがな・カタカナ・ローマ字・飾り文字・「ジェバンニ、」つき、
+   *       どの書き方でも同じです。
+   *       ★まーくさんが打っても、遊びです。取り込みはしません。
+   *         みんなと同じものが返る、というのがご指示でした。
+   *
+   *   「💩」…………… LINEからの取り込みです。まーくさんだけ。
+   *       ★ほかの人が打ったときは、遊びが返ります。
+   *         まとめスプシに「カタストロフィ か 💩 で遊べます」と
+   *         書いてあるので、打って何も返らないのでは
+   *         「壊れてるの？」と思われてしまいます。
+   *         取り込みだけは、これまでどおり まーくさんだけです。
+   */
+  const isPoop = updKataPoop_(text);
+  const mine = !!me && uid === me;
+
+  if (!isPoop || !mine) {
     // 同じ人が何度も打って、グループが動画だらけになるのを防ぐ（10分に1回まで）
     try {
       const cc = CacheService.getScriptCache();
@@ -3308,9 +3315,11 @@ function updHandleKata_(ev) {
       cc.put(kk, "1", 600);
     } catch (e) {}
     // ★星人も絵も、ここでは作らない（下の「なぜ裏に逃がすのか」を参照）
-    updKataJobAdd_({ to: updWhere_(ev), kind: "deny" });
+    updKataJobAdd_({ to: updWhere_(ev), kind: "fun" });
     return true;
   }
+
+  // ここから下は「💩」を まーくさんが打ったときだけ（取り込み）
 
   const reply = (ev && ev.replyToken) || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
@@ -3445,12 +3454,12 @@ function updKataFire() {
       let alien = null, pic = { url: "", direct: "" }, fun = null;
       try { alien = updAlien_(); } catch (e) { alien = updAlienFallback_(); }
       try { pic = updAlienPic_(alien) || pic; } catch (e) {}
-      if (job.kind === "deny") {
+      // "fun" … 遊び（星人＋おもしろ動画）。"deny" は前の呼び名（古いぶんも動くよう残す）
+      const isFun = (job.kind === "fun" || job.kind === "deny");
+      if (isFun) {
         try { fun = updFunPick_(); } catch (e) { fun = null; }
       }
-      const body = (job.kind === "deny")
-        ? updKataDenied_(alien, fun)
-        : updKataStart_(alien);
+      const body = isFun ? updKataDenied_(alien, fun) : updKataStart_(alien);
       /*
        * ★絵のありか（https://…）は、文のうしろに付けません（まーくさんのご指示）。
        *   絵そのものは、この下の updPushOnce_ が画像として送ります。

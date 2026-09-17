@@ -1823,7 +1823,13 @@ console.log('\n■ 合言葉「katastrophe」');
   props['GH_REPO'] = 'circlenine/test'; props['GH_TOKEN'] = 'tok';
   props['GH_BRANCH'] = 'claude/gas-code-info-collection-e5mxw3';
 
-  // ほかの人が打っても、何も起きず、何も返さない
+  /*
+   * ★役わりを、はっきり2つに分けた（まーくさんのご指示）。
+   *     「カタストロフィ」…… だれが打っても “遊び”。まーくさんでも遊び
+   *     「💩」…………… LINEからの取り込み。まーくさんだけ
+   *                     （ほかの人が打ったときは、遊びが返る）
+   */
+  // ほかの人が「カタストロフィ」を打つ → 遊び
   ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
@@ -1835,10 +1841,39 @@ console.log('\n■ 合言葉「katastrophe」');
     '  あの黒い球の声で断る');
   t(kataTrig().length === 0, '  ★役目を終えた見張りは、自分で片づける');
 
-  // 個人LINEから
+  /*
+   * ★まーくさんが「カタストロフィ」を打っても、遊びにする。
+   *   みんなと同じものが返る、というのがご指示
+   */
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Umark'); } catch (e) {}
   ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
-    'まーくさんが打つと動く');
+    'まーくさんが「カタストロフィ」を打っても受ける');
+  t(upTrig().length === 0, '★まーくさんでも、取り込みは始めない（遊びにする）');
+  t(props['UPD_LINE_KATA'] === undefined, '  取り込みの覚え書きも残さない');
+  t(kataRun() === 1, '  代わりに、遊びの見張りを立てる');
+  t(ctx.pu.length === 1, '  1回だけ送る');
+  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1,
+    '★みんなと同じものが返る');
+
+  /*
+   * ★ほかの人が「💩」を打ったときも、遊びが返る。
+   *   まとめスプシに「カタストロフィ か 💩 で遊べます」と書いてあるので、
+   *   打って何も返らないのでは「壊れてるの？」と思われてしまう
+   */
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uother'); } catch (e) {}
+  ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
+  t(kata({ message: { text: '💩' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    'ほかの人が「💩」を打っても受ける');
+  t(upTrig().length === 0, '★ほかの人の「💩」で、取り込みは絶対に始めない');
+  t(kataRun() === 1, '  遊びの見張りを立てる');
+  t(ctx.pu.length === 1, '★何も返らない、ということにはしない');
+  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1, '  遊びが返る');
+
+  // まーくさんの「💩」→ ここだけが取り込み
+  ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
+  t(kata({ message: { text: '💩' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '★まーくさんの「💩」だけが、取り込み');
   t(upTrig().length === 1, '  裏で取り込む見張りを作る');
   t(upTrig()[0]._kind === 'after', '  受け口の中では取り込まない');
   t(ctx.pu.length === 0, '  ★受け口の中では、まだ何も送らない');
@@ -1858,7 +1893,7 @@ console.log('\n■ 合言葉「katastrophe」');
 
   // 取り込み中にもう一度打っても、二重に動かない
   ctx.rep.length = 0; triggers.length = 0;
-  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+  t(kata({ message: { text: '💩' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     '取り込み中にもう一度打っても受ける');
   t(upTrig().length === 0, '  ★二重には動かさない');
   t(ctx.rep[0].indexOf('IN BEARBEITUNG') !== -1, '  すでに動いていると伝える');
@@ -1897,7 +1932,7 @@ console.log('\n■ 合言葉「katastrophe」');
 
   // グループLINEから打っても効く（結果はそのグループへ）
   ctx.rep.length = 0; triggers.length = 0; ctx.pu.length = 0;
-  t(kata({ message: { text: 'ｋａｔａｓｔｒｏｐｈｅ' },
+  t(kata({ message: { text: '💩' },
            source: { userId: 'Umark', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     '★グループLINEからでも効く');
   t(upTrig().length === 1, '  取り込みを始める');
@@ -1912,7 +1947,7 @@ console.log('\n■ 合言葉「katastrophe」');
   ctx.rep.length = 0; triggers.length = 0;
   try { F('CacheService').getScriptCache().remove('UPD_RUNNING'); } catch (e) {}
   const keepTok = props['GH_TOKEN']; delete props['GH_TOKEN'];
-  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+  t(kata({ message: { text: '💩' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
     '鍵が無くても受ける');
   t(upTrig().length === 1, '★鍵が無くても、ちゃんと取り込みを始める');
   t(ctx.rep.length === 0, '  「鍵が入っていません」とは、もう言わない');
@@ -1939,8 +1974,8 @@ console.log('\n■ 受け口の中では、重たいことをしない');
   vm.runInContext('updAlien_ = function(){ aiHit(); throw new Error("AIが固まった"); };', ctx);
   ctx.aiHit = function () { aiCalls++; };
 
-  t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
-    '合言葉を受ける');
+  t(kata({ message: { text: '💩' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '合図を受ける');
   t(aiCalls === 0, '★受け口の中では、AIを1回も呼ばない');
   t(ctx.pu.length === 0, '  受け口の中では、まだ送らない');
   t(kataTrig().length === 1, '★1秒後に動く見張りを立てる');
@@ -2397,14 +2432,18 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   ctx.pu.length = 0; ctx.rep.length = 0; triggers.length = 0;
   t(kata2({ message: { text: '💩' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     'ほかの人が「💩」を打っても、受けはする');
-  t(kataTrig().length === 0, '★ほかの人のときは、何も動かさない');
-  t(ctx.pu.length === 0 && ctx.rep.length === 0, '★ほかの人には、何も返さない');
-  t(String(props['UPD_KATA_JOBS'] || '') === '', '  やることリストにも積まない');
-  // 合言葉のほうは、これまでどおり動画を返す
+  t(upTrig().length === 0, '★ほかの人のときは、取り込みを絶対に始めない');
+  t(ctx.pu.length === 0 && ctx.rep.length === 0, '  受け口の中では、まだ何も返さない');
+  t(kataTrig().length === 1, '★代わりに、遊びの見張りを立てる');
+  t(String(props['UPD_KATA_JOBS'] || '').indexOf('"kind":"fun"') !== -1,
+    '  やることリストにも「遊び」と積む');
+  // 合言葉のほうも、これまでどおり遊びを返す
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uother'); } catch (e) {}
+  delete props['UPD_KATA_JOBS'];
   ctx.pu.length = 0; triggers.length = 0;
   t(kata2({ message: { text: 'katastrophe' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     '合言葉のほうは、これまでどおり受ける');
-  t(kataTrig().length === 1, '  ★そちらは、これまでどおり返事を用意する');
+  t(kataTrig().length === 1, '  ★そちらも、これまでどおり返事を用意する');
   try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uother'); } catch (e) {}
   delete props['UPD_KATA_JOBS']; triggers.length = 0; ctx.pu.length = 0;
   t(B('えだまめ') === null,
@@ -2603,8 +2642,9 @@ console.log('\n■ LINEに打つだけで、コードが本当に入れ替わる
     delete props['UPD_KATA_JOBS'];
     ctx.pu.length = 0; triggers.length = 0;
 
-    t(kata({ message: { text: 'Katastrophe' }, source: pair[1], replyToken: 'r' }) === true,
-      pair[0] + 'で「Katastrophe」を受ける');
+    // ★LINEからの取り込みは「💩」（まーくさんだけ）。カタストロフィは遊びに変わった
+    t(kata({ message: { text: '💩' }, source: pair[1], replyToken: 'r' }) === true,
+      pair[0] + 'で「💩」を受ける');
     t(props['UPD_LINE_TO'] === pair[2], '  結果の届け先は、打った場所（' + pair[2] + '）');
     drain();
     const put = lastPut();
@@ -3099,6 +3139,61 @@ console.log('\n■ 合言葉は、打ち方がまざっていても通る');
     '  ならべすぎ（知らない言葉入り）にも反応しない');
 }
 
+
+console.log('\n■ 合図の役わり（カタストロフィ＝遊び／💩＝取り込み）');
+{
+  /*
+   * ★まーくさんのご指示。
+   *     「カタストロフィ」…… だれが打っても遊び。まーくさんでも遊び
+   *     「💩」…………… LINEからの取り込み。まーくさんだけ
+   *                     （ほかの人が打ったときは、遊びが返る）
+   */
+  const K = F('updHandleKata_');
+  const cc = ctx.CacheService.getScriptCache();
+  const clear = function () {
+    ['KATA_FUN_Umark', 'KATA_FUN_Uother', 'UPD_RUNNING'].forEach(function (k) {
+      try { cc.remove(k); } catch (e) {}
+    });
+    delete props['UPD_KATA_JOBS']; delete props['UPD_LINE_TO']; delete props['UPD_LINE_KATA'];
+    triggers.length = 0; ctx.pu.length = 0; ctx.rep.length = 0;
+  };
+  const jobs = function () { return String(props['UPD_KATA_JOBS'] || ''); };
+
+  // カタストロフィは、どの書き方でも「遊び」
+  ['katastrophe', 'カタストロフィ', 'かたすとろふぃ', 'ｶﾀｽﾄﾛﾌｨ', 'ＫＡＴＡＳＴＲＯＰＨＥ',
+   '𝕜𝕒𝕥𝕒𝕤𝕥𝕣𝕠𝕡𝕙𝕖', 'ジェバンニ', 'ジェバンニ、Katastrophe'].forEach(function (w) {
+    clear();
+    t(K({ message: { text: w }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+      '★まーくさんの「' + w + '」も、受ける');
+    t(upTrig().length === 0, '  ★取り込みは始めない（遊び）');
+    t(jobs().indexOf('"kind":"fun"') !== -1, '  遊びとして積む');
+    t(props['UPD_LINE_KATA'] === undefined, '  取り込みの覚え書きも残さない');
+  });
+
+  // 💩 は、まーくさんだけ取り込み
+  clear();
+  t(K({ message: { text: '💩' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '★まーくさんの「💩」は、受ける');
+  t(upTrig().length === 1, '★そちらは、取り込みを始める');
+  t(props['UPD_LINE_KATA'] === '1', '  取り込みだと覚える');
+  t(jobs().indexOf('"kind":"fun"') === -1, '  遊びとしては積まない');
+
+  // ほかの人の 💩 は、遊び
+  clear();
+  t(K({ message: { text: '💩' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    '★ほかの人の「💩」も、受ける');
+  t(upTrig().length === 0, '★ほかの人の「💩」で、取り込みは絶対に始めない');
+  t(jobs().indexOf('"kind":"fun"') !== -1, '★代わりに、遊びを返す（何も返らない、にはしない）');
+
+  // 同じ人が続けて打っても、動画だらけにはならない（10分に1回まで）
+  clear();
+  K({ message: { text: 'カタストロフィ' }, source: { userId: 'Uother' }, replyToken: 'r' });
+  const n1 = jobs().length;
+  delete props['UPD_KATA_JOBS'];
+  K({ message: { text: 'カタストロフィ' }, source: { userId: 'Uother' }, replyToken: 'r' });
+  t(n1 > 0 && jobs() === '', '★続けて打っても、2回目は見送る（10分に1回まで）');
+  clear();
+}
 
 console.log('\n■ 📖 終わったときの知らせに、ひとことを添える');
 {
