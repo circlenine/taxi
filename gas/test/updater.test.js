@@ -283,6 +283,23 @@ let project;            // サーバー側にあることになっている中�
 let apiCalls;           // 呼ばれた記録
 let apiFail = null;     // {path, code, msg} を入れると、その呼び出しだけ失敗する
 ctx.UrlFetchApp = { fetch: (url, opt) => {
+  /*
+   * ★置き場のファイルを、そのまま読みにいくとき（raw）。
+   *   おつかいメモは、こちらの読み方を使う
+   */
+  if (url.indexOf('https://raw.githubusercontent.com/') === 0) {
+    const want = decodeURI(url);
+    let hit = null;
+    if (gh && gh.raw) {
+      Object.keys(gh.raw).forEach(function (k) {
+        if (want.slice(-(k.length + 1)) === '/' + k) hit = k;
+      });
+    }
+    if (hit !== null) {
+      return { getResponseCode: () => 200, getContentText: () => gh.raw[hit] };
+    }
+    return { getResponseCode: () => 404, getContentText: () => 'Not Found' };
+  }
   if (url.indexOf('https://api.github.com/') === 0) {
     if (gh && gh.fail) {
       return { getResponseCode: () => gh.fail.code,
@@ -3139,6 +3156,71 @@ console.log('\n■ 合言葉は、打ち方がまざっていても通る');
     '  ならべすぎ（知らない言葉入り）にも反応しない');
 }
 
+
+console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、スプシが取りにくる）');
+{
+  /*
+   * ★クロちゃんは、スプシもLINEも直接は動かせない。
+   *   できるのは「置き場にコードを置くこと」だけ。
+   *   そこで、置き場に「おつかいメモ」を1枚置けるようにした。
+   *   スプシは3分おきに置き場を見にいくので、そのついでにメモも読む
+   */
+  const E = F('updErrandTick_');
+  const OK = vm.runInContext('UPD_ERRAND_OK', ctx);
+
+  props['GH_REPO'] = 'circlenine/taxi';
+  props['GH_PATH'] = 'gas';
+  delete props['UPD_ERRAND_DONE'];
+
+  // できることは、決めた一覧の中だけ
+  t(!!OK['ping'] && !!OK['event-test'] && !!OK['report-test'] && !!OK['venue-probe'],
+    '★できることは、4つに決めてある');
+  t(OK['group-send'] === undefined && OK['本番'] === undefined,
+    '★グループへの本番送信は、一覧に無い（ここからは絶対にできない）');
+
+  // メモが無ければ、何もしない
+  gh = { raw: {} };
+  ctx.pu.length = 0;
+  t(E() === false, 'メモが無ければ、何もしない');
+  t(ctx.pu.length === 0, '  何も送らない');
+
+  // 知らない頼みごとは、何もしない
+  gh = { raw: { 'gas/errand.json': JSON.stringify({ id: 'x1', do: 'グループに送って' }) } };
+  ctx.pu.length = 0;
+  t(E() === false, '★知らない頼みごとは、何もしない');
+  t(props['UPD_ERRAND_DONE'] === undefined, '  やった印も残さない');
+
+  // ping は、返事だけ
+  gh = { raw: { 'gas/errand.json': JSON.stringify({ id: 'x2', do: 'ping' }) } };
+  ctx.pu.length = 0;
+  t(E() === true, '★メモのとおり、1回やる');
+  t(props['UPD_ERRAND_DONE'] === 'x2', '  やった印を覚える');
+  t(ctx.pu.length === 1, '★結果を知らせる');
+  t(ctx.pu[0].to === 'Umark', '★送り先は まーくさんの個人LINEだけ');
+  has(ctx.pu[0].msgs[0].text, 'おつかい', '  おつかいだと分かる');
+  has(ctx.pu[0].msgs[0].text, 'うごいています', '  中身も入っている');
+
+  // 同じメモは、二度やらない
+  ctx.pu.length = 0;
+  t(E() === false, '★同じメモは、二度やらない');
+  t(ctx.pu.length === 0, '  だから、何度も鳴らない');
+
+  // 新しいメモなら、またやる
+  gh = { raw: { 'gas/errand.json': JSON.stringify({ id: 'x3', do: 'ping' }) } };
+  ctx.pu.length = 0;
+  t(E() === true, '★新しいメモなら、またやる');
+  t(props['UPD_ERRAND_DONE'] === 'x3', '  印も新しくする');
+
+  // 中身がこわれていても、落ちない
+  gh = { raw: { 'gas/errand.json': 'こわれた中身' } };
+  ctx.pu.length = 0;
+  t(E() === false, 'こわれたメモでも、落ちない');
+  gh = { raw: { 'gas/errand.json': JSON.stringify({ do: 'ping' }) } };
+  t(E() === false, '  番号（id）が無いメモも、やらない');
+
+  delete props['UPD_ERRAND_DONE'];
+  ctx.pu.length = 0;
+}
 
 console.log('\n■ 合図の役わり（カタストロフィ＝遊び／💩＝取り込み）');
 {

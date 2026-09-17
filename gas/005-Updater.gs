@@ -2,7 +2,7 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U077ver  （2026/09/17）  ★★★
+ *  ★★★  U078ver  （2026/09/17）  ★★★
  *
  *  [U074ver]
  *   ・📖 ひとことを 19通り → 108通り（39作品）に増やした
@@ -5209,6 +5209,119 @@ function updAutoPull_() {
   return true;
 }
 
+/* ================================================================
+ *  📮 おつかい（クロちゃんに頼んだことを、スプシが取りにくる）
+ *
+ *  ★なぜ、こんなものが要るのか。
+ *
+ *    クロちゃん（こちら）は、スプシもLINEも直接は動かせません。
+ *    できるのは「GitHubにコードを置くこと」だけです。
+ *    だから「テスト送信して」と言われても、こちらからは送れませんでした。
+ *
+ *    そこで、置き場に「おつかいメモ」を1枚だけ置けるようにしました。
+ *    スプシは3分おきに置き場を見にいっているので、
+ *    そのついでにメモも読み、書いてあることを1回だけやります。
+ *
+ *  ★安全のために、こう決めてあります。
+ *
+ *    ・できることは、下の一覧にあるものだけです（それ以外は何もしません）
+ *    ・送り先は、まーくさんの個人LINEだけです。
+ *      グループへの本番送信は、ここからは絶対にできません。
+ *      人の目を通さずに、みんなへ流れてしまうためです
+ *    ・同じメモは1回しかやりません（やった印を覚えます）
+ *    ・置き場に書き込めるのは、まーくさんとクロちゃんだけです
+ * ================================================================ */
+
+/** おつかいメモの置き場所（フォルダの中） */
+const UPD_ERRAND_FILE = "errand.json";
+
+/** やってよいこと。ここに無いものは、何もしない */
+const UPD_ERRAND_OK = {
+  "event-test":  "イベントの確認用を、いま送る",
+  "report-test": "レポートの確認用を、自分にだけ送る",
+  "venue-probe": "イベント情報を調べて、結果を知らせる",
+  "ping":        "動いているかどうかの返事だけ"
+};
+
+/** おつかいメモを1枚読む。無ければ null */
+function updErrandRead_() {
+  if (updSource_() !== "github") return null;
+  try {
+    // ★updFolder_ は ドライブのフォルダです。置き場の中のフォルダは updPath_ です。
+    //   ここを取りちがえると、いつまでも「メモが無い」ことになります
+    const dir = updPath_();
+    const path = (dir ? dir + "/" : "") + UPD_ERRAND_FILE;
+    const url = "https://raw.githubusercontent.com/" + updRepo_() + "/" +
+                updRefPath_(updBranch_()) + "/" + path;
+    const r = updGhTry_(url);
+    if (r.code !== 200 || !r.body) return null;
+    const j = JSON.parse(r.body);
+    if (!j || !j.id || !j.do) return null;
+    return j;
+  } catch (e) { return null; }
+}
+
+/**
+ * おつかいメモを、1回だけやる。
+ * やったら true。
+ */
+function updErrandTick_() {
+  const j = updErrandRead_();
+  if (!j) return false;
+  if (!UPD_ERRAND_OK[j.do]) return false;          // 知らない頼みごとは、何もしない
+
+  const pr = updProps_();
+  if (String(pr.getProperty("UPD_ERRAND_DONE") || "") === String(j.id)) return false;
+  // ★先に印を覚える。ここで覚えないと、しくじったときに何度もやり直してしまう
+  try { pr.setProperty("UPD_ERRAND_DONE", String(j.id)); } catch (e) {}
+
+  const me = updMe_();
+  let out = "";
+  try {
+    if (j.do === "ping") {
+      out = "うごいています。";
+    } else if (j.do === "event-test") {
+      /*
+       * ★イベントの確認用（まーくさんだけ）。
+       *   これは menuVenueTestSend と同じもので、グループへは出ません。
+       *   グループへの本番送信は、おつかいからは絶対にできません
+       */
+      if (typeof menuVenueTestSend === "function") out = menuVenueTestSend();
+      else out = "イベントのしくみが、まだ入っていません。";
+    } else if (j.do === "report-test") {
+      /*
+       * ★レポートの確認用。送り先は、かならず まーくさんの個人LINEです。
+       *   そうさパネルの「送り先」らんが「グループ」になっていても、
+       *   ここでは見ません。人の目を通さずに流れてしまうためです
+       */
+      if (typeof sendCustomReport === "function" && typeof rpTestTarget_ === "function" &&
+          typeof rpMonthSpan_ === "function") {
+        const to = rpTestTarget_();
+        if (!to) out = "自分の送り先が分かりません（設定タブ「テスト送信先（自分のLINE）」）。";
+        else {
+          const m = rpMonthSpan_(new Date());
+          sendCustomReport(to, m.startD, m.endD, true);
+          out = "レポートの確認用を、あなたのLINEにだけ送りました。";
+        }
+      } else out = "レポートのしくみが、まだ入っていません。";
+    } else if (j.do === "venue-probe") {
+      if (typeof panelVenueProbe === "function") out = panelVenueProbe();
+      else out = "イベントのしくみが、まだ入っていません。";
+    }
+  } catch (e) {
+    out = "しくじりました：" + ((e && e.message) || e);
+  }
+
+  try {
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text",
+        text: "📮 クロちゃんからのおつかい\n" +
+              "　" + UPD_ERRAND_OK[j.do] + "\n\n" + String(out || "おわりました。") }]);
+    }
+  } catch (e) {}
+  return true;
+}
+
 /*
  * ★ボタンの見張り（1分おき）から呼ばれる、軽い入り口。
  *
@@ -5223,6 +5336,10 @@ function updAutoPullTick_() {
   if (!cc) return false;
   try { if (cc.get("UPD_PULL_WAIT")) return false; } catch (e) { return false; }
   try { cc.put("UPD_PULL_WAIT", "1", UPD_PULL_EVERY_MIN * 60); } catch (e) {}
+  // ★おつかいメモも、ついでに見る（置き場を見にいくのは、どのみち1回きり）
+  try { if (updErrandTick_()) return true; } catch (e) {
+    try { logErr_("updErrand", e); } catch (e2) {}
+  }
   try { return updAutoPull_(); } catch (e) {
     try { logErr_("updAutoPullTick", e); } catch (e2) {}
     return false;
