@@ -345,7 +345,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 18:00 は確認用（まーくさんだけ）、18:30 にグループ');
+console.log('\n■ 前日18:00に確認用（まーくさんだけ）、当日17:00にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -363,27 +363,61 @@ console.log('\n■ 18:00 は確認用（まーくさんだけ）、18:30 にグ�
   };
   const back = () => { ctx.Date = RealDate; };
 
-  at(17, 30);
-  pushed.length = 0;
-  ctx.venueDailyJob();
-  eq(pushed.length, 0, '17:30 には、まだ何も送らない');
+  /*
+   * ★確認用は「前の日の18:00に、あすのぶん」（まーくさんのご指示）。
+   *   当日の夕方に「これで出します」と言われても、直す時間がない。
+   *   前の日の晩に見ておけば、落ち着いて手直しできる
+   */
+  // 9/15 の 18:00 → あす（9/16）のぶんの確認用が飛ぶ
+  const at15 = (h, m) => {
+    const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 15, h, m); };
+    D.prototype = RealDate.prototype; D.now = RealDate.now; ctx.Date = D;
+  };
+  delete props['VNSENT_20260916_T'];
 
-  at(18, 0);
+  at15(17, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★18:00 に確認用を1通');
+  eq(pushed.length, 0, '前日の17:30 には、まだ何も送らない');
+
+  at15(18, 0);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 1, '★前日の18:00 に、あすのぶんの確認用を1通');
   eq(pushed[0].to, 'Umark', '  宛先はまーくさんだけ（グループではない）');
+  eq(props['VNSENT_20260916_T'], '1', '★印は「あすの日付」で残す（9/16ぶん）');
 
-  at(18, 16);
+  // 同じ日に二度は送らない
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '  18:16 には、まだグループへ送らない');
+  eq(pushed.length, 0, '  同じ日に二度は送らない');
+
+  /*
+   * ★本番は「当日の17:00」。前の日に人の目を通したものだけが出る
+   */
+  at(16, 30);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 0, '当日の16:30 には、まだグループへ送らない');
+
+  at(17, 0);
+  // グループの送り先が分かっている状態にする
+  const keepG = vm.runInContext('vnGroupTarget_', ctx);
+  vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.length, 1, '★当日の17:00 に、グループへ1通');
+  eq(pushed[0].to, 'Cgroup', '  宛先はグループ');
+  delete props['VNSENT_20260916'];
+  // もとに戻す（次のテストは「送り先が分からない」状態から始めるため）
+  ctx.vnGroupTarget_ = keepG;
 
   at(19, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
   eq(pushed.length, 0, '19:30 になってしまったら、その日はもう送らない');
   delete props['VNSENT_20260916_T'];
+  delete props['VNSENT_20260917_T'];
   delete props['VNEDIT_20260916'];
   back();
 }
@@ -392,8 +426,8 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 {
   props.VN_AUTO = '1';
   const RealDate = Date;
-  // ★グループへ出すのは 18:30（確認用の30分あと）
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 18, 31); };
+  // ★グループへ出すのは 当日の17:00
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
@@ -1467,7 +1501,7 @@ console.log('\n■ 個人LINEから、その場でグループへ出す（必ず
   delete props['VNSENT_20260916'];
 }
 
-console.log('\n■ 見られていなくても、18:30には最新のまま出す');
+console.log('\n■ 見られていなくても、当日17:00には最新のまま出す');
 {
   const base = new Date(2026, 8, 16);
   props.VN_AUTO = '1';
@@ -1478,12 +1512,12 @@ console.log('\n■ 見られていなくても、18:30には最新のまま出�
     { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'ライブ', start: '18:00', end: '21:00', url: '' }
   ]);
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 18, 31); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★【はい】が押されていなくても、18:30には送る');
+  eq(pushed.length, 1, '★【はい】が押されていなくても、当日17:00には送る');
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   ctx.Date = RealDate;
   delete props['VNSENT_20260916'];
@@ -1534,7 +1568,7 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   has(flat, '04:00（翌日）', '  終わりの時刻も');
   has(flat, '300人', '  人数の下限も');
   has(flat, '18:00', '  確認用の時刻も');
-  has(flat, '18:30', '  グループへ送る時刻も');
+  has(flat, '17:00', '  グループへ送る時刻も');
   has(flat, '5 分前', '  リマインダーの何分前かも');
   has(flat, '大阪城ホール', '  見に行くページの名前も');
   has(flat, '万博記念公園', '  外しているところも、はっきり書く');
@@ -1905,7 +1939,7 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
-console.log('\n■ 18:00 と 18:30 も、時刻ぴったりに動かす');
+console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴったりに動かす');
 {
   /*
    * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
@@ -1919,8 +1953,9 @@ console.log('\n■ 18:00 と 18:30 も、時刻ぴったりに動かす');
 
   delete props[keyOf()]; delete props[keyOf() + '_T'];
 
-  // ① 17:50 … 確認用(18:00)まで10分。ぴったりの見張りを立てる
+  // ① 17:50 … あすのぶんの確認用(18:00)まで10分。ぴったりの見張りを立てる
   triggers.length = 0;
+  delete props['VNSENT_20260918_T'];
   eq(ctx.vnAimTick_(day(17, 50)), true, '★18:00 が近づいたら、見張りを立てる');
   eq(aims().length, 1, '  立つのは1つだけ');
   eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
@@ -1931,17 +1966,19 @@ console.log('\n■ 18:00 と 18:30 も、時刻ぴったりに動かす');
   eq(ctx.vnAimTick_(day(10, 0)), false, '★まだ先のときは、立てない');
   eq(aims().length, 0, '  見張りを増やさない（持ち時間を使い切らないため）');
 
-  // ③ 18:20 … 確認用は済み。次はグループ用(18:30)を狙う
+  // ③ 16:50 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(17:00)を狙う
   triggers.length = 0;
   props[keyOf() + '_T'] = '1';
-  eq(ctx.vnAimTick_(day(18, 20)), true, '★確認用が済んだら、次は18:30を狙う');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝18:30ぴったり）に動く');
+  props['VNSENT_20260918_T'] = '1';          // あすのぶんの確認用も済ませておく
+  eq(ctx.vnAimTick_(day(16, 50)), true, '★確認用が済んだら、次は当日17:00を狙う');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝17:00ぴったり）に動く');
 
   // ④ きょうのぶんが両方とも済んでいたら、もう立てない
   triggers.length = 0;
   props[keyOf()] = '1';
-  eq(ctx.vnAimTick_(day(18, 20)), false, '★両方とも済んでいたら、立てない');
+  eq(ctx.vnAimTick_(day(16, 50)), false, '★両方とも済んでいたら、立てない');
   eq(aims().length, 0, '  むだに動かさない');
+  delete props['VNSENT_20260918_T'];
 
   // ⑤ 立て直すときは、前のものを片づける（見張りは20個までしか作れない）
   triggers.length = 0;

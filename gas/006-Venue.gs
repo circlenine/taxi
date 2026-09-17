@@ -2,11 +2,24 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V038ver  （2026/09/17）  ★★★
+ *  ★★★  V039ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V039ver]
+ *   ・🕔 送る日と時刻を、まーくさんのご指示どおりにした
+ *       確認用（まーくさんだけ）…… 前日の 18:00 に「あすのぶん」
+ *       本番（グループ）………… 当日の 17:00 に「その日のぶん」
+ *     ★前日に送るようにしたのは、前もって見ておけるからです。
+ *       当日の夕方に「これで出します」と言われても、直す時間がありません
+ *     ★この順番のおかげで、当日17:00の本番は
+ *       「前の日に人の目を通したもの」だけになります
+ *     ★本番（17:00）のほうが確認用（18:00）より早い時刻なので、
+ *       見るのも本番を先にしています。逆にすると、17:00の回で
+ *       確認用の判定に引っかかって、本番が出ないまま終わります
+ *     ★時刻ぴったりの見張りも、2つの時刻をねらえるようにしました
  *
  *  [V038ver]
  *   ・💬 ﾃﾞｨｽｺｰﾄﾞの道順を、いまの形に合わせた
@@ -649,18 +662,23 @@ const VN_MIN_PEOPLE = 300;
  * ★グループに出ていくものを、人の目を通さずに送らない、という決まり
  */
 /*
- * ★確認用を 16:30 → 18:00 に変えました（まーくさんのご指示）。
+ * ★送る日と時刻（まーくさんのご指示）。
  *
- * ★あわせて、グループへ出す時刻も 17:00 → 18:30 にしました。
- *   確認用より前にグループへ出す作りにはできないためです
- *   （人の目を通していないものを、みんなに流さないための決まりです）。
- *   30分あいだを空けるのは、これまでと同じです。
- *   グループの時刻だけ変えたいときは、ここの数字を直してください。
+ *   確認用（まーくさんだけ）…… 前日の 18:00 に、あすのぶん
+ *   本番（グループ）………… 当日の 17:00 に、その日のぶん
+ *
+ * ★前日に送るようにしたのは、前もって見ておけるからです。
+ *   当日の夕方に「これで出します」と言われても、直す時間がありません。
+ *   前の日の晩に見ておけば、落ち着いて手直しできます。
+ *
+ * ★この順番のおかげで、当日17:00の本番は
+ *   「前の日に人の目を通したもの」だけになります。
+ *   人の目を通していないものを、みんなに流さないための決まりです。
  */
-const VN_TEST_HOUR = 18;
+const VN_TEST_HOUR = 18;        // 前日の 18:00（確認用・まーくさんだけ）
 const VN_TEST_MIN  = 0;
-const VN_SEND_HOUR = 18;
-const VN_SEND_MIN  = 30;
+const VN_SEND_HOUR = 17;        // 当日の 17:00（本番・グループ）
+const VN_SEND_MIN  = 0;
 /** 送る時刻をどれだけ過ぎたら、その日はもうあきらめるか（分） */
 const VN_SEND_WINDOW = 45;
 
@@ -4075,12 +4093,25 @@ function vnAimTick_(nowIn) {
   const key = vnSentKey_(now);               // 17:00 のグループ用を送った印
 
   const base = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  let target = 0;
-  if (!pr.getProperty(tKey)) {
-    target = base + (VN_TEST_HOUR * 60 + VN_TEST_MIN) * 60000;
-  } else if (!pr.getProperty(key)) {
-    target = base + (VN_SEND_HOUR * 60 + VN_SEND_MIN) * 60000;
+
+  /*
+   * ★きょう ねらう時刻は、2つあります。
+   *     17:00 … その日ぶんの本番（きのう確認したもの）
+   *     18:00 … あすのぶんの確認用
+   *   まだ済んでいないほうのうち、時刻が先に来るほうを1つだけねらいます。
+   */
+  const cands = [];
+  // 本番（17:00）… きょうのぶんの確認用が済んでいて、まだ出していないとき
+  if (pr.getProperty(tKey) && !pr.getProperty(key)) {
+    cands.push(base + (VN_SEND_HOUR * 60 + VN_SEND_MIN) * 60000);
   }
+  // 確認用（18:00）… あすのぶんを、まだ送っていないとき
+  const tomo = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  if (!pr.getProperty(vnSentKey_(tomo) + "_T")) {
+    cands.push(base + (VN_TEST_HOUR * 60 + VN_TEST_MIN) * 60000);
+  }
+  let target = 0;
+  cands.forEach(function (t) { if (!target || t < target) target = t; });
   if (!target) return false;                 // きょうのぶんは、どちらも済んでいる
 
   const ms = target - now.getTime();
@@ -4815,27 +4846,37 @@ function venueDailyJob() {
     const mins = now.getHours() * 60 + now.getMinutes();
     const pr = PropertiesService.getScriptProperties();
 
-    /* --- ① 16:30 まーくさんだけへ、確認用（番号つき） --- */
-    const tFrom = VN_TEST_HOUR * 60 + VN_TEST_MIN;
-    const tKey = vnSentKey_(now) + "_T";
-    // 16:30 を過ぎていて、まだ確認用を送っていなければ、まず確認用を送る
-    if (mins >= tFrom && !pr.getProperty(tKey)) {
-      const list = vnTodayEvents_(now);
-      // 1件も無い日は、確認用も送らない（何も無いのに鳴らさない）
-      if (!list.length) { pr.setProperty(tKey, "none"); vnEditSave_(now, []); }
-      else if (vnSendTest_(now, list)) pr.setProperty(tKey, "1");
-      return;                        // 確認用を送った回は、ここで終わる
-    }
-
-    /* --- ② 17:00 手直しが済んだものを、グループへ --- */
+    /* --- ① 当日 17:00 … 前の日に確認した中身を、グループへ --- */
     const from = VN_SEND_HOUR * 60 + VN_SEND_MIN;
-    if (mins < from || mins > from + VN_SEND_WINDOW) return;
-
     const key = vnSentKey_(now);
-    if (pr.getProperty(key)) return;                    // その日はもう済んでいる
+    const tKey = key + "_T";          // その日ぶんの確認用（前の日の18:00に送ってある）
+
+    /*
+     * ★ここを先に見ます。
+     *   本番（17:00）のほうが、確認用（18:00）より早い時刻だからです。
+     *   順番を逆にすると、17:00 の回で確認用の判定に引っかかって、
+     *   本番が出ないまま終わってしまいます。
+     */
+    const inWindow = (mins >= from && mins <= from + VN_SEND_WINDOW);
     // ★確認用が出ていない日は、グループへは絶対に送らない。
     //   人の目を通していないものを、みんなに流さないための最後の関所
-    if (!pr.getProperty(tKey)) return;
+    const okToSend = inWindow && !pr.getProperty(key) && !!pr.getProperty(tKey);
+
+    if (!okToSend) {
+      /* --- ② 前日 18:00 … あすのぶんの確認用を、まーくさんだけへ --- */
+      const tFrom = VN_TEST_HOUR * 60 + VN_TEST_MIN;
+      if (mins >= tFrom) {
+        const tomo = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const tKey2 = vnSentKey_(tomo) + "_T";
+        if (!pr.getProperty(tKey2)) {
+          const list = vnTodayEvents_(tomo);
+          // 1件も無い日は、確認用も送らない（何も無いのに鳴らさない）
+          if (!list.length) { pr.setProperty(tKey2, "none"); vnEditSave_(tomo, []); }
+          else if (vnSendTest_(tomo, list)) pr.setProperty(tKey2, "1");
+        }
+      }
+      return;
+    }
 
     // ★確認用で手直ししたものがあれば、必ずそちらを使う。
     //   「❶削除」と言われたものが、そのままグループへ出ていってはいけない。
