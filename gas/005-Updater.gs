@@ -2,7 +2,27 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U071ver  （2026/09/17）  ★★★
+ *  ★★★  U072ver  （2026/09/17）  ★★★
+ *
+ *  [U072ver]
+ *   ・🧹 リセットの □ が効かなかったのを直した
+ *     ★まーくさんは、言葉を書かずに G4 に □ だけを置かれました。
+ *       こちらは「リセット」という文字をさがしていたので1つも見つからず、
+ *       ☑を入れても何も起きませんでした（押したのに無反応）。
+ *       言葉が無くても、ボタンより上にある □ を拾うようにしました
+ *     ★ボタンの列の □ は拾いません（そちらは動かすためのものなので）
+ *     ★「リセット」の右に □ を置いた形も受けます
+ *   ・📏 結果らんの高さを直した
+ *     ★空にしたとき、結合していると高さが戻らないことがありました。
+ *       結合のいちばん上の行に戻すようにしました
+ *     ★高さの上限を 600 → 200（だいたい10行ぶん）に下げました。
+ *       結果が長いと画面がまるごと結果らんで埋まっていたためです。
+ *       入りきらない文が消えるわけではありません（マスを押せば全文が出ます）
+ *   ・🗣 「ジェバンニ、Katastrophe」のように2つならべても受けるようにした
+ *     ★元のセリフのままの言い方です。実際にそう送られて、無反応でした。
+ *       前後の飾りしか外していなかったので、まん中の「、」で外れていました
+ *     ★ならべてよいのは合言葉どうしだけです。
+ *       ふつうの言葉が1つでも混ざれば、これまでどおり反応しません
  *
  *  [U071ver]
  *   ・📣 取り込みが終わったら、個人LINEにお知らせするようにした
@@ -1512,14 +1532,14 @@ function updKataPoop_(text) {
   return String(text == null ? "" : text).trim() === "💩";
 }
 
-function updKataWord_(text) {
-  /*
-   * ★「💩」だけでも、コードの取り込みが始まります。
-   *   合言葉（katastrophe）は長いので、ふだん使いにはこちらが楽です。
-   *   ★その1文だけのときに限ります（ほかの言葉が混ざったら反応しません）。
-   */
-  if (updKataPoop_(text)) return true;
-
+/**
+ * 合言葉かどうか（1つぶんだけを見る）。
+ *
+ * ★ここは「1語だけ」を見ます。
+ *   「ジェバンニ、Katastrophe」のように2語ならべて送られたときは、
+ *   下の updKataWord_ が「、」で切って、1語ずつここへ渡します。
+ */
+function updKataOne_(text) {
   // まず飾り文字を、ふつうの字に戻す
   let t = updDeFont_(text);
   // 全角のアルファベットと数字を、半角に直す
@@ -1553,6 +1573,37 @@ function updKataWord_(text) {
   const r = updKanaRoma_(k).toLowerCase();
   if (/^[a-z]+$/.test(r) && UPD_KATA_ROMA.indexOf(r) !== -1) return true;
   return false;
+}
+
+/**
+ * 合言葉かどうか。
+ *
+ * ★「💩」だけでも、コードの取り込みが始まります。
+ *   合言葉（katastrophe）は長いので、ふだん使いにはこちらが楽です。
+ *
+ * ★「ジェバンニ、Katastrophe」のように、2つならべて送られても受けます。
+ *   これは元のセリフのままの言い方で、まーくさんが実際にそう送られました。
+ *   前はここで外れて、何も起きませんでした（打ったのに無反応）。
+ *   ならべてよいのは「合言葉どうし」だけです。
+ *   ふつうの言葉が1つでも混ざっていたら、これまでどおり反応しません。
+ */
+function updKataWord_(text) {
+  if (updKataPoop_(text)) return true;
+  if (updKataOne_(text)) return true;
+
+  /*
+   * ★区切り（、 , ・ ／ / ＆ &）で切って、1つずつ見ます。
+   *   切ったものが「全部」合言葉のときだけ、合言葉とみなします。
+   *   1つでも知らない言葉があれば、ふつうの会話とみなして反応しません。
+   */
+  let t = String(text == null ? "" : text).replace(/[\s\u3000]/g, "");
+  if (!t) return false;
+  const parts = t.split(/[、,，・･／\/＆&]+/).filter(function (x) { return !!x; });
+  if (parts.length < 2 || parts.length > 4) return false;   // 多すぎるのは、ふつうの文
+  for (let i = 0; i < parts.length; i++) {
+    if (!updKataOne_(parts[i]) && !updKataPoop_(parts[i])) return false;
+  }
+  return true;
 }
 
 /** 返事を返す場所（グループで打たれたらグループ、個人なら個人） */
@@ -3476,6 +3527,9 @@ const PANEL_CHK_SIZE  = 50;   // チェックの大きさ（スマホで押し�
 const PANEL_CHK_H     = 70;   // チェックの行の高さ
 const PANEL_GAP_MAX   = 4;    // ボタンの間に空けてよい行数（押し間違い防止の空行用）
 const PANEL_RESULT_H  = 42;   // 結果らんの、ふだんの高さ
+// 結果らんが、どれだけ高くなってよいか（だいたい10行ぶん）。
+// これより長い文も、セルの中には全部入っている
+const PANEL_RESULT_MAX_H = 200;
 const PANEL_STALL_SEC = 150;  // 何秒うんともすんとも言わなければ「止まった」とみなすか
 const PANEL_HEAD      = "▼ チェックを入れると動きます（終わると自動で外れます）";
 // 見出しを探すときの手がかり。文言を少し直しても見つけられるようにしておく
@@ -4605,16 +4659,62 @@ function updAutoPullTick_() {
  */
 const PANEL_RESET_WORD = "リセット";
 
-/** 「リセット」と書いてあるセルの、すぐ左のチェックの場所。無ければ null */
+/** そのセルが、チェック（□／☑）かどうか */
+function panelIsChk_(sh, row, col) {
+  if (row < 1 || col < 1) return false;
+  try {
+    const v = sh.getRange(row, col).getValue();
+    return v === true || v === false;
+  } catch (e) { return false; }
+}
+
+/**
+ * 「結果を空にする」チェックの場所。無ければ null。
+ *
+ * ★探し方を2段にしました。
+ *
+ *   ① 「リセット」と書いてあるセルの、すぐ左（無ければ すぐ右）のチェック。
+ *
+ *   ② それが見つからないときは、ボタンより上にあるチェックを探します。
+ *      ★まーくさんは、言葉を書かずに □ だけを置かれました（G4）。
+ *        ①だけだと、言葉が無いので1つも見つからず、
+ *        ☑を入れても何も起きませんでした。押したのに無反応です。
+ *      ★ボタンの列は外します（そちらは「動かす」ためのチェックなので）。
+ *      ★ボタンより上にチェックを置くのは、ここだけです。
+ *        期間と送り先は、チェックではなく えらぶ形（プルダウン）なので、
+ *        まちがえて拾うことはありません。
+ */
 function panelResetCell_(sh) {
   if (!sh) return null;
+
+  // ① 「リセット」と書いてあるセルのとなり
   try {
     const hit = sh.createTextFinder(PANEL_RESET_WORD).matchEntireCell(false).findNext();
-    if (!hit) return null;
-    const col = hit.getColumn() - 1;
-    if (col < 1) return null;
-    return { row: hit.getRow(), col: col };
-  } catch (e) { return null; }
+    if (hit) {
+      const r = hit.getRow(), c = hit.getColumn();
+      if (panelIsChk_(sh, r, c - 1)) return { row: r, col: c - 1 };
+      if (panelIsChk_(sh, r, c + 1)) return { row: r, col: c + 1 };
+    }
+  } catch (e) {}
+
+  // ② 言葉が書かれていなくても動くように、ボタンより上のチェックを探す
+  try {
+    const top = panelTop_(sh);
+    if (!top || top < 2) return null;
+    const chk = panelChkCol_(sh, top);
+    const rows = Math.min(top - 1, sh.getMaxRows());
+    const cols = Math.min(10, sh.getMaxColumns());
+    if (rows < 1 || cols < 1) return null;
+    const grid = sh.getRange(1, 1, rows, cols).getValues();
+    for (let i = 0; i < rows; i++) {
+      for (let c = 0; c < cols; c++) {
+        if (c + 1 === chk) continue;                  // ボタンの列は、別の役目
+        const v = grid[i][c];
+        if (v === true || v === false) return { row: i + 1, col: c + 1 };
+      }
+    }
+  } catch (e) {}
+  return null;
 }
 
 /**
@@ -4640,7 +4740,23 @@ function panelResetIfAsked_(sh) {
         }
       } catch (e) {}
       rg.setValue("");
-      try { sh.setRowHeight(rc.row, PANEL_RESULT_H); } catch (e) {}
+      /*
+       * ★高さも、ふだんの高さに戻します。
+       *   長い結果のあとは、行がとても高いまま残っていて、
+       *   空にしても画面がすかすかになっていました。
+       * ★結合しているときは、いちばん上の行に戻します。
+       *   結合の途中の行に戻しても、見た目は変わりません
+       *   （前はここで rc.row のまま戻していて、効かないことがありました）。
+       */
+      let hRow = rc.row;
+      try {
+        const rg2 = sh.getRange(rc.row, rc.col);
+        if (rg2.isPartOfMerge()) {
+          const m2 = rg2.getMergedRanges();
+          if (m2 && m2.length) hRow = m2[0].getRow();
+        }
+      } catch (e) {}
+      try { sh.setRowHeight(hRow, PANEL_RESULT_H); } catch (e) {}
     }
   } catch (e) {}
   try { sh.getRange(c.row, c.col).setValue(false); } catch (e) {}   // □ に戻す
@@ -4794,7 +4910,15 @@ function panelFitRow_(sh, row, col, text) {
     String(text).split("\n").forEach(function (ln) {
       lines += Math.max(1, Math.ceil(updWidth_(ln) / per));
     });
-    sh.setRowHeight(r, Math.min(600, Math.max(PANEL_RESULT_H, lines * 19 + 12)));
+    /*
+     * ★高さの上限を 600 → 200 に下げました（まーくさんのご指示）。
+     *   結果が長いと行が600まで伸びて、スマホでは画面が
+     *   まるごと結果らんで埋まってしまっていました。
+     * ★入りきらない文が消えるわけではありません。
+     *   セルの中には全部入っているので、そのマスを押せば
+     *   上の入力らんに全文が出ます。
+     */
+    sh.setRowHeight(r, Math.min(PANEL_RESULT_MAX_H, Math.max(PANEL_RESULT_H, lines * 19 + 12)));
   } catch (e) {}
 }
 

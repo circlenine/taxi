@@ -1988,10 +1988,81 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
   t(String(panel._cells[rr + ',3'] || '') === '', '  結果が空になる');
   t(panel._cells['4,7'] === false, '★チェックは □ に戻す');
 
-  // 「リセット」の文字が無ければ、何も起きない
-  delete panel._cells['4,8']; delete panel._cells['4,7'];
-  t(F('panelResetCell_')(panel) === null, '  「リセット」が無ければ、何もしない');
+  /*
+   * ★言葉を書かずに □ だけを置いても、動くこと。
+   *   まーくさんは、G4に □ を置かれただけでした。
+   *   前は「リセット」という文字をさがしていたので1つも見つからず、
+   *   ☑を入れても何も起きませんでした（押したのに無反応）
+   */
+  delete panel._cells['4,8'];                 // 言葉を消す
+  panel._cells['4,7'] = false;                // G4 の □ だけ残す
+  const c2 = F('panelResetCell_')(panel);
+  t(c2 && c2.row === 4 && c2.col === 7,
+    '★言葉が無くても、ボタンより上の □ を見つける');
+
+  panel._cells[rr + ',3'] = 'また のこっている結果';
+  panel._cells['4,7'] = true;
+  t(F('panelResetIfAsked_')(panel) === true, '★言葉が無くても、押せば空になる');
+  t(String(panel._cells[rr + ',3'] || '') === '', '  結果が空になる');
+  t(panel._cells['4,7'] === false, '  チェックも □ に戻る');
+
+  /*
+   * ★高さも、ふだんの高さに戻すこと。
+   *   長い結果のあとは行がとても高いまま残り、
+   *   空にしても画面がすかすかになっていた
+   */
+  panel._heights[rr] = 600;
+  panel._cells[rr + ',3'] = '長かった結果';
+  panel._cells['4,7'] = true;
+  F('panelResetIfAsked_')(panel);
+  t(panel._heights[rr] === 42, '★空にしたら、高さもふだん（42）に戻す');
+
+  // ボタンの列のチェックは、拾わない（そちらは「動かす」ためのもの）
+  delete panel._cells['4,7'];
+  t(F('panelResetCell_')(panel) === null, '  チェックが1つも無ければ、何もしない');
   t(F('panelResetIfAsked_')(panel) === false, '  そのときも落ちない');
+
+  /*
+   * ★ボタンの列に置かれたチェックは、拾わないこと。
+   *   そこは「その行のボタンを動かす」ためのチェックなので、
+   *   リセットとして拾うと、押してもいないボタンが動いてしまう
+   */
+  {
+    const top = F('panelTop_')(panel);
+    const chk = F('panelChkCol_')(panel, top);
+    panel._cells['2,' + chk] = false;          // ボタンより上に、ボタンの列のチェック
+    t(F('panelResetCell_')(panel) === null,
+      '★ボタンの列のチェックは、リセットとして拾わない');
+    delete panel._cells['2,' + chk];
+  }
+
+  // 「リセット」の右にチェックを置く形も受ける
+  panel._cells['4,7'] = 'リセット';
+  panel._cells['4,8'] = false;
+  const c3 = F('panelResetCell_')(panel);
+  t(c3 && c3.row === 4 && c3.col === 8, '「リセット」の右に置いた形も見つける');
+  delete panel._cells['4,7']; delete panel._cells['4,8'];
+}
+
+console.log('\n■ 結果らんは、高くなりすぎない');
+{
+  /*
+   * ★結果が長いと、行が600まで伸びて、スマホでは画面がまるごと
+   *   結果らんで埋まっていた。上限を200（だいたい10行ぶん）に下げた。
+   *   入りきらない文が消えるわけではない（セルの中には全部入っている）
+   */
+  const F2 = n => vm.runInContext(n, ctx);
+  t(F2('PANEL_RESULT_MAX_H') === 200, '★高さの上限は 200');
+  t(F2('PANEL_RESULT_H') === 42, '  ふだんの高さは 42');
+
+  panel._heights[70] = 0;
+  F('panelFitRow_')(panel, 70, 3, new Array(80).join('とても長い結果の行\n'));
+  t(panel._heights[70] <= 200, '★どんなに長い結果でも、200より高くしない');
+  t(panel._heights[70] >= 42, '  短くもしすぎない');
+
+  panel._heights[71] = 0;
+  F('panelFitRow_')(panel, 71, 3, 'みじかい');
+  t(panel._heights[71] === 42, '  みじかい結果は、ふだんの高さのまま');
 }
 
 console.log('\n■ 🔁 新しいコードに、自分で気づいて取り込む');
@@ -2971,6 +3042,22 @@ console.log('\n■ 合言葉は、打ち方がまざっていても通る');
    ['ジェバンニが一晩でやってくれました', 'ジェバンニ＋ほかの言葉']
   ].forEach(function (pair) { t(K(pair[0]) === false, '  反応しない：' + pair[1]); });
   t(K(null) === false, '  null でも落ちない');
+
+  /*
+   * ★「ジェバンニ、Katastrophe」のように2つならべても受ける。
+   *   元のセリフのままの言い方で、まーくさんが実際にそう送られた。
+   *   前はここで外れて、打ったのに何も起きなかった
+   */
+  t(K('ジェバンニ、Katastrophe') === true, '★「ジェバンニ、Katastrophe」も受ける');
+  t(K('ジェバンニ、カタストロフィ') === true, '  日本語で2つならべても受ける');
+  t(K('ジェバンニ, katastrophe') === true, '  半角カンマでも受ける');
+  t(K('ジェバンニ・カタストロフィ') === true, '  中点でも受ける');
+  t(K('カタストロフィ、💩') === true, '  💩とならべても受ける');
+  t(K('ジェバンニ、おはよう') === false,
+    '★ふつうの言葉が混ざったら、やはり反応しない');
+  t(K('おはよう、ジェバンニ') === false, '  前に付いていても反応しない');
+  t(K('ジェバンニ、カタストロフィ、あした、よろしく') === false,
+    '  ならべすぎ（知らない言葉入り）にも反応しない');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
