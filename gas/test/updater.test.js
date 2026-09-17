@@ -3109,22 +3109,29 @@ console.log('\n■ 📖 終わったときの知らせに、ひとことを添�
   const Q = F('updQuote_');
   const list = vm.runInContext('UPD_QUOTES', ctx);
 
-  t(list.length >= 10, '★ひとことの数（' + list.length + '）');
+  t(list.length >= 100, '★ひとことは100通り以上（' + list.length + '通り）');
+  // 同じセリフが2つ入っていないこと（同じものが何度も出ると、少なく感じる）
+  {
+    const key = list.map(x => x.work + '／' + x.line);
+    t(new Set(key).size === key.length, '★同じセリフが2つ入っていない');
+  }
   t(list.every(x => x.line && x.who && x.work && x.by && x.at),
     '★どれも「セリフ・だれ・作品・作者・出どころ」がそろっている');
   t(list.every(x => String(x.line).indexOf('http') === -1), '  アドレスは入れない');
   // ★同じ作品ばかりにならないこと
-  t(new Set(list.map(x => x.work)).size >= 8,
-    '  作品の数（' + new Set(list.map(x => x.work)).size + '）');
+  t(new Set(list.map(x => x.work)).size >= 30,
+    '★作品は30以上（' + new Set(list.map(x => x.work)).size + '作品）');
   // ★ふきだしの外なので幅は自由だが、長すぎる1行は折り返されて見苦しい
   const W2 = F('updZenkaku_');
-  t(list.every(x => W2(x.line) <= 24), '  1行が長すぎるセリフは入れない');
+  // ★長いセリフは、こちらで行を分けておく（LINEに勝手に折り返されると読みにくい）
+  t(list.every(x => String(x.line).split('\n').every(y => W2(y) <= 24)),
+    '★1行が長すぎるセリフは入れない（長いものは、こちらで行を分ける）');
 
   const q = Q();
   t(typeof q === 'string' && q.length > 0, '★1つ選んで、文にする');
   t(q.indexOf('「') === 0, '  セリフは「」で囲む');
   t(q.indexOf('『') !== -1, '★作品名も必ず書く（どこから来た言葉か分かるように）');
-  t(q.split('\n').length === 4, '  セリフ・だれ・作品と作者・出どころ の4行');
+  t(q.split('\n').length >= 4, '  セリフ・だれ・作品と作者・出どころ の4行以上');
 
   // 完了の知らせに、ちゃんと入る
   const done = F('updKataDone_')('入れ替え：001-Code.gs');
@@ -3140,9 +3147,9 @@ console.log('\n■ 📖 終わったときの知らせに、ひとことを添�
 
   // 何度か呼んで、同じものばかりにならないこと
   const seen = {};
-  for (let i = 0; i < 60; i++) { seen[Q()] = 1; }
-  t(Object.keys(seen).length >= 5,
-    '★毎回おなじにはならない（' + Object.keys(seen).length + '通り出た）');
+  for (let i = 0; i < 600; i++) { seen[Q()] = 1; }
+  t(Object.keys(seen).length >= 50,
+    '★毎回おなじにはならない（600回で ' + Object.keys(seen).length + '通り出た）');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
