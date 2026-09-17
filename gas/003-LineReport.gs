@@ -2,7 +2,20 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L042ver  （2026/09/17）  ★★★
+ *  ★★★  L043ver  （2026/09/17）  ★★★
+ *
+ *  [L043ver]
+ *   ・🎨 一晩の流し方の【平日】【金曜】の行を、見やすくした（ご指示）
+ *     ★ぜんぶ同じ細さの字だと、どこが大事なのか分かりませんでした。
+ *       大事な4つ ①乗り場名 ②狙い目の時刻 ③平均金額 ④（最高￥〇）
+ *       だけを太字にして、色も分けました
+ *     ★最高金額は、平均のすぐうしろに（ ）で添えます
+ *     ★件数と待ち時間は、細い字のままです。
+ *       全部を太字にすると、太字である意味が無くなります
+ *   ・🧹 注釈のとちゅうに、線が入らないようにした（ご指摘）
+ *     ★1行ずつ別のマスに分けていたので、線が何本も入り、
+ *       4つの別々のものが並んでいるように見えていました。
+ *       1つのまとまった話なので、1つのマスにまとめました
  *
  *  [L042ver]
  *   ・🌙 一晩の流し方で、00〜03時台を ひとくくりにしないようにした（ご指示）
@@ -3589,6 +3602,48 @@ function lrBand_(label, cnt, avg, wait, mark, word, spot, at) {
   return mk((cut || name.slice(0, 2)) + "…");
 }
 
+/**
+ * 一晩の流し方の1行を、太字と色つきの「かたまり」で返す（まとめスプシ用）。
+ *
+ * ★まーくさんのご指示です。
+ *   ぜんぶ同じ細さの字だと、どこが大事なのか分かりませんでした。
+ *   大事なのは、この4つです。
+ *     ① 乗り場名
+ *     ② 狙い目の時刻（いつ行けばよいか）
+ *     ③ 平均金額（いくらになるか）
+ *     ④ そのうしろの（最高￥〇）（いちばん高いとき いくらか）
+ *   ここだけ太字にして、色も分けます。
+ *
+ * ★件数・待ち時間は、細い字のままにします。
+ *   大事でないわけではなく、「まず目に入るべきもの」ではないからです。
+ *   全部を太字にすると、太字である意味が無くなります。
+ */
+function nightRichParts_(seg) {
+  const p = [];
+  p.push({ t: nightSpan_(seg) + "　" });
+  if (!seg.name) { p.push({ t: lrThin_(), c: "#9e9e9e" }); return p; }
+
+  // ① 乗り場名
+  p.push({ t: seg.name, b: true, c: seg.thin ? "#7a7a7a" : "#000000" });
+  // ② 狙い目の時刻
+  if (seg.at) p.push({ t: "　狙い目：[" + seg.at + "]", b: true, c: seg.thin ? "#9e9e9e" : "#c62828" });
+  // ③ 平均金額（1件しかないときは「売上」。1件の平均は平均ではない）
+  if (seg.avg) {
+    p.push({ t: "　" + nightMoneyLabel_(seg) + "￥" + seg.avg.toLocaleString(),
+             b: true, c: seg.thin ? "#9e9e9e" : "#0b5394" });
+    // ④ 最高金額は、平均のすぐうしろに（ ）で添える
+    if (seg.count >= 2 && seg.max) {
+      p.push({ t: "（最高￥" + seg.max.toLocaleString() + "）",
+               b: true, c: seg.thin ? "#9e9e9e" : "#b71c1c" });
+    }
+  }
+  // ここから下は、細い字（まず目に入るべきものではない）
+  p.push({ t: "　" + seg.count + "件", c: "#5f6368" });
+  if (seg.wait) p.push({ t: "　待ち平均" + seg.wait + "分", c: "#5f6368" });
+  if (seg.thin) p.push({ t: "　" + lrThin_(), c: "#9e9e9e" });
+  return p;
+}
+
 /** 「20時台」「20〜22時台」 */
 function nightSpan_(seg) {
   const h = function (x) { return ("0" + x).slice(-2); };
@@ -4704,15 +4759,31 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
   /* ---------- ※ 注釈（この資料の性格） ---------- */
   // 表より先に、いちばん上に出す。あとから見た人が見落とさないように
   {
-    dbEnsureRows_(sheet, curRow + LR_DISCLAIMER.length + 1);
-    LR_DISCLAIMER.forEach(function (t, i) {
-      sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(t)
-        .setFontSize(i ? 9 : 10).setFontWeight(i ? "normal" : "bold")
-        .setFontColor(i ? "#8d6e63" : "#bf360c").setBackground("#fff8e1")
-        .setWrap(true).setHorizontalAlignment("left").setVerticalAlignment("middle");
-      sheet.setRowHeight(curRow, i ? 16 : 20);
-      curRow++;
-    });
+    /*
+     * ★注釈は、1行ずつ別のマスに分けていました。
+     *   そのせいで、注釈のとちゅうに線が何本も入り、
+     *   4つの別々のものが並んでいるように見えていました（ご指摘）。
+     *   1つのまとまった話なので、1つのマスにまとめて入れます。
+     *   これで、とちゅうの線は1本も入りません。
+     *
+     * ★見出し（1行目）だけは、太字で別に出します。
+     *   「※注意」が本文と同じ細さだと、読み飛ばされるためです。
+     */
+    dbEnsureRows_(sheet, curRow + 2);
+    sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(LR_DISCLAIMER[0])
+      .setFontSize(10).setFontWeight("bold")
+      .setFontColor("#bf360c").setBackground("#fff8e1")
+      .setWrap(true).setHorizontalAlignment("left").setVerticalAlignment("middle");
+    sheet.setRowHeight(curRow, 20); curRow++;
+
+    // 2行目から下は、まとめて1つのマスに（とちゅうに線を入れないため）
+    const dsc = LR_DISCLAIMER.slice(1).join("\n");
+    sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(dsc)
+      .setFontSize(9).setFontWeight("normal")
+      .setFontColor("#8d6e63").setBackground("#fff8e1")
+      .setWrap(true).setHorizontalAlignment("left").setVerticalAlignment("middle");
+    sheet.setRowHeight(curRow, 16 * LR_DISCLAIMER.slice(1).length + 4);
+    curRow++;
     dbGap_(sheet, curRow); curRow++;
   }
 
@@ -4794,12 +4865,21 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         dbEnsureRows_(sheet, curRow);
         // ★LINEの絵と同じ詳しさにする。
         //   こちらだけ短くすると、あとから見返したときに数字の裏が取れない
+        /*
+         * ★ぜんぶ同じ細さの字だと、どこが大事なのか分かりませんでした。
+         *   乗り場名・狙い目の時刻・平均金額・（最高￥〇）だけを
+         *   太字にして、色も分けます（まーくさんのご指示）。
+         */
         const head = nightHeadline_(segs);
-        const text = "【" + dType + "】" + (head ? "▶ " + head : "") + "\n" +
-          segs.map(function (x) { return "　" + nightLine_(x); }).join("\n");
-        const rows = text.split("\n").length;
-        sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(text)
-          .setFontSize(dbFitSize_(text, DB_COLS, 10, 8, rows + 1)).setWrap(true)
+        const parts = [{ t: "【" + dType + "】", b: true, c: "#1565c0" }];
+        if (head) parts.push({ t: "　" + head, c: "#37474f" });
+        segs.forEach(function (x) {
+          parts.push({ t: "\n　" });
+          nightRichParts_(x).forEach(function (q) { parts.push(q); });
+        });
+        const txt = dbRich_(sheet, curRow, 1, DB_COLS, parts, 10, null);
+        const rows = String(txt).split("\n").length;
+        sheet.getRange(curRow, 1, 1, DB_COLS)
           .setHorizontalAlignment("left").setVerticalAlignment("middle");
         sheet.setRowHeight(curRow, 16 * rows + 10);
         curRow++;

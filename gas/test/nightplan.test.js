@@ -314,5 +314,70 @@ console.log('\n■ コナン像前は、一晩の流し方に出さない');
      '★選び直しが無い形でも、最後の関所で必ず外す');
 }
 
+console.log('\n■ 一晩の流し方の1行は、大事なところだけ太字にする');
+{
+  /*
+   * ★ぜんぶ同じ細さの字だと、どこが大事なのか分からない（まーくさんのご指示）。
+   *   大事なのは ①乗り場名 ②狙い目の時刻 ③平均金額 ④（最高￥〇）の4つ
+   */
+  const R = ctx.nightRichParts_;
+  const seg = { from: 23, to: 23, name: '新地7', count: 5, avg: 4150, max: 5700,
+                wait: 27, at: '23:57', thin: false };
+  const p = R(seg);
+  const txt = p.map(x => x.t).join('');
+  const bold = p.filter(x => x.b).map(x => x.t);
+
+  eq(txt.indexOf('23時台') === 0, true, '時間帯から始まる');
+  eq(bold.some(t => t.indexOf('新地7') !== -1), true, '★乗り場名は太字');
+  eq(bold.some(t => t.indexOf('狙い目：[23:57]') !== -1), true, '★狙い目の時刻も太字');
+  eq(bold.some(t => t.indexOf('平均￥4,150') !== -1), true, '★平均金額も太字');
+  eq(bold.some(t => t.indexOf('（最高￥5,700）') !== -1), true,
+     '★最高金額は、平均のすぐうしろに（ ）で添えて太字');
+  // 並び順（乗り場名 → 狙い目 → 平均 → （最高））
+  eq(txt.indexOf('新地7') < txt.indexOf('狙い目'), true, '★乗り場名 → 狙い目 の順');
+  eq(txt.indexOf('狙い目') < txt.indexOf('平均￥'), true, '★狙い目 → 平均金額 の順');
+  eq(txt.indexOf('平均￥') < txt.indexOf('（最高'), true, '★平均金額 → （最高￥〇）の順');
+
+  // 件数・待ち時間は、細い字のまま（全部太字にすると太字の意味が無くなる）
+  eq(p.filter(x => x.b).some(t => String(t.t).indexOf('件') !== -1 && String(t.t).indexOf('狙い目') === -1), false,
+     '★件数は、太字にしない');
+  eq(p.filter(x => x.b).some(t => String(t.t).indexOf('待ち平均') !== -1), false,
+     '★待ち時間も、太字にしない');
+  eq(txt.indexOf('5件') !== -1, true, '  でも、件数はちゃんと出す');
+  eq(txt.indexOf('待ち平均27分') !== -1, true, '  待ち時間も出す');
+
+  // 色が付いていること（どこが何の数字かを、色でも分ける）
+  eq(new Set(p.filter(x => x.b).map(x => x.c)).size >= 3, true,
+     '★太字のところは、色でも見分けられる');
+
+  // 1件しかないときは「平均」と呼ばない／「最高」も出さない（同じ数字なので）
+  const one = R({ from: 1, to: 1, name: 'ドン15', count: 1, avg: 1250, max: 1250,
+                  wait: 0, at: '01:11', thin: true });
+  const t1 = one.map(x => x.t).join('');
+  eq(t1.indexOf('売上￥1,250') !== -1, true, '★1件なら「売上」（1件の平均は平均ではない）');
+  eq(t1.indexOf('平均￥'), -1, '  「平均」とは書かない');
+  eq(t1.indexOf('（最高'), -1, '★1件なら「最高」も出さない（同じ数字なので）');
+  eq(t1.indexOf('データ不足') !== -1, true, '  記録が薄いことは、必ず断る');
+
+  // 乗り場が決まらない時間帯
+  const none = R({ from: 20, to: 20, name: '', count: 0, avg: 0, max: 0, wait: 0, at: '', thin: false });
+  eq(none.map(x => x.t).join('').indexOf('データ不足') !== -1, true, '記録が無ければ、そう書く');
+  eq(none.some(x => x.b), false, '  そのときは、太字にするものが無い');
+
+  // ★作っただけで、使っていなければ意味がない。使っているところも見る
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  eq(src.indexOf('nightRichParts_(x).forEach') !== -1, true,
+     '★まとめスプシの【平日】【金曜】の行で、ちゃんと使っている');
+  /*
+   * ★「軸は」は、出す文からは消えていること。
+   *   （履歴や説明の中に「前はこう書いていた」と残っているのは、消さなくてよい）
+   */
+  eq(/"軸は/.test(src) || /'軸は/.test(src) || /\[\s*"軸は/.test(src), false,
+     '★出す文に「軸は」は、もう使っていない');
+  eq(src.indexOf('"いちばん稼げているのは ') !== -1, true,
+     '  代わりに「いちばん稼げているのは」と書く');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

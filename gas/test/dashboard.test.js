@@ -401,5 +401,27 @@ console.log('\n■ 長い文は、右側を空けずに詰めて、句読点で�
      '★月間戦略アドバイスを書くところで、ちゃんと使っている');
 }
 
+console.log('\n■ 注釈は、とちゅうに線を入れない');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  /*
+   * ★1行ずつ別のマスに分けていたので、注釈のとちゅうに線が何本も入り、
+   *   4つの別々のものが並んでいるように見えていた（まーくさんのご指摘）。
+   *   1つのまとまった話なので、1つのマスにまとめて入れる
+   */
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  eq(src.indexOf('const dsc = LR_DISCLAIMER.slice(1).join("\\n");') !== -1, true,
+     '★2行目から下は、まとめて1つのマスに入れる');
+  eq(src.indexOf('LR_DISCLAIMER.forEach(function (t, i) {'), -1,
+     '★1行ずつ別のマスに書く作りは、もう無い');
+
+  const D = JSON.parse(vm.runInContext('JSON.stringify(LR_DISCLAIMER)', ctx));
+  eq(D.length >= 4, true, '注釈の中身は、これまでどおり全部ある（' + D.length + '行）');
+  eq(D[0].indexOf('AI') !== -1, true, '★AIが入っていることは、いちばん上に必ず書く');
+  eq(D.slice(1).join('\n').indexOf('実績を数えたもの') !== -1, true,
+     '  どこまでが記録かも、これまでどおり書く');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
