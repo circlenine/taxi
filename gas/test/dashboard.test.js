@@ -332,6 +332,9 @@ console.log('\n■ 乗り場名を押すと、Googleマップへ飛ぶ');
    *   ただし「その場所のピン」にはしない。「その名前でさがした結果」にする。
    *   こちらで勝手にピンを決めると、まちがった場所へ案内しかねない
    */
+  // ★いまはリンクを止めています（ご指示）。ここは仕掛けの確かめなので、この中だけ「使う」
+  const keepOn = ctx.lrMapLinkOn_;
+  ctx.lrMapLinkOn_ = function () { return true; };
   const u = U('新地4');
   eq(u.indexOf('https://www.google.com/maps/search/') === 0, true,
      '★Googleマップの「さがす」ページへ飛ばす');
@@ -343,6 +346,8 @@ console.log('\n■ 乗り場名を押すと、Googleマップへ飛ぶ');
   eq(U(null), '', 'null でも落ちない');
   // 記号が入っていても、こわれないこと
   eq(U('ドン・キホーテ 前').indexOf(' ') === -1, true, '★空白や記号は、ちゃんと変換する');
+  ctx.lrMapLinkOn_ = keepOn;
+  eq(U('新地4'), '', '★ふだんは、リンクを作らない（ご指示で止めてあります）');
 
   /*
    * ★ヒートマップの見出しから、地図の説明を外した。

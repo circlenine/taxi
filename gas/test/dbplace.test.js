@@ -90,6 +90,14 @@ function makeCtx(opt) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'parts', 'MapLink.gs'), 'utf8'), ctx);
   }
   vm.runInContext(SRC, ctx);
+  /*
+   * ★いまは、乗り場名のリンクを止めています（ご指示：
+   *   「おかしいのがほとんどなので、リンク付けは1回外してください」）。
+   *   ここは、また使うときのために 仕掛けそのものを確かめる場所なので、
+   *   このテストの中でだけ「使う」ことにします。
+   *   止まっていること自体は、いちばん下で別に確かめます
+   */
+  ctx.lrMapLinkOn_ = function () { return true; };
   // const で宣言したものは ctx.〇〇 では取れないので、中で評価して取り出す
   ctx.MAP_TAB = vm.runInContext('MAP_TAB', ctx);
   ctx.MIN_N = vm.runInContext('LR_NIGHT_MIN_N', ctx);
@@ -309,6 +317,24 @@ console.log('■ 呼び出しが消えていないか（付け忘れの見張り
   ok(calls >= 3, '乗り場名を書く表の3か所すべてで dbPlace_ を使っている', calls);
   ok(/mapRegisteredUrl_\(spotName\)/.test(SRC), 'ヒートマップの見出しも登録制になっている');
   ok(!/mapUrlFor_\(txt\)/.test(SRC), '自動でさがした住所を、そのままリンクにしていない');
+}
+
+
+console.log('\n■ いまは、乗り場名にリンクを付けない（ご指示）');
+{
+  const ctx = makeCtx();
+  // 本来の（止まっている）ほうに戻す
+  ctx.lrMapLinkOn_ = function () { return vm.runInContext('LR_MAP_LINK_USE', ctx) === true; };
+  ok(vm.runInContext('LR_MAP_LINK_USE', ctx) === false,
+     '★既定は「リンクを付けない」（おかしいものが多かったため）');
+  ok(ctx.mapSearchUrl_('新地4') === '', '★さがすリンクも作らない');
+  ok(ctx.mapRegisteredUrl_('新地4') === '', '★登録してあるものも、いまは使わない');
+  const r = fakeRange();
+  ctx.dbPlace_(r, '新地4', {});
+  ok(String(r.value) === '新地4', '★名前は、これまでどおり必ず出る');
+  ok(!r.rich, '  下線も飛び先も付かない');
+  ok(vm.runInContext('LR_MAP_LINK_NOTE', ctx).indexOf('タップで地図へ移動') !== -1,
+     '★リンクを戻したときの説明文は、用意してある（ご指示）');
 }
 
 console.log(fail === 0 ? '\n全部そろっています' : '\n' + fail + ' 件おかしいところがあります');

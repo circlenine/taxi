@@ -159,12 +159,12 @@ console.log('\n■ 狙い目の詳細時間（その区間でいちばん高か�
   const seg = ctx.buildNightPlan_(t, DAY_TYPES)['平日'][0];
   eq(seg.max, 28000, '区間でいちばん高かった額を持つ');
   eq(seg.at, '21:37', '  その時刻が狙い目になる（区間の先頭の時刻ではない）');
-  eq(ctx.nightAim_(seg), '🎯21:37', '★「狙い目：[〜]」は長すぎたので「🎯」に短くした（ご指示）');
+  eq(ctx.nightAim_(seg), '狙:21:37', '★「狙い目：[〜]」は長すぎたので「狙:」に短くした（ご指示）');
 
   const line = ctx.nightLine_(seg);
   has(line, '20〜22時台', '時間帯が入る');
   has(line, '新地4', '乗り場名が入る');
-  has(line, '🎯21:37', '狙い目の詳細時間が入る');
+  has(line, '狙:21:37', '狙い目の詳細時間が入る');
   has(line, '最高￥28,000', '最高額も入る（狙い目の根拠）');
   has(line, '平均￥', '金額には「平均」と必ず書く（合計や最高額と取り違えないため）');
   eq(/(^|[^均高])￥/.test(line), false, '　何の金額か分からない「￥」は、1つも出さない');
@@ -188,7 +188,7 @@ console.log('\n■ 記録が少ない乗り場は、数字は出すが「おす�
   eq(!!konan, true, '2件しかない乗り場も、数字は出す（隠さない）');
   eq(konan && konan.thin, true, '  ただし「データ不足」の印が付く');
   has(ctx.nightLine_(konan), 'データ不足（3件以上で表示）', '  文にも必ずそう書く');
-  has(ctx.nightLine_(konan), '🎯20:10', '  狙い目の時刻は出す（抜け落ちさせない）');
+  has(ctx.nightLine_(konan), '狙:20:10', '  狙い目の時刻は出す（抜け落ちさせない）');
   has(ctx.nightLine_(konan), '平均￥18,000', '  平均も出す');
 
   const shinchi = segs.find(s => s.name === '新地4');
