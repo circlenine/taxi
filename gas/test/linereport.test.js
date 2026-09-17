@@ -383,8 +383,11 @@ eq(J.indexOf('【時間詳細】') !== -1, true, '見出しが【時間詳細】
     if (Array.isArray(n)) return n.forEach(find);
     if (!n || typeof n !== 'object') return;
     if (n.type === 'text' && Array.isArray(n.contents) && n.contents[0] && n.contents[0].type === 'span') {
-      const t = n.contents.map(s => s.text).join('');
-      if (/^\[\d\d:\d\d\]/.test(t)) texts.push(t);   // 時間詳細の行だけ（凡例は除く）
+      // ★1つの text に、行を改行でまとめて入れている（中身を太らせないため）。
+      //   ここでは行ごとに分けて見る
+      n.contents.map(s => s.text).join('').split('\n').forEach(function (t) {
+        if (/^\[\d\d:\d\d\]/.test(t)) texts.push(t);   // 時間詳細の行だけ（凡例は除く）
+      });
     }
     Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
   })(flexList);
@@ -1104,8 +1107,10 @@ console.log('\n■ LINEに出す時間帯の数');
       if (Array.isArray(n)) return n.forEach(find);
       if (!n || typeof n !== 'object') return;
       if (n.type === 'text' && Array.isArray(n.contents) && n.contents[0] && n.contents[0].type === 'span') {
-        const t = n.contents.map(s => s.text).join('');
-        if (/^\[\d\d:\d\d\]/.test(t)) out.push(t);
+        // 1つの text に、行を改行でまとめて入れてある（中身を太らせないため）
+        n.contents.map(s => s.text).join('').split('\n').forEach(function (t) {
+          if (/^\[\d\d:\d\d\]/.test(t)) out.push(t);
+        });
       }
       Object.keys(n).forEach(k => { if (n[k] && typeof n[k] === 'object') find(n[k]); });
     })(f);
@@ -1199,8 +1204,14 @@ console.log('\n■ 見出しの途中で、次のメッセージに切り替わ�
     msgs.forEach(b => (b.body.contents || []).forEach(el => {
       if (String(el.text || '').indexOf('（つづき）') !== -1) heads.push(String(el.text));
     }));
-    eq(heads.every(t => /【[^】]+】（つづき）$/.test(t)), true,
-       '分かれた先には、直前の見出し＋（つづき）が付く（' + heads.join(' / ') + '）');
+    /*
+     * ★引き継ぐ見出しは【曜日区分】とはかぎらない。
+     *   「🚕 一晩の流し方（20:00〜翌04:00）」のような、
+     *   まとまりの見出しのところで分かれることもある。
+     *   大事なのは「直前の見出しが、そのまま引き継がれている」こと
+     */
+    eq(heads.every(t => /（つづき）$/.test(t) && t.replace('（つづき）', '').trim().length >= 3),
+       true, '分かれた先には、直前の見出し＋（つづき）が付く（' + heads.join(' / ') + '）');
   }
   // 最後の通にだけ、スプシへのボタン
   eq(msgs[msgs.length - 1].footer !== undefined, true, 'スプシへのボタンは最後の通だけ');

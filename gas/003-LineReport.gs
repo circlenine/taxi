@@ -2,7 +2,30 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L041ver  （2026/09/17）  ★★★
+ *  ★★★  L042ver  （2026/09/17）  ★★★
+ *
+ *  [L042ver]
+ *   ・🌙 一晩の流し方で、00〜03時台を ひとくくりにしないようにした（ご指示）
+ *     ★前は「01〜04時台　難波」と4時間をまとめていました。
+ *       まとめると その4時間の平均が1つの数字になり、
+ *       01時に行けばよいのか03時に行けばよいのかが分かりません
+ *     ★分けるのは「記録があるところ」だけです。
+ *       記録の無い時間まで1行ずつにすると、何も言っていない行が並ぶだけです
+ *     ★1時間ずつの行では、待ち時間を出しません（そのぶん1行を短く）
+ *   ・📦 絵の中身（JSON）を、かなり小さくした
+ *     ★1行ごとに枠（text）を作っていたのを、1つにまとめました。
+ *       行が増えるたびに枠がまるごと増えて、1通に入りきらなくなるためです。
+ *       見た目は同じ行並びのままです（色も太字も残しています）
+ *   ・✂️ 長い文を、右側を空けずに詰めて、句読点で改行するようにした（ご指摘）
+ *     ★「そのぶ／ん単価で取り返せているか」のように、
+ *       言葉のまん中で折り返されていました
+ *     ★かといって、右側が空いているのに次の行へ落とすのも困ります
+ *       （行数がむだに増えるだけです）。
+ *       入るかぎり同じ行に詰めて、入らなくなったところで句読点で切ります
+ *     ★まとめスプシは、らんの数から1行に入る量を逆算しています
+ *     ★LINEの絵は、機種と文字の大きさで幅が変わるので測れません。
+ *       ふだんはLINEの折り返しに任せます（右側をむだに空けないため）。
+ *       気になるときだけ、設定タブ「レポートの1行の文字数」に数字を入れてください
  *
  *  [L041ver]
  *   ・🔥 アツいエリアの1行を直した（ご指示）
@@ -2167,7 +2190,18 @@ function buildReportFlex_(o) {
 
     DAY_TYPES.forEach(function (dType) {
       const segs = (plan[dType] || []).filter(function (x) { return !!x.name; });
-      const lines = segs.map(function (seg) {
+      /*
+       * ★1区間ごとに別の「text」を作るのをやめ、1つの text にまとめます。
+       *
+       *   見た目は同じ（行ごとに改行して並ぶ）ですが、
+       *   中身（JSON）の大きさがまるで違います。
+       *   別々に作ると、1区間ごとに枠がまるごと増えるためです。
+       *   00〜03時台を1時間ずつに分けたぶん区間が増えたので、
+       *   このままでは1通に入りきらず、後ろのほうが省かれていました。
+       *   色や太字は span ごとに付けられるので、まとめても見た目は変わりません。
+       */
+      const segSpans = [];
+      segs.forEach(function (seg, si) {
         const aim = nightAim_(seg);
         // データ不足のぶんは、色を落として出す。
         // 消してしまうと「その時間は走れない」と読めてしまい、それはうそになる
@@ -2183,13 +2217,26 @@ function buildReportFlex_(o) {
         if (aim) sp.push({ "type": "span", "text": "　" + aim, "weight": "bold", "color": seg.thin ? "#7a7a7a" : "#c62828" });
         // ★中身が空の span を作らないこと。
         //   LINEは text が空の span を受け付けず、400（invalid）で1通も届かなくなる
+        /*
+         * ★1時間ずつに分けた行（00〜03時台）では、待ち時間を出しません。
+         *   ここで知りたいのは「何時に、どこへ」と「いくらになるか」です。
+         *   1時間ずつに分けたぶん行が増えたので、
+         *   そのぶん1行を短くしないと、絵が1通に入りきらなくなります。
+         *   待ち時間は、まとめスプシの表のほうに出ています。
+         */
+        const solo1 = (seg.from === seg.to) && lrNightSolo_(seg.from);
         const tail = (seg.avg ? "　" + nightMoneyLabel_(seg) + "￥" + seg.avg.toLocaleString() : "") +
-                     (seg.wait ? "　待ち平均" + seg.wait + "分" : "") +
+                     ((seg.wait && !solo1) ? "　待ち平均" + seg.wait + "分" : "") +
                      (seg.thin ? "　" + lrThin_() : "");
         if (tail) sp.push({ "type": "span", "text": tail, "color": seg.thin ? "#8a8a8a" : "#444444" });
-        return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": sp };
+        // 最後の span のうしろに改行を付けて、次の区間と行を分ける
+        if (si < segs.length - 1) sp[sp.length - 1].text += "\n";
+        sp.forEach(function (x) { segSpans.push(x); });
       });
-      if (!lines.length) {
+      const lines = [];
+      if (segSpans.length) {
+        lines.push({ "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": segSpans });
+      } else {
         lines.push({ "type": "text", "size": "xs", "color": "#999999", "wrap": true,
           "text": lrThin_() });
       }
@@ -2218,16 +2265,22 @@ function buildReportFlex_(o) {
   // 30個も時刻が並ぶと、結局いつ行けばいいのか読み取れないうえ、
   // Flex Message の大きさ（50KB）にも近づいて危なかった。
   // 代表の1時刻＝「いちばん高かった乗車の時刻」と、最高額を出す形にする。
+  /*
+   * ★1行ぶんの「span の並び」を返します（text の枠は作りません）。
+   *   1行ごとに text を作ると、行が増えるたびに枠がまるごと増えて、
+   *   中身（JSON）だけが太っていきます。
+   *   あとで1つの text にまとめて入れるので、見た目は同じ行並びのままです。
+   */
   const timeLine_ = function (mark, markColor, sp, withMax) {
     const head = sp.at ? `[${sp.at}] ` : "";
     let body = `（${sp.count}件／平均￥${Math.round(sp.avg).toLocaleString()}`;
     if (withMax && sp.max > 0) body += `／最高￥${sp.max.toLocaleString()}`;
     body += "）";
-    return { "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": [
+    return [
       { "type": "span", "text": head + mark, "weight": "bold", "color": markColor },
       { "type": "span", "text": toHalfWidthKana(sp.name), "weight": "bold", "color": "#000000" },
       { "type": "span", "text": " " + body, "color": "#444444" }
-    ]};
+    ];
   };
   // LINEに出す行数。これがいちばんかさばるので、ここで1通に収まるかが決まる。
   // 全部の時間帯は、まとめスプシのマス目（曜日×時間帯）で見られる
@@ -2246,13 +2299,25 @@ function buildReportFlex_(o) {
       .slice(0, tlMax)
       .sort(function (a, b) { return a.order - b.order; });
 
-    let tLines = []; picked.forEach(function (x) {
+    const tSpans = []; picked.forEach(function (x) {
       const b = finalTimeline[dType][x.hr].best; const w = finalTimeline[dType][x.hr].worst;
       // アツいほうは「最高いくらまで出たか」まで出す。避けるほうは行かないので出さない
-      if (b) tLines.push(timeLine_("⭕️", "#2e7d32", b, true));
-      if (w) tLines.push(timeLine_("❎", "#b45f06", w, false));
+      if (b) tSpans.push(timeLine_("⭕️", "#2e7d32", b, true));
+      if (w) tSpans.push(timeLine_("❎", "#b45f06", w, false));
     });
-    if(tLines.length === 0) tLines.push({ "type": "text", "text": lrThin_(), "size": "xs" });
+    let tLines = [];
+    if (tSpans.length) {
+      // 行と行のあいだに改行を入れて、1つの text にまとめる
+      const flat = [];
+      tSpans.forEach(function (row, i) {
+        if (i > 0) row[0] = { "type": "span", "text": "\n" + row[0].text,
+                              "weight": row[0].weight, "color": row[0].color };
+        row.forEach(function (sp) { flat.push(sp); });
+      });
+      tLines = [{ "type": "text", "size": "xs", "margin": "sm", "wrap": true, "contents": flat }];
+    } else {
+      tLines = [{ "type": "text", "text": lrThin_(), "size": "xs" }];
+    }
     const tlBox = { "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [ { "type": "text", "text": `【${dType}】`, "size": "xs", "weight": "bold", "color": "#2e7d32", "margin": "none" }, ...tLines ] };
     flexContents.push(tlBox); trimFirst.push(tlBox);
   });
@@ -3055,7 +3120,32 @@ function advicePlain_(parts) {
 }
 
 /** 太字つきの行を、LINEの絵の span にする */
-function adviceSpans_(parts, baseColor) {
+/*
+ * ★LINEの絵の1行に、何文字入るか。
+ *
+ *   ここは こちらからは測れません。
+ *   見る人の機種と、その人の文字の大きさの設定で、実際の幅が変わるためです。
+ *   スプシは らんの幅（ピクセル）が分かるので逆算できますが、LINEは分かりません。
+ *
+ *   なので、ふだんは何もしません（LINEの折り返しに任せます）。
+ *   そのほうが、右側をむだに空けずに済みます。
+ *   ただし「言葉のまん中で切れるのが気になる」ときは、
+ *   設定タブ「レポートの1行の文字数」に数字（20〜60）を入れてください。
+ *   その数で、こちらが句読点のところで改行します。
+ *   折り返してしまうようなら、少し小さくしてください。
+ */
+function lrLineW_() {
+  try {
+    const v = parseInt(cfg_("レポートの1行の文字数"), 10);
+    if (v >= 20 && v <= 60) return v * 2;      // 全角の数 → 半角で数えた数
+  } catch (e) {}
+  return 0;                                    // 0 ＝ LINEの折り返しに任せる
+}
+
+function adviceSpans_(parts0, baseColor) {
+  // 設定があるときだけ、こちらで句読点のところに改行を入れる
+  const w = lrLineW_();
+  const parts = w ? lrWrapParts_(parts0, w) : parts0;
   // 太字でも色つきでもないところは、となり同士をひとつにまとめる。
   // 1文字ずつ span を作ると、見た目は同じなのに中身（JSON）だけがふくらみ、
   // LINEの上限（10KB）に早く当たってしまう
@@ -3192,6 +3282,29 @@ const LR_NIGHT_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4];
  */
 const LR_NIGHT_MIN_N = 3;
 
+/*
+ * ★ここに入れた時間は、ほかの時間と ひとくくりにしません（まーくさんのご指示）。
+ *
+ *   前は「01〜04時台　難波」のように、深夜をまとめて1行にしていました。
+ *   まとめてしまうと、その4時間ぶんの平均が1つの数字になり、
+ *   01時に行けばよいのか、03時に行けばよいのかが分かりません。
+ *   深夜は1時間ごとに動きがまるで違うので、いちばん知りたいところが
+ *   消えてしまっていました。
+ *
+ *   1時間ずつ別の行にすれば、その時間の狙い目の時刻と金額が、
+ *   それぞれ出ます。
+ */
+const LR_NIGHT_SOLO = [0, 1, 2, 3];
+
+/** その時間は、ひとくくりにしてはいけないか */
+function lrNightSolo_(hr) {
+  // ★null は 0 に化けるので、先に落とす（00時台とまちがえないように）
+  if (hr === null || hr === undefined || hr === "") return false;
+  const n = Number(hr);
+  if (isNaN(n)) return false;
+  return LR_NIGHT_SOLO.indexOf(n) !== -1;
+}
+
 /**
  * 「一晩の流し方」には出さない乗り場。
  *
@@ -3273,8 +3386,20 @@ function buildNightPlan_(finalTimeline, DAY_TYPES) {
       const thin = !!b && (b.count || 0) < LR_NIGHT_MIN_N;
       const name = b ? b.name : "";
       const last = segs[segs.length - 1];
-      // 同じ乗り場でも、確かなぶんと データ不足のぶんは、ひとつにまとめない
-      if (last && last.name === name && last.thin === thin) {
+      /*
+       * 同じ乗り場でも、確かなぶんと データ不足のぶんは、ひとつにまとめない。
+       * ★さらに、00〜03時台は ほかの時間とまとめません（LR_NIGHT_SOLO）。
+       *   深夜は1時間ごとに動きがまるで違うので、まとめると
+       *   「何時に行けばよいのか」が消えてしまいます。
+       */
+      /*
+       * ★分けるのは「記録があるところ」だけです。
+       *   記録の無い時間まで1行ずつにすると、
+       *   「00時台：－」「01時台：－」…と、何も言っていない行が
+       *   4行も並びます。それは ただ読みにくいだけです。
+       */
+      const solo = !!name && (lrNightSolo_(hr) || (last && !!last.name && lrNightSolo_(last.to)));
+      if (!solo && last && last.name === name && last.thin === thin) {
         last.to = hr;
         if (b) {
           last.count += b.count;
@@ -3365,6 +3490,45 @@ function lrWrapJa_(text, limit) {
   });
 
   return out.join("\n").replace(/\n+$/, "");
+}
+
+/**
+ * 太字つきの文（[{t,b,c}]）に、句読点のところで改行を差し込む。
+ *
+ * ★まーくさんのご指摘です。
+ *   まとめスプシは、マスの幅で勝手に折り返します。そのままだと
+ *   「そのぶ／ん単価で取り返せているか」のように、言葉のまん中で切れます。
+ *
+ * ★大事なのは、行数をむだに増やさないことです。
+ *   右側が空いているのに次の行へ落とす、ということはしません。
+ *   入るかぎり同じ行に詰めて、入らなくなったところで、
+ *   その手前のいちばん近い句読点で切ります。
+ *
+ * ★太字や色は、そのまま残します（どこが大事かが消えないように）。
+ */
+function lrWrapParts_(parts, limit) {
+  const src = (parts || []).map(function (p) { return String(p.t == null ? "" : p.t); }).join("");
+  const wrapped = lrWrapJa_(src, limit);
+  if (wrapped === src) return parts;
+
+  const out = [];
+  let wi = 0;
+  (parts || []).forEach(function (p) {
+    const t0 = String(p.t == null ? "" : p.t);
+    let t = "";
+    for (let i = 0; i < t0.length; i++) {
+      // こちらで差し込まれた改行を、先に拾う
+      while (wi < wrapped.length && wrapped[wi] === "\n" && t0[i] !== "\n") { t += "\n"; wi++; }
+      t += wrapped[wi]; wi++;
+    }
+    const q = {};
+    for (const k in p) q[k] = p[k];
+    q.t = t;
+    out.push(q);
+  });
+  // 末尾に残ったぶん
+  while (wi < wrapped.length && out.length) { out[out.length - 1].t += wrapped[wi]; wi++; }
+  return out;
 }
 
 /** そのマスの幅（列数）に、全角で何文字ぶん入るか */
@@ -4486,7 +4650,11 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         .setHorizontalAlignment("center").setVerticalAlignment("middle");
       sheet.setRowHeight(curRow, 26); curRow++;
       // 乗り場・金額・時刻だけを太字にする。全部同じ太さだと、どこが大事か分からない
-      b[1].forEach(function (parts) {
+      b[1].forEach(function (parts0) {
+        // ★句読点のところで改行しておく。
+        //   そのままだと、マスの幅で言葉のまん中から折り返されてしまう。
+        //   幅は、らんの数から逆算しているので、右側をむだに空けることもない
+        const parts = lrWrapParts_(parts0, lrFitChars_(DB_COLS, 11));
         const txt = dbRich_(sheet, curRow, 1, DB_COLS, parts, 11, b[2]);
         dbFit_(sheet, curRow, [{ text: txt, span: DB_COLS, size: 11 }], 26);
         curRow++;

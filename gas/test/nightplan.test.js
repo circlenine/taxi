@@ -49,15 +49,31 @@ console.log('■ 同じ乗り場が続く時間は、1つにまとめる');
     1: ['難波', 6000, 3], 2: ['難波', 6000, 3], 3: ['難波', 6000, 3], 4: ['難波', 6000, 3]
   } }), DAY_TYPES);
   const segs = plan['平日'];
-  eq(segs.length, 3, '9つの時間帯が3つの区間になる');
-  eq(ctx.nightSpan_(segs[0]), '20〜22時台', '1つめは 20〜22時台');
+  /*
+   * ★00〜03時台は、ほかの時間と ひとくくりにしない（まーくさんのご指示）。
+   *   前は「01〜04時台 難波」と4時間をまとめていた。
+   *   まとめると その4時間の平均が1つの数字になり、
+   *   01時に行けばよいのか03時に行けばよいのかが分からない。
+   *   深夜は1時間ごとに動きがまるで違うので、いちばん知りたいところが消えていた
+   */
+  eq(ctx.nightSpan_(segs[0]), '20〜22時台', '★20〜22時台は、これまでどおり1つにまとまる');
   eq(segs[0].name, '新地4', '  乗り場も正しい');
   eq(segs[0].count, 11, '  件数は足し合わせる');
   eq(segs[0].avg, Math.round((12000 * 5 + 10000 * 3 + 8000 * 3) / 11), '  平均は件数で重みづけする');
   eq(segs[0].wait, 15, '  待ち時間は区間の平均');
-  eq(ctx.nightSpan_(segs[1]), '23〜00時台', '2つめは 23〜00時台（日をまたいでもつながる）');
-  eq(ctx.nightSpan_(segs[2]), '01〜04時台', '3つめは 01〜04時台');
-  eq(ctx.nightMoves_(segs), 2, '動くのは2回（区間3つ − 1）');
+  eq(ctx.nightSpan_(segs[1]), '23時台', '★23時台は、00時台とまとめない');
+  const spans = segs.map(x => ctx.nightSpan_(x));
+  ['00時台', '01時台', '02時台', '03時台'].forEach(function (sp) {
+    eq(spans.indexOf(sp) !== -1, true, '★' + sp + 'は、それだけで1行になる');
+  });
+  eq(spans.filter(x => /〜/.test(x) && /0[0-3]時台$/.test(x)).length, 0,
+     '★「01〜04時台」のような、深夜をまたぐまとめ方はしない');
+  eq(segs.filter(x => x.from === 4).length, 1, '  04時台も1行ある');
+  // 1時間ずつなので、その時間の件数・平均がそのまま出る
+  const s01 = segs.filter(x => x.from === 1)[0];
+  eq(s01.name, '難波', '  01時台の乗り場');
+  eq(s01.count, 3, '★01時台の件数が、そのまま出る');
+  eq(s01.avg, 6000, '★01時台の平均が、そのまま出る');
 }
 
 console.log('\n■ 20:00〜翌04:00 だけを見る');
@@ -221,6 +237,42 @@ console.log('\n■ 1件しかないものを「平均」と呼ばない');
   eq(ctx.nightLine_(one).indexOf('最高￥'), -1, '  1件なら「最高」も書かない（同じ数字なので）');
 }
 
+
+console.log('\n■ 記録が無い深夜は、まとめてよい');
+{
+  /*
+   * ★1行ずつにするのは「記録があるところ」だけ。
+   *   記録の無い時間まで1行ずつにすると、「00時台：－」「01時台：－」…と、
+   *   何も言っていない行が4行も並ぶ。それは ただ読みにくいだけ
+   */
+  const plan = ctx.buildNightPlan_(tl({ 平日: { 20: ['新地4', 12000, 5] } }), DAY_TYPES);
+  const segs = plan['平日'];
+  const empty = segs.filter(x => !x.name);
+  eq(empty.length, 1, '★記録が無いところは、まとめて1つの区間のまま');
+  eq(ctx.nightSpan_(empty[0]), '21〜04時台', '  「21〜04時台」とひとまとめ');
+
+  // 記録があるところは、これまでどおり1時間ずつ
+  const plan2 = ctx.buildNightPlan_(tl({ 平日: {
+    0: ['難波', 6000, 3], 1: ['難波', 6000, 3], 2: ['難波', 6000, 3]
+  } }), DAY_TYPES);
+  const named = plan2['平日'].filter(x => x.name).map(x => ctx.nightSpan_(x));
+  eq(named, ['00時台', '01時台', '02時台'], '★記録があるところは、1時間ずつ別の行');
+
+  // 20〜22時台のような、深夜でないところは これまでどおりまとまる
+  const plan3 = ctx.buildNightPlan_(tl({ 平日: {
+    20: ['新地4', 9000, 3], 21: ['新地4', 9000, 3], 22: ['新地4', 9000, 3]
+  } }), DAY_TYPES);
+  eq(ctx.nightSpan_(plan3['平日'].filter(x => x.name)[0]), '20〜22時台',
+     '★深夜でない時間は、これまでどおり1つにまとまる');
+
+  // どの時間を1行ずつにするかは、1か所で決めてある
+  eq(G('LR_NIGHT_SOLO'), [0, 1, 2, 3], '★1行ずつにするのは 00〜03時台');
+  eq(ctx.lrNightSolo_(0), true, '  00時台は1行ずつ');
+  eq(ctx.lrNightSolo_(3), true, '  03時台も1行ずつ');
+  eq(ctx.lrNightSolo_(4), false, '  04時台は、まとめてよい');
+  eq(ctx.lrNightSolo_(23), false, '  23時台も、まとめてよい');
+  eq(ctx.lrNightSolo_(null), false, 'null でも落ちない');
+}
 
 console.log('\n■ コナン像前は、一晩の流し方に出さない');
 {

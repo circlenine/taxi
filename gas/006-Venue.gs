@@ -2,11 +2,22 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V034ver  （2026/09/17）  ★★★
+ *  ★★★  V035ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V035ver]
+ *   ・✂️ 注意書きを、入るだけ詰めるようにした（まーくさんのご指摘）
+ *     ★前は「\n」を手で入れて4行に決め打ちしていました。
+ *       右側が空いていても次の文が下へ落ち、
+ *       むだに背の高い箱になっていました
+ *     ★文と文のあいだ（「。」「、」のうしろ）でだけ切ります。
+ *       言葉のまん中では、ぜったいに切りません
+ *     ★既定（23文字ぶん）で 4行 → 3行 になります
+ *     ★1行の文字数は、設定タブ「イベント案内の1行の文字数」で変えられます
+ *       （LINEの幅は、機種と文字の大きさで変わるので、こちらからは測れません）
  *
  *  [V034ver]
  *   ・🏛 見にいく先に「大阪城音楽堂」を足した（まーくさんのご指示）
@@ -600,15 +611,99 @@ const VN_SEND_WINDOW = 45;
  *   「AIが読んだものです」「公式で確かめてください」と
  *   はっきり書いていないのは、不親切を通りこして危ない。
  */
-const VN_DISCLAIMER = [
-  "※注意（必ずお読みください）※",
-  // ★1行を短くしてあります。長いと折り返して、読む気が失せるため。
-  //   かっこは半角の () にしています（全角だと、そのぶん幅を食うため）
-  "AIによる自動読み取りの案内です。\n" +
-  "読み違いや、予定変更があります。\n" +
-  "(時刻の前後・延長・中止)\n" +
+/*
+ * ★注意書きの中身は「文」で持ちます。改行は、こちらでは決めません。
+ *
+ *   前は「\n」を手で入れて、4行に決め打ちしていました。
+ *   そのままだと、右側に空きがあっても次の文が下へ落ちてしまい、
+ *   むだに背の高い箱になっていました（まーくさんのご指摘）。
+ *   文だけを持っておいて、入るかぎり同じ行に詰めるようにします。
+ */
+const VN_NOTE_LINES = [
+  "AIによる自動読み取りの案内です。",
+  "読み違いや、予定変更があります。",
+  "(時刻の前後・延長・中止)",
   "動く前に必ず公式ページでご確認を。"
 ];
+
+/*
+ * ★1行に入る文字数（全角で数えた数）。
+ *
+ *   ここは「逆算」がむずかしいところです。
+ *   スプシなら、らんの幅（ピクセル）が分かるので計算できます。
+ *   でもLINEの絵は、見る人の機種と、その人の文字の大きさの設定で
+ *   実際の幅が変わります。こちらからは測れません。
+ *
+ *   そこで、どの機種でも まず折り返さない数を既定にしてあります。
+ *   もっと詰めたいときは、設定タブ「イベント案内の1行の文字数」に
+ *   数字を入れてください（20〜40）。大きくするほど1行が長くなり、
+ *   箱は低くなります。折り返してしまったら、少し小さくしてください。
+ */
+const VN_NOTE_W = 23;
+
+/** 1行に入る文字数（設定タブで変えられる） */
+function vnNoteW_() {
+  try {
+    const v = parseInt(cfg_("イベント案内の1行の文字数"), 10);
+    if (v >= 20 && v <= 40) return v;
+  } catch (e) {}
+  return VN_NOTE_W;
+}
+
+/**
+ * 文を、入るかぎり同じ行に詰める。
+ *
+ * ★文のとちゅうでは、ぜったいに切りません。
+ *   切れば、言葉のまん中で改行されてしまいます。
+ *   入らない文は、まるごと次の行へ送ります。
+ */
+function vnPackJa_(lines, limit) {
+  // ★limit は「全角で何文字ぶんか」。中では半角の数で比べるので、2倍にする
+  const lim = Math.max(10, limit || VN_NOTE_W) * 2;
+  const w_ = function (t) {
+    let w = 0;
+    for (let i = 0; i < t.length; i++) w += t.charCodeAt(i) < 0x100 ? 1 : 2;
+    return w;
+  };
+  /*
+   * ★まず「。」「、」のうしろで、こまかいかたまりに分けます。
+   *   文の切れ目だけで詰めると、右側が空いたままになることが多いためです。
+   *   「、」でも切ってよいことにすると、そのぶん詰められます。
+   *   どちらにしても、言葉のまん中では切りません。
+   */
+  const chunks = [];
+  (lines || []).forEach(function (x) {
+    const t = String(x == null ? "" : x);
+    if (!t) return;
+    let cur = "";
+    for (let i = 0; i < t.length; i++) {
+      cur += t[i];
+      if ("。、！？".indexOf(t[i]) !== -1) { chunks.push(cur); cur = ""; }
+    }
+    if (cur) chunks.push(cur);
+  });
+
+  const out = [];
+  let cur = "";
+  chunks.forEach(function (t) {
+    if (!cur) { cur = t; return; }
+    if (w_(cur + t) <= lim) { cur += t; return; }
+    out.push(cur); cur = t;
+  });
+  if (cur) out.push(cur);
+  return out.join("\n");
+}
+
+const VN_DISCLAIMER = [
+  "※注意（必ずお読みください）※",
+  // 中身は VN_NOTE_LINES。改行は vnNoteText_ が、その場で決めます
+  VN_NOTE_LINES.join("\n")
+];
+
+/** 注意書きの本文（1行に入るだけ詰めた形） */
+function vnNoteText_() {
+  return vnPackJa_(VN_NOTE_LINES, vnNoteW_());
+}
 
 /** Flex（絵）1通の上限。LINEの決まりは10KB。ぶつからないよう手前で止める */
 const VN_FLEX_MAX = 9500;
@@ -1042,7 +1137,7 @@ function vnBuildMessages_(day, events, note, noBells) {
       "borderWidth": "1px", "borderColor": "#f0c36d",
       "paddingAll": "8px", "cornerRadius": "md", "margin": "md", "contents": [
         { "type": "text", "text": VN_DISCLAIMER[0], "size": "xxs", "weight": "bold", "color": "#a05a00", "wrap": true },
-        { "type": "text", "text": VN_DISCLAIMER[1], "size": "xxs", "color": "#6b5300", "wrap": true, "margin": "xs" }
+        { "type": "text", "text": vnNoteText_(), "size": "xxs", "color": "#6b5300", "wrap": true, "margin": "xs" }
       ]});
 
   // ★送る前に、中身が空のところを取りのぞく。

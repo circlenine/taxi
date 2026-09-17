@@ -1655,6 +1655,51 @@ console.log('\n■ 「終了」とは書かない（必ず「終了予定」）'
 }
 
 
+const ok2 = (cond, msg) => { if (!cond) { fail++; console.log('NG  ', msg); } };
+console.log('\n■ イベントの注意書きは、入るだけ詰める');
+{
+  /*
+   * ★前は「\n」を手で入れて4行に決め打ちしていた。
+   *   右側が空いていても次の文が下へ落ち、むだに背の高い箱になっていた
+   */
+  const P = ctx.vnPackJa_;
+  const L = JSON.parse(vm.runInContext('JSON.stringify(VN_NOTE_LINES)', ctx));
+
+  eq(L.length >= 4, true, '注意書きは、文ごとに持っている（' + L.length + '文）');
+  eq(L.every(x => x.indexOf('\n') === -1), true, '★文の中に、決め打ちの改行を持たない');
+
+  // 広ければ、同じ行に詰まる
+  const wide = P(L, 40).split('\n');
+  const narrow = P(L, 20).split('\n');
+  eq(wide.length < narrow.length, true,
+     '★広いほど、行数は少なくなる（' + wide.length + '行 対 ' + narrow.length + '行）');
+  eq(P(L, 40).replace(/\n/g, ''), L.join(''), '★言葉は1文字も足さない・減らさない');
+
+  // 切ってよいのは「。」「、」のうしろだけ。言葉のまん中では切らない
+  const w = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
+  const T23 = ctx.vnNoteText_().split('\n');
+  eq(T23.length, 3, '★既定（23文字ぶん）で3行に詰まる（前は4行）');
+  eq(T23.slice(0, -1).every(x => /[。、！？)）]$/.test(x)), true,
+     '★行の終わりは、かならず句読点（言葉のまん中で切らない）');
+  eq(T23.every(x => w(x) <= 23 * 2), true,
+     '★どの行も、決めた幅に収まる（いちばん長くて ' + Math.max(...T23.map(w)) / 2 + '文字ぶん）');
+  eq(T23.slice(0, -1).every(x => w(x) > 23), true,
+     '★右側をむだに空けない（半分より短い行を作らない）');
+
+  // せまくても、文を割らない（入らない文は、そのまま1行）
+  eq(P(['とてもとてもとてもとても長い文です。'], 10), 'とてもとてもとてもとても長い文です。',
+     '★入らない文でも、とちゅうでは切らない');
+
+  eq(P([], 30), '', '空でも落ちない');
+  eq(P(null, 30), '', 'null でも落ちない');
+
+  // 1行の文字数は、設定タブで変えられる
+  eq(vm.runInContext('VN_NOTE_W', ctx), 23, '既定は23文字ぶん');
+  const T = ctx.vnNoteText_();
+  eq(T.indexOf('公式ページ') !== -1, true, '★本文は、これまでどおり全部入っている');
+  eq(T.indexOf('AIによる自動読み取り') !== -1, true, '  AIが読んだものだと必ず書く');
+}
+
 console.log('\n■ 見にいく先に、大阪城音楽堂とフェスティバルホールを足した');
 {
   // const で作ったものは ctx に生えないので、中で評価して取り出す

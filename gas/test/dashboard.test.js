@@ -351,5 +351,55 @@ console.log('\n■ 乗り場名を押すと、Googleマップへ飛ぶ');
      '★ヒートマップの見出しに、地図の説明は書かない');
 }
 
+console.log('\n■ 長い文は、右側を空けずに詰めて、句読点で改行する');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+
+  /*
+   * ★まーくさんのご指摘。
+   *   「そのぶ／ん単価で取り返せているか」のように、言葉のまん中で切れていた。
+   *   かといって、右側が空いているのに次の行へ落とすのも困る（行数が増えるだけ）。
+   *   入るかぎり同じ行に詰めて、入らなくなったところで句読点で切る
+   */
+  const lim = ctx.lrFitChars_(vm.runInContext('DB_COLS', ctx), 11);
+  ok(lim > 40, '★らんの数から、1行に入る量を逆算している（' + lim + '）');
+
+  const parts = [
+    { t: '待ちの長さ：この期間の全体平均は ' },
+    { t: '20分', b: true },
+    { t: '。この乗り場は ' },
+    { t: '30分', b: true },
+    { t: 'で、平均より10分 長く待っています。そのぶん単価で取り返せているかを見てください。' }
+  ];
+  const w = ctx.lrWrapParts_(parts, lim);
+  const joined = w.map(p => p.t).join('');
+  eq(joined.replace(/\n/g, ''), parts.map(p => p.t).join(''),
+     '★言葉は1文字も足さない・減らさない');
+  const lines = joined.split('\n');
+  eq(lines.length >= 2, true, '★長い文は、こちらで改行する（' + lines.length + '行）');
+  eq(lines.slice(0, -1).every(x => /[。、！？]$/.test(x)), true,
+     '★切れ目は、かならず句読点のうしろ（言葉のまん中で切らない）');
+  // 右側をむだに空けない＝1行ぶんに、入るだけ詰まっている
+  const wj = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
+  eq(lines.slice(0, -1).every(x => wj(x) > lim * 0.5), true,
+     '★行の半分より短いところで、むだに折り返さない');
+
+  // 太字や色は、そのまま残る（どこが大事かが消えないように）
+  eq(w.filter(p => p.b).map(p => p.t.replace(/\n/g, '')), ['20分', '30分'],
+     '★太字は、そのまま残る');
+
+  // 短い文は、そのまま（むだに触らない）
+  const short = [{ t: 'みじかい文。' }];
+  eq(ctx.lrWrapParts_(short, lim), short, '短い文は、そのまま返す');
+  eq(ctx.lrWrapParts_([], lim).length, 0, '空でも落ちない');
+  eq(ctx.lrWrapParts_(null, lim), null, 'null でも落ちない');
+
+  // ★作っただけで、使っていなければ意味がない。使っているところも見る
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  eq(src.indexOf('lrWrapParts_(parts0, lrFitChars_(DB_COLS, 11))') !== -1, true,
+     '★月間戦略アドバイスを書くところで、ちゃんと使っている');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

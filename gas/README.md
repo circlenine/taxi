@@ -6,12 +6,12 @@
 
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
-| **C** | `001-Code.gs`（統合スクリプト） | C053ver | `001-Code` |
+| **C** | `001-Code.gs`（統合スクリプト） | C054ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
-| **L** | `003-LineReport.gs` | L041ver | `003-LineReport` |
+| **L** | `003-LineReport.gs` | L042ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
 | **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U076ver | `005-Updater` |
-| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V034ver | `006-Venue` |
+| **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V035ver | `006-Venue` |
 
 > **コードの貼り替えは、ふだん要りません。**
 > 記録用スプシ「説明」タブの **[1] コードを更新する** に☑を入れるだけで、GitHubから取り込まれます
