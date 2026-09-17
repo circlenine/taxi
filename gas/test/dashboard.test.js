@@ -521,35 +521,89 @@ console.log('\n■ 下のほうの、いらない空っぽの行を片づける'
      '★本文の下から、もとの表の終わりまでを「隠す」（消すとグラフが描けなくなる）');
   eq(src.indexOf('if (maxR2 > keepTo + 1) sheet.deleteRows(keepTo + 1, maxR2 - keepTo - 1);') !== -1, true,
      '★その先の行は、まるごと消す');
-  eq(src.indexOf('const spare = 3;') !== -1, true,
-     '  本文のすぐ下には、数行だけ空きを残す（ぴったり詰まっていると窮屈なため）');
+  /*
+   * ★止まりどころは「最後の表の見出しが、画面の2行目に来るところ」（ご指示）。
+   *   見出しが画面のまん中や下で止まると、目が迷う
+   */
+  eq(src.indexOf('const DB_VIEW_ROWS = 45;') !== -1, true,
+     '★画面に入る行数の目安を、1か所で決めている');
+  eq(src.indexOf('lastTitleRow ? (lastTitleRow + DB_VIEW_ROWS - 2) : (curRow + 3)') !== -1, true,
+     '★最後の見出しが、画面の2行目に来るところまで残す');
+  eq(src.indexOf('const lastTitleRow = curRow;') !== -1, true,
+     '  最後の表の見出しが何行目かを覚えている');
+  eq(src.indexOf('sheet.setRowHeights(curRow, lastText - curRow + 1, DB_ROW_H)') !== -1, true,
+     '★本文の下の行は、ふつうの高さに戻す（前の高い行が残ると見積もりが外れる）');
+  eq(src.indexOf('const DB_ROW_H = 21;') !== -1, true, '  ふつうの高さは21');
 
   // 作り直すたびに、前に隠した行が残らないこと
   eq(src.indexOf('try { sheet.showRows(1, sheet.getMaxRows()); } catch (e) {}') !== -1, true,
      '★作り直しのはじめに、前に隠した行を出し直す（clear() では戻らないため）');
 
   // 消す量の計算（実際の数字で確かめる）
-  const calc = function (curRow, dataFrom, dataTo, maxRows) {
-    const spare = 3;
-    const lastText = curRow + spare;
+  const calc = function (curRow, dataFrom, dataTo, maxRows, lastTitleRow) {
+    const VIEW = 45;
+    const lastText = Math.max(curRow + 3,
+      lastTitleRow ? (lastTitleRow + VIEW - 2) : (curRow + 3));
     const hide = (dataFrom && dataTo > lastText + 1) ? [lastText + 1, dataTo - lastText] : null;
     const keepTo = Math.max(lastText, dataTo);
     const del = (maxRows > keepTo + 1) ? [keepTo + 1, maxRows - keepTo - 1] : null;
     return { hide: hide, del: del, keepTo: keepTo };
   };
-  const c1 = calc(634, 5000, 5120, 6000);
-  eq(c1.hide, [638, 4483], '★本文(634)の下から、もとの表の終わり(5120)までを隠す');
+  // 最後の見出しが624行目なら、667行目まで残す（624 + 45 - 2）
+  const c1 = calc(634, 5000, 5120, 6000, 624);
+  eq(c1.hide, [668, 4453], '★本文(667)の下から、もとの表の終わり(5120)までを隠す');
   eq(c1.del, [5121, 879], '★5120より下は、まるごと消す');
   eq(c1.keepTo, 5120, '  残すのは5120行目まで');
+  eq(624 + 45 - 2, 667, '★最後の見出し(624)が、画面の2行目に来る位置で止まる');
 
   // グラフが1つも無かったとき（もとの表を使っていないとき）
-  const c2 = calc(200, 0, 0, 900);
+  const c2 = calc(200, 0, 0, 900, 0);
   eq(c2.hide, null, 'グラフが無ければ、隠す行も無い');
   eq(c2.del, [204, 696], '★そのときは、本文のすぐ下から先を消す');
 
   // すでに短いときは、何もしない
-  const c3 = calc(200, 0, 0, 204);
+  const c3 = calc(200, 0, 0, 204, 0);
   eq(c3.del, null, 'もう短ければ、消さない');
+}
+
+console.log('\n■ 🛸 いちばん下のおまけ（星人）');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+
+  /*
+   * ★下の空きは「スクロールの止まりどころ」をそろえるために要るが、
+   *   ただの白い空白ではもったいない（まーくさんのご指示）
+   */
+  eq(src.indexOf('function dbFunBlock_(sheet, row)') !== -1, true, '★おまけの箱がある');
+  eq(src.indexOf('curRow = dbFunBlock_(sheet, curRow);') !== -1, true,
+     '★いちばん下の表のあとに、ちゃんと置いている');
+  eq(src.indexOf('🛸 今回のおふざけ（おまけ）') !== -1, true, '  おまけだと分かる見出し');
+
+  // 星人が何なのかの説明（はじめて見た人にも分かるように）
+  eq(src.indexOf('星人＝その回かぎりのお遊びです。数字とは何の関係もありません。') !== -1, true,
+     '★星人が何なのかを、ひとこと書いてある');
+  eq(src.indexOf('毎回ちがう星人が1体あらわれて、絵も毎回ちがいます。') !== -1, true,
+     '  毎回ちがうことも書いてある');
+  eq(src.indexOf('公式LINEで「カタストロフィ」または「💩」と送ると') !== -1, true,
+     '  LINEでも出せることを書いてある');
+
+  // 決まり文句（LINEで出るものと同じ）
+  ['てめえ達は今から', 'この方を　乗車して下ちい',
+   'いまの　スプシを', 'わたしの　かってです。', 'という　りくつなわけだす。'].forEach(function (x) {
+    eq(src.indexOf(x) !== -1, true, '★決まり文句がある（' + x + '）');
+  });
+
+  // 絵も添える。ただし絵が出せなくても、レポートは止めない
+  eq(src.indexOf('sheet.insertImage(pic.direct, half + 2, row, 10, 10)') !== -1, true,
+     '★絵も添える');
+  const fn = src.slice(src.indexOf('function dbFunBlock_(sheet, row)'),
+                       src.indexOf('function dbMainTitle_'));
+  eq((fn.match(/catch/g) || []).length >= 4, true,
+     '★おまけで失敗しても、レポートは止めない（' + (fn.match(/catch/g) || []).length + 'か所で受け止める）');
+  eq(fn.indexOf('if (!a || !a.name || !Array.isArray(a.toku)) return row;') !== -1, true,
+     '  星人が作れなければ、何も置かずに帰る');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

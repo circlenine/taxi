@@ -2,7 +2,26 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L045ver  （2026/09/17）  ★★★
+ *  ★★★  L046ver  （2026/09/17）  ★★★
+ *
+ *  [L046ver]
+ *   ・📏 スクロールの止まりどころを、そろえた（まーくさんのご指示）
+ *     ★いちばん下まで行ったとき、最後の表の見出しが
+ *       画面の2行目に来るところで止まります。
+ *       見出しが画面のまん中や下で止まると、目が迷うためです
+ *     ★画面に入る行数（だいたい45行）は、機種で変わるので測れません。
+ *       多すぎれば下に空きが残るだけ、少なすぎれば見出しが
+ *       もう少し下で止まるだけで、どちらも壊れません
+ *   ・📏 本文の下の行を、ふつうの高さ（21）に戻すようにした
+ *     ★前に作ったときの高い行が残っていて、
+ *       「だいたい45行」の見積もりが大きく外れていました
+ *   ・🛸 いちばん下の空きに、おまけ（星人）を置くようにした（ご指示）
+ *     ★下の空きは、止まりどころをそろえるために要るのですが、
+ *       ただの白い空白ではもったいない、とのことでした
+ *     ★その回かぎりの星人が1体、絵つきで出ます（毎回ちがいます）
+ *     ★星人が何なのかの説明と、LINEと同じ決まり文句も入れてあります
+ *     ★おまけで失敗しても、レポートは止めません
+ *       （おまけのために本体が作れなくなるのでは、本末転倒なため）
  *
  *  [L045ver]
  *   ・🧹 下のほうの、いらない空っぽの行を片づけるようにした（ご指示）
@@ -3295,6 +3314,87 @@ function dbHotTimeText_(dow, hour, count, avg, times) {
   return d + " " + h + "\n" + money2 + list;
 }
 
+/*
+ * ★いちばん下の空きに、おまけを置きます（まーくさんのご指示）。
+ *
+ *   下の空きは「スクロールの止まりどころ」をそろえるために要るのですが、
+ *   ただの白い空白では もったいない、とのことでした。
+ *   そこで、その回かぎりの「星人」を1体、絵つきで置いています。
+ *
+ * ★ここが失敗しても、レポートは止めません。
+ *   おまけのために本体が作れなくなるのでは、本末転倒だからです。
+ */
+function dbFunBlock_(sheet, row) {
+  let a = null;
+  try {
+    if (typeof updAlien_ === "function") a = updAlien_();
+  } catch (e) { a = null; }
+  if (!a || !a.name) {
+    try { if (typeof updAlienFallback_ === "function") a = updAlienFallback_(); } catch (e) { a = null; }
+  }
+  if (!a || !a.name || !Array.isArray(a.toku)) return row;
+
+  try {
+    const from = row;
+    dbTitle_(row, "🛸 今回のおふざけ（おまけ）", "#ede7f6", 11); row++;
+
+    /*
+     * ★星人が何なのかを、ひとこと書いておきます（まーくさんのご指示）。
+     *   はじめて見た人は「これは何の表なのか」が分かりません。
+     *   数字とは関係のない、その回かぎりのお遊びだと分かるようにします。
+     */
+    dbNote_(row,
+      "星人＝その回かぎりのお遊びです。数字とは何の関係もありません。" +
+      "毎回ちがう星人が1体あらわれて、絵も毎回ちがいます。" +
+      "公式LINEで「カタストロフィ」または「💩」と送ると、コードの取り込みといっしょに出てきます。",
+      "#ede7f6");
+    row++;
+
+    const L = [];
+    L.push("【" + String(a.name) + "】");
+    L.push("▼特徴");
+    (a.toku || []).forEach(function (t) { L.push("　" + t); });
+    if ((a.suki || []).length) { L.push("▼好きなもの"); a.suki.forEach(function (t) { L.push("　" + t); }); }
+    if ((a.kirai || []).length) { L.push("▼きらいなもの"); a.kirai.forEach(function (t) { L.push("　" + t); }); }
+    if (a.kuse) { L.push("▼口ぐせ"); L.push("　" + a.kuse); }
+    L.push("〖とくてん　" + ((1 + Math.floor(Math.random() * 8)) * 10) + "てん〗");
+    // ★星人の決まり文句。LINEで出るものと同じにそろえる（別ものに見えないように）
+    L.push("");
+    L.push("てめえ達は今から");
+    L.push("この方を　乗車して下ちい");
+    L.push("");
+    L.push("いまの　スプシを");
+    L.push("どう　アプデしようと");
+    L.push("わたしの　かってです。");
+    L.push("");
+    L.push("という　りくつなわけだす。");
+
+    // 左半分に文、右半分に絵。文が絵に隠れないよう、らんを分ける
+    const half = Math.floor(DB_COLS / 2);
+    sheet.getRange(row, 1, 1, half).merge().setValue(L.join("\n"))
+      .setFontSize(10).setFontWeight("normal").setFontColor("#4527a0")
+      .setBackground("#f6f2fc")
+      .setHorizontalAlignment("left").setVerticalAlignment("top").setWrap(true);
+    sheet.getRange(row, half + 1, 1, DB_COLS - half).merge()
+      .setBackground("#f6f2fc");
+    sheet.setRowHeight(row, Math.max(160, 15 * L.length + 12));
+
+    // 絵は、置けなくても気にしない（無ければ文だけ）
+    try {
+      let pic = null;
+      if (typeof updAlienPicFree_ === "function") pic = updAlienPicFree_(a);
+      if (pic && pic.direct) {
+        sheet.insertImage(pic.direct, half + 2, row, 10, 10).setWidth(150).setHeight(150);
+      }
+    } catch (e) {}
+    row++;
+
+    sheet.getRange(from, 1, row - from, DB_COLS)
+      .setBorder(true, true, true, true, null, null, "#b39ddb", SpreadsheetApp.BorderStyle.SOLID);
+  } catch (e) { logErr_("dbFunBlock", e); }
+  return row;
+}
+
 function dbMainTitle_(periodTab, total) {
   return "📈 【" + String(periodTab == null ? "" : periodTab) + "】" +
          "分析・戦略レポート(詳細)（全" + (total || 0) + "件）";
@@ -3983,6 +4083,17 @@ function aiFallback_(it) {
 
 /** 1列の幅（px）。26列で iPhone の画面幅におさまるようにしてある */
 const DB_COL_W = 26;
+
+/*
+ * ★スマホの画面に、だいたい何行入るか。
+ *   いちばん下まで行ったとき、最後の表の見出しが
+ *   画面の2行目に来るように、下の空きをこの数で決めます。
+ *   機種で変わるので測れません。多すぎても少なすぎても壊れません。
+ */
+const DB_VIEW_ROWS = 45;
+
+/** 何も書いていない行の、ふつうの高さ（スプレッドシートの既定） */
+const DB_ROW_H = 21;
 /** 列の数（＝横いっぱいのマージ幅） */
 const DB_COLS  = 26;
 
@@ -5523,8 +5634,17 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     "備考に避けたい言葉があったもの、または ￥999以下だったものです。");
   // バラシは平均に混ぜていない（1件の乗車を分けて書いたものなので、数えると二重になる）。
   // ただし捨てはしない。ここで一覧として見られるようにする
+  /*
+   * ★いちばん下の表の見出しが、何行目に来たかを覚えておきます。
+   *   いちばん下までスクロールしたとき、この見出しが
+   *   画面の2行目に来るところで止まるようにするためです（ご指示）。
+   */
+  const lastTitleRow = curRow;
   curRow = createSpecialTable("バラシ 一覧", barasiRides || [], curRow, "#ead1dc", false,
     "1回の乗車を分けて書いたものです。二重に数えてしまうので、平均には入れていません。");
+
+  // いちばん下の空きは、ただの白い空白ではもったいないので、おまけを1つ置く
+  curRow = dbFunBlock_(sheet, curRow);
 
   // グラフを全部置き終わってから、まとめて点線にする
   dbDotLines_(dbSS, tabName);
@@ -5549,8 +5669,32 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
    *     （いちばん下まで行ったとき、ぴったり詰まっていると窮屈なため）
    */
   try {
-    const spare = 3;                            // 本文の下に残す、空きの行数
-    const lastText = curRow + spare;
+    /*
+     * ★どこでスクロールを止めるか（まーくさんのご指示）。
+     *
+     *   いちばん下まで行ったとき、最後の表の見出しが
+     *   画面の2行目に来るところで止まるようにします。
+     *   見出しが画面のまん中や下のほうで止まると、目が迷います。
+     *   上から2行目に来ていれば、そこから下をそのまま読めます。
+     *
+     *   画面に何行入るかは、機種で変わるので測れません。
+     *   スマホでよくある「だいたい45行」を目安にしています。
+     *   （多すぎれば下に空きが残るだけ、少なすぎれば見出しが
+     *     もう少し下で止まるだけで、どちらも壊れません）
+     */
+    const lastText = Math.max(curRow + 3,
+      lastTitleRow ? (lastTitleRow + DB_VIEW_ROWS - 2) : (curRow + 3));
+
+    /*
+     * ★本文の下の行は、ふつうの高さに戻します。
+     *   前に作ったときの高い行がそのまま残っていると、
+     *   「だいたい45行」の見積もりが大きく外れてしまいます。
+     */
+    try {
+      dbEnsureRows_(sheet, lastText);
+      if (lastText > curRow) sheet.setRowHeights(curRow, lastText - curRow + 1, DB_ROW_H);
+    } catch (e) {}
+
     if (dataFrom && dataTo > lastText + 1) {
       sheet.hideRows(lastText + 1, dataTo - lastText);
     }
