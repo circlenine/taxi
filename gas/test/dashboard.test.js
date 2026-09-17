@@ -167,5 +167,38 @@ console.log('\n■ テスト用を新しく作るときは、名前で見分け�
   ok(infoVals[2] === undefined, '  説明タブにも書かない');
 }
 
+console.log('\n■ まとめスプシの1行目（タイトル）');
+{
+  // このテストの合否は ok(条件, 説明) で書く。読みやすいように eq も用意する
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  /*
+   * ★呼び名をそろえる。
+   *   LINEの絵は「分析・戦略レポート」、まとめスプシは「営業ダッシュボード」と
+   *   ばらばらに呼んでいた。同じものを2つの名前で呼ぶと、別のものだと思われる
+   */
+  const t = ctx.dbMainTitle_('2026/08/16〜2026/09/15', 214);
+  eq(t.indexOf('分析・戦略レポート(詳細)') !== -1, true,
+     '★呼び名は「分析・戦略レポート(詳細)」');
+  ok(t.indexOf('営業ダッシュボード') === -1 === true, '★「営業ダッシュボード」とは、もう呼ばない');
+  ok(t.indexOf('\n') === -1 === true, '★かならず1行（改行を入れない）');
+  ok(t.indexOf('2026/08/16〜2026/09/15') !== -1 === true, '  期間が入る');
+  ok(t.indexOf('全214件') !== -1 === true, '  総件数も入る');
+  ok(ctx.dbMainTitle_('', 0).indexOf('\n') === -1 === true, '空でも1行のまま');
+  ok(typeof ctx.dbMainTitle_(null, null) === 'string', 'null でも落ちない');
+
+  /*
+   * ★1行目を固定する。
+   *   下のほうまで見ていくと、いま何の期間の表かが分からなくなっていた
+   */
+  let frozen = -1;
+  const sheet = { setFrozenRows: n => { frozen = n; } };
+  ok(ctx.dbFreezeTitle_(sheet) === true, '★1行目を固定する');
+  ok(frozen === 1, '★固定するのは1行だけ（多いとスマホで見えるところが減る）');
+
+  // 固定できない相手でも、そこで止まってしまわない
+  eq(ctx.dbFreezeTitle_({ setFrozenRows: () => { throw new Error('だめ'); } }), false,
+     '固定できなくても、落ちずに false を返す（表づくりは続ける）');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
