@@ -2,7 +2,21 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L038ver  （2026/09/17）  ★★★
+ *  ★★★  L039ver  （2026/09/17）  ★★★
+ *
+ *  [L039ver]
+ *   ・📋 再現したい・チケット・避けたい の3つの表を直した（ご指示）
+ *     ★タブのらんを「ユーザー名」→「エリア名」にしました。
+ *       誰が乗せたかは、ここで見たい事ではありません。
+ *       見たいのは どのエリアの話か、です。
+ *       エリア名にした事で、背景の色分けも個別乗り場の表と同じになりました
+ *     ★エリアの見分け方は lrAreaOf_ に1本化しました。
+ *       同じ見分け方を2か所に書いていたので、片方だけ直すと
+ *       表によって違うエリアに出てしまう作りでした
+ *     ★「売上」と「待ち時間」を入れかえ、待ち時間をいちばん右に
+ *       （個別乗り場の表と同じ形にそろえました）
+ *     ★補足（📝）を左詰めにしました。中央ぞろえだと、行ごとに
+ *       文の書き出しがずれて、目で追えませんでした
  *
  *  [L038ver]
  *   ・📋 個別乗り場の表を、まとめて直した（まーくさんのご指示）
@@ -575,6 +589,28 @@ const TAB_COLORS = { "北7": "#e3f2fd", "北4": "#e8eaf6", "北他": "#e0f7fa",
  *   ここに無いタブは、いちばん後ろに回します。
  */
 const TAB_ORDER = ["北7", "北4", "北他", "ﾐﾅﾐ", "関空", "ほか"];
+
+/**
+ * その乗車が、どのエリアのものか（北7／北4／北他／ﾐﾅﾐ／関空／ほか）。
+ *
+ * ★同じ見分け方を2か所に書いていたので、1つにまとめました。
+ *   片方だけ直すと、表によって違うエリアに出てしまいます。
+ */
+function lrAreaOf_(place, remarks) {
+  const pl = String(place == null ? "" : place);
+  const rm = String(remarks == null ? "" : remarks);
+  const searchPlace = (typeof removeStreetSuffix === "function") ? removeStreetSuffix(pl) : pl;
+  const comb = (rm + " " + pl).toUpperCase();
+  // ★言葉の表は 001-Code にあります。まだ読み込まれていなくても落ちないようにしておく
+  const south = (typeof SOUTH_WORDS !== "undefined" && SOUTH_WORDS) ? SOUTH_WORDS : [];
+  const north = (typeof NORTH_WORDS !== "undefined" && NORTH_WORDS) ? NORTH_WORDS : [];
+  if (comb.includes("関空") || pl.toUpperCase().includes("KIX")) return "関空";
+  if (pl.includes("新地7")) return "北7";
+  if (pl.includes("新地4")) return "北4";
+  if (pl.includes("ドン") || south.some(function (w) { return searchPlace.includes(w); })) return "ﾐﾅﾐ";
+  if (pl.includes("新地") || north.some(function (w) { return searchPlace.includes(w); })) return "北他";
+  return "ほか";
+}
 
 /** そのタブが何番目か（並べ替えに使う）。知らないタブは後ろ */
 function tabRank_(tab) {
@@ -1749,7 +1785,7 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
         const bTm = displayVals[r][4].match(/^(\d+):(\d+)/);
         barasiRides.push([`${rDate.getMonth()+1}/${rDate.getDate()}`,
           `${daysStr[rDate.getDay()]}曜 ${bTm ? bTm[0] : ""}`, place,
-          isNaN(bPrice) ? 0 : bPrice, "－", tabName + ": " + memo + " " + remarks]);
+          isNaN(bPrice) ? 0 : bPrice, "－", lrAreaOf_(place, remarks) + ": " + memo + " " + remarks]);
         continue;
       }
       let price = parseInt(String(dataVals[r][5]).replace(/[^0-9]/g, ''), 10); if (isNaN(price) || price === 0) continue;
@@ -1763,12 +1799,12 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
       let dateKey = `${rDate.getFullYear()}-${pad2_(rDate.getMonth()+1)}-${pad2_(rDate.getDate())}`;
       let timeStr = `${daysStr[dayOfWeek]}曜 ${exactTimeStr}`;
 
-      if ((memo.includes("チケ") || memo.includes("チケット") || remarks.includes("チケ") || remarks.includes("チケット")) && price >= 5000) { ticketRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", tabName + ": " + memo + " " + remarks]); }
-      if (avoidWords.some(w => memo.includes(w) || remarks.includes(w)) || price <= 999) { avoidRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", tabName + ": " + memo + " " + remarks]); }
-      if (memo.includes("再現性") || remarks.includes("再現性") || (remarks.trim() !== "" && price >= 5000)) { reproRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", tabName + ": " + memo + " " + remarks]); }
+      if ((memo.includes("チケ") || memo.includes("チケット") || remarks.includes("チケ") || remarks.includes("チケット")) && price >= 5000) { ticketRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", lrAreaOf_(place, remarks) + ": " + memo + " " + remarks]); }
+      if (avoidWords.some(w => memo.includes(w) || remarks.includes(w)) || price <= 999) { avoidRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", lrAreaOf_(place, remarks) + ": " + memo + " " + remarks]); }
+      if (memo.includes("再現性") || remarks.includes("再現性") || (remarks.trim() !== "" && price >= 5000)) { reproRides.push([dateStr, timeStr, place, price, waitMinutes > 0 ? waitMinutes+"分" : "－", lrAreaOf_(place, remarks) + ": " + memo + " " + remarks]); }
 
-      let specificCat = "ほか"; let searchPlace = removeStreetSuffix(place); let comb = (remarks + " " + place).toUpperCase();
-      if (comb.includes("関空") || place.toUpperCase().includes("KIX")) specificCat = "関空"; else if (place.includes("新地7")) specificCat = "北7"; else if (place.includes("新地4")) specificCat = "北4"; else if (place.includes("ドン") || SOUTH_WORDS.some(w => searchPlace.includes(w))) specificCat = "ﾐﾅﾐ"; else if (place.includes("新地") || NORTH_WORDS.some(w => searchPlace.includes(w))) specificCat = "北他";
+      // ★エリアの見分け方は lrAreaOf_ に1本化してある（表によって食いちがわないように）
+      let specificCat = lrAreaOf_(place, remarks); let searchPlace = removeStreetSuffix(place);
       let broadArea = (specificCat === "北7" || specificCat === "北4" || specificCat === "北他") ? "北" : (specificCat === "ﾐﾅﾐ" ? "ﾐﾅﾐ" : "ほか");
       totalRidesCount++; if (tabRidesCount[specificCat] !== undefined) tabRidesCount[specificCat]++; else tabRidesCount["ほか"]++;
 
@@ -4822,7 +4858,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
     const hSpans = [4, 7, 7, 4, 4];
     let hRngs = getGridRange(sheet, row, 1, 1, hSpans);
-    ["タブ", "乗り場名", "日付・曜日・時間", "待ち時間", "売上\n(この1回)"].forEach(function (t, i) {
+    // ★「売上」と「待ち時間」を入れかえ、待ち時間をいちばん右にした（個別乗り場と同じ形）
+    ["タブ", "乗り場名", "日付・曜日・時間", "売上\n(この1回)", "待ち時間"].forEach(function (t, i) {
       hRngs[i].merge().setValue(t).setBackground("#cccccc").setFontSize(11).setFontWeight("bold")
         .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
     });
@@ -4854,9 +4891,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         const dRngs = getGridRange(sheet, row, 1, 1, hSpans);
         // 乗り場名は、このかたまりの行ぶん（備考があれば2行）まとめて1マスにする（下で書く）
         dRngs[2].merge().setValue(rData[0]+"\n"+rData[1]).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
-        dRngs[3].merge().setValue(dbWaitText_(rData[4])).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle");
+        dRngs[4].merge().setValue(dbWaitText_(rData[4])).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle");
 
-        const priceCell = dRngs[4].merge().setValue(rData[3]).setNumberFormat('￥#,##0').setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
+        const priceCell = dRngs[3].merge().setValue(rData[3]).setNumberFormat('￥#,##0').setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
         // 文字色は記録用スプシと同じ決まり。背景はその目印
         priceCell.setFontColor(dbMoneyColor_(rData[3]));
         // ★￥999以下は「金額のマスだけ」薄いグレー。
@@ -4882,7 +4919,9 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           const memoFrom = hSpans[0] + hSpans[1] + 1;
           sheet.getRange(row, memoFrom, 1, DB_COLS - memoFrom + 1).merge().setValue(memoTxt)
             .setFontSize(11).setFontWeight("bold").setFontColor("#333333").setBackground("#fbfbfb")
-            .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+            // ★補足は左詰め（まーくさんのご指示）。
+            //   中央ぞろえだと、行ごとに文の書き出しがずれて、目で追えなかった
+            .setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true);
           dbFit_(sheet, row, [{ text: memoTxt, span: DB_COLS - memoFrom + 1, size: 11 }], 26);
           row++;
         }
