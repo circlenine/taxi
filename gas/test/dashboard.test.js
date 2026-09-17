@@ -316,5 +316,40 @@ console.log('\n■ 再現したい・チケット・避けたい の3つの表')
      '★ユーザー名は、タブのらんに出てこない（色の表にも無い）');
 }
 
+console.log('\n■ 乗り場名を押すと、Googleマップへ飛ぶ');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  const U = ctx.mapSearchUrl_;
+
+  /*
+   * ★登録が無くても、押せばGoogleマップへ行けるようにした（ご指示）。
+   *   ただし「その場所のピン」にはしない。「その名前でさがした結果」にする。
+   *   こちらで勝手にピンを決めると、まちがった場所へ案内しかねない
+   */
+  const u = U('新地4');
+  eq(u.indexOf('https://www.google.com/maps/search/') === 0, true,
+     '★Googleマップの「さがす」ページへ飛ばす');
+  eq(u.indexOf(encodeURIComponent('新地4 大阪')) !== -1, true,
+     '★さがす言葉に「大阪」を足す（同じ名前が全国にあるため）');
+  eq(u.indexOf('@') === -1, true, '★こちらで勝手に、地図の点（緯度経度）を決めない');
+  eq(U(''), '', '名前が無ければ、飛び先も作らない');
+  eq(U('   '), '', '空白だけでも、作らない');
+  eq(U(null), '', 'null でも落ちない');
+  // 記号が入っていても、こわれないこと
+  eq(U('ドン・キホーテ 前').indexOf(' ') === -1, true, '★空白や記号は、ちゃんと変換する');
+
+  /*
+   * ★ヒートマップの見出しから、地図の説明を外した。
+   *   見出しで言うべきは「何の表か」と「どういう条件の表か」だけ
+   */
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  eq(src.indexOf('曜日×時間帯別ヒートマップ') !== -1, true, '  ヒートマップの見出しはある');
+  eq(src.indexOf('(条件: 20〜29時台で月間3件以上の実績)') !== -1, true,
+     '★見出しに残すのは、条件だけ');
+  eq(src.indexOf('地図のタブに登録した乗り場は、名前を押すとマップが開きます'), -1,
+     '★ヒートマップの見出しに、地図の説明は書かない');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

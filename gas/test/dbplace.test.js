@@ -133,26 +133,52 @@ console.log('■ 登録があるものだけ、リンクを張る');
   ok(r1.rich && r1.rich.links[0][0] === 0 && r1.rich.links[0][1] === '新地4'.length,
      '  名前の全部にリンクが掛かっている');
 
+  /*
+   * ★登録が無い乗り場も、押せばGoogleマップへ行けます（決まりが変わりました）。
+   *   飛び先は「その名前でさがした結果」です。場所のピンではありません
+   */
+  const linkOf = r => (r.rich && r.rich.links && r.rich.links[0] ? r.rich.links[0][2] : '');
+
   const r2 = fakeRange();
   ctx.dbPlace_(r2, '梅田');
-  ok(r2.value === '梅田' && r2.rich === undefined,
-     '未登録 → ふつうの文字のまま（名前は必ず残る）', r2);
+  ok(r2.rich && r2.rich.text === '梅田', '未登録でも、名前は必ず残る', r2);
+  ok(linkOf(r2).indexOf('https://www.google.com/maps/search/') === 0,
+     '★未登録 → その名前で「さがす」ページへ飛ばす', linkOf(r2));
 
   const r3 = fakeRange();
   ctx.dbPlace_(r3, 'ｺﾅﾝ像');
-  ok(r3.value === 'ｺﾅﾝ像' && r3.rich === undefined,
-     '表にすら無い乗り場も、ふつうの文字のまま', r3);
+  ok(r3.rich && r3.rich.text === 'ｺﾅﾝ像', '表にすら無い乗り場も、名前は必ず残る', r3);
+  ok(linkOf(r3).indexOf('https://www.google.com/maps/search/') === 0,
+     '  そちらも「さがす」ページへ飛ばす', linkOf(r3));
 }
 
-console.log('■ 自動でさがした住所は、絶対にリンクにしない');
+console.log('■ 自動でさがした「住所」は、絶対にリンクにしない（さがす形なら張る）');
 {
+  /*
+   * ★ここは決まりが変わりました（まーくさんのご指示）。
+   *
+   *   前：登録が無ければ、リンクは1つも張らない。
+   *   今：登録が無くても、押せばGoogleマップへ行けるようにする。
+   *
+   *   ★変わっていないのは「こちらで勝手に場所を決めない」ことです。
+   *     自動でさがして出てきた住所を、その場所のピンとしてリンクにするのは
+   *     これまでどおりしません。まちがった場所へ人を向かわせるためです。
+   *     代わりに「その名前でさがした結果」のページへ飛ばします。
+   *     まちがっていても、開いた本人がすぐ分かります。
+   */
   const ctx = makeCtx();
   ctx.mapLoadRegistry_(fakeSS([]));            // 登録表が無い状態
   ok(typeof ctx.mapUrlFor_ === 'function', '前提：自動でさがす仕掛けは動く状態にある');
   const r = fakeRange();
   ctx.dbPlace_(r, '新地4');
-  ok(r.value === '新地4' && r.rich === undefined,
-     '自動でさがせても、登録が無ければリンクは張らない', r);
+  const link = r.rich && r.rich.links && r.rich.links[0] ? r.rich.links[0][2] : '';
+  ok(r.rich && r.rich.text === '新地4', '★登録が無くても、名前は必ず残る', r);
+  ok(link.indexOf('https://www.google.com/maps/search/') === 0,
+     '★登録が無ければ、その名前で「さがす」ページへ飛ばす', link);
+  ok(link.indexOf('@') === -1,
+     '★こちらで勝手に、地図の点（緯度経度）を決めない', link);
+  ok(link.indexOf(encodeURIComponent('大阪')) !== -1,
+     '  さがす言葉に「大阪」を足す（同じ名前が全国にあるため）', link);
 }
 
 console.log('■ 名前のゆれを吸収する');
@@ -250,7 +276,8 @@ console.log('■ 表が無い・読めないときでも止まらない');
   ok(!threw, 'スプレッドシートが渡らなくても落ちない');
   const r = fakeRange();
   ctx.dbPlace_(r, '新地4');
-  ok(r.value === '新地4', '名前は必ず残る', r);
+  const nm = r.rich ? r.rich.text : r.value;
+  ok(nm === '新地4', '名前は必ず残る', r);
 }
 
 console.log('■ リンクを作る途中で失敗したとき');
