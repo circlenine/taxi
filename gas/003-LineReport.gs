@@ -2,7 +2,27 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L049ver  （2026/09/17）  ★★★
+ *  ★★★  L050ver  （2026/09/17）  ★★★
+ *
+ *  [L050ver]
+ *   ・🔤 アツい／避ける の乗り場名を、最後まで出すようにした（ご指摘）
+ *     ★「新地4丁目ﾀｸｼ…」では、どこの乗り場か まるで分かりませんでした。
+ *       入りきらないときは、名前ではなく 空白や言葉のほうを詰めます
+ *   ・🚫 「避ける」と書くのは、1回あたり平均 ￥1,999 以下のときだけにした（ご指示）
+ *     ★￥2,000 以上は最低ラインを超えています。それを「避ける」と書くのは誤りでした
+ *   ・🗑 一晩の流し方の説明書き（「行が変わるところが〜」）を出さない（ご指示）
+ *   ・🗑 一晩の流し方の「データ不足（〇件以上で表示）」を出さない（ご指示）
+ *     ★字の色を薄くして区別します。同じ断り書きが何行も並ぶと、中身が読めません
+ *   ・⏱ 00〜03時台にも、待ち時間を出すようにした（ご指摘）
+ *     ★行が増えるから、というこちらの都合で隠していました。
+ *       出ている時間帯と出ていない時間帯があると、迷わせるだけでした
+ *   ・🎯 「狙い目：[23:37]」を「🎯23:37」に短くした（ご指示・折り返し防止）
+ *   ・🗑 「上の狙いどころと、この3つが重なるところから入ってください」を書かない
+ *     ★吹田と梅田のように離れた乗り場が並ぶことがあり、できない案内でした
+ *   ・🗑 「▼この期間の記録から」を、まるごと出さないようにした（ご指示）
+ *     ★「月曜23時台の〇〇は平均￥9,190」と「〇〇は平均￥3,100」が並び、
+ *       数え方の違いのせいで、言っていることがちぐはぐに見えていました
+ *   ・📐 LINEの絵では、戦略予想の区切り線（────）を引かない（ご指示）
  *
  *  [L049ver]
  *   ・💰 まとめスプシの「おまけ星人」も、
@@ -2220,6 +2240,13 @@ function buildReportFlex_(o) {
         let lrP = Math.round(r.lR*100); let mrP = Math.round((r.m/r.t)*100); let srP = Math.round((r.s/r.t)*100); let rankStr = r.t >= 3 ? "🥇" : "(参考)";
         let bestL = "-", bestM = "-", worstS = "-"; let bcL = 0, bcM = 0, bcS = 999999;
         for(let sn in r.spots) { let st = r.spots[sn]; if(st.l > bcL) { bcL = st.l; bestL = sn; } if(st.m > bcM) { bcM = st.m; bestM = sn; } if(st.s > 0 && (st.sSum/st.s) < bcS) { bcS = st.sSum/st.s; worstS = sn; } }
+        /*
+         * ★「避ける」と言ってよいのは、1回あたり平均が ￥1,999 以下のときだけです
+         *   （まーくさんのご指示）。
+         *   ￥2,000 以上あれば、最低ラインは超えています。
+         *   超えているものを「避ける」と書くのは、ただのまちがいでした。
+         */
+        worstS = lrAvoidSpot_(worstS, bcS);
         boxContents.push({ "type": "text", "text": `${rankStr} ${r.name} （${r.t}件 ／ 平均売上￥${r.avg.toLocaleString()} ／ 平均待ち${r.wait}分）`, "size": "xs", "weight": "bold", "color": "#1155ca", "margin": "md", "wrap": true });
 
         // 帯の「中」に ◯◯% を書く。
@@ -2279,12 +2306,9 @@ function buildReportFlex_(o) {
     section_();
     flexContents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": "🚕 一晩の流し方（20:00〜翌04:00）", "weight": "bold", "size": "sm",
-        "color": "#1565c0", "margin": "md", "wrap": true },
-      // 説明は1行だけ。言葉の意味は、いちばん上の「読み方」で説明ずみ
-      // ★「区切りが、動くときです」は、何のことか分からない言い方でした。
-      //   「線の変わり目で、次の乗り場へ移ります」と、そのまま書きます
-      { "type": "text", "text": "同じ乗り場が続く時間は、まとめて1行にしています。行が変わるところが、次の乗り場へ移るタイミングです。",
-        "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true });
+        // ★下の説明書きは、もう出しません（ご指示）。
+        //   見れば分かることを毎回書くと、そのぶん本文が押し出されます
+        "color": "#1565c0", "margin": "md", "wrap": true });
 
     DAY_TYPES.forEach(function (dType) {
       const segs = (plan[dType] || []).filter(function (x) { return !!x.name; });
@@ -2322,10 +2346,20 @@ function buildReportFlex_(o) {
          *   そのぶん1行を短くしないと、絵が1通に入りきらなくなります。
          *   待ち時間は、まとめスプシの表のほうに出ています。
          */
-        const solo1 = (seg.from === seg.to) && lrNightSolo_(seg.from);
+        /*
+         * ★00〜03時台にも、待ち時間を出します（ご指摘）。
+         *   前は「行が増えるから」という、こちらの都合で隠していました。
+         *   待ち時間は、その乗り場へ行くかどうかを決める数字です。
+         *   出ている時間帯と出ていない時間帯があると、
+         *   「なぜここだけ無いのか」と迷わせるだけでした。
+         *
+         * ★「データ不足（〇件以上で表示）」の断り書きも、もう出しません（ご指示）。
+         *   記録が薄いぶんは、字の色を薄くして区別します。
+         *   ここは「今夜どう動くか」を見るところで、
+         *   同じ断り書きが何行も並ぶと、肝心の中身が読めません
+         */
         const tail = (seg.avg ? "　" + nightMoneyLabel_(seg) + "￥" + seg.avg.toLocaleString() : "") +
-                     ((seg.wait && !solo1) ? "　待ち平均" + seg.wait + "分" : "") +
-                     (seg.thin ? "　" + lrThin_() : "");
+                     (seg.wait ? "　待" + seg.wait + "分" : "");
         if (tail) sp.push({ "type": "span", "text": tail, "color": seg.thin ? "#8a8a8a" : "#444444" });
         // 最後の span のうしろに改行を付けて、次の区間と行を分ける
         if (si < segs.length - 1) sp[sp.length - 1].text += "\n";
@@ -2466,7 +2500,9 @@ function buildReportFlex_(o) {
 
       { "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
         { "type": "text", "text": adviceForecastTitle_(advice), "size": "xs", "weight": "bold", "color": "#2e7d32" },
-        { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": adviceSpans_(adviceForecastParts_(advice), "#333333") }
+        // ★LINEの絵では、区切り線を出さない（ご指示）
+        { "type": "text", "size": "xs", "wrap": true, "margin": "xs",
+          "contents": adviceSpans_(adviceForecastParts_(advice, { noHr: true }), "#333333") }
       ]});
   }
 
@@ -3123,15 +3159,26 @@ function adviceForecastTitle_(advice) {
 const LR_ADV_HR = "────────────\n";
 
 /** 戦略予想の見出し1つぶん（区切り線つき）。1つめは線を出さない */
-function adviceHead_(title, first) {
+function adviceHead_(title, first) { return advHead_(title, first); }
+
+function advHead_(title, first) {
   const out = [];
   if (!first) out.push({ t: LR_ADV_HR, c: "#9e9e9e" });
   out.push({ t: "▼ " + title + "\n" });
   return out;
 }
 
-function adviceForecastParts_(a) {
+function adviceForecastParts_(a, opt) {
   const out = [];
+  /*
+   * ★LINEの絵の中では、区切り線（────）を引きません（ご指示）。
+   *   LINEの絵は幅がせまく、線だけで1行を使ってしまいます。
+   *   まとめスプシのほうは幅に余裕があるので、これまでどおり引きます。
+   */
+  const noHr = !!(opt && opt.noHr);
+  const adviceHead_ = function (title, first) {
+    return advHead_(title, noHr ? true : first);
+  };
 
   // ① 来月はこういう月 ＝ だからここを狙う。
   //    前は「こういう月」と「狙いどころ」を別々の見出しで出していたが、
@@ -3156,38 +3203,32 @@ function adviceForecastParts_(a) {
                { t: `￥${sp.avg.toLocaleString()}`, b: true, c: "#b71c1c" },
                { t: sp.wait > 0 ? `　待ち平均${sp.wait}分\n` : "\n" });
     });
-    out.push({ t: "上の狙いどころと、この3つが重なるところから入ってください。\n\n" });
+    /*
+     * ★「上の狙いどころと、この3つが重なるところから入ってください」は、
+     *   もう書きません（ご指摘）。
+     *   吹田と梅田のように、離れた乗り場が並ぶことがあります。
+     *   重なりようのないものを「重なるところから」と言っても、
+     *   できるはずがなく、案内になっていませんでした
+     */
+    out.push({ t: "\n" });
   }
 
-  // ② この期間の数字から言えること
-  adviceHead_("この期間の記録から",
-              !a.season && !(a.topSpots && a.topSpots.length)).forEach(function (x) { out.push(x); });
-  if (a.allSlots === 0) {
+  /*
+   * ★「▼この期間の記録から」は、もう出しません（ご指示）。
+   *
+   *   ここには「いちばん強かったのは 月曜23時台の〇〇（平均￥9,190）」と出していました。
+   *   すぐ上の「この期間に稼げていた乗り場」には、同じ乗り場が
+   *   平均￥3,100 と出ます。片方は「その曜日・その時間帯だけ」の平均、
+   *   もう片方は「全部の時間帯をならした」平均で、どちらも正しい数字ですが、
+   *   並べて出せば「言っていることがちぐはぐ」にしか見えません。
+   *   数え方の説明を足すより、出すのをやめるほうが ずっと分かりやすいので、
+   *   まるごと外しました。中身は まとめスプシの表で見られます。
+   */
+  if (a.allSlots === 0 && !(a.topSpots && a.topSpots.length)) {
+    adviceHead_("この期間の記録から", !a.season).forEach(function (x) { out.push(x); });
     out.push({ t: lrThin_() + "。乗り場と待ち時間の記入を増やしてください。" });
     return out;
   }
-  if (a.top) {
-    out.push({ t: "先月いちばん強かったのは " },
-             { t: `${a.top.dt}の${("0" + a.top.hr).slice(-2)}時台`, b: true, c: "#0b5394" },
-             { t: " の " }, { t: a.top.name, b: true, c: "#b71c1c" },
-             { t: `（${a.top.count}件の記録で、1回あたり平均￥${a.top.avg.toLocaleString()}）。\n` });
-  }
-  // ★「8個中3個」だけでは、何のことか読み取れない。
-  //   曜日区分×時間帯の枠を数えていることを、言葉で書く
-  // ★「0通り」のような、意味の取れない言い方をしない。
-  //   0のときは、0と書かずに「ありませんでした」と書く
-  out.push({ t: "記録がそろっていた時間帯は " },
-           { t: `${a.allSlots}通り`, b: true, c: "#0b5394" },
-           { t: `（曜日区分×時間帯の組み合わせ／${LR_NIGHT_MIN_N}件以上あるものだけ）。` });
-  if (a.bigSlots > 0) {
-    out.push({ t: "そのうち " },
-             { t: `${a.bigSlots}通り`, b: true, c: "#b71c1c" },
-             { t: " で、1回あたり平均￥10,000を超えていました。\n" });
-  } else {
-    out.push({ t: "1回あたり平均￥10,000を超えた時間帯は、" },
-             { t: "ありませんでした", b: true, c: "#b71c1c" }, { t: "。\n" });
-  }
-  if (a.waitAvg > 0) out.push({ t: `待ち時間は1回あたり平均 ${a.waitAvg}分でした。\n` });
 
   // ③ で、どう動くか
   out.push({ t: "\n" });
@@ -3753,6 +3794,23 @@ function lrWidth_(t) {
   return w;
 }
 
+/*
+ * 「避ける」と言ってよい上限。
+ *
+ * ★1回あたり平均が ￥2,000 以上あるなら、最低ラインは超えています。
+ *   超えているものを「避ける」と書いては、読む人を迷わせるだけです。
+ */
+const LR_AVOID_MAX = 2000;
+
+/**
+ * 「避ける」と出してよい乗り場かどうか。
+ * 出してよければ その名前、そうでなければ "-"（＝出さない）。
+ */
+function lrAvoidSpot_(name, avg) {
+  if (!name || name === "-") return "-";
+  return (Number(avg) >= LR_AVOID_MAX) ? "-" : name;
+}
+
 /** 金額帯の1行が、これ以上長いとLINEで折り返される */
 const LR_BAND_MAX = 62;
 
@@ -3773,28 +3831,34 @@ const LR_BAND_MAX = 62;
  *   言葉は意味そのものなので、いちばん最後まで残します。
  */
 function lrBand_(label, cnt, avg, wait, mark, word, spot, at) {
-  // ★「￥13,270」だけでは、平均なのか最高額なのか分からない。
-  //   何の金額かは、いつでも数字のすぐ前に書く
-  const head = String(label) + (cnt || 0) + "件 平均￥" +
-               Number(avg || 0).toLocaleString() + " 待" + (wait || 0) + "分";
+  /*
+   * ★乗り場の名前は、どんなに長くても 最後まで書きます（まーくさんのご指示）。
+   *
+   *   前は、長いときに うしろを切って「新地4丁目ﾀｸｼ…」のようにしていました。
+   *   これでは、どこの乗り場なのか まるで分かりません。
+   *   名前が分からない案内は、そもそも案内になっていませんでした。
+   *
+   *   入りきらないときは、名前ではなく まわりのほうを詰めます。
+   *   詰める順番は「無くても意味が変わらないもの」から。
+   *     ① 余分な空白を取る
+   *     ② 「平均￥」→「平￥」、「待9分」→「待9」
+   *   それでも入らなければ、そのまま出します（LINEが折り返します）。
+   *   折り返しても、名前が全部読めるほうが ずっとましです。
+   */
   const name = String(spot == null ? "-" : spot);
-  if (name === "-") return head;
-
-  const tail = at ? " " + at : "";
-  const mk = function (nm) { return head + " [" + mark + word + " " + nm + tail + "]"; };
-  const full = mk(name);
-  if (lrWidth_(full) <= LR_BAND_MAX) return full;
-
-  // 入りきらないぶんだけ、名前を削る（削りすぎないよう、最低4つぶんは残す）
-  // 「…」は全角なので2つぶん。ここを1にしていると、1つぶんだけはみ出す
-  const room = Math.max(4, LR_BAND_MAX - lrWidth_(mk("")) - lrWidth_("…"));
-  let cut = "", w = 0;
-  for (let i = 0; i < name.length; i++) {
-    const cw = name.charCodeAt(i) < 0x100 ? 1 : 2;
-    if (w + cw > room) break;
-    cut += name[i]; w += cw;
+  const yen = Number(avg || 0).toLocaleString();
+  const mk = function (sp, av, fun) {
+    const head = String(label) + (cnt || 0) + "件" + sp + av + yen + sp + "待" + (wait || 0) + fun;
+    if (name === "-") return head;
+    return head + sp + "[" + mark + word + sp + name + (at ? sp + at : "") + "]";
+  };
+  // ① ふつうの形 → ② 空白を詰める → ③ 言葉も詰める → ④ 「分」も落とす
+  const tries = [mk(" ", "平均￥", "分"), mk("", "平均￥", "分"),
+                 mk("", "平￥", "分"), mk("", "平￥", "")];
+  for (let i = 0; i < tries.length; i++) {
+    if (lrWidth_(tries[i]) <= LR_BAND_MAX) return tries[i];
   }
-  return mk((cut || name.slice(0, 2)) + "…");
+  return tries[tries.length - 1];
 }
 
 /**
@@ -3853,8 +3917,12 @@ function nightSpan_(seg) {
  * 実際に当たった時刻を1つだけ添える。
  */
 function nightAim_(seg) {
-  // 時刻は必ず［］で囲む。ほかの場所の書き方とそろえるため
-  return seg && seg.at ? "狙い目：[" + seg.at + "]" : "";
+  /*
+   * ★「狙い目：[23:37]」から「🎯23:37」に短くしました（ご指示）。
+   *   1行が長すぎて折り返し、かえって読みにくくなっていました。
+   *   🎯 は「ここを狙う」という意味です（読み方のところで1回だけ説明します）。
+   */
+  return seg && seg.at ? "🎯" + seg.at : "";
 }
 
 /** 1行の文にする（まとめスプシ・見出し用） */

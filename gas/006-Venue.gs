@@ -2,11 +2,25 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V041ver  （2026/09/17）  ★★★
+ *  ★★★  V042ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V042ver]
+ *   ・ iPhoneの「リマインダー」に入れる形にした（ご指示）
+ *     ★ボタンのしるしを Apple のもの（）にしました。iPhone用だと ひと目で分かります
+ *     ★カレンダーには、もう入れません
+ *     ★ただし、Apple は外からリマインダーへ直に書き入れる入り口を出していません。
+ *       使えるのは「ショートカット」アプリだけです。
+ *       まーくさんが1回だけ作って配れば、みんなは1回入れるだけで、あとは押すだけです。
+ *       用意ができるまでは「まだ使えません」と はっきりお伝えします
+ *       （押しても何も起きないリンクを渡すのが、いちばん不親切なためです）
+ *     ★時刻は、終了予定の5分前です
+ *   ・⏰ LINEのお知らせを「10分前・30分前・60分前」に変えられるようにした（ご指示）
+ *     ★入れた直後の返事に、そのままボタンを出します。
+ *       外にいても押すだけで変えられ、次からもその分数になります（人ごとに覚えます）
  *
  *  [V041ver]
  *   ・⏰ iPhone用のお知らせが Safari で開けなかったのを直した（ご指摘）
@@ -2357,6 +2371,9 @@ function vnHandleNote_(ev, sentAt) {
   // ⓪-4「ディスコード用意して」… まーくさんが1回だけ用意する。以後みんな設定不要
   if (vnHandleDiscordCmd_(ev)) return true;
 
+  // ⓪-5「ショートカット 〇〇」… iPhoneのリマインダーへ入れる用意（まーくさんだけ）
+  if (vnHandleShortcutCmd_(ev)) return true;
+
   // ① 確認用の手直し（「❶削除」「❶❸削除」「❶修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
 
@@ -3330,6 +3347,45 @@ function vnReadStatus_(day) {
  *   終わりの5分前に鳴るのが、いちばん役に立つ。
  * ★1分前〜300分前のあいだで、設定タブから変えられます。
  */
+/*
+ * その人が決めた「何分前」。
+ *
+ * ★同じ催しでも、5分前で足りる人と、30分前に知りたい人がいます
+ *   （まーくさんのご指示）。ひとりずつ覚えておきます。
+ *   決めていない人は、これまでどおり 設定タブの数（既定5分）です。
+ */
+function vnLeadKey_(uid) { return "VNLEAD_" + String(uid || ""); }
+
+function vnLeadFor_(uid) {
+  try {
+    const v = parseInt(PropertiesService.getScriptProperties()
+      .getProperty(vnLeadKey_(uid)) || "", 10);
+    if (v >= 1 && v <= 300) return v;
+  } catch (e) {}
+  return vnLeadMin_();
+}
+
+function vnLeadSet_(uid, min) {
+  const v = parseInt(min, 10);
+  if (!uid || !(v >= 1 && v <= 300)) return false;
+  try { PropertiesService.getScriptProperties().setProperty(vnLeadKey_(uid), String(v)); }
+  catch (e) { return false; }
+  return true;
+}
+
+/** そのお知らせを「何分前」に変えるボタン（5・10・30・60分前のうち、いま以外） */
+function vnLeadBtns_(ymd, idx, now) {
+  const out = [];
+  [5, 10, 30, 60].forEach(function (m) {
+    if (m === Number(now)) return;
+    out.push({ type: "button", style: "secondary", height: "sm",
+               action: { type: "postback", label: m + "分前にする",
+                         data: "vn=lead&d=" + ymd + "&i=" + idx + "&m=" + m,
+                         displayText: m + "分前にする" } });
+  });
+  return out;
+}
+
 function vnLeadMin_() {
   try {
     if (typeof cfg_ === "function") {
@@ -3357,14 +3413,15 @@ function vnDayLoad_(d) {
 }
 
 /** その催しで「知らせるべき時刻」（終わりの◯分前。分からなければ始まりの◯分前） */
-function vnRemindAt_(ev, day) {
+function vnRemindAt_(ev, day, lead) {
   const base = ev.end || ev.start;
   const h = vnHourOf_(base);
   if (h === null) return 0;
   const t = new Date(day.getFullYear(), day.getMonth(), day.getDate());
   // vnHourOf_ は 0〜11時を +24 して返す（翌日あつかい）
   t.setHours(0, 0, 0, 0);
-  const ms = t.getTime() + Math.round(h * 60) * 60000 - vnLeadMin_() * 60000;
+  const min = (lead >= 1 && lead <= 300) ? Number(lead) : vnLeadMin_();
+  const ms = t.getTime() + Math.round(h * 60) * 60000 - min * 60000;
   return ms;
 }
 
@@ -3407,6 +3464,97 @@ function vnIcsEsc_(t) {
  * 予定ファイル（.ics）の中身を作る。
  * 終了予定の◯分前に鳴るよう、アラーム（VALARM）も入れておく。
  */
+/*
+ * ================================================================
+ *   iPhone の「リマインダー」に入れる
+ *
+ *  ★はっきりお伝えしなければいけないことがあります。
+ *    iPhone の「リマインダー」に、外から直に書き入れる入り口を
+ *    Apple は出していません。こちらの作り方の問題ではありません。
+ *
+ *  ★唯一の道が「ショートカット」アプリです。
+ *    まーくさんが1回だけショートカットを作って、みんなに配れば、
+ *    みんなは1回入れるだけで、あとは押すだけになります。
+ *
+ *  ★ショートカットの名前が決まっていなければ、リンクは作りません
+ *    （押しても何も起きないリンクを渡すのが、いちばん不親切なためです）。
+ *
+ *  ★名前の決め方（まーくさんが、公式LINEの1対1で）
+ *      ショートカット タクシーのリマインダー
+ *    配る用のリンク（iCloudのもの）も、同じように送れば覚えます
+ *      ショートカット https://www.icloud.com/shortcuts/xxxxxxxx
+ * ================================================================ */
+const VN_SC_NAME_KEY = "VN_SHORTCUT_NAME";
+const VN_SC_LINK_KEY = "VN_SHORTCUT_LINK";
+
+function vnShortcutName_() {
+  try { return PropertiesService.getScriptProperties().getProperty(VN_SC_NAME_KEY) || ""; }
+  catch (e) { return ""; }
+}
+function vnShortcutLink_() {
+  try { return PropertiesService.getScriptProperties().getProperty(VN_SC_LINK_KEY) || ""; }
+  catch (e) { return ""; }
+}
+
+/**
+ * ショートカットを走らせるリンクを作る。
+ * 用意ができていなければ空文字。
+ *
+ * ★渡す中身は「件名｜日時」の1本の文字にします。
+ *   ショートカットの側で「｜」で切って、リマインダーの題と時刻にします。
+ *   形をかんたんにしておくほど、こわれにくくなります。
+ */
+function vnShortcutUrl_(ev, day, at) {
+  const name = vnShortcutName_();
+  if (!name || !at) return "";
+  const d = new Date(at);
+  const p2 = function (n) { return ("0" + n).slice(-2); };
+  const when = d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + " " +
+               p2(d.getHours()) + ":" + p2(d.getMinutes());
+  const title = String(ev.venue || "") + (ev.title ? "\u3000" + ev.title : "");
+  const input = title + "｜" + when;
+  return "shortcuts://x-callback-url/run-shortcut?name=" + encodeURIComponent(name) +
+         "&input=text&text=" + encodeURIComponent(input);
+}
+
+/**
+ * 「ショートカット 〇〇」の合図を受ける（まーくさんだけ）。扱ったら true。
+ */
+function vnHandleShortcutCmd_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim();
+  if (!/^(ショートカット|しょーとかっと|shortcut)/i.test(t)) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+  let me = "";
+  try { me = vnTestTarget_(); } catch (e) {}
+  if (!me || uid !== me) return false;                 // ほかの人には、何も返さない
+
+  const arg = t.replace(/^(ショートカット|しょーとかっと|shortcut)[\s\u3000:：]*/i, "").trim();
+  if (!arg) {
+    say("📲 いまの用意\n" +
+        "　名前：" + (vnShortcutName_() || "（まだ）") + "\n" +
+        "　配るリンク：" + (vnShortcutLink_() || "（まだ）") + "\n\n" +
+        "決めるときは、こう送ってください。\n" +
+        "　ショートカット タクシーのリマインダー\n" +
+        "　ショートカット https://www.icloud.com/shortcuts/xxxx");
+    return true;
+  }
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    if (/^https?:\/\//i.test(arg)) {
+      pr.setProperty(VN_SC_LINK_KEY, arg);
+      say("📲 配る用のリンクを覚えました。\n" + arg);
+    } else {
+      pr.setProperty(VN_SC_NAME_KEY, arg);
+      say("📲 ショートカットの名前を覚えました。\n" +
+          "　「" + arg + "」\n\n" +
+          "みんなのiPhoneにも、同じ名前で入っている必要があります。");
+    }
+  } catch (e) { say("📲 覚えられませんでした：" + ((e && e.message) || e)); }
+  return true;
+}
+
 /**
  * 予定ファイル（.ics）をドライブに置いて、そのリンクを返す。
  * 作れなければ空文字。
@@ -3608,7 +3756,9 @@ function vnBellRow_(ev, idx, day) {
       vnBellBtn_("me", "📱LINE", ymd, idx, 4),
       // ★字は短くする。長いと、ボタンの幅で切れて「⏰スマホのア…」になり、
       //   何のボタンか分からなくなる（実際に切れていました）
-      vnBellBtn_("ics", "⏰ﾘﾏｲﾝﾀﾞｰ", ymd, idx, 4)
+      // ★ Apple のしるし。iPhone の人向けだと、ひと目で分かるようにするためです
+      //   （Android では四角に見えます。それでも、iPhone の人に分かることを取りました）
+      vnBellBtn_("ap", " ﾘﾏｲﾝﾀﾞｰ", ymd, idx, 4)
     ]};
 }
 
@@ -3669,6 +3819,19 @@ function vnRemAdd_(at, how, to, ev) {
  * ★押した本人のぶんだけ消す。ほかの人の予約は、絶対に触らない。
  *   （合言葉をたまたま当てられても、送り先がちがえば消さない）
  */
+/**
+ * その人の、その催しの予約を外す（「何分前」を変えるときに使う）。
+ * 外したら true。
+ */
+function vnRemDropItem_(uid, ev, day) {
+  const id = "me|" + String(uid || "") + "|" + ev.venue + "|" + (ev.title || "");
+  const list = vnRemQueue_();
+  const keep = list.filter(function (r) { return r.id !== id; });
+  if (keep.length === list.length) return false;
+  vnRemSave_(keep);
+  return true;
+}
+
 function vnRemDrop_(key, uid) {
   const list = vnRemQueue_();
   let hit = null;
@@ -4112,22 +4275,31 @@ function vnPushHint_(uid) {
  * ★ボタンに持たせる荷物は、みじかい合言葉（6文字）だけ。
  *   会場名や催し名を入れると、決められた長さ（300文字）を超えてしまう。
  */
-function vnRemCancelMsg_(text, key) {
+function vnRemCancelMsg_(text, key, opt) {
+  const rows = [
+    { type: "text", text: String(text), size: "sm", wrap: true, color: "#333333" }
+  ];
+  /*
+   * ★「何分前に知らせるか」を、その場で変えられるようにしました（ご指示）。
+   *   5分前で足りる人もいれば、30分前でないと動けない人もいます。
+   *   設定タブを開いてもらうのは、外ではできません。
+   *   押すだけで変えられて、次からもその分数になります。
+   */
+  if (opt && opt.ymd) {
+    rows.push({ type: "text", text: "⏰ 何分前に知らせますか（いまは" + opt.lead + "分前）",
+                size: "xxs", color: "#5f6368", margin: "md", wrap: true });
+    vnLeadBtns_(opt.ymd, opt.idx, opt.lead).forEach(function (b) { rows.push(b); });
+  }
+  rows.push({ type: "button", style: "secondary", height: "sm", margin: "md",
+              action: { type: "postback", label: "🔕 通知解除",
+                        data: "vn=off&k=" + encodeURIComponent(key),
+                        displayText: "通知解除" } });
   return {
     type: "flex",
     altText: String(text).split("\n")[0],
     contents: {
       type: "bubble", size: "kilo",
-      body: {
-        type: "box", layout: "vertical", spacing: "sm", paddingAll: "12px",
-        contents: [
-          { type: "text", text: String(text), size: "sm", wrap: true, color: "#333333" },
-          { type: "button", style: "secondary", height: "sm", margin: "md",
-            action: { type: "postback", label: "🔕 通知解除",
-                      data: "vn=off&k=" + encodeURIComponent(key),
-                      displayText: "通知解除" } }
-        ]
-      }
+      body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "12px", contents: rows }
     }
   };
 }
@@ -4532,10 +4704,10 @@ function vnHandlePostback_(ev) {
    *   友だち追加がまだだと送れないので、そのときだけ、
    *   押したところに「友だち追加してください」と返す。
    */
-  const tellMe = function (uid, t, key) {
+  const tellMe = function (uid, t, key, opt) {
     // key があるときは「🔕 通知解除」ボタンを添える。
     // 文だけだと、あとから止めたくなったときに止めるところが無いため
-    const msg = key ? vnRemCancelMsg_(t, key) : { type: "text", text: t };
+      const msg = key ? vnRemCancelMsg_(t, key, opt) : { type: "text", text: t };
     if (uid && typeof lrPush_ === "function") {
       try { lrPush_(uid, [msg]); return; }
       catch (e) { /* 送れなかった。下でその場に返す */ }
@@ -4604,33 +4776,76 @@ function vnHandlePostback_(ev) {
    *   公開のやり直しをしていないと Safari で開けず、
    *   「現在、ファイルを開くことができません」になるためです。
    */
-  if (q.vn === "ics") {
+  if (q.vn === "ics" || q.vn === "ap") {
     const uid0 = (ev.source && ev.source.userId) || "";
-    const url = vnIcsLink_(item, day);
-    if (url) {
+    const lead0 = vnLeadFor_(uid0);
+    const at0 = vnRemindAt_(item, day, lead0);
+    const hhmm0 = at0 ? (("0" + new Date(at0).getHours()).slice(-2) + ":" +
+                         ("0" + new Date(at0).getMinutes()).slice(-2)) : "";
+    const link = vnShortcutUrl_(item, day, at0);
+    if (link) {
       tellMe(uid0,
-        "⏰ iPhone用の予定ファイルを作りました。\n" +
-        "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n\n" +
-        url + "\n\n" +
-        "① 上のリンクを押す\n" +
-        "② 「カレンダーに追加」を選ぶ\n" +
-        "③ 終了予定の " + vnLeadMin_() + " 分前に、スマホ自身が鳴ります\n" +
-        "※ LINEが開けなくても、電波が無くても鳴ります。\n" +
-        "※ 入るのは iPhone の「カレンダー」です（「リマインダー」アプリではありません）。");
-    } else {
-      // ★作れなかったときは、黙りません。何ができなかったのかを、そのまま伝えます
-      tellMe(uid0,
-        "⏰ 予定ファイルを作れませんでした。\n" +
-        "お手数ですが、下の「📱LINE」を押してください。\n" +
-        "終了予定の " + vnLeadMin_() + " 分前に、この公式LINEからお知らせします。");
+        " iPhoneの「リマインダー」に入れます。\n" +
+        "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
+        "⏰ " + hhmm0 + "（終了予定の" + lead0 + "分前）\n\n" +
+        link + "\n\n" +
+        "上のリンクを押すと、リマインダーに入ります。");
+      return true;
     }
+    /*
+     * ★ここは、はっきりお伝えしなければいけないところです。
+     *
+     *   iPhone の「リマインダー」に、外から直に書き入れる入り口を
+     *   Apple は出していません。こちらが作れば済む話ではありません。
+     *   使えるのは「ショートカット」アプリだけで、
+     *   そのためには、1回だけ ショートカットを入れてもらう必要があります。
+     *   （入れるのは1回きりで、あとは押すだけになります）
+     *
+     *   できないことを「できます」と言うわけにはいかないので、
+     *   いまの状態と、代わりの受け取り方を、そのまま書きます。
+     */
+    tellMe(uid0,
+      " iPhoneの「リマインダー」は、まだ使えません。\n\n" +
+      "Appleが、外から直接リマインダーへ書き入れる入り口を出していないためです。\n" +
+      "「ショートカット」を1回だけ入れてもらえば、次からは押すだけで入ります。\n" +
+      "（まーくさんが用意して、みんなに配る形になります）\n\n" +
+      "それまでは「📱LINE」を押してください。\n" +
+      "終了予定の" + lead0 + "分前に、この公式LINEからお知らせします。");
     return true;
   }
 
-  const at = vnRemindAt_(item, day);
+  // 何分前にするかを変える（5・10・30・60分前）
+  if (q.vn === "lead") {
+    const uid1 = (ev.source && ev.source.userId) || "";
+    const min = parseInt(q.m, 10);
+    if (!vnLeadSet_(uid1, min)) { say("⏰ その分数には変えられませんでした"); return true; }
+    // いま入っている予約を入れ直す（時刻が変わるため）
+    const at1 = vnRemindAt_(item, day, min);
+    let note = "";
+    try {
+      vnRemDropItem_(uid1, item, day);
+      if (at1 > Date.now()) {
+        vnRemAdd_(at1, "me", uid1, item);
+        try { vnRemindTick_(); } catch (e) {}
+      } else {
+        note = "\n※ もう過ぎているので、この催しには入れていません。";
+      }
+    } catch (e) { note = "\n※ 入れ直しでつまずきました：" + ((e && e.message) || e); }
+    const hh = ("0" + new Date(at1).getHours()).slice(-2) + ":" +
+               ("0" + new Date(at1).getMinutes()).slice(-2);
+    tellMe(uid1,
+      "⏰ " + min + "分前に変えました。\n" +
+      "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
+      "📩 " + hh + "ごろに届きます。" + note + "\n\n" +
+      "※ これから入れるお知らせも、" + min + "分前になります。");
+    return true;
+  }
+
+  const uidNow = (ev.source && ev.source.userId) || "";
+  const at = vnRemindAt_(item, day, vnLeadFor_(uidNow));
   if (!at) { say("⏰ だ…ダメだ…時間が分からない…"); return true; }
 
-  const lead = vnLeadMin_();
+  const lead = vnLeadFor_(uidNow);
   const base = item.end ? "終了予定" : "始まり";
   if (at <= Date.now()) {
     // もう過ぎている。いま1回だけ送る
@@ -4657,7 +4872,8 @@ function vnHandlePostback_(ev) {
     // すでに入っている。止めたくなったときのために、解除ボタンは添える
     tellMe(me, "🔔 そのお知らせは、もう入っています。\n" +
                "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n" +
-               "📩 " + hhmm + "ごろに届きます。", reg.key);
+               "📩 " + hhmm + "ごろに届きます。", reg.key,
+               { ymd: ymd, idx: Number(q.i), lead: lead });
     return true;
   }
 
@@ -4707,7 +4923,9 @@ function vnHandlePostback_(ev) {
       // ★案内が空のときに、うしろへ空っぽの行が付かないようにする
       "※ やめたいときは、下の「🔕 通知解除」を押してください。" +
       (vnMailHint_(me) ? "\n" + vnMailHint_(me) : ""),
-      reg.key);
+      reg.key,
+      // ★「何分前にするか」を、その場で変えられるようにする（ご指示）
+      { ymd: ymd, idx: Number(q.i), lead: lead });
   return true;
 }
 

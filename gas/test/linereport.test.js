@@ -450,10 +450,17 @@ function mkFt(set) {
   eq(a.nextMonth, 9, '8/15までの期間なら、予想するのは9月');
   eq(a.bigSlots, 3, '平均￥10,000超えの時間帯を数える');
   eq(a.allSlots, 4, '数えるのは3件以上ある時間帯だけ（2件の ｺﾅﾝ像 は入れない）');
-  eq(ctx.adviceForecastText_(a).indexOf('通り') !== -1, true,
-     '「8個中」ではなく「〇通り」と、何を数えたかが分かる書き方にする');
-  eq(ctx.adviceForecastText_(a).indexOf('曜日区分×時間帯の組み合わせ') !== -1, true,
-     '  何の組み合わせかも書く');
+  /*
+   * ★「▼この期間の記録から」は、まるごと出さなくなりました（ご指示）。
+   *   「いちばん強かったのは 月曜23時台の〇〇（平均￥9,190）」と
+   *   「この期間に稼げていた乗り場：〇〇 平均￥3,100」が並ぶと、
+   *   同じ乗り場なのに数字が食いちがって見えました（数え方が違うだけですが、
+   *   読む人には ちぐはぐにしか見えません）
+   */
+  eq(ctx.adviceForecastText_(a).indexOf('曜日区分×時間帯の組み合わせ') === -1, true,
+     '★「この期間の記録から」の数え上げは、もう出さない（ご指示）');
+  eq(ctx.adviceForecastText_(a).indexOf('先月いちばん強かったのは') === -1, true,
+     '  「いちばん強かったのは〜」も出さない（上の乗り場の平均と食いちがって見えた）');
   eq(ctx.adviceForecastText_(a).indexOf('その時間帯で粘って1本の単価を上げる') !== -1, true,
      '10,000超えが3個以上なら、粘って単価を上げるほうをすすめる');
   /*
@@ -545,9 +552,19 @@ console.log('\n■ アツいエリアの1行（記号も［］の中・言葉は
   const longName = 'ながいながいながいながいながい乗り場の名前';
   const c = B('ﾐﾄﾞﾙ', 12, 8800, 21, '⭕️', 'アツい', longName, '(火)22:05');
   eq(c.indexOf('アツい') !== -1, true, '★名前が長くても「アツい」は必ず入れる');
-  const MAXW = vm.runInContext('LR_BAND_MAX', ctx);
-  eq(W(c) <= MAXW, true, '★それでも1行に収まる（' + W(c) + ' ≦ ' + MAXW + '）');
-  eq(c.indexOf('…') !== -1, true, '★入りきらないぶんは、名前のほうを短くする');
+  /*
+   * ★乗り場の名前は、どんなに長くても 最後まで書く（ご指示）。
+   *   前は うしろを切って「…」を付けていましたが、
+   *   それでは どこの乗り場なのか まるで分かりませんでした。
+   *   入りきらないときは、名前ではなく まわりの空白や言葉のほうを詰めます
+   */
+  eq(c.indexOf(longName) !== -1, true, '★乗り場の名前は、最後まで必ず入れる');
+  eq(c.indexOf('…') === -1, true, '★名前を途中で切らない（何の乗り場か分からなくなる）');
+  const short = B('ﾐﾄﾞﾙ', 12, 8800, 21, '⭕️', 'アツい', '新地4', '(火)22:05');
+  eq(W(short) <= vm.runInContext('LR_BAND_MAX', ctx), true, '  ふつうの長さなら、1行に収まる');
+  eq(short.indexOf(' ') !== -1, true, '  収まるときは、空白を残して読みやすくする');
+  eq(c.indexOf(' ') === -1, true, '★入りきらないときは、まず空白を詰める');
+  eq(c.indexOf('平￥') !== -1, true, '  それでも足りなければ、言葉のほうを縮める');
   eq(c.indexOf('(火)22:05') !== -1, true, '  時刻は削らない（いつ行くかが分からなくなるため）');
   eq(c.indexOf(']') === c.length - 1, true, '  ］でちゃんと閉じる');
 
@@ -754,8 +771,9 @@ console.log('\n■ アドバイスとオプチャを入れても形がこわれ�
   eq(J2.indexOf('【9月の戦略予想】') === -1, true, '  ★「〇月の戦略予想」とは、もう書かない');
   // ★「区切りが、動くときです」も、何のことか分からない言い方だった
   eq(J2.indexOf('区切りが、動くときです') === -1, true, '★「区切りが、動くときです」とは書かない');
-  eq(J2.indexOf('次の乗り場へ移るタイミングです') !== -1, true,
-     '★「行が変わるところが、次の乗り場へ移るタイミングです」と書く');
+  // ★説明書きは、ご指示で出さなくなりました（見れば分かることでした）
+  eq(J2.indexOf('次の乗り場へ移るタイミングです') === -1, true,
+     '★一晩の流し方の説明書きは、もう出さない（ご指示）');
   eq(J2.indexOf('江坂') !== -1, true, '  振り返りの中身も入っている');
 
   eq(J2.indexOf('📣 オプチャ情報') !== -1, true, 'オプチャの箱が入る');
@@ -801,8 +819,8 @@ console.log('\n■ 大事なところだけ太字にする');
      '★「1時間待ち続けたら」とは、どこにも書かない');
   eq(bold(ctx.advicePickParts_(a)[0]), ['土曜 03時台', '江坂', '￥7,233', '03:16、03:20、03:40'],
      'オススメは 時間帯・乗り場・金額・時刻だけ太字');
-  eq(bold(ctx.adviceForecastParts_(a)), ['江坂', '￥7,233', '平日の23時台', '新地4', '1通り', '1通り', 'ふだんは数をこなし、その時間帯だけ粘る'],
-     '予想は 強かった枠・件数・結論 だけ太字（全部太字だと、どこが大事か分からない）');
+  eq(bold(ctx.adviceForecastParts_(a)), ['江坂', '￥7,233', 'ふだんは数をこなし、その時間帯だけ粘る'],
+     '予想は 乗り場・金額・結論 だけ太字（全部太字だと、どこが大事か分からない）');
   // ★「こういう月」と「狙いどころ」は1つにまとめた。
   //   月の説明だけ読まされても、で、どこへ行けばよいのかが分からない
   /*
@@ -818,8 +836,10 @@ console.log('\n■ 大事なところだけ太字にする');
      '  必ず「で、どこを狙うか」まで書く');
   eq((ctx.advicePlain_(ctx.adviceForecastParts_(a)).match(/月の狙いどころ/g) || []).length, 0,
      '  見出しを2つに分けない');
-  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ この期間の記録から') !== -1, true,
-     '  そのあとに、この期間の数字');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ この期間の記録から') === -1, true,
+     '★「この期間の記録から」は、もう出さない（ご指示）');
+  eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('この3つが重なるところ') === -1, true,
+     '★「この3つが重なるところから入ってください」も、もう書かない（ご指摘）');
   eq(ctx.advicePlain_(ctx.adviceForecastParts_(a)).indexOf('▼ おすすめの動き方') !== -1, true,
      '  最後に、どう動くか');
 
@@ -1295,6 +1315,30 @@ console.log('\n■ 送る前に、空のところを取りのぞく（出口で�
   eq(deep.contents[0].text, 'のこる', '  残るものは残る');
   eq(C([]).length, 0, '空の配列でも落ちない');
   eq(C(null), null, 'null でも落ちない');
+}
+
+console.log('\n■ 「避ける」と言ってよいのは ￥1,999 以下のときだけ');
+{
+  const A = ctx.lrAvoidSpot_;
+  eq(A('新地4', 1200), '新地4', '★￥1,200 なら「避ける」でよい');
+  eq(A('新地4', 1999), '新地4', '  ￥1,999 まではそのまま');
+  eq(A('新地4', 2000), '-', '★￥2,000 は最低ラインを超えているので「避ける」にしない（ご指示）');
+  eq(A('新地4', 3500), '-', '  それより高ければ、なおさら「避ける」ではない');
+  eq(A('-', 100), '-', '  乗り場が決まっていなければ、そのまま');
+  eq(A('', 100), '-', '  空でも落ちない');
+  eq(vm.runInContext('LR_AVOID_MAX', ctx), 2000, '  さかいめは ￥2,000');
+}
+
+console.log('\n■ 戦略予想の区切り線は、LINEの絵では出さない');
+{
+  const a = { season: 'あ', nextPlanMonth: 9, nextMonth: 9, nextLabel: '9月16日〜10月15日',
+              topSpots: [{ name: '江坂', count: 5, avg: 7233, wait: 22 }],
+              allSlots: 2, bigSlots: 1, waitAvg: 20, top: null };
+  const sheet = ctx.advicePlain_(ctx.adviceForecastParts_(a));
+  const line  = ctx.advicePlain_(ctx.adviceForecastParts_(a, { noHr: true }));
+  eq(sheet.indexOf('────') !== -1, true, 'まとめスプシのほうは、これまでどおり線を引く');
+  eq(line.indexOf('────'), -1, '★LINEの絵では、線を引かない（幅がせまく、線だけで1行使うため）');
+  eq(line.indexOf('▼ おすすめの動き方') !== -1, true, '  見出しそのものは、ちゃんと残る');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

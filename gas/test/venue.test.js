@@ -1097,7 +1097,8 @@ console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
   // ボタンが絵に出る
   ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
   const row = JSON.stringify(ctx.vnBellRow_({ venue: '京セラドーム' }, 0, day));
-  has(row, '⏰ﾘﾏｲﾝﾀﾞｰ', '★通知設定のらんに、リマインダーのボタンが出る');
+  has(row, 'ﾘﾏｲﾝﾀﾞｰ', '★通知設定のらんに、リマインダーのボタンが出る');
+  has(row, '\uf8ff', '★Appleのしるしを付ける（iPhone用だと ひと目で分かるように）');
   eq(row.indexOf('スマホのアラーム'), -1, '  ★前の長い字は、もう使わない（途中で切れていた）');
   has(row, '📱LINE', '  LINEのボタンも、そのまま残る');
 
@@ -1109,10 +1110,10 @@ console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
    */
   eq(row.indexOf('"type":"uri"'), -1, '★ホームページへ直に飛ばさない（Safariで開けなかった）');
   has(row, '"type":"postback"', '  押したら、こちらへ合図が来る形');
-  has(row, 'vn=ics', '  どのボタンかも分かるようにしてある');
+  has(row, 'vn=ap', '  どのボタンかも分かるようにしてある');
   vm.runInContext('function wbUrl_(){ return ""; }', ctx);
-  has(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)), '⏰ﾘﾏｲﾝﾀﾞｰ',
-     '★ページを公開していなくても、ボタンは出る（ドライブから渡すため）');
+  has(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)), 'ﾘﾏｲﾝﾀﾞｰ',
+     '★ページを公開していなくても、ボタンは出る');
   vm.runInContext('function wbUrl_(){ return "https://script.google.com/macros/s/AAA/exec"; }', ctx);
 }
 
@@ -2257,53 +2258,84 @@ console.log('\n■ 助言は「記録からそのまま数えた数」だけに�
   eq(line.indexOf('近いのは'), -1, '★「近いのは 〇〇」も、もう書かない（ご指示）');
 }
 
-console.log('\n■ ⏰リマインダーは、押されたらドライブの予定ファイルを渡す');
+console.log('\n■ リマインダーは、iPhoneの「リマインダー」に入れる');
 {
   const day = new Date(2026, 8, 18);
   ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
-  const made = {};
-  const mkFile = function (n, text) {
-    return { _t: text,
-      setContent: function (t) { this._t = t; return this; },
-      setSharing: function () { this._shared = true; return this; },
-      getUrl: function () { return 'https://drive.example/' + n; } };
-  };
-  ctx.DriveApp = {
-    Access: { ANYONE_WITH_LINK: 'anyone' }, Permission: { VIEW: 'view' },
-    getFilesByName: function (n) { return { hasNext: function () { return !!made[n]; },
-                                            next: function () { return made[n]; } }; },
-    createFile: function (n, text) { made[n] = mkFile(n, text); return made[n]; }
-  };
+  delete props['VN_SHORTCUT_NAME'];
+  delete props['VNLEAD_Umark'];
 
+  /*
+   * ★iPhoneの「リマインダー」に、外から直に書き入れる入り口を
+   *   Apple は出していません。使えるのは「ショートカット」だけです。
+   *   用意ができていないうちは、できない と はっきり言うこと。
+   *   押しても何も起きないリンクを渡すのが、いちばん不親切です
+   */
   pushed.length = 0;
   const took = ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=ics&d=20260918&i=0' } });
+    postback: { data: 'vn=ap&d=20260918&i=0' } });
   eq(took, true, '★押されたら、必ず受ける');
   eq(pushed.length, 1, '★押したら、かならず返事が来る（押せたと分かる）');
+  has(msgText(pushed[0].msgs[0]), 'まだ使えません', '★用意ができていなければ、できないと はっきり言う');
+  has(msgText(pushed[0].msgs[0]), 'ショートカット', '  なぜできないのかも書く');
+  has(msgText(pushed[0].msgs[0]), '📱LINE', '  代わりの受け取り方も伝える');
+
+  // 用意ができたら、押すだけのリンクを渡す
+  ctx.vnHandleShortcutCmd_({ replyToken: 'r', source: { userId: 'Umark' },
+    message: { text: 'ショートカット タクシーのリマインダー' } });
+  eq(props['VN_SHORTCUT_NAME'], 'タクシーのリマインダー', '★ショートカットの名前を覚える');
+  pushed.length = 0;
+  ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
+    postback: { data: 'vn=ap&d=20260918&i=0' } });
   const tx = msgText(pushed[0].msgs[0]);
-  has(tx, 'https://drive.example/', '★ドライブのリンクを渡す（公開のやり直しが要らない）');
-  has(tx, 'カレンダーに追加', '  やることを、順番に書く');
-  has(tx, 'リマインダー', '  iPhoneの「リマインダー」アプリとは別だと、はっきり書く');
-  const names = Object.keys(made);
-  eq(names.length, 1, '  予定ファイルは1つだけ作る');
-  has(made[names[0]]._t, 'BEGIN:VCALENDAR', '  中身は、ちゃんとした予定ファイル');
-  eq(made[names[0]]._shared === true, true, '★リンクを知っていれば開ける形にする');
+  has(tx, 'shortcuts://x-callback-url/run-shortcut', '★押すだけで入るリンクを渡す');
+  has(tx, encodeURIComponent('タクシーのリマインダー'), '  どのショートカットかも入れる');
+  has(tx, '20:55', '★終了予定(21:00)の5分前');
+  eq(tx.indexOf('カレンダー'), -1, '★カレンダーには入れない（ご指示）');
 
-  // 二度押しても、ファイルは増やさない
+  // ほかの人は、名前を変えられない
+  const before = props['VN_SHORTCUT_NAME'];
+  ctx.vnHandleShortcutCmd_({ replyToken: 'r', source: { userId: 'Uother' },
+    message: { text: 'ショートカット いたずら' } });
+  eq(props['VN_SHORTCUT_NAME'], before, '★まーくさん以外は、変えられない');
+  delete props['VN_SHORTCUT_NAME'];
+}
+
+console.log('\n■ お知らせを「何分前」にするかを、押して変えられる');
+{
+  const day = new Date(2026, 8, 18);
+  ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  delete props['VNLEAD_Umark'];
+  delete props['VN_REMIND'];
+
+  // まず 📱LINE を押す（既定は5分前）
   pushed.length = 0;
   ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=ics&d=20260918&i=0' } });
-  eq(Object.keys(made).length, 1, '★二度押しても、ドライブに増やさない');
-  eq(pushed.length, 1, '  でも、返事はちゃんと返す');
+    postback: { data: 'vn=me&d=20260918&i=0' } });
+  const j1 = JSON.stringify(pushed[0].msgs[0]);
+  has(j1, '10分前にする', '★返事に「10分前にする」ボタンが付く');
+  has(j1, '30分前にする', '  30分前も');
+  has(j1, '60分前にする', '  60分前も');
+  eq(j1.indexOf('5分前にする'), -1, '  いまと同じ分数のボタンは出さない');
+  has(j1, '🔕 通知解除', '  やめるボタンも、これまでどおり');
 
-  // ドライブが使えないときは、黙らずに、代わりの手を伝える
-  delete ctx.DriveApp;
+  // 30分前に変える
   pushed.length = 0;
   ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=ics&d=20260918&i=0' } });
-  eq(pushed.length, 1, '★作れなくても、黙らない');
-  has(msgText(pushed[0].msgs[0]), '作れませんでした', '  できなかったと、はっきり言う');
-  has(msgText(pushed[0].msgs[0]), '📱LINE', '  代わりの手も伝える');
+    postback: { data: 'vn=lead&d=20260918&i=0&m=30' } });
+  eq(props['VNLEAD_Umark'], '30', '★その人の「何分前」を覚える');
+  has(msgText(pushed[0].msgs[0]), '30分前に変えました', '  変えたと、はっきり返す');
+  const q = JSON.parse(props['VN_REMIND'] || '[]');
+  eq(q.length, 1, '★予約は1つのまま（古いほうは消す）');
+  const at = new Date(q[0].at);
+  eq(at.getHours() + ':' + ('0' + at.getMinutes()).slice(-2), '20:30',
+     '★21:00 終了予定の30分前＝20:30に直る');
+
+  // これから入れるぶんも、その分数になる
+  eq(ctx.vnLeadFor_('Umark'), 30, '★次からも30分前');
+  eq(ctx.vnLeadFor_('Uother'), 5, '  決めていない人は、これまでどおり5分前');
+  delete props['VNLEAD_Umark'];
+  delete props['VN_REMIND'];
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
