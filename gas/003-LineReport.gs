@@ -2,7 +2,24 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L036ver  （2026/09/17）  ★★★
+ *  ★★★  L037ver  （2026/09/17）  ★★★
+ *
+ *  [L037ver]
+ *   ・📅 戦略予想を「次の16日〜翌月15日」の話にした
+ *     ★見出しを「【9月16日〜10月15日の戦略予想】」に変えました。
+ *       前は「10月の戦略予想」で、ハロウィン（10/31）の話が出ていました。
+ *       その日は、次に走る期間には1日も入っていません
+ *     ★季節の話も、次に走る期間に日数がいちばん多くかかっている月で選びます
+ *       （同じ日数なら、先の月。9/16〜10/15 なら 9月）
+ *   ・⏱ 待ち時間が読み取れないときは「－」だけにした
+ *     ★前は「データ不足（1件以上で表示）」と長い文が入っていました。
+ *       待ち時間のマスは狭いので、2行3行になって表が読みにくくなっていました
+ *     ★0分も「－」にします。待たなかったのではなく、
+ *       そもそも書いていないことがほとんどだからです
+ *   ・🗣 むずかしい言い方を、ふつうの言葉にした
+ *     「軸は 20〜22時台の…」→「いちばん稼げているのは 20〜22時台の…」
+ *     「区切りが、動くときです」→
+ *     「行が変わるところが、次の乗り場へ移るタイミングです」
  *
  *  [L036ver]
  *   ・🗑 LINEの絵から「この絵の読み方」の箱を、まるごと外した
@@ -2043,7 +2060,9 @@ function buildReportFlex_(o) {
       { "type": "text", "text": "🚕 一晩の流し方（20:00〜翌04:00）", "weight": "bold", "size": "sm",
         "color": "#1565c0", "margin": "md", "wrap": true },
       // 説明は1行だけ。言葉の意味は、いちばん上の「読み方」で説明ずみ
-      { "type": "text", "text": "同じ乗り場が続く時間はまとめています。区切りが、動くときです。",
+      // ★「区切りが、動くときです」は、何のことか分からない言い方でした。
+      //   「線の変わり目で、次の乗り場へ移ります」と、そのまま書きます
+      { "type": "text", "text": "同じ乗り場が続く時間は、まとめて1行にしています。行が変わるところが、次の乗り場へ移るタイミングです。",
         "size": "xxs", "color": "#5f6368", "margin": "xs", "wrap": true });
 
     DAY_TYPES.forEach(function (dType) {
@@ -2183,7 +2202,7 @@ function buildReportFlex_(o) {
       ]},
 
       { "type": "box", "layout": "vertical", "backgroundColor": "#e8f5e9", "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
-        { "type": "text", "text": `【${advice.nextMonth}月の戦略予想】`, "size": "xs", "weight": "bold", "color": "#2e7d32" },
+        { "type": "text", "text": adviceForecastTitle_(advice), "size": "xs", "weight": "bold", "color": "#2e7d32" },
         { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": adviceSpans_(adviceForecastParts_(advice), "#333333") }
       ]});
   }
@@ -2651,9 +2670,26 @@ function buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, t
   combos.sort(function (a, b) { return b.avg - a.avg || b.count - a.count; });
   const picks = combos.slice(0, 3);
 
-  /* --- ③ 翌月の戦略予想 --- */
+  /* --- ③ 次の期間の戦略予想 --- */
   const next = new Date(endD.getFullYear(), endD.getMonth() + 1, 1);
   const nextMonth = next.getMonth() + 1;
+  /*
+   * ★予想する期間は「次の締め日まで」です（まーくさんのご指示）。
+   *
+   *   これまでは「〇月の戦略予想」と、ふつうの暦の1か月で書いていました。
+   *   でも、この仕事の区切りは 16日〜翌月15日です。
+   *   たとえば 8/16〜9/15 の集計なら、次は 9/16〜10/15 が走る期間です。
+   *   そこで「10月の予想」としてハロウィンの話を書いても、
+   *   10/16以降の話なので、次の期間には1日も入っていません。
+   *   読む人は、いま走る期間の話だと思って読みます。それは間違いのもとです。
+   *
+   *   なので、次の期間そのもの（この集計の終わりの翌日から、1か月後の同じ日まで）
+   *   を見出しに出します。
+   */
+  const nextFrom = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate() + 1);
+  const nextTo = new Date(nextFrom.getFullYear(), nextFrom.getMonth() + 1, nextFrom.getDate() - 1);
+  const nextLabel = (nextFrom.getMonth() + 1) + "月" + nextFrom.getDate() + "日〜" +
+                    (nextTo.getMonth() + 1) + "月" + nextTo.getDate() + "日";
 
   // 平均￥10,000を超える時間帯がいくつあるか。いちばん強い枠はどこか
   let bigSlots = 0, allSlots = 0, top = null;
@@ -2682,7 +2718,21 @@ function buildMonthlyAdvice_(spotStats, spotHotData, finalTimeline, DAY_TYPES, t
     best: best,
     picks: picks,
     nextMonth: nextMonth,
-    season: LR_MONTH_PLAN[nextMonth] || "",
+    // 「9月16日〜10月15日」。見出しに出す、次に走る期間
+    nextLabel: nextLabel,
+    // 予想の中身は、次の期間に いちばん多くかかっている月で選ぶ
+    nextPlanMonth: nextPlanMonth_(nextFrom, nextTo),
+    /*
+     * ★季節の話は「次に走る期間に、いちばん多くかかっている月」のものにします。
+     *
+     *   前はふつうの暦の翌月で選んでいました。
+     *   8/16〜9/15 の集計なら翌月は「10月」ではなく「9月」ですが、
+     *   9/16〜10/15 の集計では翌月が「10月」になり、
+     *   ハロウィン（10/31）の話が出ていました。
+     *   その日は、次に走る期間（〜10/15）には1日も入っていません。
+     *   読む人は、いま走る期間の話だと思って読みます。それは間違いのもとです。
+     */
+    season: LR_MONTH_PLAN[nextPlanMonth_(nextFrom, nextTo)] || LR_MONTH_PLAN[nextMonth] || "",
     aim: "",
     // 記録から出した「稼げている乗り場」上位3つ。
     // 一般論だけで終わらせず、実際の名前を出すために持たせる
@@ -2761,6 +2811,44 @@ function advicePickParts_(a) {
     if (c.times.length) line.push({ t: "\n　 狙い目：" }, { t: c.times.join("、"), b: true, c: "#2e7d32" });
     return line;
   });
+}
+
+/**
+ * 次に走る期間（16日〜翌月15日）のうち、日数がいちばん多い月。
+ * 季節の話（LR_MONTH_PLAN）は、この月のものを使う。
+ *
+ * ★16日〜15日なので、期間は必ず2つの月にまたがります。
+ *   どちらの月の話を書くかを決めないと、
+ *   「10月の予想」と書きながら、その期間に10月が16日ぶんしか
+ *   入っていない、ということが起きます。
+ *   日数の多いほう＝その期間の顔になる月、で決めます。
+ */
+function nextPlanMonth_(from, to) {
+  if (!from || !to) return 0;
+  const days = {};
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  let guard = 0;
+  while (d <= to && guard++ < 400) {
+    const m = d.getMonth() + 1;
+    days[m] = (days[m] || 0) + 1;
+    d.setDate(d.getDate() + 1);
+  }
+  let best = 0, n = -1;
+  for (const m in days) { if (days[m] > n) { n = days[m]; best = Number(m); } }
+  return best;
+}
+
+/**
+ * 戦略予想の見出し。
+ * 「【9月16日〜10月15日の戦略予想】」
+ *
+ * ★期間が分からないときだけ、これまでどおり「〇月の戦略予想」に戻します
+ *   （見出しが消えてしまうより、そのほうがましなため）。
+ */
+function adviceForecastTitle_(advice) {
+  const a = advice || {};
+  if (a.nextLabel) return "【" + a.nextLabel + "の戦略予想】";
+  return "【" + (a.nextMonth || "") + "月の戦略予想】";
 }
 
 /** 翌月の戦略予想を、太字つきで返す */
@@ -2905,6 +2993,31 @@ function advicePickLines_(a) { return advicePickParts_(a).map(advicePlain_); }
  *   LINEの絵が「分析・戦略レポート」なので、同じ名前にしました。
  *   同じものを2つの名前で呼ぶと、別のものだと思われます。
  */
+/**
+ * 待ち時間のマスに書く文字。
+ * 読み取れていなければ「－」だけを返す。
+ *
+ * ★まーくさんのご指示です。
+ *   前は「データ不足（1件以上で表示）」と長い文が入っていました。
+ *   待ち時間のマスは狭いので、そのひとことで2行にも3行にもなり、
+ *   表そのものが読みにくくなっていました。
+ *   待ち時間は「書いてあるか、書いていないか」だけの話なので、
+ *   書いていないなら「－」の1文字で足ります。
+ *
+ * ★0分も「－」にします。
+ *   待たずに乗せられた記録は「0分」ではなく、
+ *   そもそも待ち時間を書いていないことがほとんどだからです。
+ */
+function dbWaitText_(v) {
+  if (v === null || v === undefined) return "－";
+  if (typeof v === "number") return v > 0 ? v + "分" : "－";
+  const t = String(v).trim();
+  if (!t) return "－";
+  // 「データ不足（〜）」「記録なし」などが入っていたら、そこも「－」にそろえる
+  if (t.indexOf("データ不足") === 0 || t === "0分" || t === "0") return "－";
+  return t;
+}
+
 function dbMainTitle_(periodTab, total) {
   return "📈 【" + String(periodTab == null ? "" : periodTab) + "】" +
          "分析・戦略レポート(詳細)（全" + (total || 0) + "件）";
@@ -3117,7 +3230,9 @@ function nightHeadline_(segs) {
     if (x.avg > top.avg || (x.avg === top.avg && x.count > top.count)) top = x;
   });
 
-  const out = ["軸は " + nightSpan_(top) + " の " + top.name +
+  // ★「軸は」は、ふだん使わない言い方でした（まーくさんのご指示で直しました）。
+  //   だれが読んでも分かる言い方にします
+  const out = ["いちばん稼げているのは " + nightSpan_(top) + " の " + top.name +
                "（" + nightMoneyLabel_(top) + "￥" + top.avg.toLocaleString() +
                "／" + top.count + "件）"];
 
@@ -4078,7 +4193,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         [[{ t: `同じ曜日・時間帯で${LR_NIGHT_MIN_N}件以上の記録があり、平均単価が高かった組み合わせです。` +
               `（${LR_NIGHT_MIN_N}件に満たないものは、まぐれの可能性があるので出していません）`, c: "#5f6368" }]].concat(pickParts),
         "#fdf0ef", "#b71c1c"],
-      [`【${advice.nextMonth}月の戦略予想】`, [adviceForecastParts_(advice)], "#eaf4ec", "#2e7d32"]
+      [adviceForecastTitle_(advice), [adviceForecastParts_(advice)], "#eaf4ec", "#2e7d32"]
     ];
     blocks.forEach(function (b) {
       sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(b[0])
@@ -4519,7 +4634,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         }
       });
     }
-    if(!item.waitText) item.waitText = lrThin_(1);
+    // 待ち時間が1つも書かれていなければ「－」だけ（マスが狭いので長い文は入れない）
+    if(!item.waitText) item.waitText = dbWaitText_("");
     item.overallWait = wArrAll.length > 0 ? Math.round(wArrAll.reduce((a,b)=>a+b,0)/wArrAll.length) : 0;
   }
 
@@ -4623,7 +4739,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
         const dRngs = getGridRange(sheet, row, 1, 1, hSpans);
         // 乗り場名は、このかたまりの行ぶん（備考があれば2行）まとめて1マスにする（下で書く）
         dRngs[2].merge().setValue(rData[0]+"\n"+rData[1]).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold");
-        dRngs[3].merge().setValue(rData[4]).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle");
+        dRngs[3].merge().setValue(dbWaitText_(rData[4])).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle");
 
         const priceCell = dRngs[4].merge().setValue(rData[3]).setNumberFormat('￥#,##0').setFontSize(12).setHorizontalAlignment("center").setVerticalAlignment("middle").setFontWeight("bold");
         // 文字色は記録用スプシと同じ決まり。背景はその目印

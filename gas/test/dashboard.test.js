@@ -200,5 +200,24 @@ console.log('\n■ まとめスプシの1行目（タイトル）');
      '固定できなくても、落ちずに false を返す（表づくりは続ける）');
 }
 
+console.log('\n■ 待ち時間が読み取れなかったら「－」だけ');
+{
+  const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), msg, got);
+  /*
+   * ★待ち時間のマスは狭い。「データ不足（1件以上で表示）」のような長い文を入れると
+   *   2行3行になって、表そのものが読みにくくなっていた
+   */
+  eq(ctx.dbWaitText_(''), '－', '★空なら「－」だけ');
+  eq(ctx.dbWaitText_(null), '－', '  null でも「－」');
+  eq(ctx.dbWaitText_(undefined), '－', '  未設定でも「－」');
+  eq(ctx.dbWaitText_(0), '－', '★0分も「－」（待たなかったのではなく、書いていないことがほとんど）');
+  eq(ctx.dbWaitText_('0分'), '－', '  「0分」と入っていても「－」');
+  eq(ctx.dbWaitText_('データ不足（1件以上で表示）'), '－',
+     '★長い「データ不足（〜）」も「－」にそろえる');
+  eq(ctx.dbWaitText_(12), '12分', '読み取れていれば、そのまま分で書く');
+  eq(ctx.dbWaitText_('平日 12分'), '平日 12分', '曜日つきの書き方は、そのまま残す');
+  eq(ctx.dbWaitText_('  '), '－', '空白だけでも「－」');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
