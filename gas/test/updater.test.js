@@ -3218,8 +3218,9 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   delete props['UPD_ERRAND_DONE'];
 
   // できることは、決めた一覧の中だけ
-  t(!!OK['ping'] && !!OK['event-test'] && !!OK['report-test'] && !!OK['venue-probe'],
-    '★できることは、4つに決めてある');
+  t(!!OK['ping'] && !!OK['event-test'] && !!OK['report-test'] && !!OK['venue-probe'] &&
+    !!OK['venue-ledger'],
+    '★できることは、決めた一覧の中だけ（いまは5つ）');
   t(OK['group-send'] === undefined && OK['本番'] === undefined,
     '★グループへの本番送信は、一覧に無い（ここからは絶対にできない）');
 

@@ -246,7 +246,9 @@ console.log('\n■ イベントの枠そのものが、公式ページへのボ�
 
   // 絵ぜんたいでも、案内がちゃんと出る
   const whole = JSON.stringify(ctx.vnFitMessages_(day, ctx.vnSampleEvents_(), '')[0]);
-  has(whole, '👆 各イベント名（下線）を押すと、その公式ページが開きます', '読み方のところにも書いてある');
+  eq(whole.indexOf('各イベント名（下線）を押すと'), -1,
+     '★いちばん上の「各イベント名を押すと〜」は、もう出さない（ご指示）');
+  has(whole, '👆 詳細はタップ', '  代わりに、1件ずつの枠の中に案内がある');
   eq(whole.indexOf('🔗 もとのページ'), -1, 'URLを下にまとめて並べるのは、もうやめた');
 }
 
@@ -287,7 +289,10 @@ console.log('\n■ ホテルの資料は、オプチャと取り違えない');
   has(ctx.lastReply, 'ジェバンニ', '  読み取れたときだけ返事する');
   has(ctx.lastReply, '件数：1件', '  件数が出る');
   has(ctx.lastReply, '場所：帝国ホテル', '  場所が出る');
-  eq(ctx.lastReply.split('\n').length, 3, '  3行だけ（ポンポン喋らない）');
+  eq(ctx.lastReply.split('\n').length, 4, '  4行だけ（ポンポン喋らない）');
+  has(ctx.lastReply, '資料：', '★資料のことは、うまくいっても いかなくても必ず書く');
+  has(ctx.lastReply, '見返せる形にできませんでした',
+      '★しまえなかったときは、黙らずに そう言う（帝国ホテルのぶんが、黙って押せないままでした）');
   eq(/ジェバンニが[0-9.]+秒でやってくれました/.test(ctx.lastReply), true, '  読み取りにかかった秒数も出る');
 
   // ③ 合図が無ければ、写真には手を出さない（今までどおりオプチャ）
@@ -833,9 +838,16 @@ console.log('\n■ イベント名は、下線つきで押せる');
   has(j, '"decoration":"underline"', '★イベント名に下線を引く（押せると分かるように）');
   eq(j.indexOf('"text":"京セラドーム大阪"') !== -1 || j.indexOf('京セラドーム大阪') !== -1, true, '  会場名が出る');
   eq(card.action, undefined, '★枠ぜんたいを押せるのは、やめた（どこを押すのか紛らわしかった）');
-  // 見出しの行と、催し名の行の両方から、同じページへ飛べる
+  /*
+   * ★押せるのは、会場の名前（1行目）だけです。
+   *   ジャンルや催し名（「音楽・芸能」「アジア競技大会」など）には
+   *   下線を引かず、押せるようにもしません（ご指示）。
+   *   下線が2か所にあると、どちらが入り口なのか分かりません
+   */
   const acts = (j.match(/"uri":"https:\/\/k\/"/g) || []).length;
-  eq(acts >= 2, true, '  ★イベント名（見出し・催し名）のどちらを押しても、同じページへ');
+  eq(acts, 1, '★押せるのは、会場の名前だけ（ジャンルや催し名は押せない）');
+  const unds = (j.match(/"decoration":"underline"/g) || []).length;
+  eq(unds, 1, '★下線も、会場の名前だけ');
   // 時刻には下線を引かない（押すところが2つあるように見えるため）
   const head = card.contents[0];
   const und = head.contents.filter(x => x.decoration === 'underline');
@@ -848,15 +860,15 @@ console.log('\n■ イベント名は、下線つきで押せる');
 
   // 上の案内文
   const msg = JSON.stringify(ctx.vnFitMessages_(day, [ev], ''));
-  has(msg, '各イベント名（下線）を押すと', '★案内も「枠」ではなく「イベント名」と書く');
-  eq(msg.indexOf('各イベントの枠を押すと'), -1, '  前の紛らわしい言い方は、もう使わない');
+  eq(msg.indexOf('各イベント名（下線）を押すと'), -1, '★いちばん上の案内は、もう出さない（ご指示）');
+  eq(msg.indexOf('各イベントの枠を押すと'), -1, '  前の紛らわしい言い方も、使わない');
 }
 
 console.log('\n■ 注意書きと、言葉づかい');
 {
   const d = vm.runInContext('VN_DISCLAIMER', ctx).join('\n');
-  has(d, '(時刻の前後・延長・中止)', '★かっこは半角の ()');
-  eq(d.indexOf('（時刻の前後'), -1, '  全角のかっこは、もう使わない');
+  has(d, '(前後・延長・中止)', '★かっこは半角の ()');
+  eq(d.indexOf('（前後'), -1, '  全角のかっこは、もう使わない');
   d.split('\n').forEach(function (x) {
     if (ctx.width_ && ctx.width_(x) > 22) { console.log('  NG  注意書きの行が長い：' + x); }
   });
@@ -1008,6 +1020,15 @@ console.log('\n■ 🗓️ 台帳は、まーくさん専用のスプシに書�
      '★「いまの条件」タブも、同じスプシに並べる');
   has(text, 'まーくさんだけが開けます', '★だれにも共有していないと、はっきり書く');
   has(text, 'LINEに出るもの', '  出る件数と、落とした件数を分けて出す');
+  /*
+   * ★会場ごとの件数（ご指示）。
+   *   「ぜんぶで〇件」だけでは、どこが取れていないのかが分かりません。
+   *   0件の会場が ⚠️ で並べば、そこが効いていないと ひと目で分かります
+   */
+  has(text, '📋 会場ごとの件数', '★会場ごとの件数を出す');
+  has(text, 'ワントゥワン', '  見にいく先は、0件でも名前を出す（抜けに気づけるように）');
+  has(text, '⚠️', '  0件のところには ⚠️ を付ける');
+  ctx.vnSources_ = null;
 
   // 2回目は、作り直さずに同じスプシを使う
   ctx.vnLedgerBuild_(1, false);
@@ -1080,11 +1101,18 @@ console.log('\n■ ⏰ スマホ自身のアラーム（.ics）');
   eq(row.indexOf('スマホのアラーム'), -1, '  ★前の長い字は、もう使わない（途中で切れていた）');
   has(row, '📱LINE', '  LINEのボタンも、そのまま残る');
 
-  // まだ1度も公開していないときは、開かないボタンを出さない
+  /*
+   * ★リマインダーのボタンも「押したら合図を送るだけ」に変えました。
+   *   前は script.google.com へ直に飛ばしていて、
+   *   Safari で「現在、ファイルを開くことができません」になっていました
+   *   （公開のやり直しをしていないと、あのページは開けません）。
+   */
+  eq(row.indexOf('"type":"uri"'), -1, '★ホームページへ直に飛ばさない（Safariで開けなかった）');
+  has(row, '"type":"postback"', '  押したら、こちらへ合図が来る形');
+  has(row, 'vn=ics', '  どのボタンかも分かるようにしてある');
   vm.runInContext('function wbUrl_(){ return ""; }', ctx);
-  eq(ctx.vnIcsUrl_(day, 0), '', 'ページを公開していなければ、リンクは作れない');
-  eq(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)).indexOf('⏰ﾘﾏｲﾝﾀﾞｰ'), -1,
-     '★そのときは、押しても開かないボタンを出さない');
+  has(JSON.stringify(ctx.vnBellRow_({ venue: 'x' }, 0, day)), '⏰ﾘﾏｲﾝﾀﾞｰ',
+     '★ページを公開していなくても、ボタンは出る（ドライブから渡すため）');
   vm.runInContext('function wbUrl_(){ return "https://script.google.com/macros/s/AAA/exec"; }', ctx);
 }
 
@@ -1840,13 +1868,13 @@ console.log('\n■ イベントの注意書きは、入るだけ詰める');
   // 切ってよいのは「。」「、」のうしろだけ。言葉のまん中では切らない
   const w = t => { let n = 0; for (let i = 0; i < t.length; i++) n += t.charCodeAt(i) < 0x100 ? 1 : 2; return n; };
   const T23 = ctx.vnNoteText_().split('\n');
-  eq(T23.length, 3, '★既定（23文字ぶん）で3行に詰まる（前は4行）');
+  eq(T23.length, 2, '★既定（26文字ぶん）で2行に詰まる（前は4行）');
   eq(T23.slice(0, -1).every(x => /[。、！？)）]$/.test(x)), true,
      '★行の終わりは、かならず句読点（言葉のまん中で切らない）');
-  eq(T23.every(x => w(x) <= 23 * 2), true,
+  eq(T23.every(x => w(x) <= 26 * 2), true,
      '★どの行も、決めた幅に収まる（いちばん長くて ' + Math.max(...T23.map(w)) / 2 + '文字ぶん）');
-  eq(T23.slice(0, -1).every(x => w(x) > 23), true,
-     '★右側をむだに空けない（半分より短い行を作らない）');
+  eq(T23.slice(0, -1).every(x => w(x) >= 26 * 2 - 4), true,
+     '★右側をむだに空けない（あと2文字入るだけの余りも作らない）');
 
   // せまくても、文を割らない（入らない文は、そのまま1行）
   eq(P(['とてもとてもとてもとても長い文です。'], 10), 'とてもとてもとてもとても長い文です。',
@@ -1856,10 +1884,10 @@ console.log('\n■ イベントの注意書きは、入るだけ詰める');
   eq(P(null, 30), '', 'null でも落ちない');
 
   // 1行の文字数は、設定タブで変えられる
-  eq(vm.runInContext('VN_NOTE_W', ctx), 23, '既定は23文字ぶん');
+  eq(vm.runInContext('VN_NOTE_W', ctx), 26, '既定は26文字ぶん（ご指示で、ぎりぎりまで詰めた）');
   const T = ctx.vnNoteText_();
   eq(T.indexOf('公式ページ') !== -1, true, '★本文は、これまでどおり全部入っている');
-  eq(T.indexOf('AIによる自動読み取り') !== -1, true, '  AIが読んだものだと必ず書く');
+  eq(T.indexOf('AIの読み取り') !== -1, true, '  AIが読んだものだと必ず書く');
 }
 
 console.log('\n■ 見にいく先に、大阪城音楽堂とフェスティバルホールを足した');
@@ -2216,6 +2244,66 @@ console.log('\n■ 送ってもらった資料（写真）は、あとからで�
   eq(ctx.vnHallForDay_(day)[0].url, 'https://drive.example/doc2',
      '★会場の月間表も、名前がそろっていれば開ける');
   for (const k in props) if (k.indexOf('VN') === 0) delete props[k];
+}
+
+console.log('\n■ 助言は「記録からそのまま数えた数」だけにする');
+{
+  const line = ctx.vnAdvice_('京セラドーム', '21:00',
+    { count: 5, sales: 14000, waitSum: 45, waitCount: 5 });
+  has(line, '20:30〜動く予想', '  動く時刻は、これまでどおり出る');
+  has(line, '待ち9分', '  記録からそのまま数えた数は、出す');
+  eq(line.indexOf('1時間待ちに直すと'), -1,
+     '★「1時間待ちに直すと￥〇〇のペース」は、もう書かない（ありえない数字だった）');
+  eq(line.indexOf('近いのは'), -1, '★「近いのは 〇〇」も、もう書かない（ご指示）');
+}
+
+console.log('\n■ ⏰リマインダーは、押されたらドライブの予定ファイルを渡す');
+{
+  const day = new Date(2026, 8, 18);
+  ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
+  const made = {};
+  const mkFile = function (n, text) {
+    return { _t: text,
+      setContent: function (t) { this._t = t; return this; },
+      setSharing: function () { this._shared = true; return this; },
+      getUrl: function () { return 'https://drive.example/' + n; } };
+  };
+  ctx.DriveApp = {
+    Access: { ANYONE_WITH_LINK: 'anyone' }, Permission: { VIEW: 'view' },
+    getFilesByName: function (n) { return { hasNext: function () { return !!made[n]; },
+                                            next: function () { return made[n]; } }; },
+    createFile: function (n, text) { made[n] = mkFile(n, text); return made[n]; }
+  };
+
+  pushed.length = 0;
+  const took = ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
+    postback: { data: 'vn=ics&d=20260918&i=0' } });
+  eq(took, true, '★押されたら、必ず受ける');
+  eq(pushed.length, 1, '★押したら、かならず返事が来る（押せたと分かる）');
+  const tx = msgText(pushed[0].msgs[0]);
+  has(tx, 'https://drive.example/', '★ドライブのリンクを渡す（公開のやり直しが要らない）');
+  has(tx, 'カレンダーに追加', '  やることを、順番に書く');
+  has(tx, 'リマインダー', '  iPhoneの「リマインダー」アプリとは別だと、はっきり書く');
+  const names = Object.keys(made);
+  eq(names.length, 1, '  予定ファイルは1つだけ作る');
+  has(made[names[0]]._t, 'BEGIN:VCALENDAR', '  中身は、ちゃんとした予定ファイル');
+  eq(made[names[0]]._shared === true, true, '★リンクを知っていれば開ける形にする');
+
+  // 二度押しても、ファイルは増やさない
+  pushed.length = 0;
+  ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
+    postback: { data: 'vn=ics&d=20260918&i=0' } });
+  eq(Object.keys(made).length, 1, '★二度押しても、ドライブに増やさない');
+  eq(pushed.length, 1, '  でも、返事はちゃんと返す');
+
+  // ドライブが使えないときは、黙らずに、代わりの手を伝える
+  delete ctx.DriveApp;
+  pushed.length = 0;
+  ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
+    postback: { data: 'vn=ics&d=20260918&i=0' } });
+  eq(pushed.length, 1, '★作れなくても、黙らない');
+  has(msgText(pushed[0].msgs[0]), '作れませんでした', '  できなかったと、はっきり言う');
+  has(msgText(pushed[0].msgs[0]), '📱LINE', '  代わりの手も伝える');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

@@ -2,11 +2,44 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V040ver  （2026/09/17）  ★★★
+ *  ★★★  V041ver  （2026/09/17）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V041ver]
+ *   ・⏰ iPhone用のお知らせが Safari で開けなかったのを直した（ご指摘）
+ *     ★「現在、ファイルを開くことができません」の正体は、
+ *       ホームページ（script.google.com）の公開をやり直していないことでした。
+ *       コードを直しても、公開し直すまでは古いままです
+ *     ★いまは、押されたその場で予定ファイルを作ってドライブに置き、
+ *       そのリンクを返します。ドライブは公開のやり直しが要りません
+ *   ・👆 ボタンを押した手ごたえが無い、というご指摘への答え
+ *     ★LINEのボタンは、押したあとに色を変えたままにはできません
+ *       （押した瞬間に少し暗くなるだけ。これはLINEの決まりです）。
+ *       ですので「押したら、かならず返事が来る」形にそろえました
+ *   ・🗑 いちばん上の「各イベント名を押すと〜」を、もう出さない（ご指示）
+ *   ・🗑 ジャンルや催し名には、下線を引かない（ご指示）
+ *     ★下線は「押せるところ」の目印です。2か所にあると、どちらが
+ *       入り口なのか分かりません。押せるのは会場の名前だけにそろえました
+ *   ・🗑 「近いのは 〇〇」を、もう書かない（ご指示）
+ *   ・🗑 「1時間待ちに直すと￥〇〇のペース」を、もう書かない（ご指示）
+ *     ★待ち時間で割って1時間に引き伸ばした数字で、実際には起こりません。
+ *       ありえない数字を混ぜると、ほんとうの数字まで信じられなくなります
+ *   ・📐 注意書きを 4行 → 2行にした（ご指示）
+ *     ★1行に入る数を 23 → 26 にし、言い方も短くしました。
+ *       どちらの行も 25・26文字ぶんまで詰まっています
+ *   ・📄 写真から読み取ったのに 資料を見返せないときは、そう出すようにした
+ *     ★帝国ホテルのぶんが、黙って押せないままでした。
+ *       取り込みの返事にも「資料：〜」を必ず書き、しまえなかった理由も出します
+ *   ・💬 一言（話のきっかけ）の使い回しをやめた（ご指摘）
+ *     ★一度たずねたら ずっと同じ答えを使っていたので、
+ *       「大阪城ホールは音響が良く…」のような、いつ読んでも同じ文が出ていました。
+ *       3日で たずね直し、AIには「会場そのものの説明は書くな。
+ *       その催し固有の いまの話題だけ」と頼むようにしました
+ *   ・📋 読み取り台帳に「会場ごとの件数」を足した（ご指示）
+ *     ★0件の会場は ⚠️ で並びます。どこが読めていないのか、ひと目で分かります
  *
  *  [V040ver]
  *   ・🖐 「クリック」という言い方をやめ、「タップ」にした（ご指摘）
@@ -720,9 +753,11 @@ const VN_SEND_WINDOW = 45;
  *   文だけを持っておいて、入るかぎり同じ行に詰めるようにします。
  */
 const VN_NOTE_LINES = [
-  "AIによる自動読み取りの案内です。",
-  "読み違いや、予定変更があります。",
-  "(時刻の前後・延長・中止)",
+  // ★短い言い方に直しました（ご指示）。
+  //   同じことを言うのに行数を使うと、そのぶん本文が押し出されます
+  "AIの読み取りです。",
+  "読み違いや予定の変更があります。",
+  "(前後・延長・中止)",
   "動く前に必ず公式ページでご確認を。"
 ];
 
@@ -739,7 +774,7 @@ const VN_NOTE_LINES = [
  *   数字を入れてください（20〜40）。大きくするほど1行が長くなり、
  *   箱は低くなります。折り返してしまったら、少し小さくしてください。
  */
-const VN_NOTE_W = 23;
+const VN_NOTE_W = 26;
 
 /** 1行に入る文字数（設定タブで変えられる） */
 function vnNoteW_() {
@@ -1136,14 +1171,30 @@ function vnCard_(ev, idx, day, noBells) {
   else if (v.cap > 0) size.push("最大" + v.cap.toLocaleString() + "人の会場");
   if (ev.title || size.length) {
     // 催しの名前にも下線を引く。ここを押しても、同じページへ飛ぶ
+    /*
+     * ★催しの名前やジャンル（「音楽・芸能」「アジア競技大会」など）には、
+     *   下線を引きません（ご指示）。
+     *   下線は「押せるところ」の目印です。ここにも引くと、
+     *   押すところが2つあるように見えて、かえって分かりません。
+     *   押して開けるのは、会場の名前（1行目）だけにそろえます。
+     */
     const sp = [];
-    if (ev.title) sp.push({ "type": "span", "text": ev.title, "color": "#333333",
-                            "decoration": ev.url ? "underline" : "none" });
+    if (ev.title) sp.push({ "type": "span", "text": ev.title, "color": "#333333" });
     if (size.length) sp.push({ "type": "span", "text": (ev.title ? "／" : "") + size.join("／"),
                                "color": "#333333" });
-    const whatRow = { "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": sp };
-    if (ev.url) whatRow.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
-    rows.push(whatRow);
+    rows.push({ "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": sp });
+  }
+
+  /*
+   * ★写真から読み取ったもの（ホテルの宴会・会場の月間表）なのに、
+   *   もとの紙を見返せないときは、そのことを出します（ご指示）。
+   *   黙っていると「AIが読んだだけのもの」を、確かめようがないまま
+   *   信じることになります。何を送ればよいかも、その場に書きます
+   */
+  if (!ev.url && (ev.kind === "hotel" || ev.fromPhoto)) {
+    rows.push({ "type": "text",
+                "text": "📄 資料：見返せる形になっていません（写真をもう一度送ってください）",
+                "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "xs" });
   }
 
   // 3行目：自社の記録から言えること（これは「実績」。確かな数字）
@@ -1203,8 +1254,9 @@ function vnBuildMessages_(day, events, note, noBells) {
   contents.push({ "type": "box", "layout": "vertical", "backgroundColor": "#f3e5f5",
     "paddingAll": "10px", "cornerRadius": "md", "contents": [
       { "type": "text", "text": "対象は 18:00〜翌04:00 に動きがあるものだけです", "size": "xxs", "color": "#6a1b9a", "wrap": true },
-      { "type": "text", "text": "小さすぎてタクシーに響かないものは省いています", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs" },
-      { "type": "text", "text": "👆 各イベント名（下線）を押すと、その公式ページが開きます", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs", "weight": "bold" }
+      // ★「各イベント名を押すと〜」の案内は、ご指示で出しません。
+      //   1件ずつの枠の中にも同じ案内（👆 詳細はタップ）があり、二重でした
+      { "type": "text", "text": "小さすぎてタクシーに響かないものは省いています", "size": "xxs", "color": "#6a1b9a", "wrap": true, "margin": "xs" }
     ]});
 
   const kinds = VN_KIND_ORDER.map(function (k) { return [k, VN_KIND_LABEL[k]]; });
@@ -1458,12 +1510,20 @@ function vnAdvice_(venue, end, st) {
      */
     L.push(("0" + m).slice(-2) + ":" + ("0" + mm).slice(-2) + "〜動く予想");
   }
-  if (v.near && v.near.length) L.push("近いのは " + v.near.join("・"));
+  /*
+   * ★「近いのは 〇〇・〇〇」は、もう書きません（ご指示）。
+   *   乗務員の方は乗り場をご存じです。場所を食うだけでした。
+   *
+   * ★「1時間待ちに直すと￥〇〇のペース」も、もう書きません（ご指示）。
+   *   待ち時間で割って1時間に引き伸ばした数字で、実際には起こりません。
+   *   ありえない数字を混ぜると、ほんとうの数字まで信じられなくなります。
+   *   ここに出すのは、記録からそのまま数えた数だけにします
+   */
   if (st && st.count >= 3) {
     const avg = Math.round(st.sales / st.count);
     if (st.waitCount > 0) {
       const w = Math.round(st.waitSum / st.waitCount);
-      L.push(`この乗り場は普段 待ち${w}分・平均￥${avg.toLocaleString()}。1時間待ちに直すと￥${Math.round(avg / w * 60).toLocaleString()}のペース`);
+      L.push(`この乗り場は普段 待ち${w}分・平均￥${avg.toLocaleString()}`);
     } else {
       L.push(`この乗り場は普段 平均￥${avg.toLocaleString()}`);
     }
@@ -1542,17 +1602,42 @@ function vnAudKey_(title) {
  * 1回の呼び出しで3つとも取る（回数制限に当たらないように）。
  * 同じ公演は覚えておいて、二度は聞かない。
  */
+/*
+ * 一言（know）などを覚えておく日数。
+ *
+ * ★短すぎると、同じ日に何度も AI に聞くことになって、もったいない。
+ *   長すぎると、古い話をいつまでも言い続けることになる。
+ *   3日にしてあります。
+ */
+const VN_TOPIC_KEEP_MS = 3 * 24 * 3600 * 1000;
+
 function vnTopicInfo_(title, venue) {
   const empty = { audience: "", know: "", avoid: "" };
   const t = String(title || "").trim();
   if (!t || t.length < 2) return empty;
 
+  /*
+   * ★前は、一度たずねたら ずっとその答えを使い回していました。
+   *   そのせいで「大阪城ホールは音響が良く…」のような、
+   *   いつ読んでも同じ・その日と関係のない文が、毎回出ていました（ご指摘）。
+   *   話題は日々変わるので、しばらく経ったら、たずね直します。
+   */
   const key = vnAudKey_(t);
   const pr = PropertiesService.getScriptProperties();
   if (key) {
     const hit = pr.getProperty(key);
     if (hit !== null) {
-      try { return JSON.parse(hit); } catch (e) { return empty; }
+      try {
+        const j = JSON.parse(hit);
+        // 新しい形（いつ聞いたかを持っている）
+        if (j && j.at && j.v) {
+          if (Date.now() - Number(j.at) < VN_TOPIC_KEEP_MS) return j.v;
+        } else if (j && (j.audience || j.know || j.avoid)) {
+          // 前の形。いつ聞いたか分からないので、1回だけ たずね直す
+        } else {
+          return empty;   // 「何も無い」と分かっているものは、そのまま
+        }
+      } catch (e) { return empty; }
     }
   }
 
@@ -1571,7 +1656,11 @@ function vnTopicInfo_(title, venue) {
     "出力は JSON ひとつだけ。前置きも説明も書かないでください。\n" +
     '{"audience":"","know":"","avoid":""}\n' +
     "・audience … 来場者の年代と男女のおおよその比率。35文字以内\n" +
-    "・know … 知っておくと話が弾むこと（最新の話題、記念の公演、初日や千秋楽など）。50文字以内\n" +
+    "・know … 知っておくと話が弾むこと。50文字以内\n" +
+    "　　　　　★その催し・その出演者 固有の、いまの話題だけを書く\n" +
+    "　　　　　★会場そのものの説明（音響が良い・歴史がある・聖地 など）は書かない。\n" +
+    "　　　　　　それは毎回同じことで、読む人には何の役にも立たない\n" +
+    "　　　　　★書くことが無ければ、迷わず空文字にする\n" +
     "・avoid … 触れない方がよいこと（メンバーの訃報・脱退・活動休止・不祥事・けが・\n" +
     "　　　　　負けた試合・対戦相手の話題など、言うと空気が悪くなること）。50文字以内\n" +
     "決まり：\n" +
@@ -1596,7 +1685,8 @@ function vnTopicInfo_(title, venue) {
     }
   } catch (e) { if (typeof logErr_ === "function") logErr_("vnTopic", e); }
 
-  if (key) { try { pr.setProperty(key, JSON.stringify(out)); } catch (e) {} }
+  // ★いつ聞いたかも いっしょに覚えておく（古くなったら、たずね直すため）
+  if (key) { try { pr.setProperty(key, JSON.stringify({ at: Date.now(), v: out })); } catch (e) {} }
   return out;
 }
 
@@ -1708,9 +1798,13 @@ function vnFetchImage_(messageId) {
  *   （設定タブ「資料の写真をリンクで見せる」を「いいえ」に）。
  */
 function vnDocSave_(blob, label, d) {
+  // ★なぜ保存できなかったのかを、必ず残します。
+  //   黙って空を返すと「押せない」ことだけが残り、原因が分かりません
+  const fail = function (why) { vnDocErrSet_(why); return ""; };
   try {
-    if (typeof cfg_ === "function" && cfg_("資料の写真をリンクで見せる") === "いいえ") return "";
-    if (typeof DriveApp === "undefined") return "";
+    if (typeof cfg_ === "function" && cfg_("資料の写真をリンクで見せる") === "いいえ")
+      return fail("設定タブ「資料の写真をリンクで見せる」が「いいえ」になっています");
+    if (typeof DriveApp === "undefined") return fail("ドライブが使えませんでした");
     const ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
     const name = ymd + "_" + String(label || "資料");
     // ★PDFにするのをやめた。
@@ -1720,13 +1814,33 @@ function vnDocSave_(blob, label, d) {
     const mime = blob.getContentType() || "image/jpeg";
     const ext = (String(mime).indexOf("png") >= 0) ? ".png" : ".jpg";
     let file = null;
-    try { file = DriveApp.createFile(blob.setName(name + ext)); } catch (e) { return ""; }
-    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
-    return file.getUrl() || "";
+    try { file = DriveApp.createFile(blob.setName(name + ext)); }
+    catch (e) { return fail("ドライブに置けませんでした（" + ((e && e.message) || e) + "）"); }
+    let shared = true;
+    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }
+    catch (e) { shared = false; }
+    const url = file.getUrl() || "";
+    if (!url) return fail("置けましたが、リンクが取れませんでした");
+    // ★共有できていないと、まーくさん以外には開けません。そのことも残します
+    vnDocErrSet_(shared ? "" : "置けましたが、ほかの人には開けない設定のままです");
+    return url;
   } catch (e) {
     if (typeof logErr_ === "function") logErr_("vnDocSave", e);
-    return "";
+    return fail((e && e.message) ? e.message : String(e));
   }
+}
+
+/** 資料をしまえなかった理由を、覚える／取り出す */
+function vnDocErrSet_(why) {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    if (why) pr.setProperty("VNDOC_ERR", String(why));
+    else pr.deleteProperty("VNDOC_ERR");
+  } catch (e) {}
+}
+function vnDocErrGet_() {
+  try { return PropertiesService.getScriptProperties().getProperty("VNDOC_ERR") || ""; }
+  catch (e) { return ""; }
 }
 
 /**
@@ -2020,7 +2134,9 @@ function vnHotelTry_(messageId, base, force) {
   return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
          "場所：" + (places.join("・") || "（読み取れず）") +
-         (doc ? "\n資料：イベント名（下線）を押すと、送ってもらった紙が開きます" : "");
+         (doc ? "\n資料：イベント名（下線）を押すと、送ってもらった紙が開きます"
+              : "\n⚠️ 資料：見返せる形にできませんでした" +
+                (vnDocErrGet_() ? "（" + vnDocErrGet_() + "）" : ""));
 }
 
 /* ================================================================
@@ -2150,7 +2266,7 @@ function vnHallForDay_(d) {
   catch (e) { list = []; }
   return list.map(function (x) {
     const no = vnDayNo_("VNV", x.hall, x.name, d);
-    return { venue: x.hall, kind: "event", icon: "🎤",
+    return { venue: x.hall, kind: "event", icon: "🎤", fromPhoto: true,
              title: String(x.name || "") + no,
              start: String(x.start || ""), end: String(x.end || ""), people: 0,
              url: vnDocFind_(x.doc, d, x.hall) };
@@ -2186,7 +2302,9 @@ function vnHallTry_(messageId, base, force) {
   return "以下のイベント情報をジェバンニが" + sec + "秒でやってくれました\n" +
          "件数：" + n + "件\n" +
          "場所：" + (places.join("・") || "（読み取れず）") +
-         (doc ? "\n資料：イベント名（下線）を押すと、送ってもらった紙が開きます" : "");
+         (doc ? "\n資料：イベント名（下線）を押すと、送ってもらった紙が開きます"
+              : "\n⚠️ 資料：見返せる形にできませんでした" +
+                (vnDocErrGet_() ? "（" + vnDocErrGet_() + "）" : ""));
 }
 
 /** 合図を覚える（15分だけ）。force は「帝国ホテル」など、決め打ちするホテル名 */
@@ -2620,12 +2738,37 @@ function vnLedgerBuild_(days, withGuess) {
              "　そのうち LINEに出るもの：" + outCount + "件",
              "　（残り " + (rows.length - outCount) + "件は、決まりで落としたもの。理由も並べてあります）",
              ""];
-  web.notes.forEach(function (x) { L.push(x); });
-  if (photos.length) {
-    const byPlace = {};
-    photos.forEach(function (r) { byPlace[r.venue] = (byPlace[r.venue] || 0) + 1; });
-    for (const k in byPlace) L.push("📷 " + k + "：" + byPlace[k] + "件（送ったスクショぶん）");
+  /*
+   * ★会場ごとの件数を、先に出します（ご指示）。
+   *
+   *   「ぜんぶで〇件」だけでは、どこが取れていて、どこが取れていないのかが
+   *   分かりません。0件の会場が並んでいれば、そこが効いていないと ひと目で分かります。
+   *   ⚠️ は「その期間に催しが無い」か「読み取れていない」かの、どちらかです。
+   */
+  const byVenue = {};
+  all.forEach(function (e) {
+    const v = String(e.venue || "（会場が分からないもの）");
+    if (!byVenue[v]) byVenue[v] = { n: 0, names: [] };
+    byVenue[v].n++;
+    const nm = String(e.title || "").trim();
+    if (nm && byVenue[v].names.length < 3 && byVenue[v].names.indexOf(nm) === -1) byVenue[v].names.push(nm);
+  });
+  L.push("📋 会場ごとの件数（⚠️＝0件。無いか、読めていないか）");
+  const shownVenue = {};
+  VN_SOURCES.forEach(function (src) {
+    const hit = byVenue[src.name];
+    shownVenue[src.name] = 1;
+    L.push("　" + (hit ? "✅" : "⚠️") + " " + src.name + "：" + (hit ? hit.n : 0) + "件" +
+           (hit && hit.names.length ? "／" + hit.names.join("・") : ""));
+  });
+  // 見にいく先に無い会場（写真から読んだホテル・会場の月間表など）も、もれなく出す
+  for (const v in byVenue) {
+    if (shownVenue[v]) continue;
+    L.push("　📷 " + v + "：" + byVenue[v].n + "件" +
+           (byVenue[v].names.length ? "／" + byVenue[v].names.join("・") : ""));
   }
+  L.push("");
+  web.notes.forEach(function (x) { L.push(x); });
   L.push("");
   L.push("⚠️ は、その期間に催しが無いか、読み取れていないかのどちらかです。");
   L.push("公式ページに催しが出ているのに ⚠️ なら、読み取りが効いていません。");
@@ -3264,6 +3407,46 @@ function vnIcsEsc_(t) {
  * 予定ファイル（.ics）の中身を作る。
  * 終了予定の◯分前に鳴るよう、アラーム（VALARM）も入れておく。
  */
+/**
+ * 予定ファイル（.ics）をドライブに置いて、そのリンクを返す。
+ * 作れなければ空文字。
+ *
+ * ★ドライブに置くのは、いちばん確実に開けるからです。
+ *   ホームページ（WebApp）から渡す形は、公開のやり直しを忘れると
+ *   「現在、ファイルを開くことができません」になります。
+ *   押した人には、なぜ開けないのか まったく分かりません。
+ *
+ * ★同じ催しで何度押されても、ファイルは1つだけにします。
+ *   押すたびにドライブへ増えていくと、あとで困るためです。
+ */
+function vnIcsLink_(ev, day) {
+  try {
+    if (typeof DriveApp === "undefined") return "";
+    const ymd = day.getFullYear() + ("0" + (day.getMonth() + 1)).slice(-2) +
+                ("0" + day.getDate()).slice(-2);
+    const name = "yotei_" + ymd + "_" + String(ev.venue || "").replace(/[\s\u3000\/\\]/g, "") + ".ics";
+    const text = vnIcsText_(ev, day);
+
+    // 同じ名前のものがあれば、中身を入れ替えて、それを使う
+    try {
+      const it = DriveApp.getFilesByName(name);
+      if (it.hasNext()) {
+        const f0 = it.next();
+        try { f0.setContent(text); } catch (e) {}
+        try { f0.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+        return f0.getUrl() || "";
+      }
+    } catch (e) {}
+
+    const f = DriveApp.createFile(name, text, "text/calendar");
+    try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+    return f.getUrl() || "";
+  } catch (e) {
+    if (typeof logErr_ === "function") logErr_("vnIcsLink", e);
+    return "";
+  }
+}
+
 function vnIcsText_(ev, day) {
   const hourMs = function (hhmm, fallback) {
     const h = vnHourOf_(hhmm);
@@ -3398,21 +3581,35 @@ function vnBellBtn_(mark, label, ymd, idx, flex) {
  */
 function vnBellRow_(ev, idx, day) {
   const ymd = day.getFullYear() + ("0" + (day.getMonth() + 1)).slice(-2) + ("0" + day.getDate()).slice(-2);
-  const ics = vnIcsUrl_(day, idx);
+  /*
+   * ★iPhone用のほうも「押したら合図を送るだけ」に変えました（ご指摘）。
+   *
+   *   これまでは、押すとホームページ（script.google.com）へ直に飛ぶ形でした。
+   *   ところが Safari で「現在、ファイルを開くことができません」と出ました。
+   *   あのページは、公開のやり直し（デプロイ）をしていないと開けません。
+   *   コードを直しても、公開し直すまでは古いままなので、
+   *   押した人には わけの分からない画面だけが残ります。
+   *
+   *   いまは、押されたその場で予定ファイルを作ってドライブに置き、
+   *   そのリンクを返します。ドライブのリンクは、公開のやり直しが要りません。
+   *
+   * ★押したことが分かりにくい、というご指摘への答えでもあります。
+   *   LINEのボタンは、押したあとに色を変えたままにはできません
+   *   （押した瞬間に少し暗くなるだけで、これはLINEの決まりです）。
+   *   ですので、押したら必ず返事が来る形にしました。
+   *   返事が来れば「押せた」と分かります。
+   */
   return { "type": "box", "layout": "horizontal", "margin": "sm",
     "backgroundColor": "#ffffff", "cornerRadius": "md",
     "borderWidth": "1px", "borderColor": "#b39ddb",
     "contents": [
       { "type": "text", "text": "🔔通知設定", "size": "xxs", "weight": "bold",
         "color": VN_COLOR_HEAD, "gravity": "center", "align": "center", "flex": 3, "wrap": true },
-      vnBellBtn_("me", "📱LINE", ymd, idx, 4)
-    ].concat(ics ? [
-      // ★スマホ自身を鳴らすほう。LINEが開けなくても、電波が無くても鳴る。
-      //   ★字は短くする。長いと、ボタンの幅で切れて「⏰スマホのア…」になり、
-      //     何のボタンか分からなくなる（実際に切れていました）
-      { "type": "button", "style": "link", "height": "sm", "flex": 4,
-        "action": { "type": "uri", "label": "⏰ﾘﾏｲﾝﾀﾞｰ", "uri": ics } }
-    ] : [])};
+      vnBellBtn_("me", "📱LINE", ymd, idx, 4),
+      // ★字は短くする。長いと、ボタンの幅で切れて「⏰スマホのア…」になり、
+      //   何のボタンか分からなくなる（実際に切れていました）
+      vnBellBtn_("ics", "⏰ﾘﾏｲﾝﾀﾞｰ", ymd, idx, 4)
+    ]};
 }
 
 /* ---- 予約のしまい場所 ---- */
@@ -4397,6 +4594,36 @@ function vnHandlePostback_(ev) {
   //   古い絵から押されたときのために、ここも残しておく
   if (q.vn === "cal") {
     say("⏰ " + vnCalUrl_(item, day));
+    return true;
+  }
+
+  /*
+   * ⏰ iPhone用（予定ファイル）… 押されたら、その場で作って渡す。
+   *
+   * ★ホームページ（script.google.com）へ直に飛ばすのは、やめました。
+   *   公開のやり直しをしていないと Safari で開けず、
+   *   「現在、ファイルを開くことができません」になるためです。
+   */
+  if (q.vn === "ics") {
+    const uid0 = (ev.source && ev.source.userId) || "";
+    const url = vnIcsLink_(item, day);
+    if (url) {
+      tellMe(uid0,
+        "⏰ iPhone用の予定ファイルを作りました。\n" +
+        "🎪 " + item.venue + (item.title ? "　" + item.title : "") + "\n\n" +
+        url + "\n\n" +
+        "① 上のリンクを押す\n" +
+        "② 「カレンダーに追加」を選ぶ\n" +
+        "③ 終了予定の " + vnLeadMin_() + " 分前に、スマホ自身が鳴ります\n" +
+        "※ LINEが開けなくても、電波が無くても鳴ります。\n" +
+        "※ 入るのは iPhone の「カレンダー」です（「リマインダー」アプリではありません）。");
+    } else {
+      // ★作れなかったときは、黙りません。何ができなかったのかを、そのまま伝えます
+      tellMe(uid0,
+        "⏰ 予定ファイルを作れませんでした。\n" +
+        "お手数ですが、下の「📱LINE」を押してください。\n" +
+        "終了予定の " + vnLeadMin_() + " 分前に、この公式LINEからお知らせします。");
+    }
     return true;
   }
 
