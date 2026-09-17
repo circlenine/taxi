@@ -1655,6 +1655,64 @@ console.log('\n■ 「終了」とは書かない（必ず「終了予定」）'
 }
 
 
+console.log('\n■ 見にいく先に、大阪城音楽堂とフェスティバルホールを足した');
+{
+  // const で作ったものは ctx に生えないので、中で評価して取り出す
+  const SRC = vm.runInContext('JSON.stringify(VN_SOURCES)', ctx);
+  const names = JSON.parse(SRC).map(x => x.name);
+  const one = n => JSON.parse(SRC).filter(x => x.name === n)[0];
+
+  eq(names.indexOf('大阪城音楽堂') !== -1, true, '★大阪城音楽堂を見にいく');
+  eq(one('大阪城音楽堂').url, 'https://www.osakacastlepark.jp/ongakudo/event/',
+     '  読み先のアドレス');
+  eq(one('大阪城音楽堂').deep, true,
+     '★詳細のページまで開く（一覧に時刻が無いため。オータニと同じ）');
+  eq(one('大阪城音楽堂').kind, 'event', '  イベントあつかい');
+
+  eq(names.indexOf('フェスティバルホール') !== -1, true, '★フェスティバルホールも見にいく');
+  eq(one('フェスティバルホール').deep, true, '  こちらも詳細のページまで開く');
+
+  // 会場のこと（近くの乗り場・入る人数）も、そろっていないと出せない
+  const V = JSON.parse(vm.runInContext('JSON.stringify(VN_VENUES)', ctx));
+  eq(!!V['大阪城音楽堂'], true, '★近くの乗り場と人数も、決めてある');
+  eq(V['大阪城音楽堂'].type, '野外', '  屋根の無い野外あつかい（終わる時刻の見積もりに使う）');
+  eq(V['大阪城音楽堂'].near.indexOf('大阪城公園') !== -1, true, '  近くの乗り場に大阪城公園');
+  eq(!!V['フェスティバルホール'], true, 'フェスティバルホールも、これまでどおり');
+}
+
+console.log('\n■ 同じ公演が2つならばないようにする');
+{
+  /*
+   * ★フェスティバルホールは、月間表の写真からも、ホームページからも読む。
+   *   そのままだと同じ公演が2回ならび、見た人が数えまちがえる
+   */
+  const 写真 = { venue: 'フェスティバルホール', start: '18:30', end: '21:00',
+                 title: '山下達郎', url: 'x' };
+  const HP   = { venue: 'フェスティバルホール', start: '18:30', end: '21:00',
+                 endGuess: true, title: '（名前を読み取れませんでした）', url: 'y' };
+  const d1 = ctx.vnDedup_([写真, HP]);
+  eq(d1.length, 1, '★同じ会場・同じ開演のものは、1つにまとめる');
+  eq(d1[0].title, '山下達郎', '★中身の濃いほう（終わりがはっきり・名前が読める）を残す');
+
+  const d2 = ctx.vnDedup_([HP, 写真]);
+  eq(d2.length, 1, '  順番が逆でも、まとまる');
+  eq(d2[0].title, '山下達郎', '  ★残るのは、やはり濃いほう');
+
+  const 別公演 = { venue: 'フェスティバルホール', start: '14:00', end: '16:00', title: '昼の部' };
+  eq(ctx.vnDedup_([写真, 別公演]).length, 2, '★開演がちがえば、別の公演として両方出す');
+
+  const 別会場 = { venue: '大阪城音楽堂', start: '18:30', end: '21:00', title: 'なにか' };
+  eq(ctx.vnDedup_([写真, 別会場]).length, 2, '★会場がちがえば、まとめない');
+
+  const 時刻なし = { venue: 'フェスティバルホール', start: '', end: '', title: 'A' };
+  const 時刻なし2 = { venue: 'フェスティバルホール', start: '', end: '', title: 'B' };
+  eq(ctx.vnDedup_([時刻なし, 時刻なし2]).length, 2,
+     '開演が読めていないものは、まとめようがないので そのまま残す');
+
+  eq(ctx.vnDedup_([]).length, 0, '空でも落ちない');
+  eq(ctx.vnDedup_(null).length, 0, 'null でも落ちない');
+}
+
 console.log('\n■ 16:30 と 17:00 も、時刻ぴったりに動かす');
 {
   /*

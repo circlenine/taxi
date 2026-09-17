@@ -221,5 +221,46 @@ console.log('\n■ 1件しかないものを「平均」と呼ばない');
   eq(ctx.nightLine_(one).indexOf('最高￥'), -1, '  1件なら「最高」も書かない（同じ数字なので）');
 }
 
+
+console.log('\n■ コナン像前は、一晩の流し方に出さない');
+{
+  /*
+   * ★まーくさんからのご指示。
+   *   一晩の流し方は「この順に流してください」という道すじなので、
+   *   ここに出すことは「そこへ行ってください」と言うことになる。
+   *   数字そのもの（個別の乗り場の表・ヒートマップ）は消さない
+   */
+  eq(ctx.lrNightNg_('コナン像前'), true, '★コナン像前は、道すじに出してはいけない');
+  eq(ctx.lrNightNg_('コナン像'), false, '  ちがう書き方は、そのままでは当たらない');
+  eq(ctx.lrNightNg_('新地4'), false, 'ふつうの乗り場は、これまでどおり出す');
+  eq(ctx.lrNightNg_(''), false, '空でも落ちない');
+  eq(ctx.lrNightNg_(null), false, 'null でも落ちない');
+
+  // ① 1位がコナン像前でも、道すじには出さない
+  const t1 = tl({ 平日: { 20: ['コナン像前', 20000, 9], 21: ['新地4', 9000, 5] } });
+  const p1 = ctx.buildNightPlan_(t1, DAY_TYPES)['平日'];
+  eq(p1.filter(s => s.name === 'コナン像前').length, 0,
+     '★1位がコナン像前でも、道すじには1つも出さない');
+  eq(p1.filter(s => s.name === '新地4').length, 1, '  ほかの乗り場は、これまでどおり出る');
+
+  /*
+   * ② 2位以下にちゃんとした乗り場があるなら、そちらを出す。
+   *    1位を消すだけだと、その時間帯がまるごと空欄になり
+   *    「その時間は走れない」と読めてしまう
+   */
+  const t2 = tl({ 平日: { 22: ['新地4', 9000, 5] } });
+  t2['平日'][22].night = { name: '新地4', avg: 9000, count: 5, wait: 0, max: 0, at: '' };
+  t2['平日'][22].best  = { name: 'コナン像前', avg: 20000, count: 9, wait: 0, max: 0, at: '' };
+  const p2 = ctx.buildNightPlan_(t2, DAY_TYPES)['平日'];
+  const s22 = p2.filter(s => s.from <= 22 && s.to >= 22 && s.name)[0];
+  eq(s22 ? s22.name : '', '新地4', '★コナン像前を外したあとの1位（2位の乗り場）を出す');
+
+  // ③ 道すじ用の選び直しが無い古い形でも、最後の関所で外す
+  const t3 = tl({ 平日: { 23: ['コナン像前', 20000, 9] } });
+  const p3 = ctx.buildNightPlan_(t3, DAY_TYPES)['平日'];
+  eq(p3.filter(s => s.name === 'コナン像前').length, 0,
+     '★選び直しが無い形でも、最後の関所で必ず外す');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

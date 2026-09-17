@@ -2,7 +2,20 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L034ver  （2026/09/16）  ★★★
+ *  ★★★  L035ver  （2026/09/17）  ★★★
+ *
+ *  [L035ver]
+ *   ・🚕 コナン像前を「一晩の流し方」に出さないようにした（LR_NIGHT_NG）
+ *     ★まーくさんからのご指示です。
+ *       一晩の流し方は「この順に流してください」という道すじなので、
+ *       ここに出すことは「そこへ行ってください」と言うことになります
+ *     ★数字そのものは消していません。個別の乗り場の表やヒートマップには
+ *       これまでどおり出ます。消したのは「道すじとしてすすめること」だけです
+ *     ★1位を消すだけだと、その時間帯がまるごと空欄になり
+ *       「その時間は走れない」と読めてしまうので、
+ *       コナン像前を外したうえで選び直した1位（＝2位の乗り場）を出します
+ *     ★選ぶところとは別に、最後にもう一度はじく関所も付けました
+ *       （1か所直し忘れただけで、また出てしまうため）
  *
  *  [L034ver]
  *   ・乗り場マップのタブの名前を変えても、見失わないようにした（mapFindSheet_）
@@ -1739,7 +1752,17 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
       for(let pName in spots) { if(spots[pName].count >= 2) { candidates.push({name: pName, count: spots[pName].count, avg: spots[pName].sales / spots[pName].count, wait: spots[pName].waitCount > 0 ? Math.round(spots[pName].waitSum / spots[pName].waitCount) : 0, times: spots[pName].times, max: spots[pName].max, at: spots[pName].at }); } }
       let bSpot = null, wSpot = null;
       if(candidates.length > 0) { candidates.sort((a,b) => b.avg - a.avg); bSpot = candidates[0]; let avoidCands = candidates.slice(1).filter(c => c.avg <= 1500 || c.avg <= (bSpot.avg - 2000)); if(avoidCands.length > 0) { avoidCands.sort((a,b) => a.avg - b.avg); wSpot = avoidCands[0]; } }
-      finalTimeline[dType][hr] = { best: bSpot, worst: wSpot };
+      /*
+       * ★「一晩の流し方」用の1位は、別に選びます。
+       *   道すじに出してはいけない乗り場（LR_NIGHT_NG）を外したうえで、
+       *   その中でいちばん高いところを選びます。
+       *   1位だけを消すと、その時間帯がまるごと空欄になり、
+       *   「その時間は走れない」と読めてしまうためです。
+       *   2位以下にちゃんとした乗り場があるなら、そちらを出します。
+       */
+      const nightCands = candidates.filter(c => !lrNightNg_(c.name));
+      const nSpot = nightCands.length > 0 ? nightCands[0] : null;
+      finalTimeline[dType][hr] = { best: bSpot, worst: wSpot, night: nSpot };
     });
   });
 
@@ -2873,6 +2896,30 @@ const LR_NIGHT_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4];
 const LR_NIGHT_MIN_N = 3;
 
 /**
+ * 「一晩の流し方」には出さない乗り場。
+ *
+ * ★まーくさんからのご指示です。
+ *   一晩の流し方は「この順に流してください」という道すじです。
+ *   ここに出すということは「そこへ行ってください」と言うことになります。
+ *   コナン像前は、そう言ってはいけない場所です。
+ *
+ * ★数字そのものは消しません。
+ *   個別の乗り場の表や、ヒートマップには、これまでどおり出ます。
+ *   消しているのは「道すじとしてすすめること」だけです。
+ *   記録は記録として残しておかないと、あとで数えられなくなります。
+ *
+ * ★増やしたいときは、この行に足してください。
+ */
+const LR_NIGHT_NG = ["コナン像前"];
+
+/** その乗り場は、一晩の流し方に出してはいけないか */
+function lrNightNg_(name) {
+  const t = String(name == null ? "" : name).trim();
+  if (!t) return false;
+  return LR_NIGHT_NG.some(function (ng) { return t.indexOf(ng) !== -1; });
+}
+
+/**
  * 資料の性格を、必ず本人の目に入るところに書いておく。
  *
  * ★責任者の方も見る資料です。
@@ -2912,7 +2959,14 @@ function buildNightPlan_(finalTimeline, DAY_TYPES) {
     const segs = [];
     LR_NIGHT_HOURS.forEach(function (hr) {
       const cell = (finalTimeline && finalTimeline[dt]) ? finalTimeline[dt][hr] : null;
-      let b = cell ? cell.best : null;
+      // 道すじ用に選び直した1位があれば、そちらを使う（コナン像前などを外したもの）
+      let b = null;
+      if (cell) {
+        b = Object.prototype.hasOwnProperty.call(cell, "night") ? cell.night : cell.best;
+      }
+      // ★最後の関所。上で選び直せていなくても、ここで必ず外す。
+      //   選ぶところを1か所直し忘れただけで、また出てしまうため
+      if (b && lrNightNg_(b.name)) b = null;
       // ★記録が少ないものも、数字は必ず出す。
       //   前は丸ごと落としていたので、01〜03時台のように記録の薄い時間が
       //   まるごと空欄になり、狙い目の時刻も平均も見えなかった。
