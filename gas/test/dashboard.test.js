@@ -481,13 +481,23 @@ console.log('\n■ 見出しと説明書きを、はっきり分ける');
    *   中身が何も無いのにまとめる意味がなく、
    *   そのあたりを選んだだけで26らんぜんぶが選ばれてしまう
    */
-  const gap = src.slice(src.indexOf('function dbGap_(sheet, row)'),
-                        src.indexOf('function dbGap_(sheet, row)') + 700);
-  eq(gap.indexOf('.merge()'), -1, '★あき行は、結合しない');
-  eq(gap.indexOf('breakApart()') !== -1, true,
+  const cut = (from, n) => src.slice(src.indexOf(from), src.indexOf(from) + n);
+  const inTable = cut('function dbGap_(sheet, row)', 300);
+  const between = cut('function dbGapSection_(sheet, row)', 400);
+
+  eq(inTable.indexOf('.merge()') !== -1, true,
+     '★表の中のあき行は、これまでどおり結合する（つながって見えるほうが自然）');
+  eq(between.indexOf('.merge()'), -1,
+     '★表と表のあいだのあき行は、結合しない（分かれ目が分かるように）');
+  eq(between.indexOf('breakApart()') !== -1, true,
      '★前に結合していたぶんは、ほどく（作り直しても結合だけは残るため）');
-  eq(gap.indexOf('setRowHeight(row, 30)') !== -1, true, '  高さは、これまでどおり');
-  eq(gap.indexOf('setBackground("#ffffff")') !== -1, true, '  白く塗るのも、これまでどおり');
+  eq(between.indexOf('setRowHeight(row, 30)') !== -1, true, '  高さは、これまでどおり');
+
+  // どちらがどこで使われているか
+  const used = src.split('\n').filter(x => x.indexOf('dbGapSection_(sheet') !== -1 && x.indexOf('function') === -1);
+  eq(used.length >= 5, true, '★表の区切りでは、結合しないほうを使う（' + used.length + 'か所）');
+  const inner = src.split('\n').filter(x => /dbGap_\(sheet/.test(x) && x.indexOf('function') === -1);
+  eq(inner.length >= 3, true, '  表の中では、結合するほうを使う（' + inner.length + 'か所）');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

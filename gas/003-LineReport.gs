@@ -16,9 +16,13 @@
  *       らんの数から1行に入る量を逆算しているので、
  *       右側をむだに空けることも、言葉のまん中で切れることもありません
  *     ★アドバイスの中の説明書きも、同じように小さくしました
- *   ・🧹 表と表のあいだの「あき行」を、結合しないようにした（ご指摘）
- *     ★中身が何も無いのに26らんまとめていました。まとめる意味がなく、
- *       そのあたりを選んだだけで26らんぜんぶが選ばれてしまいます
+ *   ・🧹 あき行の結合を、2つに分けた（ご指摘）
+ *     ★表の中のあき行（かたまりとかたまりのあいだ）は、
+ *       これまでどおり結合します。同じ表の中なので、
+ *       つながって見えるほうが自然です
+ *     ★表と表のあいだのあき行は、結合しません。
+ *       そこまで1つのマスにすると、どこで表が終わって
+ *       どこから次の表が始まるのかが分かりませんでした
  *     ★前に結合していたぶんは、ほどきます
  *       （作り直しても、結合だけは残ってしまうためです）
  *
@@ -4535,21 +4539,32 @@ function dbEnsureRows_(sheet, upto) {
 
 /** 区切りの空行。どこまでが1つのまとまりか分かるようにする */
 /**
+ * 表の中の、あき行（かたまりとかたまりのあいだ）。
+ *
+ * ★ここは結合したままにします（まーくさんのご指示）。
+ *   同じ表の中の区切りなので、つながって見えるほうが自然です。
+ */
+function dbGap_(sheet, row) {
+  try {
+    dbEnsureRows_(sheet, row);
+    sheet.getRange(row, 1, 1, DB_COLS).merge().setBackground("#ffffff");
+    sheet.setRowHeight(row, 30);
+  } catch (e) {}
+}
+
+/**
  * 表と表のあいだの、あき行。
  *
- * ★ここは結合しません（まーくさんのご指摘）。
- *   中身が何も無いあき行を、26らんまとめて1つのマスにしていました。
- *   まとめる意味がありません。それどころか、
- *   ・そのあたりを選んだだけで、26らんぜんぶが選ばれてしまう
- *   ・列の幅を変えたいときに、結合が じゃまをする
- *   ・作り直すたびに、結合をほどく手間がかかる
- *   と、困ることのほうが多い作りでした。
- *   白く塗って、高さを決めるだけで足ります。
+ * ★こちらは結合しません（まーくさんのご指示）。
+ *   表の区切りまで1つのマスにしてしまうと、
+ *   どこで表が終わって、どこから次の表が始まるのかが分かりません。
+ *   結合をほどいておけば、ふつうのマス目の線が見えるので、
+ *   「ここで切れている」とひと目で分かります。
  *
  * ★前に結合していたぶんは、ここでほどきます。
  *   作り直しても結合だけは残るので、ほどかないと ずっと残ります。
  */
-function dbGap_(sheet, row) {
+function dbGapSection_(sheet, row) {
   try {
     dbEnsureRows_(sheet, row);
     const rg = sheet.getRange(row, 1, 1, DB_COLS);
@@ -4835,7 +4850,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     });
     sheet.getRange(opuFrom - 1, 1, curRow - opuFrom + 1, DB_COLS)
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
-    dbGap_(sheet, curRow); curRow++;
+    dbGapSection_(sheet, curRow); curRow++;
   }
 
   /* ---------- ※ 注釈（この資料の性格） ---------- */
@@ -4866,7 +4881,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       .setWrap(true).setHorizontalAlignment("left").setVerticalAlignment("middle");
     sheet.setRowHeight(curRow, 16 * LR_DISCLAIMER.slice(1).length + 4);
     curRow++;
-    dbGap_(sheet, curRow); curRow++;
+    dbGapSection_(sheet, curRow); curRow++;
   }
 
   /* ---------- 🚕 一晩の流し方（マス目） ---------- */
@@ -4972,7 +4987,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     sheet.getRange(from, 1, curRow - from, DB_COLS)
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   }
-  dbGap_(sheet, curRow); curRow++;
+  dbGapSection_(sheet, curRow); curRow++;
 
   /* ---------- ⭕️アツい ✖️ ❎避ける【時間詳細】 ---------- */
   // 横が曜日区分、縦が時間帯。曜日をまたいで「この時間はどこが強いか」を
@@ -5038,7 +5053,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     sheet.getRange(from, 1, curRow - from, DB_COLS)
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   }
-  dbGap_(sheet, curRow); curRow++;
+  dbGapSection_(sheet, curRow); curRow++;
 
   /* ---------- 乗り場ごとのヒートマップとグラフ ---------- */
   // 文字のまま並べると「10/1」が「7/16」より前に来てしまうので、本当の日付で並べる
@@ -5212,7 +5227,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       curRow += chartPlaced ? CHART_ROWS : 0;
       // 本文が置き場所に近づいたら、置き場所を下へ逃がす（上書きしないように）
       if (curRow + 200 > hiddenDataRow) hiddenDataRow = curRow + 400;
-      dbGap_(sheet, curRow); curRow++;
+      dbGapSection_(sheet, curRow); curRow++;
     }
   }
 
