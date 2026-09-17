@@ -2,7 +2,21 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L046ver  （2026/09/17）  ★★★
+ *  ★★★  L047ver  （2026/09/17）  ★★★
+ *
+ *  [L047ver]
+ *   ・🐛 おまけ（星人）が1回も出ないところを直した
+ *     ★L046ver で入れたばかりの書きまちがいです。申し訳ありません。
+ *       まとめスプシの「中で」作られている dbTitle_ / dbNote_ を、
+ *       外にある dbFunBlock_ から呼んでいました。
+ *       外からは見えないので、呼べば必ず失敗します。
+ *       失敗を受け止めているだけだったので、黙って何も出ませんでした
+ *     ★外からでも使えるものだけで書き直しました
+ *     ★テストも直しました。「書いてあるか」を見るだけでは
+ *       このまちがいは見つかりません。実際に動かして、
+ *       中身がちゃんと書き込まれることを見るようにしました
+ *     ★ほかに同じまちがいが無いかも、ぜんぶ調べました（ありませんでした）
+ *   ・🛸 星人の説明に「まーくが GANTZ を好きなだけです」を足した
  *
  *  [L046ver]
  *   ・📏 スクロールの止まりどころを、そろえた（まーくさんのご指示）
@@ -3336,18 +3350,40 @@ function dbFunBlock_(sheet, row) {
 
   try {
     const from = row;
-    dbTitle_(row, "🛸 今回のおふざけ（おまけ）", "#ede7f6", 11); row++;
+
+    /*
+     * ★見出しも説明も、ここで自分で書きます。
+     *
+     *   ★はじめ、まとめスプシの中にある dbTitle_ / dbNote_ を呼んでいました。
+     *     あれは updateDetailedDashboard の「中で」作られている関数なので、
+     *     外にあるこの関数からは見えません。呼んでも必ず失敗し、
+     *     受け止めているだけなので、おまけは1回も出ませんでした。
+     *     わたしの書きまちがいです。
+     *     ここでは、外からでも使えるものだけで書きます。
+     */
+    dbEnsureRows_(sheet, row + 2);
+
+    sheet.getRange(row, 1, 1, DB_COLS).merge().setValue("🛸 今回のおふざけ（おまけ）")
+      .setFontSize(11).setFontWeight("bold").setBackground("#ede7f6")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    sheet.setRowHeight(row, 24);
+    row++;
 
     /*
      * ★星人が何なのかを、ひとこと書いておきます（まーくさんのご指示）。
      *   はじめて見た人は「これは何の表なのか」が分かりません。
      *   数字とは関係のない、その回かぎりのお遊びだと分かるようにします。
      */
-    dbNote_(row,
+    const note = lrWrapJa_(
       "星人＝その回かぎりのお遊びです。数字とは何の関係もありません。" +
+      "まーくが GANTZ を好きなだけです。" +
       "毎回ちがう星人が1体あらわれて、絵も毎回ちがいます。" +
       "公式LINEで「カタストロフィ」または「💩」と送ると、コードの取り込みといっしょに出てきます。",
-      "#ede7f6");
+      lrFitChars_(DB_COLS, 9));
+    sheet.getRange(row, 1, 1, DB_COLS).merge().setValue(note)
+      .setFontSize(9).setFontWeight("normal").setFontColor("#6b6b6b").setBackground("#ede7f6")
+      .setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
+    sheet.setRowHeight(row, 15 * note.split("\n").length + 5);
     row++;
 
     const L = [];
@@ -3375,8 +3411,7 @@ function dbFunBlock_(sheet, row) {
       .setFontSize(10).setFontWeight("normal").setFontColor("#4527a0")
       .setBackground("#f6f2fc")
       .setHorizontalAlignment("left").setVerticalAlignment("top").setWrap(true);
-    sheet.getRange(row, half + 1, 1, DB_COLS - half).merge()
-      .setBackground("#f6f2fc");
+    sheet.getRange(row, half + 1, 1, DB_COLS - half).merge().setBackground("#f6f2fc");
     sheet.setRowHeight(row, Math.max(160, 15 * L.length + 12));
 
     // 絵は、置けなくても気にしない（無ければ文だけ）

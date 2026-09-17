@@ -584,6 +584,8 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
   // 星人が何なのかの説明（はじめて見た人にも分かるように）
   eq(src.indexOf('星人＝その回かぎりのお遊びです。数字とは何の関係もありません。') !== -1, true,
      '★星人が何なのかを、ひとこと書いてある');
+  eq(src.indexOf('まーくが GANTZ を好きなだけです。') !== -1, true,
+     '★なぜ星人なのかも書いてある（まーくが GANTZ を好きなだけ）');
   eq(src.indexOf('毎回ちがう星人が1体あらわれて、絵も毎回ちがいます。') !== -1, true,
      '  毎回ちがうことも書いてある');
   eq(src.indexOf('公式LINEで「カタストロフィ」または「💩」と送ると') !== -1, true,
@@ -594,6 +596,63 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
    'いまの　スプシを', 'わたしの　かってです。', 'という　りくつなわけだす。'].forEach(function (x) {
     eq(src.indexOf(x) !== -1, true, '★決まり文句がある（' + x + '）');
   });
+
+  /*
+   * ★ここは「書いてあるか」を見るだけでは足りない。
+   *   はじめ、まとめスプシの中にある dbTitle_ / dbNote_ を呼んでいた。
+   *   あれは updateDetailedDashboard の「中で」作られている関数なので、
+   *   外にあるこの関数からは見えず、呼んでも必ず失敗していた。
+   *   受け止めているだけなので、おまけは1回も出なかった。
+   *   実際に動かして、ちゃんと書き込まれることを見る
+   */
+  {
+    const wrote = [];      // [行, 値]
+    const heights = {};
+    const cell = () => {
+      const C = {
+        merge: () => C, setValue: v => { wrote.push(String(v)); return C; },
+        setFontSize: () => C, setFontWeight: () => C, setFontColor: () => C,
+        setBackground: () => C, setHorizontalAlignment: () => C,
+        setVerticalAlignment: () => C, setWrap: () => C, setBorder: () => C,
+        setNumberFormat: () => C
+      };
+      return C;
+    };
+    let img = null;
+    const fake = {
+      getRange: () => cell(),
+      setRowHeight: (r, h) => { heights[r] = h; },
+      getMaxRows: () => 1000,
+      insertRowsAfter: () => {},
+      insertImage: (url, c, r) => { img = { url: url, col: c, row: r };
+        return { setWidth: () => ({ setHeight: () => {} }) }; }
+    };
+    const back = ctx.updAlienFallback_;
+    vm.runInContext('function updAlienFallback_(){ return { name: "ねぎ星人", toku: ["でかい"], suki: ["ねぎ"], kirai: ["メーター"], kuse: "みぎみぎ！" }; }', ctx);
+    vm.runInContext('function updAlienPicFree_(){ return { url: "https://x/y.png", direct: "https://x/y.png" }; }', ctx);
+    vm.runInContext('function updAlien_(){ throw new Error("AIは使えない"); }', ctx);
+
+    const out = ctx.dbFunBlock_(fake, 100);
+    const all = wrote.join('\n');
+    ok(out > 100, '★おまけの箱は、ちゃんと行をつかう（' + (out - 100) + '行）', out);
+    ok(all.indexOf('🛸 今回のおふざけ（おまけ）') !== -1, '★見出しが、ちゃんと書き込まれる', all.slice(0, 40));
+    ok(all.indexOf('星人＝その回かぎりのお遊びです。') !== -1, '★星人の説明も、書き込まれる');
+    ok(all.indexOf('まーくが GANTZ を好きなだけです。') !== -1, '★GANTZ のくだりも、ちゃんと出る');
+    ok(all.indexOf('【ねぎ星人】') !== -1, '★星人の名前が出る');
+    ok(all.indexOf('▼特徴') !== -1 && all.indexOf('でかい') !== -1, '  特徴も出る');
+    ok(all.indexOf('みぎみぎ！') !== -1, '  口ぐせも出る');
+    ok(all.indexOf('という　りくつなわけだす。') !== -1, '★決まり文句も出る');
+    ok(all.indexOf('てめえ達は今から') !== -1, '  はじめの決まり文句も');
+    ok(img && img.url === 'https://x/y.png', '★絵も貼る', img);
+
+    // AIも組み合わせ表もだめなときは、何も置かずに帰る（レポートは止めない）
+    wrote.length = 0;
+    vm.runInContext('function updAlienFallback_(){ return null; }', ctx);
+    const out2 = ctx.dbFunBlock_(fake, 100);
+    ok(out2 === 100, '★星人が作れなければ、1行も使わずに帰る', out2);
+    ok(wrote.length === 0, '  何も書かない');
+    ctx.updAlienFallback_ = back;
+  }
 
   // 絵も添える。ただし絵が出せなくても、レポートは止めない
   eq(src.indexOf('sheet.insertImage(pic.direct, half + 2, row, 10, 10)') !== -1, true,
