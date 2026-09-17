@@ -2,7 +2,7 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U075ver  （2026/09/17）  ★★★
+ *  ★★★  U076ver  （2026/09/17）  ★★★
  *
  *  [U074ver]
  *   ・📖 ひとことを 19通り → 108通り（39作品）に増やした
@@ -2336,10 +2336,16 @@ function updKataStart_(alien) {
  *   全部書くと長くなり、読む気が失せるためです。
  */
 /* ================================================================
- *  📖 ひとこと（ジャンプ作品の名言・迷言）
+ *  📖 ひとこと（終わったときの知らせに、1つ添える）
  *
  *  ★取り込みが終わった知らせに、1つだけ添えます（まーくさんのご指示）。
  *    「かんりょう」だけでは味気ない、とのことでした。
+ *
+ *  ★2種類あります。LINEから、いつでも切り替えられます。
+ *      ふだん … 英語の短い名言（元気が出る・勇気が湧く・納得する）
+ *      アニメ … ジャンプ作品の名言・迷言
+ *    「アニメに名言変更してください」と送ればアニメに、
+ *    「英語に名言変更してください」と送れば英語に戻ります。
  *
  *  ★出どころについて、正直に書いておきます。
  *    ご指示は「何巻目のどこのコマか」まで書く、というものでした。
@@ -2359,7 +2365,117 @@ function updKataStart_(alien) {
  *
  *  ★足したいセリフがあれば、この表に1行足すだけです。
  * ================================================================ */
-const UPD_QUOTES = [
+const UPD_QUOTES_EN = [
+  { en: "The only way to do great work is to love what you do.", ja: "すばらしい仕事をする　たった一つの道は、自分のする事を好きになる事だ。", by: "スティーブ・ジョブズ" },
+  { en: "Stay hungry, stay foolish.", ja: "ハングリーであれ。愚か者であれ。", by: "スティーブ・ジョブズ（2005年 スタンフォード大の式辞）" },
+  { en: "It always seems impossible until it's done.", ja: "成しとげるまでは、いつだって不可能に見える。", by: "ネルソン・マンデラ" },
+  { en: "The greatest glory is not in never falling, but in rising every time we fall.", ja: "最大の栄光は、一度も倒れない事ではなく、倒れるたびに起き上がる事だ。", by: "ネルソン・マンデラ" },
+  { en: "Education is the most powerful weapon to change the world.", ja: "世界を変えるために使える、いちばん強い武器が学びだ。", by: "ネルソン・マンデラ" },
+  { en: "The best way to predict the future is to invent it.", ja: "未来を言い当てるいちばんの方法は、自分で作ってしまう事だ。", by: "アラン・ケイ" },
+  { en: "Fall seven times, stand up eight.", ja: "七転び八起き。", by: "日本のことわざ" },
+  { en: "Well done is better than well said.", ja: "うまく言うより、うまくやれ。", by: "ベンジャミン・フランクリン" },
+  { en: "Whether you think you can or you think you can't, you're right.", ja: "できると思えばできる。できないと思えばできない。どちらも正しい。", by: "ヘンリー・フォード" },
+  { en: "Coming together is a beginning; keeping together is progress.", ja: "集まるのが始まり。一緒に居続けるのが進歩だ。", by: "ヘンリー・フォード" },
+  { en: "Don't watch the clock; do what it does. Keep going.", ja: "時計を見るな。時計と同じ事をしろ。動き続けるのだ。", by: "サム・レヴェンソン" },
+  { en: "The journey of a thousand miles begins with a single step.", ja: "千里の道も一歩から。", by: "老子" },
+  { en: "Simplicity is the ultimate sophistication.", ja: "単純である事が、いちばん洗練されている。", by: "レオナルド・ダ・ヴィンチ（とされる言葉）" },
+  { en: "Life is what happens when you're busy making other plans.", ja: "人生とは、別の計画を立てている間に起きてしまう出来事だ。", by: "ジョン・レノン" },
+  { en: "Everything will be okay in the end.", ja: "最後にはすべて うまくいく。", by: "ジョン・レノン（とされる言葉）" },
+  { en: "If it's not okay, it's not the end.", ja: "うまくいっていないなら、それはまだ最後ではない。", by: "ジョン・レノン（とされる言葉）" },
+  { en: "Be yourself; everyone else is already taken.", ja: "自分でいなさい。ほかの人の席は もう埋まっている。", by: "オスカー・ワイルド（とされる言葉）" },
+  { en: "The future depends on what you do today.", ja: "未来は、今日の自分が何をするかで決まる。", by: "マハトマ・ガンジー" },
+  { en: "Live as if you were to die tomorrow. Learn as if you were to live forever.", ja: "明日死ぬかのように生きろ。永遠に生きるかのように学べ。", by: "マハトマ・ガンジー" },
+  { en: "Strength comes from an indomitable will.", ja: "強さは、くじけない意志から生まれる。", by: "マハトマ・ガンジー" },
+  { en: "Be the change you wish to see in the world.", ja: "世界に望む変化に、自分がなりなさい。", by: "マハトマ・ガンジー" },
+  { en: "It does not matter how slowly you go as long as you do not stop.", ja: "どんなに ゆっくりでも、止まりさえしなければ問題ない。", by: "孔子（とされる言葉）" },
+  { en: "The man who moves a mountain begins by carrying away small stones.", ja: "山を動かす者は、小さな石を運ぶ事から始める。", by: "孔子" },
+  { en: "Everything has beauty, but not everyone sees it.", ja: "すべてに美しさはある。ただ、皆がそれを見ているわけではない。", by: "孔子" },
+  { en: "Choose a job you love, and you will never have to work a day in your life.", ja: "好きな仕事を選べ。そうすれば一生、働かずに済む。", by: "孔子（とされる言葉）" },
+  { en: "Do what you can, with what you have, where you are.", ja: "今いる場所で、今あるもので、できる事をやれ。", by: "セオドア・ルーズベルト" },
+  { en: "Believe you can and you're halfway there.", ja: "できると信じた時点で、半分は終わっている。", by: "セオドア・ルーズベルト" },
+  { en: "I have not failed. I've just found ways that won't work.", ja: "失敗ではない。うまくいかない方法を見つけただけだ。", by: "トーマス・エジソン" },
+  { en: "Genius is one percent inspiration, ninety-nine percent perspiration.", ja: "天才とは1%のひらめきと、99%の汗である。", by: "トーマス・エジソン" },
+  { en: "Our greatest weakness lies in giving up.", ja: "いちばんの弱点は、あきらめてしまう事だ。", by: "トーマス・エジソン" },
+  { en: "You miss 100% of the shots you don't take.", ja: "打たなかったシュートは、100%外れている。", by: "ウェイン・グレツキー" },
+  { en: "Success is not final, failure is not fatal.", ja: "成功が終わりではないし、失敗が命取りでもない。", by: "ウィンストン・チャーチル（とされる言葉）" },
+  { en: "It is the courage to continue that counts.", ja: "大事なのは、続ける勇気だ。", by: "ウィンストン・チャーチル（とされる言葉）" },
+  { en: "Never, never, never give up.", ja: "決して、決して、決してあきらめるな。", by: "ウィンストン・チャーチル" },
+  { en: "If you're going through hell, keep going.", ja: "地獄の中を進んでいるなら、止まらずに進み続けろ。", by: "ウィンストン・チャーチル（とされる言葉）" },
+  { en: "If you can dream it, you can do it.", ja: "夢に見られるなら、それは実現できる。", by: "ウォルト・ディズニー" },
+  { en: "The way to get started is to quit talking and begin doing.", ja: "始める方法は、しゃべるのをやめて、やり始める事だ。", by: "ウォルト・ディズニー" },
+  { en: "All our dreams can come true, if we have the courage to pursue them.", ja: "追いかける勇気さえあれば、夢はすべて叶う。", by: "ウォルト・ディズニー" },
+  { en: "Act as if what you do makes a difference. It does.", ja: "自分のする事が世界を変えると思って動け。実際そうなのだから。", by: "ウィリアム・ジェームズ" },
+  { en: "Keep your face always toward the sunshine.", ja: "いつも日の当たるほうへ顔を向けていなさい。", by: "ウォルト・ホイットマン" },
+  { en: "In the middle of difficulty lies opportunity.", ja: "困難のまん中に、好機はある。", by: "アルベルト・アインシュタイン" },
+  { en: "Try not to become a man of success, but a man of value.", ja: "成功者ではなく、価値のある人間になろうとしなさい。", by: "アルベルト・アインシュタイン" },
+  { en: "Imagination is more important than knowledge.", ja: "想像力は知識より大切だ。", by: "アルベルト・アインシュタイン" },
+  { en: "Life is like riding a bicycle. To keep your balance you must keep moving.", ja: "人生は自転車と同じだ。倒れないためには、走り続けるしかない。", by: "アルベルト・アインシュタイン" },
+  { en: "The best time to plant a tree was twenty years ago. The second best is now.", ja: "木を植えるのに最適だったのは20年前。次に良いのは今日だ。", by: "ことわざ" },
+  { en: "Hard work beats talent when talent doesn't work hard.", ja: "才能が努力を怠れば、努力が才能に勝つ。", by: "ティム・ノトキ（とされる言葉）" },
+  { en: "Dream big and dare to fail.", ja: "大きな夢を見て、失敗する勇気を持て。", by: "ノーマン・ヴォーン" },
+  { en: "A goal without a plan is just a wish.", ja: "計画のない目標は、ただの願い事だ。", by: "アントワーヌ・ド・サン＝テグジュペリ（とされる言葉）" },
+  { en: "Start where you are. Use what you have. Do what you can.", ja: "今いる所から始めろ。今あるものを使え。できる事をやれ。", by: "アーサー・アッシュ" },
+  { en: "The harder I work, the luckier I get.", ja: "努力すればするほど、運が良くなる。", by: "ゲーリー・プレーヤー（とされる言葉）" },
+  { en: "Courage is grace under pressure.", ja: "勇気とは、重圧のもとでの気品である。", by: "アーネスト・ヘミングウェイ" },
+  { en: "What doesn't kill you makes you stronger.", ja: "自分を殺さないものは、自分を強くする。", by: "フリードリヒ・ニーチェ" },
+  { en: "He who has a why to live can bear almost any how.", ja: "なぜ生きるかを持つ者は、どう生きるかに ほぼ耐えられる。", by: "フリードリヒ・ニーチェ" },
+  { en: "This too shall pass.", ja: "これもまた過ぎ去る。", by: "ことわざ" },
+  { en: "Not all those who wander are lost.", ja: "さまよう者のすべてが、道に迷っているわけではない。", by: "J.R.R.トールキン" },
+  { en: "Little by little, one travels far.", ja: "少しずつでも、人は遠くまで行ける。", by: "J.R.R.トールキン（とされる言葉）" },
+  { en: "Even the darkest night will end and the sun will rise.", ja: "どんなに暗い夜も明ける。そして日は昇る。", by: "ヴィクトル・ユーゴー『レ・ミゼラブル』" },
+  { en: "Tough times never last, but tough people do.", ja: "つらい時期は続かない。だが、強い人は続く。", by: "ロバート・H・シュラー" },
+  { en: "Where there is a will, there is a way.", ja: "意志のある所に道はある。", by: "ことわざ" },
+  { en: "Rome wasn't built in a day.", ja: "ローマは一日にして成らず。", by: "ことわざ" },
+  { en: "Slow and steady wins the race.", ja: "急がば回れ。", by: "イソップ寓話" },
+  { en: "Actions speak louder than words.", ja: "行動は言葉より雄弁だ。", by: "ことわざ" },
+  { en: "If you want to go fast, go alone. If you want to go far, go together.", ja: "速く行きたいなら一人で。遠くへ行きたいなら皆で。", by: "アフリカのことわざ" },
+  { en: "A smooth sea never made a skilled sailor.", ja: "穏やかな海は、名船乗りを育てない。", by: "ことわざ" },
+  { en: "The only limit to our realization of tomorrow is our doubts of today.", ja: "明日を実現する上での唯一の限界は、今日の迷いだ。", by: "フランクリン・ルーズベルト" },
+  { en: "The only thing we have to fear is fear itself.", ja: "我々が恐れるべき唯一のものは、恐れそのものだ。", by: "フランクリン・ルーズベルト" },
+  { en: "The secret of getting ahead is getting started.", ja: "前に進む秘訣は、まず始める事だ。", by: "マーク・トウェイン（とされる言葉）" },
+  { en: "Twenty years from now you will be more disappointed by the things you didn't do.", ja: "20年後に悔やむのは、やった事ではなく、やらなかった事だ。", by: "マーク・トウェイン（とされる言葉）" },
+  { en: "Kindness is a language which the deaf can hear and the blind can see.", ja: "やさしさは、耳の聞こえない人にも聞こえ、目の見えない人にも見える言葉だ。", by: "マーク・トウェイン" },
+  { en: "It is never too late to be what you might have been.", ja: "なりたかった自分になるのに、遅すぎる事はない。", by: "ジョージ・エリオット（とされる言葉）" },
+  { en: "Nothing is impossible; the word itself says 'I'm possible'.", ja: "不可能などない。その言葉自体が「私はできる」と言っている。", by: "オードリー・ヘプバーン" },
+  { en: "Don't count the days, make the days count.", ja: "日数を数えるな。その日々を意味あるものにしろ。", by: "モハメド・アリ" },
+  { en: "Float like a butterfly, sting like a bee.", ja: "蝶のように舞い、蜂のように刺す。", by: "モハメド・アリ" },
+  { en: "Service to others is the rent you pay for your room here on earth.", ja: "人に尽くす事は、この世に部屋を借りている家賃だ。", by: "モハメド・アリ" },
+  { en: "It's not whether you get knocked down, it's whether you get up.", ja: "倒されたかどうかではない。起き上がるかどうかだ。", by: "ヴィンス・ロンバルディ" },
+  { en: "The difference between ordinary and extraordinary is that little extra.", ja: "並と並外れの差は、ほんの少しの上乗せだ。", by: "ジミー・ジョンソン" },
+  { en: "I can accept failure, but I can't accept not trying.", ja: "失敗は受け入れられる。だが、挑まない事は受け入れられない。", by: "マイケル・ジョーダン" },
+  { en: "I've failed over and over again. And that is why I succeed.", ja: "何度も何度も失敗した。だからこそ成功した。", by: "マイケル・ジョーダン" },
+  { en: "Darkness cannot drive out darkness; only light can do that.", ja: "闇は闇を追い出せない。それができるのは光だけだ。", by: "マーティン・ルーサー・キング・ジュニア" },
+  { en: "Faith is taking the first step even when you don't see the whole staircase.", ja: "信念とは、階段の全体が見えなくても、最初の一段を踏み出す事だ。", by: "マーティン・ルーサー・キング・ジュニア" },
+  { en: "If you can't fly then run, if you can't run then walk.", ja: "飛べないなら走れ。走れないなら歩け。", by: "マーティン・ルーサー・キング・ジュニア" },
+  { en: "Happiness is not something ready made. It comes from your own actions.", ja: "幸せは出来合いのものではない。自分の行いから生まれる。", by: "ダライ・ラマ14世" },
+  { en: "Be kind whenever possible. It is always possible.", ja: "できる限り親切にしなさい。それは いつでもできる。", by: "ダライ・ラマ14世" },
+  { en: "Spread love everywhere you go.", ja: "行く先々に、愛を広げなさい。", by: "マザー・テレサ" },
+  { en: "If you can't feed a hundred people, then feed just one.", ja: "100人を助けられないなら、まず1人を助けなさい。", by: "マザー・テレサ" },
+  { en: "We can do small things with great love.", ja: "小さな事を、大きな愛をもってする事はできる。", by: "マザー・テレサ" },
+  { en: "Do one thing every day that scares you.", ja: "毎日ひとつ、怖い事をやりなさい。", by: "エレノア・ルーズベルト（とされる言葉）" },
+  { en: "No one can make you feel inferior without your consent.", ja: "あなたが許さない限り、誰もあなたを見下せない。", by: "エレノア・ルーズベルト" },
+  { en: "The future belongs to those who believe in the beauty of their dreams.", ja: "未来は、自分の夢の美しさを信じる人のものだ。", by: "エレノア・ルーズベルト" },
+  { en: "Nothing in life is to be feared, it is only to be understood.", ja: "人生に恐れるべきものはない。ただ理解すべきものがあるだけだ。", by: "マリ・キュリー" },
+  { en: "You have power over your mind, not outside events.", ja: "自分の心は思い通りになる。外の出来事はならない。", by: "マルクス・アウレリウス" },
+  { en: "Waste no more time arguing what a good man should be. Be one.", ja: "良い人間とは何かを論じるのはやめて、良い人間になれ。", by: "マルクス・アウレリウス" },
+  { en: "We suffer more in imagination than in reality.", ja: "人は現実よりも、想像の中で多く苦しむ。", by: "セネカ" },
+  { en: "Luck is what happens when preparation meets opportunity.", ja: "運とは、備えが好機に出会った時に起きるものだ。", by: "セネカ" },
+  { en: "Difficulties strengthen the mind, as labor does the body.", ja: "労働が体を鍛えるように、困難は心を鍛える。", by: "セネカ" },
+  { en: "First say to yourself what you would be; then do what you have to do.", ja: "まず何者になりたいか自分に言え。それから、すべき事をやれ。", by: "エピクテトス" },
+  { en: "It's not what happens to you, but how you react that matters.", ja: "大事なのは何が起きたかではなく、どう受け止めたかだ。", by: "エピクテトス" },
+  { en: "Knowing yourself is the beginning of all wisdom.", ja: "自分を知る事が、すべての知恵の始まりだ。", by: "アリストテレス" },
+  { en: "We are what we repeatedly do. Excellence is not an act, but a habit.", ja: "人は繰り返す事の結果である。卓越とは行いではなく、習慣だ。", by: "ウィル・デュラント（アリストテレスの考えをまとめた言葉）" },
+  { en: "Quality is not an act, it is a habit.", ja: "質とは行いではなく、習慣である。", by: "アリストテレス（とされる言葉）" },
+  { en: "What we think, we become.", ja: "考えた通りの自分になる。", by: "ブッダ（とされる言葉）" },
+  { en: "Everything you've ever wanted is on the other side of fear.", ja: "欲しかったものはすべて、恐れの向こう側にある。", by: "ジョージ・アデア" },
+  { en: "The best revenge is massive success.", ja: "最高の仕返しは、圧倒的に成功する事だ。", by: "フランク・シナトラ（とされる言葉）" },
+  { en: "Creativity is intelligence having fun.", ja: "創造とは、知性が楽しんでいる姿だ。", by: "アルベルト・アインシュタイン（とされる言葉）" },
+  { en: "A ship in harbor is safe, but that is not what ships are built for.", ja: "港にいる船は安全だ。だが、船はそのために造られたのではない。", by: "ジョン・A・シェッド" },
+  { en: "The expert in anything was once a beginner.", ja: "どんな達人も、かつては初心者だった。", by: "ヘレン・ヘイズ（とされる言葉）" },
+  { en: "Done is better than perfect.", ja: "完璧より、終わらせる事。", by: "ことわざ（仕事の心得として広く使われる）" }
+];
+
+const UPD_QUOTES_ANIME = [
   { work: "ONE PIECE", by: "尾田栄一郎", who: "モンキー・D・ルフィ",
     line: "海賊王に　おれはなる！", at: "1巻・第1話" },
   { work: "ONE PIECE", by: "尾田栄一郎", who: "モンキー・D・ルフィ",
@@ -2585,15 +2701,91 @@ const UPD_QUOTES = [
  *   どこから来た言葉か分からないものを、人に見せる知らせに
  *   そのまま置くわけにはいかないためです。
  */
-function updQuote_() {
+/** いま どちらの名言を出すか（"en"＝英語／"anime"＝アニメ）。ふだんは英語 */
+function updQuoteKind_() {
   try {
-    const q = UPD_QUOTES[Math.floor(Math.random() * UPD_QUOTES.length)];
+    return updProps_().getProperty(UPD_QUOTE_KEY) === "anime" ? "anime" : "en";
+  } catch (e) { return "en"; }
+}
+
+/** どちらを出すかを決める。決めたほうを返す */
+function updQuoteKindSet_(kind) {
+  const k = (kind === "anime") ? "anime" : "en";
+  try { updProps_().setProperty(UPD_QUOTE_KEY, k); } catch (e) {}
+  return k;
+}
+
+/** 覚えておく場所の名前 */
+const UPD_QUOTE_KEY = "UPD_QUOTE_KIND";
+
+/**
+ * ひとことを1つ選んで、知らせの形にする。
+ *
+ * ★英語のほうは、日本語の意味も添えます。
+ *   英語だけだと、読むのに手が止まってしまうためです。
+ * ★どちらも、だれの言葉かを必ず書きます。
+ *   どこから来た言葉か分からないものを、人に見せる知らせに
+ *   そのまま置くわけにはいかないためです。
+ */
+function updQuote_(kindIn) {
+  try {
+    const kind = kindIn || updQuoteKind_();
+    if (kind === "anime") {
+      const q = UPD_QUOTES_ANIME[Math.floor(Math.random() * UPD_QUOTES_ANIME.length)];
+      if (!q) return "";
+      return "「" + q.line + "」\n" +
+             "　" + q.who + "\n" +
+             "　『" + q.work + "』" + q.by + "\n" +
+             "　" + q.at;
+    }
+    const q = UPD_QUOTES_EN[Math.floor(Math.random() * UPD_QUOTES_EN.length)];
     if (!q) return "";
-    return "「" + q.line + "」\n" +
-           "　" + q.who + "\n" +
-           "　『" + q.work + "』" + q.by + "\n" +
-           "　" + q.at;
+    return "\"" + q.en + "\"\n" +
+           "　" + q.ja + "\n" +
+           "　― " + q.by;
   } catch (e) { return ""; }
+}
+
+/*
+ * ★LINEから「アニメに名言変更してください」で切り替えられるようにします。
+ *
+ *   スプシを開かずに変えられないと、結局どちらか一方しか使われません。
+ *   言い方は1つに決めません。思いついたまま打てるように、
+ *   「名言」と「アニメ（または英語）」の両方が入っていれば受けます。
+ */
+function updQuoteWord_(text) {
+  let t = String(text == null ? "" : text);
+  t = t.replace(/[\s\u3000]/g, "");
+  if (!t) return "";
+  // 「名言」「めいげん」「ひとこと」のどれかが入っていないと、ふつうの話とみなす
+  if (!/(名言|めいげん|メイゲン|ひとこと|一言)/.test(t)) return "";
+  if (/(アニメ|あにめ|ジャンプ|じゃんぷ|漫画|まんが|マンガ)/.test(t)) return "anime";
+  if (/(英語|えいご|エイゴ|English|english|もどし|戻し|ふだん|普通|通常)/.test(t)) return "en";
+  return "";
+}
+
+/**
+ * LINEで「アニメに名言変更してください」などが来たときの受け口。
+ * 受け止めたら true。
+ */
+function updHandleQuote_(ev) {
+  const text = (ev && ev.message && ev.message.text) || "";
+  const want = updQuoteWord_(text);
+  if (!want) return false;
+
+  // ★まーくさん以外のときは、黙って見送る（💩 と同じ扱い）
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const me = updMe_();
+  if (!me || uid !== me) return true;
+
+  const k = updQuoteKindSet_(want);
+  const reply = (ev && ev.replyToken) || "";
+  if (typeof lineReply_ === "function") {
+    lineReply_(reply, UPD_BALL + "\n" +
+      (k === "anime" ? "めいげんは\nアニメに　しました。" : "めいげんは\nえいごに　しました。") +
+      "\n\n" + UPD_KATA_END + "\n\n" + updQuote_(k));
+  }
+  return true;
 }
 
 function updKataDone_(body) {

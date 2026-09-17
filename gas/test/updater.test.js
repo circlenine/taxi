@@ -3104,52 +3104,91 @@ console.log('\n■ 📖 終わったときの知らせに、ひとことを添�
 {
   /*
    * ★「かんりょう」だけでは味気ない、とのご指示。
-   *   ジャンプ作品の名言・迷言を1つ、ランダムで添える
+   *   ふだんは英語の短い名言（元気が出る・勇気が湧く・納得する）。
+   *   LINEから「アニメに名言変更してください」でアニメにも変えられる
    */
   const Q = F('updQuote_');
-  const list = vm.runInContext('UPD_QUOTES', ctx);
-
-  t(list.length >= 100, '★ひとことは100通り以上（' + list.length + '通り）');
-  // 同じセリフが2つ入っていないこと（同じものが何度も出ると、少なく感じる）
-  {
-    const key = list.map(x => x.work + '／' + x.line);
-    t(new Set(key).size === key.length, '★同じセリフが2つ入っていない');
-  }
-  t(list.every(x => x.line && x.who && x.work && x.by && x.at),
-    '★どれも「セリフ・だれ・作品・作者・出どころ」がそろっている');
-  t(list.every(x => String(x.line).indexOf('http') === -1), '  アドレスは入れない');
-  // ★同じ作品ばかりにならないこと
-  t(new Set(list.map(x => x.work)).size >= 30,
-    '★作品は30以上（' + new Set(list.map(x => x.work)).size + '作品）');
-  // ★ふきだしの外なので幅は自由だが、長すぎる1行は折り返されて見苦しい
+  const en = vm.runInContext('UPD_QUOTES_EN', ctx);
+  const an = vm.runInContext('UPD_QUOTES_ANIME', ctx);
   const W2 = F('updZenkaku_');
-  // ★長いセリフは、こちらで行を分けておく（LINEに勝手に折り返されると読みにくい）
-  t(list.every(x => String(x.line).split('\n').every(y => W2(y) <= 24)),
-    '★1行が長すぎるセリフは入れない（長いものは、こちらで行を分ける）');
 
+  t(en.length >= 100, '★英語の名言は100通り以上（' + en.length + '通り）');
+  t(an.length >= 100, '  アニメのほうも残してある（' + an.length + '通り）');
+  t(new Set(en.map(x => x.en)).size === en.length, '★英語の名言に、同じ文が2つ入っていない');
+  t(en.every(x => x.en && x.ja && x.by),
+    '★どれも「英文・日本語の意味・だれの言葉か」がそろっている');
+  t(en.every(x => /^[\x20-\x7E]+$/.test(x.en)), '★英文に、全角の字がまぎれていない');
+  t(en.every(x => x.en.length <= 90), '  1文が長すぎるものは入れない');
+  t(new Set(en.map(x => x.by)).size >= 40,
+    '  いろいろな人の言葉（' + new Set(en.map(x => x.by)).size + '人）');
+
+  // ふだんは英語
+  delete props['UPD_QUOTE_KIND'];
+  t(F('updQuoteKind_')() === 'en', '★何も決めていなければ、英語');
   const q = Q();
-  t(typeof q === 'string' && q.length > 0, '★1つ選んで、文にする');
-  t(q.indexOf('「') === 0, '  セリフは「」で囲む');
-  t(q.indexOf('『') !== -1, '★作品名も必ず書く（どこから来た言葉か分かるように）');
-  t(q.split('\n').length >= 4, '  セリフ・だれ・作品と作者・出どころ の4行以上');
+  t(q.indexOf('"') === 0, '★英語のときは、英文から始まる');
+  t(q.split('\n').length === 3, '  英文・日本語の意味・だれの言葉か の3行');
+  t(q.indexOf('―') !== -1, '★だれの言葉かを必ず書く');
+
+  // アニメに切り替え
+  t(F('updQuoteKindSet_')('anime') === 'anime', 'アニメに切り替えられる');
+  t(F('updQuoteKind_')() === 'anime', '  覚えている');
+  t(Q().indexOf('『') !== -1, '★アニメのときは、作品名が入る');
+  t(F('updQuoteKindSet_')('en') === 'en', '英語に戻せる');
+  t(Q().indexOf('『') === -1, '  戻したら、英語になる');
+
+  // LINEからの言い方
+  const QW = F('updQuoteWord_');
+  t(QW('アニメに名言変更してください') === 'anime', '★「アニメに名言変更してください」でアニメ');
+  t(QW('名言をアニメに') === 'anime', '  「名言をアニメに」でも通る');
+  t(QW('めいげん　まんが') === 'anime', '  ひらがな・「まんが」でも通る');
+  t(QW('英語に名言変更してください') === 'en', '★「英語に名言変更してください」で英語');
+  t(QW('名言を英語にもどして') === 'en', '  「もどして」でも通る');
+  t(QW('アニメ見た') === '', '★「名言」が入っていなければ、反応しない');
+  t(QW('名言って　いいよね') === '', '  どちらにするか書いていなければ、反応しない');
+  t(QW('') === '' && QW(null) === '', '空でも null でも落ちない');
+
+  // 受け口（まーくさんだけ）
+  const HQ = F('updHandleQuote_');
+  delete props['UPD_QUOTE_KIND']; ctx.rep.length = 0;
+  t(HQ({ message: { text: 'アニメに名言変更してください' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    'ほかの人が打っても、受けはする');
+  t(props['UPD_QUOTE_KIND'] === undefined, '★ほかの人には、変えさせない');
+  t(ctx.rep.length === 0, '  何も返さない');
+
+  ctx.rep.length = 0;
+  t(HQ({ message: { text: 'アニメに名言変更してください' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    'まーくさんなら、変えられる');
+  t(props['UPD_QUOTE_KIND'] === 'anime', '★アニメになる');
+  has(ctx.rep[0], 'アニメに　しました', '  変えたと分かる返事');
+  has(ctx.rep[0], '『', '★その場で1つ出して見せる');
+
+  ctx.rep.length = 0;
+  t(HQ({ message: { text: '英語に名言変更してください' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '英語にも戻せる');
+  t(props['UPD_QUOTE_KIND'] === 'en', '★英語に戻る');
+  has(ctx.rep[0], 'えいごに　しました', '  戻したと分かる返事');
+
+  t(HQ({ message: { text: 'こんにちは' }, source: { userId: 'Umark' }, replyToken: 'r' }) === false,
+    'ふつうの話は、こちらでは受け止めない');
 
   // 完了の知らせに、ちゃんと入る
+  delete props['UPD_QUOTE_KIND'];
   const done = F('updKataDone_')('入れ替え：001-Code.gs');
   t(done.indexOf('とりこみ　かんりょう。') !== -1, '  終わったことは、これまでどおり出る');
-  t(done.indexOf('入れ替え') === -1 && done.indexOf('001-Code.gs') !== -1,
-    '  入れ替えたファイル名も、これまでどおり出る');
-  t(done.indexOf('『') !== -1, '★完了の知らせに、ひとことが入る');
+  t(done.indexOf('001-Code.gs') !== -1, '  入れ替えたファイル名も、これまでどおり出る');
+  t(done.indexOf('―') !== -1, '★完了の知らせに、ひとことが入る');
   t(done.indexOf(F('UPD_KATA_END')) !== -1, '  しめの1行も、これまでどおり');
 
   // しくじったときには、添えない（茶化して見えるため）
-  const fail = F('updKataFail_')('❌ だめでした');
-  t(fail.indexOf('『') === -1, '★しくじったときには、添えない');
+  t(F('updKataFail_')('❌ だめでした').indexOf('―') === -1, '★しくじったときには、添えない');
 
   // 何度か呼んで、同じものばかりにならないこと
   const seen = {};
   for (let i = 0; i < 600; i++) { seen[Q()] = 1; }
   t(Object.keys(seen).length >= 50,
     '★毎回おなじにはならない（600回で ' + Object.keys(seen).length + '通り出た）');
+  ctx.rep.length = 0;
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C052ver  （2026/09/17）  ★★★   ← もとは version 232
+ *  ★★★  C053ver  （2026/09/17）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,10 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C053ver]
+ *   ・LINEの合図に「アニメに名言変更してください」を足した（updHandleQuote_）
+ *     終わったときに添えるひとことを、英語 ⇔ アニメ で切り替えます
  *
  *  [C052ver]
  *   ・LINEの合図に「💩🆗」「💩🆖」を足した（005-Updater の updHandleTell_ を呼ぶ）
@@ -1558,6 +1562,11 @@ function handleEvent_(ev) {
    *       入・切のつもりが 取り込みが始まってしまいます。
    */
   if (typeof updHandleTell_ === "function" && updHandleTell_(ev)) return;
+  /*
+   * --- 「アニメに名言変更してください」… 終わったときのひとことを切り替える ---
+   *     英語の名言 ⇔ ジャンプ作品の名言・迷言
+   */
+  if (typeof updHandleQuote_ === "function" && updHandleQuote_(ev)) return;
   if (typeof updHandleKata_ === "function" && updHandleKata_(ev)) return;
 
   if (typeof updHandleNote_ === "function" && updHandleNote_(ev)) return;
