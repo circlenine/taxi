@@ -3509,7 +3509,14 @@ function vnShortcutUrl_(ev, day, at) {
   if (!name || !at) return "";
   const d = new Date(at);
   const p2 = function (n) { return ("0" + n).slice(-2); };
-  const when = d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + " " +
+  /*
+   * ★日時は「2026年9月18日 20:55」の形で渡します。
+   *   ショートカットの「テキストから日付を取得」は、
+   *   日本語の書き方のほうが、まず取りちがえません。
+   *   2026-09-18 のような書き方だと、機種や設定によっては
+   *   月と日を逆に読むことがあります。
+   */
+  const when = d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 " +
                p2(d.getHours()) + ":" + p2(d.getMinutes());
   const title = String(ev.venue || "") + (ev.title ? "\u3000" + ev.title : "");
   const input = title + "｜" + when;
