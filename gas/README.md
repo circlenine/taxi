@@ -10,7 +10,7 @@
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L037ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U073ver | `005-Updater` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U074ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V034ver | `006-Venue` |
 
 > **コードの貼り替えは、ふだん要りません。**

@@ -3099,5 +3099,51 @@ console.log('\n■ 合言葉は、打ち方がまざっていても通る');
     '  ならべすぎ（知らない言葉入り）にも反応しない');
 }
 
+
+console.log('\n■ 📖 終わったときの知らせに、ひとことを添える');
+{
+  /*
+   * ★「かんりょう」だけでは味気ない、とのご指示。
+   *   ジャンプ作品の名言・迷言を1つ、ランダムで添える
+   */
+  const Q = F('updQuote_');
+  const list = vm.runInContext('UPD_QUOTES', ctx);
+
+  t(list.length >= 10, '★ひとことの数（' + list.length + '）');
+  t(list.every(x => x.line && x.who && x.work && x.by && x.at),
+    '★どれも「セリフ・だれ・作品・作者・出どころ」がそろっている');
+  t(list.every(x => String(x.line).indexOf('http') === -1), '  アドレスは入れない');
+  // ★同じ作品ばかりにならないこと
+  t(new Set(list.map(x => x.work)).size >= 8,
+    '  作品の数（' + new Set(list.map(x => x.work)).size + '）');
+  // ★ふきだしの外なので幅は自由だが、長すぎる1行は折り返されて見苦しい
+  const W2 = F('updZenkaku_');
+  t(list.every(x => W2(x.line) <= 24), '  1行が長すぎるセリフは入れない');
+
+  const q = Q();
+  t(typeof q === 'string' && q.length > 0, '★1つ選んで、文にする');
+  t(q.indexOf('「') === 0, '  セリフは「」で囲む');
+  t(q.indexOf('『') !== -1, '★作品名も必ず書く（どこから来た言葉か分かるように）');
+  t(q.split('\n').length === 4, '  セリフ・だれ・作品と作者・出どころ の4行');
+
+  // 完了の知らせに、ちゃんと入る
+  const done = F('updKataDone_')('入れ替え：001-Code.gs');
+  t(done.indexOf('とりこみ　かんりょう。') !== -1, '  終わったことは、これまでどおり出る');
+  t(done.indexOf('入れ替え') === -1 && done.indexOf('001-Code.gs') !== -1,
+    '  入れ替えたファイル名も、これまでどおり出る');
+  t(done.indexOf('『') !== -1, '★完了の知らせに、ひとことが入る');
+  t(done.indexOf(F('UPD_KATA_END')) !== -1, '  しめの1行も、これまでどおり');
+
+  // しくじったときには、添えない（茶化して見えるため）
+  const fail = F('updKataFail_')('❌ だめでした');
+  t(fail.indexOf('『') === -1, '★しくじったときには、添えない');
+
+  // 何度か呼んで、同じものばかりにならないこと
+  const seen = {};
+  for (let i = 0; i < 60; i++) { seen[Q()] = 1; }
+  t(Object.keys(seen).length >= 5,
+    '★毎回おなじにはならない（' + Object.keys(seen).length + '通り出た）');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
