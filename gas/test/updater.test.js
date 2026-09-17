@@ -3157,6 +3157,39 @@ console.log('\n■ 合言葉は、打ち方がまざっていても通る');
 }
 
 
+console.log('\n■ コードではないファイルは、取り込まない');
+{
+  /*
+   * ★Apps Script では、.json のファイルは「appsscript.json」（設定ファイル）
+   *   としてしか受け付けてもらえない。ほかの .json を送ると、まるごと はねられる。
+   *   実際、おつかいメモ（errand.json）を置いたせいで
+   *   取り込みが1回まるごと失敗した（400 Invalid manifest）
+   */
+  const SK = F('updSkipFile_');
+  t(SK('errand.json') === true, '★おつかいメモは、取り込まない');
+  t(SK('ERRAND.JSON') === true, '  大文字でも同じ');
+  t(SK('note.json') === true, '★appsscript.json 以外の .json は、ぜんぶ取り込まない');
+  t(SK('appsscript.json') === false, '  appsscript.json だけは、取り込む');
+  t(SK('001-Code.gs') === false, '  .gs は、もちろん取り込む');
+  t(SK('page.html') === false, '  .html も取り込む');
+  t(SK('') === true && SK(null) === true, '空でも落ちない');
+
+  // 置き場の一覧から、ちゃんと外れること
+  reset([]);
+  props['GH_REPO'] = 'circlenine/taxi';
+  props['GH_PATH'] = 'gas';
+  gh = { dir: [
+    { name: '001-Code.gs',    path: 'gas/001-Code.gs',    type: 'file', sha: 'a' },
+    { name: 'appsscript.json', path: 'gas/appsscript.json', type: 'file', sha: 'b' },
+    { name: 'errand.json',    path: 'gas/errand.json',    type: 'file', sha: 'c' }
+  ], raw: { 'gas/001-Code.gs': 'x', 'gas/appsscript.json': '{}' } };
+  const names = F('updListGitHub_')().map(function (x) { return x.name; });
+  t(names.indexOf('errand') === -1 && names.indexOf('errand.json') === -1,
+    '★一覧に、おつかいメモは入らない（' + names.join('・') + '）');
+  t(names.indexOf('001-Code') !== -1, '  コードは、ちゃんと入る');
+  t(names.indexOf('appsscript') !== -1, '  設定ファイルも入る');
+}
+
 console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、スプシが取りにくる）');
 {
   /*

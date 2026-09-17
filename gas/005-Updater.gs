@@ -2,7 +2,7 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U078ver  （2026/09/17）  ★★★
+ *  ★★★  U079ver  （2026/09/17）  ★★★
  *
  *  [U074ver]
  *   ・📖 ひとことを 19通り → 108通り（39作品）に増やした
@@ -1276,6 +1276,30 @@ function updGh_(url, raw) {
 }
 
 /** GitHub のフォルダにあるコードのファイル一覧（中身は読まない） */
+/*
+ * ★取り込んではいけないファイル。
+ *
+ *   ★Apps Script では、.json のファイルは「appsscript.json」（設定ファイル）
+ *     としてしか受け付けてもらえません。
+ *     ほかの .json を送ると、まるごと はねられます。
+ *     実際に、おつかいメモ（errand.json）を置いたせいで
+ *     取り込みが1回まるごと失敗しました。わたしの見落としです。
+ *
+ *   ★ここに書いたものは、置き場にあっても取り込みません。
+ *     置き場には、コード以外のものも置けるようにしておきたいためです。
+ */
+const UPD_SKIP_FILES = ["errand.json"];
+
+/** そのファイルは、取り込んではいけないものか */
+function updSkipFile_(name) {
+  const n = String(name == null ? "" : name).toLowerCase();
+  if (!n) return true;
+  if (UPD_SKIP_FILES.indexOf(n) !== -1) return true;
+  // ★.json は appsscript.json だけ。ほかは、設定ファイルとみなされて はねられる
+  if (/\.json$/.test(n) && n !== "appsscript.json") return true;
+  return false;
+}
+
 function updListGitHub_() {
   const base = "https://api.github.com/repos/" + updRepo_() + "/contents/";
   const dir = JSON.parse(updGh_(
@@ -1286,6 +1310,8 @@ function updListGitHub_() {
   dir.forEach(function (e) {
     if (e.type !== "file") return;
     if (!/\.(gs|html|json)$/i.test(e.name)) return;
+    // ★コードではないものは、取り込まない（appsscript.json 以外の .json など）
+    if (updSkipFile_(e.name)) return;
     out.push({ name: updBase_(e.name), type: updType_(e.name),
                path: e.path, sha: e.sha });
   });
@@ -1339,7 +1365,7 @@ function updListNew_() {
   const it = folder.getFiles();
   while (it.hasNext()) {
     const nm = it.next().getName();
-    if (/\.(gs|html|json)$/i.test(nm)) seen[updBase_(nm)] = 1;
+    if (/\.(gs|html|json)$/i.test(nm) && !updSkipFile_(nm)) seen[updBase_(nm)] = 1;
   }
   return Object.keys(seen);
 }
@@ -3943,6 +3969,7 @@ function updReadDrive_() {
     const f = it.next();
     const nm = f.getName();
     if (!/\.(gs|html|json)$/i.test(nm)) continue;
+    if (updSkipFile_(nm)) continue;          // コードではないものは、取り込まない
     const base = updBase_(nm);
     const t = f.getLastUpdated().getTime();
     if (!best[base] || t > best[base].t) best[base] = { t: t, f: f, nm: nm };

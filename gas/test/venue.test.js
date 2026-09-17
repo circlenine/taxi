@@ -422,6 +422,43 @@ console.log('\n■ 前日18:00に確認用（まーくさんだけ）、当日17
   back();
 }
 
+console.log('\n■ 確認用を送っていない日は、グループへ絶対に出さない');
+{
+  /*
+   * ★人の目を通していないものを、みんなに流さないための最後の関所。
+   *   ここが抜けると、だれも見ていない中身がそのままグループへ出てしまう
+   */
+  props.VN_AUTO = '1';
+  const RealDate = Date;
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  D.prototype = RealDate.prototype; D.now = RealDate.now;
+  ctx.Date = D;
+  const keepG2 = vm.runInContext('vnGroupTarget_', ctx);
+  vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
+
+  // 確認用の印が無い状態（前の日に送っていない）
+  delete props['VNSENT_20260916'];
+  delete props['VNSENT_20260916_T'];
+  delete props['VNSENT_20260917_T'];
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  const toGroup = pushed.filter(x => x.to === 'Cgroup');
+  eq(toGroup.length, 0, '★確認用が済んでいない日は、グループへ1通も出さない');
+  eq(props['VNSENT_20260916'], undefined, '  「送った」印も残さない');
+
+  // 確認用の印があれば、出す
+  props['VNSENT_20260916_T'] = '1';
+  pushed.length = 0;
+  ctx.venueDailyJob();
+  eq(pushed.filter(x => x.to === 'Cgroup').length, 1, '  確認用が済んでいれば、出す');
+
+  ctx.vnGroupTarget_ = keepG2;
+  ctx.Date = RealDate;
+  delete props['VNSENT_20260916'];
+  delete props['VNSENT_20260916_T'];
+  delete props['VNSENT_20260917_T'];
+}
+
 console.log('\n■ 送り先が分からなければ、グループには絶対に送らない');
 {
   props.VN_AUTO = '1';
