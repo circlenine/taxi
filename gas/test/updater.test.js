@@ -3695,8 +3695,21 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   ctx.pu.length = 0;
   T('じどう', 'とりこみ　かんりょう。\n入れ替え：001-Code\nデプロイのやり直しは失敗しました（403）');
   const w = String(ctx.pu[0].msgs[0].text);
-  t(w.indexOf('デプロイのやり直しは失敗') !== -1,
-    '★デプロイの失敗は、1行にまとめずに出す');
+  t(w.indexOf('公開だけ しっぱい') !== -1,
+    '★公開だけ失敗したことを、はっきり出す', w);
+  /*
+   * ★ここが、いちばん大事なところです。
+   *   公開だけ失敗したとき、コードはちゃんと入っています。
+   *   前は「てんそうは やめました／スプシは そのままです」と出していました。
+   *   事実とちがいます。うそを知らせていたことになります
+   */
+  t(w.indexOf('スプシは　そのままです') === -1,
+    '★入っているのに「そのままです」と言わない（うそになる）', w);
+  t(w.indexOf('コードは入りました') !== -1,
+    '★コードは入った、と はっきり言う', w);
+  t(w.indexOf('LINEの受け口だけ古いまま') !== -1,
+    '★何が古いままなのかを言う（LINEが前のままになる原因）', w);
+  t(w.split('\n').length <= 5, '★長くしない（' + w.split('\n').length + '行）', w);
 
   // しくじったときは、これまでどおり くわしく
   ctx.pu.length = 0;
@@ -3878,6 +3891,194 @@ console.log('\n■ 変わっていないファイルには、* を付けない')
   t(vline.indexOf('*C100') !== -1, '★入れ替わった 001 には * が付く（' + vline + '）', out2);
   t(vline.indexOf('*L100') === -1, '★変わっていない 003 には * を付けない（' + vline + '）', out2);
   t(vline.indexOf('L100') !== -1, '  数字そのものは、変わっていなくても並べる', vline);
+}
+
+console.log('\n■ 版（バージョン）が200こで満杯になったとき');
+/*
+ * ★実際に起きました。
+ *   (429) Script has reached the limit of 200 versions.
+ *   取り込むたびに版が1つ増えるので、直しを重ねると必ずいつか当たります。
+ *
+ * ★満杯でも、コードそのものは入ります。
+ *   古いままになるのは LINEの受け口と みんなの記録ページだけです。
+ *   「入れ替えたのにLINEが前のまま」は、これが原因です。
+ *   だからこそ、黙って流してはいけません。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  apiFail = { path: '/versions', method: 'post', code: 429,
+              msg: 'Cannot create more versions: Script has reached the limit of 200 versions.' };
+  const r = String(F('updRedeploy_')());
+  t(r.indexOf(vm.runInContext('UPD_DEPLOY_FULL', ctx)) !== -1,
+    '★満杯を見分けて、合言葉で返す（' + r + '）', r);
+  apiFail = null;
+
+  // 知らせは短く、やることだけ
+  props['UPD_TELL'] = '1';
+  ctx.pu.length = 0;
+  F('updTellResult_')('じどう',
+    'とりこみ　かんりょう。\n入れ替え：005-Updater\nバージョン：*U098\n' +
+    vm.runInContext('UPD_DEPLOY_FULL', ctx));
+  const m = String(ctx.pu[0].msgs[0].text);
+  t(m.indexOf('版（バージョン）が200こで満杯') !== -1, '★原因を ひとことで言う', m);
+  t(m.indexOf('「❗」') !== -1, '★どうすればよいかを言う（❗で手順が出る）', m);
+  t(m.indexOf('limit of 200 versions') === -1,
+    '★長い英語のエラーは、そのまま貼らない', m);
+  t(m.split('\n').length <= 5, '★5行まで（' + m.split('\n').length + '行）', m);
+  t(m.indexOf('*U098') !== -1, '  入ったバージョンは、ちゃんと出す', m);
+  ctx.pu.length = 0;
+}
+
+console.log('\n■ 満杯になる手前で知らせる');
+{
+  /*
+   * ★満杯になってから気づくと、その間ずっと
+   *   LINEの受け口だけが古いまま動きます。手前で言います
+   */
+  reset([['001-Code.gs', 'あたらしい']]);
+  project.version = 184;                       // 次に作られるのは185
+  const ok = String(F('updRedeploy_')());
+  t(ok.indexOf('満杯が近い') !== -1, '★180をこえたら、警告を出す（' + ok + '）', ok);
+
+  ctx.pu.length = 0;
+  F('updTellResult_')('じどう',
+    'とりこみ　かんりょう。\n入れ替え：005-Updater\nバージョン：*U098\n' + ok);
+  const w = String(ctx.pu[0].msgs[0].text);
+  t(w.indexOf('満杯が近い') !== -1, '★自動の知らせにも、1行だけ出す', w);
+  t(w.split('\n').length === 3, '  ふだんの2行＋警告の1行だけ（' + w.split('\n').length + '行）', w);
+
+  project.version = 120;
+  ctx.pu.length = 0;
+  F('updTellResult_')('じどう',
+    'とりこみ　かんりょう。\n入れ替え：005-Updater\nバージョン：*U098\n' +
+    String(F('updRedeploy_')()));
+  t(String(ctx.pu[0].msgs[0].text).split('\n').length === 2,
+    '★まだ余裕があるときは、余計な行を足さない');
+  ctx.pu.length = 0;
+}
+
+console.log('\n■ ❗ 満杯の直し方を、順番どおりに出す');
+{
+  vm.runInContext('function rpTestTarget_(){ return "Umark"; }', ctx);
+  props['LINE_TOKEN'] = 'x';
+  ctx.rep.length = 0;
+  const ok = F('updHandleFullCmd_')({ message: { text: '❗' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(ok === true, '★「❗」を受ける');
+  const g = String(ctx.rep[0] || '');
+  t(g.indexOf('①') !== -1 && g.indexOf('②') !== -1 && g.indexOf('③') !== -1,
+    '★手順に番号を振る（そのとおり指を動かせば終わるように）', g.slice(0, 120));
+  t(g.indexOf('「❗そうじ」') !== -1, '  何と送ればよいのかを、そのまま書く');
+  t(g.indexOf('コードは入ります') !== -1, '★満杯でもコードは入る、と はっきり書く');
+
+  // ほかの人には返さない
+  t(F('updHandleFullCmd_')({ message: { text: '❗' },
+    source: { userId: 'Uother' }, replyToken: 'r' }) === false,
+    '★ほかの人には、返さない');
+}
+
+console.log('\n■ 古いデプロイの片づけ（更新日付の古い順）');
+/*
+ * ★取り返しがつかない処理なので、守るほうを先に固めます。
+ *   いま使われているデプロイを無くすと、LINEは完全に無反応になり、
+ *   みんなの記録ページのURLも配り直しになります。
+ *
+ * ★並べる順は「更新した日付」です（まーくさんのご指示）。
+ *   版の番号は、付け直しや作り直しで前後することがあり、
+ *   古いつもりで新しいものを消してしまいます。
+ */
+{
+  const day = function (n) {
+    return new Date(2026, 0, n).toISOString();
+  };
+  reset([]);
+  vm.runInContext('ScriptApp.getService = function(){ return { getUrl: function(){ ' +
+    'return "https://script.google.com/macros/s/DLIVE/exec"; } }; };', ctx);
+  t(F('updLiveDeployId_')() === 'DLIVE', '★いま使われているデプロイのIDが分かる');
+
+  project.deployments = [
+    { deploymentId: 'DLIVE', updateTime: day(1),                       // いちばん古いが、使用中
+      deploymentConfig: { versionNumber: 190, description: '本番' } },
+    { deploymentId: 'HEAD',  updateTime: day(2),
+      deploymentConfig: { description: '作業中' } },                    // 版なし＝作業中
+    { deploymentId: 'D_NEW1', updateTime: day(20),
+      deploymentConfig: { versionNumber: 5, description: '' } },        // 番号は小さいが新しい
+    { deploymentId: 'D_NEW2', updateTime: day(19),
+      deploymentConfig: { versionNumber: 6, description: '' } },
+    { deploymentId: 'D_NEW3', updateTime: day(18),
+      deploymentConfig: { versionNumber: 7, description: '' } },
+    { deploymentId: 'D_OLD1', updateTime: day(4),
+      deploymentConfig: { versionNumber: 199, description: '' } },      // 番号は大きいが古い
+    { deploymentId: 'D_OLD2', updateTime: day(3),
+      deploymentConfig: { versionNumber: 198, description: '' } },
+    { deploymentId: 'D_NODATE', deploymentConfig: { versionNumber: 50 } } // 日付が無い
+  ];
+
+  // まず「見るだけ」。何も触らない
+  const look = F('updCleanDeploys_')(3, true);
+  t(look.done === 0, '★1回目は、何も触らない');
+  const ids = look.old.map(function (x) { return x.id; });
+  t(ids.indexOf('DLIVE') === -1, '★いま使われているものは、絶対に対象にしない');
+  t(ids.indexOf('HEAD') === -1, '★作業中（版なし）も対象にしない');
+  t(ids.indexOf('D_NODATE') === -1, '★更新日付が無いものも対象にしない（古い確証がない）');
+  t(ids.indexOf('D_NEW1') === -1 && ids.indexOf('D_NEW2') === -1 && ids.indexOf('D_NEW3') === -1,
+    '★新しいほうから3つは残す（すぐ戻せるように）');
+  t(ids.join(',') === 'D_OLD2,D_OLD1',
+    '★更新日付の古い順にならぶ（版の番号ではない）：' + ids.join(','), ids.join(','));
+
+  // 2回目で、ほんとうに片づける
+  const del = [];
+  const keepFetch = ctx.UrlFetchApp.fetch;
+  ctx.UrlFetchApp.fetch = function (url, opt) {
+    if (opt && opt.method === 'delete') { del.push(String(url).split('/').pop()); return ok({}); }
+    return keepFetch(url, opt);
+  };
+  const run = F('updCleanDeploys_')(3, false);
+  ctx.UrlFetchApp.fetch = keepFetch;
+  t(del.join(',') === 'D_OLD2,D_OLD1', '★古いほうから順に片づける（' + del.join(',') + '）');
+  t(run.done === 2, '  片づけた数を返す');
+  t(del.indexOf('DLIVE') === -1, '★★使用中のものには、最後まで手を出さない');
+}
+
+console.log('\n■ 片づけは、かならず2回に分ける');
+{
+  /*
+   * ★取り返しがつきません。1回目は見せるだけ、2回目で実行します
+   */
+  vm.runInContext('function rpTestTarget_(){ return "Umark"; }', ctx);
+  props['LINE_TOKEN'] = 'x';
+  delete props['UPD_CLEAN_ASK'];
+  const del2 = [];
+  const keep2 = ctx.UrlFetchApp.fetch;
+  ctx.UrlFetchApp.fetch = function (url, opt) {
+    if (opt && opt.method === 'delete') { del2.push(1); return ok({}); }
+    return keep2(url, opt);
+  };
+
+  ctx.rep.length = 0;
+  F('updHandleFullCmd_')({ message: { text: '❗そうじ' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(del2.length === 0, '★1回目は、何も触らない');
+  const a1 = String(ctx.rep[0] || '');
+  t(a1.indexOf('まだ何もしていません') !== -1, '★「まだ何もしていない」と、はっきり書く', a1);
+  t(a1.indexOf('3分以内にもう一度') !== -1, '★どうすれば進むのかを書く', a1);
+  t(a1.indexOf('古い順') !== -1, '  古い順に片づけると書く', a1);
+
+  ctx.rep.length = 0;
+  F('updHandleFullCmd_')({ message: { text: '❗そうじ' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(del2.length > 0, '★2回目で、はじめて片づける');
+  const a2 = String(ctx.rep[0] || '');
+  t(a2.indexOf('版の数：') !== -1, '★前と後の版の数を出す（減ったか、その場で分かるように）', a2);
+
+  // 3分をすぎたら、また1回目から
+  props['UPD_CLEAN_ASK'] = String(Date.now() - 5 * 60000);
+  del2.length = 0;
+  ctx.rep.length = 0;
+  F('updHandleFullCmd_')({ message: { text: '❗そうじ' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(del2.length === 0, '★時間があいたら、また1回目からやり直す');
+  ctx.UrlFetchApp.fetch = keep2;
 }
 
 console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの、最後の頼り）');

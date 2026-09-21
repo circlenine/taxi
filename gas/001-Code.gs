@@ -1654,6 +1654,8 @@ function handleEvent_(ev) {
   if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
   // --- 「天気」… ためてある天気の中身を見せる（まーくさんだけ）---
   if (typeof tkHandleCmd_ === "function" && tkHandleCmd_(ev)) return;
+  // --- 「❗」… 版（バージョン）が満杯のときの直し方（まーくさんだけ）---
+  if (typeof updHandleFullCmd_ === "function" && updHandleFullCmd_(ev)) return;
   // --- 「❓」… どの絵文字で何が出るかを見せる（まーくさんだけ）---
   if (typeof updHandleHelp_ === "function" && updHandleHelp_(ev)) return;
   /*

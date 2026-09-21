@@ -2,7 +2,28 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U097ver  （2026/09/21）  ★★★
+ *  ★★★  U098ver  （2026/09/21）  ★★★
+ *
+ *  [U098ver]
+ *   ・❗ 版（バージョン）が200こで満杯になっていたのを、見つけて直せるようにした
+ *     ★実際に満杯になり、そこから毎回 公開に失敗していました。
+ *       (429) Script has reached the limit of 200 versions.
+ *     ★満杯でもコードは入ります。古いままになるのは
+ *       LINEの受け口と みんなの記録ページだけです。
+ *       「入れ替えたのにLINEが前のまま」は、これが原因でした。
+ *   ・😔 「公開だけ失敗」を「取り込み失敗」と同じ顔で出していたのを直した
+ *     ★「てんそうは やめました／スプシは そのままです」と出していました。
+ *       コードは入っているので、事実とちがいます。うそを知らせていました。
+ *     ★いまは分けて、4行で出します。長い英語のエラーは貼りません。
+ *   ・🧹「❗そうじ」で、古いデプロイを片づけられるようにした
+ *     ★並べる順は「更新した日付」です（ご指示）。版の番号は使いません。
+ *       番号は付け直しで前後することがあり、古いつもりで
+ *       いちばん新しいものを消してしまいます（テストで再現しました）。
+ *     ★いま使われているものには、絶対に手を出しません。
+ *       無くすとLINEが完全に無反応になり、URLも配り直しになります。
+ *     ★かならず2回に分けます。1回目は見せるだけ、2回目で実行です。
+ *   ・⚠️ 版が180をこえたら、取り込みの知らせに1行だけ警告を出す
+ *     ★満杯になってから気づくのでは遅いためです
  *
  *  [U097ver]
  *   ・✱ 今回 変わったバージョンだけ、頭に「*」を付けた（ご指示）
@@ -971,7 +992,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U097ver";
+const UPD_VERSION = "U098ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3172,6 +3193,32 @@ function updKataDone_(body, vers) {
          (q ? "\n\n" + q : "");
 }
 
+/**
+ * 公開に失敗した理由を、1〜2行で言いかえる。
+ *
+ * ★長い英語のエラーをそのまま貼ると、読む気が失せますし、
+ *   何をすればよいのかも分かりません。
+ *   「何が起きたか」と「どうすればよいか」だけを、短く出します。
+ */
+function updDeployWhy_(body) {
+  const t = String(body || "");
+  if (t.indexOf(UPD_DEPLOY_FULL) !== -1 || /limit of \d+ versions/i.test(t)) {
+    return "原因：版（バージョン）が200こで満杯\n" +
+           "直し方：LINEで「❗」と送ってください";
+  }
+  if (t.indexOf("デプロイがまだありません") !== -1) {
+    return "原因：公開（デプロイ）が1つもありません\n" +
+           "直し方：エディタで「新しいデプロイ」を1回";
+  }
+  // それ以外は、理由の行だけを短く抜き出す
+  let why = "";
+  try {
+    const m = t.match(/デプロイのやり直しは失敗しました（([^）]{0,70})/);
+    if (m) why = m[1];
+  } catch (e) {}
+  return "原因：" + (why || "わかりません") + "\n直し方：LINEで「❌」と送ると くわしく出ます";
+}
+
 function updKataFail_(body) {
   // ★ここも、1行が全角13文字ぶんまでに収まるよう詰めてある（折り返し防止）
   return UPD_BALL + "\n" +
@@ -3349,10 +3396,26 @@ function updTellResult_(from, out) {
    *     LINEの受け口は古いコードのまま動きます。
    *     いちばん気づきにくく、いちばん困る形です。
    */
-  const bad = /^❌/.test(body) ||
-              body.indexOf("新しいコードがありません") !== -1 ||
-              body.indexOf("デプロイのやり直しは失敗") !== -1 ||
-              body.indexOf("デプロイがまだありません") !== -1;
+  /*
+   * ★「取り込みそのものが失敗」と「公開だけ失敗」は、別ものです。
+   *
+   *   前は、どちらも同じ「しっぱいしました／てんそうは やめました／
+   *   スプシは そのままです」で出していました。
+   *   けれど公開だけ失敗したときは、コードはちゃんと入っています。
+   *   「そのままです」は、事実とちがいます。
+   *   うそを知らせていたことになるので、はっきり分けます。
+   *
+   *   ★公開だけ失敗した場合が、いちばん たちが悪いところです。
+   *     スプシのボタンや見張りは新しいコードで動くのに、
+   *     LINEの受け口と みんなの記録ページだけが古いまま動きます。
+   *     「入れ替えたのにLINEが前のまま」は、これが原因です。
+   */
+  const failImport = /^❌/.test(body) ||
+                     body.indexOf("新しいコードがありません") !== -1;
+  const failDeploy = body.indexOf("デプロイのやり直しは失敗") !== -1 ||
+                     body.indexOf("デプロイがまだありません") !== -1 ||
+                     body.indexOf(UPD_DEPLOY_FULL) !== -1;
+  const bad = failImport || failDeploy;
 
   /*
    * ★何のバージョンが入ったのかを、知らせに添えます。
@@ -3387,8 +3450,14 @@ function updTellResult_(from, out) {
    */
   const isAuto = String(from || "").indexOf("じどう") !== -1;
   let text;
-  if (bad) {
+  if (failImport) {
     text = head + updKataFail_(body);
+  } else if (failDeploy) {
+    // ★公開だけ失敗。短く、何が起きて何をすればよいかだけを出します
+    text = "《" + String(from || "") + "》 ⚠️ 公開だけ しっぱい" +
+           (vers ? "\n" + vers : "") +
+           "\nコードは入りました。LINEの受け口だけ古いままです。\n" +
+           updDeployWhy_(body);
   } else if (isAuto) {
     // 何件入ったかだけ数える（「001-Code、003-LineReport」のような並びから）
     let n = 0;
@@ -3406,9 +3475,20 @@ function updTellResult_(from, out) {
      *   取り込みの最中に動いているのは、まだ古いほうのコードなので、
      *   動いている側の数字を出すと、いつまでも変わらず、意味がありません。
      */
+    /*
+     * ★満杯が近いときだけ、もう1行だけ足します。
+     *   ふだんは足しません（最低限にした知らせを、また太らせないため）。
+     *   けれど満杯になると、LINEの受け口だけが黙って古くなります。
+     *   それに気づけないほうが、はるかに困ります。
+     */
+    let near = "";
+    try {
+      const mn = body.match(/⚠️ 版が (\d+)／(\d+)/);
+      if (mn) near = "\n⚠️ 版 " + mn[1] + "/" + mn[2] + "（満杯が近い→「❗」）";
+    } catch (e) {}
     text = "《" + String(from || "") + "》 とりこみ かんりょう" +
            (n ? "（" + n + "件）" : "") +
-           (vers ? "\n" + vers : "");
+           (vers ? "\n" + vers : "") + near;
   } else {
     // ★手で打ったとき（💩）も、同じくバージョンを添えます
     text = head + updKataDone_(body, vers);
@@ -3478,6 +3558,7 @@ function updHandleHelp_(ev) {
     "☀️ ためてある天気",
     "❌ 直近のしくじり5件",
     "⏳ 公式LINEの残り通数（月200通）",
+    "❗ 版が満杯のときの直し方",
     "",
     "▼ そのほか",
     "💩 コードの取り込み（まーくさんだけ）",
@@ -4816,6 +4897,235 @@ function updLatestBackup_() {
  * ウェブアプリのデプロイを、新しい版でやり直す。
  * これをしないと、コードを直してもページは古いままになる。
  */
+/**
+ * 版（バージョン）が200こで満杯のときの合図。
+ * ★長い英語のエラーをそのまま出すと、何をすればよいか分かりません。
+ *   合言葉を1つ決めて、知らせのほうで短く言いかえます。
+ */
+const UPD_DEPLOY_FULL = "❌版が満杯です";
+
+/** 版の上限（Googleの決まり）と、警告を出し始める数 */
+const UPD_VER_LIMIT = 200;
+const UPD_VER_WARN  = 180;
+
+/**
+ * いま版がいくつあるかを数える。数えられなければ -1。
+ *
+ * ★満杯になってから気づくのでは遅いので、手前で知らせるために数えます。
+ *   一度に返ってくるのは50個までなので、続きの合図をたどって数えます。
+ */
+function updVerCount_() {
+  try {
+    let n = 0, token = "", guard = 0;
+    do {
+      const r = updApi_("/versions?pageSize=50" +
+                        (token ? "&pageToken=" + encodeURIComponent(token) : ""), "get", null);
+      n += (r.versions || []).length;
+      token = r.nextPageToken || "";
+    } while (token && ++guard < 12);
+    return n;
+  } catch (e) { return -1; }
+}
+
+/**
+ * いま実際に使われているデプロイのIDを取る。
+ *
+ * ★これだけは、絶対に触ってはいけません。
+ *   このIDが、LINEの受け口とみんなの記録ページのURLそのものです。
+ *   無くすと、LINEは完全に無反応になり、URLも配り直しになります。
+ *   だから「守る側の名簿」として、いちばん先に取ります。
+ */
+/** 「2026/09/21」の形にする（日付が無ければ空） */
+function updDayOf_(iso) {
+  try {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) +
+           "/" + ("0" + d.getDate()).slice(-2);
+  } catch (e) { return ""; }
+}
+
+function updLiveDeployId_() {
+  try {
+    const u = (typeof ScriptApp !== "undefined" && ScriptApp.getService)
+      ? (ScriptApp.getService().getUrl() || "") : "";
+    const m = u.match(/\/macros\/s\/([^\/]+)\//);
+    return m ? m[1] : "";
+  } catch (e) { return ""; }
+}
+
+/**
+ * 古いデプロイを片づける。
+ *
+ * ★まーくさんのご質問への答えです。
+ *   「古いデプロイ順に100個くらい、自動でできるか」
+ *   → デプロイのほうは、Googleの窓口（API）に入り口があるので できます。
+ *     ここがその処理です。
+ *   → ただし、満杯になっているのは「版（バージョン）」のほうです。
+ *     版のほうには、Googleが入り口を出していません（作る・見る だけ）。
+ *     なので、これで版が減るかどうかは、やってみないと分かりません。
+ *     分からないことを「減ります」とは言えないので、
+ *     前と後の版の数を両方だして、その場で確かめられるようにしました。
+ *
+ * look … true なら数えるだけで、何も触りません（先に中身を見るため）
+ * keep … 新しいほうから、いくつ残すか
+ */
+function updCleanDeploys_(keep, look) {
+  const live = updLiveDeployId_();
+  const deps = (updApi_("/deployments", "get", null).deployments || []);
+  const keepN = Math.max(1, Number(keep) || 3);
+
+  /*
+   * ★並べる順は「更新した日付」です（まーくさんのご指示）。
+   *   版の番号で並べると、付け直しや作り直しで番号が前後することがあり、
+   *   古いつもりで新しいものを消してしまいます。
+   *   日付なら、その心配がありません。
+   *   日付が入っていないものだけ、やむをえず版の番号で代えます
+   *   （そういうものは、いちばん古い側に置いて触らずに残します）。
+   */
+  const rows = deps.map(function (d) {
+    const c = d.deploymentConfig || {};
+    let at = 0;
+    try { at = d.updateTime ? new Date(d.updateTime).getTime() : 0; } catch (e) { at = 0; }
+    return { id: d.deploymentId, ver: Number(c.versionNumber) || 0,
+             at: at, when: d.updateTime || "",
+             desc: c.description || "" };
+  }).sort(function (a, b) {
+    if (a.at && b.at) return b.at - a.at;          // 新しい順
+    if (a.at) return -1;                            // 日付があるほうを先に
+    if (b.at) return 1;
+    return b.ver - a.ver;                           // どちらも無ければ版の番号で
+  });
+
+  /*
+   * ★触らないもの（守る側の名簿）
+   *   ・いま使われているもの（これを無くすとLINEが死にます）
+   *   ・@HEAD（作業中のもの。版の番号がありません）
+   *   ・新しいほうから keepN 個（すぐ戻せるように残します）
+   */
+  const old = [], hold = [];
+  rows.forEach(function (d, i) {
+    if (d.id === live) { hold.push("使用中"); return; }
+    if (!d.ver)        { hold.push("作業中"); return; }
+    if (i < keepN)     { hold.push("新しい方"); return; }
+    if (!d.at)         { hold.push("日付なし"); return; }   // 古い確証がないものは触らない
+    old.push(d);
+  });
+  // ★消すのは「古いものから」。途中で止まっても、古い側から片づく
+  old.sort(function (a, b) { return a.at - b.at; });
+
+  const before = updVerCount_();
+  let done = 0, ng = 0;
+  if (!look) {
+    old.forEach(function (d) {
+      try { updApi_("/deployments/" + d.id, "delete", null); done++; }
+      catch (e) { ng++; }
+    });
+  }
+  const after = look ? before : updVerCount_();
+  return { live: live, total: rows.length, hold: hold, old: old,
+           done: done, ng: ng, before: before, after: after };
+}
+
+/**
+ * 「❗」… 版が満杯になったときの直し方を出す（まーくさんだけ）。
+ *
+ * ★手順のいるものは、はじめての人でも そのとおりに指を動かせば
+ *   終わるところまで書きます（まーくさんのご指示）。
+ */
+function updHandleFullCmd_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim()
+    .replace(/[\s\u3000\uFE0F]/g, "");
+  // ★「❗」だけでも、「❗そうじ」でも受けます（うしろは付けても付けなくてもよい）
+  if (!/^(❗|❕|‼|版|はん|バージョン|満杯)(そうじ|掃除|かたづけ|片づけ|片付け|満杯)?$/.test(t)) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const me = updMe_();
+  if (!me || uid !== me) return false;
+  const reply = (ev && ev.replyToken) || "";
+
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  /*
+   * ★「❗そうじ」… 古いデプロイを、ほんとうに片づける。
+   *   取り返しがつかないので、かならず2回に分けます（こちらの決まりです）。
+   *   1回目は「何をするか」を見せるだけ。2回目で実行します。
+   */
+  const wantClean = /そうじ|掃除|かたづけ|片づけ|片付け/.test(t);
+  if (wantClean) {
+    const pr = updProps_();
+    const okAt = Number(pr.getProperty("UPD_CLEAN_ASK") || 0);
+    const fresh = okAt && (Date.now() - okAt) < 3 * 60000;   // 3分以内なら2回目とみなす
+    let r;
+    try { r = updCleanDeploys_(3, !fresh); }
+    catch (e) { say("❗ 調べられませんでした：" + ((e && e.message) || e)); return true; }
+
+    if (!fresh) {
+      pr.setProperty("UPD_CLEAN_ASK", String(Date.now()));
+      const span = r.old.length
+        ? "　" + updDayOf_(r.old[0].when) + " 〜 " +
+          updDayOf_(r.old[r.old.length - 1].when) + " のぶん"
+        : "";
+      say([
+        "❗ 古いデプロイの片づけ（まだ何もしていません）",
+        "デプロイの数：" + r.total + "　版の数：" + (r.before < 0 ? "不明" : r.before),
+        "片づける数：" + r.old.length + "（古い順）",
+        span,
+        "残すもの：" + (r.hold.join("／") || "なし"),
+        "",
+        r.old.length
+          ? "やるなら、3分以内にもう一度「❗そうじ」と送ってください。"
+          : "片づけるものがありません。",
+        "",
+        "※ 版が減るかどうかは、やってみないと分かりません。",
+        "　 版を消す入り口を、Googleは出していないためです。",
+        "　 前と後の数を出すので、その場で確かめられます。"
+      ].join("\n"));
+      return true;
+    }
+
+    pr.deleteProperty("UPD_CLEAN_ASK");
+    say([
+      "❗ 片づけました",
+      "デプロイ：" + r.done + "件（しくじり " + r.ng + "件）",
+      "版の数：" + (r.before < 0 ? "不明" : r.before) +
+        " → " + (r.after < 0 ? "不明" : r.after),
+      "",
+      (r.after >= 0 && r.before >= 0 && r.after < r.before)
+        ? "版が減りました。もう一度「💩」で取り込んでみてください。"
+        : "版は減りませんでした。デプロイと版は別ものでした。\n" +
+          "プロジェクトを作り直すしかありません。私に言ってください。"
+    ].join("\n"));
+    return true;
+  }
+
+  const n = updVerCount_();
+  let dn = -1;
+  try { dn = (updApi_("/deployments", "get", null).deployments || []).length; } catch (e) {}
+
+  say([
+    "❗ 版（バージョン）が満杯のとき",
+    "版：" + (n < 0 ? "数えられません" : n + " ／ " + UPD_VER_LIMIT) +
+      "　デプロイ：" + (dn < 0 ? "?" : dn),
+    "",
+    "取り込むたびに版が1つ増えます。200で打ち止めです。",
+    "満杯でもコードは入ります。古いままになるのは",
+    "LINEの受け口と、みんなの記録ページだけです。",
+    "",
+    "▼ まず試すこと（LINEだけでできます）",
+    "①「❗そうじ」と送る（何をするか出るだけ）",
+    "② 中身を見て、よければ3分以内にもう一度「❗そうじ」",
+    "③「💩」で取り込み直す",
+    "",
+    "▼ それでも直らないときは",
+    "版を消す入り口を、Googleは出していません。",
+    "そのときはプロジェクトの作り直しになります。",
+    "手順は docs/版が満杯になったら.md に書いてあります。",
+    "私に言ってもらえれば、付き添います。"
+  ].join("\n"));
+  return true;
+}
+
 function updRedeploy_() {
   const deps = updApi_("/deployments", "get", null).deployments || [];
   // @HEAD（作業中の版）は触らない。公開しているものだけ相手にする
@@ -4827,8 +5137,27 @@ function updRedeploy_() {
     return "デプロイがまだありません（ウェブページを使うなら「新しいデプロイ」を1回してください）";
   }
 
-  const ver = updApi_("/versions", "post",
-    { description: "自動更新 " + new Date().toISOString() });
+  /*
+   * ★版（バージョン）は、Googleの決まりで1つのプロジェクトに200個までです。
+   *   取り込むたびに1つ増えるので、直しを重ねると必ずいつか満杯になります。
+   *   実際に満杯になり、そこから毎回 公開に失敗していました。
+   *
+   *   満杯になっても、コードそのものは入っています。
+   *   入っていないのは「公開した版」だけで、
+   *   つまり LINEの受け口とみんなの記録ページだけが古いまま動きます。
+   *   これがいちばん気づきにくい形なので、はっきり分けて伝えます。
+   */
+  let ver;
+  try {
+    ver = updApi_("/versions", "post",
+      { description: "自動更新 " + new Date().toISOString() });
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    if (/limit of \d+ versions|Cannot create more versions/i.test(msg)) {
+      return UPD_DEPLOY_FULL;
+    }
+    throw e;
+  }
 
   let n = 0;
   live.forEach(function (d) {
@@ -4842,7 +5171,17 @@ function updRedeploy_() {
     });
     n++;
   });
-  return "デプロイもやり直しました（版 " + ver.versionNumber + " / " + n + "件）";
+  /*
+   * ★満杯になる手前で知らせます。
+   *   満杯になってから気づくと、その間ずっと
+   *   LINEの受け口だけが古いまま動きます。
+   *   版の番号は増える一方なので、そのまま めやすに使えます。
+   */
+  const warn = (ver.versionNumber >= UPD_VER_WARN)
+    ? "（⚠️ 版が " + ver.versionNumber + "／" + UPD_VER_LIMIT + "。" +
+      "満杯が近いです。LINEで「❗」）"
+    : "";
+  return "デプロイもやり直しました（版 " + ver.versionNumber + " / " + n + "件）" + warn;
 }
 
 

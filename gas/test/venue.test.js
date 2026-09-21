@@ -180,6 +180,71 @@ console.log('\n■ ページを調べる');
       'つながらなくても落ちない');
 }
 
+console.log('\n■ 調べたとき、ほんとうに催しが出てくるかまで見る');
+/*
+ * ★「ページは開けました」と「催しが読めました」は、別のことです。
+ *   開けただけで安心すると、中身が0件のまま何日も気づけません。
+ *   読めた中身を そのまま出して、ホームページと見くらべられるようにします。
+ */
+{
+  const today = new Date();
+  const md = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+  reply = {};
+  reply['*'] = { code: 200, body: '<html><p>' + md + '</p><p>すごいバンド</p>' +
+    '<p>開場 17:00</p><p>開演 18:00</p><p>終演 20:30</p>' + 'あ'.repeat(600) + '</html>' };
+  const r = ctx.vnProbeOne_({ name: '大阪城ホール', url: 'https://example.com/' }, today).join('\n');
+  has(r, '実際に読ませてみた結果', '★開けたかどうかだけでなく、読ませてみる');
+  has(r, '読めた中身', '★読めた中身を、そのまま出す（目で見くらべられるように）');
+  has(r, '18:00', '  読み取れた時刻が出る');
+
+  // 1件も出てこないときは、はっきり ❌ と、見にいく先を出す
+  reply['*'] = { code: 200, body: '<html>' + 'あ'.repeat(800) + '</html>' };
+  const z = ctx.vnProbeOne_({ name: 'どこか', url: 'https://example.com/koko' }, today).join('\n');
+  has(z, '❌ 実際に読ませてみた結果', '★0件なら、はっきり ❌ と出す');
+  has(z, 'https://example.com/koko', '  自分の目で見にいけるよう、URLも出す');
+}
+
+console.log('\n■ 一覧に日付が無いのが「ふつう」の会場を、⚠️ 扱いしない');
+/*
+ * ★ニューオータニとワントゥワンは、一覧のページに日付が出ていません。
+ *   催しの名前だけが並び、日にちは中のページに書いてあります。
+ *   つまり、この2つは「一覧に日付が無いのが正しい姿」です。
+ *   それを ⚠️ と出していたので、ちゃんと読めていても
+ *   「読めていない」ように見えていました。
+ *   調べても真偽が分からない、いちばん たちの悪い出方でした
+ */
+{
+  const today = new Date();
+  reply = {};
+  reply['*'] = { code: 200, body: '<html><p>催しのなまえ</p>' + 'あ'.repeat(800) + '</html>' };
+
+  const nrm = ctx.vnProbeOne_({ name: 'ふつうの会場', url: 'https://example.com/' }, today).join('\n');
+  has(nrm, '⚠️ 今日・明日の日付が見当たりません',
+      'ふつうの会場は、これまでどおり ⚠️ を出す');
+
+  const deep = ctx.vnProbeOne_({ name: 'ホテルニューオータニ大阪', deep: true,
+                                 url: 'https://example.com/' }, today).join('\n');
+  eq(deep.indexOf('⚠️ 今日・明日の日付が見当たりません') === -1, true,
+     '★中まで見にいく会場には、まぎらわしい ⚠️ を出さない');
+  has(deep, 'それでふつうです', '★「それでふつう」と、はっきり書く');
+
+  const det = ctx.vnProbeOne_({ name: 'ワントゥワン', detail: true,
+                                url: 'https://example.com/' }, today).join('\n');
+  eq(det.indexOf('⚠️ 今日・明日の日付が見当たりません') === -1, true,
+     '★ワントゥワンも同じ');
+}
+
+console.log('\n■ 調べるときに、同じページを何度も取りにいかない');
+{
+  const today = new Date();
+  reply = {};
+  reply['*'] = { code: 200, body: '<html>' + 'あ'.repeat(800) + '</html>' };
+  fetched.length = 0;
+  ctx.vnProbeOne_({ name: 'どこか', url: 'https://example.com/' }, today);
+  eq(fetched.length, 1, '★一覧のページを読むのは1回だけ（先方にも迷惑なので）',
+     fetched.length + '回');
+}
+
 console.log('\n■ 調べたら、そのまま自分のLINEに届く');
 {
   pushed.length = 0;
