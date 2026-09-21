@@ -196,6 +196,7 @@ function mkPanel() {
     getName: () => '説明',
     getMaxRows: () => 200,
     getMaxColumns: () => 9,          // 説明タブは I列 まで（J以降は消してある）
+    getLastColumn: () => 8,          // 中身が入っているのは H列 まで
     /*
      * ★行を足すと、その下にあるものは「ぜんぶ」下がります。
      *   中身だけでなく、プルダウン・つないだらん・行の高さもです。
@@ -4356,6 +4357,47 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
     String(tot));
   t(panel._heights[rr + 1] === 21,
     '★下の行（□がある）は、標準（21）まで縮める（' + panel._heights[rr + 1] + '）');
+
+  /*
+   * ★つないで いなくても、下が空いたままになることがあります。
+   *   まーくさんの画面が そうでした。
+   *   結果らんは横につないであるだけで、その下の行が
+   *   ひとりで太く、指2本ぶんの空きが残っていました。
+   *   （そこにはリセットの□だけが置いてあります）
+   */
+  panel.getRange(rr, 2, 2, 7).breakApart();
+  panel.getRange(rr, 2, 1, 7).merge();            // 横だけつなぐ
+  panel._heights[rr + 1] = 57;                    // すぐ下の行が、ひとりで太い
+  panel._cells[(rr + 1) + ',8'] = false;          // リセットの□だけ置いてある
+  F('panelFitRow_')(panel, rr, 2, body);
+  t(panel._heights[rr + 1] === 21,
+    '★つないでいなくても、すぐ下の空っぽな行は標準に戻す（' +
+    panel._heights[rr + 1] + '）', String(panel._heights[rr + 1]));
+
+  // 何か書いてある行には、さわらない
+  panel._heights[rr + 1] = 57;
+  panel._cells[(rr + 1) + ',2'] = 'だいじな見出し';
+  F('panelFitRow_')(panel, rr, 2, body);
+  t(panel._heights[rr + 1] === 57,
+    '★何か書いてある行には、さわらない（' + panel._heights[rr + 1] + '）');
+  delete panel._cells[(rr + 1) + ',2'];
+
+  /*
+   * ★ボタンの行には、さわらない。
+   *   名前（C列）が何かの拍子に消えていると、
+   *   「空っぽの行」に見えます。そこだけを頼りにすると、
+   *   ボタンの行を勝手にいじることになります。
+   *   チェックのらん（B列）に□があるかどうかで見分けます
+   */
+  panel.getRange(rr, 2, 1, 7).breakApart();
+  panel.getRange(35, 2, 1, 7).merge();
+  panel._heights[36] = 57;
+  for (let c = 1; c <= 9; c++) delete panel._cells['36,' + c];
+  panel._cells['36,2'] = false;                  // □だけ。名前は消えている
+  F('panelFitRow_')(panel, 35, 2, body);
+  t(panel._heights[36] === 57, '★ボタンの行には、さわらない（' + panel._heights[36] + '）');
+  delete panel._heights[36];
+  delete panel._cells['36,2'];
 }
 
 console.log('\n■ ★スプシから離れても、動くこと（作り直しに要る）');

@@ -2,7 +2,23 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U111ver  （2026/09/22）  ★★★
+ *  ★★★  U112ver  （2026/09/22）  ★★★
+ *
+ *  [U112ver]
+ *   ・📐 結果らんの下の空きを、つないでいなくても片づける（ご指摘・3回目）
+ *     ★U110・U111は「3行目と4行目がつないである」前提の直しでした。
+ *       つないでいなければ、どちらも何もしません。
+ *       まーくさんの画面では空きが残ったままでした。
+ *     ★結果を書いたあと、すぐ下の1行も見るようにしました。
+ *       空っぽなのに太いときだけ、標準（21）に戻します。
+ *     ★さわる前に3つ確かめます。
+ *       ①ボタンの行ではないこと（B列に□が無いこと）
+ *       ②何も書いていないこと（□は「空」あつかい）
+ *       ③下へつながる結合の途中ではないこと
+ *   ・🔁 「すでに最新です」と言われて取り込めないことがあったのを直した
+ *     ★GitHubが、少し前の一覧をそのまま返すことがあります。
+ *       押したばかりの直しが入らず、変わっていないと見えていました。
+ *     ★一覧の住所のうしろに時刻を足して、毎回ちがう住所にしました。
  *
  *  [U111ver]
  *   ・📐 結果らんの下が、まだ空いていたのを直した（ご指摘・2回目）
@@ -1187,7 +1203,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U111ver";
+const UPD_VERSION = "U112ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -1691,8 +1707,16 @@ function updSkipFile_(name) {
 
 function updListGitHub_() {
   const base = "https://api.github.com/repos/" + updRepo_() + "/contents/";
+  /*
+   * ★うしろに「いまの時刻」を足しています。
+   *   中身には関係ありません。GitHub は同じ住所への問い合わせに
+   *   しばらく前の答えを返すことがあり、押したばかりの直しが
+   *   「すでに最新です」と言われてしまうためです（実際に起きました）。
+   *   住所を毎回ちがうものにすれば、必ず新しい答えが返ります。
+   */
   const dir = JSON.parse(updGh_(
-    base + encodeURI(updPath_()) + "?ref=" + encodeURIComponent(updBranch_()), false));
+    base + encodeURI(updPath_()) + "?ref=" + encodeURIComponent(updBranch_()) +
+    "&_=" + Date.now(), false));
   if (!Array.isArray(dir)) throw new Error("フォルダではありませんでした：" + updPath_());
 
   const out = [];
@@ -8172,6 +8196,7 @@ function panelResetIfAsked_(sh) {
        */
       try { panelTrimBelow_(sh, hRow, hNum); } catch (e) {}
       try { sh.setRowHeight(hRow, PANEL_RESULT_EMPTY_H); } catch (e) {}
+      try { panelTrimTail_(sh, hRow, hNum); } catch (e) {}
     }
   } catch (e) {}
   try { sh.getRange(c.row, c.col).setValue(false); } catch (e) {}   // □ に戻す
@@ -8332,6 +8357,56 @@ function updWidth_(str) {
 }
 
 /**
+ * 結果らんの「すぐ下の行」が、空っぽなのに太いときは、標準（21）に戻す。
+ *
+ * ★なぜ要るのか
+ *   まーくさんの説明タブでは、結果の文が4行しかないのに、
+ *   その下に指2本ぶんの空きが残っていました。
+ *   つないである行を縮めても消えませんでした。
+ *   つまり、その行は結果らんの「外」にあって、
+ *   ひとりで太くなっていた、ということです。
+ *   結合しているか していないかに関わらず片づくよう、
+ *   すぐ下の1行も見ることにしました。
+ *
+ * ★さわってよいか、3つ確かめます
+ *   ①ボタンの行ではないこと（名前を消すと、また [13] の二の舞です）
+ *   ②何も書いていないこと。□（チェック）は「空」あつかいにします
+ *     （リセットの□が置いてあるためで、□は21の行でもふつうに押せます）
+ *   ③そこから下へ つながる結合の途中ではないこと
+ */
+function panelTrimTail_(sh, r, nr) {
+  try {
+    const row = r + (nr || 1);
+    if (!row || row > sh.getMaxRows()) return;
+    if (panelIsBtnRow_(sh, row)) return;
+
+    let h = PANEL_GAP_H;
+    try { h = sh.getRowHeight(row); } catch (e) { return; }
+    if (h <= PANEL_GAP_H) return;                  // もう標準。何もしない
+
+    // ③別の結合の途中なら、さわらない
+    try {
+      const rg = sh.getRange(row, 2);
+      if (rg.isPartOfMerge()) {
+        const m = rg.getMergedRanges();
+        if (m && m.length && m[0].getRow() !== row) return;
+      }
+    } catch (e) {}
+
+    // ②何か書いてあれば、さわらない
+    const last = Math.max(1, Math.min(sh.getLastColumn() || 8, 12));
+    let vals = [];
+    try { vals = sh.getRange(row, 1, 1, last).getValues()[0]; } catch (e) { return; }
+    for (let i = 0; i < vals.length; i++) {
+      const v = vals[i];
+      if (v === "" || v === null || v === true || v === false) continue;
+      return;
+    }
+    sh.setRowHeight(row, PANEL_GAP_H);
+  } catch (e) {}
+}
+
+/**
  * 結果らんが「たてに2行以上」つないであるとき、
  * 下の行を標準の高さ（21）まで縮めて、その合計を返す。
  *
@@ -8426,6 +8501,7 @@ function panelFitRow_(sh, row, col, text) {
      */
     const others = panelTrimBelow_(sh, r, nr);
     sh.setRowHeight(r, Math.max(PANEL_RESULT_EMPTY_H, need - others));
+    panelTrimTail_(sh, r, nr);        // すぐ下の空っぽな行も、太いままなら戻す
   } catch (e) {}
 }
 
@@ -8470,6 +8546,7 @@ function panelClear_(sh) {
     try {
       sh.setRowHeight(r, Math.max(PANEL_RESULT_EMPTY_H, PANEL_RESULT_H - others));
     } catch (e) {}
+    panelTrimTail_(sh, r, nr);
     SpreadsheetApp.flush();
   } catch (e) {}
 }
