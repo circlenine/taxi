@@ -89,17 +89,23 @@ let gh = null;      // {dir:[{name,path,type}], raw:{path:内容}, fail:{code,ms
 ctx.ScriptApp = { getOAuthToken: () => 'tok', getScriptId: () => 'SID',
   getProjectTriggers: () => triggers,
   deleteTrigger: t => { triggers = triggers.filter(x => x !== t); },
+  WeekDay: { SUNDAY: 'SUN', MONDAY: 'MON', TUESDAY: 'TUE', WEDNESDAY: 'WED',
+             THURSDAY: 'THU', FRIDAY: 'FRI', SATURDAY: 'SAT' },
   newTrigger: fn => {
     const b = { _fn: fn, _kind: '' };
     const api = {
       forSpreadsheet: () => api, onEdit: () => { b._kind = 'edit'; return api; },
       timeBased: () => api, everyMinutes: () => { b._kind = 'min'; return api; },
       after: () => { b._kind = 'after'; return api; },
-      atHour: () => api, nearMinute: () => api, everyDays: () => api,
+      atHour: h => { b._hour = h; return api; },
+      nearMinute: () => api, everyDays: () => api,
+      // ★毎週の見張り。本物にあるので、ここにも要る
+      onWeekDay: d => { b._kind = 'week'; b._day = d; return api; },
       // ★「この時刻に1回だけ」。本物にあるので、ここにも要る
       at: d => { b._kind = 'at'; b._at = d; return api; },
       create: () => { triggers.push({ getHandlerFunction: () => b._fn,
-                                      _kind: b._kind, _at: b._at });
+                                      _kind: b._kind, _at: b._at,
+                                      _day: b._day, _hour: b._hour });
                       return b; }
     };
     return api;
@@ -4216,6 +4222,81 @@ console.log('\n■ 片づけは、かならず2回に分ける');
     source: { userId: 'Umark' }, replyToken: 'r' });
   t(del2.length === 0, '★時間があいたら、また1回目からやり直す');
   ctx.UrlFetchApp.fetch = keep2;
+}
+
+console.log('\n■ ⏰ 毎週おなじ時刻に知らせる（ご指摘への答え）');
+/*
+ * ★「残りのトークン数で、もうすぐ上限だと分かるはずでは？」というご指摘。
+ *
+ *   見えているのは「いまのやりとり1本ぶんの残り」です。
+ *   止まるのは「週の使用量の上限」で、そちらは1文字も届きません。
+ *   この2つは別ものです。
+ *
+ *   けれど、週の上限は 決まった曜日・決まった時刻にリセットされます。
+ *   一度おしえてもらえば、あとは毎週おなじです。予想は要りません。
+ */
+{
+  const W = F('updWeekAt_');
+  const w1 = W('⏰まいしゅう月2:00');
+  t(!!w1 && w1.day === 1 && w1.hour === 2, '★「まいしゅう 月 2:00」を読める');
+  const w2 = W('⏰ 毎週 日曜 9時');
+  t(!!w2 && w2.day === 0 && w2.hour === 9, '　 「毎週 日曜 9時」でも読める');
+  t(W('⏰ 23:30') === null, '★一度きりのぶんは、毎週として読まない');
+  t(W('⏰まいしゅう月') === null, '　 時刻が無ければ、読まない');
+  t(W('⏰まいしゅう2:00') === null, '　 曜日が無ければ、読まない');
+
+  vm.runInContext('function rpTestTarget_(){ return "Umark"; }', ctx);
+  vm.runInContext('function lrPush_(to, m){ pu.push({ to: to, msgs: m }); }', ctx);
+  props['LINE_TOKEN'] = 'x';
+  triggers.length = 0; ctx.rep.length = 0;
+
+  t(F('updHandleResume_')({ message: { text: '⏰ まいしゅう 月 2:00' },
+      source: { userId: 'Umark' }, replyToken: 'r' }) === true, '★受ける');
+  const wt = triggers.filter(function (x) {
+    return x.getHandlerFunction() === 'updWeekFire'; });
+  t(wt.length === 1, '★毎週の見張りを、1つだけ立てる');
+  t(wt[0]._day === 'MON' && wt[0]._hour === 2, '　 月曜の2時台に立つ');
+  has(ctx.rep[0], '毎週 月曜 2時台', '　 いつ鳴るかを返す');
+  has(ctx.rep[0], '何時台', '★Googleの決まり（何時台まで）も、正直に書く');
+
+  /*
+   * ★一度きりのぶんと、毎週のぶんは、わざと別の見張りにしてあります。
+   *   同じにすると、鳴ったあとの片づけで毎週のぶんまで消えて、
+   *   二度と鳴らなくなります
+   */
+  F('updHandleResume_')({ message: { text: '⏰ 23:30' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  ctx.pu.length = 0;
+  F('updResumeFire')();                                  // 一度きりのぶんが鳴る
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updWeekFire'; }).length === 1,
+    '★★一度きりのぶんが鳴っても、毎週のぶんは消えない');
+
+  // 毎週のぶんが鳴っても、自分を消さない
+  ctx.pu.length = 0;
+  F('updWeekFire')();
+  t(ctx.pu.length === 1, '★毎週のぶんも、ちゃんと1通送る');
+  has(ctx.pu[0].msgs[0].text, 'リセットされました', '　 リセットされたと書く');
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updWeekFire'; }).length === 1,
+    '★★鳴っても、自分を消さない（来週も鳴るように）');
+
+  // 「やめ」で、両方とも取り消す
+  ctx.rep.length = 0;
+  F('updHandleResume_')({ message: { text: '⏰ やめ' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updWeekFire' ||
+             x.getHandlerFunction() === 'updResumeFire'; }).length === 0,
+    '★「やめ」で、一度きりも毎週も取り消せる');
+
+  // いまの予約を見られる
+  ctx.rep.length = 0;
+  F('updHandleResume_')({ message: { text: '⏰' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.rep[0], '・毎週', '★いまの毎週の予約も、そこに出す');
+  has(ctx.rep[0], 'まいしゅう 月 2:00', '★書き方の見本も出す');
+  ctx.pu.length = 0;
 }
 
 console.log('\n■ 心当たりのない失敗は、クロちゃんに聞いてもらう（ご指示）');

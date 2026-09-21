@@ -2,7 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U105ver  （2026/09/22）  ★★★
+ *  ★★★  U106ver  （2026/09/22）  ★★★
+ *
+ *  [U106ver]
+ *   ・⏰「⏰ まいしゅう 月 2:00」で、毎週おなじ時刻に鳴らせるようにした
+ *     ★まーくさんのご指摘です。
+ *       「残りのトークン数で、もうすぐ上限だと分かるはずでは？」
+ *     ★見えているのは「いまのやりとり1本ぶんの残り」です。
+ *       止まるのは「週の使用量の上限」で、そちらは1文字も届きません。
+ *       この2つは別ものです。
+ *     ★けれど週の上限は、決まった曜日・時刻にリセットされます。
+ *       一度おしえてもらえば、あとは毎週おなじです。予想は要りません。
+ *     ★一度きりのぶんとは、わざと別の見張りにしてあります。
+ *       同じにすると、鳴ったあとの片づけで毎週のぶんまで消えて、
+ *       二度と鳴らなくなります。
+ *     ★Googleの決まりで、毎週の見張りは「何時台」までです。
+ *       そこも正直に書いて返します。
  *
  *  [U105ver]
  *   ・🩹 結果を書く先をまちがえて、[13] の名前を消したのを直した（ご指摘）
@@ -1105,7 +1120,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U105ver";
+const UPD_VERSION = "U106ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5402,6 +5417,87 @@ function updCleanDeploys_(keep, look) {
 
 /** 再開の知らせを覚えておく場所 */
 const UPD_RESUME_KEY = "UPD_RESUME_AT";
+/** 毎週きまった時刻に鳴らす予約（「1|2」＝月曜の2時台） */
+const UPD_WEEK_KEY = "UPD_RESUME_WEEK";
+
+/*
+ * ★まーくさんのご指摘への答えです。
+ *   「残りのトークン数で、もうすぐ上限だと分かるはずでは？」
+ *
+ * ★見えているものと、見えていないものを分けて書きます。
+ *     見えている … いまのやりとり1本ぶんの残り（会話が長くなると減るもの）
+ *     見えていない … 週の使用量の上限（「9月28日 2:00にリセット」と
+ *                    まーくさんの画面に出るもの）
+ *   この2つは別ものです。止まるのは後者で、そちらは
+ *   こちらの手もとに1文字も届きません。
+ *
+ * ★けれど「分からないから何もできない」で終わらせません。
+ *   週の上限は、決まった曜日・決まった時刻にリセットされます。
+ *   一度おしえてもらえば、あとは毎週おなじです。予想は要りません。
+ *     ⏰ まいしゅう 月 2:00
+ *   これで、毎週月曜の2時台に「使えるようになりました」と鳴ります。
+ *
+ * ★そのうえで、作業を始めるときに こちらから予約しておきます。
+ *   「もうすぐ上限」に気づいてから動くのでは間に合いません。
+ *   先に掛けておいて、要らなければ消すほうが確かです。
+ */
+
+/** 曜日の言葉 → 番号（日曜が0） */
+const UPD_WDAY = { "日": 0, "月": 1, "火": 2, "水": 3, "木": 4, "金": 5, "土": 6 };
+/** Apps Script の曜日（番号から引く） */
+function updWeekDayOf_(n) {
+  const names = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY",
+                 "THURSDAY", "FRIDAY", "SATURDAY"];
+  try { return ScriptApp.WeekDay[names[n]]; } catch (e) { return null; }
+}
+
+/**
+ * 「まいしゅう 月 2:00」から、曜日と時を読み取る。
+ * 戻り値 { day, hour } … 読めなければ null
+ *
+ * ★Googleの毎週の見張りは「何時台」までしか決められません。
+ *   2:00 と書かれたら、2時台のどこかで鳴ります。
+ *   リセットのお知らせなので、それで足ります。
+ */
+function updWeekAt_(text) {
+  const t = String(text == null ? "" : text).replace(/[\s\u3000]/g, "");
+  if (!/(まいしゅう|毎週)/.test(t)) return null;
+  const d = t.match(/([日月火水木金土])曜?/);
+  if (!d) return null;
+  const h = t.match(/(\d{1,2})[:：時]/);
+  if (!h) return null;
+  const hour = Number(h[1]);
+  if (hour > 23) return null;
+  return { day: UPD_WDAY[d[1]], hour: hour };
+}
+
+/** 前に立てた「毎週の知らせ」を片づける */
+function updWeekClear_() {
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (tg) {
+      if (tg.getHandlerFunction() === "updWeekFire") ScriptApp.deleteTrigger(tg);
+    });
+  } catch (e) {}
+}
+
+/**
+ * 毎週きまった時刻に鳴る。
+ *
+ * ★一度きりの知らせ（updResumeFire）とは、わざと別にしてあります。
+ *   同じにすると、鳴ったあとの片づけで
+ *   毎週の予約まで消えてしまい、二度と鳴らなくなります。
+ */
+function updWeekFire() {
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text:
+        "⏰ 週の上限がリセットされました\n" +
+        "・また作業を進められます\n" +
+        "・Claudeに「続きから」と伝えてください" }]);
+    }
+  } catch (e) {}
+}
 
 /**
  * 「⏰ 23:30」「⏰ 9/22 7:00」から、鳴らす時刻を読み取る。
@@ -5446,25 +5542,66 @@ function updHandleResume_(ev) {
 
   const pr = updProps_();
 
-  // 「⏰ やめ」で取り消し
+  // 「⏰ やめ」で取り消し（毎週の予約も一緒に）
   if (/(やめ|取消|とりけし|キャンセル|off|切)/i.test(t)) {
     try { pr.deleteProperty(UPD_RESUME_KEY); } catch (e) {}
+    try { pr.deleteProperty(UPD_WEEK_KEY); } catch (e) {}
     try { updResumeClear_(); } catch (e) {}
-    say("⏰ 再開の知らせを取り消しました");
+    try { updWeekClear_(); } catch (e) {}
+    say("⏰ 再開の知らせを取り消しました\n・一度きりのぶんも、毎週のぶんも");
+    return true;
+  }
+
+  /*
+   * ★「まいしゅう 月 2:00」… 毎週おなじ時刻に鳴らす。
+   *   週の上限は、決まった曜日・決まった時刻にリセットされます。
+   *   一度おしえてもらえば、予想は要りません。
+   */
+  const wk = updWeekAt_(t);
+  if (wk) {
+    try { updWeekClear_(); } catch (e) {}
+    let ok = false;
+    try {
+      const d = updWeekDayOf_(wk.day);
+      if (d) {
+        ScriptApp.newTrigger("updWeekFire").timeBased()
+          .onWeekDay(d).atHour(wk.hour).create();
+        pr.setProperty(UPD_WEEK_KEY, wk.day + "|" + wk.hour);
+        ok = true;
+      }
+    } catch (e) { ok = false; }
+    const names = ["日", "月", "火", "水", "木", "金", "土"];
+    say(ok
+      ? "⏰ 毎週 " + names[wk.day] + "曜 " + wk.hour + "時台に知らせます\n" +
+        "・週の上限がリセットされたころです\n" +
+        "・Googleの決まりで、時刻は「何時台」までです\n" +
+        "・取り消すときは「⏰ やめ」"
+      : "⏰ 見張りを立てられませんでした\n・もう一度お試しください");
     return true;
   }
 
   const at = updResumeAt_(t, new Date());
   if (!at) {
     const cur = pr.getProperty(UPD_RESUME_KEY) || "";
+    const w = pr.getProperty(UPD_WEEK_KEY) || "";
+    const names = ["日", "月", "火", "水", "木", "金", "土"];
+    let wTxt = "なし";
+    try {
+      if (w) {
+        const p2 = w.split("|");
+        wTxt = "毎週 " + names[Number(p2[0])] + "曜 " + p2[1] + "時台";
+      }
+    } catch (e) {}
     say([
       "⏰ 再開できる時刻を知らせます",
-      "・いまの予約：" + (cur ? new Date(Number(cur)).toLocaleString("ja-JP") : "なし"),
+      "・一度きり：" + (cur ? new Date(Number(cur)).toLocaleString("ja-JP") : "なし"),
+      "・毎週　　：" + wTxt,
       "",
       "こう送ってください",
-      "・⏰ 23:30",
-      "・⏰ 9/22 7:00",
-      "・⏰ やめ　（取り消し）"
+      "・⏰ 23:30　　　　　（一度きり）",
+      "・⏰ 9/22 7:00　　　（日付つき）",
+      "・⏰ まいしゅう 月 2:00　（毎週。週の上限のリセット用）",
+      "・⏰ やめ　　　　　　（取り消し）"
     ].join("\n"));
     return true;
   }
