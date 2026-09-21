@@ -368,6 +368,7 @@ function mkPanel() {
 }
 
 let ghUrls = [];        // GitHubに投げたURLを、そのまま覚えておく
+let ghFiles = [];       // そのうち「中身・一覧」を聞いたぶんだけ
 
 /* ---- 偽の Apps Script API ---- */
 let project;            // サーバー側にあることになっている中身
@@ -434,6 +435,7 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
       return { getResponseCode: () => 200,
                getContentText: () => JSON.stringify((gh && gh.repo) || { default_branch: 'main' }) };
     }
+    ghFiles.push(url);          // 中身・一覧を聞かれた住所を、そのまま覚えておく
     const p = decodeURI(url.split('/contents/')[1].split('?')[0]);
     if (gh && gh.raw && (p in gh.raw)) {
       return { getResponseCode: () => 200, getContentText: () => gh.raw[p] };
@@ -898,7 +900,7 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 18, 'いつも18個並ぶ（' + items.length + '個）');
+t(items.length === 19, 'いつも19個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
@@ -906,7 +908,7 @@ t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
   'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck,panelCleanDeploys,panelManual,' +
-  'panelSaveVersions,panelMoveTabs',
+  'panelSaveVersions,panelMoveTabs,panelForcePull',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -1067,7 +1069,7 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B46',
+t(panel._prot[0]._a1 === 'B9:B48',
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -1211,7 +1213,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '14個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '15個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1341,7 +1343,9 @@ panel._cells['52,2'] = false;
 panel._cells['52,3'] = '[17] 版をドライブに保存する';
 panel._cells['53,2'] = false;
 panel._cells['53,3'] = '[18] 設定・地図タブを引っ越す';
-panel._cells['54,2'] = '結果';
+panel._cells['54,2'] = false;
+panel._cells['54,3'] = '[19] ぜんぶ読み直す';
+panel._cells['55,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1422,15 +1426,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 12, '[7]〜[18] が足りない');
+t(F('panelCheck_')(panel).missing.length === 13, '[7]〜[19] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 14, '14個足りない');
+t(miss.length === 15, '15個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 18, '18個になった');
+t(F('panelReadRows_')(panel).length === 19, '19個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -1770,6 +1774,41 @@ let r3 = F('updReadGitHub_')();
 t(r3.files.length === 1, '変わった1つだけ読む');
 t(r3.files[0].name === '001-Code', '変わったのは 001-Code');
 t(r3.skipped.length === 2, '残り2つは飛ばす');
+
+/*
+ * ★GitHubが「少し前の一覧」をそのまま返すことがあります。
+ *   直したばかりでも「どれも変わっていません」と言われて、
+ *   いつまでも入りませんでした（実際に2回起きました）。
+ *   住所のうしろに時刻を足して、毎回ちがう住所にしてあります。
+ */
+{
+  ghFiles.length = 0;
+  F('updReadGitHub_')();
+  t(ghFiles.length >= 2, 'GitHubに、一覧と中身を聞いている（' + ghFiles.length + '回）');
+  t(ghFiles.every(u => /[?&]_=\d+/.test(u)),
+    '★どの住所にも、うしろに時刻が付く（古い答えを返されないように）',
+    ghFiles.join('\n'));
+  t(ghFiles.every(u => u.indexOf('ref=') !== -1), '　枝の指定は、そのまま残る');
+}
+
+/*
+ * ★[19] ぜんぶ読み直す
+ *   それでも「すでに最新です」と言われるときの、最後の手です。
+ *   前に取り込んだときの目印を捨てるので、ぜんぶ読み直します。
+ */
+{
+  gh.dir[0].sha = 'AAA';                       // GitHubは「変わっていない」と言っている
+  F('updSaveShas_')({ '001-Code': 'AAA', '004-WebApp': 'BBB', 'appsscript': 'CCC' });
+  t(F('updReadGitHub_')().files.length === 0, '　このままでは1つも読まない');
+  ghFiles.length = 0;
+  F('panelForcePull')();
+  const asked = ghFiles.filter(u => u.indexOf('/contents/gas/') !== -1 &&
+                                    u.indexOf('?') !== -1);
+  t(asked.some(u => u.indexOf('001-Code') !== -1) &&
+    asked.some(u => u.indexOf('004-WebApp') !== -1) &&
+    asked.some(u => u.indexOf('appsscript') !== -1),
+    '★押すと、目印を捨てて 3つとも読み直す', ghFiles.join('\n'));
+}
 
 console.log('\n■ 変わっていなければ「すでに最新です」');
 reset([]);
@@ -4398,6 +4437,27 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   t(panel._heights[36] === 57, '★ボタンの行には、さわらない（' + panel._heights[36] + '）');
   delete panel._heights[36];
   delete panel._cells['36,2'];
+
+  /*
+   * ★まーくさんの説明タブの、ほんとうの形です（教えていただきました）。
+   *   ・結果らんは B〜G の 3〜4行目を、1マスにつないである
+   *   ・リセットの□は H列の4行目（つないだ外）
+   *   見えている高さは 3行目＋4行目 の合計です。
+   */
+  panel.getRange(35, 2, 1, 7).breakApart();
+  panel.getRange(rr, 2, 1, 7).breakApart();
+  panel._merge(rr, 2, rr + 1, 7);                // B〜G の 2行ぶん
+  panel._heights[rr] = 180;
+  panel._heights[rr + 1] = 57;
+  panel._cells[(rr + 1) + ',8'] = false;         // H列の□（つないだ外）
+  F('panelFitRow_')(panel, rr, 2, body);
+  const real = panel._heights[rr] + panel._heights[rr + 1];
+  t(real >= n * 15, '★★本物の形でも、文が隠れない（合計 ' + real + 'px）', String(real));
+  t(real <= n * 17, '★★本物の形でも、よけいな空きを残さない（合計 ' + real + 'px）',
+    String(real));
+  t(panel._heights[rr + 1] === 21,
+    '★★4行目は標準（21）まで縮む（' + panel._heights[rr + 1] + '）');
+  t(panel._cells[(rr + 1) + ',8'] === false, '★★H列の□は、消えずに残る');
 }
 
 console.log('\n■ ★スプシから離れても、動くこと（作り直しに要る）');
