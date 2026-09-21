@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U114ver  （2026/09/22）  ★★★
+ *  ★★★  U115ver  （2026/09/22）  ★★★
+ *
+ *  [U115ver]
+ *   ・📣 LINEの知らせを、必要最低限にした（ご指示）
+ *     ★スプシのボタンから押したときも、1〜2行だけにしました。
+ *       前は、入ったファイルの名前と名言まで添えていました。
+ *       同じことがスプシの結果らんにも出ているので、要りません。
+ *     ★「公開だけ しっぱい」の原因と直し方は、1日に1回だけ。
+ *       版が満杯のあいだは、押すたび同じ4行が積み上がっていました。
+ *       しっぱいしたこと自体は、毎回 必ず出します。
+ *     ★まったく同じ文は、5分のあいだ 2通目を送りません。
+ *       [1] と見張りが重なると、同じ文が2通 続けて届いていました。
+ *     ★手で「💩」と打ったときだけは、これまでどおり出します。
+ *   ・🔍 [20] 結果らんの形を調べる を足した
+ *     ★下の空きを4回 直して4回とも外しました。
+ *       スクショから形を推し量っていたのが、そもそもの間違いです。
+ *       何行目が何pxで、どこがつないであって、下の行に何があるか。
+ *       そのまま出します。推し量るのは、これで終わりにします。
  *
  *  [U114ver]
  *   ・🧰 ボタンを足したときの知らせを、足したものの話だけにした（ご指摘）
@@ -1234,7 +1251,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U114ver";
+const UPD_VERSION = "U115ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3493,6 +3510,33 @@ function updDeployWhy_(body) {
   return "原因：" + (why || "わかりません") + "\n" + ASK;
 }
 
+/**
+ * 「原因と直し方」を、いま出してよいか。
+ *
+ * ★版が満杯のあいだは、押すたびに同じ4行が流れます。
+ *   同じ説明を毎回出さない、という決まりがあります。
+ *   同じ中身なら、1日に1回だけにします。
+ *   中身が変われば（別の原因になれば）、すぐ出します。
+ */
+const UPD_WHY_KEY = "UPD_WHY_SEEN";
+const UPD_WHY_HOURS = 24;
+
+function updWhyDue_(body) {
+  let why = "";
+  try { why = updDeployWhy_(body); } catch (e) { return true; }
+  let seen = null;
+  try { seen = JSON.parse(updProps_().getProperty(UPD_WHY_KEY) || "null"); }
+  catch (e) { seen = null; }
+  const now = Date.now();
+  if (seen && seen.why === why && (now - Number(seen.at || 0)) < UPD_WHY_HOURS * 3600000) {
+    return false;
+  }
+  try {
+    updProps_().setProperty(UPD_WHY_KEY, JSON.stringify({ why: why, at: now }));
+  } catch (e) {}
+  return true;
+}
+
 function updKataFail_(body) {
   // ★ここも、1行が全角13文字ぶんまでに収まるよう詰めてある（折り返し防止）
   return UPD_BALL + "\n" +
@@ -3724,17 +3768,33 @@ function updTellResult_(from, out) {
    *   しくじったときは、これまでどおり くわしく出します。
    *   原因が分からなければ、直しようがないからです。
    */
-  const isAuto = String(from || "").indexOf("じどう") !== -1;
   let text;
   if (failImport) {
     text = head + updKataFail_(body);
   } else if (failDeploy) {
-    // ★公開だけ失敗。短く、何が起きて何をすればよいかだけを出します
+    /*
+     * ★公開だけ失敗。
+     *   原因と直し方は、毎回おなじ文になります。
+     *   版が満杯のあいだは、押すたびに同じ4行が積み上がって、
+     *   肝心の知らせが流れていきます（ご指摘）。
+     *   くわしくは1日に1回だけにして、あとは1行で済ませます。
+     */
     text = "《" + String(from || "") + "》 ⚠️ 公開だけ しっぱい" +
-           (vers ? "\n" + vers : "") +
-           "\nコードは入りました。LINEの受け口だけ古いままです。\n" +
-           updDeployWhy_(body);
-  } else if (isAuto) {
+           (vers ? "\n" + vers : "");
+    if (updWhyDue_(body)) {
+      text += "\nコードは入りました。LINEの受け口だけ古いままです。\n" +
+              updDeployWhy_(body);
+    }
+  } else {
+    /*
+     * ★うまくいった知らせは、入り口がどこでも1行だけにします（ご指示）。
+     *   前は「スプシ」から押したときだけ、入ったファイルの名前と
+     *   名言を添えていました。押した本人が待っているから、
+     *   という理屈でしたが、結果はスプシの画面にも出ています。
+     *   LINEにまで長いものを流す意味はありませんでした。
+     *   手で「💩」と打ったときだけは、これまでどおり出します
+     *   （そのときは、LINEしか見ていないためです）。
+     */
     // 何件入ったかだけ数える（「001-Code、003-LineReport」のような並びから）
     let n = 0;
     try {
@@ -3765,16 +3825,35 @@ function updTellResult_(from, out) {
     text = "《" + String(from || "") + "》 とりこみ かんりょう" +
            (n ? "（" + n + "件）" : "") +
            (vers ? "\n" + vers : "") + near;
-  } else {
-    // ★手で打ったとき（💩）も、同じくバージョンを添えます
-    text = head + updKataDone_(body, vers);
   }
+
+  /*
+   * ★おなじ知らせが続けて流れるのを止めます（ご指摘）。
+   *   [1] を押したのと、見張りが気づいたのが重なると、
+   *   同じ文が2通 続けて届きます（実際に届きました）。
+   *   5分のあいだに まったく同じ文なら、2通目は送りません。
+   */
+  try {
+    const seen = JSON.parse(updProps_().getProperty(UPD_SAME_KEY) || "null");
+    if (seen && seen.text === text &&
+        (Date.now() - Number(seen.at || 0)) < UPD_SAME_MIN * 60000) {
+      return false;
+    }
+  } catch (e) {}
+  try {
+    updProps_().setProperty(UPD_SAME_KEY,
+      JSON.stringify({ text: text, at: Date.now() }));
+  } catch (e) {}
 
   try {
     lrPush_(me, [{ type: "text", text: text }]);
   } catch (e) { return false; }
   return true;
 }
+
+/** 同じ知らせを続けて送らないための、覚え書き */
+const UPD_SAME_KEY = "UPD_TELL_SAME";
+const UPD_SAME_MIN = 5;
 
 /**
  * 「💩🆗」「💩🆖」かどうかを見る。
@@ -6142,8 +6221,96 @@ function panelItems_() {
       sec: 200, stall: 340,
       note: "[1] が「すでに最新です」と言うのに、直したものが入らないときに押します。" +
             "前に取り込んだときの目印を捨てて、9つのファイルをぜんぶ読み直します。" +
-            "時間はかかりますが、確実に入ります" }
+            "時間はかかりますが、確実に入ります" },
+    /*
+     * ★[20] は、画面の形を「測る」ためのボタンです。
+     *
+     *   結果らんの下の空きを、4回 直して4回とも外しました。
+     *   スクショから形を推し量って直していたからです。
+     *   推し量るのをやめて、実際の数字を出すようにします。
+     *   何行目が何pxで、どこがつないであって、下の行に何が入っているか。
+     *   これが分かれば、直しは1回で済みます。
+     */
+    { key: "結果らんの形",         label: "[20] 結果らんの形を調べる",    fn: "panelResultShape",
+      sec: 20,
+      note: "結果らんが何行目で、どこがつないであって、" +
+            "それぞれの行が何pxなのかを、そのまま出します。" +
+            "下の空きが消えないときに押してください" }
   ];
+}
+
+/** 列の番号を、画面に出ている文字（A、B、…）に直す */
+function panelColName_(n) {
+  let s = "", x = Number(n) || 0;
+  while (x > 0) { const r = (x - 1) % 26; s = String.fromCharCode(65 + r) + s; x = Math.floor((x - 1) / 26); }
+  return s || "?";
+}
+
+/**
+ * [20] 結果らんの形を調べる（そうさボタンから）。
+ *
+ * ★なぜ要るのか
+ *   結果らんの下の空きを、4回 直して4回とも外しました。
+ *   スクショから形を推し量って直していたからです。
+ *   実際の数字を出せば、そこで終わります。
+ *
+ * ★測ってから書きます。
+ *   書いたあとでは、高さが変わってしまうためです。
+ */
+function panelResultShape() {
+  const sh = mainSS_() && mainSS_().getSheetByName(PANEL_TAB);
+  if (!sh) return "❌ 説明タブが見つかりません";
+
+  const rc = panelResultCell_(sh);
+  if (!rc) return "❌ 結果らんが見つかりません\n見出し（結果／更新履歴）が要ります";
+
+  const L = [];
+  L.push("結果らん：" + rc.row + "行目 " + panelColName_(rc.col) + "列");
+
+  let r = rc.row, nr = 1, c1 = rc.col, nc = 1;
+  try {
+    const rg = sh.getRange(rc.row, rc.col);
+    if (rg.isPartOfMerge()) {
+      const m = rg.getMergedRanges()[0];
+      r = m.getRow(); nr = Math.max(1, m.getNumRows());
+      c1 = m.getColumn(); nc = Math.max(1, m.getNumColumns());
+      L.push("つないである：" + r + "〜" + (r + nr - 1) + "行目／" +
+             panelColName_(c1) + "〜" + panelColName_(c1 + nc - 1) + "列");
+    } else {
+      L.push("つないでいません（1マスだけ）");
+    }
+  } catch (e) { L.push("つなぎ目を読めませんでした"); }
+
+  const hs = [];
+  for (let i = 0; i <= nr; i++) {
+    let h = "?";
+    try { h = String(sh.getRowHeight(r + i)); } catch (e) {}
+    hs.push((r + i) + "行=" + h);
+  }
+  L.push("高さ(px)：" + hs.join("、"));
+
+  /*
+   * ★2行目から下（つないだ中の行と、そのすぐ下の行）に
+   *   何が入っているかを出します。
+   *   そこを縮めてよいかどうかは、これで決まります。
+   */
+  const last = Math.max(1, Math.min(sh.getLastColumn() || 8, 12));
+  for (let i = 1; i <= nr; i++) {
+    const row = r + i;
+    let what = [];
+    try {
+      const vals = sh.getRange(row, 1, 1, last).getValues()[0];
+      vals.forEach(function (v, j) {
+        if (v === "" || v === null) return;
+        what.push(panelColName_(j + 1) + "=" +
+                  (v === true || v === false ? "□" : String(v).slice(0, 8)));
+      });
+    } catch (e) { what = ["読めませんでした"]; }
+    L.push(row + "行目：" + (what.length ? what.join("、") : "空っぽ") +
+           "／ボタンの行=" + (panelIsBtnRow_(sh, row) ? "はい" : "いいえ"));
+  }
+
+  return L.join("\n");
 }
 
 /**

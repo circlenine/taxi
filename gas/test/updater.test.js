@@ -913,7 +913,7 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 19, 'いつも19個並ぶ（' + items.length + '個）');
+t(items.length === 20, 'いつも20個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
@@ -921,7 +921,7 @@ t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
   'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck,panelCleanDeploys,panelManual,' +
-  'panelSaveVersions,panelMoveTabs,panelForcePull',
+  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -1082,7 +1082,7 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B48',
+t(panel._prot[0]._a1 === 'B9:B50',
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -1226,7 +1226,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '15個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '16個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1358,7 +1358,9 @@ panel._cells['53,2'] = false;
 panel._cells['53,3'] = '[18] 設定・地図タブを引っ越す';
 panel._cells['54,2'] = false;
 panel._cells['54,3'] = '[19] ぜんぶ読み直す';
-panel._cells['55,2'] = '結果';
+panel._cells['55,2'] = false;
+panel._cells['55,3'] = '[20] 結果らんの形を調べる';
+panel._cells['56,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1439,15 +1441,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 13, '[7]〜[19] が足りない');
+t(F('panelCheck_')(panel).missing.length === 14, '[7]〜[20] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 15, '15個足りない');
+t(miss.length === 16, '16個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 19, '19個になった');
+t(F('panelReadRows_')(panel).length === 20, '20個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -4062,13 +4064,75 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   t(y.indexOf('書き込めませんでした') !== -1,
     '★しくじったときは、くわしく出す（原因が分からないと直せない）');
 
-  // 手で打ったとき（💩）は、これまでどおり
+  /*
+   * ★スプシのボタンから押したときも、短くすること（ご指示）。
+   *   前は「押した本人が待っているから」と、入ったファイルの名前と
+   *   名言まで添えていました。
+   *   けれど、それはスプシの結果らんにも出ています。
+   *   LINEにまで長いものを流す意味はありませんでした。
+   */
   ctx.pu.length = 0;
-  T('スプシ', '入れ替え：001-Code、005-Updater');
+  T('スプシ', '入れ替え：001-Code、005-Updater\nバージョン：C064/*U114');
   const z = String(ctx.pu[0].msgs[0].text);
-  t(z.indexOf('001-Code') !== -1, '★手で打ったときは、これまでどおり くわしく（本人が待っているため）');
-  t(z.split('\n').length > 1, '  1行ではなく、これまでどおりの形');
+  t(z.indexOf('とりこみ かんりょう') !== -1, '★スプシからでも「とりこみ かんりょう」');
+  t(z.indexOf('C064/*U114') !== -1, '★バージョンは、そのまま出す（入れ替わったか見るため）');
+  t(z.split('\n').length <= 2,
+    '★★2行まで（' + z.split('\n').length + '行）', z);
+  t(z.indexOf('りくつなわけだす') === -1, '★しめの1行は、もう出さない');
+  t(z.indexOf('―') === -1 && z.indexOf('"') === -1, '★名言も、もう出さない');
   ctx.pu.length = 0;
+
+  /*
+   * ★同じ知らせが続けて流れないこと（ご指摘）。
+   *   [1] を押したのと、見張りが気づいたのが重なると、
+   *   まったく同じ文が2通 続けて届きます（実際に届きました）。
+   */
+  delete props['UPD_TELL_SAME'];
+  ctx.pu.length = 0;
+  T('スプシ', '入れ替え：001-Code\nバージョン：C064/*U115');
+  t(ctx.pu.length === 1, '★1通目は、送る');
+  T('スプシ', '入れ替え：001-Code\nバージョン：C064/*U115');
+  t(ctx.pu.length === 1, '★★まったく同じ文は、続けて送らない');
+  T('スプシ', '入れ替え：005-Updater\nバージョン：C064/*U116');
+  t(ctx.pu.length === 2, '★中身がちがえば、送る');
+  ctx.pu.length = 0;
+  delete props['UPD_TELL_SAME'];
+
+  /*
+   * ★同じ「原因と直し方」を、毎回は出さないこと（決まりごと）。
+   *   版が満杯のあいだは押すたびに同じ4行が流れて、
+   *   肝心の知らせが見えなくなります。
+   */
+  const FULL = 'とりこみ　かんりょう。\n入れ替え：001-Code\n' +
+               'デプロイのやり直しは失敗しました（Script has reached the limit of 200 versions）';
+  delete props['UPD_WHY_SEEN'];
+  ctx.pu.length = 0;
+  T('じどう', FULL);
+  const f1 = String(ctx.pu[0].msgs[0].text);
+  t(f1.indexOf('直し方') !== -1, '★1回目は、直し方まで出す');
+
+  ctx.pu.length = 0;
+  T('じどう', FULL);
+  const f2 = String(ctx.pu[0].msgs[0].text);
+  t(f2.indexOf('公開だけ しっぱい') !== -1, '★2回目も、しっぱいしたことは必ず出す');
+  t(f2.indexOf('直し方') === -1,
+    '★★2回目は、同じ直し方を くり返さない（' + f2.split('\n').length + '行）', f2);
+
+  // 原因が変われば、すぐ出す
+  ctx.pu.length = 0;
+  T('じどう', 'とりこみ　かんりょう。\n入れ替え：001-Code\n' +
+              'デプロイのやり直しは失敗しました（デプロイがまだありません）');
+  t(String(ctx.pu[0].msgs[0].text).indexOf('直し方') !== -1,
+    '★原因が変われば、すぐ出す');
+
+  // 1日たてば、また出す
+  props['UPD_WHY_SEEN'] = JSON.stringify(
+    { why: F('updDeployWhy_')(FULL), at: Date.now() - 25 * 3600000 });
+  ctx.pu.length = 0;
+  T('じどう', FULL);
+  t(String(ctx.pu[0].msgs[0].text).indexOf('直し方') !== -1, '★1日たてば、また出す');
+  ctx.pu.length = 0;
+  delete props['UPD_WHY_SEEN'];
 }
 
 console.log('\n■ とりこみの知らせに、入れ替わったバージョンを載せる（ご指示）');
@@ -4434,6 +4498,36 @@ console.log('\n■ 片づけは、かならず2回に分ける');
     source: { userId: 'Umark' }, replyToken: 'r' });
   t(del2.length === 0, '★時間があいたら、また1回目からやり直す');
   ctx.UrlFetchApp.fetch = keep2;
+}
+
+console.log('\n■ [20] 結果らんの形を、そのまま出す');
+/*
+ * ★結果らんの下の空きを、4回 直して4回とも外しました。
+ *   スクショから形を推し量って直していたからです。
+ *   実際の数字を出せば、そこで終わります。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const sr = F('panelResultRow_')(panel);
+  panel.getRange(sr, 2, 1, 6).breakApart();
+  panel._merge(sr, 2, sr + 1, 7);            // B〜G の 2行ぶん（本物と同じ形）
+  panel._heights[sr] = 180;
+  panel._heights[sr + 1] = 57;
+  panel._cells[(sr + 1) + ',8'] = false;     // H列の□
+
+  const out = String(F('panelResultShape')());
+  t(out.indexOf(sr + '行目') !== -1, '★何行目かを出す', out);
+  t(out.indexOf('B〜G列') !== -1, '★どこからどこまでつないであるかを出す', out);
+  t(out.indexOf(sr + '行=180') !== -1, '★いまの高さを、そのまま出す', out);
+  t(out.indexOf((sr + 1) + '行=57') !== -1, '★下の行の高さも出す', out);
+  t(out.indexOf('□') !== -1, '★下の行に□があることも出す', out);
+  t(out.split('\n').length <= 7, '　長くしない（' + out.split('\n').length + '行）', out);
+
+  // つないでいないときも落ちない
+  panel.getRange(sr, 2, 2, 7).breakApart();
+  const out2 = String(F('panelResultShape')());
+  t(out2.indexOf('つないでいません') !== -1, '★つないでいなければ、そう出す', out2);
 }
 
 console.log('\n■ 結果らんの下に、よけいな空きを残さない（ご指摘）');
