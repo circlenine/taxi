@@ -123,7 +123,9 @@ function mkPanel() {
     return new Proxy(C, { get: (t, k) => (k in t ? t[k] : () => C) });
   }
   let protFails = false;
+  const mergedCalls = [];
   return {
+    _merged: mergedCalls,
     _cells: cells,
     _sizes: sizes,
     _heights: heights,
@@ -236,6 +238,21 @@ function mkPanel() {
         },
         clearDataValidations: () => {
           for (let i = 0; i < (nr || 1); i++) delete valids[(r + i) + ',' + c];
+          return px;
+        },
+        // ★「らんをつなぐ」も、本物と同じように まねる
+        //   （足したボタンの行も、ほかと同じ形になっているかを見るため）
+        merge: () => {
+          mergedCalls.push({ r: r, c: c, h: (nr || 1), w: (nc || 1) });
+          for (let i = 0; i < (nr || 1); i++) {
+            for (let j = 0; j < (nc || 1); j++) merges[(r + i) + ',' + (c + j)] = { r: r, c: c };
+          }
+          return px;
+        },
+        breakApart: () => {
+          for (let i = 0; i < (nr || 1); i++) {
+            for (let j = 0; j < (nc || 1); j++) delete merges[(r + i) + ',' + (c + j)];
+          }
           return px;
         },
         isPartOfMerge: () => !!(merges[r + ',' + c]),
@@ -1379,15 +1396,22 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
   [last, last - 1, last - 2, last - 3, last - 4, last - 5, last - 6, last - 7, last - 8].forEach(r => {
     delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
   });
-  props['PANEL_SETUP_VER'] = 'U006ver';
+  // ★前は「バージョンが同じなら、もう足した」と見分けていました。
+  //   バージョンを上げ忘れると、ボタンが永遠に足されません（実際そうなりました）。
+  //   いまは、ボタンの名前そのものから見分けます
+  props['PANEL_SETUP_SIG'] = 'むかしの　ならび';
   t(F('panelCheck_')(panel).missing.length === 8, '[7]〜[14] が無い状態');
 
   F('panelWatch')();                       // 1分おきの見張りが気づいて足す
   t(F('panelCheck_')(panel).missing.length === 0, '見張りが [7] を足した');
   t(!!F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_PERIOD', ctx)),
     '入力らんも一緒に置く');
-  t(props['PANEL_SETUP_VER'] === vm.runInContext('UPD_VERSION', ctx),
+  t(props['PANEL_SETUP_SIG'] === F('panelItemsSig_')(),
     '足したことを覚えて、毎分やり直さない');
+  // ★ボタンが増えたら、覚えていても必ず足しにいく
+  props['PANEL_SETUP_SIG'] = F('panelItemsSig_')() + '｜[15] あたらしいボタン';
+  t(props['PANEL_SETUP_SIG'] !== F('panelItemsSig_')(),
+    '★ボタンの中身が変われば、見分けの文字も変わる（＝足しにいく）');
 
   // 2回目は何もしない
   const snap = JSON.stringify(panel._cells);
@@ -1450,10 +1474,22 @@ console.log('\n■ 枝（ブランチ）を決めていなくても読める');
 }
 
 console.log('\n■ バージョン');
-t(vm.runInContext('UPD_VERSION', ctx) === 'U023ver', 'U023ver になっている');
+/*
+ * ★ファイルの先頭に書いたバージョンと、コードの中の UPD_VERSION が
+ *   ずれていたせいで、ボタンが永遠に足されませんでした。
+ *   ずれていないことを、ここで必ず確かめます
+ */
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const head = (src.match(/★★★\s+(U\d+ver)/) || [])[1] || '';
+  const cons = vm.runInContext('UPD_VERSION', ctx);
+  t(!!head, 'ファイルの先頭にバージョンが書いてある（' + head + '）');
+  t(head === cons,
+    '★先頭のバージョンと UPD_VERSION が同じ（' + head + ' / ' + cons + '）');
+}
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuUpdateStatus')();
-has(alerts[0].b, 'U023ver', '状態画面にバージョンが出る');
+has(alerts[0].b, vm.runInContext('UPD_VERSION', ctx), '状態画面にバージョンが出る');
 
 console.log('\n■ 番号でも見分けられる（文言を書き換えてしまったとき用）');
 {
@@ -3708,6 +3744,11 @@ console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの
    *   LINEの受け口だけ古いコードのまま動きます
    */
   t(out.indexOf('公開（デプロイ）') !== -1, '★公開（デプロイ）の状態も出す');
+  /*
+   * ★見張り（1分おき）が生きているかも出す。
+   *   ここが止まっていると、ボタンも自動取り込みも、天気も動きません
+   */
+  t(out.indexOf('見張り（1分おき）') !== -1, '★見張りが生きているかも出す');
 
   // 1件も届いていないとき
   delete props['LAST_LINE'];
@@ -3716,6 +3757,28 @@ console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの
   t(out2.indexOf('Webhook') !== -1, '  どこを見ればよいかも書く');
   delete props['LAST_ERRORS'];
   ctx.pu.length = 0;
+}
+
+console.log('\n■ 足したボタンも、ほかの行と同じ形にそろえる（ご指示）');
+{
+  /*
+   * ★名前は C〜F列、説明は G〜H列をつないで1マスにします。
+   *   つながっていないと、そこだけ字が細切れに見えて
+   *   「この行だけ作りかけ」に見えてしまいます
+   */
+  t(vm.runInContext('PANEL_LABEL_SPAN', ctx) === 4, '★名前のらんは C〜F列（4つぶん）');
+  t(vm.runInContext('PANEL_NOTE_SPAN', ctx) === 2, '★説明のらんは G〜H列（2つぶん）');
+
+  realLayout();
+  // 8つめから下を消して、足させる
+  [16, 17, 18, 19, 20, 21, 22, 23].forEach(function (r) {
+    delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
+  });
+  panel._merged.length = 0;
+  F('panelSync_')(panel, 8);
+  const m = panel._merged.map(function (x) { return x.c + ':' + x.w; });
+  t(m.indexOf('3:4') !== -1, '★名前のらんを、C列から4つぶんつなぐ（' + m.join('、') + '）');
+  t(m.indexOf('7:2') !== -1, '★説明のらんは、G列から2つぶんつなぐ（' + m.join('、') + '）');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

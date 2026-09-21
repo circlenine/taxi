@@ -2,7 +2,32 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U093ver  （2026/09/21）  ★★★
+ *  ★★★  U095ver  （2026/09/21）  ★★★
+ *
+ *  [U095ver]
+ *   ・🔲 説明のらんの場所をまちがえていたのを直した
+ *     ★名前のらんは C〜F列をつないで1マスにしてあります。
+ *       それなのに「チェックの2つ右（D列）」に説明を書いていました。
+ *       D列は、その1マスの"中"です。そこへ書くと、名前のほうが消えます。
+ *       正しくは、つないだぶんを飛ばした G列です
+ *   ・🔲 はじめて作るときも、C〜F／G〜H をつなぐようにした（ご指示）
+ *   ・⏱ [14] に「見張り（1分おき）が最後に動いた時刻」を足した
+ *     ★ここが止まっていると、ボタンも自動取り込みも、天気も動きません。
+ *       いちばん先に知りたいことなので、はっきり出します
+ *
+ *  [U094ver]
+ *   ・🧰 ボタンが増えても足されなかったのを直した（ご指摘：[14]の欄が無い）
+ *     ★原因は、わたしのバージョン管理のまちがいです。
+ *       「このファイルのバージョン（UPD_VERSION）と同じなら、もう足した」
+ *       という見分け方をしていたのに、UPD_VERSION は U023ver のまま
+ *       何十回も上げ忘れていました。そのせいで
+ *       「もう足した」と見なされ続け、[14] は永遠に足されませんでした
+ *     ★いまは、ボタンの数と名前そのものから見分けます（panelItemsSig_）。
+ *       ボタンが1つでも増えれば、必ず足しにいきます。
+ *       バージョンの上げ忘れとは、もう関係ありません
+ *     ★UPD_VERSION も、ヘッダーと同じに直しました。
+ *       ずれていないかは、テストでも見るようにしました
+ *   ・🔲 足した行も、C〜F列／G〜H列をつないで1マスにするようにした（ご指示）
  *
  *  [U093ver]
  *   ・🚀 [14] に「公開（デプロイ）の状態」を足した
@@ -916,7 +941,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U023ver";
+const UPD_VERSION = "U095ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -4799,6 +4824,18 @@ function panelLineCheck() {
     }
   } catch (e) {}
 
+  // ③-2 見張り（1分おき）が生きているか
+  //     ★ここが止まっていると、ボタンも自動取り込みも、天気も動きません
+  try {
+    const q = (typeof panelWatchQuiet_ === "function") ? panelWatchQuiet_() : -1;
+    if (q < 0) {
+      L.push("⏱ 見張り（1分おき）：一度も動いていません ⚠️");
+    } else {
+      L.push("⏱ 見張り（1分おき）：" + Math.round(q / 60) + "分前に動きました" +
+             (q > 300 ? "　⚠️ 止まっている可能性があります" : ""));
+    }
+  } catch (e) {}
+
   // ④ ウェブアプリの公開（デプロイ）の状態
   //    ★ここが古いと、コードを入れ替えても
   //      LINEの受け口だけ古いコードのまま動きます
@@ -5339,9 +5376,21 @@ function panelChkCol_(sh, top) {
   return PANEL_CHK_COL;
 }
 
-/** ラベルの列（チェックのすぐ右）／説明の列（そのまた右） */
+/** ラベルの列（チェックのすぐ右）／説明の列 */
 function panelLabelCol_(sh, top) { return panelChkCol_(sh, top) + 1; }
-function panelNoteCol_(sh, top)  { return panelChkCol_(sh, top) + 2; }
+
+/*
+ * 説明の列。
+ *
+ * ★「チェックの2つ右」ではありません。
+ *   名前のらんは C〜F列をつないで1マスにしてあるので、
+ *   2つ右（D列）は、その1マスの"中"です。
+ *   そこへ書くと、名前のほうが消えます。
+ *   つないだぶんを飛ばした、次の列（G列）が説明のらんです。
+ */
+function panelNoteCol_(sh, top) {
+  return panelLabelCol_(sh, top) + PANEL_LABEL_SPAN;
+}
 
 /** ボタンが始まる行。まだ置いていなければ 0 */
 function panelTop_(sh) {
@@ -5454,7 +5503,7 @@ function menuMakePanel() {
 
     const added = panelSync_(sh, already);
     const madeIn = panelEnsureInputs_(sh);
-    PropertiesService.getScriptProperties().setProperty("PANEL_SETUP_VER", UPD_VERSION);
+    PropertiesService.getScriptProperties().setProperty("PANEL_SETUP_SIG", panelItemsSig_());
     return updTell_("🧰 ボタンはもう置いてあります（" + already + "行目）",
       "ボタン：" + (already + 1) + "行目から" + panelReadRows_(sh).length + "個\n" +
       "結果らん：" + panelResultRow_(sh) + "行目\n\n" +
@@ -5477,12 +5526,23 @@ function menuMakePanel() {
 
   const chk   = PANEL_CHK_COL;
   const label = chk + 1;
-  const note  = chk + 2;
+  const note  = label + PANEL_LABEL_SPAN;    // 名前は C〜F をつなぐので、説明は G列
 
   sh.getRange(head, label).setValue(PANEL_HEAD).setFontWeight("bold").setFontSize(11);
 
   const top = head + 1;
   for (let i = 0; i < items.length; i++) {
+    // ★名前は C〜F、説明は G〜H をつないで1マスにする（まーくさんのご指示）
+    try {
+      const rg = sh.getRange(top + i, label, 1, PANEL_LABEL_SPAN);
+      try { rg.breakApart(); } catch (e) {}
+      rg.merge();
+    } catch (e) {}
+    try {
+      const rg2 = sh.getRange(top + i, note, 1, PANEL_NOTE_SPAN);
+      try { rg2.breakApart(); } catch (e) {}
+      rg2.merge();
+    } catch (e) {}
     sh.getRange(top + i, label).setValue(items[i].label);
     sh.getRange(top + i, note).setValue(items[i].note);
   }
@@ -5492,7 +5552,8 @@ function menuMakePanel() {
     .setHorizontalAlignment("center").setVerticalAlignment("middle");
   sh.getRange(top, label, items.length, 1).setFontWeight("bold").setFontSize(12);
   sh.getRange(top, note,  items.length, 1).setFontSize(9).setFontColor("#5f6368");
-  sh.getRange(top, label, items.length, 2).setVerticalAlignment("middle").setWrap(true);
+  sh.getRange(top, label, items.length, PANEL_LABEL_SPAN + PANEL_NOTE_SPAN)
+    .setVerticalAlignment("middle").setWrap(true);
   try { sh.setRowHeights(top, items.length, PANEL_CHK_H); } catch (e) {}
 
   const rr = top + items.length + 2;
@@ -5508,7 +5569,7 @@ function menuMakePanel() {
 
   const locked = panelProtect_(sh);
   panelInstall_();
-  PropertiesService.getScriptProperties().setProperty("PANEL_SETUP_VER", UPD_VERSION);
+  PropertiesService.getScriptProperties().setProperty("PANEL_SETUP_SIG", panelItemsSig_());
 
   updTell_("🧰 ボタンを置きました（" + PANEL_TAB + "タブ " + head + "行目から）",
     "スマホのスプレッドシートアプリからは、ここのチェックで動かせます。\n" +
@@ -5527,13 +5588,22 @@ function menuMakePanel() {
  * すでにあるぶんの見た目（結合・書式・文言）は触らない。
  * 戻り値は足した個数。
  */
+/*
+ * ボタンの行の、らんのつなぎ方（まーくさんのご指示）。
+ *   名前のらん … C〜F列（4つぶん）
+ *   説明のらん … G〜H列（2つぶん）
+ * ★ここを1か所で決めておかないと、足した行だけ形が違ってしまいます
+ */
+const PANEL_LABEL_SPAN = 4;
+const PANEL_NOTE_SPAN  = 2;
+
 function panelSync_(sh, headRow) {
   const items = panelItems_();
   const top = headRow + 1;
 
   const chk   = panelChkCol_(sh, top);
   const label = chk + 1;
-  const note  = chk + 2;
+  const note  = label + PANEL_LABEL_SPAN;     // 名前は C〜F をつなぐので、説明は G列
 
   const st = panelCheck_(sh);
   const miss = st.missing;
@@ -5544,9 +5614,30 @@ function panelSync_(sh, headRow) {
   // 最後のボタンのすぐ下に足す。こうすると、上の行の書式を引き継いでくれる
   sh.insertRowsAfter(last, add);
 
+  /*
+   * ★足した行も、ほかの行と同じ形にそろえます（まーくさんのご指示）。
+   *   ボタンの名前は C〜F列、説明は G〜H列をつないで1マスにします。
+   *   つながっていないと、そこだけ字が細切れに見えて、
+   *   「この行だけ作りかけ」のように見えてしまいます。
+   */
   for (let i = 0; i < miss.length; i++) {
-    sh.getRange(last + 1 + i, label).setValue(miss[i].label);
-    sh.getRange(last + 1 + i, note).setValue(miss[i].note);
+    const r = last + 1 + i;
+    // 名前のらん（C〜F）
+    try {
+      const w = Math.max(1, PANEL_LABEL_SPAN);
+      const rg = sh.getRange(r, label, 1, w);
+      try { rg.breakApart(); } catch (e) {}
+      rg.merge();
+    } catch (e) {}
+    sh.getRange(r, label).setValue(miss[i].label);
+    // 説明のらん（G〜H）
+    try {
+      const w2 = Math.max(1, PANEL_NOTE_SPAN);
+      const rg2 = sh.getRange(r, note, 1, w2);
+      try { rg2.breakApart(); } catch (e) {}
+      rg2.merge().setWrap(true).setVerticalAlignment("middle");
+    } catch (e) {}
+    sh.getRange(r, note).setValue(miss[i].note);
   }
   sh.getRange(last + 1, chk, add, 1).insertCheckboxes()
     .setFontSize(PANEL_CHK_SIZE)
@@ -5767,12 +5858,34 @@ function panelOnEdit(e) {
  * スマホからはメニューを開けないので、ここが自動でやらないと、
  * 新しいボタンを永久に使えないままになってしまう。
  */
+/**
+ * いま並べるべきボタンの「顔つき」を、短い文字にする。
+ *
+ * ★ここが、ボタンが増えなかった原因そのものです。
+ *
+ *   前は「このファイルのバージョン（UPD_VERSION）と同じなら、もうやった」
+ *   という見分け方をしていました。
+ *   ところが UPD_VERSION は U023ver のまま、何十回も上げ忘れていました。
+ *   そのせいで、ボタンを足しても「もうやった」と見なされ、
+ *   [14] は永遠に足されませんでした。わたしの管理のまちがいです。
+ *
+ *   いまは、ボタンの数と名前そのものから作った文字で見分けます。
+ *   ボタンが1つでも増えたり、名前が変われば、必ず足しにいきます。
+ *   バージョンの上げ忘れとは、もう関係ありません。
+ */
+function panelItemsSig_() {
+  try {
+    return panelItems_().map(function (x) { return x.label; }).join("｜");
+  } catch (e) { return ""; }
+}
+
 function panelAutoSync_(sh) {
   const pr = PropertiesService.getScriptProperties();
-  if (pr.getProperty("PANEL_SETUP_VER") === UPD_VERSION) return;
+  const sig = panelItemsSig_();
+  if (pr.getProperty("PANEL_SETUP_SIG") === sig) return;
   try {
     const head = panelHeadRow_(sh);
-    if (!head) { pr.setProperty("PANEL_SETUP_VER", UPD_VERSION); return; }
+    if (!head) { pr.setProperty("PANEL_SETUP_SIG", sig); return; }
     const added = panelSync_(sh, head);
     const made  = panelEnsureInputs_(sh);
     if (added || made) {
@@ -5781,10 +5894,10 @@ function panelAutoSync_(sh) {
         panelItems_().slice(-Math.max(added, 1)).map(function (x) { return x.label; }).join("、") +
         "）\n押す前に、すぐ上の「期間」と「送り先」を確かめてください。");
     }
-    pr.setProperty("PANEL_SETUP_VER", UPD_VERSION);
+    pr.setProperty("PANEL_SETUP_SIG", sig);
   } catch (e) {
     logErr_("panelAutoSync", e);
-    pr.setProperty("PANEL_SETUP_VER", UPD_VERSION);   // 毎分やり直さない
+    pr.setProperty("PANEL_SETUP_SIG", sig);           // 毎分やり直さない
   }
 }
 
