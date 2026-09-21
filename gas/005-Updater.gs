@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U096ver  （2026/09/21）  ★★★
+ *  ★★★  U097ver  （2026/09/21）  ★★★
+ *
+ *  [U097ver]
+ *   ・✱ 今回 変わったバージョンだけ、頭に「*」を付けた（ご指示）
+ *     ★例：C059/E005/*L059/W011/*U097/V050/T003
+ *     ★数字がぜんぶ並んでも、どれが動いたのかは覚えていられません。
+ *       直しが立て続けに入るので、なおさらです。
+ *       「*」が付いているところだけ見れば、今回 何が入ったのかが
+ *       ひと目で分かります。付いていないものは、前と同じです。
+ *     ★「*」の意味は、スプシの結果らんのほうに書いてあります。
+ *       LINEには数字の行だけを出します（最低限にした知らせを、また太らせないため）。
+ *     ★前のコードに戻したときも、戻したことで変わったものに「*」が付きます。
+ *       そのために「書き換える前の中身」を、書き換える前に取っておきます
+ *       （あとから取っても、戻したあとの中身しか読めません）。
  *
  *  [U096ver]
  *   ・🔢 とりこみの知らせに、入れ替わったバージョンを載せた（ご指示）
@@ -958,7 +971,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U096ver";
+const UPD_VERSION = "U097ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3270,18 +3283,42 @@ function updCodeVers_() {
  *   「ほんとうに入ったのか」がかえって分からなくなります。
  *   なので、書き込む中身そのものから読み取ります。
  *
- * files … [{ name: "001-Code.gs", source: "…" }, …]
- *          （appsscript.json のようにバージョンが無いものは、とばします）
+ * files   … [{ name: "001-Code", source: "…" }, …]
+ *            （appsscript.json のようにバージョンが無いものは、とばします）
+ * changed … 今回ほんとうに入れ替わったファイルの名前（["001-Code", …]）
+ *
+ * ★今回 変わったものだけ、頭に「*」を付けます（まーくさんのご指示）。
+ *   例：C059/E005/*L059/W011/*U097/V050/T003
+ *
+ *   ぜんぶの数字を並べても、どれが動いたのかは覚えていられません。
+ *   直しが立て続けに入るので、なおさらです。
+ *   「*」が付いているところだけ見れば、今回 何が入ったのかが
+ *   ひと目で分かります。付いていないものは、前から変わっていません。
  */
-function updSrcVers_(files) {
+function updSrcVers_(files, changed) {
   const list = (files || []).slice().sort(function (a, b) {
     return String(a && a.name) < String(b && b.name) ? -1 : 1;   // 001→007 の順にそろえる
   });
+
+  /*
+   * ★名前の書き方が ゆれても当たるようにします。
+   *   読み元では「001-Code.gs」、Apps Script 側では「001-Code」と、
+   *   同じファイルでも うしろの「.gs」が付いたり付かなかったりします。
+   *   そこを見落とすと「*」が1つも付かず、直したつもりが伝わりません。
+   */
+  const hot = {};
+  (changed || []).forEach(function (n) {
+    const nm = String(n == null ? "" : n).replace(/\.(gs|html|json)$/i, "");
+    if (nm) hot[nm] = 1;
+  });
+
   const out = [];
   list.forEach(function (f) {
     try {
       const m = String((f && f.source) || "").match(/★★★\s*([A-Za-z]{1,3}[0-9]{2,4})ver/);
-      if (m) out.push(m[1]);
+      if (!m) return;
+      const nm = String((f && f.name) || "").replace(/\.(gs|html|json)$/i, "");
+      out.push((hot[nm] ? "*" : "") + m[1]);
     } catch (e) {}
   });
   return out.join("/");
@@ -4423,12 +4460,13 @@ function menuUpdateCode() {
    *   「いま動いているコード」から読むのでは間違いになります。
    *   書き換えたあとも、この実行が終わるまでは古いコードが動いたままだからです。
    */
-  const versNow = updSrcVers_(merged);
+  const versNow = updSrcVers_(merged, mod.concat(add));
 
   return updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
     "入れ替え：" + (mod.join("、") || "なし") + "\n" +
     "追加　　：" + (add.join("、") || "なし") + "\n" +
-    (versNow ? UPD_VERS_MARK + versNow + "\n" : "") +
+    (versNow ? UPD_VERS_MARK + versNow + "\n" +
+               "　　　　　（* が、今回 入れ替わったものです）\n" : "") +
     (stale.length ? "消した　：" + stale.join("、") + "（名前が変わったため）\n" : "") +
     (got.skipped.length ? "変更なし：" + got.skipped.join("、") + "\n" : "") +
     dep + "\n" +
@@ -4484,6 +4522,18 @@ function menuRestoreCode() {
       from + "\nの状態に戻します。よろしいですか？", ui.ButtonSet.YES_NO);
     if (a !== ui.Button.YES) return;
   }
+
+  /*
+   * ★書き換える「前」の中身を、ここで取っておきます。
+   *   あとから取っても、もう戻したあとの中身しか読めず、
+   *   「何が変わったのか」が分からなくなります（実際そう書いて間違えました）。
+   *   取れなくても戻す作業のじゃまはしないので、try で包んでいます。
+   */
+  const beforeSrc = {};
+  try {
+    updGetProject_().files.forEach(function (f) { beforeSrc[f.name] = String(f.source); });
+  } catch (e) {}
+
   try {
     updPutProject_(files);
   } catch (e) {
@@ -4499,11 +4549,24 @@ function menuRestoreCode() {
                     "　　コードは戻っていますが、動いているものは古いままです。\n" +
                     "　　「デプロイを管理」→ 鉛筆 → 新バージョン → デプロイ をしてください。"; }
 
-  // ★戻したときも、どのバージョンに戻ったのかを書き残します
-  //   （「戻したつもりで戻っていない」を、数字で確かめられるように）
-  const versBack = updSrcVers_(files);
+  /*
+   * ★戻したときも、どのバージョンに戻ったのかを書き残します
+   *   （「戻したつもりで戻っていない」を、数字で確かめられるように）。
+   *   「*」が付くのは、戻したことで中身が変わったファイルです。
+   *   付いていないものは、戻す前と同じ＝今回は関係がなかったもの、と読めます。
+   *   ここが取れなくても戻す作業のじゃまはしないので、まるごと try で包みます。
+   */
+  let versBack = "";
+  try {
+    const moved = files.filter(function (f) {
+      return beforeSrc[f.name] !== undefined && beforeSrc[f.name] !== String(f.source);
+    }).map(function (f) { return f.name; });
+    versBack = updSrcVers_(files, moved);
+  } catch (e) { versBack = ""; }
+
   updTell_("⏪ 戻しました", from + " の状態にしました。\n" +
-    (versBack ? UPD_VERS_MARK + versBack + "\n" : "") + dep);
+    (versBack ? UPD_VERS_MARK + versBack + "\n" +
+                "　　　　　（* が、戻したことで変わったものです）\n" : "") + dep);
 }
 
 /** いまのコードを、ドライブに保存しておくだけ */
