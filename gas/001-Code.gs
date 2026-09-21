@@ -1,7 +1,10 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C062ver  （2026/09/21）  ★★★   ← もとは version 232
+ *  ★★★  C063ver  （2026/09/21）  ★★★   ← もとは version 232
+ *
+ *  [C063ver]
+ *   ・⏰「⏰ 23:30」で、作業を再開できる時刻に知らせるようにした（ご指示）
  *
  *  [C062ver]
  *   ・📊「📊」でイベントの参考資料スプシを出せるようにした（ご指示）
@@ -613,7 +616,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C062ver";
+const CODE_VERSION = "C063ver";
 
 const SENDER_MAP = {
   "Ued4659890c83b3b0bcf2a3f8bf008e7f": "ﾀﾞｲｽｹ",
@@ -1685,6 +1688,8 @@ function handleEvent_(ev) {
   if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
   // --- 「天気」… ためてある天気の中身を見せる（まーくさんだけ）---
   if (typeof tkHandleCmd_ === "function" && tkHandleCmd_(ev)) return;
+  // --- 「⏰」… 作業を再開できる時刻に知らせる（まーくさんだけ）---
+  if (typeof updHandleResume_ === "function" && updHandleResume_(ev)) return;
   // --- 「📊」… イベントの参考資料スプシを作る（まーくさんだけ）---
   if (typeof shHandleCmd_ === "function" && shHandleCmd_(ev)) return;
   // --- 「📘」… マニュアルのスプシを開く（まーくさんだけ）---

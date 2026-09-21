@@ -2,7 +2,17 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L059ver  （2026/09/21）  ★★★
+ *  ★★★  L060ver  （2026/09/21）  ★★★
+ *
+ *  [L060ver]
+ *   ・🌧 雨の日の比べを、実測で確かめた日数つきで出すようにした
+ *     ★これまでは「予報です（実測ではありません）」としか書けず、
+ *       予報が外れた日も雨の日として数えていました。
+ *       007-Tenki が翌朝に実測で確かめ直すようになったので、
+ *       何日ぶんが実測なのかを、そのまま書きます。
+ *     ★全部が実測だと思わせるのも、全部が予報だと思わせるのも、
+ *       どちらも読む人をまちがえさせます
+ *
  *
  *  [L059ver]
  *   ・📦「🗺️乗り場マップ」タブを、マニュアルのスプシへ移せるようにした（ご指示）
@@ -779,7 +789,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L059ver";
+const LR_VERSION = "L060ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -2128,6 +2138,14 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
           const box = wx.rain ? wxStats.rain : wxStats.dry;
           box.n++; box.sales += price; box.days[wk] = 1;
           if (waitMinutes > 0) { box.waitSum += waitMinutes; box.waitN++; }
+          /*
+           * ★「実測で確かめた日」を数えます。
+           *   予報だけの日と、実測で確かめた日が混ざっているのに
+           *   それを書かないと、読む人は全部が実測だと思います。
+           *   どれくらい信じてよい数字なのかを、必ず書き添えます。
+           */
+          if (!wxStats.sureDays) wxStats.sureDays = {};
+          if (wx.sure) wxStats.sureDays[wk] = 1;
         }
       }
 
@@ -4224,7 +4242,24 @@ function lrWeatherParts_(wx) {
   if (wx.none > 0) {
     out.push({ t: `※ 天気の記録が無い日の ${wx.none}件は、この比べに入れていません。\n`, c: "#7a7a7a" });
   }
-  out.push({ t: "※ 天気は気象庁の予報を、その日の夜に記録したものです（実測ではありません）。", c: "#7a7a7a" });
+  /*
+   * ★前は「予報です（実測ではありません）」としか書けませんでした。
+   *   いまは翌朝にアメダス（実測）で雨かどうかを確かめ直しています。
+   *   何日ぶんが実測で確かめてあるのかを、そのまま書きます。
+   *   全部が実測だと思わせるのも、全部が予報だと思わせるのも、
+   *   どちらも読む人をまちがえさせます。
+   */
+  const allDays = rDays + dDays;
+  const sureN = Object.keys(wx.sureDays || {}).length;
+  if (sureN >= allDays && allDays > 0) {
+    out.push({ t: "※ 雨かどうかは、気象庁のアメダス（実測）で確かめた " +
+                  allDays + "日ぶんです。", c: "#7a7a7a" });
+  } else if (sureN > 0) {
+    out.push({ t: "※ " + allDays + "日のうち " + sureN +
+                  "日は実測で確かめ、残りは予報のままです。", c: "#7a7a7a" });
+  } else {
+    out.push({ t: "※ 天気は気象庁の予報を、その日の夜に記録したものです（実測ではありません）。", c: "#7a7a7a" });
+  }
   return out;
 }
 

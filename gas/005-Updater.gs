@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U101ver  （2026/09/21）  ★★★
+ *  ★★★  U102ver  （2026/09/21）  ★★★
+ *
+ *  [U102ver]
+ *   ・⏰「⏰ 23:30」で、作業を再開できる時刻に知らせるようにした（ご指示）
+ *     ★直しの作業は、ときどき利用制限で途中で止まります。
+ *       再開できる時刻を、覚えていられません。
+ *     ★こちらから制限の時刻は分かりません。
+ *       画面に出た時刻を1回だけ送ってもらい、そこで鳴らします。
+ *     ★過ぎた時刻を書かれたら、いちばん近い未来にします。
+ *       23:50に「0:30」と書かれて今日の0:30と読むと、永遠に鳴りません。
+ *     ★立て直すときは、前の予約を必ず片づけます（二重に鳴らないように）。
+ *     ★鳴ったら、自分で見張りを片づけます
  *
  *  [U101ver]
  *   ・␣ ボタンとボタンのあいだの空け行が、抜けていたのを直した（ご指摘）
@@ -1047,7 +1058,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U101ver";
+const UPD_VERSION = "U102ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3618,6 +3629,7 @@ function updHandleHelp_(ev) {
     "❗ 版が満杯のときの直し方",
     "📘 マニュアル（手順書のスプシ）",
     "📊 イベント参考資料（実績のグラフ・客層・リンク）",
+    "⏰ 再開できる時刻に知らせる（例：⏰ 23:30）",
     "",
     "▼ そのほか",
     "💩 コードの取り込み（まーくさんだけ）",
@@ -5299,6 +5311,137 @@ function updCleanDeploys_(keep, look) {
   const after = look ? before : updVerCount_();
   return { live: live, total: rows.length, hold: hold, old: old,
            done: done, ng: ng, before: before, after: after };
+}
+
+/* ================================================================
+ *  ⏰ 作業が再開できる時刻に、LINEで知らせる
+ *
+ *  ★まーくさんのご指示です。
+ *    直しの作業は、ときどき「利用制限」で途中で止まります。
+ *    しばらく経てば再開できるのですが、その時刻を覚えていられません。
+ *    気づいたら何時間も経っていた、ということになります。
+ *
+ *  ★こちらから制限の時刻を知ることはできません。
+ *    画面に出た時刻を、まーくさんが1回だけ送ってください。
+ *      ⏰ 23:30
+ *    その時刻に、この公式LINEから「再開できます」と鳴らします。
+ *
+ *  ★鳴らすのは push（こちらから送るもの）なので、
+ *    月200通に数えます。1通ぶんだけ使います。
+ * ================================================================ */
+
+/** 再開の知らせを覚えておく場所 */
+const UPD_RESUME_KEY = "UPD_RESUME_AT";
+
+/**
+ * 「⏰ 23:30」「⏰ 9/22 7:00」から、鳴らす時刻を読み取る。
+ * 読めなければ null。
+ *
+ * ★時刻だけを書かれたときは「いちばん近い未来」にします。
+ *   いま 23:50 に「⏰ 0:30」と書かれたら、それは明日の0:30です。
+ *   今日の0:30と読むと、もう過ぎているので、永遠に鳴りません。
+ */
+function updResumeAt_(text, now) {
+  const t = String(text == null ? "" : text).replace(/[\s　]/g, "");
+  const base = now || new Date();
+  let m = t.match(/(\d{1,2})[\/月](\d{1,2})日?(\d{1,2})[:：時](\d{1,2})/);
+  if (m) {
+    const d = new Date(base.getFullYear(), Number(m[1]) - 1, Number(m[2]),
+                       Number(m[3]), Number(m[4]), 0);
+    // 年をまたぐとき（12月に「1/3」と書かれたら、来年）
+    if (d.getTime() < base.getTime() - 86400000 * 300) d.setFullYear(d.getFullYear() + 1);
+    return d;
+  }
+  m = t.match(/(\d{1,2})[:：時](\d{1,2})/);
+  if (!m) return null;
+  const hh = Number(m[1]), mi = Number(m[2]);
+  if (hh > 23 || mi > 59) return null;
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh, mi, 0);
+  if (d.getTime() <= base.getTime()) d.setDate(d.getDate() + 1);   // いちばん近い未来
+  return d;
+}
+
+/**
+ * 「⏰」… 再開できる時刻を覚えて、その時刻に知らせる（まーくさんだけ）。
+ */
+function updHandleResume_(ev) {
+  const raw = String((ev && ev.message && ev.message.text) || "").trim();
+  const t = raw.replace(/[\s　️]/g, "");
+  if (!/^(⏰|⏱|🕐|再開|さいかい)/.test(t)) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const me = updMe_();
+  if (!me || uid !== me) return false;
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  const pr = updProps_();
+
+  // 「⏰ やめ」で取り消し
+  if (/(やめ|取消|とりけし|キャンセル|off|切)/i.test(t)) {
+    try { pr.deleteProperty(UPD_RESUME_KEY); } catch (e) {}
+    try { updResumeClear_(); } catch (e) {}
+    say("⏰ 再開の知らせを取り消しました");
+    return true;
+  }
+
+  const at = updResumeAt_(t, new Date());
+  if (!at) {
+    const cur = pr.getProperty(UPD_RESUME_KEY) || "";
+    say([
+      "⏰ 再開できる時刻を知らせます",
+      "・いまの予約：" + (cur ? new Date(Number(cur)).toLocaleString("ja-JP") : "なし"),
+      "",
+      "こう送ってください",
+      "・⏰ 23:30",
+      "・⏰ 9/22 7:00",
+      "・⏰ やめ　（取り消し）"
+    ].join("\n"));
+    return true;
+  }
+
+  /*
+   * ★その時刻に1回だけ鳴らす見張りを立てます。
+   *   前の予約が残っていると二重に鳴るので、先に片づけます。
+   */
+  try { updResumeClear_(); } catch (e) {}
+  let ok = false;
+  try {
+    ScriptApp.newTrigger("updResumeFire").timeBased().at(at).create();
+    pr.setProperty(UPD_RESUME_KEY, String(at.getTime()));
+    ok = true;
+  } catch (e) { ok = false; }
+
+  const mm = Math.max(1, Math.round((at.getTime() - Date.now()) / 60000));
+  say(ok
+    ? "⏰ " + at.toLocaleString("ja-JP") + " に知らせます\n" +
+      "・あと " + mm + "分\n" +
+      "・取り消すときは「⏰ やめ」"
+    : "⏰ 見張りを立てられませんでした\n・もう一度お試しください");
+  return true;
+}
+
+/** 前に立てた「再開の知らせ」を片づける */
+function updResumeClear_() {
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (tg) {
+      if (tg.getHandlerFunction() === "updResumeFire") ScriptApp.deleteTrigger(tg);
+    });
+  } catch (e) {}
+}
+
+/** その時刻になったら鳴る。1通だけ送って、自分を片づける */
+function updResumeFire() {
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text:
+        "⏰ 作業を再開できます\n" +
+        "・中断したところから続けられます\n" +
+        "・Claudeに「続きから」と伝えてください" }]);
+    }
+  } catch (e) {}
+  try { updProps_().deleteProperty(UPD_RESUME_KEY); } catch (e) {}
+  try { updResumeClear_(); } catch (e) {}
 }
 
 /**

@@ -96,7 +96,10 @@ ctx.ScriptApp = { getOAuthToken: () => 'tok', getScriptId: () => 'SID',
       timeBased: () => api, everyMinutes: () => { b._kind = 'min'; return api; },
       after: () => { b._kind = 'after'; return api; },
       atHour: () => api, nearMinute: () => api, everyDays: () => api,
-      create: () => { triggers.push({ getHandlerFunction: () => b._fn, _kind: b._kind });
+      // ★「この時刻に1回だけ」。本物にあるので、ここにも要る
+      at: d => { b._kind = 'at'; b._at = d; return api; },
+      create: () => { triggers.push({ getHandlerFunction: () => b._fn,
+                                      _kind: b._kind, _at: b._at });
                       return b; }
     };
     return api;
@@ -4182,6 +4185,83 @@ console.log('\n■ 片づけは、かならず2回に分ける');
     source: { userId: 'Umark' }, replyToken: 'r' });
   t(del2.length === 0, '★時間があいたら、また1回目からやり直す');
   ctx.UrlFetchApp.fetch = keep2;
+}
+
+console.log('\n■ ⏰ 再開できる時刻に知らせる（ご指示）');
+/*
+ * ★直しの作業は、ときどき「利用制限」で途中で止まります。
+ *   しばらく経てば再開できるのですが、その時刻を覚えていられません。
+ *   こちらから制限の時刻は分からないので、
+ *   画面に出た時刻を1回だけ送ってもらい、そこで鳴らします。
+ */
+{
+  const R = F('updResumeAt_');
+  const base = new Date(2026, 8, 21, 22, 0, 0);
+
+  const a = R('⏰23:30', base);
+  t(!!a && a.getHours() === 23 && a.getMinutes() === 30 && a.getDate() === 21,
+    '★「23:30」は、きょうの23:30');
+
+  /*
+   * ★ここを取りちがえると、永遠に鳴りません。
+   *   いま23:50 に「0:30」と書かれたら、それは明日の0:30です
+   */
+  const b = R('⏰0:30', new Date(2026, 8, 21, 23, 50, 0));
+  t(!!b && b.getDate() === 22 && b.getHours() === 0,
+    '★★もう過ぎた時刻なら、いちばん近い未来（翌日）にする');
+
+  const c = R('⏰9/22 7:00', base);
+  t(!!c && c.getMonth() === 8 && c.getDate() === 22 && c.getHours() === 7,
+    '★日付つきでも読める');
+
+  t(R('⏰25:00', base) === null, '　 ありえない時刻は、読まない');
+  t(R('⏰', base) === null, '　 時刻が無ければ null');
+
+  // 実際に受けてみる
+  vm.runInContext('function rpTestTarget_(){ return "Umark"; }', ctx);
+  vm.runInContext('function lrPush_(to, m){ pu.push({ to: to, msgs: m }); }', ctx);
+  props['LINE_TOKEN'] = 'x';
+  triggers.length = 0; ctx.rep.length = 0;
+  t(F('updHandleResume_')({ message: { text: '⏰ 23:30' },
+      source: { userId: 'Umark' }, replyToken: 'r' }) === true, '★「⏰ 23:30」を受ける');
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updResumeFire'; }).length === 1,
+    '★その時刻に鳴る見張りを、1つだけ立てる');
+  has(ctx.rep[0], 'に知らせます', '　 いつ鳴るかを返す');
+  has(ctx.rep[0], '⏰ やめ', '★取り消し方も書く');
+
+  // 2回目は、前の予約を片づけてから立て直す（二重に鳴らさない）
+  ctx.rep.length = 0;
+  F('updHandleResume_')({ message: { text: '⏰ 7:00' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updResumeFire'; }).length === 1,
+    '★★立て直しても、二重に鳴らない');
+
+  // 鳴ったら、1通だけ送って自分を片づける
+  ctx.pu.length = 0;
+  F('updResumeFire')();
+  t(ctx.pu.length === 1, '★鳴ったら、LINEに1通だけ送る');
+  has(ctx.pu[0].msgs[0].text, '再開できます', '　 再開できると書く');
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updResumeFire'; }).length === 0,
+    '★鳴ったら、見張りを片づける（いつまでも残さない）');
+
+  // 取り消し
+  ctx.rep.length = 0;
+  F('updHandleResume_')({ message: { text: '⏰ 7:00' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  F('updHandleResume_')({ message: { text: '⏰ やめ' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  t(triggers.filter(function (x) {
+      return x.getHandlerFunction() === 'updResumeFire'; }).length === 0,
+    '★「やめ」で取り消せる');
+
+  // ほかの人には返さない
+  t(F('updHandleResume_')({ message: { text: '⏰ 23:30' },
+      source: { userId: 'Uother' }, replyToken: 'r' }) === false,
+    '★ほかの人には、返さない');
+  ctx.pu.length = 0;
 }
 
 console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの、最後の頼り）');
