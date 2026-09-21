@@ -3555,5 +3555,34 @@ console.log('\n■ 取り込みを まるごと止めてしまうファイルが
     '★読みにいく先も、置き場のいちばん上（フォルダ名を足さない）');
 }
 
+console.log('\n■ 🚨 しくじりを、黙ったままにしない（クロちゃんからの見直し）');
+{
+  const H = F('updHandleErr_');
+  props['SENDER_MAP'] = undefined;
+  ctx.rep.length = 0;
+
+  // 記録が無ければ、無いと言う
+  delete props['LAST_ERRORS'];
+  t(H({ message: { text: 'エラー' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '★「エラー」と送れば、ここが受ける');
+  t(String(ctx.rep[0]).indexOf('しくじりの記録はありません') !== -1, '  無ければ、無いと言う');
+
+  // 記録があれば、そのまま見せる
+  props['LAST_ERRORS'] = JSON.stringify([
+    { at: '2026-09-21T10:00:00.000Z', where: 'vnDocSave', msg: 'ドライブに置けませんでした' }
+  ]);
+  ctx.rep.length = 0;
+  H({ message: { text: 'エラー' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  t(String(ctx.rep[0]).indexOf('vnDocSave') !== -1, '★どこでしくじったかが出る');
+  t(String(ctx.rep[0]).indexOf('ドライブに置けませんでした') !== -1, '  中身も出る');
+
+  // ほかの人には、何も返さない
+  ctx.rep.length = 0;
+  t(H({ message: { text: 'エラー' }, source: { userId: 'Uother' }, replyToken: 'r' }) === false,
+    '★ほかの人には、返さない');
+  t(ctx.rep.length === 0, '  何も言わない');
+  delete props['LAST_ERRORS'];
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

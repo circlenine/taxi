@@ -2,7 +2,18 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L055ver  （2026/09/21）  ★★★
+ *  ★★★  L056ver  （2026/09/21）  ★★★
+ *
+ *  [L056ver]
+ *   ・🥇 ヒートマップの順位（🥇🥈🥉）を「2件以上たまった枠」だけにした
+ *     ★こちらからの見直しです。1件しかない枠でも、金額さえ高ければ
+ *       金メダルが付いていました。たまたま乗った1本の￥15,000 が、
+ *       5件積み上げた平均￥12,000 より上に見えるということです
+ *     ★数字はこれまでどおり全部出します。順位の印だけを限ります
+ *   ・🔢 ヒートマップでも、1件のものを「平均」と呼ばないようにした
+ *     ★ほかの表では直したのに、ここだけ残っていました。
+ *       同じ資料の中で同じ言葉が違う意味で使われていては、
+ *       どの数字も信じられなくなります
  *
  *  [L055ver]
  *   ・🔎 参考資料として成り立つように、こちらから見直したぶん
@@ -5648,7 +5659,8 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       //   この見出しで言うべきは「何の表か」と「どういう条件の表か」だけです。
       //   使い方の説明が混ざると、肝心の条件が読み飛ばされます
       curRow = dbTitleNote_(curRow, `⭕️ 【${spotName}】曜日×時間帯別ヒートマップ`,
-        "20〜29時台で、月に3件以上の記録がある乗り場だけを出しています。",
+        "20〜29時台で、月に3件以上の記録がある乗り場だけを出しています。\n" +
+        "🥇🥈🥉 は、2件以上たまった枠だけに付けています（1本だけの結果は、順位に入れません）。",
         TAB_COLORS[tName] || "#e8eef5", 12) - 1;
       // 見出しの乗り場名だけにリンクを張る（押すとマップが開く）
       try {
@@ -5683,8 +5695,19 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
       if (rest > 0) hRngs[hmSpans.length - 1].merge().setBackground("#cccccc");
       sheet.setRowHeight(curRow, 28); curRow++;
 
+      /*
+       * ★🥇🥈🥉 を付けるのは「2件以上ある枠」だけにします。
+       *
+       *   こちらからの見直しです。
+       *   前は、1件しかない枠でも 金額さえ高ければ 🥇 が付いていました。
+       *   たまたま乗った1本の￥15,000 が、
+       *   5件積み上げた平均￥12,000 より上に見えるということです。
+       *   それは「その時間が強い」という意味にはなりません。
+       *   数字そのものは、これまでどおり全部出します。
+       *   順位の印だけを、積み上がったものに限ります。
+       */
       let hmAvgSalesList = [];
-      useHours.forEach(hr => { useDays.forEach(d => { let s = (spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr]) ? spotHeatmapSales[key][d][hr] : 0; let tArr = (spotHeatmapTimes[key][d] && spotHeatmapTimes[key][d][hr]) ? spotHeatmapTimes[key][d][hr] : []; let avg = s > 0 ? Math.round(s / tArr.length) : 0; if (avg > 0) hmAvgSalesList.push(avg); }); });
+      useHours.forEach(hr => { useDays.forEach(d => { let s = (spotHeatmapSales[key][d] && spotHeatmapSales[key][d][hr]) ? spotHeatmapSales[key][d][hr] : 0; let tArr = (spotHeatmapTimes[key][d] && spotHeatmapTimes[key][d][hr]) ? spotHeatmapTimes[key][d][hr] : []; let avg = s > 0 ? Math.round(s / tArr.length) : 0; if (avg > 0 && tArr.length >= 2) hmAvgSalesList.push(avg); }); });
       let top3 = [...new Set(hmAvgSalesList)].sort((a,b)=>b-a).slice(0,3);
 
       const hmFrom = curRow;
@@ -5703,7 +5726,15 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
           if (avgSales > 0) {
             let matchedColor = dateColorMap[timesArr[0].dateStr] || "#333333";
             let rankIdx = top3.indexOf(avgSales);
-            let cellText = `平均￥${avgSales.toLocaleString()}\n[${timesArr.map(t => t.time).join(", ")}]`;
+            /*
+             * ★1件しかないものを「平均」とは呼びません。
+             *   ほかの表では直したのに、ここだけ残っていました。
+             *   同じ資料の中で、同じ言葉が違う意味で使われていては、
+             *   どの数字も信じられなくなります（こちらからの見直しです）。
+             */
+            let cellText = (timesArr.length >= 2 ? "平均￥" : "￥") +
+                           avgSales.toLocaleString() +
+                           `\n[${timesArr.map(t => t.time).join(", ")}]`;
             if (rankIdx !== -1) cellText += `\n${["🥇","🥈","🥉"][rankIdx]}`;
             cellTexts.push(cellText);
 

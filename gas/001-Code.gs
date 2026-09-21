@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C055ver  （2026/09/17）  ★★★   ← もとは version 232
+ *  ★★★  C056ver  （2026/09/17）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,11 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C056ver]
+ *   ・🚨 しくじりを、まーくさんの個人LINEにも知らせるようにした（errTell_）
+ *     ★黙って壊れたままになるのが、いちばん困るためです
+ *     ★「エラー」と送れば、直近5件を見られます（updHandleErr_）
  *
  *  [C055ver]
  *   ・設定「イベント情報を自動で送る」の既定を「いいえ」→「はい」にした
@@ -1583,6 +1588,8 @@ function handleEvent_(ev) {
    *       入・切のつもりが 取り込みが始まってしまいます。
    */
   if (typeof updHandleTell_ === "function" && updHandleTell_(ev)) return;
+  // --- 「エラー」… 直近のしくじりを見せる（まーくさんだけ）---
+  if (typeof updHandleErr_ === "function" && updHandleErr_(ev)) return;
   /*
    * --- 「アニメに名言変更してください」… 終わったときのひとことを切り替える ---
    *     英語の名言 ⇔ ジャンプ作品の名言・迷言
@@ -5516,9 +5523,67 @@ function menuFindBadDates() {
   SpreadsheetApp.getUi().alert(out.length ? out.join("\n") : "✅ 異常な日付はありませんでした");
 }
 
+/* ================================================================
+ *  🚨 しくじりを、その場で知らせる
+ *
+ *  ★これは、こちらからの見直しで足したものです。
+ *
+ *    いままで、しくじりは「実行ログ」と、手元の覚え書き（LAST_ERRORS）に
+ *    残すだけでした。どちらも、こちらから見にいかないと分かりません。
+ *    スマホしか使わない現場では、まず気づけません。
+ *    実際、イベントの案内が1回も動いていなかったときも、
+ *    資料がしまえていなかったときも、気づいたのは
+ *    「おかしい」と言われたときでした。
+ *    黙って壊れたままになるのが、いちばん困ります。
+ *
+ *  ★送りすぎない決まり
+ *    ・同じ種類のしくじりは、1時間に1回まで
+ *    ・1日ぜんぶで5回まで（公式LINEの月200通を食いつぶさないため）
+ *    ・通知を切っている（💩🆖）ときは、送りません
+ * ================================================================ */
+const ERR_TELL_MAX_DAY = 5;
+
+function errTell_(where, msg) {
+  // 通知を切っているときは、何もしない
+  try {
+    if (typeof updTellOn_ === "function" && !updTellOn_()) return;
+  } catch (e) {}
+
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  if (!me || typeof lrPush_ !== "function") return;
+
+  const cc = CacheService.getScriptCache();
+  const key = "ERRTELL_" + String(where || "").slice(0, 40);
+  if (cc.get(key)) return;                       // 同じしくじりは、1時間に1回まで
+
+  // 1日の上限（使いすぎを防ぐ）
+  const d = new Date();
+  const dayKey = "ERRTELL_D_" + d.getFullYear() +
+                 ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+  let n = 0;
+  try { n = Number(cc.get(dayKey) || "0"); } catch (e) { n = 0; }
+  if (n >= ERR_TELL_MAX_DAY) return;
+
+  try { cc.put(key, "1", 3600); } catch (e) {}
+  try { cc.put(dayKey, String(n + 1), 86400); } catch (e) {}
+
+  try {
+    lrPush_(me, [{ type: "text",
+      text: "🚨 うまくいかなかったところがあります\n" +
+            "　どこ：" + String(where) + "\n" +
+            "　中身：" + String(msg).slice(0, 180) + "\n\n" +
+            "※ 同じものは1時間に1回、1日5回までしか出しません。\n" +
+            "※ ぜんぶ見るときは「エラー」と送ってください。\n" +
+            "※ いらないときは「💩🆖」で止められます。" }]);
+  } catch (e) {}
+}
+
 function logErr_(where, err) {
   const msg = (err && err.message ? err.message : String(err));
   console.error("[" + where + "] " + msg);
+  // ★しくじりを、まーくさんにも知らせる（黙って壊れたままにしないため）
+  try { errTell_(where, msg); } catch (e) { /* 知らせられなくても、本題は止めない */ }
   // 実行ログはスマホから見づらいので、直近のぶんだけ手元にも残しておく
   try {
     const pr = PropertiesService.getScriptProperties();

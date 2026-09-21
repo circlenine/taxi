@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U085ver  （2026/09/21）  ★★★
+ *  ★★★  U086ver  （2026/09/21）  ★★★
+ *
+ *  [U086ver]
+ *   ・🚨 しくじりを、黙ったままにしないようにした（こちらからの見直し）
+ *     ★これまで、しくじりは実行ログと手元の覚え書きに残すだけで、
+ *       こちらから見にいかないと分かりませんでした。
+ *       スマホしか使わない現場では、まず気づけません。
+ *       実際、イベントの案内が1回も動いていなかったときも、
+ *       資料がしまえていなかったときも、気づいたのは
+ *       「おかしい」と言われたときでした
+ *     ★いまは、まーくさんの個人LINEにその場でお知らせします
+ *       （同じものは1時間に1回・1日5回まで。💩🆖で止められます）
+ *     ★「エラー」と送れば、直近5件をいつでも見られます
  *
  *  [U085ver]
  *   ・🛸 星人遊びが返らないのを直した（ご指摘）
@@ -3178,6 +3190,46 @@ function updPoopTell_(text) {
  * LINEで「💩🆗」「💩🆖」が来たときの受け口。
  * 受け止めたら true（true を返すと、ほかの受け口は動きません）。
  */
+/**
+ * 「エラー」… 直近のしくじりを、そのまま見せる（まーくさんだけ）。
+ *
+ * ★こちらからの見直しで足しました。
+ *   しくじりの覚え書き（LAST_ERRORS）は、これまで
+ *   こちらから見にいかないと分からないものでした。
+ *   スマホしか使わない現場では、まず気づけません。
+ */
+function updHandleErr_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim()
+    .replace(/[\s\u3000]/g, "");
+  if (!/^(エラー|えらー|しくじり|不具合|ログ)$/.test(t)) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const me = updMe_();
+  if (!me || uid !== me) return false;            // ほかの人には、何も返さない
+
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  let list = [];
+  try { list = JSON.parse(updProps_().getProperty("LAST_ERRORS") || "[]"); } catch (e) { list = []; }
+  if (!list.length) { say("🟢 いまのところ、しくじりの記録はありません。"); return true; }
+
+  const L = ["🚨 直近のしくじり（新しい順・5件まで）", ""];
+  list.forEach(function (x, i) {
+    let when = String(x.at || "");
+    try {
+      const d = new Date(x.at);
+      when = (d.getMonth() + 1) + "/" + d.getDate() + " " +
+             ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    } catch (e) {}
+    L.push((i + 1) + ". " + when + "　" + String(x.where || ""));
+    L.push("　" + String(x.msg || "").slice(0, 150));
+  });
+  L.push("");
+  L.push("※ 直したいものがあれば、そのまま送ってください。");
+  say(L.join("\n"));
+  return true;
+}
+
 function updHandleTell_(ev) {
   const text = (ev && ev.message && ev.message.text) || "";
   const want = updPoopTell_(text);
