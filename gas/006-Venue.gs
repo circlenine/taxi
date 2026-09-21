@@ -2,11 +2,20 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V046ver  （2026/09/21）  ★★★
+ *  ★★★  V047ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V047ver]
+ *   ・📈🎪 絵文字ひとつで、確認用を出せるようにした（ご指示）
+ *     ★「📈」…… 期間（〇/16〜〇/15）をボタンで選ぶ → OK → まとめスプシ＋LINEの絵
+ *     ★「🎪」…… LINEの日付えらび（カレンダー）で1ヶ月先まで選ぶ → OK → イベント通知
+ *     ★どちらも かならず【OK】をはさみます。
+ *       押しまちがいでレポートが作られると、通数も待ち時間もむだになります
+ *     ★いちばん新しい期間には「（途中）」と付けます。
+ *       まだ終わっていない期間の数字を、そのまま比べられないようにするためです
  *
  *  [V046ver]
  *   ・👥 見込み人数の下限を 300人 → 100人 にした（ご指示）
@@ -2492,6 +2501,9 @@ function vnHandleNote_(ev, sentAt) {
   // ⓪-7「レポートテスト」「イベントテスト」… 確認用を、いつでも出す（まーくさんだけ）
   if (vnHandleTestCmd_(ev)) return true;
 
+  // ⓪-8「📈」「🎪」… 選んでから出す（まーくさんだけ）
+  if (vnHandlePickCmd_(ev)) return true;
+
   // ① 確認用の手直し（「❶削除」「❶❸削除」「❶修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
 
@@ -3701,6 +3713,174 @@ function vnShortcutUrl_(ev, day, at) {
   const input = title + "｜" + when;
   return "shortcuts://x-callback-url/run-shortcut?name=" + encodeURIComponent(name) +
          "&input=text&text=" + encodeURIComponent(input);
+}
+
+/* ================================================================
+ *  📈 🎪 絵文字ひとつで、確認用を出す（まーくさんだけ）
+ *
+ *  ★まーくさんのご指示です。
+ *      「📈」…… まとめスプシ（＋LINEの絵）の確認用
+ *      「🎪」…… イベント通知の確認用
+ *    どちらも、選んでから【OK】を押したときだけ出します。
+ *
+ *  ★LINEに、パソコンのようなプルダウンはありません。
+ *    近いものが2つあるので、中身によって使い分けます。
+ *      ・期間（〇/16〜〇/15）…… 並びが決まっているので、ボタンで選ぶ
+ *      ・日付（1ヶ月先まで）… LINEの「日付を選ぶ画面」を出す
+ *        （datetimepicker。カレンダーが出て、指で選べます）
+ *
+ *  ★かならず【OK】をはさみます。
+ *    押しまちがいで、いきなりレポートが作られると、
+ *    公式LINEの通数（月200通）も、待ち時間も、むだになります。
+ * ================================================================ */
+
+/** 〇/16〜翌〇/15 の期間を、新しい順に作る */
+function vnSpanList_(n, base) {
+  const now = base || new Date();
+  const day = (typeof autoReportDay_ === "function") ? autoReportDay_() : 16;
+  const out = [];
+  // いまの期間の終わり（今月の15日、まだ来ていなければ先月の15日）
+  let endY = now.getFullYear(), endM = now.getMonth();
+  if (now.getDate() < day) { /* まだ締め日前なので、そのまま */ }
+  else { endM += 1; }
+  for (let i = 0; i < (n || 6); i++) {
+    const e = new Date(endY, endM - i, day - 1, 23, 59, 59);
+    const st = new Date(e.getFullYear(), e.getMonth() - 1, day, 0, 0, 0);
+    /*
+     * ★いちばん新しい期間は、まだ終わっていないことがあります。
+     *   「9/16〜10/15」と書いてあるのに、まだ9/21なら、
+     *   入っているのは6日ぶんだけです。
+     *   それを黙って出すと、少ない数字を見て「今月は悪い」と
+     *   読みちがえます。途中であることを、そのまま書きます。
+     */
+    const ing = (e.getTime() > now.getTime());
+    out.push({ startD: st, endD: e, ing: ing,
+               label: (st.getMonth() + 1) + "/" + st.getDate() + "〜" +
+                      (e.getMonth() + 1) + "/" + e.getDate() + (ing ? "（途中）" : ""),
+               s: vnYmd_(st), e: vnYmd_(e) });
+  }
+  return out;
+}
+
+/*
+ * ★日付を 20260921 の形にするのは vnYmd_（もとからあるもの）を使います。
+ *   同じはたらきの関数を2つ作ると、Apps Script はプロジェクトごと止まります。
+ */
+
+/** 20260921 → Date（読めなければ null） */
+function vnYmdParse_(t) {
+  const m = String(t || "").match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+/** 「📈」で出す、期間を選ぶ画面 */
+function vnRepPickMsg_() {
+  const list = vnSpanList_(6);
+  const rows = [
+    { type: "text", text: "📈 まとめスプシ（確認用）", weight: "bold", size: "md", color: "#1155ca" },
+    { type: "text", text: "どの期間で作りますか？\n下のボタンか、入力らんの上の列から選べます。",
+      size: "xs", color: "#5f6368", wrap: true, margin: "sm" }
+  ];
+  list.forEach(function (x) {
+    rows.push({ type: "button", style: "secondary", height: "sm", margin: "sm",
+      action: { type: "postback", label: x.label,
+                data: "vn=repsel&s=" + x.s + "&e=" + x.e,
+                displayText: x.label + " のレポート" } });
+  });
+  const items = vnSpanList_(12).map(function (x) {
+    return { type: "action", action: { type: "postback", label: x.label,
+             data: "vn=repsel&s=" + x.s + "&e=" + x.e, displayText: x.label + " のレポート" } };
+  });
+  return { type: "flex", altText: "📈 まとめスプシ（確認用）",
+    contents: { type: "bubble", size: "kilo",
+      body: { type: "box", layout: "vertical", paddingAll: "12px", contents: rows } },
+    quickReply: { items: items.slice(0, 13) } };
+}
+
+/** 「🎪」で出す、日付を選ぶ画面 */
+function vnEvPickMsg_() {
+  const now = new Date();
+  const max = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 31);
+  const d2 = function (d) {
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
+           ("0" + d.getDate()).slice(-2);
+  };
+  const quick = [];
+  for (let i = 0; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    quick.push({ type: "action", action: { type: "postback",
+      label: (i === 0 ? "今日 " : i === 1 ? "あす " : "") +
+             (d.getMonth() + 1) + "/" + d.getDate(),
+      data: "vn=evsel&d=" + vnYmd_(d),
+      displayText: (d.getMonth() + 1) + "/" + d.getDate() + " のイベント" } });
+  }
+  return { type: "flex", altText: "🎪 イベント通知（確認用）",
+    contents: { type: "bubble", size: "kilo",
+      body: { type: "box", layout: "vertical", paddingAll: "12px", contents: [
+        { type: "text", text: "🎪 イベント通知（確認用）", weight: "bold", size: "md", color: "#6a1b9a" },
+        { type: "text", text: "どの日のぶんを出しますか？\n1ヶ月先まで選べます。",
+          size: "xs", color: "#5f6368", wrap: true, margin: "sm" },
+        { type: "button", style: "primary", color: "#6a1b9a", height: "sm", margin: "md",
+          action: { type: "datetimepicker", label: "📅 日付を選ぶ",
+                    data: "vn=evpick", mode: "date",
+                    initial: d2(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)),
+                    min: d2(now), max: d2(max) } },
+        { type: "button", style: "secondary", height: "sm", margin: "sm",
+          action: { type: "postback", label: "あす",
+                    data: "vn=evsel&d=" + vnYmd_(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)),
+                    displayText: "あすのイベント" } }
+      ]} },
+    quickReply: { items: quick } };
+}
+
+/** 選んだあとの「これでよろしいですか」 */
+function vnOkMsg_(title, label, goData) {
+  return { type: "flex", altText: title + "　" + label,
+    contents: { type: "bubble", size: "kilo",
+      body: { type: "box", layout: "vertical", paddingAll: "12px", contents: [
+        { type: "text", text: title, weight: "bold", size: "sm", color: "#333333" },
+        { type: "text", text: label, weight: "bold", size: "lg", color: "#b71c1c",
+          margin: "sm", wrap: true },
+        { type: "text", text: "これで出してよろしいですか？", size: "xs",
+          color: "#5f6368", margin: "sm", wrap: true },
+        { type: "box", layout: "horizontal", margin: "md", spacing: "sm", contents: [
+          { type: "button", style: "primary", color: "#1e8e3e", height: "sm",
+            action: { type: "postback", label: "OK", data: goData, displayText: "OK" } },
+          { type: "button", style: "secondary", height: "sm",
+            action: { type: "postback", label: "やめる", data: "vn=cancel", displayText: "やめる" } }
+        ]}
+      ]} } };
+}
+
+/**
+ * 「📈」「🎪」の合図を受ける（まーくさんだけ）。扱ったら true。
+ */
+function vnHandlePickCmd_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim();
+  const isRep = /^(📈|📊)$/.test(t);
+  const isEv  = /^(🎪|🎡)$/.test(t);
+  if (!isRep && !isEv) return false;
+
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  let me = "";
+  try { me = vnTestTarget_(); } catch (e) {}
+  if (!me || uid !== me) return false;           // ほかの人には、何も返さない
+
+  const msg = isRep ? vnRepPickMsg_() : vnEvPickMsg_();
+  try {
+    if (typeof lineReplyMsgs_ === "function" &&
+        lineReplyMsgs_((ev && ev.replyToken) || "", [msg])) return true;
+  } catch (e) {}
+  // ★返事で送れないときは、個人LINEへ（それでも必ず何か返す）
+  try {
+    if (typeof lrPush_ === "function") lrPush_(me, [msg]);
+  } catch (e) {
+    if (typeof lineReply_ === "function") {
+      lineReply_((ev && ev.replyToken) || "", "選ぶ画面を出せませんでした：" + ((e && e.message) || e));
+    }
+  }
+  return true;
 }
 
 /* ================================================================
@@ -5173,6 +5353,79 @@ function vnHandlePostback_(ev) {
         "このぶんの通知は届きません。\n" +
         "また入れたいときは、イベントの絵から\n" +
         "「📱個人LINEへ通知」を押してください。");
+    return true;
+  }
+
+  /* ---- 📈 まとめスプシ（確認用）を、選んでから出す ---- */
+  if (q.vn === "cancel") { say("やめました。"); return true; }
+
+  if (q.vn === "repsel" || q.vn === "repgo") {
+    const sD = vnYmdParse_(q.s), eD = vnYmdParse_(q.e);
+    if (!sD || !eD) { say("期間が読み取れませんでした。"); return true; }
+    const label = (sD.getMonth() + 1) + "/" + sD.getDate() + "〜" +
+                  (eD.getMonth() + 1) + "/" + eD.getDate();
+    const uidR = (ev.source && ev.source.userId) || "";
+    if (q.vn === "repsel") {
+      // ★いきなり作らず、かならず【OK】をはさむ（押しまちがい防止）
+      const msg = vnOkMsg_("📈 まとめスプシ（確認用）", label,
+                           "vn=repgo&s=" + q.s + "&e=" + q.e);
+      if (!(typeof lineReplyMsgs_ === "function" && lineReplyMsgs_(reply, [msg]))) {
+        tellMe(uidR, "📈 " + label + " でよろしければ、もう一度押してください。");
+      }
+      return true;
+    }
+    // OKが押された
+    if (typeof sendCustomReport !== "function") { say("❌ レポートのしくみが、まだ入っていません。"); return true; }
+    say("🧪 " + label + " のレポートを作ります。\n" +
+        "できたら、LINEの絵と、テスト用のまとめスプシのリンクが届きます。\n" +
+        "少し時間がかかります（グループには出しません）。");
+    try {
+      const st = new Date(sD.getFullYear(), sD.getMonth(), sD.getDate(), 0, 0, 0);
+      const en = new Date(eD.getFullYear(), eD.getMonth(), eD.getDate(), 23, 59, 59);
+      // ★第4引数 true ＝ テスト用。LINEの絵も、この人にだけ届きます
+      sendCustomReport(uidR, st, en, true);
+    } catch (e) {
+      try {
+        if (typeof lrPush_ === "function") {
+          lrPush_(uidR, [{ type: "text", text: "❌ レポートを作れませんでした：" + ((e && e.message) || e) }]);
+        }
+      } catch (e2) {}
+    }
+    return true;
+  }
+
+  /* ---- 🎪 イベント通知（確認用）を、選んでから出す ---- */
+  if (q.vn === "evpick") {
+    // LINEの「日付を選ぶ画面」から返ってくる（2026-09-23 の形）
+    const picked = (ev && ev.postback && ev.postback.params && ev.postback.params.date) || "";
+    const m = String(picked).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) { say("日付が読み取れませんでした。"); return true; }
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const msg = vnOkMsg_("🎪 イベント通知（確認用）", vnDayLabel_(d) + " のぶん",
+                         "vn=evgo&d=" + vnYmd_(d));
+    if (!(typeof lineReplyMsgs_ === "function" && lineReplyMsgs_(reply, [msg]))) {
+      say("🎪 " + vnDayLabel_(d) + " でよろしければ、もう一度押してください。");
+    }
+    return true;
+  }
+  if (q.vn === "evsel" || q.vn === "evgo") {
+    const d = vnYmdParse_(q.d);
+    if (!d) { say("日付が読み取れませんでした。"); return true; }
+    if (q.vn === "evsel") {
+      const msg = vnOkMsg_("🎪 イベント通知（確認用）", vnDayLabel_(d) + " のぶん",
+                           "vn=evgo&d=" + vnYmd_(d));
+      if (!(typeof lineReplyMsgs_ === "function" && lineReplyMsgs_(reply, [msg]))) {
+        say("🎪 " + vnDayLabel_(d) + " でよろしければ、もう一度押してください。");
+      }
+      return true;
+    }
+    let err = "";
+    try { err = vnSendTodayToMe(d); } catch (e) { err = (e && e.message) ? e.message : String(e); }
+    let n = 0;
+    try { n = vnTodayEvents_(d).length; } catch (e) { n = 0; }
+    say(err ? ("❌ " + err)
+            : ("🧪 " + vnDayLabel_(d) + " のイベント確認用を送りました（" + n + "件）。\n" +
+               "グループには出していません。"));
     return true;
   }
 

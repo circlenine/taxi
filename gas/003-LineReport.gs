@@ -2,7 +2,18 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L057ver  （2026/09/21）  ★★★
+ *  ★★★  L058ver  （2026/09/21）  ★★★
+ *
+ *  [L058ver]
+ *   ・🗓 祝前日を「金曜」の区分に入れた（ご指示）
+ *     ★次の日が休みなら、終電を気にせず飲むので、金曜と同じ動きです。
+ *       平日に混ぜていたので、平日の平均が実態より高く出ていました
+ *     ★記録用スプシのB列も、金曜と同じ濃い黄土色にしました
+ *     ★説明にも「金曜＝金曜と祝前日」と書きました
+ *   ・☔ 天気別の実績を足した（ご指示）
+ *     ★「☀️天気」タブにためた天気で、雨の日とそうでない日を比べます
+ *     ★どちらかが3件に満たないときは、比べません（数件で語らない）
+ *     ★「天気の記録が無い日の〇件は入れていません」と、母数も書きます
  *
  *  [L057ver]
  *   ・📮 公式LINEの送信数（月200通）を、自分で数えるようにした
@@ -912,11 +923,26 @@ const LR_DOW_NOTE =
  *   数字の意味が決まらない資料は、参考資料になりません。
  */
 const LR_DAYTYPE_NOTE =
-  "◆ 曜日区分　平日＝月〜木／金曜／土曜／日祝＝日曜・祝日（祝日は日祝に入れています）。";
+  "◆ 曜日区分　平日＝月〜木／金曜＝金曜と祝前日／土曜／日祝＝日曜・祝日。\n" +
+  "　 祝前日（次の日が祝日）は、終電を気にせず飲むので 金曜と同じ動きをします。" +
+  "そのため金曜に入れています（記録用スプシのB列も、同じ濃い黄土色です）。";
 
 /** 祝日判定。HOLIDAYS は v232 側の定義を使う */
 function isHolidayFunc(dateObj) {
   return HOLIDAYS.includes((dateObj.getMonth() + 1) + "/" + dateObj.getDate());
+}
+
+/**
+ * 祝前日（翌日が祝日）か。
+ *
+ * ★祝前日は、金曜と同じ区分にします（まーくさんのご指示）。
+ *   次の日が休みなら、終電を気にせず飲むので、動き方も金曜と同じです。
+ *   平日に混ぜてしまうと、平日の平均が実態より高く出ます。
+ *   記録用スプシのB列も、同じ考えで金曜と同じ色にしてあります。
+ */
+function isHoliEveFunc(dateObj) {
+  const n = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() + 1);
+  return isHolidayFunc(n);
 }
 
 function normalizeStr(str) {
@@ -2033,6 +2059,19 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
   let totalRidesCount = 0; let tabRidesCount = { "北7":0, "北4":0, "北他":0, "ﾐﾅﾐ":0, "関空":0, "ほか":0 };
   let areaStats = {}; DAY_TYPES.forEach(dt => { areaStats[dt] = { "北": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}}, "ﾐﾅﾐ": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}}, "ほか": {l:0, m:0, s:0, t:0, sales:0, lSum:0, mSum:0, sSum:0, waitSum:0, waitCount:0, lWait:0, lWaitC:0, mWait:0, mWaitC:0, sWait:0, sWaitC:0, spots:{}} }; });
 
+  /*
+   * ★天気別の集計（まーくさんのご指示）。
+   *   雨の日に動くのは体で分かっていることですが、
+   *   数字にしておかないと、人に見せられません。
+   *   ためてある「☀️天気」タブから、日付ごとに引いて数えます。
+   *   天気が1日も無いときは、この集計ごと出しません（うそにならないように）。
+   */
+  let tkMap = {};
+  try { if (typeof tkLoadAll_ === "function") tkMap = tkLoadAll_() || {}; } catch (e) { tkMap = {}; }
+  const wxStats = { rain: { n: 0, sales: 0, waitSum: 0, waitN: 0, days: {} },
+                    dry:  { n: 0, sales: 0, waitSum: 0, waitN: 0, days: {} },
+                    none: 0 };
+
   let spotStats = {}; let spotHotData = {}; let spotDayBreakdown = {}; let timelineStats = {}; DAY_TYPES.forEach(dt => { timelineStats[dt] = {}; [20,21,22,23,0,1,2,3,4,5].forEach(h => { timelineStats[dt][h] = {}; }); });
   let spotHeatmapSales = {}; let spotHeatmapTimes = {}; let recordsForGraph = []; let ticketRides = []; let avoidRides = []; let reproRides = []; let barasiRides = []; let noPlaceCount = 0;
   // 手直し（LINEから「メモ：〜」「除外：〜」で入れてもらったもの）
@@ -2071,7 +2110,25 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
       let price = parseInt(String(dataVals[r][5]).replace(/[^0-9]/g, ''), 10); if (isNaN(price) || price === 0) continue;
       let hr = -1, min = 0, exactTimeStr = ""; let tm = displayVals[r][4].match(/^(\d+):(\d+)/); if (tm) { hr = parseInt(tm[1], 10); min = parseInt(tm[2], 10); exactTimeStr = ("0"+hr).slice(-2) + ":" + ("0"+min).slice(-2); }
       let waitMinutes = parseInt(String(dataVals[r][3]).replace(/[^0-9]/g, ''), 10); if(isNaN(waitMinutes)) waitMinutes = 0;
+      /*
+       * ★その日の天気を引く。
+       *   営業日（17:00〜翌16:59）の日付で引きます。
+       *   記録が無い日は「天気なし」として、どちらにも入れません
+       */
+      {
+        const wk = (typeof tkKey_ === "function") ? tkKey_(rDate) : "";
+        const wx = wk ? tkMap[wk] : null;
+        if (!wx) { wxStats.none++; }
+        else {
+          const box = wx.rain ? wxStats.rain : wxStats.dry;
+          box.n++; box.sales += price; box.days[wk] = 1;
+          if (waitMinutes > 0) { box.waitSum += waitMinutes; box.waitN++; }
+        }
+      }
+
       let dayOfWeek = rDate.getDay(); let dayType = "平日"; if (isHolidayFunc(rDate) || dayOfWeek === 0) dayType = "日祝"; else if (dayOfWeek === 6) dayType = "土曜"; else if (dayOfWeek === 5) dayType = "金曜";
+      // ★祝前日は、金曜と同じ区分にする（ご指示）。次の日が休みなら、動き方も金曜と同じ
+      else if (isHoliEveFunc(rDate)) dayType = "金曜";
 
       // グラフの凡例にそのまま出るので、曜日まで入れる。
       // 「7/16」だけだと何曜日か分からず、曜日ごとの動きが読み取れない
@@ -2181,7 +2238,7 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
 
   if (typeof updProgress_ === "function") updProgress_("まとめスプシを作っています");
   // どのスプシに書いたかを、あとで確かめられるようにしておく
-  let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0), isTest);
+  let dashboardUrl = updateDetailedDashboard(ss, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0), isTest, wxStats);
 
   const periodStr = `${startD.getMonth()+1}/${startD.getDate()}(${daysStr[startD.getDay()]})～${endD.getMonth()+1}/${endD.getDate()}(${daysStr[endD.getDay()]})`;
   const bubbles = buildReportFlex_({
@@ -2190,7 +2247,9 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
     targetHours: targetHours, dashboardUrl: dashboardUrl, getBestTimeStr: getBestTimeStr,
     advice: advice, opucha: opucha,
     memo: rpFix.memo, cutCount: rpCut, cutNames: rpFix.exclude,
-    noPlace: noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0)
+    noPlace: noPlaceCount + (opucha && opucha.noPlace ? opucha.noPlace : 0),
+    // ★天気別の実績（ためた記録が足りなければ、絵には出ません）
+    wxStats: wxStats
   });
   // 裏メッセージ（通知やトーク一覧に出る文字）
   // 文面は Code.gs の「設定」タブから変えられる。読めないときは今までの文面
@@ -2362,6 +2421,7 @@ function buildReportFlex_(o) {
   const targetHours = o.targetHours, dashboardUrl = o.dashboardUrl;
   const advice = o.advice, opucha = o.opucha || { count: 0 };
   const noPlace = o.noPlace || 0;
+  const wxStats = o.wxStats || null;
   const rpMemo = String(o.memo || "");
   const rpCutN = Number(o.cutCount) || 0;
   const rpCutNames = o.cutNames || [];
@@ -2664,6 +2724,28 @@ function buildReportFlex_(o) {
           "size": "xs", "weight": "bold", "color": "#4a148c", "wrap": true },
         ...opuLines
       ]}));
+  }
+
+  /* ---------- ☔ 天気別の実績 ---------- */
+  /*
+   * ★まーくさんのご指示で足しました。
+   *   雨の日に動くのは体で分かっていることですが、
+   *   数字になっていなければ、人に見せられません。
+   *   比べられるだけの記録が無いときは、丸ごと出しません。
+   */
+  {
+    const wxParts = lrWeatherParts_(wxStats);
+    if (wxParts) {
+      section_();
+      flexContents.push({ "type": "separator", "margin": "lg" },
+        { "type": "text", "text": "☔ 天気別の実績", "weight": "bold", "size": "sm",
+          "color": "#0b5394", "margin": "md" },
+        { "type": "box", "layout": "vertical", "backgroundColor": "#e8f0fe",
+          "paddingAll": "8px", "margin": "sm", "cornerRadius": "md", "contents": [
+            { "type": "text", "size": "xs", "wrap": true,
+              "contents": adviceSpans_(wxParts, "#333333") }
+          ]});
+    }
   }
 
   /* ---------- 💡 月間戦略アドバイス ---------- */
@@ -3864,7 +3946,7 @@ function lrThin_(n) {
 const LR_DISCLAIMER = [
   "※ この資料には、AIによる集計と推測が含まれています。参考資料としてご了承ください。",
   // ★曜日区分の中身を、必ず書く（これが無いと、数字の意味が決まらない）
-  "・曜日区分は 平日＝月〜木／金曜／土曜／日祝＝日曜・祝日 です（出勤した曜日で数えます）。",
+  "・曜日区分は 平日＝月〜木／金曜＝金曜と祝前日／土曜／日祝＝日曜・祝日 です（出勤した曜日で数えます）。",
   "・件数・金額・待ち時間は、記録用スプレッドシートの実績を数えたものです。",
   "・「おすすめ」「戦略予想」は、その実績と暦から組み立てた推測です（" + LR_NIGHT_MIN_N + "件未満は おすすめにしません）。",
   "・入力もれや書き間違いがあると、数字もそのぶんずれます。"
@@ -4093,6 +4175,52 @@ function lrPackItems_(items, sep, limit) {
   });
   if (cur) out.push(cur);
   return out.join("\n");
+}
+
+/**
+ * 天気別のまとめを、太字つきの行の並びで返す。
+ * 比べられないときは null（そのときは、どこにも出しません）。
+ *
+ * ★出さないほうがよい場合まで出さないようにしています。
+ *   ・天気の記録が1日も無い
+ *   ・雨の日か、雨でない日の、どちらかが3件未満
+ *   数件どうしを比べて「雨の日は+12%」と書けば、それはうそになります。
+ */
+const LR_WX_MIN_N = 3;
+
+function lrWeatherParts_(wx) {
+  if (!wx) return null;
+  const r = wx.rain, d = wx.dry;
+  if (!r || !d) return null;
+  if (r.n < LR_WX_MIN_N || d.n < LR_WX_MIN_N) return null;
+
+  const rAvg = Math.round(r.sales / r.n);
+  const dAvg = Math.round(d.sales / d.n);
+  const rDays = Object.keys(r.days).length;
+  const dDays = Object.keys(d.days).length;
+  const diff = rAvg - dAvg;
+  const pct = dAvg > 0 ? Math.round(diff / dAvg * 100) : 0;
+
+  const out = [];
+  out.push({ t: "☔ 雨の日　", b: true, c: "#0b5394" },
+           { t: `${rDays}日 ${r.n}件　1件あたり平均 ` },
+           { t: `￥${rAvg.toLocaleString()}`, b: true, c: "#0b5394" },
+           { t: r.waitN > 0 ? `　待ち平均${Math.round(r.waitSum / r.waitN)}分（${r.n}件中${r.waitN}件に記入）\n` : "\n" });
+  out.push({ t: "☀ 雨でない日　", b: true, c: "#7f6000" },
+           { t: `${dDays}日 ${d.n}件　1件あたり平均 ` },
+           { t: `￥${dAvg.toLocaleString()}`, b: true, c: "#7f6000" },
+           { t: d.waitN > 0 ? `　待ち平均${Math.round(d.waitSum / d.waitN)}分（${d.n}件中${d.waitN}件に記入）\n` : "\n" });
+
+  // ★差は、必ず「何と何の差か」を書く。数字だけ出すと、読み方が人によって変わる
+  const sign = diff >= 0 ? "+" : "−";
+  out.push({ t: "→ 雨の日は、雨でない日より 1件あたり " },
+           { t: `${sign}￥${Math.abs(diff).toLocaleString()}`, b: true, c: diff >= 0 ? "#b71c1c" : "#1155ca" },
+           { t: `（${sign}${Math.abs(pct)}%）\n` });
+  if (wx.none > 0) {
+    out.push({ t: `※ 天気の記録が無い日の ${wx.none}件は、この比べに入れていません。\n`, c: "#7a7a7a" });
+  }
+  out.push({ t: "※ 天気は気象庁の予報を、その日の夜に記録したものです（実測ではありません）。", c: "#7a7a7a" });
+  return out;
 }
 
 /** 金額帯の1行が、これ以上長いとLINEで折り返される */
@@ -5204,7 +5332,7 @@ function dbGapSection_(sheet, row) {
   } catch (e) {}
 }
 
-function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlace, isTest) {
+function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStats, spotHeatmapSales, spotHeatmapTimes, spotStats, spotHotData, spotDayBreakdown, finalTimeline, totalRidesCount, tabRidesCount, DAY_TYPES, ticketRides, avoidRides, reproRides, getBestTimeStr, advice, opucha, barasiRides, noPlace, isTest, wxStats) {
   const dbSS = dbOpenTarget_(mainSS, isTest);
 
   // ★見る権限は、いちばん先に付ける。
@@ -5418,6 +5546,22 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     sheet.getRange(from - 1, 1, curRow - from + 1, DB_COLS)
       .setBorder(true, true, true, true, null, null, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   });
+
+  /* ---------- ☔ 天気別の実績（LINEの絵と同じもの） ---------- */
+  {
+    const wxParts = (typeof lrWeatherParts_ === "function") ? lrWeatherParts_(wxStats) : null;
+    if (wxParts) {
+      curRow = dbTitleNote_(curRow, "☔ 天気別の実績",
+        "「☀️天気」タブにためた天気で、雨の日とそうでない日を比べています。" +
+        "どちらかが" + LR_WX_MIN_N + "件に満たないときは、比べません。",
+        "#e8f0fe", 12);
+      const wtxt = dbRich_(sheet, curRow, 1, DB_COLS, wxParts, 11, "#f5f9ff");
+      sheet.getRange(curRow, 1, 1, DB_COLS).setHorizontalAlignment("left");
+      dbFit_(sheet, curRow, [{ text: wtxt, span: DB_COLS, size: 11 }], 26);
+      curRow++;
+      dbGapSection_(sheet, curRow); curRow++;
+    }
+  }
 
   /* ---------- 💡 月間戦略アドバイス（LINEの絵と同じもの） ---------- */
   if (advice) {

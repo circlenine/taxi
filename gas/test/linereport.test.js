@@ -1372,5 +1372,24 @@ console.log('\n■ 📮 公式LINEの送信数を、自分で数える（クロ�
   ctx.PropertiesService = keepPS;
 }
 
+console.log('\n■ 祝前日は、金曜と同じ区分にする（ご指示）');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  /*
+   * ★祝前日（次の日が祝日）は、終電を気にせず飲むので
+   *   金曜と同じ動きをします。平日に混ぜると、平日の平均が高く出ます
+   */
+  const H = vm.runInContext('HOLIDAYS', ctx);
+  eq(Array.isArray(H) && H.indexOf('11/3') !== -1, true, '前提：11/3 は祝日の一覧にある');
+  eq(ctx.isHoliEveFunc(new D(2026, 10, 2)), true, '★11/2 は祝前日（翌日が11/3）');
+  eq(ctx.isHoliEveFunc(new D(2026, 10, 3)), false, '  11/3 そのものは、祝前日ではない');
+  eq(ctx.isHoliEveFunc(new D(2026, 10, 10)), false, '  ふつうの日は、祝前日ではない');
+  eq(src.indexOf('else if (isHoliEveFunc(rDate)) dayType = "金曜";') !== -1, true,
+     '★集計のときも、祝前日は「金曜」に入れる');
+  const N = vm.runInContext('LR_DAYTYPE_NOTE', ctx);
+  eq(N.indexOf('金曜＝金曜と祝前日') !== -1, true, '★説明にも「金曜＝金曜と祝前日」と書く');
+  eq(N.indexOf('祝前日（次の日が祝日）') !== -1, true, '  なぜそうするのかも書く');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

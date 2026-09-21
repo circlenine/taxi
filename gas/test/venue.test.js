@@ -2494,5 +2494,42 @@ console.log('\n■ 🧪 LINEから「確認用」を出せる（日時も決め�
   ctx.vnSendTodayToMe = keepSend;
 }
 
+console.log('\n■ 📈🎪 絵文字ひとつで、選んでから出す（ご指示）');
+{
+  vm.runInContext('function autoReportDay_(){ return 16; }', ctx);
+  const L = ctx.vnSpanList_(4, new Date(2026, 8, 21));     // 2026/9/21
+  eq(L[0].label, '9/16〜10/15（途中）', '★いちばん新しい期間は「途中」と書く');
+  eq(L[1].label, '8/16〜9/15', '  ひとつ前は、終わっている期間');
+  eq(L[1].s + '-' + L[1].e, '20260816-20260915', '  16日〜翌15日で切る');
+  const L2 = ctx.vnSpanList_(2, new Date(2026, 8, 10));    // まだ締め日前
+  eq(L2[0].label, '8/16〜9/15（途中）',
+     '★締め日の前なら、いちばん新しいのは いま走っている期間（まだ途中）');
+  eq(L2[1].label, '7/16〜8/15', '  ひとつ前は、終わっている期間');
+
+  // 📈 の画面
+  const rep = ctx.vnRepPickMsg_();
+  const rj = JSON.stringify(rep);
+  has(rj, '📈 まとめスプシ（確認用）', '★「📈」で、期間を選ぶ画面が出る');
+  has(rj, 'vn=repsel', '  押すと、期間つきの合図が飛ぶ');
+  has(rj, 'quickReply', '★下の「選ぶ列」からも選べる（12期間）');
+
+  // 🎪 の画面
+  const evm = JSON.stringify(ctx.vnEvPickMsg_());
+  has(evm, '🎪 イベント通知（確認用）', '★「🎪」で、日付を選ぶ画面が出る');
+  has(evm, '"type":"datetimepicker"', '★LINEの日付えらび（カレンダー）を出す');
+  has(evm, '"mode":"date"', '  日付だけを選ぶ形');
+  eq(/"max":"\d{4}-\d{2}-\d{2}"/.test(evm), true, '★1ヶ月先までしか選べないようにする');
+
+  // 選んだら、かならず OK をはさむ
+  const okm = JSON.stringify(ctx.vnOkMsg_('📈 まとめスプシ（確認用）', '8/16〜9/15', 'vn=repgo&s=1&e=2'));
+  has(okm, 'これで出してよろしいですか', '★いきなり作らず、OKをはさむ');
+  has(okm, '"label":"OK"', '  OKのボタン');
+  has(okm, '"label":"やめる"', '  やめるボタンも');
+
+  // ほかの人には、何も返さない
+  eq(ctx.vnHandlePickCmd_({ message: { text: '📈' }, source: { userId: 'Uother' },
+       replyToken: 'r' }), false, '★ほかの人には、返さない');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

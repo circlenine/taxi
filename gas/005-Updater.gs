@@ -5974,6 +5974,16 @@ function panelWatch() {
     try { if (typeof vnSelfHeal_ === "function") vnSelfHeal_(); }
     catch (e) { logErr_("panelWatchHeal", e); }
 
+    /*
+     * ★天気を、その日のうちにためる（まーくさんのご指示）。
+     *   新しい見張りは増やしません（20個の上限があるため）。
+     *   このボタンの見張りは1分おきに必ず動いているので、
+     *   そこに相乗りします。中では、夜になってから・
+     *   その日のぶんが無いときだけ、10分に1回まで動きます。
+     */
+    try { if (typeof tkTick_ === "function") tkTick_(); }
+    catch (e) { logErr_("panelWatchTenki", e); }
+
     // コードが新しくなっていたら、増えたボタンをここで足す。
     // 押されているものが無いときだけ。行を差し込むと下のボタンが動くので、
     // 押した行と実際に動く行がずれてしまう

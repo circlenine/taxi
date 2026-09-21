@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C056ver  （2026/09/17）  ★★★   ← もとは version 232
+ *  ★★★  C057ver  （2026/09/17）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,11 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C057ver]
+ *   ・🗓 記録用スプシのB列で、祝前日を金曜と同じ濃い黄土色にした（ご指示）
+ *   ・💬 返事で「絵や、ボタンの入った枠」も返せるようにした（lineReplyMsgs_）
+ *     ★返事は月200通に数えられません。押して選ぶ画面は、これで出します
  *
  *  [C056ver]
  *   ・🚨 しくじりを、まーくさんの個人LINEにも知らせるようにした（errTell_）
@@ -995,6 +1000,12 @@ const DAY_COLOR = { weekday: "#000000", fri: "#b8860b", sat: "#0000ff", holi: "#
 const DUP_COLOR = "#b7b7b7";
 const BORDER_COLOR = "#cccccc";
 
+/*
+ * ★この一覧は「月/日」だけで持っています。年は見ていません。
+ *   春分・秋分や、ハッピーマンデー（第◯月曜）は年ごとに動くので、
+ *   年が変わったら、ここを見直す必要があります。
+ *   （見直しを忘れると、祝日が1日ずれたまま集計されます）
+ */
 const HOLIDAYS = [
   "1/1","1/2","1/3","1/12","2/11","2/23","3/20","3/21","4/29","5/3","5/4","5/5","5/6",
   "7/19","7/20","8/11","8/13","8/14","8/15","8/16","9/20","9/21","9/22","9/23",
@@ -1157,11 +1168,25 @@ function isHoliday_(d) {
   return HOLIDAYS.indexOf((d.getMonth() + 1) + "/" + d.getDate()) !== -1;
 }
 
+/**
+ * 翌日が祝日か（＝その日は「祝前日」）。
+ *
+ * ★祝前日は、金曜と同じ動きをします（まーくさんのご指示）。
+ *   次の日が休みなら、終電を気にせず飲むからです。
+ *   平日の黒のままだと、その日だけ数字が良い理由が読めません。
+ */
+function isHoliEve_(d) {
+  const n = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  return isHoliday_(n);
+}
+
 function dayColor_(d) {
   const w = d.getDay();
   if (isHoliday_(d) || w === 0) return DAY_COLOR.holi;
   if (w === 6) return DAY_COLOR.sat;
   if (w === 5) return DAY_COLOR.fri;
+  // ★祝前日も、金曜と同じ濃い黄土色にします（ご指示）
+  if (isHoliEve_(d)) return DAY_COLOR.fri;
   return DAY_COLOR.weekday;
 }
 
@@ -1592,6 +1617,8 @@ function handleEvent_(ev) {
   if (typeof updHandleErr_ === "function" && updHandleErr_(ev)) return;
   // --- 「通数」… 公式LINEの送信数の残りを見せる（まーくさんだけ）---
   if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
+  // --- 「天気」… ためてある天気の中身を見せる（まーくさんだけ）---
+  if (typeof tkHandleCmd_ === "function" && tkHandleCmd_(ev)) return;
   /*
    * --- 「アニメに名言変更してください」… 終わったときのひとことを切り替える ---
    *     英語の名言 ⇔ ジャンプ作品の名言・迷言
@@ -2258,6 +2285,31 @@ function opuchaReplyText_(who, arr, total) {
 }
 
 /** LINEに返信する。返信できなくても処理は止めない */
+/**
+ * 返事として、好きな形のメッセージを返す（絵や、ボタンの入った枠も送れる）。
+ *
+ * ★返事（reply）は、公式LINEの月200通に数えられません。
+ *   同じ中身でも push で送ると1通ぶん減るので、
+ *   返事で済むものは、必ずこちらを使います。
+ */
+function lineReplyMsgs_(replyToken, messages) {
+  if (!replyToken) return false;
+  if (!messages || !messages.length) return false;
+  try {
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply", {
+      method: "post",
+      headers: { "Content-Type": "application/json",
+                 "Authorization": "Bearer " + getToken_() },
+      payload: JSON.stringify({ replyToken: replyToken, messages: messages.slice(0, 5) }),
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    if (code >= 200 && code < 300) return true;
+    logErr_("lineReplyMsgs", new Error(code + " " + String(res.getContentText() || "").slice(0, 200)));
+    return false;
+  } catch (e) { logErr_("lineReplyMsgs", e); return false; }
+}
+
 function lineReply_(replyToken, text) {
   if (!replyToken) return;
   if (!String(text || "").trim()) return;
