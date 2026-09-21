@@ -3634,5 +3634,35 @@ console.log('\n■ 無反応を、どこにも作らない（ご指摘）');
   ctx.updAlienFallback_ = keepFB;
 }
 
+console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけにする（ご指示）');
+{
+  const T = F('updTellResult_');
+  props['UPD_TELL'] = '1';
+  ctx.pu.length = 0;
+  t(T('じどう', 'とりこみ　かんりょう。\n　001-Code、003-LineReport、005-Updater、006-Venue') === true,
+    '自動の知らせは、送る');
+  const x = String(ctx.pu[0].msgs[0].text);
+  t(x.split('\n').length === 1, '★1行だけ（直しが続くと、これだけで画面が埋まるため）', x);
+  t(x.indexOf('（4件）') !== -1, '  何件入ったかは出す', x);
+  t(x.indexOf('001-Code') === -1, '★ファイルの名前は、自動のときは出さない');
+  t(x.indexOf('りくつなわけだす') === -1, '★決まり文句も、自動のときは出さない');
+  t(x.indexOf('"') === -1, '★名言も、自動のときは出さない');
+
+  // しくじったときは、これまでどおり くわしく
+  ctx.pu.length = 0;
+  T('じどう', '❌ 書き込めませんでした（400）');
+  const y = String(ctx.pu[0].msgs[0].text);
+  t(y.indexOf('書き込めませんでした') !== -1,
+    '★しくじったときは、くわしく出す（原因が分からないと直せない）');
+
+  // 手で打ったとき（💩）は、これまでどおり
+  ctx.pu.length = 0;
+  T('スプシ', '入れ替え：001-Code、005-Updater');
+  const z = String(ctx.pu[0].msgs[0].text);
+  t(z.indexOf('001-Code') !== -1, '★手で打ったときは、これまでどおり くわしく（本人が待っているため）');
+  t(z.split('\n').length > 1, '  1行ではなく、これまでどおりの形');
+  ctx.pu.length = 0;
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

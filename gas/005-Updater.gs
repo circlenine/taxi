@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U090ver  （2026/09/21）  ★★★
+ *  ★★★  U091ver  （2026/09/21）  ★★★
+ *
+ *  [U091ver]
+ *   ・📝 自動の「とりこみ かんりょう」を1行だけにした（ご指示）
+ *     ★直しが立て続けに入ると、この知らせだけで画面が埋まり、
+ *       肝心の知らせ（イベントの案内・しくじり）が流れて見えなくなります
+ *     ★うまくいったときに要るのは「入った」ことと件数だけです。
+ *       ファイル名・決まり文句・名言は、手で「💩」と打ったときだけ出します
+ *     ★しくじったときは、これまでどおり くわしく出します
  *
  *  [U090ver]
  *   ・🛸 星人の遊びで「黙って見送る」のをやめた（ご指摘）
@@ -3180,9 +3188,40 @@ function updTellResult_(from, out) {
   const me = updMe_();
   if (!me || typeof lrPush_ !== "function") return false;
   const head = "《" + String(from || "") + "》\n";
+
+  /*
+   * ★うまくいった「じどう」の知らせは、1行だけにします（ご指示）。
+   *
+   *   直しが立て続けに入ると、この知らせだけでトーク画面が埋まります。
+   *   そうなると、肝心の知らせ（イベントの案内・しくじり）が
+   *   流れて見えなくなります。
+   *
+   *   うまくいったときに要るのは「入った」ことと「いつ」だけです。
+   *   どのファイルが入ったか・名言は、手で「💩」と打ったときだけ出します
+   *   （そのときは、打った本人が結果を待っているためです）。
+   *
+   *   しくじったときは、これまでどおり くわしく出します。
+   *   原因が分からなければ、直しようがないからです。
+   */
+  const isAuto = String(from || "").indexOf("じどう") !== -1;
+  let text;
+  if (bad) {
+    text = head + updKataFail_(body);
+  } else if (isAuto) {
+    // 何件入ったかだけ数える（「001-Code、003-LineReport」のような並びから）
+    let n = 0;
+    try {
+      const m = body.match(/[0-9]{3}-[A-Za-z]+/g);
+      n = m ? m.length : 0;
+    } catch (e) { n = 0; }
+    text = "《" + String(from || "") + "》 とりこみ かんりょう" +
+           (n ? "（" + n + "件）" : "");
+  } else {
+    text = head + updKataDone_(body);
+  }
+
   try {
-    lrPush_(me, [{ type: "text",
-      text: head + (bad ? updKataFail_(body) : updKataDone_(body)) }]);
+    lrPush_(me, [{ type: "text", text: text }]);
   } catch (e) { return false; }
   return true;
 }

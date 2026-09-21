@@ -1,7 +1,7 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C058ver  （2026/09/17）  ★★★   ← もとは version 232
+ *  ★★★  C059ver  （2026/09/17）  ★★★   ← もとは version 232
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -9,6 +9,17 @@
  *  ※ Apps Script 上のファイル名も「001-Code」にそろえてください
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *  いま動いているバージョンは メニュー「ℹ️ バージョンを確認」で見られる。
+ *
+ *  [C059ver]
+ *   ・📮 返事（reply）が届かなかったときに、push で送り直すようにした
+ *     ★ご指摘「全部、反応がありません」の、いちばんの原因と考えています。
+ *       返事は「30秒以内・1回だけ」しか使えません。
+ *       ほかの処理で待たされると、その間に期限が切れて届きません。
+ *       これまでは、そこで黙って終わっていました。
+ *       打った人からは「こわれている」としか見えません
+ *     ★いまは、返事がだめなら push で送り直します。
+ *       そのうえで、なぜだめだったのかも記録します（「❌」で見られます）
+ *     ★失敗を黙って捨てていたのは、わたしの作りのまちがいです
  *
  *  [C058ver]
  *   ・❓ 絵文字だけ送って、どれにも当たらなかったときに返事をするようにした
@@ -1563,6 +1574,22 @@ function rememberGroupId_(ev) {
 }
 
 function handleEvent_(ev) {
+  /*
+   * ★いま応対している相手を覚えておきます。
+   *
+   *   返事（reply）は、LINEの決まりで「30秒以内・1回だけ」しか使えません。
+   *   ほかの処理で待たされると、その間に期限が切れて、返事は届きません。
+   *   これまでは、そこで黙って終わっていました。
+   *   打った人からは「こわれている」としか見えません（実際そうなりました）。
+   *
+   *   これからは、返事がだめだったときに、この相手へ push で送り直します。
+   *   push は月200通を食いますが、無反応よりは ずっとましです。
+   */
+  try {
+    const src = (ev && ev.source) || {};
+    LINE_CUR_TO = src.userId || src.groupId || src.roomId || "";
+  } catch (e) { LINE_CUR_TO = ""; }
+
   // どのグループから届いたかを覚えておく（レポートの送り先に使う）
   rememberGroupId_(ev);
 
@@ -2356,39 +2383,68 @@ function opuchaReplyText_(who, arr, total) {
  *   同じ中身でも push で送ると1通ぶん減るので、
  *   返事で済むものは、必ずこちらを使います。
  */
-function lineReplyMsgs_(replyToken, messages) {
-  if (!replyToken) return false;
-  if (!messages || !messages.length) return false;
+/** いま応対している相手（返事がだめなときの、送り直し先） */
+var LINE_CUR_TO = "";
+
+/**
+ * 返事がだめだったときに、push で送り直す。
+ *
+ * ★これを入れるまでは、返事が失敗しても黙って終わっていました。
+ *   打った人には、何も返りません。原因も分かりません。
+ *   いちばんやってはいけない形でした。
+ */
+function lineFallbackPush_(messages) {
+  if (!LINE_CUR_TO || !messages || !messages.length) return false;
   try {
-    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply", {
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
       method: "post",
       headers: { "Content-Type": "application/json",
                  "Authorization": "Bearer " + getToken_() },
-      payload: JSON.stringify({ replyToken: replyToken, messages: messages.slice(0, 5) }),
+      payload: JSON.stringify({ to: LINE_CUR_TO, messages: messages.slice(0, 5) }),
       muteHttpExceptions: true
     });
     const code = res.getResponseCode();
-    if (code >= 200 && code < 300) return true;
-    logErr_("lineReplyMsgs", new Error(code + " " + String(res.getContentText() || "").slice(0, 200)));
-    return false;
-  } catch (e) { logErr_("lineReplyMsgs", e); return false; }
+    if (code >= 200 && code < 300) {
+      try { if (typeof lrPushAdd_ === "function") lrPushAdd_(messages.length); } catch (e) {}
+      return true;
+    }
+    logErr_("lineFallbackPush", new Error(code + " " + String(res.getContentText() || "").slice(0, 200)));
+  } catch (e) { logErr_("lineFallbackPush", e); }
+  return false;
+}
+
+function lineReplyMsgs_(replyToken, messages) {
+  if (!messages || !messages.length) return false;
+  let why = "";
+  if (replyToken) {
+    try {
+      const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply", {
+        method: "post",
+        headers: { "Content-Type": "application/json",
+                   "Authorization": "Bearer " + getToken_() },
+        payload: JSON.stringify({ replyToken: replyToken, messages: messages.slice(0, 5) }),
+        muteHttpExceptions: true
+      });
+      const code = res.getResponseCode();
+      if (code >= 200 && code < 300) return true;
+      why = code + " " + String(res.getContentText() || "").slice(0, 160);
+    } catch (e) { why = (e && e.message) ? e.message : String(e); }
+  } else {
+    why = "返事の合言葉（replyToken）がありませんでした";
+  }
+  /*
+   * ★返事がだめでも、ここで終わりにしません。push で送り直します。
+   *   そのうえで、なぜだめだったのかも記録します（「❌」で見られます）。
+   */
+  const sent = lineFallbackPush_(messages);
+  try { logErr_("lineReply(" + (sent ? "pushで届けた" : "届かず") + ")", new Error(why)); } catch (e) {}
+  return sent;
 }
 
 function lineReply_(replyToken, text) {
-  if (!replyToken) return;
   if (!String(text || "").trim()) return;
-  try {
-    UrlFetchApp.fetch("https://api.line.me/v2/bot/message/reply", {
-      method: "post",
-      headers: { "Content-Type": "application/json",
-                 "Authorization": "Bearer " + getToken_() },
-      payload: JSON.stringify({
-        replyToken: replyToken,
-        messages: [{ type: "text", text: String(text).slice(0, 4900) }]
-      }),
-      muteHttpExceptions: true
-    });
-  } catch (e) { logErr_("lineReply", e); }
+  // ★返事 → だめなら push、という1本の道にまとめる（黙って消えないように）
+  lineReplyMsgs_(replyToken, [{ type: "text", text: String(text).slice(0, 4900) }]);
 }
 
 /**
