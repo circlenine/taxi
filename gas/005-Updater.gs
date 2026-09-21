@@ -2,7 +2,21 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U109ver  （2026/09/22）  ★★★
+ *  ★★★  U110ver  （2026/09/22）  ★★★
+ *
+ *  [U110ver]
+ *   ・📐 結果らんの下が まだ空いていたのを直した（ご指摘）
+ *     ★説明タブの3行目と4行目は、たてに つないであります。
+ *       見えている高さは「3行目＋4行目」の合計です。
+ *       ところが直していたのは3行目だけで、
+ *       4行目のぶんが まるまる余って、下が空いて見えていました。
+ *     ★つないだ行が2行以上あるときは、
+ *       下の行のぶんを差し引いてから、いちばん上の高さを決めます。
+ *     ★下の行の高さには手を出しません。
+ *       そこにリセットの□が置いてあることがあり、
+ *       低くすると指で押せなくなるためです。
+ *     ★空にするとき（panelClear_）も、同じにしました。
+ *       前は いちばん上を42にしていたので、合計63になっていました。
  *
  *  [U109ver]
  *   ・🔌 記録用スプシから離れても動くようにした（作り直しに要る）
@@ -1162,7 +1176,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U109ver";
+const UPD_VERSION = "U110ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -8138,11 +8152,13 @@ function panelResetIfAsked_(sh) {
        *   いちばん上だけ戻しても、下の行が太いままだと
        *   結局ぜんぶ太いままに見えます。
        */
-      try {
-        for (let i = 0; i < hNum; i++) {
-          sh.setRowHeight(hRow + i, PANEL_RESULT_EMPTY_H);
-        }
-      } catch (e) {}
+      /*
+       * ★空にしたときは、いちばん上の行だけ標準（21）に戻します。
+       *   下の行は、そのままにします。
+       *   そこにリセットの□が置いてあることがあり、
+       *   低くすると指で押せなくなるためです（ご指摘で気づきました）。
+       */
+      try { sh.setRowHeight(hRow, PANEL_RESULT_EMPTY_H); } catch (e) {}
     }
   } catch (e) {}
   try { sh.getRange(c.row, c.col).setValue(false); } catch (e) {}   // □ に戻す
@@ -8308,11 +8324,13 @@ function updWidth_(str) {
  */
 function panelFitRow_(sh, row, col, text) {
   try {
-    let r = row, c1 = col, c2 = col;
+    let r = row, c1 = col, c2 = col, nr = 1;
     const rg = sh.getRange(row, col);
     if (rg.isPartOfMerge()) {
       const m = rg.getMergedRanges()[0];
       r = m.getRow(); c1 = m.getColumn(); c2 = c1 + m.getNumColumns() - 1;
+      // ★たてに何行つないであるかも、数えます（下で使います）
+      try { nr = Math.max(1, m.getNumRows()); } catch (e) { nr = 1; }
     }
     let w = 0;
     for (let c = c1; c <= c2; c++) { try { w += sh.getColumnWidth(c); } catch (e) {} }
@@ -8349,8 +8367,27 @@ function panelFitRow_(sh, row, col, text) {
      *   多めに取っておけば安心、と思っていましたが、
      *   毎回そのぶん空いて見えるので、かえって汚くなっていました。
      */
-    sh.setRowHeight(r, Math.min(PANEL_RESULT_MAX_H,
-      Math.max(PANEL_RESULT_H, lines * PANEL_LINE_PX + PANEL_PAD_PX)));
+    const need = Math.min(PANEL_RESULT_MAX_H,
+      Math.max(PANEL_RESULT_H, lines * PANEL_LINE_PX + PANEL_PAD_PX));
+
+    /*
+     * ★結果らんが「たてに2行以上」つないであることがあります
+     *   （まーくさんの説明タブは、3行目と4行目がつないであります）。
+     *
+     *   そのとき、見えている高さは 3行目＋4行目 の合計です。
+     *   ところが、これまで直していたのは3行目だけでした。
+     *   4行目のぶんが まるまる余って、下が空いて見えていました。
+     *
+     * ★4行目の高さは、こちらでは変えません。
+     *   そこにリセットの□が置いてあることがあり、
+     *   低くすると指で押せなくなるためです。
+     *   代わりに「合計が ちょうどになるよう」3行目から差し引きます。
+     */
+    let others = 0;
+    for (let i = 1; i < nr; i++) {
+      try { others += sh.getRowHeight(r + i); } catch (e) {}
+    }
+    sh.setRowHeight(r, Math.max(PANEL_RESULT_EMPTY_H, need - others));
   } catch (e) {}
 }
 
@@ -8370,15 +8407,34 @@ function panelClear_(sh) {
       if (panelIsBtnRow_(sh, cell.row)) return;   // それでもだめなら、書かない
     }
     let rg = sh.getRange(cell.row, cell.col);
-    let r = cell.row;
+    let r = cell.row, nr = 1;
     try {
       if (rg.isPartOfMerge()) {
         const m = rg.getMergedRanges();
-        if (m && m.length) { rg = m[0].getCell(1, 1); r = m[0].getRow(); }
+        if (m && m.length) {
+          rg = m[0].getCell(1, 1);
+          r = m[0].getRow();
+          try { nr = Math.max(1, m[0].getNumRows()); } catch (e) { nr = 1; }
+        }
       }
     } catch (e) {}
     rg.setValue("");
-    try { sh.setRowHeight(r, PANEL_RESULT_H); } catch (e) {}
+    /*
+     * ★たてに2行以上つないであるときは、下の行のぶんを差し引きます。
+     *   まーくさんの説明タブは3行目と4行目がつないであって、
+     *   見えている高さは その合計です。
+     *   いちばん上を42にすると、4行目のぶんだけ よけいに空いて見えます。
+     * ★下の行の高さは変えません。
+     *   そこにリセットの□が置いてあることがあり、
+     *   低くすると指で押せなくなるためです。
+     */
+    let others = 0;
+    for (let i = 1; i < nr; i++) {
+      try { others += sh.getRowHeight(r + i); } catch (e) {}
+    }
+    try {
+      sh.setRowHeight(r, Math.max(PANEL_RESULT_EMPTY_H, PANEL_RESULT_H - others));
+    } catch (e) {}
     SpreadsheetApp.flush();
   } catch (e) {}
 }

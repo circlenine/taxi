@@ -235,6 +235,9 @@ function mkPanel() {
     clear: () => { throw new Error('説明タブを clear してはいけません'); },
     setFrozenRows: () => {},
     setRowHeight: (r, h) => { heights[r] = h; },
+    // ★行の高さを読むのも、本物にはある。無いと
+    //   「たてにつないだ行の、下のぶん」を数えられない
+    getRowHeight: r => (heights[r] === undefined ? 21 : heights[r]),
     setRowHeights: () => {},
     getColumnWidth: c => (c === 2 ? 75 : 150),
     setColumnWidth() { return this; },
@@ -1799,18 +1802,54 @@ has(panel._cells['48,2'], '読み込み中… 001-Code.gs', 'どこで止まっ�
 console.log('\n■ 長い結果は、行の高さを文字にあわせてひろげる');
 gapLayout();
 panel._merge(48, 2, 49, 8);
+/*
+ * ★48行目と49行目は つないであります。
+ *   見えている高さは、その合計です。
+ *   片方だけ見ても、実際の見え方は分かりません
+ */
+const totH = () => (panel._heights[48] || 21) + (panel._heights[49] || 21);
 F('panelSay_')(panel, '短い');
-const hShort = panel._heights[48];
+const hShort = totH();
 F('panelSay_')(panel, new Array(30).join('あいうえおかきくけこ') + '\n2行目\n3行目');
-const hLong = panel._heights[48];
-t(hShort >= 42, '短くても、ふだんの高さは下回らない（実際 ' + hShort + '）');
+const hLong = totH();
+t(hShort >= 42, '短くても、ふだんの高さは下回らない（合計 ' + hShort + '）');
 t(hLong > hShort, '長い文は高くなる（' + hShort + ' → ' + hLong + '）');
 t(hLong <= 600, '高くなりすぎない');
 
 console.log('\n■ 空にするときは、高さをふだんに戻す');
 F('panelClear_')(panel);
-t(panel._heights[48] === 42, 'ふだんの高さ（42）に戻る');
+/*
+ * ★48行目と49行目はつないであるので、見えている高さは合計です。
+ *   いちばん上だけ42にすると、49行目のぶんが まるまる余ります
+ *   （まーくさんに「まだ下が空いている」とご指摘いただいたところ）。
+ */
+t(totH() === 42, 'ふだんの高さ（合計42）に戻る（' + totH() + '）');
 t(panel._cells['48,2'] === '', '中身も空になる');
+
+/*
+ * ★下の行（49行目）には、リセットの□が置いてあります。
+ *   ここを低くすると、指で押せなくなります。
+ *   だから、下の行の高さには手を出しません。
+ */
+{
+  panel._heights[48] = 180;
+  panel._heights[49] = 50;
+  F('panelClear_')(panel);
+  t(panel._heights[49] === 50, '下の行（□がある）の高さは、そのまま（' + panel._heights[49] + '）');
+  t(panel._heights[48] === 21, 'いちばん上は標準（21）まで下げる（' + panel._heights[48] + '）');
+  panel._heights[49] = 21;
+}
+
+// たてにつないでいないときは、いちばん上がそのまま42
+{
+  panel.getRange(48, 2, 2, 7).breakApart();
+  panel.getRange(48, 2, 1, 7).merge();
+  panel._heights[48] = 180;
+  F('panelClear_')(panel);
+  t(panel._heights[48] === 42, 'つないでいなければ 42 に戻る（' + panel._heights[48] + '）');
+  panel.getRange(48, 2, 1, 7).breakApart();
+  panel._merge(48, 2, 49, 8);
+}
 
 console.log('\n■ ファイル名が変わったときは、前の名前を消す');
 // これが無いと、同じ const が2回宣言されて Apps Script が丸ごと止まる
@@ -2252,15 +2291,22 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
    *   いちばん上だけ戻しても、下の行が太いままだと
    *   結局ぜんぶ太いままに見えます
    */
-  panel._heights[rr] = 600; panel._heights[rr + 1] = 600;
+  /*
+   * ★下の行は、そのままにします。
+   *   そこにリセットの□が置いてあることがあり、
+   *   低くすると指で押せなくなるためです
+   */
+  panel._heights[rr] = 600; panel._heights[rr + 1] = 50;
   panel.getRange(rr, 3, 2, 1).merge();
   panel._cells[rr + ',3'] = '長かった結果';
   panel._cells['4,7'] = true;
   F('panelResetIfAsked_')(panel);
-  t(panel._heights[rr] === 21 && panel._heights[rr + 1] === 21,
-    '★つないだ行は、ぜんぶ標準に戻す（' +
-    panel._heights[rr] + '／' + panel._heights[rr + 1] + '）',
-    panel._heights[rr] + '／' + panel._heights[rr + 1]);
+  t(panel._heights[rr] === 21,
+    '★つないでいても、いちばん上の行は標準に戻す（' + panel._heights[rr] + '）',
+    String(panel._heights[rr]));
+  t(panel._heights[rr + 1] === 50,
+    '★★下の行（□があるかもしれない）は、そのまま（' +
+    panel._heights[rr + 1] + '）', String(panel._heights[rr + 1]));
   panel.getRange(rr, 3, 2, 1).breakApart();
 
   // ボタンの列のチェックは、拾わない（そちらは「動かす」ためのもの）
@@ -4274,6 +4320,24 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   F('panelFitRow_')(panel, rr, 2, new Array(80).join('あ\n'));
   t(panel._heights[rr] === vm.runInContext('PANEL_RESULT_MAX_H', ctx),
     '★長すぎるときは、上限で止める（' + panel._heights[rr] + 'px）');
+
+  /*
+   * ★まーくさんの説明タブは、3行目と4行目がつないであります。
+   *   見えている高さは 3行目＋4行目 の合計です。
+   *   ところが直していたのは3行目だけで、
+   *   4行目のぶんが まるまる余って、下が空いて見えていました。
+   */
+  panel.getRange(rr, 2, 1, 7).breakApart();
+  panel.getRange(rr, 2, 2, 7).merge();            // たてに2行つなぐ
+  panel._heights[rr + 1] = 50;                    // 下の行（□のぶん）は そのまま
+  F('panelFitRow_')(panel, rr, 2, body);
+  const tot = panel._heights[rr] + panel._heights[rr + 1];
+  t(tot >= n * 15, '★つないでいても、文が隠れない（合計 ' + tot + 'px）', String(tot));
+  t(tot <= n * 19,
+    '★★下の行のぶんも数えて、よけいな空きを残さない（合計 ' + tot + 'px）',
+    String(tot));
+  t(panel._heights[rr + 1] === 50,
+    '★下の行（□があるかもしれない）の高さは、変えない');
 }
 
 console.log('\n■ ★スプシから離れても、動くこと（作り直しに要る）');
