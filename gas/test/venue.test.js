@@ -802,7 +802,11 @@ console.log('\n■ 🔕 通知解除のボタン');
   const key = JSON.parse(props['VN_REMIND'])[0].k;
   eq(typeof key === 'string' && key.length === 6, true, '  予約には、みじかい合言葉が付く');
   eq(js.indexOf('k=' + key) !== -1, true, '  ボタンにも、その合言葉が入る');
-  eq(js.length < 2000, true, '  ★ボタンの荷物は300文字まで。会場名を入れずに済ませている');
+  // ★下の「選ぶ列」（5〜120分前）も付くので、そのぶん長くなります。
+  //   大事なのは「1つの合図が300文字を超えないこと」なので、そちらを見ます
+  eq(js.length < 6000, true, '  ★1通の大きさは、じゅうぶん小さい（' + js.length + '文字）');
+  const datas = js.match(/"data":"[^"]+"/g) || [];
+  eq(datas.every(x => x.length < 300), true, '  ★ボタンの荷物は300文字まで（会場名を入れずに済ませている）');
 
   // 押したら消える
   pushed.length = 0;
@@ -2350,7 +2354,15 @@ console.log('\n■ お知らせを「何分前」にするかを、押して変�
   has(j1, '10分前にする', '★返事に「10分前にする」ボタンが付く');
   has(j1, '30分前にする', '  30分前も');
   has(j1, '60分前にする', '  60分前も');
-  eq(j1.indexOf('5分前にする'), -1, '  いまと同じ分数のボタンは出さない');
+  eq(j1.indexOf('"label":"5分前にする"'), -1, '  枠の中には、いまと同じ分数のボタンを出さない');
+  /*
+   * ★LINEにはプルダウンがありません。いちばん近いのが「選ぶ列」
+   *   （クイックリプライ）です。入力らんのすぐ上に横に並びます
+   */
+  has(j1, 'quickReply', '★下に「選ぶ列」を出す（プルダウンのつもり）');
+  has(j1, '"label":"15分前"', '  15分前も選べる');
+  has(j1, '"label":"120分前"', '  120分前まで選べる');
+  has(j1, '"label":"✅ 5分前"', '  いま選ばれているものには、印を付ける');
   has(j1, '🔕 通知解除', '  やめるボタンも、これまでどおり');
 
   // 30分前に変える
@@ -2421,6 +2433,58 @@ console.log('\n■ 終わりが確かでない催しには、動く予想も付�
       '  開場しか読めないときは「開場」と覚えておく');
   ok2(src.indexOf('endSure: !!fin') !== -1,
       '★終わりは「終演／終了と書いてあった」ときだけ、確かなものにする');
+}
+
+console.log('\n■ 🧪 LINEから「確認用」を出せる（日時も決められる）');
+{
+  const S = ctx.vnParseSpan_;
+  const base = new Date(2026, 8, 21);          // 2026/9/21
+  const ymd = d => (d.getMonth() + 1) + '/' + d.getDate();
+  const a = S('9/1〜9/15', base);
+  eq(a && ymd(a.startD) + '-' + ymd(a.endD), '9/1-9/15', '★「9/1〜9/15」で期間を決められる');
+  const b = S('30日', base);
+  eq(b && ymd(b.startD) + '-' + ymd(b.endD), '8/23-9/21', '★「30日」で、きょうからさかのぼれる');
+  eq(S('', base), null, '  何も書かなければ、いまの集計期間（null）');
+  eq(S('今月', base), null, '  「今月」も同じ');
+  eq(S('でたらめ', base), null, '  読めない言葉でも、落ちない');
+
+  // イベントの確認用
+  vm.runInContext('function lineReply_(tk, t){ lastReply = t; }', ctx);
+  ctx.lastReply = '';
+  let sentDay = null;
+  const keepSend = ctx.vnSendTodayToMe;
+  ctx.vnSendTodayToMe = function (d) { sentDay = d; return ''; };
+  eq(ctx.vnHandleTestCmd_({ message: { text: 'イベントテスト' },
+       source: { userId: 'Umark' }, replyToken: 'r' }), true, '★「イベントテスト」で出せる');
+  eq(sentDay && ymd(sentDay), ymd(new Date(Date.now() + 86400000)),
+     '  何も書かなければ、あすのぶん');
+  has(ctx.lastReply, 'グループには出していません', '★グループに出さないと、はっきり書く');
+
+  sentDay = null;
+  ctx.vnHandleTestCmd_({ message: { text: 'イベントテスト 今日' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  eq(sentDay && ymd(sentDay), ymd(new Date()), '★日付を書けば、その日のぶん');
+
+  // ほかの人は使えない
+  ctx.lastReply = '';
+  eq(ctx.vnHandleTestCmd_({ message: { text: 'イベントテスト' },
+       source: { userId: 'Uother' }, replyToken: 'r' }), false, '★ほかの人は使えない');
+  eq(ctx.lastReply, '', '  何も返さない');
+
+  // レポートの確認用
+  let got = null;
+  vm.runInContext('function rpMonthSpan_(n){ return { startD: new Date(2026,7,16), endD: new Date(2026,8,15,23,59,59) }; }', ctx);
+  vm.runInContext('function sendCustomReport(to, s, e, t){ sent2 = { to: to, s: s, e: e, t: t }; }', ctx);
+  ctx.lastReply = '';
+  ctx.vnHandleTestCmd_({ message: { text: 'レポートテスト 9/1〜9/15' },
+    source: { userId: 'Umark' }, replyToken: 'r' });
+  got = vm.runInContext('sent2', ctx);
+  eq(got && got.to, 'Umark', '★レポートも、まーくさんにだけ送る');
+  eq(got && got.t, true, '★かならず「テスト用」として作る（本番のまとめスプシを汚さない）');
+  eq(got && ymd(got.s) + '-' + ymd(got.e), '9/1-9/15', '  指定した期間で作る');
+  has(ctx.lastReply, '少し時間がかかります', '★先に「作ります」と返す（黙って待たせない）');
+
+  ctx.vnSendTodayToMe = keepSend;
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

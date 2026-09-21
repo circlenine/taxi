@@ -2,11 +2,31 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V044ver  （2026/09/21）  ★★★
+ *  ★★★  V045ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V045ver]
+ *   ・⏰ 何分前にするかを、下の「選ぶ列」から選べるようにした（ご指示）
+ *     ★LINEにプルダウンはありません。いちばん近いのが
+ *       入力らんのすぐ上に出る「選ぶ列（クイックリプライ）」です。
+ *       5・10・15・20・30・45・60・90・120分前 から選べます
+ *   ・📄 紙（写真）から読んだ催しに「📄 送ってもらった紙を見る」を出した（ご指示）
+ *     ★会場名に下線があるだけでは、そこが紙への入り口だと分かりませんでした
+ *     ★「資料」と送ったときは、ドライブの中も探します。
+ *       覚え書きが消えていても、置いてあれば見つかります
+ *   ・🧪 LINEから確認用を出せるようにした（ご指示）
+ *       レポートテスト ／ レポートテスト 9/1〜9/15 ／ レポートテスト 30日 ／ 先月
+ *       イベントテスト ／ イベントテスト 今日 ／ イベントテスト 9/23
+ *     ★どちらも、まーくさんの個人LINEにだけ届きます
+ *   ・🔎 自分で見つけた食いちがいを直した（ご指摘ではありません）
+ *     ★「自社記録：3件 平均￥2,867」は、その会場の記録ではなく
+ *       "近くの乗り場" の記録でした。読む人は「この会場で3件」と受け取ります。
+ *       「📒近場実績：」に改め、対象の乗り場名も書くようにしました
+ *     ★待ち時間も「〇件中〇件に記入」と母数を出すようにしました。
+ *       1件しか書かれていない待ち時間が、全体の待ち時間に見えていました
  *
  *  [V044ver]
  *   ・⏱ 終わりの時刻は「はっきり決まっているもの」しか書かないようにした（ご指示）
@@ -938,7 +958,9 @@ function vnBigEnough_(ev) {
  */
 function vnPlaceStats_(names, fromHour, toHour) {
   const out = { count: 0, sales: 0, waitSum: 0, waitCount: 0, max: 0,
-                male: 0, female: 0, ages: {}, place: "" };
+                male: 0, female: 0, ages: {}, place: "",
+                // ★どの乗り場を数えたのか。あとで案内にそのまま書くため
+                spots: (names || []).slice(0, 4) };
   let ss;
   try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { return out; }
   if (!ss || !names || !names.length) return out;
@@ -995,9 +1017,29 @@ function vnStatsLine_(st) {
    *   下に「客層推定：」「一言　　：」「禁止事項：」と続くので、
    *   ここだけ字数が違うと「：」の位置がずれて、目で追えません。
    */
-  let t = `📒自社記録：${st.count}件 平均￥${avg.toLocaleString()}`;
+  /*
+   * ★ここは、わたしのほうから直します（まーくさんの指摘ではありません）。
+   *
+   *   この数字は「その会場の記録」ではありません。
+   *   会場に近い乗り場（VN_VENUES の near）の記録です。
+   *   それを「自社記録：3件 平均￥2,867」とだけ書くと、
+   *   読んだ人は「この会場で3件あった」と受け取ります。
+   *   上の人に見せる資料で、これは通りません。
+   *   何を数えた数字なのかを、必ず書きます。
+   */
+  const near = (st.spots && st.spots.length) ? st.spots.join("・") : "";
+  let t = `📒近場実績：${st.count}件 平均￥${avg.toLocaleString()}`;
   if (st.max > avg) t += ` 最高￥${st.max.toLocaleString()}`;
-  if (st.waitCount > 0) t += ` 待ち${Math.round(st.waitSum / st.waitCount)}分`;
+  /*
+   * ★待ち時間は「書いてあったものだけ」の平均です。
+   *   母数（何件のうち何件に書いてあったか）を出さないと、
+   *   1件だけの待ち時間が、全体の待ち時間に見えてしまいます。
+   */
+  if (st.waitCount > 0) {
+    t += ` 待ち${Math.round(st.waitSum / st.waitCount)}分` +
+         `（${st.count}件中${st.waitCount}件に記入）`;
+  }
+  if (near) t += `\n　（対象の乗り場：${near}）`;
 
   // 客層。備考に書いてあるぶんだけ数えたものなので、母数も一緒に出す
   const sex = st.male + st.female;
@@ -1243,6 +1285,17 @@ function vnCard_(ev, idx, day, noBells) {
    *   黙っていると「AIが読んだだけのもの」を、確かめようがないまま
    *   信じることになります。何を送ればよいかも、その場に書きます
    */
+  /*
+   * ★紙（写真）から読んだものは、もとの紙をすぐ開けるようにします（ご指示）。
+   *   会場名に下線が引いてあるだけでは、そこが紙への入り口だと分かりません。
+   *   「📄 送ってもらった紙を見る」と、そのまま書いた行を出します。
+   */
+  if (ev.url && (ev.kind === "hotel" || ev.fromPhoto)) {
+    rows.push({ "type": "text", "text": "📄 送ってもらった紙を見る（タップ）",
+                "size": "xxs", "color": "#6a1b9a", "weight": "bold",
+                "decoration": "underline", "wrap": true, "margin": "xs",
+                "action": { "type": "uri", "label": "資料", "uri": ev.url } });
+  }
   if (!ev.url && (ev.kind === "hotel" || ev.fromPhoto)) {
     rows.push({ "type": "text",
                 "text": "📄 資料：見返せる形になっていません（写真をもう一度送ってください）",
@@ -1523,7 +1576,7 @@ function vnSampleEvents_() {
     const line = vnStatsLine_(st);
     return { venue: venue, kind: kind, icon: icon, title: title, start: start, end: end,
              people: people, url: url,
-             stats: line || "📒自社記録：この乗り場の記録はまだありません",
+             stats: line || "📒近場実績：この近くの乗り場の記録は、まだありません",
              guess: guess || "", know: know || "", avoid: avoid || "",
              advice: vnAdvice_(venue, end, st), endSure: true };
   };
@@ -2419,6 +2472,9 @@ function vnHandleNote_(ev, sentAt) {
 
   // ⓪-6「資料」… 紙（写真）から読んだ資料の置き場を、そのまま出す（まーくさんだけ）
   if (vnHandleDocCmd_(ev)) return true;
+
+  // ⓪-7「レポートテスト」「イベントテスト」… 確認用を、いつでも出す（まーくさんだけ）
+  if (vnHandleTestCmd_(ev)) return true;
 
   // ① 確認用の手直し（「❶削除」「❶❸削除」「❶修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
@@ -3439,10 +3495,20 @@ function vnLeadSet_(uid, min) {
   return true;
 }
 
-/** そのお知らせを「何分前」に変えるボタン（5・10・30・60分前のうち、いま以外） */
+/** 選べる「何分前」（プルダウンのつもりで、下から選べるようにします） */
+const VN_LEAD_CHOICES = [5, 10, 15, 20, 30, 45, 60, 90, 120];
+
+/**
+ * そのお知らせを「何分前」に変えるボタン（枠の中に並べるぶん）。
+ *
+ * ★枠の中は、よく使う3つだけにします。
+ *   9つ全部を縦に並べると、枠が画面いっぱいになって、
+ *   肝心の「いつ・どこ」が押し出されてしまいます。
+ *   残りは、下の選ぶ列（クイックリプライ）から選べます。
+ */
 function vnLeadBtns_(ymd, idx, now) {
   const out = [];
-  [5, 10, 30, 60].forEach(function (m) {
+  [10, 30, 60].forEach(function (m) {
     if (m === Number(now)) return;
     out.push({ type: "button", style: "secondary", height: "sm",
                action: { type: "postback", label: m + "分前にする",
@@ -3450,6 +3516,26 @@ function vnLeadBtns_(ymd, idx, now) {
                          displayText: m + "分前にする" } });
   });
   return out;
+}
+
+/**
+ * 画面の下に出る「選ぶ列」（クイックリプライ）。
+ *
+ * ★LINEには、パソコンのようなプルダウンはありません。
+ *   いちばん近いのが、この「選ぶ列」です。
+ *   入力らんのすぐ上に横に並び、横にすべらせて選べます。
+ *   ぜんぶで13個まで置けるので、9つなら余裕で入ります。
+ */
+function vnLeadQuick_(ymd, idx, now) {
+  const items = [];
+  VN_LEAD_CHOICES.forEach(function (m) {
+    items.push({ type: "action",
+      action: { type: "postback",
+                label: (m === Number(now) ? "✅ " : "") + m + "分前",
+                data: "vn=lead&d=" + ymd + "&i=" + idx + "&m=" + m,
+                displayText: m + "分前にする" } });
+  });
+  return { items: items.slice(0, 13) };
 }
 
 function vnLeadMin_() {
@@ -3601,6 +3687,148 @@ function vnShortcutUrl_(ev, day, at) {
          "&input=text&text=" + encodeURIComponent(input);
 }
 
+/* ================================================================
+ *  🧪 LINEから「確認用」を出す（まーくさんだけ）
+ *
+ *  ★まーくさんのご指示です。
+ *      ・テスト用まとめスプシ（＋LINEの絵）
+ *      ・テスト用イベント通知（LINEの絵）
+ *    を、LINEから いつでも出せるようにします。日時も指定できます。
+ *
+ *  ★打ち方（公式LINEでも、グループでも打てます。届くのは まーくさんだけ）
+ *      レポートテスト            … いまの集計期間（16日〜翌15日）
+ *      レポートテスト 先月        … ひとつ前の期間
+ *      レポートテスト 9/1〜9/15   … 日付を決めて
+ *      レポートテスト 30日        … きょうから さかのぼって30日ぶん
+ *      イベントテスト            … あすのぶん
+ *      イベントテスト 今日        … きょうのぶん
+ *      イベントテスト 9/23        … その日のぶん
+ *
+ *  ★グループへは、絶対に出しません。
+ *    ここから出せるのは「まーくさんの個人LINEへの確認用」だけです。
+ * ================================================================ */
+
+/**
+ * 「9/1〜9/15」「先月」「30日」などを、集計の期間に直す。
+ * 読めなければ null（そのときは、いまの集計期間を使う）。
+ */
+function vnParseSpan_(text, base) {
+  const now = base || new Date();
+  const t = String(text == null ? "" : text).trim()
+    .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/[〜~－ー–—]/g, "-");
+  if (!t) return null;
+
+  // ① 「9/1-9/15」「2026/9/1-2026/9/15」
+  const m = t.match(/(\d{1,4})[\/月](\d{1,2})(?:[\/月](\d{1,2}))?\s*-\s*(\d{1,4})[\/月](\d{1,2})(?:[\/月](\d{1,2}))?/);
+  if (m) {
+    const mk = function (a, b, c) {
+      // 3つそろっていれば 年/月/日、2つなら 月/日（年は今年）
+      if (c) return new Date(Number(a), Number(b) - 1, Number(c));
+      return new Date(now.getFullYear(), Number(a) - 1, Number(b));
+    };
+    const s1 = mk(m[1], m[2], m[3]);
+    const e1 = mk(m[4], m[5], m[6]);
+    if (!isNaN(s1.getTime()) && !isNaN(e1.getTime()) && e1 >= s1) {
+      return { startD: new Date(s1.getFullYear(), s1.getMonth(), s1.getDate(), 0, 0, 0),
+               endD:   new Date(e1.getFullYear(), e1.getMonth(), e1.getDate(), 23, 59, 59),
+               label:  (s1.getMonth() + 1) + "/" + s1.getDate() + "〜" +
+                       (e1.getMonth() + 1) + "/" + e1.getDate() };
+    }
+  }
+
+  // ② 「30日」… きょうから さかのぼって30日ぶん
+  const d = t.match(/^(\d{1,3})\s*日(間|ぶん|分)?$/);
+  if (d) {
+    const n = Number(d[1]);
+    const e2 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const s2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (n - 1), 0, 0, 0);
+    return { startD: s2, endD: e2, label: "直近" + n + "日" };
+  }
+
+  // ③ 「先月」… ひとつ前の集計期間
+  if (/^(先月|前月|ひとつ前|前の期間)$/.test(t)) {
+    if (typeof rpMonthSpan_ !== "function") return null;
+    const cur = rpMonthSpan_(now);
+    const e3 = new Date(cur.startD.getFullYear(), cur.startD.getMonth(), cur.startD.getDate() - 1, 23, 59, 59);
+    const s3 = new Date(e3.getFullYear(), e3.getMonth() - 1, e3.getDate() + 1, 0, 0, 0);
+    return { startD: s3, endD: e3,
+             label: (s3.getMonth() + 1) + "/" + s3.getDate() + "〜" + (e3.getMonth() + 1) + "/" + e3.getDate() };
+  }
+
+  // ④ 「今月」「今回」… いまの集計期間（null と同じあつかい）
+  if (/^(今月|今回|いま|現在)$/.test(t)) return null;
+  return null;
+}
+
+/**
+ * 「レポートテスト」「イベントテスト」の合図を受ける。扱ったら true。
+ *
+ * ★送り先は、かならず まーくさんの個人LINEです。
+ *   グループで打たれても、グループには1文字も出しません。
+ */
+function vnHandleTestCmd_(ev) {
+  const raw = String((ev && ev.message && ev.message.text) || "").trim();
+  const t = raw.replace(/[\s\u3000]/g, "");
+  const isRep = /^(レポートテスト|テストレポート|まとめテスト|テストまとめ|レポート確認)/.test(t);
+  const isEv  = /^(イベントテスト|テストイベント|イベント確認用|イベント通知テスト)/.test(t);
+  if (!isRep && !isEv) return false;
+
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+  let me = "";
+  try { me = vnTestTarget_(); } catch (e) {}
+  if (!me || uid !== me) return false;          // ほかの人には、何も返さない
+
+  // 合図のうしろに書かれた「日付／期間」を取り出す
+  const arg = raw.replace(/^[^\s\u3000]+/, "").trim();
+
+  if (isEv) {
+    const day = vnParseDay_(arg || "あす");
+    let err = "";
+    try { err = vnSendTodayToMe(day); } catch (e) { err = (e && e.message) ? e.message : String(e); }
+    const label = (typeof vnDayLabel_ === "function") ? vnDayLabel_(day) : "";
+    let n = 0;
+    try { n = vnTodayEvents_(day).length; } catch (e) { n = 0; }
+    say(err ? ("❌ " + err)
+            : ("🧪 " + label + " のイベント確認用を、あなたのLINEにだけ送りました（" + n + "件）。\n" +
+               "グループには出していません。"));
+    return true;
+  }
+
+  // レポート（まとめスプシ＋LINEの絵）
+  if (typeof sendCustomReport !== "function" || typeof rpMonthSpan_ !== "function") {
+    say("❌ レポートのしくみが、まだ入っていません。");
+    return true;
+  }
+  const span = vnParseSpan_(arg) || (function () {
+    const m0 = rpMonthSpan_(new Date());
+    return { startD: m0.startD, endD: m0.endD,
+             label: (m0.startD.getMonth() + 1) + "/" + m0.startD.getDate() + "〜" +
+                    (m0.endD.getMonth() + 1) + "/" + m0.endD.getDate() };
+  })();
+  /*
+   * ★先に「受け取りました」と返します。
+   *   レポートは作るのに時間がかかります（1分を超えることもあります）。
+   *   黙っていると、打った人は「効いていない」と思って何度も打ってしまいます。
+   */
+  say("🧪 " + span.label + " のレポートを作ります。\n" +
+      "できたら、あなたのLINEにだけ送ります（グループには出しません）。\n" +
+      "少し時間がかかります。");
+  try {
+    sendCustomReport(me, span.startD, span.endD, true);
+  } catch (e) {
+    try {
+      if (typeof lrPush_ === "function") {
+        lrPush_(me, [{ type: "text",
+          text: "❌ レポートを作れませんでした：" + ((e && e.message) || e) }]);
+      }
+    } catch (e2) {}
+  }
+  return true;
+}
+
 /**
  * 「資料」… いま覚えている「紙（写真）の置き場」を、そのまま出す。
  *
@@ -3647,6 +3875,34 @@ function vnHandleDocCmd_(ev) {
       L.push("▼ " + ymd.slice(0, 4) + "/" + ymd.slice(4, 6) + "/" + ymd.slice(6, 8));
       ks.forEach(function (x) { n++; L.push("　" + x, "　" + map[x]); });
     });
+    /*
+     * ★覚え書き（プロパティ）が消えていても、ドライブに残っていれば見つかります。
+     *   資料は「20260917_リーガロイヤル.jpg」のような名前で置いてあるので、
+     *   その形のファイルを探します。
+     */
+    try {
+      if (typeof DriveApp !== "undefined") {
+        const seen = {};
+        L.forEach(function (x) { seen[String(x).trim()] = 1; });
+        const it = DriveApp.searchFiles('title contains "_" and trashed = false');
+        const found = [];
+        let guard = 0;
+        while (it.hasNext() && guard < 200 && found.length < 20) {
+          guard++;
+          const f = it.next();
+          const nm = f.getName();
+          if (!/^\d{8}_/.test(nm)) continue;
+          const u = f.getUrl();
+          if (seen[u]) continue;
+          found.push({ nm: nm, u: u });
+        }
+        if (found.length) {
+          L.push("", "▼ ドライブに残っているぶん（覚え書きが消えていても、ここから開けます）");
+          found.sort(function (a, b) { return a.nm < b.nm ? 1 : -1; });
+          found.slice(0, 10).forEach(function (x) { n++; L.push("　" + x.nm, "　" + x.u); });
+        }
+      }
+    } catch (e) { /* 探せなくても、上のぶんだけは出す */ }
   } catch (e) {
     L.push("⚠️ 取り出せませんでした：" + ((e && e.message) || e));
   }
@@ -4437,7 +4693,9 @@ function vnRemCancelMsg_(text, key, opt) {
    *   押すだけで変えられて、次からもその分数になります。
    */
   if (opt && opt.ymd) {
-    rows.push({ type: "text", text: "⏰ 何分前に知らせますか（いまは" + opt.lead + "分前）",
+    rows.push({ type: "text",
+                text: "⏰ 何分前に知らせますか（いまは" + opt.lead + "分前）\n" +
+                      "　下の列を横にすべらせると、5〜120分前から選べます",
                 size: "xxs", color: "#5f6368", margin: "md", wrap: true });
     vnLeadBtns_(opt.ymd, opt.idx, opt.lead).forEach(function (b) { rows.push(b); });
   }
@@ -4445,7 +4703,7 @@ function vnRemCancelMsg_(text, key, opt) {
               action: { type: "postback", label: "🔕 通知解除",
                         data: "vn=off&k=" + encodeURIComponent(key),
                         displayText: "通知解除" } });
-  return {
+  const msg = {
     type: "flex",
     altText: String(text).split("\n")[0],
     contents: {
@@ -4453,6 +4711,9 @@ function vnRemCancelMsg_(text, key, opt) {
       body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "12px", contents: rows }
     }
   };
+  // ★画面の下に「選ぶ列」を出す（プルダウンのつもり）
+  if (opt && opt.ymd) msg.quickReply = vnLeadQuick_(opt.ymd, opt.idx, opt.lead);
+  return msg;
 }
 
 /** 知らせる文 */
