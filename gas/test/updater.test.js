@@ -4378,6 +4378,145 @@ console.log('\n■ ▼ の行も、C〜F結合・G〜H結合にそろえる（�
   t(F('panelInputGet_')(panel, P) === '今期', '　 つないでも、値は消えない');
 }
 
+console.log('\n■ ★ボタンの行に、結果を絶対に書かない');
+/*
+ * ★申し訳ありませんでした。ここで [13] の名前を消しました。
+ *
+ *   見出しを「結果」から「更新履歴」に変えられて、書き先を見失い、
+ *   代わりの計算（いちばん上のボタン＋ボタンの数＋2）に落ちました。
+ *   その計算は、ボタンのあいだの空け行を数えていません。
+ *   ボタンの並びは その倍の長さになっているので、
+ *   計算した先が ボタンの列のまん中に落ちて、名前を上書きしました。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  // 見出しの言葉を「更新履歴」に変えられても、見失わない
+  /*
+   * ★まーくさんが、見出しを「結果」から「更新履歴」に変えられました。
+   *   変えられても見失わないのが、こちらの仕事です。
+   *   前は「結果」しか探しておらず、見失って
+   *   [13] の名前を上書きしてしまいました
+   */
+  const rr0 = F('panelResultRow_')(panel);
+  let hRow = 0, hCol = 0;
+  Object.keys(panel._cells).forEach(function (k) {
+    if (String(panel._cells[k]) !== '結果') return;
+    const m = k.split(',');
+    hRow = +m[0]; hCol = +m[1];
+  });
+  t(hRow > 0, '　 まず「結果」の見出しがある（' + hRow + '行目）');
+  panel._cells[hRow + ',' + hCol] = '更新履歴';
+  t(F('panelResultRow_')(panel) === rr0,
+    '★★見出しを「更新履歴」に変えられても、同じところに書く（' +
+    F('panelResultRow_')(panel) + ' / ' + rr0 + '）',
+    F('panelResultRow_')(panel) + ' / ' + rr0);
+  panel._cells[hRow + ',' + hCol] = '結果';
+
+  // 見出しがどこにも無いときでも、ボタンの行には書かない
+  Object.keys(panel._cells).forEach(function (k) {
+    const v = String(panel._cells[k]);
+    if (v === '結果' || v === '更新履歴') delete panel._cells[k];
+  });
+  const cell = F('panelResultCell_')(panel);
+  t(!!cell, '見出しが無くても、書き先は決まる');
+  t(F('panelIsBtnRow_')(panel, cell.row) === false,
+    '★★見出しが無くても、ボタンの行には落ちない（' + cell.row + '行目）',
+    String(cell.row));
+
+  const rows = F('panelReadRows_')(panel);
+  const lastBtn = rows[rows.length - 1].row;
+  t(cell.row > lastBtn,
+    '★いちばん下のボタンより、さらに下に書く（' + cell.row + ' > ' + lastBtn + '）');
+
+  // ★最後の砦：書き先がボタンの行でも、名前を消さない
+  const keep = String(panel._cells[rows[5].row + ',3']);
+  // ★あとの試験に残らないよう、もとの形を控えておく
+  const keepCell = (fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8')
+    .match(/function panelResultCell_[\s\S]*?\n}\n/) || [''])[0];
+  vm.runInContext('function panelResultCell_(sh){ return { row: ' + rows[5].row +
+                  ', col: 3 }; }', ctx);              // わざと ボタンの行を指す
+  F('panelSay_')(panel, 'なにかの結果');
+  t(String(panel._cells[rows[5].row + ',3']) === keep,
+    '★★書き先がボタンの行でも、ボタンの名前を消さない');
+  vm.runInContext(keepCell, ctx);                     // まねを、もとへ戻す
+}
+
+console.log('\n■ 消えてしまった名前を、書き戻す');
+{
+  /*
+   * ★勝手に書き戻してよいのは、迷いようがないときだけです。
+   *   1つでも欠けたら、何もしません
+   */
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const rows = F('panelReadRows_')(panel);
+  const target = rows[12];                            // [13] のところ
+  const label = String(panel._cells[target.row + ',3']);
+
+  // 結果で上書きされた状態をまねる
+  panel._cells[target.row + ',3'] = '03:21  ✅ [1] コードを更新する が終わりました';
+  t(F('panelCheck_')(panel).missing.length === 1, '　 足りないものが1つになる');
+  t(F('panelRepairLost_')(panel) === 1, '★上書きされた名前を、書き戻す');
+  t(String(panel._cells[target.row + ',3']) === label,
+    '　 もとの名前にもどる（' + panel._cells[target.row + ',3'] + '）');
+
+  // 人が書いた文は、書き戻さない（消さない）
+  panel._cells[target.row + ',3'] = 'じぶんで書いたメモ';
+  t(F('panelRepairLost_')(panel) === 0,
+    '★★結果の形でない文（人が書いたもの）は、触らない');
+  t(String(panel._cells[target.row + ',3']) === 'じぶんで書いたメモ',
+    '　 そのまま残る');
+  panel._cells[target.row + ',3'] = label;
+
+  // 足りないものが2つ以上あるときは、迷うので何もしない
+  const t2 = rows[11];
+  panel._cells[target.row + ',3'] = '03:21  なにか';
+  panel._cells[t2.row + ',3'] = '03:22  なにか';
+  t(F('panelRepairLost_')(panel) === 0, '★迷うときは、何もしない');
+}
+
+console.log('\n■ ボタンがそろっていても、並びは直しにいく');
+{
+  /*
+   * ★空け行は、あとから入れるようにしたものです。
+   *   もうボタンがそろっている人の並びには、入っていません。
+   *   ところが「そろっているから何もしない」と引き返していたので、
+   *   空け行が永遠に入りませんでした（ご指摘）
+   */
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  // ボタンはそろっている。目印も新しい。でも空け行を消してみる
+  const rows = F('panelReadRows_')(panel);
+  for (let i = 1; i < rows.length; i++) {
+    for (let r = rows[i - 1].row + 1; r < rows[i].row; r++) {
+      delete panel._cells[r + ',2']; delete panel._cells[r + ',3'];
+    }
+  }
+  props['PANEL_SETUP_SIG'] = F('panelItemsSig_')();
+  delete props['PANEL_TIDY_OK'];
+
+  F('panelAutoSync_')(panel);
+  const after = F('panelReadRows_')(panel);
+  let stuck = 0;
+  for (let i = 1; i < after.length; i++) {
+    const gap = after[i].row - after[i - 1].row - 1;
+    const prev = String(panel._cells[(after[i].row - 1) + ',3'] || '');
+    if (gap < 1 && !F('panelSameGroup_')(prev, after[i].text)) stuck++;
+  }
+  t(stuck === 0, '★★そろっていても、空け行は入れにいく（くっつき ' + stuck + '件）',
+    String(stuck));
+  t(props['PANEL_TIDY_OK'] === F('panelItemsSig_')(),
+    '★一度やったら覚える（毎分やり直さない）');
+
+  // 2回目は何もしない
+  const snap = JSON.stringify(panel._cells);
+  F('panelAutoSync_')(panel);
+  t(JSON.stringify(panel._cells) === snap, '　 2回目は何もしない');
+}
+
 console.log('\n■ ボタンとボタンのあいだに、空け行を入れる（ご指示）');
 /*
  * ★スマホでは指でチェックを押すので、ボタンが くっついていると

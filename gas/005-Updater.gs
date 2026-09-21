@@ -2,7 +2,29 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U104ver  （2026/09/21）  ★★★
+ *  ★★★  U105ver  （2026/09/22）  ★★★
+ *
+ *  [U105ver]
+ *   ・🩹 結果を書く先をまちがえて、[13] の名前を消したのを直した（ご指摘）
+ *     ★申し訳ありませんでした。2つのまちがいが重なりました。
+ *       ① 見出しは「結果」しか探していませんでした。
+ *          まーくさんが「更新履歴」に変えられて、見失いました。
+ *          変えられても見失わないのが、こちらの仕事です。
+ *       ② 見失ったときの逃げ道が
+ *          「いちばん上のボタン＋ボタンの数＋2」でした。
+ *          ボタンのあいだに空け行を入れるようにしたので、
+ *          並びは その倍の長さになっています。
+ *          数えた先が ボタンの列のまん中に落ちました。
+ *     ★直したこと
+ *       ・見出しは「結果／更新履歴／履歴…」を見ます。
+ *       ・逃げ道は数えません。実際のいちばん下のボタンの、さらに下。
+ *       ・書く前に必ず「ボタンの行か」を見ます（panelSay_・panelClear_）。
+ *         場所の計算をどこかで間違えても、名前だけは消しません。
+ *       ・消えてしまった名前は、迷いようがないときだけ書き戻します。
+ *   ・␣ ボタンがそろっていると、空け行の処理まで飛ばしていたのを直した（ご指摘）
+ *     ★空け行は あとから入れるようにしたものです。
+ *       もうそろっている人の並びには、入っていませんでした。
+ *       「そろっているから何もしない」と引き返していたためです。
  *
  *  [U104ver]
  *   ・🆘「直し方：LINEで『❗』と送ってください」をやめた（ご指摘）
@@ -1083,7 +1105,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U104ver";
+const UPD_VERSION = "U105ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -6551,19 +6573,73 @@ function panelResultCell_(sh) {
    *   上に置いても下に置いても、そこに書きます。
    *   2つあるときは、上のほうを使います（目に入りやすいので）。
    */
+  /*
+   * ★見出しの言葉は、まーくさんが変えられます。
+   *   「結果」を「更新履歴」に変えられて、見失いました。
+   *   1つに決め打ちにせず、心当たりの言葉をいくつか見ます。
+   */
   const room = Math.min(bottom, sh.getMaxRows());
   if (room > 0) {
     const grid = sh.getRange(1, 1, room, 6).getValues();
     for (let i = 0; i < grid.length; i++) {
       for (let c = 0; c < 6; c++) {
-        if (String(grid[i][c]).trim() === "結果") {
-          return { row: i + 2, col: c + 1 };      // 「結果」のすぐ下の、同じ列
-        }
+        const t = String(grid[i][c]).trim();
+        if (!t || t.length > 10) continue;
+        if (PANEL_RESULT_WORDS.indexOf(t) === -1) continue;
+        return { row: i + 2, col: c + 1 };        // 見出しのすぐ下の、同じ列
       }
     }
   }
-  // 見つからなければ、置いたときの並びで数える
-  return { row: top + panelItems_().length + 2, col: panelChkCol_(sh, top) + 1 };
+
+  /*
+   * ★見つからなかったときの逃げ道。
+   *
+   *   ★ここで、まーくさんのボタンの名前を1つ消してしまいました。
+   *     前は「いちばん上のボタン＋ボタンの数＋2」で数えていました。
+   *     ボタンのあいだに空け行を入れるようにしたので、
+   *     ボタンの並びは その倍の長さになり、
+   *     数えた先が ボタンの列のまん中に落ちて、
+   *     [13] の名前を結果で上書きしてしまいました。
+   *
+   *   ★数えません。実際に置いてある いちばん下のボタンの、さらに下にします。
+   *     そのうえで、ボタンの行には絶対に書きません（下で見張ります）。
+   */
+  const base = (last || top) + 2;
+  return { row: panelSafeRow_(sh, base), col: panelChkCol_(sh, top) + 1 };
+}
+
+/** 結果の見出しとして認める言葉（まーくさんが変えても見失わないように） */
+const PANEL_RESULT_WORDS = ["結果", "更新履歴", "結果らん", "履歴", "けっか"];
+
+/**
+ * その行が「ボタンの行」か（チェックのらんに □ か ☑ がある）。
+ *
+ * ★ボタンの行に結果を書くと、ボタンの名前が消えます。
+ *   実際に [13] の名前を消してしまいました。
+ */
+function panelIsBtnRow_(sh, row) {
+  try {
+    const top = panelTop_(sh);
+    if (!top) return false;
+    const v = sh.getRange(row, panelChkCol_(sh, top)).getValue();
+    return v === true || v === false;
+  } catch (e) { return false; }
+}
+
+/**
+ * ボタンの行を避けて、書いてよい行までずらす。
+ *
+ * ★書く前に必ず通します。ここが最後の砦です。
+ *   場所の計算をどこかで間違えても、
+ *   ボタンの名前だけは消さないようにするためです。
+ */
+function panelSafeRow_(sh, row) {
+  let r = Math.max(1, row);
+  for (let i = 0; i < 60; i++) {
+    if (!panelIsBtnRow_(sh, r)) return r;
+    r++;
+  }
+  return r;
 }
 
 /** 結果を書く行（テストや案内で使う） */
@@ -7182,7 +7258,26 @@ function panelItemsSig_() {
 function panelAutoSync_(sh) {
   const pr = PropertiesService.getScriptProperties();
   const sig = panelItemsSig_();
-  if (pr.getProperty("PANEL_SETUP_SIG") === sig) return;
+
+  /*
+   * ★ボタンがそろっていても、並びが崩れていることがあります。
+   *
+   *   空け行は、あとから入れるようにしたものです。
+   *   ボタンがもうそろっている人の並びには、入っていません。
+   *   ところが ここで「そろっているから、もう何もしない」と
+   *   引き返していたので、空け行が永遠に入りませんでした
+   *   （まーくさんのご指摘。[12] と [13] がくっついたままでした）。
+   *
+   *   形をそろえる処理だけは、ボタンの数と切り離して1回やります。
+   *   やったら覚えて、毎分やり直しません。
+   */
+  if (pr.getProperty("PANEL_SETUP_SIG") === sig) {
+    if (pr.getProperty("PANEL_TIDY_OK") === sig) return;
+    try { panelRepairLost_(sh); } catch (e) {}
+    try { panelTidy_(sh); } catch (e) {}
+    try { pr.setProperty("PANEL_TIDY_OK", sig); } catch (e) {}
+    return;
+  }
   try {
     const head = panelHeadRow_(sh);
     if (!head) { pr.setProperty("PANEL_SETUP_SIG", sig); return; }
@@ -7196,10 +7291,57 @@ function panelAutoSync_(sh) {
         "）\n押す前に、すぐ上の「期間」と「送り先」を確かめてください。");
     }
     pr.setProperty("PANEL_SETUP_SIG", sig);
+    pr.setProperty("PANEL_TIDY_OK", sig);
   } catch (e) {
     logErr_("panelAutoSync", e);
     pr.setProperty("PANEL_SETUP_SIG", sig);           // 毎分やり直さない
   }
+}
+
+/**
+ * 結果で上書きされて消えたボタンの名前を、書き戻す。
+ *
+ * ★これは、わたしが出した傷の後始末です。
+ *   書き先の計算をまちがえて、ボタンの行に結果を書き、
+ *   [13] の名前を消してしまいました。
+ *
+ * ★勝手に書き戻してよいのは、迷いようがないときだけです。
+ *     ・足りないボタンが ちょうど1つ
+ *     ・分からない行も ちょうど1つ
+ *     ・その行の中身が、結果の書き出し（「03:21  」）で始まっている
+ *   この3つがそろったときだけ、その行に名前を書き戻します。
+ *   1つでも欠けたら、何もしません。
+ *   人が書いたものを、まちがえて消すほうが ずっと害が大きいためです。
+ */
+function panelRepairLost_(sh) {
+  let st;
+  try { st = panelCheck_(sh); } catch (e) { return 0; }
+  if (!st) return 0;
+  if (st.missing.length !== 1) return 0;
+
+  /*
+   * ★「分からない行」では拾えません。
+   *   結果の文には「[1] コードを更新する が終わりました」のように
+   *   ほかのボタンの名前が入っていることがあり、
+   *   そのボタンだと見なされて「重なり」に数えられてしまいます。
+   *   なので、書いてある文そのものを見ます。
+   *   結果は「03:21  …」の形で始まります。
+   */
+  const lost = (st.rows || []).filter(function (r) {
+    return /^\d{1,2}:\d{2}\s/.test(String(r.text || ""));
+  });
+  if (lost.length !== 1) return 0;            // 迷うときは、何もしない
+
+  try {
+    const top = panelTop_(sh);
+    const col = panelChkCol_(sh, top) + 1;
+    sh.getRange(lost[0].row, col).setValue(st.missing[0].label);
+  } catch (e) { return 0; }
+  try {
+    panelSay_(sh, "🩹 " + st.missing[0].label +
+      " の名前が、結果で上書きされて消えていました。書き戻しました。");
+  } catch (e) {}
+  return 1;
 }
 
 /* ================================================================
@@ -7849,6 +7991,15 @@ function panelClear_(sh) {
   try {
     const cell = panelResultCell_(sh);
     if (!cell) return;
+    /*
+     * ★最後の砦。ボタンの行には、絶対に書きません。
+     *   書くと、ボタンの名前が消えます（実際に [13] を消しました）。
+     *   場所の計算をどこかで間違えても、ここで止まります。
+     */
+    if (panelIsBtnRow_(sh, cell.row)) {
+      cell.row = panelSafeRow_(sh, cell.row);
+      if (panelIsBtnRow_(sh, cell.row)) return;   // それでもだめなら、書かない
+    }
     let rg = sh.getRange(cell.row, cell.col);
     let r = cell.row;
     try {
@@ -7958,6 +8109,15 @@ function panelSay_(sh, text) {
   try {
     const cell = panelResultCell_(sh);
     if (!cell) return;
+    /*
+     * ★最後の砦。ボタンの行には、絶対に書きません。
+     *   書くと、ボタンの名前が消えます（実際に [13] を消しました）。
+     *   場所の計算をどこかで間違えても、ここで止まります。
+     */
+    if (panelIsBtnRow_(sh, cell.row)) {
+      cell.row = panelSafeRow_(sh, cell.row);
+      if (panelIsBtnRow_(sh, cell.row)) return;   // それでもだめなら、書かない
+    }
     let rg = sh.getRange(cell.row, cell.col);
     try {
       if (rg.isPartOfMerge()) {
