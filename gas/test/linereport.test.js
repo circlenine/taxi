@@ -1348,8 +1348,91 @@ console.log('\n■ 📮 公式LINEの送信数を、自分で数える（クロ�
    */
   const src = fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8');
   eq(vm.runInContext('LR_PUSH_LIMIT', ctx), 200, '★上限（月200通）を、1か所で決めている');
-  eq(src.indexOf('lrPushAdd_((messages || []).length || 1)') !== -1, true,
+  /*
+   * ★数えるのは「実際に送ったもの」です。
+   *   個人あての知らせには、いちばん下に「◯回目」を足した
+   *   写し（send）を送るので、そちらの数を足します
+   */
+  eq(src.indexOf('lrPushAdd_((send || []).length || 1)') !== -1, true,
      '★送れたときだけ、メッセージの数ぶんを足す（LINEは1通ずつ数えるため）');
+
+  /*
+   * ★知らせの通し番号（まーくさんのご指示）
+   *   「各通知について、総回数を一番下に記録していってください」
+   *   種類ごとに数えて、いちばん下に「◯回目」と書きます。
+   *   グループへのレポートには付けません。
+   */
+  {
+    const MINE = 'Umark';
+    const keepT = ctx.rpTestTarget_;
+    ctx.rpTestTarget_ = () => MINE;
+    const keepTok = ctx.getLineToken_;
+    ctx.getLineToken_ = () => 'tok';
+    const keepFetch = ctx.UrlFetchApp.fetch;
+    let sent = [];
+    ctx.UrlFetchApp.fetch = function (url, opt) {
+      sent.push(JSON.parse(opt.payload));
+      return { getResponseCode: () => 200, getContentText: () => '{}' };
+    };
+    delete props['LR_TELL_COUNT'];
+
+    // 種類の見分け
+    eq(ctx.lrTellKind_('《スプシ》 とりこみ かんりょう'), 'とりこみ', '  「とりこみ」を見分ける');
+    eq(ctx.lrTellKind_('《じどう》 ⚠️ 公開だけ しっぱい'), '公開しっぱい',
+       '  「公開だけ しっぱい」は、ただのしっぱいと分けて数える');
+    eq(ctx.lrTellKind_('❌ 書き込めませんでした'), 'しっぱい', '  しくじりを見分ける');
+    eq(ctx.lrTellKind_('きょうのイベント'), 'イベント', '  イベントを見分ける');
+
+    // 個人あては、いちばん下に「◯回目」が付く
+    ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう' }]);
+    has(sent[0].messages[0].text, '（とりこみ 1回目）', '★個人あては「1回目」が付く');
+    ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう（2件）' }]);
+    has(sent[1].messages[0].text, '（とりこみ 2回目）', '★★送るたびに、数が増える');
+    eq(sent[1].messages[0].text.split('\n').pop(), '（とりこみ 2回目）',
+       '★いちばん下の行に書く');
+
+    // 種類がちがえば、別に数える
+    ctx.lrPush_(MINE, [{ type: 'text', text: '❌ 書き込めませんでした' }]);
+    has(sent[2].messages[0].text, '（しっぱい 1回目）', '★種類がちがえば、別に数える');
+    ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう（3件）' }]);
+    has(sent[3].messages[0].text, '（とりこみ 3回目）', '　もとの種類は、続きから数える');
+
+    // グループには付けない
+    ctx.lrPush_('Cgroup', [{ type: 'text', text: '《スプシ》 とりこみ かんりょう' }]);
+    eq(sent[4].messages[0].text.indexOf('回目') !== -1, false,
+       '★グループへの知らせには、付けない');
+
+    // 絵（Flex）だけのときは、付けない
+    ctx.lrPush_(MINE, [{ type: 'flex', altText: 'レポート', contents: {} }]);
+    eq(JSON.stringify(sent[5].messages).indexOf('回目') !== -1, false,
+       '★絵だけのときは、付けない');
+
+    // 送れなかったときは、数を進めない
+    ctx.UrlFetchApp.fetch = function () {
+      return { getResponseCode: () => 500, getContentText: () => '{}' };
+    };
+    try { ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう' }]); }
+    catch (e) {}
+    eq(ctx.lrTellCounts_()['とりこみ'], 3, '★★送れなかったら、数は進めない（数が合わなくなるため）');
+
+    // もとの並びは、書き換えない（送り直しで2つ付かないように）
+    ctx.UrlFetchApp.fetch = function (url, opt) {
+      sent.push(JSON.parse(opt.payload));
+      return { getResponseCode: () => 200, getContentText: () => '{}' };
+    };
+    const msgs = [{ type: 'text', text: '《スプシ》 とりこみ かんりょう' }];
+    ctx.lrPush_(MINE, msgs);
+    eq(msgs[0].text, '《スプシ》 とりこみ かんりょう',
+       '★渡された並びは、そのままにしておく');
+    ctx.lrPush_(MINE, msgs);
+    eq((sent[sent.length - 1].messages[0].text.match(/回目/g) || []).length, 1,
+       '★送り直しても、「◯回目」が2つ付かない');
+
+    ctx.UrlFetchApp.fetch = keepFetch;
+    ctx.rpTestTarget_ = keepT;
+    ctx.getLineToken_ = keepTok;
+    delete props['LR_TELL_COUNT'];
+  }
   eq(src.indexOf('lrPushAdd_') !== -1 && src.indexOf('if (code >= 200 && code < 300) {') !== -1, true,
      '  しくじったぶんは数えない');
 

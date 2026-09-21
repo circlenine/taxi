@@ -2,7 +2,21 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L060ver  （2026/09/21）  ★★★
+ *  ★★★  L061ver  （2026/09/22）  ★★★
+ *
+ *  [L061ver]
+ *   ・🔢 知らせのいちばん下に「◯回目」を書くようにした（ご指示）
+ *     ★「各通知について、総回数を一番下に記録していってください」
+ *     ★種類ごとに数えます。
+ *       とりこみ／公開しっぱい／しっぱい／再開／イベント／天気／
+ *       レポート／そのた の8つに分けます。
+ *     ★付けるのは、まーくさん個人あての「文字の知らせ」だけです。
+ *       グループへのレポートには付けません。
+ *       みんなが見るものに、こちらの数え書きを出す意味がないためです。
+ *     ★数を進めるのは、送れてからです。
+ *       送れなかったのに数だけ増えると、数が合わなくなります。
+ *     ★渡された並びは書き換えず、写しに書きます。
+ *       書き換えると、送り直したときに「◯回目」が2つ付きます。
  *
  *  [L060ver]
  *   ・🌧 雨の日の比べを、実測で確かめた日数つきで出すようにした
@@ -789,7 +803,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L060ver";
+const LR_VERSION = "L061ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -2358,6 +2372,109 @@ function lrPushCount_() {
 /** 今月の残り（目安） */
 function lrPushLeft_() { return Math.max(0, LR_PUSH_LIMIT - lrPushCount_()); }
 
+/* ================================================================
+ *  📣 知らせの通し番号
+ *
+ *  ★まーくさんのご指示です。
+ *    「各通知について、総回数を一番下に記録していってください」。
+ *    同じ知らせが何通目なのかが分かると、
+ *    多すぎるもの・届いていないものに、すぐ気づけます。
+ *
+ *  ★付けるのは、まーくさん個人あての文字の知らせだけです。
+ *    グループへのレポートには付けません。
+ *    みんなが見るものに、こちらの数え書きを出す意味がないためです。
+ * ================================================================ */
+
+/** 数えた回数のしまい場所 */
+const LR_TELL_COUNT_KEY = "LR_TELL_COUNT";
+
+/**
+ * 知らせの中身から、どの種類かを決める。
+ * ★種類ごとに数えるので、ここが分け目になります。
+ */
+function lrTellKind_(text) {
+  const t = String(text == null ? "" : text);
+  if (t.indexOf("とりこみ") !== -1) return "とりこみ";
+  if (t.indexOf("公開だけ") !== -1) return "公開しっぱい";
+  if (t.indexOf("しっぱい") !== -1 || t.indexOf("❌") !== -1) return "しっぱい";
+  if (t.indexOf("再開") !== -1) return "再開";
+  if (t.indexOf("イベント") !== -1 || t.indexOf("会場") !== -1) return "イベント";
+  if (t.indexOf("天気") !== -1) return "天気";
+  if (t.indexOf("レポート") !== -1) return "レポート";
+  return "そのた";
+}
+
+/** いま何回目になるか（数えるのは、送れてからです） */
+function lrTellCountPeek_(kind) {
+  let m = {};
+  try {
+    m = JSON.parse(PropertiesService.getScriptProperties()
+      .getProperty(LR_TELL_COUNT_KEY) || "{}");
+  } catch (e) { m = {}; }
+  return (Number(m[kind]) || 0) + 1;
+}
+
+/** 送れたので、数を1つ進める */
+function lrTellCountSave_(kind, n) {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    let m = {};
+    try { m = JSON.parse(pr.getProperty(LR_TELL_COUNT_KEY) || "{}"); } catch (e) { m = {}; }
+    m[kind] = n;
+    pr.setProperty(LR_TELL_COUNT_KEY, JSON.stringify(m));
+  } catch (e) {}
+}
+
+/** 数えた回数を ぜんぶ出す（「📊」や困ったときに見るため） */
+function lrTellCounts_() {
+  try {
+    return JSON.parse(PropertiesService.getScriptProperties()
+      .getProperty(LR_TELL_COUNT_KEY) || "{}");
+  } catch (e) { return {}; }
+}
+
+/** まーくさん個人あてかどうか */
+function lrIsMine_(targetId) {
+  try {
+    const me = (typeof rpTestTarget_ === "function") ? rpTestTarget_() : "";
+    return !!me && String(targetId) === String(me);
+  } catch (e) { return false; }
+}
+
+/**
+ * 知らせのいちばん下に「◯回目」を1行足す。
+ *
+ * ★まだ数は進めません。送れてから進めます。
+ *   送れなかったのに数だけ増えると、数が合わなくなるためです。
+ * ★戻り値の done() を、送れたあとに呼びます。
+ */
+function lrStampCount_(targetId, messages) {
+  const none = { messages: messages, done: function () {} };
+  try {
+    if (!lrIsMine_(targetId)) return none;
+    const list = messages || [];
+    // いちばん下の「文字」の知らせに付けます（絵の下には付けません）
+    let at = -1;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i] && list[i].type === "text" && typeof list[i].text === "string") { at = i; break; }
+    }
+    if (at < 0) return none;
+    const text = String(list[at].text);
+    if (/（[^（）]*\d+回目）\s*$/.test(text)) return none;   // すでに付いている
+
+    const kind = lrTellKind_(list[0] && list[0].text ? list[0].text : text);
+    const n = lrTellCountPeek_(kind);
+    /*
+     * ★もとの並びは そのままにして、写しを作ります。
+     *   呼んだ側の中身を勝手に書き換えると、
+     *   送り直したときに「◯回目」が2つ付きます。
+     */
+    const copy = list.slice();
+    copy[at] = { type: "text", text: text + "\n（" + kind + " " + n + "回目）" };
+    return { messages: copy, done: function () { lrTellCountSave_(kind, n); } };
+  } catch (e) { return none; }
+}
+
 /** 送ったぶんを足す。残りが少なくなったら、1回だけお知らせする */
 function lrPushAdd_(n) {
   let now = 0;
@@ -2394,21 +2511,25 @@ function lrPushAdd_(n) {
 
 function lrPush_(targetId, messages) {
   const token = getLineToken_();
+  // ★まーくさん個人あての知らせには、いちばん下に「◯回目」を足します（ご指示）
+  const st = lrStampCount_(targetId, messages);
+  const send = st.messages;
   const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
     method: "post",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-    payload: JSON.stringify({ to: targetId, messages: messages }),
+    payload: JSON.stringify({ to: targetId, messages: send }),
     muteHttpExceptions: true
   });
   const code = res.getResponseCode();
   if (code >= 200 && code < 300) {
     // ★送れたぶんだけ数える（LINEは「メッセージ1つ」ごとに1通と数えます）
-    try { lrPushAdd_((messages || []).length || 1); } catch (e) {}
+    try { lrPushAdd_((send || []).length || 1); } catch (e) {}
+    try { st.done(); } catch (e) {}      // 送れてから、はじめて数を進める
     return;
   }
 
   const body = String(res.getContentText() || "");
-  throw new Error(lrPushWhy_(code, body, messages));
+  throw new Error(lrPushWhy_(code, body, send));
 }
 
 /** LINEが返した断り文句を、日本語に直す */
