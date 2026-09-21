@@ -2,7 +2,28 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U113ver  （2026/09/22）  ★★★
+ *  ★★★  U114ver  （2026/09/22）  ★★★
+ *
+ *  [U114ver]
+ *   ・🧰 ボタンを足したときの知らせを、足したものの話だけにした（ご指摘）
+ *     ★何を足しても「すぐ上の『期間』と『送り先』を確かめてください」
+ *       と出ていました。これは [7] の話で、[19] とは関わりがありません。
+ *       まーくさんに「期間と送り先とは何でしょうか」と
+ *       要らぬ心配をおかけしました。
+ *     ★足したボタンの名前は、足す「前」に調べるようにしました。
+ *       前は「いちばん下から◯個」だったので、まん中が抜けていたときは
+ *       まるで別のボタンの名前が出ていました。
+ *   ・🩹 入力らん（▼ の3行）が消えても、自分で戻すようにした
+ *     ★前は「ボタンの数が変わったとき」にしか置き直しませんでした。
+ *       手で消してしまうと、次にボタンが増えるまで戻らず、
+ *       [7] も [11] も打てないままになります。
+ *     ★1分おきの見張りに相乗りし、30分に1回まで見ます。
+ *   ・🛡 入力らんを探すしくみが、結果らんにだまされないようにした
+ *     ★探し方は「その言葉を含むマス」です。知らせの文に
+ *       「▼ レポートの期間」と書いたら、結果らんが先に見つかりました。
+ *       書き込めば結果らんを壊すところでした（[13] の二の舞）。
+ *     ★見つけたマスの中身が見出しそのものでなければ、次へ進みます。
+ *       知らせの文にも、見出しそのものの文字は書きません。
  *
  *  [U113ver]
  *   ・🔁 [19] ぜんぶ読み直す を足した
@@ -1213,7 +1234,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U113ver";
+const UPD_VERSION = "U114ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -6382,24 +6403,46 @@ function panelVenueDateChoices_(today) {
 function panelInputCell_(sh, label) {
   if (!sh) return null;
   try {
-    const hit = sh.createTextFinder(label).matchEntireCell(false).findNext();
-    if (!hit) return null;
-    const at = hit.getColumn();
-    let col = at + 1;
     /*
-     * ★名前のらんは C〜F をつないで1マスにしてあります（まーくさんのご指示）。
-     *   その内側の D列を指してしまうと、書いても消えますし、
-     *   読んでも いつも空になります（プルダウンが効かなくなります）。
-     *   名前のらんの右どなり（G列）に飛ばします。
+     * ★見出しそのものの行だけを拾います。
+     *
+     *   探し方は「その言葉を含むマス」です。
+     *   ところが結果らんの知らせに、うっかり同じ言葉を書くと、
+     *   そこが先に見つかって、結果らんを入力らんとまちがえます。
+     *   読むだけならまだしも、書き込めば結果らんを壊します。
+     *   （知らせの文を直す前に、ここでも止まるようにしておきます）
+     *
+     *   だから、見つけたマスの中身が「見出しそのもの」でなければ、
+     *   次の心当たりへ進みます。
      */
-    try {
-      const top = panelTop_(sh);
-      if (top) {
-        const labelCol = panelChkCol_(sh, top) + 1;
-        if (at === labelCol) col = labelCol + PANEL_LABEL_SPAN;
-      }
-    } catch (e) {}
-    return { row: hit.getRow(), col: col };
+    const finder = sh.createTextFinder(label).matchEntireCell(false);
+    for (let i = 0; i < 20; i++) {
+      const hit = finder.findNext();
+      if (!hit) return null;
+
+      let v = "";
+      try { v = String(hit.getValue() == null ? "" : hit.getValue()).trim(); }
+      catch (e) { v = ""; }
+      if (v !== String(label).trim()) continue;
+
+      const at = hit.getColumn();
+      let col = at + 1;
+      /*
+       * ★名前のらんは C〜F をつないで1マスにしてあります（まーくさんのご指示）。
+       *   その内側の D列を指してしまうと、書いても消えますし、
+       *   読んでも いつも空になります（プルダウンが効かなくなります）。
+       *   名前のらんの右どなり（G列）に飛ばします。
+       */
+      try {
+        const top = panelTop_(sh);
+        if (top) {
+          const labelCol = panelChkCol_(sh, top) + 1;
+          if (at === labelCol) col = labelCol + PANEL_LABEL_SPAN;
+        }
+      } catch (e) {}
+      return { row: hit.getRow(), col: col };
+    }
+    return null;
   } catch (e) {}
   return null;
 }
@@ -7540,6 +7583,47 @@ function panelItemsSig_() {
   } catch (e) { return ""; }
 }
 
+/**
+ * 入力らん（▼ の3行）が消えていないか、ときどき見て、消えていれば置き直す。
+ *
+ * ★なぜ要るのか
+ *   入力らんを置き直すしくみは、これまで
+ *   「ボタンの数が変わったとき」にしか動きませんでした。
+ *   手であやまって消してしまうと、次にボタンが増えるまで
+ *   （何日も）戻りません。[7] も [11] も打てなくなります。
+ *   まーくさんが「弄っていた途中で消したかもしれない」と
+ *   おっしゃったので、自分で戻せるようにしました。
+ *
+ * ★1分おきの見張りに相乗りするので、30分に1回までにしぼります。
+ *   毎分やると、1日ぶんの持ち時間を食いつぶします。
+ */
+const PANEL_INPUT_AT  = "PANEL_INPUT_AT";
+const PANEL_INPUT_MIN = 30;
+
+function panelInputsHeal_(sh) {
+  if (!sh) return false;
+  const pr = PropertiesService.getScriptProperties();
+  const at = Number(pr.getProperty(PANEL_INPUT_AT) || 0);
+  if (at && (Date.now() - at) < PANEL_INPUT_MIN * 60000) return false;
+  try { pr.setProperty(PANEL_INPUT_AT, String(Date.now())); } catch (e) {}
+
+  let made = false;
+  try { made = panelEnsureInputs_(sh); } catch (e) { return false; }
+  if (!made) return false;
+
+  /*
+   * ★見出しそのものの文字（「▼ …」）は、ここに書きません。
+   *   結果らんに書くと、入力らんを探すしくみが
+   *   こちらを先に見つけてしまうためです。
+   */
+  panelSay_(sh, "🧰 入力らんを置き直しました\n" +
+    "・レポートの期間・レポートの送り先 … [7] のすぐ上\n" +
+    "・イベントの日付 … [11] のすぐ上\n" +
+    "・消えていたので、作り直しました\n" +
+    "・中身は、はじめの値に戻っています");
+  return true;
+}
+
 function panelAutoSync_(sh) {
   const pr = PropertiesService.getScriptProperties();
   const sig = panelItemsSig_();
@@ -7556,6 +7640,13 @@ function panelAutoSync_(sh) {
    *   形をそろえる処理だけは、ボタンの数と切り離して1回やります。
    *   やったら覚えて、毎分やり直しません。
    */
+  /*
+   * ★入力らんが消えていないかは、ボタンの数と関わりなく見ます。
+   *   ここで帰ってしまうと、そのあとの形そろえ（空け行）が
+   *   次の回まわしになるので、帰らずに続けます。
+   */
+  try { panelInputsHeal_(sh); } catch (e) {}
+
   if (pr.getProperty("PANEL_SETUP_SIG") === sig) {
     if (pr.getProperty("PANEL_TIDY_OK") === sig) return;
     try { panelRepairLost_(sh); } catch (e) {}
@@ -7566,14 +7657,45 @@ function panelAutoSync_(sh) {
   try {
     const head = panelHeadRow_(sh);
     if (!head) { pr.setProperty("PANEL_SETUP_SIG", sig); return; }
+    /*
+     * ★足したボタンの名前は、足す「前」に調べます。
+     *   前は「いちばん下から added 個」を名乗っていましたが、
+     *   まん中のボタンが抜けていたときは、まるで別のボタンの名前が出ます。
+     */
+    let names = [];
+    try {
+      names = panelCheck_(sh).missing.map(function (x) { return x.label; });
+    } catch (e) { names = []; }
     const added = panelSync_(sh, head);
     const made  = panelEnsureInputs_(sh);
     const tidy  = panelTidy_(sh);      // ★空け行と ▼ の行の形をそろえる（ご指示）
     if (added || made) {
       panelProtect_(sh);
-      panelSay_(sh, "🧰 新しいボタンを足しました（" +
-        panelItems_().slice(-Math.max(added, 1)).map(function (x) { return x.label; }).join("、") +
-        "）\n押す前に、すぐ上の「期間」と「送り先」を確かめてください。");
+      /*
+       * ★出す言葉を、足したものに合わせます。
+       *   前は、何を足しても
+       *   「すぐ上の『期間』と『送り先』を確かめてください」と出していました。
+       *   これは [7] レポートをLINEに送る の話で、
+       *   ほかのボタンとは何の関わりもありません。
+       *   まーくさんに「期間と送り先とは何でしょうか」と
+       *   要らぬ心配をおかけしました。
+       */
+      const L = [];
+      if (added) {
+        L.push("🧰 新しいボタンを足しました");
+        (names.length ? names : ["（名前は一覧をごらんください）"])
+          .forEach(function (x) { L.push("・" + x); });
+        L.push("・何をするボタンかは、右がわ（G列）に書いてあります");
+      }
+      if (made) {
+        if (L.length) L.push("");
+        L.push("🧰 入力らんを置き直しました");
+        // ★見出しそのものの文字（「▼ …」）は書きません（上と同じ理由）
+        L.push("・レポートの期間・レポートの送り先 … [7] のすぐ上");
+        L.push("・イベントの日付 … [11] のすぐ上");
+        L.push("・中身は、はじめの値に戻っています");
+      }
+      panelSay_(sh, L.join("\n"));
     }
     pr.setProperty("PANEL_SETUP_SIG", sig);
     pr.setProperty("PANEL_TIDY_OK", sig);

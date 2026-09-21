@@ -219,19 +219,32 @@ function mkPanel() {
       }
     },
     insertRowsAfter: (after, n) => shiftRows(after, n, false),
+    /*
+     * ★本物の findNext() は、呼ぶたびに「次の心当たり」へ進みます。
+     *   前はここで、いつも いちばん最初のものを返していました。
+     *   本物と動きが違うので、
+     *   「1つめが目当てのものでないときに、次を見る」
+     *   という直しを、テストで確かめられませんでした。
+     * ★見つけたものから中身も読めます（本物は Range を返すため）。
+     */
     createTextFinder: q => ({
-      matchEntireCell: () => ({
-        findNext: () => {
-          for (let r = 1; r <= 200; r++) {
-            for (let c = 1; c <= 8; c++) {
+      matchEntireCell: () => {
+        let at = 0;                       // どこまで見たか
+        return {
+          findNext: () => {
+            for (; at < 200 * 8; at++) {
+              const r = Math.floor(at / 8) + 1;
+              const c = (at % 8) + 1;
               if (String(cells[r + ',' + c] || '').indexOf(q) !== -1) {
-                return { getRow: () => r, getColumn: () => c };
+                at++;
+                return { getRow: () => r, getColumn: () => c,
+                         getValue: () => cells[r + ',' + c] };
               }
             }
+            return null;
           }
-          return null;
-        }
-      })
+        };
+      }
     }),
     clear: () => { throw new Error('説明タブを clear してはいけません'); },
     setFrozenRows: () => {},
@@ -1494,6 +1507,71 @@ F('menuMakePanel')();
   F('panelInputSet_')(panel, vm.runInContext('PANEL_IN_DEST', ctx), 'あとで戻す用');
   t(F('panelInputGet_')(panel, vm.runInContext('PANEL_IN_DEST', ctx)) === 'あとで戻す用',
     '送り先らんに書き戻せる（本番のあと自分だけに戻すため）');
+
+  /*
+   * ★手であやまって消してしまっても、戻ってくること。
+   *   前は「ボタンの数が変わったとき」にしか置き直しませんでした。
+   *   消してしまうと、次にボタンが増えるまで（何日も）戻らず、
+   *   [7] も [11] も打てないままになります。
+   *   まーくさんが「弄っていた途中で消したかもしれない」と
+   *   おっしゃったので、自分で戻せるようにしました。
+   */
+  const P2 = vm.runInContext('PANEL_IN_PERIOD', ctx);
+  const D2 = vm.runInContext('PANEL_IN_DEST', ctx);
+  const gone = F('panelInputCell_')(panel, P2).row;
+  for (let c = 1; c <= 9; c++) {
+    delete panel._cells[gone + ',' + c];
+    delete panel._cells[(gone + 1) + ',' + c];
+  }
+  t(!F('panelInputCell_')(panel, P2), '★消した状態を作った');
+
+  delete props['PANEL_INPUT_AT'];
+  F('panelWatch')();
+  t(!!F('panelInputCell_')(panel, P2), '★見張りが、期間のらんを置き直す');
+  t(!!F('panelInputCell_')(panel, D2), '★送り先のらんも置き直す');
+  {
+    const rc1 = F('panelResultCell_')(panel);
+    has(String(panel._cells[rc1.row + ',' + rc1.col] || ''),
+        '入力らんを置き直しました', '　置き直したことを伝える');
+  }
+
+  // 30分に1回まで。毎分やると1日ぶんの持ち時間を食いつぶす
+  const keepRow = F('panelInputCell_')(panel, P2).row;
+  for (let c = 1; c <= 9; c++) {
+    delete panel._cells[keepRow + ',' + c];
+    delete panel._cells[(keepRow + 1) + ',' + c];
+  }
+  F('panelWatch')();
+  t(!F('panelInputCell_')(panel, P2),
+    '★30分たっていなければ、見にいかない（持ち時間を食わない）');
+  props['PANEL_INPUT_AT'] = String(Date.now() - 31 * 60000);
+  F('panelWatch')();
+  t(!!F('panelInputCell_')(panel, P2), '★30分たてば、また置き直す');
+
+  /*
+   * ★結果らんに同じ言葉が書いてあっても、そちらを拾わないこと。
+   *
+   *   探し方は「その言葉を含むマス」です。
+   *   知らせの文に「▼ レポートの期間」と書いたところ、
+   *   結果らんが先に見つかって、入力らんとまちがえました。
+   *   読むだけならまだしも、書き込めば結果らんを壊します。
+   *   見つけたマスの中身が「見出しそのもの」でなければ、
+   *   次の心当たりへ進みます。
+   */
+  {
+    const realRow = F('panelInputCell_')(panel, P2).row;
+    /*
+     * ★まーくさんの説明タブでは、結果らんは3行目、
+     *   入力らんはずっと下にあります。
+     *   つまり、まぎらわしい文のほうが「先に」見つかります
+     */
+    panel._cells['1,1'] = '10:00  🧰 入力らんを置き直しました（' + P2 + '）';
+    const found = F('panelInputCell_')(panel, P2);
+    t(!!found && found.row === realRow,
+      '★★上にまぎらわしい文があっても、ほんとうの入力らんを指す（' +
+      (found ? found.row : 'なし') + '行目／ほんとうは ' + realRow + '行目）');
+    delete panel._cells['1,1'];
+  }
 }
 
 console.log('\n■ 期間のプルダウンの中身');
@@ -1536,6 +1614,23 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
   t(F('panelCheck_')(panel).missing.length === 0, '★見張りが、増えたぶんを自分で足す');
   t(!!F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_PERIOD', ctx)),
     '入力らんも一緒に置く');
+  /*
+   * ★知らせは、足したものの話だけにすること。
+   *   前は、何を足しても
+   *   「すぐ上の『期間』と『送り先』を確かめてください」と出ていました。
+   *   これは [7] の話で、ほかのボタンとは関わりがありません。
+   *   まーくさんに「期間と送り先とは何でしょうか」と
+   *   要らぬ心配をおかけしました。
+   */
+  {
+    const rc0 = F('panelResultCell_')(panel);
+    const said = String(panel._cells[rc0.row + ',' + rc0.col] || '');
+    has(said, '新しいボタンを足しました', '何を足したか伝える');
+    t(said.indexOf('[19] ぜんぶ読み直す') !== -1,
+      '★足したボタンの名前が、そのまま出る', said);
+    t(said.indexOf('確かめてください') === -1,
+      '★関わりのない「期間」「送り先」の話は、出さない', said);
+  }
   t(props['PANEL_SETUP_SIG'] === F('panelItemsSig_')(),
     '足したことを覚えて、毎分やり直さない');
   // ★ボタンが増えたら、覚えていても必ず足しにいく
@@ -3710,7 +3805,15 @@ console.log('\n■ 📖 終わったときの知らせに、ひとことを添�
   t(F('updQuoteKind_')() === 'anime', '  覚えている');
   t(Q().indexOf('『') !== -1, '★アニメのときは、作品名が入る');
   t(F('updQuoteKindSet_')('en') === 'en', '英語に戻せる');
-  t(Q().indexOf('『') === -1, '  戻したら、英語になる');
+  /*
+ * ★「『 が無いこと」で見てはいけません。
+ *   英語のひとことにも、出どころが『レ・ミゼラブル』のように
+ *   書いてあるものが1つあります。
+ *   1つ選ぶのは くじ引きなので、100回に1回ほど、それが当たって
+ *   落ちていました（原因はテストのほうにありました）。
+ *   英語は必ず " から始まるので、そちらで見ます。
+ */
+t(Q().indexOf('"') === 0, '  戻したら、英語になる');
 
   // LINEからの言い方
   const QW = F('updQuoteWord_');
