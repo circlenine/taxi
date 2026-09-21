@@ -4224,6 +4224,63 @@ console.log('\n■ 片づけは、かならず2回に分ける');
   ctx.UrlFetchApp.fetch = keep2;
 }
 
+console.log('\n■ リセットのチェックは、どこに動かしても効く（ご指摘）');
+/*
+ * ★まーくさんが、チェックの場所を動かされます（G4 → H4）。
+ *   言葉（「リセット」）も、消されることがあります。
+ *   「ここにあるはず」と決め打ちにせず、
+ *   押されているものを拾います。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const rr = F('panelResultRow_')(panel);
+
+  // 言葉を消して、H列4行目だけにする（いまのまーくさんの形）
+  Object.keys(panel._cells).forEach(function (k) {
+    if (String(panel._cells[k]).indexOf('リセット') !== -1) delete panel._cells[k];
+    const m = k.match(/^(\d+),(\d+)$/);
+    if (m && +m[1] < F('panelTop_')(panel) &&
+        (panel._cells[k] === true || panel._cells[k] === false)) delete panel._cells[k];
+  });
+  panel._cells['4,8'] = false;                        // H列4行目のチェック
+
+  const c1 = F('panelResetCell_')(panel);
+  t(!!c1 && c1.row === 4 && c1.col === 8,
+    '★言葉が無くても、H列4行目のチェックを見つける（' +
+    (c1 ? c1.row + '行' + c1.col + '列' : 'なし') + '）');
+
+  panel._cells[rr + ',3'] = 'のこっている結果';
+  panel._cells['4,8'] = true;
+  t(F('panelResetIfAsked_')(panel) === true, '★H列4行目でも、押せば効く');
+  t(String(panel._cells[rr + ',3'] || '') === '', '　 結果が空になる');
+  t(panel._cells['4,8'] === false, '　 チェックも □ に戻る');
+  t(panel._heights[rr] === 21, '　 高さも標準（21）に戻る');
+
+  /*
+   * ★動かしたあと、古いチェックが上に残っていることがあります。
+   *   そのときは「押されたほう」を拾わないと、
+   *   新しいほうを押しても、何も起きません
+   */
+  panel._cells['4,7'] = false;                        // 古いほう（G列）が残っている
+  panel._cells['4,8'] = true;                         // 新しいほう（H列）を押した
+  const c2 = F('panelResetCell_')(panel);
+  t(!!c2 && c2.col === 8,
+    '★★古いチェックが残っていても、押されたほうを拾う（' +
+    (c2 ? c2.col + '列' : 'なし') + '）');
+  panel._cells[rr + ',3'] = 'また のこっている結果';
+  t(F('panelResetIfAsked_')(panel) === true, '　 ちゃんと効く');
+  t(String(panel._cells[rr + ',3'] || '') === '', '　 結果が空になる');
+
+  // 言葉を書き戻しても、これまでどおり効く
+  panel._cells['4,9'] = 'リセットボタン';
+  panel._cells['4,8'] = false;
+  const c3 = F('panelResetCell_')(panel);
+  t(!!c3 && c3.row === 4 && c3.col === 8,
+    '★言葉を書き戻せば、そのとなりを見る（' +
+    (c3 ? c3.row + '行' + c3.col + '列' : 'なし') + '）');
+}
+
 console.log('\n■ ★止まったときだけ、再開の予約を立てる（ご指摘）');
 /*
  * ★まーくさんのご指摘です。

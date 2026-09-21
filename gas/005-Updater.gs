@@ -2,7 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U107ver  （2026/09/22）  ★★★
+ *  ★★★  U108ver  （2026/09/22）  ★★★
+ *
+ *  [U108ver]
+ *   ・🔲 リセットのチェックを、どこに動かしても効くようにした（ご指摘）
+ *     ★H列4行目に動かされました。言葉（「リセット」）も消えていました。
+ *     ★「ここにあるはず」と決め打ちにせず、
+ *       ボタンより上のチェックを ぜんぶ拾って、
+ *       **押されているもの**を返すようにしました。
+ *     ★動かしたあと、古いチェックが上に残っていることがあります。
+ *       押されたほうを拾わないと、新しいほうを押しても何も起きません
  *
  *  [U107ver]
  *   ・⏸「上限を迎えたときだけ」再開通知を出すようにした（ご指摘）
@@ -1137,7 +1146,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U107ver";
+const UPD_VERSION = "U108ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -7989,34 +7998,65 @@ function panelIsChk_(sh, row, col) {
 function panelResetCell_(sh) {
   if (!sh) return null;
 
+  /*
+   * ★まーくさんが、チェックの場所を動かされます（G4 → H4）。
+   *   言葉（「リセット」）も、消されることがあります。
+   *
+   * ★なので「ここにあるはず」と決め打ちにしません。
+   *   ボタンより上にあるチェックを ぜんぶ拾って、
+   *   **押されているもの**を返します。
+   *   どこに動かしても、押したものが効くようにするためです。
+   *
+   * ★押されているものが無ければ、言葉のとなりを返します。
+   *   それも無ければ、いちばん下・いちばん右のものを返します
+   *   （動かしたあと、古いチェックが上に残っていることがあるので、
+   *     あとから置いたほうを選びます）。
+   */
+  const found = [];
+  let byWord = null;
+
   // ① 「リセット」と書いてあるセルのとなり
   try {
     const hit = sh.createTextFinder(PANEL_RESET_WORD).matchEntireCell(false).findNext();
     if (hit) {
       const r = hit.getRow(), c = hit.getColumn();
-      if (panelIsChk_(sh, r, c - 1)) return { row: r, col: c - 1 };
-      if (panelIsChk_(sh, r, c + 1)) return { row: r, col: c + 1 };
+      if (panelIsChk_(sh, r, c - 1)) byWord = { row: r, col: c - 1 };
+      else if (panelIsChk_(sh, r, c + 1)) byWord = { row: r, col: c + 1 };
     }
   } catch (e) {}
+  if (byWord) found.push(byWord);
 
-  // ② 言葉が書かれていなくても動くように、ボタンより上のチェックを探す
+  // ② ボタンより上にあるチェックを、ぜんぶ拾う
   try {
     const top = panelTop_(sh);
-    if (!top || top < 2) return null;
-    const chk = panelChkCol_(sh, top);
-    const rows = Math.min(top - 1, sh.getMaxRows());
-    const cols = Math.min(10, sh.getMaxColumns());
-    if (rows < 1 || cols < 1) return null;
-    const grid = sh.getRange(1, 1, rows, cols).getValues();
-    for (let i = 0; i < rows; i++) {
-      for (let c = 0; c < cols; c++) {
-        if (c + 1 === chk) continue;                  // ボタンの列は、別の役目
-        const v = grid[i][c];
-        if (v === true || v === false) return { row: i + 1, col: c + 1 };
+    if (top && top >= 2) {
+      const chk = panelChkCol_(sh, top);
+      const rows = Math.min(top - 1, sh.getMaxRows());
+      const cols = Math.min(10, sh.getMaxColumns());
+      if (rows >= 1 && cols >= 1) {
+        const grid = sh.getRange(1, 1, rows, cols).getValues();
+        for (let i = 0; i < rows; i++) {
+          for (let c = 0; c < cols; c++) {
+            if (c + 1 === chk) continue;              // ボタンの列は、別の役目
+            const v = grid[i][c];
+            if (v === true || v === false) found.push({ row: i + 1, col: c + 1 });
+          }
+        }
       }
     }
   } catch (e) {}
-  return null;
+  if (!found.length) return null;
+
+  // ★押されているものが、いちばん優先
+  for (let i = 0; i < found.length; i++) {
+    try {
+      if (sh.getRange(found[i].row, found[i].col).getValue() === true) return found[i];
+    } catch (e) {}
+  }
+  // ★次は、言葉のとなり
+  if (byWord) return byWord;
+  // ★最後は、いちばん下・いちばん右のもの（あとから置いたほう）
+  return found[found.length - 1];
 }
 
 /**
