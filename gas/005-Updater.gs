@@ -2,7 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U092ver  （2026/09/21）  ★★★
+ *  ★★★  U093ver  （2026/09/21）  ★★★
+ *
+ *  [U093ver]
+ *   ・🚀 [14] に「公開（デプロイ）の状態」を足した
+ *     ★ここが古いと、コードを入れ替えても
+ *       LINEの受け口（doPost）だけ古いコードのまま動きます。
+ *       いちばん気づきにくく、いちばん困る形です
+ *     ★版つきの公開が1件も無ければ、その直し方も出します
+ *   ・⚠️ デプロイのやり直しに失敗したときは、1行にまとめないようにした
+ *     ★1行にしたせいで、この知らせが消えるところでした。わたしの見落としです
  *
  *  [U092ver]
  *   ・🔎 そうさタブに [14]「LINEの調子を調べる」を足した
@@ -3192,7 +3201,18 @@ function updTellResult_(from, out) {
    *   ・頭に ❌ が付いている
    *   ・「新しいコードがありません」（読み先がおかしいときに出ます）
    */
-  const bad = /^❌/.test(body) || body.indexOf("新しいコードがありません") !== -1;
+  /*
+   * ★「しくじった」と見なすもの。
+   *   ★デプロイのやり直しに失敗したときも、ここに入れます。
+   *     1行にまとめたせいで、この知らせが消えるところでした。
+   *     デプロイが古いままだと、コードを入れ替えても
+   *     LINEの受け口は古いコードのまま動きます。
+   *     いちばん気づきにくく、いちばん困る形です。
+   */
+  const bad = /^❌/.test(body) ||
+              body.indexOf("新しいコードがありません") !== -1 ||
+              body.indexOf("デプロイのやり直しは失敗") !== -1 ||
+              body.indexOf("デプロイがまだありません") !== -1;
 
   const me = updMe_();
   if (!me || typeof lrPush_ !== "function") return false;
@@ -4779,7 +4799,32 @@ function panelLineCheck() {
     }
   } catch (e) {}
 
-  // ④ 直近のしくじり
+  // ④ ウェブアプリの公開（デプロイ）の状態
+  //    ★ここが古いと、コードを入れ替えても
+  //      LINEの受け口だけ古いコードのまま動きます
+  L.push("");
+  try {
+    const deps = (updApi_("/deployments", "get", null).deployments) || [];
+    const live = deps.filter(function (d) {
+      return d.deploymentConfig && d.deploymentConfig.versionNumber;
+    });
+    L.push("🚀 公開（デプロイ）：" + deps.length + "件（版つき " + live.length + "件）");
+    live.slice(0, 3).forEach(function (d) {
+      L.push("　版 " + d.deploymentConfig.versionNumber +
+             "　" + String(d.deploymentConfig.description || "（名前なし）").slice(0, 30));
+    });
+    if (!live.length) {
+      L.push("　⚠️ 版つきの公開がありません。");
+      L.push("　　この状態だと、コードを入れ替えても");
+      L.push("　　LINEの受け口は新しくなりません。");
+      L.push("　　Apps Script の「デプロイ」→「新しいデプロイ」→");
+      L.push("　　種類「ウェブアプリ」で1回だけ公開してください。");
+    }
+  } catch (e) {
+    L.push("🚀 公開（デプロイ）：調べられませんでした（" + ((e && e.message) || e) + "）");
+  }
+
+  // ⑤ 直近のしくじり
   L.push("");
   let errs = [];
   try { errs = JSON.parse(pr.getProperty("LAST_ERRORS") || "[]"); } catch (e) { errs = []; }
@@ -4799,7 +4844,7 @@ function panelLineCheck() {
     });
   }
 
-  // ⑤ 実際に1通送ってみる（これが届けば、送るほうは生きている）
+  // ⑥ 実際に1通送ってみる（これが届けば、送るほうは生きている）
   L.push("");
   if (me && typeof lrPush_ === "function") {
     try {
