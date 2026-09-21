@@ -2,11 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V042ver  （2026/09/17）  ★★★
+ *  ★★★  V043ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V043ver]
+ *   ・📏 案内の見出しを4文字でそろえ、「：」の位置を合わせた（ご指示）
+ *     📒自社記録：／👥客層推定：／💬一言　　：／🚫禁止事項：
  *
  *  [V042ver]
  *   ・ iPhoneの「リマインダー」に入れる形にした（ご指示）
@@ -971,7 +975,12 @@ function vnPlaceStats_(names, fromHour, toHour) {
 function vnStatsLine_(st) {
   if (!st || st.count === 0) return "";
   const avg = Math.round(st.sales / st.count);
-  let t = `自社の記録：${st.count}件 平均￥${avg.toLocaleString()}`;
+  /*
+   * ★見出しは4文字でそろえます（まーくさんのご指示）。
+   *   下に「客層推定：」「一言　　：」「禁止事項：」と続くので、
+   *   ここだけ字数が違うと「：」の位置がずれて、目で追えません。
+   */
+  let t = `📒自社記録：${st.count}件 平均￥${avg.toLocaleString()}`;
   if (st.max > avg) t += ` 最高￥${st.max.toLocaleString()}`;
   if (st.waitCount > 0) t += ` 待ち${Math.round(st.waitSum / st.waitCount)}分`;
 
@@ -988,7 +997,7 @@ function vnStatsLine_(st) {
       return k + " " + Math.round(st.ages[k] / total * 100) + "%";
     }).join(" / "));
   }
-  if (parts.length) t += `\n客層（備考に書いてあるぶん）：${parts.join("・")}`;
+  if (parts.length) t += `\n📊備考客層：${parts.join("・")}（備考に書いてあるぶん）`;
   return t;
 }
 
@@ -1215,10 +1224,11 @@ function vnCard_(ev, idx, day, noBells) {
   if (ev.stats) rows.push({ "type": "text", "text": ev.stats, "size": "xxs", "color": "#5f6368", "wrap": true, "margin": "xs" });
 
   // 4行目：客層の見当（これは「推定」。当たり外れがあるので、実績とは色も言葉も分ける）
-  if (ev.guess) rows.push({ "type": "text", "text": "👥 推定：" + ev.guess, "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "xs" });
+  // ★見出しは4文字でそろえて、「：」の位置を合わせる（ご指示）
+  if (ev.guess) rows.push({ "type": "text", "text": "👥客層推定：" + ev.guess, "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "xs" });
 
   // 5行目：ひと言そえられること（長い説明ではなく、ひと言で）
-  if (ev.know) rows.push({ "type": "text", "text": "💬 一言：" + ev.know, "size": "xxs", "color": "#00695c", "wrap": true, "margin": "xs" });
+  if (ev.know) rows.push({ "type": "text", "text": "💬一言　　：" + ev.know, "size": "xxs", "color": "#00695c", "wrap": true, "margin": "xs" });
 
   // 気をつけること（徹夜など）。いちばん目立つところに、赤の太字で
   if (ev.warn) {
@@ -1227,7 +1237,7 @@ function vnCard_(ev, idx, day, noBells) {
   }
 
   // 6行目：禁止（触れてはいけないこと）。ここは赤。ひと目で分かるように
-  if (ev.avoid) rows.push({ "type": "text", "text": "🚫 禁止：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
+  if (ev.avoid) rows.push({ "type": "text", "text": "🚫禁止事項：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
 
   // 5行目：この1件についての助言
   if (ev.advice) rows.push({ "type": "text", "text": "▶ " + ev.advice, "size": "xs", "color": "#1b5e20", "wrap": true, "margin": "sm", "weight": "bold" });
@@ -1484,7 +1494,7 @@ function vnSampleEvents_() {
     const line = vnStatsLine_(st);
     return { venue: venue, kind: kind, icon: icon, title: title, start: start, end: end,
              people: people, url: url,
-             stats: line || "自社の記録：この乗り場の記録はまだありません",
+             stats: line || "📒自社記録：この乗り場の記録はまだありません",
              guess: guess || "", know: know || "", avoid: avoid || "",
              advice: vnAdvice_(venue, end, st) };
   };

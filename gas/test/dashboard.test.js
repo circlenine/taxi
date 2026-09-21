@@ -56,7 +56,26 @@ ctx.SpreadsheetApp = {
   create: t => { created++; createdTitle = t; return { getId: () => 'NEWNEWNEWNEWNEWNEWNEWNEWNEWNEW111',
     getSheets: () => [], deleteSheet: () => {}, getSheetByName: () => null }; },
   flush: () => {},
-  getUi: () => { throw new Error('no ui'); }
+  getUi: () => { throw new Error('no ui'); },
+  // ★おまけの星人は、1つの文の中で 大きさ・太さ・色を変えて書きます。
+  //   そのやり方（リッチテキスト）も、ここでまねておきます
+  newRichTextValue: () => {
+    const B = { _text: '', _styles: [],
+      setText: t => { B._text = String(t); return B; },
+      setTextStyle: (a, b, st) => { B._styles.push({ a: a, b: b, st: st }); return B; },
+      setLinkUrl: () => B,
+      build: () => ({ _text: B._text, _styles: B._styles }) };
+    return B;
+  },
+  newTextStyle: () => {
+    const T = { _bold: false, _size: 0, _color: '',
+      setBold: v => { T._bold = v; return T; },
+      setFontSize: v => { T._size = v; return T; },
+      setForegroundColor: v => { T._color = v; return T; },
+      setUnderline: () => T,
+      build: () => ({ bold: T._bold, size: T._size, color: T._color }) };
+    return T;
+  }
 };
 
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8'), ctx);
@@ -633,7 +652,8 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
    *   実際に動かして、ちゃんと書き込まれることを見る
    */
   {
-    const wrote = [];      // [行, 値]
+    const wrote = [];      // 書き込まれた文
+    const styles = [];     // どこを太字・何ポイントにしたか
     const heights = {};
     const cell = () => {
       const C = {
@@ -641,7 +661,9 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
         setFontSize: () => C, setFontWeight: () => C, setFontColor: () => C,
         setBackground: () => C, setHorizontalAlignment: () => C,
         setVerticalAlignment: () => C, setWrap: () => C, setBorder: () => C,
-        setNumberFormat: () => C
+        setNumberFormat: () => C,
+        // ★星人の本文は、こちらで書き込まれます（太字や大きさを変えるため）
+        setRichTextValue: v => { wrote.push(String((v && v._text) || '')); styles.push(v); return C; }
       };
       return C;
     };
@@ -651,8 +673,10 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
       setRowHeight: (r, h) => { heights[r] = h; },
       getMaxRows: () => 1000,
       insertRowsAfter: () => {},
-      insertImage: (url, c, r) => { img = { url: url, col: c, row: r };
-        return { setWidth: () => ({ setHeight: () => {} }) }; }
+      insertImage: (url, c, r) => { img = { url: url, col: c, row: r, w: 0, h: 0 };
+        const I = { setWidth: w => { img.w = w; return I; },
+                    setHeight: h => { img.h = h; return I; } };
+        return I; }
     };
     const back = ctx.updAlienFallback_;
     vm.runInContext('function updAlienFallback_(){ return { name: "ねぎ星人", toku: ["でかい"], suki: ["ねぎ"], kirai: ["メーター"], kuse: "みぎみぎ！" }; }', ctx);
@@ -672,6 +696,35 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
     ok(all.indexOf('という　りくつなわけだす。') !== -1, '★決まり文句も出る');
     ok(all.indexOf('てめえ達は今から') !== -1, '  はじめの決まり文句も');
     ok(img && img.url === 'https://x/y.png', '★絵も貼る', img);
+    /*
+     * ★絵は N列（14番目）から、Z列いっぱいまで大きく置きます（ご指示）。
+     *   小さいと、何が描いてあるのか分かりませんでした
+     */
+    ok(img && img.col === 14, '★絵は N列から置く（文とかさならない）', img && img.col);
+    ok(img && img.w >= 300, '★絵は Z列ぎりぎりまで大きくする（' + (img && img.w) + 'px）', img && img.w);
+    ok(img && img.h === img.w, '  たて・よこは同じ大きさ');
+    ok(heights[100 + 2] >= img.w, '★絵が下の表にかぶらないよう、行も高くする', heights[100 + 2]);
+
+    // りょうきんは、必ず出る・太字・大きい
+    ok(all.indexOf('〖りょうきん') !== -1, '★りょうきんが、ちゃんと出る');
+    const feeStyled = styles.some(function (v) {
+      if (!v || !v._text) return false;
+      const at = String(v._text).indexOf('〖りょうきん');
+      if (at < 0) return false;
+      return (v._styles || []).some(function (x) {
+        return x.a <= at && x.b > at && x.st && x.st.bold === true && x.st.size >= 12;
+      });
+    });
+    ok(feeStyled, '★りょうきんは 太字で、大きい字にする（おまけでも読みやすく）');
+    const nameStyled = styles.some(function (v) {
+      if (!v || !v._text) return false;
+      const at = String(v._text).indexOf('【ねぎ星人】');
+      if (at < 0) return false;
+      return (v._styles || []).some(function (x) {
+        return x.a <= at && x.b > at && x.st && x.st.bold === true;
+      });
+    });
+    ok(nameStyled, '  星人の名前も太字');
 
     // AIも組み合わせ表もだめなときは、何も置かずに帰る（レポートは止めない）
     wrote.length = 0;
@@ -683,7 +736,7 @@ console.log('\n■ 🛸 いちばん下のおまけ（星人）');
   }
 
   // 絵も添える。ただし絵が出せなくても、レポートは止めない
-  eq(src.indexOf('sheet.insertImage(pic.direct, half + 2, row, 10, 10)') !== -1, true,
+  eq(src.indexOf('sheet.insertImage(pic.direct, PIC_COL, row, 6, 6)') !== -1, true,
      '★絵も添える');
   const fn = src.slice(src.indexOf('function dbFunBlock_(sheet, row)'),
                        src.indexOf('function dbMainTitle_'));

@@ -876,11 +876,20 @@ console.log('\n■ 注意書きと、言葉づかい');
 
   const day = new Date(2026, 8, 16);
   const ev = { venue: 'あ', kind: 'event', title: 'い', start: '18:00', end: '21:00',
-               know: 'デビュー20周年', avoid: '脱退した元メンバーの話' };
+               guess: '20〜40代が中心', know: 'デビュー20周年', avoid: '脱退した元メンバーの話' };
   const card = JSON.stringify(ctx.vnCard_(ev, 0, day, true));
-  has(card, '💬 一言：', '★「話題」ではなく「一言」');
+  /*
+   * ★見出しは4文字でそろえて、「：」の位置を合わせます（ご指示）。
+   *   自社記録／客層推定／一言　　／禁止事項 の4つです
+   */
+  has(card, '💬一言　　：', '★「話題」ではなく「一言」（4文字にそろえる）');
   eq(card.indexOf('💬 話題：'), -1, '  前の言い方は、もう使わない');
-  has(card, '🚫 禁止：', '★「触れない」ではなく「禁止」');
+  has(card, '🚫禁止事項：', '★「触れない」ではなく「禁止」（4文字にそろえる）');
+  has(card, '👥客層推定：', '  「推定」も4文字にそろえる');
+  // ★「：」の位置がそろっていること（見出しの前の字数が、どれも同じ）
+  const labels = ['📒自社記録：', '👥客層推定：', '💬一言　　：', '🚫禁止事項：'];
+  const w = t => { let n = 0; for (const c of t) n += c.charCodeAt(0) < 0x100 ? 1 : 2; return n; };
+  eq(labels.every(x => w(x) === w(labels[0])), true, '★どの見出しも、同じ幅（＝「：」がそろう）');
   eq(card.indexOf('🚫 触れない：'), -1, '  前の言い方は、もう使わない');
 
   // 注意書きの下じきは、薄い黄色
@@ -2258,9 +2267,19 @@ console.log('\n■ 助言は「記録からそのまま数えた数」だけに�
   eq(line.indexOf('近いのは'), -1, '★「近いのは 〇〇」も、もう書かない（ご指示）');
 }
 
+/*
+ * ★ここから下は「これから先の日」で確かめます。
+ *   9/18 のように決め打ちにしていたら、その日が過ぎたとたん
+ *   「もう過ぎている」あつかいになって、テストが落ちました。
+ *   日がたつと落ちるテストは、テストのほうがまちがっています。
+ */
+const FUTURE = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+const FUT_YMD = FUTURE.getFullYear() +
+  ('0' + (FUTURE.getMonth() + 1)).slice(-2) + ('0' + FUTURE.getDate()).slice(-2);
+
 console.log('\n■ リマインダーは、iPhoneの「リマインダー」に入れる');
 {
-  const day = new Date(2026, 8, 18);
+  const day = new Date(FUTURE.getFullYear(), FUTURE.getMonth(), FUTURE.getDate());
   ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
   delete props['VN_SHORTCUT_NAME'];
   delete props['VNLEAD_Umark'];
@@ -2273,7 +2292,7 @@ console.log('\n■ リマインダーは、iPhoneの「リマインダー」�
    */
   pushed.length = 0;
   const took = ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=ap&d=20260918&i=0' } });
+    postback: { data: 'vn=ap&d=' + FUT_YMD + '&i=0' } });
   eq(took, true, '★押されたら、必ず受ける');
   eq(pushed.length, 1, '★押したら、かならず返事が来る（押せたと分かる）');
   has(msgText(pushed[0].msgs[0]), 'まだ使えません', '★用意ができていなければ、できないと はっきり言う');
@@ -2286,7 +2305,7 @@ console.log('\n■ リマインダーは、iPhoneの「リマインダー」�
   eq(props['VN_SHORTCUT_NAME'], 'タクシーのリマインダー', '★ショートカットの名前を覚える');
   pushed.length = 0;
   ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=ap&d=20260918&i=0' } });
+    postback: { data: 'vn=ap&d=' + FUT_YMD + '&i=0' } });
   const tx = msgText(pushed[0].msgs[0]);
   has(tx, 'shortcuts://x-callback-url/run-shortcut', '★押すだけで入るリンクを渡す');
   has(tx, encodeURIComponent('タクシーのリマインダー'), '  どのショートカットかも入れる');
@@ -2303,7 +2322,7 @@ console.log('\n■ リマインダーは、iPhoneの「リマインダー」�
 
 console.log('\n■ お知らせを「何分前」にするかを、押して変えられる');
 {
-  const day = new Date(2026, 8, 18);
+  const day = new Date(FUTURE.getFullYear(), FUTURE.getMonth(), FUTURE.getDate());
   ctx.vnDaySave_(day, [{ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' }]);
   delete props['VNLEAD_Umark'];
   delete props['VN_REMIND'];
@@ -2311,7 +2330,7 @@ console.log('\n■ お知らせを「何分前」にするかを、押して変�
   // まず 📱LINE を押す（既定は5分前）
   pushed.length = 0;
   ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=me&d=20260918&i=0' } });
+    postback: { data: 'vn=me&d=' + FUT_YMD + '&i=0' } });
   const j1 = JSON.stringify(pushed[0].msgs[0]);
   has(j1, '10分前にする', '★返事に「10分前にする」ボタンが付く');
   has(j1, '30分前にする', '  30分前も');
@@ -2322,7 +2341,7 @@ console.log('\n■ お知らせを「何分前」にするかを、押して変�
   // 30分前に変える
   pushed.length = 0;
   ctx.vnHandlePostback_({ replyToken: 'r', source: { userId: 'Umark' },
-    postback: { data: 'vn=lead&d=20260918&i=0&m=30' } });
+    postback: { data: 'vn=lead&d=' + FUT_YMD + '&i=0&m=30' } });
   eq(props['VNLEAD_Umark'], '30', '★その人の「何分前」を覚える');
   has(msgText(pushed[0].msgs[0]), '30分前に変えました', '  変えたと、はっきり返す');
   const q = JSON.parse(props['VN_REMIND'] || '[]');

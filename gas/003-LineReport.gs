@@ -2,7 +2,21 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L052ver  （2026/09/17）  ★★★
+ *  ★★★  L053ver  （2026/09/21）  ★★★
+ *
+ *  [L053ver]
+ *   ・📋 個別乗り場の「⭕️アツい時間」を、いちばん良かった1本だけにした（ご指示）
+ *     ★2件あれば2件とも時刻を並べ、そのうえ「23:00（何時台）」まで
+ *       出していたので、どれを見て動けばよいのか分かりませんでした
+ *     ★書き方は「再現したい乗車」の表にそろえて「土曜 03:16」の形に
+ *     ★件数と平均は、となりのらんに出ています。二重に書きません
+ *   ・🎨 色分けの場所を入れかえた（ご指示）
+ *     ★「アツい時間」は時刻なので、金額の色では塗りません
+ *     ★色を付けるのは「件数/平均」。ほかの表と同じ決まりで塗ります
+ *   ・🔢 1件しかない乗り場に「平均」と書くのをやめた（ご指示）
+ *   ・🛸 おまけの星人を、ちゃんと読めるようにした（ご指摘）
+ *     ★名前・りょうきんを 大きく太字に。りょうきんが消えないようにした
+ *     ★絵を N列〜Z列いっぱい（約330px）まで大きくした
  *
  *  [L052ver]
  *   ・🔗 乗り場名のリンクを、いったん全部やめた（ご指示）
@@ -2039,8 +2053,12 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
 
       if (hr !== -1) {
         if(!spotHotData[sKey]) spotHotData[sKey] = {}; let dhKey = `${dayOfWeek}|${hr}`;
-        if(!spotHotData[sKey][dhKey]) spotHotData[sKey][dhKey] = {count: 0, sales: 0, times: []};
+        if(!spotHotData[sKey][dhKey]) spotHotData[sKey][dhKey] = {count: 0, sales: 0, times: [], rides: []};
+        if(!spotHotData[sKey][dhKey].rides) spotHotData[sKey][dhKey].rides = [];
         spotHotData[sKey][dhKey].count++; spotHotData[sKey][dhKey].sales += price; spotHotData[sKey][dhKey].times.push(exactTimeStr);
+        // ★1本ごとの「曜日・時刻・金額」も覚えておく。
+        //   個別乗り場の表に「いちばん良かった1本」だけを出すため（ご指示）
+        spotHotData[sKey][dhKey].rides.push({ dow: dayOfWeek, t: exactTimeStr, p: price });
         let isHeatmapValidTime = [20,21,22,23,0,1,2,3,4,5].includes(hr); if(isHeatmapValidTime) spotStats[sKey].heatmapValidCount++;
 
         if(timelineStats[dayType][hr]) {
@@ -3493,43 +3511,89 @@ function dbFunBlock_(sheet, row) {
     sheet.setRowHeight(row, 15 * note.split("\n").length + 5);
     row++;
 
-    const L = [];
-    L.push("【" + String(a.name) + "】");
-    L.push("▼特徴");
-    (a.toku || []).forEach(function (t) { L.push("　" + t); });
-    if ((a.suki || []).length) { L.push("▼好きなもの"); a.suki.forEach(function (t) { L.push("　" + t); }); }
-    if ((a.kirai || []).length) { L.push("▼きらいなもの"); a.kirai.forEach(function (t) { L.push("　" + t); }); }
-    if (a.kuse) { L.push("▼口ぐせ"); L.push("　" + a.kuse); }
-    // ★「とくてん　〇てん」→「りょうきん　〇えん」（まーくさんのご指示）。
-    //   危なそうな星人ほど高くなります。LINEに出るものと同じ決め方です
-    L.push("〖りょうきん　" +
-           (typeof updAlienFee_ === "function" ? updAlienFee_(a) : 0) + "えん〗");
-    // ★星人の決まり文句。LINEで出るものと同じにそろえる（別ものに見えないように）
-    L.push("");
-    L.push("てめえ達は今から");
-    L.push("この方を　乗車して下ちい");
-    L.push("");
-    L.push("いまの　スプシを");
-    L.push("どう　アプデしようと");
-    L.push("わたしの　かってです。");
-    L.push("");
-    L.push("という　りくつなわけだす。");
+    /*
+     * ★おまけでも、手を抜かずに読みやすくします（まーくさんのご指示）。
+     *
+     *   前は ぜんぶ同じ細さ・同じ大きさの字を1つのマスに流し込んでいました。
+     *   そのせいで、名前も りょうきん も せりふも のっぺり並び、
+     *   いちばん見たい「りょうきん」が どこにあるのか分かりませんでした。
+     *
+     *   いまは、1つの文の中で 大きさ・太さ・色を変えています。
+     *     ・星人の名前 …… いちばん大きく、太字
+     *     ・▼の見出し …… 太字（中身と見分けるため）
+     *     ・りょうきん …… 大きく、太字、赤（ここがいちばんの見どころ）
+     *     ・せりふ ……… ふつうの細さ（読み流せるように）
+     */
+    const parts = [];
+    parts.push({ t: "【" + String(a.name) + "】\n", b: true, c: "#4527a0", z: 14 });
+    parts.push({ t: "▼特徴\n", b: true, c: "#5e35b1", z: 10 });
+    (a.toku || []).forEach(function (t) { parts.push({ t: "　" + t + "\n", c: "#333333", z: 10 }); });
+    if ((a.suki || []).length) {
+      parts.push({ t: "▼好きなもの\n", b: true, c: "#5e35b1", z: 10 });
+      a.suki.forEach(function (t) { parts.push({ t: "　" + t + "\n", c: "#333333", z: 10 }); });
+    }
+    if ((a.kirai || []).length) {
+      parts.push({ t: "▼きらいなもの\n", b: true, c: "#5e35b1", z: 10 });
+      a.kirai.forEach(function (t) { parts.push({ t: "　" + t + "\n", c: "#333333", z: 10 }); });
+    }
+    if (a.kuse) {
+      parts.push({ t: "▼口ぐせ\n", b: true, c: "#5e35b1", z: 10 });
+      parts.push({ t: "　" + a.kuse + "\n", c: "#333333", z: 10 });
+    }
+    /*
+     * ★りょうきん（0〜100えん）。危なそうな星人ほど高くなります。
+     *   LINEに出るものと、同じ決め方・同じ数字です。
+     * ★updAlienFee_ が読めないときでも、行そのものは必ず出します。
+     *   前は、数字だけが消えて、意味の分からない行が残っていました
+     */
+    let fee = null;
+    try { if (typeof updAlienFee_ === "function") fee = updAlienFee_(a); } catch (e) { fee = null; }
+    parts.push({ t: "〖りょうきん　" + (fee === null ? "？" : fee) + "えん〗\n",
+                 b: true, c: "#c62828", z: 14 });
+    parts.push({ t: "\n", z: 10 });
+    parts.push({ t: "てめえ達は今から\nこの方を　乗車して下ちい\n\n", c: "#4527a0", z: 10 });
+    parts.push({ t: "いまの　スプシを\nどう　アプデしようと\nわたしの　かってです。\n\n", c: "#4527a0", z: 10 });
+    parts.push({ t: "という　りくつなわけだす。", b: true, c: "#4527a0", z: 10 });
 
-    // 左半分に文、右半分に絵。文が絵に隠れないよう、らんを分ける
-    const half = Math.floor(DB_COLS / 2);
-    sheet.getRange(row, 1, 1, half).merge().setValue(L.join("\n"))
-      .setFontSize(10).setFontWeight("normal").setFontColor("#4527a0")
-      .setBackground("#f6f2fc")
-      .setHorizontalAlignment("left").setVerticalAlignment("top").setWrap(true);
-    sheet.getRange(row, half + 1, 1, DB_COLS - half).merge().setBackground("#f6f2fc");
-    sheet.setRowHeight(row, Math.max(160, 15 * L.length + 12));
+    /*
+     * ★絵は N列〜Z列いっぱいまで大きくします（まーくさんのご指示）。
+     *   小さい絵では、何が描いてあるのか分かりませんでした。
+     *   文は A列〜M列に収めるので、絵と重なりません。
+     */
+    const PIC_COL = 14;                       // N列
+    const picCols = DB_COLS - PIC_COL + 1;    // N〜Z＝13らん
+    const PIC_W = Math.max(200, picCols * DB_COL_W - 8);
+    const txtCols = PIC_COL - 1;              // A〜M
+
+    const text = parts.map(function (x) { return x.t; }).join("");
+    const rg = sheet.getRange(row, 1, 1, txtCols).merge()
+      .setHorizontalAlignment("left").setVerticalAlignment("top").setWrap(true)
+      .setBackground("#f6f2fc");
+    const rt = SpreadsheetApp.newRichTextValue().setText(text);
+    let at = 0;
+    parts.forEach(function (x) {
+      const to = at + String(x.t).length;
+      if (to > at) {
+        rt.setTextStyle(at, to, SpreadsheetApp.newTextStyle()
+          .setFontSize(x.z || 10).setBold(!!x.b)
+          .setForegroundColor(x.c || "#333333").build());
+      }
+      at = to;
+    });
+    rg.setRichTextValue(rt.build());
+    sheet.getRange(row, PIC_COL, 1, picCols).merge().setBackground("#f6f2fc");
+
+    // ★絵の高さぶん、行を高くしておく（絵が下の表にかぶらないように）
+    const lines = text.split("\n").length;
+    sheet.setRowHeight(row, Math.max(PIC_W + 16, 16 * lines + 16));
 
     // 絵は、置けなくても気にしない（無ければ文だけ）
     try {
       let pic = null;
       if (typeof updAlienPicFree_ === "function") pic = updAlienPicFree_(a);
       if (pic && pic.direct) {
-        sheet.insertImage(pic.direct, half + 2, row, 10, 10).setWidth(150).setHeight(150);
+        sheet.insertImage(pic.direct, PIC_COL, row, 6, 6)
+          .setWidth(PIC_W).setHeight(PIC_W);
       }
     } catch (e) {}
     row++;
@@ -5725,26 +5789,32 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   // AIは乗り場ごとに呼ばず、1回でまとめて作る（回数制限に当たらないように）
   for (let item of spotRowsData) {
-    item.bestT = lrThin_(); item.allTimes = [];
+    /*
+     * ★「⭕️アツい時間」は、いちばん良かった 1本 の
+     *   「曜日 時刻」だけにします（まーくさんのご指示）。
+     *
+     *   前は、その時間帯にあった記録を 2件でも3件でも ぜんぶ並べ、
+     *   さらに「23:00（何時台）」と、1時間の幅のある書き方まで
+     *   いっしょに出していました。
+     *   どれを見て動けばよいのか、読む人には分かりません。
+     *
+     *   件数と平均は、すぐ となりの「件数/平均」のらんに出ています。
+     *   同じことを2か所に書くと、数字が食いちがって見えるだけです。
+     *
+     *   書き方は「再現したい乗車」の表にそろえて「土曜 03:16」の形にします。
+     */
+    item.bestT = lrThin_(); item.allTimes = []; item.bestRide = null;
     if(spotHotData[item.key]) {
-      let bC=-1, bS=-1;
       for(let dh in spotHotData[item.key]) {
         let hd = spotHotData[item.key][dh];
         item.allTimes.push(...hd.times);
-        if(hd.count > bC || (hd.count===bC && hd.sales>bS)) {
-          bC=hd.count; bS=hd.sales; let p2=dh.split("|");
-          item.bestAvg = Math.round(bS / bC);
-          /*
-           * ★書き方を「(月) 23時台」から「月曜 23:00」に変えました（ご指示）。
-           *   「23時台」だと1時間の幅があって、いつ行けばよいのか決められません。
-           *   時刻の形で書けば、そのまま予定に置けます。
-           * ★1件しかないものを「平均」とは呼びません。
-           *   1件の平均は平均ではないので、そのときは「1件 ￥12,000」だけ。
-           *   2件以上のときは、合計と読みちがえないよう「1件あたり」と必ず書きます。
-           */
-          item.bestT = dbHotTimeText_(daysStr[p2[0]], p2[1], bC, item.bestAvg,
-                                      Array.from(new Set(hd.times)).sort());
-        }
+        (hd.rides || []).forEach(function (r) {
+          if (!item.bestRide || r.p > item.bestRide.p) item.bestRide = r;
+        });
+      }
+      if (item.bestRide) {
+        item.bestT = daysStr[item.bestRide.dow] + "曜 " + item.bestRide.t;
+        item.bestAvg = item.bestRide.p;
       }
     }
     let wArrAll = []; item.waitText = "";
@@ -5768,24 +5838,30 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
 
   const spFrom = curRow;
   spotRowsData.forEach(function (item, i) {
-    let priceStyleText = `計${item.d.count}件\n平均￥${item.avgSales.toLocaleString()}`;
+    /*
+     * ★1件しかないものを「平均」とは呼びません（ご指示）。
+     *   1件の平均は平均ではありません。そのときは金額だけを書きます
+     */
+    let priceStyleText = item.d.count >= 2
+      ? `計${item.d.count}件\n平均￥${item.avgSales.toLocaleString()}`
+      : `計1件\n￥${item.avgSales.toLocaleString()}`;
     const blockTop = curRow;                 // この乗り場のかたまりの先頭行
     let drngs = getGridRange(sheet, curRow, 1, 1, SP_SPANS);
     // 乗り場名は、このかたまりの2行ぶんをまとめて1マスにする（下のほうで書く）
     /*
-     * ★背景の色分けは「アツい時間」のほうに付けます（まーくさんのご指示）。
-     *   見たいのは「いつ行けば高いか」なので、色が付いているべきは時間のらんです。
-     *   平均金額のらんは、文字の色だけで強さが分かります。
-     * ★色のもとにするのは、その時間帯の金額（item.bestAvg）です。
-     *   その乗り場ぜんたいの平均で色を付けると、
-     *   時間のらんの数字と色が食いちがって見えます。
+     * ★「アツい時間」のらんには、背景の色を付けません（ご指示）。
+     *   ここに出るのは時刻です。金額ではないものを金額の色で塗ると、
+     *   何の色なのか分からなくなります。
+     * ★色を付けるのは「件数/平均」のらんです。
+     *   金額のマスを、ほかの表と同じ決まり（dbMoneyBg_／dbMoneyColor_）で塗ります。
+     *   こうすれば、どの表でも「この色はこの金額」と同じ意味になります。
      */
-    const hotAvg = item.bestAvg || item.avgSales;
-    drngs[2].merge().setValue(item.bestT).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
-      .setBackground(dbMoneyBg_(hotAvg));
+    drngs[2].merge().setValue(item.bestT).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
+      .setBackground("#ffffff");
     // ★「件数/平均」と「待ち時間」を入れかえ、待ち時間をいちばん右にした
     drngs[3].merge().setValue(priceStyleText).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
-      .setFontColor(dbMoneyColor_(item.avgSales));
+      .setFontColor(dbMoneyColor_(item.avgSales))
+      .setBackground(dbMoneyBg_(item.avgSales));
     drngs[4].merge().setValue(dbWaitText_(item.waitText.trim())).setFontSize(10).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);
     dbFit_(sheet, curRow, [{ text: item.bestT, span: SP_SPANS[2], size: 10 },
                            { text: item.waitText, span: SP_SPANS[4], size: 10 },

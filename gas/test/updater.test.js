@@ -1851,11 +1851,19 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: 'katastrophe' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人が打っても、そこで止める');
   t(upTrig().length === 0, '  ★取り込みは絶対に始めない');
-  t(ctx.pu.length === 0, '  ★受け口の中では、まだ何も送らない（打ち切られないように）');
-  t(kataRun() === 1, '  代わりに、1秒後に動く見張りを立てる');
-  t(ctx.pu.length === 1, '  その見張りが、1回だけ送る');
-  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1,
+  /*
+   * ★遊びは「その場の返事（reply）」で返します（ご指摘：遊びがうまくいかない）。
+   *   前は 星人も絵も 裏の見張りに逃がしていたので、
+   *   裏が動かない・公式LINEの月200通を使い切っている、のどちらでも
+   *   打った人には 何も返りませんでした。
+   *   返事なら 200通に数えられませんし、裏が動かなくても必ず届きます
+   */
+  t(ctx.rep.length === 1, '★その場で、すぐ返事をする');
+  t(String(ctx.rep[0]).indexOf('きみは　えらばれません') !== -1,
     '  あの黒い球の声で断る');
+  t(String(ctx.rep[0]).indexOf('星人') !== -1, '  星人も、その場の返事に入っている');
+  t(ctx.pu.length === 0, '  ★送信数を食う push は、文には使わない');
+  t(kataRun() === 1, '  絵だけは、1秒後の見張りから送る');
   t(kataTrig().length === 0, '  ★役目を終えた見張りは、自分で片づける');
 
   /*
@@ -1868,10 +1876,10 @@ console.log('\n■ 合言葉「katastrophe」');
     'まーくさんが「カタストロフィ」を打っても受ける');
   t(upTrig().length === 0, '★まーくさんでも、取り込みは始めない（遊びにする）');
   t(props['UPD_LINE_KATA'] === undefined, '  取り込みの覚え書きも残さない');
-  t(kataRun() === 1, '  代わりに、遊びの見張りを立てる');
-  t(ctx.pu.length === 1, '  1回だけ送る');
-  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1,
+  t(ctx.rep.length === 1, '  その場で、すぐ返事をする');
+  t(String(ctx.rep[0]).indexOf('きみは　えらばれません') !== -1,
     '★みんなと同じものが返る');
+  kataRun();
 
   /*
    * ★ほかの人が「💩」を打ったときも、遊びが返る。
@@ -1883,9 +1891,9 @@ console.log('\n■ 合言葉「katastrophe」');
   t(kata({ message: { text: '💩' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     'ほかの人が「💩」を打っても受ける');
   t(upTrig().length === 0, '★ほかの人の「💩」で、取り込みは絶対に始めない');
-  t(kataRun() === 1, '  遊びの見張りを立てる');
-  t(ctx.pu.length === 1, '★何も返らない、ということにはしない');
-  t(ctx.pu[0].msgs[0].text.indexOf('きみは　えらばれません') !== -1, '  遊びが返る');
+  t(ctx.rep.length === 1, '★何も返らない、ということにはしない');
+  t(String(ctx.rep[0]).indexOf('きみは　えらばれません') !== -1, '  遊びが返る');
+  kataRun();
 
   // まーくさんの「💩」→ ここだけが取り込み
   ctx.rep.length = 0; ctx.pu.length = 0; triggers.length = 0;
@@ -2450,10 +2458,11 @@ console.log('\n■ 「えだ」… どこを読むかを、LINEから決める')
   t(kata2({ message: { text: '💩' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     'ほかの人が「💩」を打っても、受けはする');
   t(upTrig().length === 0, '★ほかの人のときは、取り込みを絶対に始めない');
-  t(ctx.pu.length === 0 && ctx.rep.length === 0, '  受け口の中では、まだ何も返さない');
-  t(kataTrig().length === 1, '★代わりに、遊びの見張りを立てる');
-  t(String(props['UPD_KATA_JOBS'] || '').indexOf('"kind":"fun"') !== -1,
-    '  やることリストにも「遊び」と積む');
+  t(ctx.pu.length === 0, '  送信数を食う push は使わない');
+  t(ctx.rep.length === 1, '★その場で、すぐ遊びを返す');
+  t(kataTrig().length === 1, '  絵は、そのあとの見張りから送る');
+  t(String(props['UPD_KATA_JOBS'] || '').indexOf('"kind":"pic"') !== -1,
+    '  やることリストには「絵だけ」と積む（文はもう返したため）');
   // 合言葉のほうも、これまでどおり遊びを返す
   try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uother'); } catch (e) {}
   delete props['UPD_KATA_JOBS'];
@@ -2696,17 +2705,17 @@ console.log('\n■ 僕以外が合言葉を打ったとき');
   } catch (e) {}
   delete props['UPD_KATA_JOBS'];          // 前のところで積んだぶんを持ちこさない
 
-  ctx.pu.length = 0; triggers.length = 0;
+  ctx.pu.length = 0; ctx.rep.length = 0; triggers.length = 0;
   t(kata({ message: { text: 'KATASTROPHE' }, source: { userId: 'Uother', groupId: 'Cgroup' }, replyToken: 'r' }) === true,
     'ほかの人が打っても受ける');
   t(upTrig().length === 0, '★コードの取り込みは、絶対に動かさない');
   t(props['UPD_LINE_TO'] === undefined || props['UPD_LINE_TO'] !== 'Uother',
     '  結果の送り先にもならない');
-  t(ctx.pu.length === 0, '  ★受け口の中では、まだ何も送らない');
+  t(ctx.pu.length === 0, '  ★送信数を食う push は、文には使わない');
+  t(ctx.rep.length >= 1, '★その場で、すぐ返す');
   kataRun();
-  t(ctx.pu.length === 1, '★送るのは1回だけ');
-  t(ctx.pu[0].to === 'Cgroup', '  打った場所（グループ）へ送る');
-  const dn = ctx.pu[0].msgs[0].text;
+  // ★文は「その場の返事」、絵だけが あとから届きます
+  const dn = String(ctx.rep[ctx.rep.length - 1]);
   t(dn.indexOf('きみは　えらばれません') !== -1, '  あの黒い球の声で断る');
   t(dn.indexOf('スプシは　かわりません') !== -1,
     '  ★「なにも変わっていない」と、はっきり書く');
@@ -3357,7 +3366,8 @@ console.log('\n■ 合図の役わり（カタストロフィ＝遊び／💩＝
     t(K({ message: { text: w }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
       '★まーくさんの「' + w + '」も、受ける');
     t(upTrig().length === 0, '  ★取り込みは始めない（遊び）');
-    t(jobs().indexOf('"kind":"fun"') !== -1, '  遊びとして積む');
+    // ★文はその場で返し、積むのは「絵だけ」のおつかいです
+    t(jobs().indexOf('"kind":"pic"') !== -1, '  絵だけを、あとから送るように積む');
     t(props['UPD_LINE_KATA'] === undefined, '  取り込みの覚え書きも残さない');
   });
 
@@ -3374,7 +3384,7 @@ console.log('\n■ 合図の役わり（カタストロフィ＝遊び／💩＝
   t(K({ message: { text: '💩' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
     '★ほかの人の「💩」も、受ける');
   t(upTrig().length === 0, '★ほかの人の「💩」で、取り込みは絶対に始めない');
-  t(jobs().indexOf('"kind":"fun"') !== -1, '★代わりに、遊びを返す（何も返らない、にはしない）');
+  t(jobs().indexOf('"kind":"pic"') !== -1, '★代わりに、遊びを返す（何も返らない、にはしない）');
 
   // 同じ人が続けて打っても、動画だらけにはならない（10分に1回まで）
   clear();
