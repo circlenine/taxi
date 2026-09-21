@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U095ver  （2026/09/21）  ★★★
+ *  ★★★  U096ver  （2026/09/21）  ★★★
+ *
+ *  [U096ver]
+ *   ・🔢 とりこみの知らせに、入れ替わったバージョンを載せた（ご指示）
+ *     ★「とりこみ かんりょう」とだけ出ても、ほんとうに新しいものに
+ *       入れ替わったのかが分かりません。数字が前と変わっていれば、
+ *       入れ替わったと ひと目で分かります。
+ *     ★数字は「書き込んだ中身そのもの」から読んでいます（updSrcVers_）。
+ *       取り込みの最中に動いているのは、まだ古いほうのコードです。
+ *       そちらから読むと、入れ替えても数字が変わらず、
+ *       かえって「入っていない」と勘違いさせます。ここが肝心です。
+ *     ★自動のときは2行目に、手で「💩」と打ったときも出します。
+ *       前のコードに戻したときも、どこまで戻ったかを数字で出します。
+ *   ・🧪 先頭のバージョンと 〇〇_VERSION のずれを、全ファイルで見るようにした
+ *     ★[14] が永遠に足されなかったのは、005 の先頭が U095 まで上がっても
+ *       UPD_VERSION が U023 のまま置き去りだったからです。
+ *       これまでは 005 しか見ていませんでした。
+ *       いまは defined.test.js が 001〜007 ぜんぶを見ます
  *
  *  [U095ver]
  *   ・🔲 説明のらんの場所をまちがえていたのを直した
@@ -941,7 +958,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U095ver";
+const UPD_VERSION = "U096ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3125,7 +3142,7 @@ function updHandleQuote_(ev) {
   return true;
 }
 
-function updKataDone_(body) {
+function updKataDone_(body, vers) {
   let what = "";
   try {
     const m = String(body || "").match(/入れ替え：([^\n]*)/);
@@ -3136,6 +3153,7 @@ function updKataDone_(body) {
   return UPD_BALL + "\n" +
          "とりこみ　かんりょう。\n" +
          (what && what !== "なし" ? "　" + what.slice(0, 60) + "\n" : "") +
+         (vers ? "　" + String(vers) + "\n" : "") +
          "\n" +
          UPD_KATA_END +
          (q ? "\n\n" + q : "");
@@ -3213,6 +3231,66 @@ function updMe_() {
 }
 
 /**
+ * いま動いているコードのバージョンを、短くならべる。
+ *   例：C059/E005/L058/W011/U095/V050/T003
+ *
+ * ★まーくさんのご指示です。
+ *   「とりこみ かんりょう」とだけ出ても、
+ *   ほんとうに新しいものが動き始めたのかが分かりません。
+ *   バージョンが変わっていれば、入れ替わったと ひと目で分かります。
+ *
+ * ★ただし、ここに出るのは「いま動いているコード」の数字です。
+ *   取り込みの最中は、動いているのはまだ古いほうなので、
+ *   取り込みの知らせには updSrcVers_()（書き込む中身から読む方）を使います。
+ *   こちらは、それが取れなかったときの控えです。
+ */
+function updCodeVers_() {
+  const out = [];
+  const add = function (v) {
+    if (v) out.push(String(v).replace(/ver$/, ""));
+  };
+  // typeof で見るので、そのファイルがまだ入っていなくても止まりません
+  try { add(typeof CODE_VERSION !== "undefined" ? CODE_VERSION : ""); } catch (e) {}  // 001-Code
+  try { add(typeof EX_VERSION   !== "undefined" ? EX_VERSION   : ""); } catch (e) {}  // 002-Extras
+  try { add(typeof LR_VERSION   !== "undefined" ? LR_VERSION   : ""); } catch (e) {}  // 003-LineReport
+  try { add(typeof WB_VERSION   !== "undefined" ? WB_VERSION   : ""); } catch (e) {}  // 004-WebApp
+  try { add(typeof UPD_VERSION  !== "undefined" ? UPD_VERSION  : ""); } catch (e) {}  // 005-Updater
+  try { add(typeof VN_VERSION   !== "undefined" ? VN_VERSION   : ""); } catch (e) {}  // 006-Venue
+  try { add(typeof TK_VERSION   !== "undefined" ? TK_VERSION   : ""); } catch (e) {}  // 007-Tenki
+  return out.join("/");
+}
+
+/**
+ * これから書き込む（＝書き込んだ）コードの中から、バージョンを読み取って並べる。
+ *
+ * ★こちらが本命です。
+ *   updCodeVers_() が返すのは「いま動いているコード」の数字です。
+ *   ところが取り込みの最中は、動いているのはまだ「古いほう」なので、
+ *   そちらを出すと、入れ替わっても数字が変わらず、
+ *   「ほんとうに入ったのか」がかえって分からなくなります。
+ *   なので、書き込む中身そのものから読み取ります。
+ *
+ * files … [{ name: "001-Code.gs", source: "…" }, …]
+ *          （appsscript.json のようにバージョンが無いものは、とばします）
+ */
+function updSrcVers_(files) {
+  const list = (files || []).slice().sort(function (a, b) {
+    return String(a && a.name) < String(b && b.name) ? -1 : 1;   // 001→007 の順にそろえる
+  });
+  const out = [];
+  list.forEach(function (f) {
+    try {
+      const m = String((f && f.source) || "").match(/★★★\s*([A-Za-z]{1,3}[0-9]{2,4})ver/);
+      if (m) out.push(m[1]);
+    } catch (e) {}
+  });
+  return out.join("/");
+}
+
+/** 取り込みの知らせに書く、バージョンの行の頭 */
+const UPD_VERS_MARK = "バージョン：";
+
+/**
  * 取り込みの結果を、個人LINEに1通送る。
  * from … どこから始まったか（「じどう」「スプシ」）
  * out  … menuUpdateCode() が返してきた文
@@ -3238,6 +3316,19 @@ function updTellResult_(from, out) {
               body.indexOf("新しいコードがありません") !== -1 ||
               body.indexOf("デプロイのやり直しは失敗") !== -1 ||
               body.indexOf("デプロイがまだありません") !== -1;
+
+  /*
+   * ★何のバージョンが入ったのかを、知らせに添えます。
+   *   menuUpdateCode() が「バージョン：C059/E005/…」の行を
+   *   結果の文に書いてくれているので、そこから読み取ります。
+   *   （読めなかったときだけ、いま動いているほうの数字で代用します）
+   */
+  let vers = "";
+  try {
+    const mv = body.match(new RegExp(UPD_VERS_MARK + "([^\n]+)"));
+    if (mv) vers = String(mv[1]).trim();
+  } catch (e) {}
+  if (!vers) { try { vers = updCodeVers_(); } catch (e) { vers = ""; } }
 
   const me = updMe_();
   if (!me || typeof lrPush_ !== "function") return false;
@@ -3268,10 +3359,22 @@ function updTellResult_(from, out) {
       const m = body.match(/[0-9]{3}-[A-Za-z]+/g);
       n = m ? m.length : 0;
     } catch (e) { n = 0; }
+    /*
+     * ★バージョンも添えます（まーくさんのご指示）。
+     *   「とりこみ かんりょう」だけだと、
+     *   ほんとうに新しいものに入れ替わったのかが分かりません。
+     *   数字が前の知らせと変わっていれば、入れ替わったと ひと目で分かります。
+     *
+     *   数字は、書き込んだ中身そのものから読んだもの（updSrcVers_）です。
+     *   取り込みの最中に動いているのは、まだ古いほうのコードなので、
+     *   動いている側の数字を出すと、いつまでも変わらず、意味がありません。
+     */
     text = "《" + String(from || "") + "》 とりこみ かんりょう" +
-           (n ? "（" + n + "件）" : "");
+           (n ? "（" + n + "件）" : "") +
+           (vers ? "\n" + vers : "");
   } else {
-    text = head + updKataDone_(body);
+    // ★手で打ったとき（💩）も、同じくバージョンを添えます
+    text = head + updKataDone_(body, vers);
   }
 
   try {
@@ -4314,9 +4417,18 @@ function menuUpdateCode() {
   updProgress_("見張りをそろえています…", 20);
   const armed = updEnsureAll_();
 
+  /*
+   * ★入れ替えたあとのバージョンを、結果の文に書き残します。
+   *   これを updTellResult_() が読み取って、LINEの知らせに添えます。
+   *   「いま動いているコード」から読むのでは間違いになります。
+   *   書き換えたあとも、この実行が終わるまでは古いコードが動いたままだからです。
+   */
+  const versNow = updSrcVers_(merged);
+
   return updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
     "入れ替え：" + (mod.join("、") || "なし") + "\n" +
     "追加　　：" + (add.join("、") || "なし") + "\n" +
+    (versNow ? UPD_VERS_MARK + versNow + "\n" : "") +
     (stale.length ? "消した　：" + stale.join("、") + "（名前が変わったため）\n" : "") +
     (got.skipped.length ? "変更なし：" + got.skipped.join("、") + "\n" : "") +
     dep + "\n" +
@@ -4387,7 +4499,11 @@ function menuRestoreCode() {
                     "　　コードは戻っていますが、動いているものは古いままです。\n" +
                     "　　「デプロイを管理」→ 鉛筆 → 新バージョン → デプロイ をしてください。"; }
 
-  updTell_("⏪ 戻しました", from + " の状態にしました。\n" + dep);
+  // ★戻したときも、どのバージョンに戻ったのかを書き残します
+  //   （「戻したつもりで戻っていない」を、数字で確かめられるように）
+  const versBack = updSrcVers_(files);
+  updTell_("⏪ 戻しました", from + " の状態にしました。\n" +
+    (versBack ? UPD_VERS_MARK + versBack + "\n" : "") + dep);
 }
 
 /** いまのコードを、ドライブに保存しておくだけ */

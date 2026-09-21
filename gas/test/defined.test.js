@@ -84,5 +84,38 @@ if (dup.length) {
   console.log('ok   同じ名前の関数が2つある、ということもない（' + names.length + '個）');
 }
 
+/* ---- ファイルの先頭のバージョンと、コードの中の定数がそろっているか ----
+ *
+ * ★なぜこれが要るのか（実際に起きたこと）
+ *   005-Updater.gs の先頭は U095ver まで上がっていたのに、
+ *   コードの中の UPD_VERSION は U023ver のまま置き去りになっていた。
+ *   ボタンを足したかどうかを「UPD_VERSION が変わったか」で見ていたので、
+ *   数字が動かないかぎり、新しいボタン（[14]）は永遠に足されなかった。
+ *   まる1日、原因が分からないまま探すことになった。
+ *
+ *   先頭の数字は毎回 手で上げる。だから、上げ忘れるほうが自然。
+ *   人の気をつけかたに頼らず、ここで必ず見る。
+ */
+const verNg = [];
+files.forEach(f => {
+  const code = byFile[f];
+  const head = (code.match(/★★★\s*([A-Za-z]{1,3}[0-9]{2,4}ver)/) || [])[1] || '';
+  const m = code.match(/(?:const|let|var)\s+([A-Z][A-Z_]*_VERSION)\s*=\s*["']([^"']+)["']/);
+  if (!head && !m) return;                 // どちらも無いファイルは、対象外
+  if (!head) { verNg.push(`${f}  先頭に ★★★ バージョンが書いていない`); return; }
+  if (!m)    { verNg.push(`${f}  コードの中に 〇〇_VERSION が無い（先頭は ${head}）`); return; }
+  if (m[2] !== head) {
+    verNg.push(`${f}  先頭 ${head} ≠ ${m[1]} ${m[2]}`);
+  }
+});
+if (verNg.length) {
+  fail = 1;
+  console.log('FAIL  先頭のバージョンと、コードの中のバージョンがずれています');
+  console.log('      （ずれると「更新したのに、変わっていない」が起きます）');
+  verNg.forEach(x => console.log('   ' + x));
+} else {
+  console.log('ok   先頭のバージョンと 〇〇_VERSION が、どのファイルもそろっている');
+}
+
 console.log(fail ? '\n失敗' : '\n全テスト通過');
 process.exit(fail);

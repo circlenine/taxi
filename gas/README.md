@@ -10,7 +10,7 @@
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L058ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U095ver | `005-Updater` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U096ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V050ver | `006-Venue` |
 | **T** | `007-Tenki.gs`（天気の記録） | T003ver | `007-Tenki` |
 
@@ -403,6 +403,7 @@ node gas/test/opucha-image.test.js
 node gas/test/opucha.test.js
 node gas/test/place.test.js
 node gas/test/strategy.test.js
+node gas/test/tenki.test.js
 node gas/test/updater.test.js
 node gas/test/venue.test.js
 node gas/test/webapp.test.js

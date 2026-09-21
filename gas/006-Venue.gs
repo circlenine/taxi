@@ -706,7 +706,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V017ver";
+const VN_VERSION = "V050ver";
 
 /**
  * 見にいく先の一覧。

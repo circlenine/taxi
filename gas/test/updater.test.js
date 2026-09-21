@@ -3680,7 +3680,7 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   t(T('じどう', 'とりこみ　かんりょう。\n　001-Code、003-LineReport、005-Updater、006-Venue') === true,
     '自動の知らせは、送る');
   const x = String(ctx.pu[0].msgs[0].text);
-  t(x.split('\n').length === 1, '★1行だけ（直しが続くと、これだけで画面が埋まるため）', x);
+  t(x.split('\n').length <= 2, '★中身は1行＋バージョンだけ（直しが続くと、これだけで画面が埋まるため）', x);
   t(x.indexOf('（4件）') !== -1, '  何件入ったかは出す', x);
   t(x.indexOf('001-Code') === -1, '★ファイルの名前は、自動のときは出さない');
   t(x.indexOf('りくつなわけだす') === -1, '★決まり文句も、自動のときは出さない');
@@ -3712,6 +3712,106 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   t(z.indexOf('001-Code') !== -1, '★手で打ったときは、これまでどおり くわしく（本人が待っているため）');
   t(z.split('\n').length > 1, '  1行ではなく、これまでどおりの形');
   ctx.pu.length = 0;
+}
+
+console.log('\n■ とりこみの知らせに、入れ替わったバージョンを載せる（ご指示）');
+/*
+ * ★なぜ要るのか（まーくさんのご指示）
+ *   「とりこみ かんりょう」とだけ出ても、
+ *   ほんとうに新しいものに入れ替わったのかが分かりません。
+ *   数字が前の知らせと変わっていれば、入れ替わったと ひと目で分かります。
+ *
+ * ★いちばん大事なところ
+ *   数字は「書き込んだ中身」から読まなければいけません。
+ *   取り込みの最中に動いているのは、まだ古いほうのコードだからです。
+ *   動いている側から読むと、入れ替えても数字が変わらず、
+ *   かえって「入っていない」と勘違いさせます。
+ */
+{
+  const S = F('updSrcVers_');
+  const head = function (v) { return ' *  ★★★  ' + v + '  （2026/09/21）  ★★★\n'; };
+
+  // 001→007 の順にそろえて並べる（読む人が毎回おなじ並びで見られるように）
+  const got = S([
+    { name: '003-LineReport.gs', source: head('L058ver') },
+    { name: '001-Code.gs',       source: head('C059ver') },
+    { name: '007-Tenki.gs',      source: head('T003ver') }
+  ]);
+  t(got === 'C059/L058/T003', '★書き込む中身からバージョンを読み、番号の順に並べる（' + got + '）', got);
+
+  // バージョンが書いていないファイル（appsscript.json）は、とばす
+  t(S([{ name: 'appsscript.json', source: '{"timeZone":"Asia/Tokyo"}' },
+       { name: '005-Updater.gs', source: head('U096ver') }]) === 'U096',
+    '★バージョンの無いファイルは、とばす');
+  t(S([]) === '' && S(null) === '', '  何も無ければ、空（知らせに余計な行を出さない）');
+
+  // 実物のファイルから読めること（書き方が変わったら、ここで気づけるように）
+  {
+    const real = ['001-Code.gs', '003-LineReport.gs', '005-Updater.gs', '007-Tenki.gs']
+      .map(function (n) {
+        return { name: n, source: fs.readFileSync(path.join(__dirname, '..', n), 'utf8') };
+      });
+    const rv = S(real);
+    t(/^C\d+\/L\d+\/U\d+\/T\d+$/.test(rv),
+      '★実物の .gs からも、ちゃんと読める（' + rv + '）', rv);
+  }
+}
+
+console.log('\n■ 自動の知らせの2行目に、そのバージョンが出る');
+{
+  const T = F('updTellResult_');
+  props['UPD_TELL'] = '1';
+  ctx.pu.length = 0;
+  T('じどう',
+    'とりこみ　かんりょう。\n' +
+    '入れ替え：001-Code、005-Updater\n' +
+    'バージョン：C059/E005/L058/W011/U096/V050/T003\n' +
+    '見張り：ぜんぶ そろっています');
+  const x = String(ctx.pu[0].msgs[0].text);
+  const lines = x.split('\n');
+  t(lines.length === 2, '★1行目＝かんりょう、2行目＝バージョン だけ（' + lines.length + '行）', x);
+  t(lines[1] === 'C059/E005/L058/W011/U096/V050/T003',
+    '★2行目に、入れ替わったバージョンがそのまま出る', x);
+  t(lines[0].indexOf('（2件）') !== -1, '  何件入ったかは、これまでどおり1行目', x);
+
+  // 手で打ったとき（💩）にも出す。待っている本人がいちばん知りたいところ
+  ctx.pu.length = 0;
+  T('スプシ',
+    '入れ替え：001-Code\nバージョン：C059/U096\n見張り：ぜんぶ そろっています');
+  const z = String(ctx.pu[0].msgs[0].text);
+  t(z.indexOf('C059/U096') !== -1, '★手で打ったときも、バージョンを出す', z);
+
+  // しくじったときは、これまでどおり中身をそのまま出す（バージョンで埋めない）
+  ctx.pu.length = 0;
+  T('じどう', '❌ 書き込めませんでした（400）');
+  t(String(ctx.pu[0].msgs[0].text).indexOf('書き込めませんでした') !== -1,
+    '★しくじったときは、これまでどおり くわしく');
+
+  /*
+   * ★バージョンの行が無いとき（古い形の文が来たとき）でも、知らせは出す。
+   *   ここで止まると、取り込めたのに何も届かない、いちばん困る形になります。
+   */
+  ctx.pu.length = 0;
+  t(T('じどう', 'とりこみ　かんりょう。\n入れ替え：001-Code') === true,
+    '★バージョンの行が無くても、知らせは必ず出す');
+  const noV = String(ctx.pu[0].msgs[0].text);
+  t(noV.indexOf('とりこみ かんりょう') !== -1, '  1行目はこれまでどおり', noV);
+  t(noV.indexOf(vm.runInContext('UPD_VERSION', ctx).replace(/ver$/, '')) !== -1,
+    '  読めないときは、いま動いているほうの数字で代える', noV);
+  ctx.pu.length = 0;
+}
+
+console.log('\n■ 更新の結果そのものに、バージョンの行が入っている');
+{
+  /*
+   * ★ここがつながっていないと、知らせに数字が出ません。
+   *   menuUpdateCode() が書き残す → updTellResult_() が読み取る、の順です
+   */
+  reset([['001-Code.gs', ' *  ★★★  C099ver  （2026/09/21）  ★★★\nあたらしい'],
+         ['appsscript.json', '{"x":1}']]);
+  const out = String(F('menuUpdateCode')() || '');
+  has(out, 'バージョン：', '★更新の結果に「バージョン：」の行が入る');
+  has(out, 'C099', '★書き込んだ中身の数字が出る（動いている古いほうではない）');
 }
 
 console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの、最後の頼り）');
