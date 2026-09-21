@@ -1385,26 +1385,35 @@ console.log('\n■ 📮 公式LINEの送信数を、自分で数える（クロ�
 
     // 個人あては、いちばん下に「◯回目」が付く
     ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう' }]);
-    has(sent[0].messages[0].text, '（とりこみ 1回目）', '★個人あては「1回目」が付く');
+    has(sent[0].messages[0].text, '【Torikomi ver.001】', '★個人あては「ver.001」が付く');
     ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう（2件）' }]);
-    has(sent[1].messages[0].text, '（とりこみ 2回目）', '★★送るたびに、数が増える');
-    eq(sent[1].messages[0].text.split('\n').pop(), '（とりこみ 2回目）',
+    has(sent[1].messages[0].text, '【Torikomi ver.002】', '★★送るたびに、数が増える');
+    eq(sent[1].messages[0].text.split('\n').pop(), '【Torikomi ver.002】',
        '★いちばん下の行に書く');
 
     // 種類がちがえば、別に数える
     ctx.lrPush_(MINE, [{ type: 'text', text: '❌ 書き込めませんでした' }]);
-    has(sent[2].messages[0].text, '（しっぱい 1回目）', '★種類がちがえば、別に数える');
+    has(sent[2].messages[0].text, '【Shippai ver.001】', '★種類がちがえば、別に数える');
     ctx.lrPush_(MINE, [{ type: 'text', text: '《スプシ》 とりこみ かんりょう（3件）' }]);
-    has(sent[3].messages[0].text, '（とりこみ 3回目）', '　もとの種類は、続きから数える');
+    has(sent[3].messages[0].text, '【Torikomi ver.003】', '　もとの種類は、続きから数える');
+
+    // ★けたをそろえる（並べたときに目が迷わないように）
+    eq(ctx.lrTellTag_('とりこみ', 12), '【Torikomi ver.012】', '★12 は ver.012');
+    eq(ctx.lrTellTag_('とりこみ', 123), '【Torikomi ver.123】', '　123 は そのまま3けた');
+    eq(ctx.lrTellTag_('とりこみ', 1234), '【Torikomi ver.1234】',
+       '　1000を超えたら、そのまま出す（切り詰めると数が変わるため）');
+    eq(ctx.lrTellTag_('公開しっぱい', 5), '【Kokai ver.005】', '　種類ごとに名前がちがう');
+    eq(ctx.lrTellTag_('しらない種類', 5), '【Other ver.005】',
+       '★知らない種類でも止まらない');
 
     // グループには付けない
     ctx.lrPush_('Cgroup', [{ type: 'text', text: '《スプシ》 とりこみ かんりょう' }]);
-    eq(sent[4].messages[0].text.indexOf('回目') !== -1, false,
+    eq(sent[4].messages[0].text.indexOf('ver.') !== -1, false,
        '★グループへの知らせには、付けない');
 
     // 絵（Flex）だけのときは、付けない
     ctx.lrPush_(MINE, [{ type: 'flex', altText: 'レポート', contents: {} }]);
-    eq(JSON.stringify(sent[5].messages).indexOf('回目') !== -1, false,
+    eq(JSON.stringify(sent[5].messages).indexOf('ver.') !== -1, false,
        '★絵だけのときは、付けない');
 
     // 送れなかったときは、数を進めない
@@ -1425,8 +1434,21 @@ console.log('\n■ 📮 公式LINEの送信数を、自分で数える（クロ�
     eq(msgs[0].text, '《スプシ》 とりこみ かんりょう',
        '★渡された並びは、そのままにしておく');
     ctx.lrPush_(MINE, msgs);
-    eq((sent[sent.length - 1].messages[0].text.match(/回目/g) || []).length, 1,
-       '★送り直しても、「◯回目」が2つ付かない');
+    eq((sent[sent.length - 1].messages[0].text.match(/ver\./g) || []).length, 1,
+       '★送り直しても、「ver.◯◯◯」が2つ付かない');
+
+    /*
+     * ★すでに付いている文を、そのまま送り直すことがあります
+     *   （しくじって送り直すときなど）。
+     *   そこでまた付けると、1つの知らせに2つ並びます。
+     */
+    const before = ctx.lrTellCounts_()['とりこみ'];
+    ctx.lrPush_(MINE, [{ type: 'text',
+      text: '《スプシ》 とりこみ かんりょう\n【Torikomi ver.005】' }]);
+    eq((sent[sent.length - 1].messages[0].text.match(/ver\./g) || []).length, 1,
+       '★すでに付いていれば、もう付けない');
+    eq(ctx.lrTellCounts_()['とりこみ'], before,
+       '★そのときは、数も進めない（同じ知らせを二重に数えないため）');
 
     ctx.UrlFetchApp.fetch = keepFetch;
     ctx.rpTestTarget_ = keepT;

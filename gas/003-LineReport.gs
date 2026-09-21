@@ -7,9 +7,12 @@
  *  [L061ver]
  *   ・🔢 知らせのいちばん下に「◯回目」を書くようにした（ご指示）
  *     ★「各通知について、総回数を一番下に記録していってください」
+ *     ★形は【Torikomi ver.012】です（ご指示）。
+ *       数字は3けたにそろえます。けたがそろっていないと、
+ *       並べたときに目が迷います。
  *     ★種類ごとに数えます。
- *       とりこみ／公開しっぱい／しっぱい／再開／イベント／天気／
- *       レポート／そのた の8つに分けます。
+ *       Torikomi／Kokai／Shippai／Saikai／Event／Tenki／
+ *       Report／Other の8つに分けます。
  *     ★付けるのは、まーくさん個人あての「文字の知らせ」だけです。
  *       グループへのレポートには付けません。
  *       みんなが見るものに、こちらの数え書きを出す意味がないためです。
@@ -2404,6 +2407,38 @@ function lrTellKind_(text) {
   return "そのた";
 }
 
+/**
+ * 種類の名前を、ローマ字に直す。
+ *
+ * ★まーくさんのご指示です。
+ *   「（とりこみ 12回目）」はかっこよくないので、
+ *   「【Torikomi ver.012】」の形にします。
+ * ★知らない種類が来ても止まらないよう、最後に受け皿を置きます。
+ */
+const LR_TELL_ROMA = {
+  "とりこみ":     "Torikomi",
+  "公開しっぱい": "Kokai",
+  "しっぱい":     "Shippai",
+  "再開":         "Saikai",
+  "イベント":     "Event",
+  "天気":         "Tenki",
+  "レポート":     "Report",
+  "そのた":       "Other"
+};
+
+/**
+ * いちばん下に足す1行を作る。
+ * ★数字は3けたにそろえます（012／123）。
+ *   けたがそろっていないと、並べたときに目が迷います。
+ *   1000を超えたら、そのまま出します（切り詰めると数が変わるため）。
+ */
+function lrTellTag_(kind, n) {
+  const roma = LR_TELL_ROMA[kind] || "Other";
+  const num = Number(n) || 0;
+  const s = num < 1000 ? ("00" + num).slice(-3) : String(num);
+  return "【" + roma + " ver." + s + "】";
+}
+
 /** いま何回目になるか（数えるのは、送れてからです） */
 function lrTellCountPeek_(kind) {
   let m = {};
@@ -2460,7 +2495,7 @@ function lrStampCount_(targetId, messages) {
     }
     if (at < 0) return none;
     const text = String(list[at].text);
-    if (/（[^（）]*\d+回目）\s*$/.test(text)) return none;   // すでに付いている
+    if (/【[^【】]*ver\.\d+】\s*$/.test(text)) return none;   // すでに付いている
 
     const kind = lrTellKind_(list[0] && list[0].text ? list[0].text : text);
     const n = lrTellCountPeek_(kind);
@@ -2470,7 +2505,7 @@ function lrStampCount_(targetId, messages) {
      *   送り直したときに「◯回目」が2つ付きます。
      */
     const copy = list.slice();
-    copy[at] = { type: "text", text: text + "\n（" + kind + " " + n + "回目）" };
+    copy[at] = { type: "text", text: text + "\n" + lrTellTag_(kind, n) };
     return { messages: copy, done: function () { lrTellCountSave_(kind, n); } };
   } catch (e) { return none; }
 }
