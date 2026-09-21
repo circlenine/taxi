@@ -2,7 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U102ver  （2026/09/21）  ★★★
+ *  ★★★  U103ver  （2026/09/21）  ★★★
+ *
+ *  [U103ver]
+ *   ・📏 リセットの□を押したあと、結果らんの高さが
+ *     標準（21）に戻っていなかったのを直した（ご指摘）
+ *     ★「ふだんの高さ」の 42 に戻していました。
+ *       空にしたのに42のままだと、そこだけ行が太く残って、
+ *       消したように見えません。
+ *     ★つないだ行が2行以上あるときは、その ぜんぶを戻します。
+ *       いちばん上だけ戻しても、下が太いままなら同じことです。
+ *   ・🧪 テストの偽スプシに getNumRows を足した
+ *     ★本物にあるのに、こちらに無かったので
+ *       「つないだ行のぜんぶを戻す」を見られませんでした
+ *   ・📝 置き場の案内を circlenine/taxi に直した（名前を変えたあとの取りこぼし）
  *
  *  [U102ver]
  *   ・⏰「⏰ 23:30」で、作業を再開できる時刻に知らせるようにした（ご指示）
@@ -1058,7 +1071,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U102ver";
+const UPD_VERSION = "U103ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5643,7 +5656,16 @@ const PANEL_CHK_COL   = 2;    // はじめて置くときのチェックの列�
 const PANEL_CHK_SIZE  = 50;   // チェックの大きさ（スマホで押しやすいように）
 const PANEL_CHK_H     = 70;   // チェックの行の高さ
 const PANEL_GAP_MAX   = 4;    // ボタンの間に空けてよい行数（押し間違い防止の空行用）
-const PANEL_RESULT_H  = 42;   // 結果らんの、ふだんの高さ
+const PANEL_RESULT_H  = 42;   // 結果らんの、ふだんの高さ（何か書いてあるとき）
+/*
+ * 結果を空にしたときの高さ（まーくさんのご指示）。
+ *
+ * ★スプシの標準の行の高さは 21 です。
+ *   空にしたのに 42 のままだと、そこだけ行が太いまま残って、
+ *   「消したのに、何か残っている」ように見えます。
+ *   空にするなら、見た目も元どおりにします。
+ */
+const PANEL_RESULT_EMPTY_H = 21;
 // 結果らんが、どれだけ高くなってよいか（だいたい10行ぶん）。
 // これより長い文も、セルの中には全部入っている
 const PANEL_RESULT_MAX_H = 200;
@@ -7568,15 +7590,32 @@ function panelResetIfAsked_(sh) {
        *   結合の途中の行に戻しても、見た目は変わりません
        *   （前はここで rc.row のまま戻していて、効かないことがありました）。
        */
-      let hRow = rc.row;
+      let hRow = rc.row, hNum = 1;
       try {
         const rg2 = sh.getRange(rc.row, rc.col);
         if (rg2.isPartOfMerge()) {
           const m2 = rg2.getMergedRanges();
-          if (m2 && m2.length) hRow = m2[0].getRow();
+          if (m2 && m2.length) {
+            hRow = m2[0].getRow();
+            try { hNum = Math.max(1, m2[0].getNumRows()); } catch (e) { hNum = 1; }
+          }
         }
       } catch (e) {}
-      try { sh.setRowHeight(hRow, PANEL_RESULT_H); } catch (e) {}
+      /*
+       * ★標準の高さ（21）に戻します（まーくさんのご指示）。
+       *   前は「ふだんの高さ」の42に戻していました。
+       *   空にしたのに42のままだと、そこだけ行が太く残って、
+       *   消したように見えません。
+       *
+       * ★つないだ行が2行以上あるときは、その ぜんぶを戻します。
+       *   いちばん上だけ戻しても、下の行が太いままだと
+       *   結局ぜんぶ太いままに見えます。
+       */
+      try {
+        for (let i = 0; i < hNum; i++) {
+          sh.setRowHeight(hRow + i, PANEL_RESULT_EMPTY_H);
+        }
+      } catch (e) {}
     }
   } catch (e) {}
   try { sh.getRange(c.row, c.col).setValue(false); } catch (e) {}   // □ に戻す

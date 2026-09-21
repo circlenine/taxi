@@ -10,7 +10,7 @@
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L060ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U102ver | `005-Updater` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U103ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V052ver | `006-Venue` |
 | **T** | `007-Tenki.gs`（天気の記録） | T004ver | `007-Tenki` |
 | **M** | `008-Manual.gs`（手順書のスプシ） | M005ver | `008-Manual` |

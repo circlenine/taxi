@@ -322,9 +322,12 @@ function mkPanel() {
           if (!m) return [];
           let n = 0;
           for (let x = m.c; x <= m.c + 20; x++) { if (merges[m.r + ',' + x]) n++; else break; }
+          // ★たての行数も数える。本物にあるので、ここにも要る
+          let rn = 0;
+          for (let y = m.r; y <= m.r + 20; y++) { if (merges[y + ',' + m.c]) rn++; else break; }
           return [{ getCell: () => panelCell(m.r, m.c),
                     getRow: () => m.r, getColumn: () => m.c,
-                    getNumColumns: () => n }];
+                    getNumColumns: () => n, getNumRows: () => rn }];
         },
         setFontSize: v => {
           for (let i = 0; i < (nr || 1); i++) sizes[(r + i) + ',' + c] = v;
@@ -2215,15 +2218,34 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
   t(panel._cells['4,7'] === false, '  チェックも □ に戻る');
 
   /*
-   * ★高さも、ふだんの高さに戻すこと。
-   *   長い結果のあとは行がとても高いまま残り、
-   *   空にしても画面がすかすかになっていた
+   * ★高さも、標準（21）に戻すこと（まーくさんのご指示）。
+   *   前は「ふだんの高さ」の42に戻していました。
+   *   空にしたのに42のままだと、そこだけ行が太く残って、
+   *   消したように見えません。
    */
   panel._heights[rr] = 600;
   panel._cells[rr + ',3'] = '長かった結果';
   panel._cells['4,7'] = true;
   F('panelResetIfAsked_')(panel);
-  t(panel._heights[rr] === 42, '★空にしたら、高さもふだん（42）に戻す');
+  t(panel._heights[rr] === 21,
+    '★★空にしたら、高さを標準（21）に戻す（' + panel._heights[rr] + '）',
+    String(panel._heights[rr]));
+
+  /*
+   * ★つないだ行が2行以上あるときは、その ぜんぶを戻すこと。
+   *   いちばん上だけ戻しても、下の行が太いままだと
+   *   結局ぜんぶ太いままに見えます
+   */
+  panel._heights[rr] = 600; panel._heights[rr + 1] = 600;
+  panel.getRange(rr, 3, 2, 1).merge();
+  panel._cells[rr + ',3'] = '長かった結果';
+  panel._cells['4,7'] = true;
+  F('panelResetIfAsked_')(panel);
+  t(panel._heights[rr] === 21 && panel._heights[rr + 1] === 21,
+    '★つないだ行は、ぜんぶ標準に戻す（' +
+    panel._heights[rr] + '／' + panel._heights[rr + 1] + '）',
+    panel._heights[rr] + '／' + panel._heights[rr + 1]);
+  panel.getRange(rr, 3, 2, 1).breakApart();
 
   // ボタンの列のチェックは、拾わない（そちらは「動かす」ためのもの）
   delete panel._cells['4,7'];
