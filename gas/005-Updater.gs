@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U106ver  （2026/09/22）  ★★★
+ *  ★★★  U107ver  （2026/09/22）  ★★★
+ *
+ *  [U107ver]
+ *   ・⏸「上限を迎えたときだけ」再開通知を出すようにした（ご指摘）
+ *     ★毎週きまって鳴らすのは、上限に当たっていない週でも鳴ります。
+ *       要らない知らせは、肝心の知らせを埋もれさせます。
+ *     ★見張り番の考え方にしました。
+ *       クロちゃんが置き場に worklog.json（作業の足あと）を置き、
+ *       作業のたびに時刻を書き換えます。
+ *       「作業中」なのに25分 音沙汰がなければ、止まったということです。
+ *       そのときだけ、再開できる時刻に鳴る予約を、黙って立てます。
+ *       また動き出したら、黙って取り消します。
+ *     ★再開できる時刻は、こう決めます。
+ *         メモに resetAt があれば、それ（週の上限）
+ *         無ければ、止まった時刻＋5時間（5時間枠）
+ *       どちらを書くかは、作業を始めるときにクロちゃんが決めます。
+ *     ★はじめて見た足あとが、もう古いときも拾います。
+ *       こちらが止まっていた・覚え書きが消えた、ということがあるためです
  *
  *  [U106ver]
  *   ・⏰「⏰ まいしゅう 月 2:00」で、毎週おなじ時刻に鳴らせるようにした
@@ -1120,7 +1137,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U106ver";
+const UPD_VERSION = "U107ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5641,13 +5658,17 @@ function updResumeFire() {
   try {
     const me = updMe_();
     if (me && typeof lrPush_ === "function") {
+      let kind = "";
+      try { kind = updProps_().getProperty("UPD_RESUME_KIND") || ""; } catch (e) {}
       lrPush_(me, [{ type: "text", text:
-        "⏰ 作業を再開できます\n" +
+        "⏰ 作業を再開できます" + (kind ? "（" + kind + "）" : "") + "\n" +
         "・中断したところから続けられます\n" +
         "・Claudeに「続きから」と伝えてください" }]);
     }
   } catch (e) {}
   try { updProps_().deleteProperty(UPD_RESUME_KEY); } catch (e) {}
+  try { updProps_().deleteProperty("UPD_RESUME_KIND"); } catch (e) {}
+  try { updProps_().deleteProperty(UPD_WORK_ARMED); } catch (e) {}
   try { updResumeClear_(); } catch (e) {}
 }
 
@@ -7643,6 +7664,123 @@ const UPD_ERRAND_OK = {
   "ping":        "動いているかどうかの返事だけ"
 };
 
+/* ================================================================
+ *  ⏸ 作業が止まったことに気づいて、再開できる時刻に知らせる
+ *
+ *  ★まーくさんのご指摘です。
+ *    「上限を迎えてしまったときにだけ、再開通知を送ってほしい」
+ *    「毎週きまって鳴らすのではなく」
+ *
+ *  ★こう作りました（見張り番の考え方）。
+ *      ① クロちゃんは、作業を始めるときに
+ *         置き場の いちばん上に worklog.json を置きます。
+ *         中身は「作業中です」と「いまの時刻」です。
+ *      ② 作業が進むたびに、その時刻を書き足していきます。
+ *      ③ こちらは3分おきに、そのメモを見にいきます。
+ *      ④ 「作業中」と書いてあるのに、時刻が25分以上 古いままなら、
+ *         それは上限に当たって止まった、ということです。
+ *      ⑤ そのときだけ、再開できる時刻に鳴る予約を立てます。
+ *
+ *  ★ふだんは1通も鳴りません。止まったときだけです。
+ *
+ *  ★再開できる時刻は、こう決めます。
+ *      メモに resetAt が書いてあれば、それ（週の上限のとき）
+ *      書いていなければ、止まった時刻＋5時間（5時間枠のとき）
+ *    どちらを書くかは、クロちゃんが作業を始めるときに決めます。
+ *    まーくさんの画面に出た時刻を伝えてあれば、それを書きます。
+ *
+ *  ★予約を立てるときは、黙って立てます。
+ *    「予約しました」と鳴らすと、それ自体が うるさいためです。
+ *    鳴るのは、再開できる時刻になったとき1回だけです。
+ * ================================================================ */
+
+/** 作業の足あとメモ（置き場のいちばん上。gas/ の中に置くと取り込みが壊れます） */
+const UPD_WORK_FILE = "worklog.json";
+/** これだけ音沙汰がなければ「止まった」とみなす（分） */
+const UPD_STALL_MIN = 25;
+/** 5時間枠のとき、再開できるまで（分） */
+const UPD_5H_MIN = 5 * 60;
+/** 最後に見た足あとの時刻 */
+const UPD_WORK_SEEN = "UPD_WORK_SEEN";
+/** どの足あとに対して予約を立てたか */
+const UPD_WORK_ARMED = "UPD_WORK_ARMED";
+
+/** 作業の足あとメモを読む。無ければ null */
+function updWorkRead_() {
+  if (updSource_() !== "github") return null;
+  try {
+    const url = "https://raw.githubusercontent.com/" + updRepo_() + "/" +
+                updRefPath_(updBranch_()) + "/" + UPD_WORK_FILE;
+    const r = updGhTry_(url);
+    if (r.code !== 200 || !r.body) return null;
+    const j = JSON.parse(r.body);
+    if (!j || !j.at) return null;
+    return j;
+  } catch (e) { return null; }
+}
+
+/**
+ * 作業が止まっていないかを見る。止まっていたら、予約を立てて true。
+ *
+ * ★足あとが新しくなっていたら、まだ動いています。
+ *   前に立てた予約は、黙って取り消します。
+ *   止まっていないのに鳴らすのが、いちばん要らない知らせだからです。
+ */
+function updWorkTick_() {
+  const j = updWorkRead_();
+  if (!j) return false;
+  const pr = updProps_();
+
+  let at = 0;
+  try { at = Date.parse(String(j.at || "")); } catch (e) { at = 0; }
+  if (!at) return false;
+
+  const seen = Number(pr.getProperty(UPD_WORK_SEEN) || 0);
+  const fresh = (Date.now() - at) < UPD_STALL_MIN * 60000;
+  if (at > seen) {
+    // ★足あとが新しくなった。前の予約は、黙って取り消す
+    try { pr.setProperty(UPD_WORK_SEEN, String(at)); } catch (e) {}
+    if (pr.getProperty(UPD_WORK_ARMED)) {
+      try { updResumeClear_(); } catch (e) {}
+      try { pr.deleteProperty(UPD_WORK_ARMED); } catch (e) {}
+      try { pr.deleteProperty(UPD_RESUME_KEY); } catch (e) {}
+    }
+    /*
+     * ★ここで いつも引き返してはいけません。
+     *   はじめて見た足あとが、もう古いことがあります
+     *   （こちらが止まっていた・覚え書きが消えた、など）。
+     *   そのときは止まっているので、下の判定に進みます。
+     *   引き返すのは「新しくて、まだ止まっていない」ときだけです。
+     */
+    if (fresh) return true;
+  }
+
+  if (String(j.state || "") !== "working") return false;   // 終わっているなら、何もしない
+  if (pr.getProperty(UPD_WORK_ARMED) === String(at)) return false;   // もう予約ずみ
+  if (fresh) return false;                                 // まだ止まっていない
+
+  /*
+   * ★止まりました。いつ再開できるかを決めます。
+   *   メモに resetAt があれば、それを使います（週の上限のとき）。
+   *   無ければ、止まった時刻＋5時間にします（5時間枠のとき）。
+   */
+  let fire = 0, kind = "";
+  let r = 0;
+  try { r = Date.parse(String(j.resetAt || "")); } catch (e) { r = 0; }
+  if (r && r > Date.now()) { fire = r; kind = String(j.kind || "週の上限"); }
+  else { fire = at + UPD_5H_MIN * 60000; kind = "5時間枠"; }
+  if (fire <= Date.now()) fire = Date.now() + 60000;
+
+  try {
+    updResumeClear_();
+    ScriptApp.newTrigger("updResumeFire").timeBased().at(new Date(fire)).create();
+    pr.setProperty(UPD_WORK_ARMED, String(at));
+    pr.setProperty(UPD_RESUME_KEY, String(fire));
+    pr.setProperty("UPD_RESUME_KIND", kind);
+  } catch (e) { return false; }
+  return true;
+}
+
 /** おつかいメモを1枚読む。無ければ null */
 function updErrandRead_() {
   if (updSource_() !== "github") return null;
@@ -7795,6 +7933,14 @@ function updAutoPullTick_() {
   // ★おつかいメモも、ついでに見る（置き場を見にいくのは、どのみち1回きり）
   try { if (updErrandTick_()) return true; } catch (e) {
     try { logErr_("updErrand", e); } catch (e2) {}
+  }
+  /*
+   * ★作業が止まっていないかも、ついでに見ます。
+   *   止まっていたときだけ、再開の予約を立てます（黙って立てます）。
+   *   ふだんは、ここで何も起きません。
+   */
+  try { updWorkTick_(); } catch (e) {
+    try { logErr_("updWork", e); } catch (e2) {}
   }
   try { return updAutoPull_(); } catch (e) {
     try { logErr_("updAutoPullTick", e); } catch (e2) {}

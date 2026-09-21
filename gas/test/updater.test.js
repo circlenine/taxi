@@ -4224,6 +4224,95 @@ console.log('\n■ 片づけは、かならず2回に分ける');
   ctx.UrlFetchApp.fetch = keep2;
 }
 
+console.log('\n■ ★止まったときだけ、再開の予約を立てる（ご指摘）');
+/*
+ * ★まーくさんのご指摘です。
+ *   「上限を迎えてしまったときにだけ、再開通知を送ってほしい」
+ *
+ * ★見張り番の考え方にしました。
+ *   クロちゃんが置き場に worklog.json（作業の足あと）を置きます。
+ *   「作業中」と書いてあるのに時刻が古いままなら、止まったということです。
+ *   そのときだけ、再開できる時刻に鳴る予約を立てます。
+ *   ふだんは1通も鳴りません。
+ */
+{
+  const W = F('updWorkTick_');
+  const now = Date.now();
+  const iso = ms => new Date(ms).toISOString();
+
+  // ★足あとメモは「そのまま読む（raw）」で取りにいく
+  const setWork = o => {
+    gh = { repo: { default_branch: 'main' }, dir: [],
+           raw: { 'worklog.json': JSON.stringify(o) } };
+  };
+
+  reset([]);
+  props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+
+  // ① まだ動いている（足あとが新しい）→ 何もしない
+  setWork({ state: 'working', at: iso(now - 60000) });
+  W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '★動いているうちは、1つも予約しない');
+  /*
+   * ★3分おきに何度も見にきます。
+   *   2回目からは「もう見た足あと」になるので、
+   *   そこでも予約しないことを、必ず確かめます
+   */
+  W(); W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '★★何度見にきても、動いているうちは予約しない');
+
+  // ② 25分こえて止まった → 予約する
+  setWork({ state: 'working', at: iso(now - 40 * 60000) });
+  W();
+  const t1 = triggers.filter(x => x.getHandlerFunction() === 'updResumeFire');
+  t(t1.length === 1, '★★止まったときだけ、予約を立てる');
+  const fire = t1[0]._at ? t1[0]._at.getTime() : 0;
+  const want = (now - 40 * 60000) + 5 * 60 * 60000;
+  t(Math.abs(fire - want) < 120000,
+    '★resetAt が無ければ、止まった時刻＋5時間（5時間枠）',
+    new Date(fire).toISOString());
+  t(props['UPD_RESUME_KIND'] === '5時間枠', '　 どちらの上限かを覚える');
+
+  // ③ 同じ足あとでは、二度と予約しない
+  W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 1,
+    '　 同じ足あとでは、二度 予約しない');
+
+  // ④ resetAt が書いてあれば、そちらを使う（週の上限）
+  reset([]); props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+  const wk = now + 3 * 24 * 60 * 60000;
+  setWork({ state: 'working', at: iso(now - 40 * 60000),
+            resetAt: iso(wk), kind: '週の上限' });
+  W();
+  const t2 = triggers.filter(x => x.getHandlerFunction() === 'updResumeFire');
+  t(t2.length === 1 && Math.abs(t2[0]._at.getTime() - wk) < 120000,
+    '★★resetAt が書いてあれば、そちらで鳴らす（週の上限）');
+  t(props['UPD_RESUME_KIND'] === '週の上限', '　 週の上限だと覚える');
+
+  // ⑤ 動き出したら、予約を黙って取り消す
+  setWork({ state: 'working', at: iso(now) });
+  W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '★★動き出したら、予約を取り消す（止まっていないのに鳴らさない）');
+  t(!props['UPD_WORK_ARMED'], '　 予約した印も消す');
+
+  // ⑥ 「終わりました」と書いてあれば、止まっていても予約しない
+  reset([]); props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+  setWork({ state: 'done', at: iso(now - 40 * 60000) });
+  W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '★終わっていれば、予約しない');
+
+  // ⑦ メモが無くても、落ちない
+  gh = { repo: { default_branch: 'main' }, dir: [], raw: {} };
+  t(W() === false, '　 メモが無くても落ちない');
+}
+
 console.log('\n■ ⏰ 毎週おなじ時刻に知らせる（ご指摘への答え）');
 /*
  * ★「残りのトークン数で、もうすぐ上限だと分かるはずでは？」というご指摘。
