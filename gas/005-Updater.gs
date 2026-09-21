@@ -2,7 +2,23 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U115ver  （2026/09/22）  ★★★
+ *  ★★★  U116ver  （2026/09/22）  ★★★
+ *
+ *  [U116ver]
+ *   ・📐 結果らんの下の空きの、ほんとうの原因が分かりました（5回目）
+ *     ★[20] でまーくさんの画面を測ると、3行目も4行目も21と返りました。
+ *       それなのに、画面では170pxほどに見えていました。
+ *     ★setRowHeight は「これより低くしない」という指定にすぎません。
+ *       マスの中で字が折り返すと、スプシが勝手に行をふくらませます。
+ *       ふくらむのは、つないだ「いちばん下の行」です。
+ *       だから4行目だけが太って、そこが空きに見えていました。
+ *       こちらが何pxに直しても、見た目は変わらないはずでした。
+ *       U110〜U114の直しが どれも効かなかったのは、これが理由です。
+ *     ★setRowHeightsForced に変えました。決めた高さが、そのまま出ます。
+ *     ★足りないと字が切れるので、1行16→17px、余白6→10pxにしました。
+ *       空くのは見苦しいだけですが、切れると読めません。
+ *   ・🧪 テストの偽スプシも、ふくらむ／ふくらまないを分けました。
+ *     ★本物と同じにしていなかったので、5回とも見逃していました。
  *
  *  [U115ver]
  *   ・📣 LINEの知らせを、必要最低限にした（ご指示）
@@ -1251,7 +1267,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U115ver";
+const UPD_VERSION = "U116ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -6075,11 +6091,16 @@ const PANEL_RESULT_MAX_H = 200;
  *   PANEL_LINE_PX … 1行ぶんの高さ
  *   PANEL_PAD_PX  … 上下の余白
  * ★大きめに取ると安心ですが、毎回そのぶん下が空いて見えます。
- *   字の大きさ11に合わせた、ぎりぎりの数にしてあります。
+ *   字の大きさ11に合わせた数にしてあります。
+ * ★ただし、ぎりぎりには しません。
+ *   高さを「ふくらませない」やり方（setRowHeightsForced）に
+ *   変えたので、足りないと字が切れます。
+ *   空くのは見苦しいだけですが、切れると読めません。
+ *   1行17px・上下あわせて10pxの、ひかえめな余裕を持たせます。
  */
 const PANEL_CHAR_PX = 5.5;
-const PANEL_LINE_PX = 16;
-const PANEL_PAD_PX  = 6;
+const PANEL_LINE_PX = 17;
+const PANEL_PAD_PX  = 10;
 const PANEL_STALL_SEC = 150;  // 何秒うんともすんとも言わなければ「止まった」とみなすか
 const PANEL_HEAD      = "▼ チェックを入れると動きます（終わると自動で外れます）";
 // 見出しを探すときの手がかり。文言を少し直しても見つけられるようにしておく
@@ -8526,7 +8547,7 @@ function panelResetIfAsked_(sh) {
        *   （パネルの他の□も、ぜんぶ21の行に置いてあります）。
        */
       try { panelTrimBelow_(sh, hRow, hNum); } catch (e) {}
-      try { sh.setRowHeight(hRow, PANEL_RESULT_EMPTY_H); } catch (e) {}
+      try { panelSetH_(sh, hRow, PANEL_RESULT_EMPTY_H); } catch (e) {}
       try { panelTrimTail_(sh, hRow, hNum); } catch (e) {}
     }
   } catch (e) {}
@@ -8733,8 +8754,37 @@ function panelTrimTail_(sh, r, nr) {
       if (v === "" || v === null || v === true || v === false) continue;
       return;
     }
-    sh.setRowHeight(row, PANEL_GAP_H);
+    panelSetH_(sh, row, PANEL_GAP_H);
   } catch (e) {}
+}
+
+/**
+ * 行の高さを、ほんとうに その高さにする。
+ *
+ *   ★まーくさんの画面を [20] で測って、ようやく分かりました。
+ *   3行目も4行目も、こちらは21にしていました。
+ *   読み返しても21と返ってきます。
+ *   それなのに、画面では170pxほどに見えていました。
+ *
+ * ★setRowHeight は「これより低くしない」という指定にすぎません。
+ *   マスの中で字が折り返すと、スプシが勝手に行をふくらませます。
+ *   ふくらむのは、つないだ「いちばん下の行」です。
+ *   だから4行目だけが太って、そこが空きに見えていました。
+ *   こちらが何pxに直しても、見た目は変わりませんでした。
+ *
+ * ★setRowHeightsForced なら、ふくらませません。
+ *   決めた高さが、そのまま画面に出ます。
+ *   古いスプシには無いことがあるので、無ければ元のやり方に戻します。
+ */
+function panelSetH_(sh, row, h) {
+  const n = Math.max(1, Math.round(Number(h) || 0));
+  try {
+    if (typeof sh.setRowHeightsForced === "function") {
+      sh.setRowHeightsForced(row, 1, n);
+      return;
+    }
+  } catch (e) {}
+  try { sh.setRowHeight(row, n); } catch (e) {}
 }
 
 /**
@@ -8757,7 +8807,7 @@ function panelTrimBelow_(sh, r, nr) {
     let h = PANEL_GAP_H;
     try { h = sh.getRowHeight(r + i); } catch (e) { h = PANEL_GAP_H; }
     if (h > PANEL_GAP_H) {
-      try { sh.setRowHeight(r + i, PANEL_GAP_H); h = PANEL_GAP_H; } catch (e) {}
+      try { panelSetH_(sh, r + i, PANEL_GAP_H); h = PANEL_GAP_H; } catch (e) {}
     }
     sum += h;
   }
@@ -8831,7 +8881,7 @@ function panelFitRow_(sh, row, col, text) {
      * ★そのうえで、残りを3行目に割りあてます。
      */
     const others = panelTrimBelow_(sh, r, nr);
-    sh.setRowHeight(r, Math.max(PANEL_RESULT_EMPTY_H, need - others));
+    panelSetH_(sh, r, Math.max(PANEL_RESULT_EMPTY_H, need - others));
     panelTrimTail_(sh, r, nr);        // すぐ下の空っぽな行も、太いままなら戻す
   } catch (e) {}
 }
@@ -8875,7 +8925,7 @@ function panelClear_(sh) {
      */
     const others = panelTrimBelow_(sh, r, nr);
     try {
-      sh.setRowHeight(r, Math.max(PANEL_RESULT_EMPTY_H, PANEL_RESULT_H - others));
+      panelSetH_(sh, r, Math.max(PANEL_RESULT_EMPTY_H, PANEL_RESULT_H - others));
     } catch (e) {}
     panelTrimTail_(sh, r, nr);
     SpreadsheetApp.flush();

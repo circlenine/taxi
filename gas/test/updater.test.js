@@ -123,6 +123,14 @@ function mkPanel() {
   const sizes = {};
   const merges = {};      // 'r,c' → 結合のまとまりの左上 {r,c}
   const heights = {};     // 行 → 高さ
+  /*
+   * ★その高さが「ふくらむことがあるもの」かどうか。
+   *   setRowHeight は ふくらみます（true）。
+   *   setRowHeightsForced は ふくらみません（false）。
+   *   まーくさんの画面では、21にしたはずの行が170pxに見えていました。
+   *   本物と同じにしておかないと、また見逃します
+   */
+  const soft = {};
   const valids = {};      // 'r,c' → 入力規則（プルダウン）
   const prot = [];
 
@@ -248,7 +256,19 @@ function mkPanel() {
     }),
     clear: () => { throw new Error('説明タブを clear してはいけません'); },
     setFrozenRows: () => {},
-    setRowHeight: (r, h) => { heights[r] = h; },
+    /*
+     * ★本物の setRowHeight は「これより低くしない」という指定です。
+     *   マスの中で字が折り返すと、スプシが勝手に行をふくらませます。
+     *   だから、こちらが21にしても画面は170pxのまま、
+     *   ということが起きます（まーくさんの画面が そうでした）。
+     *   ここでも、ふくらむ印（_soft）を残しておきます。
+     * ★setRowHeightsForced なら、ふくらみません。
+     */
+    setRowHeight: (r, h) => { heights[r] = h; soft[r] = true; },
+    setRowHeightsForced: (r, n, h) => {
+      for (let i = 0; i < (n || 1); i++) { heights[r + i] = h; soft[r + i] = false; }
+    },
+    _soft: soft,
     // ★行の高さを読むのも、本物にはある。無いと
     //   「たてにつないだ行の、下のぶん」を数えられない
     getRowHeight: r => (heights[r] === undefined ? 21 : heights[r]),
@@ -1962,6 +1982,7 @@ F('panelClear_')(panel);
  */
 t(totH() === 42, 'ふだんの高さ（合計42）に戻る（' + totH() + '）');
 t(panel._cells['48,2'] === '', '中身も空になる');
+t(panel._soft[48] === false, '空にしたときも、ふくらまない高さにする');
 
 /*
  * ★下の行（49行目）には、リセットの□が置いてあります。
@@ -2448,6 +2469,8 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
   t(panel._heights[rr + 1] === 21,
     '★★下の行も標準（21）まで縮める（' +
     panel._heights[rr + 1] + '）', String(panel._heights[rr + 1]));
+  t(panel._soft[rr] === false && panel._soft[rr + 1] === false,
+    '★★リセットのときも、ふくらまない高さにする');
   // 21より低くはしない（□が潰れる）
   panel._heights[rr] = 600; panel._heights[rr + 1] = 12;
   panel._cells[rr + ',3'] = '長かった結果';
@@ -4559,7 +4582,12 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   const n = body.split('\n').length;
 
   t(h >= n * 15, '★文が隠れない（' + n + '行ぶんは入る／' + h + 'px）', String(h));
-  t(h <= n * 17, '★★よけいな空きを残さない（' + n + '行で ' + h + 'px）', String(h));
+  /*
+   * ★1行17px＋上下10pxまで。
+   *   高さを「ふくらませない」やり方に変えたので、
+   *   足りないと字が切れます。ぎりぎりには しません。
+   */
+  t(h <= n * 17 + 10, '★★よけいな空きを残さない（' + n + '行で ' + h + 'px）', String(h));
 
   // 1行だけのときは、ふだんの高さのまま
   F('panelFitRow_')(panel, rr, 2, '03:47  おわりました');
@@ -4588,7 +4616,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
    *   ゆるく見ていると「下の行のぶんを差し引き忘れた」ときに
    *   すり抜けてしまい、下が空いたまま気づけません。
    */
-  t(tot <= n * 17,
+  t(tot <= n * 17 + 10,
     '★★下の行のぶんも数えて、よけいな空きを残さない（合計 ' + tot + 'px）',
     String(tot));
   t(panel._heights[rr + 1] === 21,
@@ -4650,11 +4678,30 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   F('panelFitRow_')(panel, rr, 2, body);
   const real = panel._heights[rr] + panel._heights[rr + 1];
   t(real >= n * 15, '★★本物の形でも、文が隠れない（合計 ' + real + 'px）', String(real));
-  t(real <= n * 17, '★★本物の形でも、よけいな空きを残さない（合計 ' + real + 'px）',
+  t(real <= n * 17 + 10, '★★本物の形でも、よけいな空きを残さない（合計 ' + real + 'px）',
     String(real));
   t(panel._heights[rr + 1] === 21,
     '★★4行目は標準（21）まで縮む（' + panel._heights[rr + 1] + '）');
   t(panel._cells[(rr + 1) + ',8'] === false, '★★H列の□は、消えずに残る');
+
+  /*
+   * ★★ここが、4回 直して4回とも外していた ほんとうの原因です。
+   *
+   *   setRowHeight は「これより低くしない」という指定にすぎません。
+   *   マスの中で字が折り返すと、スプシが勝手に行をふくらませます。
+   *   ふくらむのは、つないだ「いちばん下の行」です。
+   *   だから4行目だけが太って、そこが空きに見えていました。
+   *
+   *   まーくさんの画面を [20] で測ると、3行目も4行目も21と返ってきます。
+   *   それなのに、画面では170pxほどに見えていました。
+   *   こちらが何pxに直しても、見た目は変わらないはずです。
+   *
+   *   setRowHeightsForced なら、ふくらみません。
+   */
+  t(panel._soft[rr] === false,
+    '★★いちばん上の行は、ふくらまない高さにする（setRowHeightsForced）');
+  t(panel._soft[rr + 1] === false,
+    '★★下の行も、ふくらまない高さにする（ここが太って空きに見えていた）');
 }
 
 console.log('\n■ ★スプシから離れても、動くこと（作り直しに要る）');
