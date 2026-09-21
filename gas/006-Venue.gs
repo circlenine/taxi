@@ -2,7 +2,16 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V051ver  （2026/09/21）  ★★★
+ *  ★★★  V052ver  （2026/09/21）  ★★★
+ *
+ *  [V052ver]
+ *   ・📊 イベント通知に「参考資料をひらく」の行を足した（ご指示）
+ *     ★アーティストを探すリンク・自社の実績のグラフ・客層が
+ *       1か所にまとまったスプシへの入口です（009-Shiryo.gs）。
+ *     ★作れなかったときは、行そのものを出しません。
+ *       押しても開かないリンクを出すのが、いちばん不親切なためです。
+ *     ★資料が作れなくても、イベント通知そのものは絶対に止めません
+ *
  *
  *  [V051ver]
  *   ・🔎 [9] で、ほんとうに催しが読めるかまで見るようにした（ご質問）
@@ -720,7 +729,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V051ver";
+const VN_VERSION = "V052ver";
 
 /**
  * 見にいく先の一覧。
@@ -1507,6 +1516,29 @@ function vnBuildMessages_(day, events, note, noBells) {
   if (note) {
     contents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": note, "size": "xxs", "color": "#b71c1c", "wrap": true, "margin": "md" });
+  }
+
+  /*
+   * ★参考資料スプシへの入口（まーくさんのご指示）。
+   *   アーティストを探すリンク・自社の実績のグラフ・客層が
+   *   1か所にまとまっています。
+   *
+   * ★作れなかったときは、行そのものを出しません。
+   *   押しても開かないリンクを出すのが、いちばん不親切なためです。
+   *   資料が作れなくても、イベント通知そのものは絶対に止めません。
+   */
+  if (shown) {
+    let sUrl = "";
+    try {
+      if (typeof shLinkFor_ === "function") sUrl = shLinkFor_(day, events || []);
+    } catch (e) { sUrl = ""; }
+    if (sUrl) {
+      contents.push({ "type": "separator", "margin": "lg" },
+        { "type": "text", "text": "📊 参考資料をひらく（実績のグラフ・客層・リンク）",
+          "size": "xxs", "color": "#1a73e8", "weight": "bold",
+          "decoration": "underline", "wrap": true, "margin": "md",
+          "action": { "type": "uri", "label": "参考資料", "uri": sUrl } });
+    }
   }
 
   // ★注釈は必ず最後に入れる。削る対象にもしない（危ないので）

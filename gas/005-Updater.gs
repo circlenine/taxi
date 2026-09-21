@@ -3372,6 +3372,8 @@ function updCodeVers_() {
   try { add(typeof UPD_VERSION  !== "undefined" ? UPD_VERSION  : ""); } catch (e) {}  // 005-Updater
   try { add(typeof VN_VERSION   !== "undefined" ? VN_VERSION   : ""); } catch (e) {}  // 006-Venue
   try { add(typeof TK_VERSION   !== "undefined" ? TK_VERSION   : ""); } catch (e) {}  // 007-Tenki
+  try { add(typeof MN_VERSION   !== "undefined" ? MN_VERSION   : ""); } catch (e) {}  // 008-Manual
+  try { add(typeof SH_VERSION   !== "undefined" ? SH_VERSION   : ""); } catch (e) {}  // 009-Shiryo
   return out.join("/");
 }
 
@@ -3615,6 +3617,7 @@ function updHandleHelp_(ev) {
     "⏳ 公式LINEの残り通数（月200通）",
     "❗ 版が満杯のときの直し方",
     "📘 マニュアル（手順書のスプシ）",
+    "📊 イベント参考資料（実績のグラフ・客層・リンク）",
     "",
     "▼ そのほか",
     "💩 コードの取り込み（まーくさんだけ）",
