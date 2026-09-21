@@ -1382,7 +1382,7 @@ function updDiag_(wantBranch) {
   if (!repo) {
     L.push("⚠️ コードの置き場が入っていません。");
     L.push("　設定タブ「コードの置き場（GitHub）」に");
-    L.push("　circlenine/test と入れてください。");
+    L.push("　circlenine/taxi と入れてください。");
     return { ok: false, text: L.join("\n") };
   }
   // ★鍵が無くても、公開されている置き場なら読めます。
