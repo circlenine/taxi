@@ -6,13 +6,14 @@
 
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
-| **C** | `001-Code.gs`（統合スクリプト） | C059ver | `001-Code` |
+| **C** | `001-Code.gs`（統合スクリプト） | C060ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
 | **L** | `003-LineReport.gs` | L058ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U098ver | `005-Updater` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U099ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V051ver | `006-Venue` |
 | **T** | `007-Tenki.gs`（天気の記録） | T003ver | `007-Tenki` |
+| **M** | `008-Manual.gs`（手順書のスプシ） | M001ver | `008-Manual` |
 
 > **コードの貼り替えは、ふだん要りません。**
 > 記録用スプシ「説明」タブの **[1] コードを更新する** に☑を入れるだけで、GitHubから取り込まれます
@@ -45,7 +46,7 @@
 > 版（バージョン）が200こで満杯になっている可能性が高いです。
 > 満杯でもコードは入りますが、**LINEの受け口とみんなの記録ページだけが古いまま**動きます。
 > LINEで **「❗」** と送ってください。いまの状態と直し方が出ます。
-> 手順は [docs/版が満杯になったら.md](../docs/版が満杯になったら.md)。
+> 手順は、マニュアルのスプシの「満杯」タブ（LINEで **「📘」**、または [16]）。
 
 > **ボタンにチェックを入れても何も起きないとき**
 > グループLINEに **「なおして」** と打ってください。見張りを入れ直して、結果を返します。
@@ -416,6 +417,7 @@ node gas/test/dashboard.test.js
 node gas/test/dbplace.test.js
 node gas/test/defined.test.js
 node gas/test/linereport.test.js
+node gas/test/manual.test.js
 node gas/test/maplink.test.js
 node gas/test/nightplan.test.js
 node gas/test/opucha-image.test.js

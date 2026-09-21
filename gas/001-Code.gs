@@ -1,7 +1,10 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C059ver  （2026/09/17）  ★★★   ← もとは version 232
+ *  ★★★  C060ver  （2026/09/21）  ★★★   ← もとは version 232
+ *
+ *  [C060ver]
+ *   ・📘「📘」でマニュアルのスプシを開けるようにした（ご指示）
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
@@ -602,7 +605,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C059ver";
+const CODE_VERSION = "C060ver";
 
 const SENDER_MAP = {
   "Ued4659890c83b3b0bcf2a3f8bf008e7f": "ﾀﾞｲｽｹ",
@@ -1654,6 +1657,8 @@ function handleEvent_(ev) {
   if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
   // --- 「天気」… ためてある天気の中身を見せる（まーくさんだけ）---
   if (typeof tkHandleCmd_ === "function" && tkHandleCmd_(ev)) return;
+  // --- 「📘」… マニュアルのスプシを開く（まーくさんだけ）---
+  if (typeof mnHandleCmd_ === "function" && mnHandleCmd_(ev)) return;
   // --- 「❗」… 版（バージョン）が満杯のときの直し方（まーくさんだけ）---
   if (typeof updHandleFullCmd_ === "function" && updHandleFullCmd_(ev)) return;
   // --- 「❓」… どの絵文字で何が出るかを見せる（まーくさんだけ）---

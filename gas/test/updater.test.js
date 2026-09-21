@@ -814,14 +814,14 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 14, 'いつも14個並ぶ（' + items.length + '個）');
+t(items.length === 16, 'いつも16個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
 t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
-  'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck',
+  'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck,panelCleanDeploys,panelManual',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -982,7 +982,7 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B25',
+t(panel._prot[0]._a1 === 'B9:B27',
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -1076,8 +1076,9 @@ t(F('panelHeadRow_')(panel) === 9, '1つ下がったのを見つける');
 t(F('panelTop_')(panel) === 10, 'ボタンの位置も追いつく');
 // 何回も足す
 panel.insertRowsAfter(2, 5);
+// 見出しは 8 → +1 → 9 → +5 → 14 と、足したぶんだけ下がる
 t(F('panelHeadRow_')(panel) === 14, '5行足しても追いつく');
-panel._cells['15,2'] = true;                        // 1つめのボタン
+panel._cells['15,2'] = true;                        // 1つめのボタン（見出しの1つ下）
 F('panelWatch')();
 t(lastPut() !== undefined, 'ずれた先でもチェックが効く');
 t(panel._cells['15,2'] === false, 'チェックも外れる');
@@ -1107,7 +1108,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '10個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '12個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1227,7 +1228,11 @@ panel._cells['48,2'] = false;
 panel._cells['48,3'] = '[13] 読み取れているものの一覧を見る';
 panel._cells['49,2'] = false;
 panel._cells['49,3'] = '[14] LINEの調子を調べる';
-panel._cells['50,2'] = '結果';
+panel._cells['50,2'] = false;
+panel._cells['50,3'] = '[15] 古いデプロイを片づける';
+panel._cells['51,2'] = false;
+panel._cells['51,3'] = '[16] マニュアルを作り直す';
+panel._cells['52,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1308,15 +1313,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 8, '[7]〜[14] が足りない');
+t(F('panelCheck_')(panel).missing.length === 10, '[7]〜[16] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 10, '10個足りない');
+t(miss.length === 12, '12個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 14, '14個になった');
+t(F('panelReadRows_')(panel).length === 16, '16個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -1393,14 +1398,15 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
   // 古いコードで置いた状態を作る（[7] と入力らんを消し、目印も古くする）
   const rows = F('panelReadRows_')(panel);
   const last = rows[rows.length - 1].row;
-  [last, last - 1, last - 2, last - 3, last - 4, last - 5, last - 6, last - 7, last - 8].forEach(r => {
+  [last, last - 1, last - 2, last - 3, last - 4, last - 5, last - 6, last - 7, last - 8,
+   last - 9, last - 10].forEach(r => {
     delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
   });
   // ★前は「バージョンが同じなら、もう足した」と見分けていました。
   //   バージョンを上げ忘れると、ボタンが永遠に足されません（実際そうなりました）。
   //   いまは、ボタンの名前そのものから見分けます
   props['PANEL_SETUP_SIG'] = 'むかしの　ならび';
-  t(F('panelCheck_')(panel).missing.length === 8, '[7]〜[14] が無い状態');
+  t(F('panelCheck_')(panel).missing.length === 10, '[7]〜[16] が無い状態');
 
   F('panelWatch')();                       // 1分おきの見張りが気づいて足す
   t(F('panelCheck_')(panel).missing.length === 0, '見張りが [7] を足した');
@@ -3869,8 +3875,10 @@ console.log('\n■ 更新の結果そのものに、バージョンの行が入�
   has(out, 'バージョン：', '★更新の結果に「バージョン：」の行が入る');
   has(out, 'C099', '★書き込んだ中身の数字が出る（動いている古いほうではない）');
   has(out, '*C099', '★入れ替わったファイルには、頭に * が付く');
-  has(out, '* が、今回 入れ替わったものです',
-    '★スプシの結果らんには、* の意味も書く（覚えていなくても読めるように）');
+  t(out.indexOf('* が、今回 入れ替わったものです') === -1,
+    '★毎回おなじ説明は出さない（じゃまになるため・ご指示）');
+  t(out.split('\n').filter(function (x) { return x.indexOf('・') === 0; }).length >= 3,
+    '★行の頭に「・」を付けて並べる（スマホで目が追えるように）', out);
 }
 
 console.log('\n■ 変わっていないファイルには、* を付けない');

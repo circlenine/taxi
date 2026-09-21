@@ -2,7 +2,23 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U098ver  （2026/09/21）  ★★★
+ *  ★★★  U099ver  （2026/09/21）  ★★★
+ *
+ *  [U099ver]
+ *   ・📘 [16] マニュアルを作り直す を足した（ご指示）
+ *     ★手順書を .md で置いていましたが、スマホでは読めませんでした。
+ *       スプシに作り直します。中身は 008-Manual.gs です。
+ *   ・🔧 [15] 古いデプロイを片づける を足した
+ *     ★版が満杯だと、LINEの受け口は古いコードのまま動きます。
+ *       新しく足した「❗」は、そこには入っていないので届きません。
+ *       実際に、まーくさんに「❗」を空振りさせてしまいました。
+ *       スプシのボタンは いつでも今のコードで動くので、ここに置きます。
+ *   ・📝 取り込みの知らせを、行の頭に「・」を付けた形にした（ご指示）
+ *     ★べた書きは、細い画面では折り返しだらけで読めません。
+ *     ★「（* が、今回 入れ替わったものです）」は外しました。
+ *       毎回おなじ説明が出るのは、じゃまなだけです。
+ *   ・⚠️ 満杯が近いときの案内先を「LINEで❗」から「スプシの[15]」に変えた
+ *     ★届かない直し方を案内するのが、いちばん不親切なためです
  *
  *  [U098ver]
  *   ・❗ 版（バージョン）が200こで満杯になっていたのを、見つけて直せるようにした
@@ -992,7 +1008,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U098ver";
+const UPD_VERSION = "U099ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3484,7 +3500,7 @@ function updTellResult_(from, out) {
     let near = "";
     try {
       const mn = body.match(/⚠️ 版が (\d+)／(\d+)/);
-      if (mn) near = "\n⚠️ 版 " + mn[1] + "/" + mn[2] + "（満杯が近い→「❗」）";
+      if (mn) near = "\n⚠️ 版 " + mn[1] + "/" + mn[2] + "（満杯が近い→スプシ[15]）";
     } catch (e) {}
     text = "《" + String(from || "") + "》 とりこみ かんりょう" +
            (n ? "（" + n + "件）" : "") +
@@ -3559,6 +3575,7 @@ function updHandleHelp_(ev) {
     "❌ 直近のしくじり5件",
     "⏳ 公式LINEの残り通数（月200通）",
     "❗ 版が満杯のときの直し方",
+    "📘 マニュアル（手順書のスプシ）",
     "",
     "▼ そのほか",
     "💩 コードの取り込み（まーくさんだけ）",
@@ -4543,17 +4560,30 @@ function menuUpdateCode() {
    */
   const versNow = updSrcVers_(merged, mod.concat(add));
 
+  /*
+   * ★ぎっしり詰めずに、行の頭に「・」を付けて並べます（ご指示）。
+   *   スマホの細い画面では、べた書きは折り返しだらけになって、
+   *   どこが1つのまとまりなのかが分かりません。
+   *   ・が付いていれば、目が行の頭をたどれます。
+   *
+   * ★「（* が、今回 入れ替わったものです）」は外しました（ご指示）。
+   *   毎回 同じ説明が出るのは、じゃまなだけです。
+   *   意味は docs と README に書いてあります。
+   */
+  const lines = [];
+  lines.push("・入れ替え：" + (mod.join("、") || "なし"));
+  if (add.length)   lines.push("・追加：" + add.join("、"));
+  if (versNow)      lines.push("・" + UPD_VERS_MARK + versNow);
+  if (stale.length) lines.push("・消した：" + stale.join("、") + "（名前が変わったため）");
+  lines.push("");
+  if (dep)   lines.push("・" + dep);
+  if (armed) lines.push("・" + armed);
+  lines.push("");
+  lines.push("戻すとき：メニュー「⏪ 前のコードに戻す」");
+  lines.push("保存：" + UPD_FOLDER + "/" + UPD_BACKUP + "/" + backupName);
+
   return updTell_("✅ 更新しました（" + (mod.length + add.length) + "件）",
-    "入れ替え：" + (mod.join("、") || "なし") + "\n" +
-    "追加　　：" + (add.join("、") || "なし") + "\n" +
-    (versNow ? UPD_VERS_MARK + versNow + "\n" +
-               "　　　　　（* が、今回 入れ替わったものです）\n" : "") +
-    (stale.length ? "消した　：" + stale.join("、") + "（名前が変わったため）\n" : "") +
-    (got.skipped.length ? "変更なし：" + got.skipped.join("、") + "\n" : "") +
-    dep + "\n" +
-    armed + "\n\n" +
-    "戻すときはメニュー「⏪ 前のコードに戻す」。\n" +
-    "保存：" + UPD_FOLDER + "/" + UPD_BACKUP + "/" + backupName);
+    lines.join("\n"));
 }
 
 /**
@@ -4646,8 +4676,8 @@ function menuRestoreCode() {
   } catch (e) { versBack = ""; }
 
   updTell_("⏪ 戻しました", from + " の状態にしました。\n" +
-    (versBack ? UPD_VERS_MARK + versBack + "\n" +
-                "　　　　　（* が、戻したことで変わったものです）\n" : "") + dep);
+    (versBack ? "・" + UPD_VERS_MARK + versBack + "\n" : "") +
+    (dep ? "・" + dep : ""));
 }
 
 /** いまのコードを、ドライブに保存しておくだけ */
@@ -5178,8 +5208,15 @@ function updRedeploy_() {
    *   版の番号は増える一方なので、そのまま めやすに使えます。
    */
   const warn = (ver.versionNumber >= UPD_VER_WARN)
+    /*
+     * ★案内先は「スプシの[15]」です。「LINEで❗」ではありません。
+     *   満杯になると、LINEの受け口は古いコードのまま動きます。
+     *   新しく足した合図は、そこには入っていないので届きません。
+     *   届かない直し方を案内するのは、いちばん不親切です。
+     *   スプシのボタンは、いつでも今のコードで動きます。
+     */
     ? "（⚠️ 版が " + ver.versionNumber + "／" + UPD_VER_LIMIT + "。" +
-      "満杯が近いです。LINEで「❗」）"
+      "満杯が近いです。スプシの[15]）"
     : "";
   return "デプロイもやり直しました（版 " + ver.versionNumber + " / " + n + "件）" + warn;
 }
@@ -5286,8 +5323,82 @@ function panelItems_() {
     { key: "LINEの調子",           label: "[14] LINEの調子を調べる",      fn: "panelLineCheck",
       sec: 30,
       note: "LINEの受け口が動いているか、最後に届いたのはいつか、" +
-            "直近のしくじりは何かを出します。LINEが無反応のときは、まずこれを押してください" }
+            "直近のしくじりは何かを出します。LINEが無反応のときは、まずこれを押してください" },
+    /*
+     * ★[15] は、LINEでは絶対に直せないところを直すためのボタンです。
+     *
+     *   版が満杯になると、公開（デプロイ）のやり直しが失敗します。
+     *   すると、LINEの受け口は「最後に公開できた古いコード」で動き続けます。
+     *   新しく足したLINEの合図（「❗」など）は、そこには入っていません。
+     *   つまり「LINEで直してください」と言っても、永久に届きません。
+     *   実際にそうなりました（まーくさんに「❗」を空振りさせてしまいました）。
+     *
+     *   スプシのボタンは、いまのコードで動きます。だから ここに置きます。
+     */
+    { key: "古いデプロイ",         label: "[15] 古いデプロイを片づける",  fn: "panelCleanDeploys",
+      sec: 90, stall: 300,
+      note: "版（バージョン）が200こで満杯になり、公開のやり直しが失敗するときに押します。" +
+            "1回目は何をするか出るだけ。3分以内にもう一度で片づきます。" +
+            "いま使われているものには手を出しません" },
+    /*
+     * ★[16] は、手順書をスプシに作り直すボタンです。
+     *   手順書を .md で置いていましたが、スマホで開くと
+     *   字が小さく・横に流れ・表が崩れて、読めたものではありません。
+     *   見られないところに書いても、無いのと同じでした。
+     */
+    { key: "マニュアル",           label: "[16] マニュアルを作り直す",    fn: "panelManual",
+      sec: 90, stall: 300,
+      note: "手順書をスプシにまとめ直します。タブは 目次／合図／満杯／読取／予定／困り。" +
+            "押すたびに、いちばん新しい中身で作り直します" }
   ];
+}
+
+/**
+ * [15] 古いデプロイを片づける（そうさボタンから）。
+ *
+ * ★LINEの「❗そうじ」と中身は同じですが、入り口だけが違います。
+ *   版が満杯のときは LINEの受け口が古いままなので、
+ *   LINE側の合図は届きません。スプシからしか押せません。
+ */
+function panelCleanDeploys() {
+  const pr = updProps_();
+  const okAt = Number(pr.getProperty("UPD_CLEAN_ASK") || 0);
+  const fresh = okAt && (Date.now() - okAt) < 3 * 60000;
+
+  let r;
+  try { r = updCleanDeploys_(3, !fresh); }
+  catch (e) { return "❌ 調べられませんでした\n" + ((e && e.message) || e); }
+
+  if (!fresh) {
+    pr.setProperty("UPD_CLEAN_ASK", String(Date.now()));
+    if (!r.old.length) {
+      return "片づけるものがありません\n" +
+             "・デプロイの数：" + r.total + "\n" +
+             "・版の数：" + (r.before < 0 ? "不明" : r.before + " / " + UPD_VER_LIMIT);
+    }
+    return "まだ何もしていません\n" +
+           "・デプロイの数：" + r.total + "\n" +
+           "・版の数：" + (r.before < 0 ? "不明" : r.before + " / " + UPD_VER_LIMIT) + "\n" +
+           "・片づける数：" + r.old.length + "（古い順）\n" +
+           "・そのぶんの日付：" + updDayOf_(r.old[0].when) + " 〜 " +
+             updDayOf_(r.old[r.old.length - 1].when) + "\n" +
+           "・残すもの：" + (r.hold.join("／") || "なし") + "\n" +
+           "\n" +
+           "やるなら、3分以内にもう一度チェックしてください";
+  }
+
+  pr.deleteProperty("UPD_CLEAN_ASK");
+  const got = (r.before >= 0 && r.after >= 0 && r.after < r.before);
+  return "片づけました\n" +
+         "・デプロイ：" + r.done + "件（しくじり " + r.ng + "件）\n" +
+         "・版の数：" + (r.before < 0 ? "不明" : r.before) +
+           " → " + (r.after < 0 ? "不明" : r.after) + "\n" +
+         "\n" +
+         (got ? "版が減りました。[1] で取り込み直してください"
+              : "版は減りませんでした\n" +
+                "デプロイと版は、別ものでした\n" +
+                "プロジェクトの作り直しになります\n" +
+                "docs/版が満杯になったら.md を見てください");
 }
 
 /**
