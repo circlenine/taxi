@@ -116,6 +116,50 @@ function mkPanel() {
   const heights = {};     // 行 → 高さ
   const valids = {};      // 'r,c' → 入力規則（プルダウン）
   const prot = [];
+
+  /*
+   * ★行を足したときに、下にあるものを ぜんぶ動かす。
+   *   中身（cells）だけでなく、プルダウン（valids）・
+   *   つないだらん（merges）・行の高さ（heights）も動かす。
+   *   本物のスプシは そうなるので、ここも合わせておかないと、
+   *   「行を足したらプルダウンが置き去り」を見逃す。
+   */
+  function shiftRows(at, n, before) {
+    const hit = r => (before ? r >= at : r > at);
+    [cells, valids].forEach(map => {
+      const moved = {};
+      Object.keys(map).forEach(k => {
+        const m = k.match(/^(\d+),(\d+)$/);
+        if (!m) return;
+        const r = +m[1];
+        if (hit(r)) { moved[(r + n) + ',' + m[2]] = map[k]; delete map[k]; }
+      });
+      Object.keys(moved).forEach(k => { map[k] = moved[k]; });
+    });
+    // つないだらんは、左上の行番号も一緒にずらす
+    {
+      const moved = {};
+      Object.keys(merges).forEach(k => {
+        const m = k.match(/^(\d+),(\d+)$/);
+        if (!m) return;
+        const r = +m[1];
+        const v = merges[k];
+        const nv = { r: hit(v.r) ? v.r + n : v.r, c: v.c };
+        if (hit(r)) { moved[(r + n) + ',' + m[2]] = nv; delete merges[k]; }
+        else merges[k] = nv;
+      });
+      Object.keys(moved).forEach(k => { merges[k] = moved[k]; });
+    }
+    {
+      const moved = {};
+      Object.keys(heights).forEach(k => {
+        const r = +k;
+        if (hit(r)) { moved[r + n] = heights[k]; delete heights[k]; }
+      });
+      Object.keys(moved).forEach(k => { heights[k] = moved[k]; });
+    }
+  }
+
   // 結合セルの左上を返す小さな入れ物
   function panelCell(r, c) {
     const C = { setValue: v => { cells[r + ',' + c] = v; return C; },
@@ -143,27 +187,28 @@ function mkPanel() {
     getName: () => '説明',
     getMaxRows: () => 200,
     getMaxColumns: () => 9,          // 説明タブは I列 まで（J以降は消してある）
+    /*
+     * ★行を足すと、その下にあるものは「ぜんぶ」下がります。
+     *   中身だけでなく、プルダウン・つないだらん・行の高さもです。
+     *   前はここで中身しか動かしていませんでした。
+     *   本物と動きが違うので、行を足すたびに
+     *   プルダウンが元の行に置き去りになる不具合を見逃していました
+     */
+    /*
+     * ★本物のスプシは、行を足すと「すぐ上の行の書式」を引き継ぎます。
+     *   チェック（入力規則）も引き継ぐので、何もしないと
+     *   空け行に押せるチェックが付いてしまいます（幽霊ボタン）。
+     *   ここも本物と同じにしておかないと、それを見逃します
+     */
     insertRowsBefore: (before, n) => {
-      const moved = {};
-      Object.keys(cells).forEach(k => {
-        const m = k.match(/^(\d+),(\d+)$/);
-        if (!m) return;
-        const r = +m[1];
-        if (r >= before) { moved[(r + n) + ',' + m[2]] = cells[k]; delete cells[k]; }
-      });
-      Object.keys(moved).forEach(k => { cells[k] = moved[k]; });
+      shiftRows(before, n, true);
+      for (let c = 1; c <= 9; c++) {
+        const src = valids[(before - 1) + ',' + c];
+        if (!src) continue;
+        for (let i = 0; i < n; i++) valids[(before + i) + ',' + c] = src;
+      }
     },
-    // 行を足す＝その下の行がぜんぶ1つずつ下がる（本物と同じ動き）
-    insertRowsAfter: (after, n) => {
-      const moved = {};
-      Object.keys(cells).forEach(k => {
-        const m = k.match(/^(\d+),(\d+)$/);
-        if (!m) return;
-        const r = +m[1];
-        if (r > after) { moved[(r + n) + ',' + m[2]] = cells[k]; delete cells[k]; }
-      });
-      Object.keys(moved).forEach(k => { cells[k] = moved[k]; });
-    },
+    insertRowsAfter: (after, n) => shiftRows(after, n, false),
     createTextFinder: q => ({
       matchEntireCell: () => ({
         findNext: () => {
@@ -219,14 +264,24 @@ function mkPanel() {
           prot.push(p);
           return p;
         },
-        // 本物と同じく、チェックボックスを付けると値が false になる
+        /*
+         * 本物と同じく、チェックボックスを付けると値が false になる。
+         * ★チェックの正体は「入力規則」です。そこも本物と同じにしておかないと、
+         *   行を足したときに空け行へ引き継がれる「幽霊チェック」を見逃します
+         */
         insertCheckboxes: () => {
           for (let i = 0; i < (nr || 1); i++) {
-            for (let j = 0; j < (nc || 1); j++) cells[(r + i) + ',' + (c + j)] = false;
+            for (let j = 0; j < (nc || 1); j++) {
+              cells[(r + i) + ',' + (c + j)] = false;
+              valids[(r + i) + ',' + (c + j)] = { checkbox: true };
+            }
           }
           return px;
         },
         removeCheckboxes: () => {
+          for (let i = 0; i < (nr || 1); i++) {
+            for (let j = 0; j < (nc || 1); j++) delete valids[(r + i) + ',' + (c + j)];
+          }
           for (let i = 0; i < (nr || 1); i++) {
             for (let j = 0; j < (nc || 1); j++) delete cells[(r + i) + ',' + (c + j)];
           }
@@ -236,8 +291,11 @@ function mkPanel() {
           for (let i = 0; i < (nr || 1); i++) valids[(r + i) + ',' + c] = rule;
           return px;
         },
+        // ★幅（列）のぶんも ちゃんと消す。本物はそうなる
         clearDataValidations: () => {
-          for (let i = 0; i < (nr || 1); i++) delete valids[(r + i) + ',' + c];
+          for (let i = 0; i < (nr || 1); i++) {
+            for (let j = 0; j < (nc || 1); j++) delete valids[(r + i) + ',' + (c + j)];
+          }
           return px;
         },
         // ★「らんをつなぐ」も、本物と同じように まねる
@@ -983,7 +1041,7 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B29',
+t(panel._prot[0]._a1 === 'B9:B46',
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -1009,24 +1067,36 @@ t(F('panelHeadRow_')(panel) === 8, 'はじめは8行目');
 t(F('panelTop_')(panel) === 9, 'ボタンは9行目から');
 
 // 34行目あたりへ引っ越したことにする（実際のスプシでやったのと同じ状態）
-Object.keys(panel._cells).forEach(k => {
-  const m = k.match(/^(\d+),(\d+)$/);
-  if (!m) return;
-  const r = +m[1];
-  if (r < 8) return;
-  panel._cells[(r + 27) + ',' + m[2]] = panel._cells[k];
-  delete panel._cells[k];
-});
+/*
+ * ★先にぜんぶ拾って、消してから、書きます。
+ *   1つずつ「書いて消す」をやると、移す先と移す元が重なったとき
+ *   さっき書いたものを あとから消してしまいます。
+ *   ボタンが増えて行が伸びたとたん、これが起きました
+ */
+{
+  const moved = {};
+  Object.keys(panel._cells).forEach(k => {
+    const m = k.match(/^(\d+),(\d+)$/);
+    if (!m) return;
+    const r = +m[1];
+    if (r < 8) return;
+    moved[(r + 27) + ',' + m[2]] = panel._cells[k];
+    delete panel._cells[k];
+  });
+  Object.keys(moved).forEach(k => { panel._cells[k] = moved[k]; });
+}
 props['PANEL_ROW'] = '8';                    // 覚えている場所は古いまま
 t(F('panelHeadRow_')(panel) === 35, '動かした先（35行目）を見つけ直す');
 t(F('panelTop_')(panel) === 36, 'ボタンの位置も追いつく');
 t(props['PANEL_ROW'] === '35', '新しい場所を覚え直す');
 
 console.log('\n■ 動かした先でもチェックが効く');
-panel._cells['36,2'] = true;                 // 引っ越し先の1つめ
+// ★ボタンのあいだには空け行が入るので、行番号を決め打ちにしない
+const moved1 = (F('panelReadRows_')(panel)[0]||{}).row;
+panel._cells[moved1 + ',2'] = true;          // 引っ越し先の1つめ
 F('panelWatch')();
 t(lastPut() !== undefined, '見張りが拾って動かす');
-t(panel._cells['36,2'] === false, 'チェックも外れる');
+t(panel._cells[moved1 + ',2'] === false, 'チェックも外れる');
 has(panel._cells[F('panelResultRow_')(panel) + ',3'], '✅', '結果も正しい行に出る');
 
 F('panelOnEdit')({ range: { getSheet: () => panel, getColumn: () => 2,
@@ -1095,9 +1165,15 @@ console.log('\n■ 足りないボタンだけ足す');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 // 4つしか無かった昔の状態を作る（5つめ以降を消す）
-[13, 14, 15, 16, 17, 18, 19, 20].forEach(r => {
-  delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
-});
+// ★ボタンのあいだには空け行が入るので、行番号を決め打ちにしない。
+//   実際に置いてある行を見て、5つめから下を消す
+{
+  const rs = F('panelReadRows_')(panel).map(r => r.row);
+  const from = rs[4];
+  for (let r = from; r <= rs[rs.length - 1] + 4; r++) {
+    delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
+  }
+}
 panel._cells['9,3'] = '[1] コードを更新する（じぶんで整えた）';
 F('menuMakePanel')();
 t(panel._cells['9,3'] === '[1] コードを更新する（じぶんで整えた）',
@@ -1125,9 +1201,11 @@ has(alerts[alerts.length - 1].b, '並びはそのまま', 'そう伝える');
 console.log('\n■ 入れていない機能を押したとき');
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
-panel._cells['13,2'] = true;          // 5つめ＝ページのURLをLINEに送る（004-WebApp）
+// ★5つめのボタン。空け行があるので、実際に置いてある行を見る
+const row5 = F('panelReadRows_')(panel)[4].row;
+panel._cells[row5 + ',2'] = true;     // 5つめ＝ページのURLをLINEに送る（004-WebApp）
 F('panelWatch')();
-t(panel._cells['13,2'] === false, 'チェックは外れる');
+t(panel._cells[row5 + ',2'] === false, 'チェックは外れる');
 has(panel._cells[F('panelResultRow_')(panel) + ',3'], 'まだ使えません', 'そう出る');
 has(panel._cells[F('panelResultRow_')(panel) + ',3'], '004-WebApp', 'どれを入れればいいか出る');
 t(lastPut() === undefined, '何も実行されない');
@@ -1352,7 +1430,12 @@ F('menuMakePanel')();
   const pc = F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_PERIOD', ctx));
   const dc = F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_DEST', ctx));
   t(!!pc && !!dc, '期間と送り先の2行が置かれる');
-  t(pc.col === 4 && dc.col === 4, '入力するのは見出しのすぐ右（D列）');
+  /*
+   * ★選ぶところは G列です（ご指示）。
+   *   名前のらんは C〜F をつないで1マスにするので、
+   *   その内側の D列に置くと、つないだ時点で消えてしまいます
+   */
+  t(pc.col === 7 && dc.col === 7, '★選ぶところは G列（C〜F結合の外）');
   const rows = F('panelReadRows_')(panel);
   const r7 = rows.filter(r => String(r.text).indexOf('レポートをLINE') !== -1)[0];
   t(!!r7, '[7] がある');
@@ -1364,11 +1447,11 @@ F('menuMakePanel')();
   t(panel._cells[pc.row + ',2'] === '', '入力らんの行にはチェックを置かない');
 
   // プルダウン
-  const v = panel._valids[pc.row + ',4'];
+  const v = panel._valids[pc.row + ',7'];
   t(!!v && v.list.length > 1, '期間はプルダウンから選べる');
   t(v.allow === true, '一覧に無い期間も打ち込める（260716-0815 など）');
   t(String(v.list[0]).indexOf('今期') === 0, '先頭は今期');
-  const dv = panel._valids[dc.row + ',4'];
+  const dv = panel._valids[dc.row + ',7'];
   t(dv.list.length === 2, '送り先は2つだけ');
   t(dv.allow === false, '送り先は打ち込めない（押し間違いを防ぐ）');
 
@@ -1402,19 +1485,25 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
   F('menuMakePanel')();
   // 古いコードで置いた状態を作る（[7] と入力らんを消し、目印も古くする）
   const rows = F('panelReadRows_')(panel);
-  const last = rows[rows.length - 1].row;
-  [last, last - 1, last - 2, last - 3, last - 4, last - 5, last - 6, last - 7, last - 8,
-   last - 9, last - 10, last - 11, last - 12].forEach(r => {
-    delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
+  /*
+   * ★うしろの3つだけを消して、「コードが増えた」状態をまねます。
+   *   ▼ の入力らんまで消すと、宙ぶらりんの ▼ が残って
+   *   足し直したときに場所がずれます。ここで見たいのは
+   *   「増えたボタンを、見張りが自分で足すか」だけなので、
+   *   いちばん下の3つで足ります
+   */
+  rows.slice(-3).forEach(r => {
+    delete panel._cells[r.row + ',2']; delete panel._cells[r.row + ',3'];
+    delete panel._cells[r.row + ',4'];
   });
   // ★前は「バージョンが同じなら、もう足した」と見分けていました。
   //   バージョンを上げ忘れると、ボタンが永遠に足されません（実際そうなりました）。
   //   いまは、ボタンの名前そのものから見分けます
   props['PANEL_SETUP_SIG'] = 'むかしの　ならび';
-  t(F('panelCheck_')(panel).missing.length === 12, '[7]〜[18] が無い状態');
+  t(F('panelCheck_')(panel).missing.length === 3, '★うしろの3つが無い状態');
 
   F('panelWatch')();                       // 1分おきの見張りが気づいて足す
-  t(F('panelCheck_')(panel).missing.length === 0, '見張りが [7] を足した');
+  t(F('panelCheck_')(panel).missing.length === 0, '★見張りが、増えたぶんを自分で足す');
   t(!!F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_PERIOD', ctx)),
     '入力らんも一緒に置く');
   t(props['PANEL_SETUP_SIG'] === F('panelItemsSig_')(),
@@ -1441,7 +1530,8 @@ console.log('\n■ 押されているものがあるときは、行を動かさ�
   });
   props['PANEL_SETUP_VER'] = 'U006ver';
   vm.runInContext('formatRan = 0;', ctx);
-  panel._cells[(TOP + 2) + ',2'] = true;        // [3] 全タブをまとめて整形する
+  // ★3つめのボタン。空け行があるので、実際に置いてある行を見る
+  panel._cells[F('panelReadRows_')(panel)[2].row + ',2'] = true;   // [3] 全タブをまとめて整形する
   F('panelWatch')();
   t(vm.runInContext('formatRan', ctx) === 1, '押されたものが先に動く');
   t(F('panelCheck_')(panel).missing.length >= 1,
@@ -4137,6 +4227,116 @@ console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの
   t(out2.indexOf('Webhook') !== -1, '  どこを見ればよいかも書く');
   delete props['LAST_ERRORS'];
   ctx.pu.length = 0;
+}
+
+console.log('\n■ ▼ の行も、C〜F結合・G〜H結合にそろえる（ご指示）');
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const P = vm.runInContext('PANEL_IN_PERIOD', ctx);
+  const c = F('panelInputCell_')(panel, P);
+  const m = panel._merged.map(function (x) { return x.r + ':' + x.c + 'x' + x.w; });
+  t(m.indexOf(c.row + ':3x4') !== -1,
+    '★▼ の名前は、C列から4つぶんつなぐ（C〜F）', m.slice(-6).join('、'));
+  t(m.indexOf(c.row + ':7x2') !== -1,
+    '★▼ の選ぶところは、G列から2つぶんつなぐ（G〜H）', m.slice(-6).join('、'));
+  t(c.col === 7, '★選ぶところは G列（C〜F結合の内側ではない）');
+  t(F('panelInputGet_')(panel, P) === '今期', '　 つないでも、値は消えない');
+}
+
+console.log('\n■ ボタンとボタンのあいだに、空け行を入れる（ご指示）');
+/*
+ * ★スマホでは指でチェックを押すので、ボタンが くっついていると
+ *   となりを押してしまいます。押し間違えると、コードの巻き戻しや
+ *   グループへの送信が走ってしまいます。
+ *
+ * ★前は、はじめに置くときだけ あけていました。
+ *   あとから足したボタンには あいていませんでした（ご指摘）。
+ *   [8] から下が ぜんぶ くっついていたのは、これが原因です。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const rows = F('panelReadRows_')(panel);
+  const txt = function (r) { return String(panel._cells[r + ',3'] || ''); };
+
+  const stuck = [];
+  for (let i = 1; i < rows.length; i++) {
+    const gap = rows[i].row - rows[i - 1].row - 1;
+    if (gap >= 1) continue;
+    // ひとかたまりのものは、あいていなくてよい
+    const prev = txt(rows[i].row - 1);
+    if (F('panelSameGroup_')(prev, rows[i].text)) continue;
+    stuck.push(rows[i].text);
+  }
+  t(stuck.length === 0, '★ボタンのあいだは、ぜんぶ1行あいている（' +
+    (stuck.join('／') || 'くっついているものは無い') + '）', stuck.join('／'));
+
+  // ▼ の行の前にも、1行あいている
+  const vRow = F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_PERIOD', ctx)).row;
+  t(!panel._cells[(vRow - 1) + ',3'], '★▼ レポートの期間 の前も、1行あいている');
+
+  // ひとかたまりのものは、あけない
+  const dRow = F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_DEST', ctx)).row;
+  t(dRow === vRow + 1, '★▼ 期間 と ▼ 送り先 のあいだは、あけない');
+  const r7 = rows.filter(function (r) {
+    return String(r.text).indexOf('[7]') === 0; })[0];
+  t(!!r7 && r7.row === dRow + 1, '★▼ 送り先 と [7] のあいだも、あけない');
+
+  const vd = F('panelInputCell_')(panel, vm.runInContext('PANEL_IN_VDATE', ctx));
+  const r11 = rows.filter(function (r) {
+    return String(r.text).indexOf('[11]') === 0; })[0];
+  t(!!vd && !!r11 && r11.row === vd.row + 1, '★▼ イベントの日付 と [11] も、あけない');
+  t(!panel._cells[(vd.row - 1) + ',3'], '★▼ イベントの日付 の前は、1行あいている');
+}
+
+console.log('\n■ あとから足したボタンにも、空け行が入る');
+{
+  /*
+   * ★ここが抜けていました。[8] から下が ぜんぶ くっついていました
+   */
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  // うしろの4つを消して、「古いコードで置いた状態」をまねる
+  const rows = F('panelReadRows_')(panel);
+  rows.slice(-4).forEach(function (r) {
+    delete panel._cells[r.row + ',2']; delete panel._cells[r.row + ',3'];
+    delete panel._cells[r.row + ',4'];
+  });
+  props['PANEL_SETUP_SIG'] = 'むかしの　ならび';
+  F('panelWatch')();
+
+  const after = F('panelReadRows_')(panel);
+  const tail = after.slice(-5);
+  let stuck = 0;
+  for (let i = 1; i < tail.length; i++) {
+    if (tail[i].row - tail[i - 1].row - 1 < 1) stuck++;
+  }
+  t(stuck === 0, '★足したボタンのあいだも、1行あいている（' +
+    tail.map(function (r) { return r.row; }).join(',') + '）',
+    tail.map(function (r) { return r.row; }).join(','));
+}
+
+console.log('\n■ 空け行に、幽霊のチェックを残さない');
+{
+  /*
+   * ★行を足すと、すぐ上の行の書式を引き継ぎます。
+   *   そのままだと空け行にチェックが付いて、押せてしまいます。
+   *   押しても何も起きない「幽霊ボタン」は、いちばん気味が悪いところです
+   */
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const rows = F('panelReadRows_')(panel);
+  let ghost = 0;
+  for (let i = 1; i < rows.length; i++) {
+    for (let r = rows[i - 1].row + 1; r < rows[i].row; r++) {
+      const v = panel._cells[r + ',2'];
+      if (v === true || v === false) ghost++;
+      // ★チェックは「入力規則」で付きます。値が空でも、規則が残っていれば押せます
+      if (panel._valids[r + ',2']) ghost++;
+    }
+  }
+  t(ghost === 0, '★空け行には、チェックを付けない（' + ghost + '個）');
 }
 
 console.log('\n■ 足したボタンも、ほかの行と同じ形にそろえる（ご指示）');

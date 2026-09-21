@@ -2,7 +2,30 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U100ver  （2026/09/21）  ★★★
+ *  ★★★  U101ver  （2026/09/21）  ★★★
+ *
+ *  [U101ver]
+ *   ・␣ ボタンとボタンのあいだの空け行が、抜けていたのを直した（ご指摘）
+ *     ★はじめに置くときだけ あけていて、あとから足したボタンには
+ *       あいていませんでした。[8] から下が ぜんぶ くっついていました。
+ *     ★スマホでは指で押すので、くっついていると となりを押します。
+ *       押し間違えると、コードの巻き戻しや グループへの送信が走ります。
+ *     ★ひとかたまりのものは あけません（ご指示）。
+ *         ▼ レポートの期間／▼ レポートの送り先／[7]
+ *         ▼ イベントの日付／[11]
+ *       「上で選んでから、下を押す」で1つの手順なので、
+ *       あいだをあけると、別のものに見えてしまいます。
+ *     ★空け行には、チェックを残しません。
+ *       行を足すと上の行の書式を引き継ぐので、
+ *       そのままだと押せる「幽霊ボタン」ができます。
+ *   ・▼ の行も C〜F結合・G〜H結合にそろえた（ご指示）
+ *     ★選ぶところは G列に置きます。
+ *       C〜F をつなぐので、その内側の D列に置くと消えてしまいます。
+ *       前は D列に書いていました。
+ *   ・🧪 テストの偽スプシを、本物に合わせた
+ *     ★行を足したときに、プルダウン・つないだらん・行の高さも動かす。
+ *     ★チェックの正体は入力規則なので、そこも本物と同じにした。
+ *       ここが本物と違っていたので、幽霊チェックを見逃していました
  *
  *  [U100ver]
  *   ・💾 [17] 版をドライブに保存する を足した（ご指示）
@@ -1024,7 +1047,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U100ver";
+const UPD_VERSION = "U101ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5850,7 +5873,23 @@ function panelInputCell_(sh, label) {
   if (!sh) return null;
   try {
     const hit = sh.createTextFinder(label).matchEntireCell(false).findNext();
-    if (hit) return { row: hit.getRow(), col: hit.getColumn() + 1 };
+    if (!hit) return null;
+    const at = hit.getColumn();
+    let col = at + 1;
+    /*
+     * ★名前のらんは C〜F をつないで1マスにしてあります（まーくさんのご指示）。
+     *   その内側の D列を指してしまうと、書いても消えますし、
+     *   読んでも いつも空になります（プルダウンが効かなくなります）。
+     *   名前のらんの右どなり（G列）に飛ばします。
+     */
+    try {
+      const top = panelTop_(sh);
+      if (top) {
+        const labelCol = panelChkCol_(sh, top) + 1;
+        if (at === labelCol) col = labelCol + PANEL_LABEL_SPAN;
+      }
+    } catch (e) {}
+    return { row: hit.getRow(), col: col };
   } catch (e) {}
   return null;
 }
@@ -5956,13 +5995,19 @@ function panelEnsureInputs_(sh) {
   const chk = panelChkCol_(sh, top);
   sh.insertRowsBefore(at, 2);
 
+  /*
+   * ★選ぶところは G列です（まーくさんのご指示）。
+   *   名前は C〜F をつないで1マスにするので、
+   *   その内側の D列に置くと、つないだ時点で消えてしまいます。
+   */
+  const inNote = chk + 1 + PANEL_LABEL_SPAN;          // G列
   sh.getRange(at,     chk + 1).setValue(PANEL_IN_PERIOD);
   sh.getRange(at + 1, chk + 1).setValue(PANEL_IN_DEST);
-  sh.getRange(at,     chk + 2).setValue("今期");
-  sh.getRange(at + 1, chk + 2).setValue(PANEL_DEST_TEST);
+  sh.getRange(at,     inNote).setValue("今期");
+  sh.getRange(at + 1, inNote).setValue(PANEL_DEST_TEST);
   sh.getRange(at, chk + 1, 2, 1).setFontWeight("bold").setFontSize(11)
     .setVerticalAlignment("middle");
-  sh.getRange(at, chk + 2, 2, 1).setFontSize(12).setVerticalAlignment("middle")
+  sh.getRange(at, inNote, 2, 1).setFontSize(12).setVerticalAlignment("middle")
     .setHorizontalAlignment("left").setWrap(true);
   // チェックの列は空にしておく。ここにチェックがあると、
   // ボタンの行と間違えて実行してしまう
@@ -6385,6 +6430,8 @@ function menuMakePanel() {
 
     const added = panelSync_(sh, already);
     const madeIn = panelEnsureInputs_(sh);
+    // ★足したあとに、空け行と ▼ の行の形をそろえる（ご指示）
+    const tidied = panelTidy_(sh);
     PropertiesService.getScriptProperties().setProperty("PANEL_SETUP_SIG", panelItemsSig_());
     return updTell_("🧰 ボタンはもう置いてあります（" + already + "行目）",
       "ボタン：" + (already + 1) + "行目から" + panelReadRows_(sh).length + "個\n" +
@@ -6448,6 +6495,7 @@ function menuMakePanel() {
 
   // [7]（レポート送信）の上に、期間と送り先の入力らんを置く
   panelEnsureInputs_(sh);
+  panelTidy_(sh);                      // ★空け行と ▼ の行の形をそろえる（ご指示）
 
   const locked = panelProtect_(sh);
   panelInstall_();
@@ -6478,6 +6526,173 @@ function menuMakePanel() {
  */
 const PANEL_LABEL_SPAN = 4;
 const PANEL_NOTE_SPAN  = 2;
+
+/* ================================================================
+ *  ボタンとボタンのあいだの、空け行
+ *
+ *  ★まーくさんのご指示です。
+ *    スマホでは指でチェックを押すので、ボタンが くっついていると
+ *    となりを押してしまいます。押し間違えると、
+ *    コードの巻き戻しや、グループへの送信が走ってしまいます。
+ *    だから、ボタンとボタンのあいだには かならず1行あけます。
+ *
+ *  ★ただし、ひとかたまりのものは あけません。
+ *      ▼ レポートの期間／▼ レポートの送り先／[7]
+ *      ▼ イベントの日付／[11]
+ *    この2つは「上で選んでから、下を押す」という1つの手順なので、
+ *    あいだをあけると、別のものに見えてしまいます。
+ *
+ *  ★前は、はじめに置くときだけ あけていました。
+ *    あとから足したボタンには あいていませんでした（ご指摘）。
+ *    [8] から下がぜんぶ くっついていたのは、これが原因です。
+ * ================================================================ */
+
+/** その行が、すぐ上の行と ひとかたまりか */
+function panelSameGroup_(prev, cur) {
+  const P = String(prev == null ? "" : prev).trim();
+  const C = String(cur == null ? "" : cur).trim();
+  if (!P || !C) return false;
+  // ▼ レポートの送り先 は、▼ レポートの期間 の続き
+  if (C.indexOf(PANEL_IN_DEST) === 0 && P.indexOf(PANEL_IN_PERIOD) === 0) return true;
+  let it = null;
+  try { it = panelItemOf_(C); } catch (e) {}
+  // [7] は、その2つの続き
+  if (it && it.key === "レポートをLINE" &&
+      (P.indexOf(PANEL_IN_DEST) === 0 || P.indexOf(PANEL_IN_PERIOD) === 0)) return true;
+  // [11] は、▼ イベントの日付 の続き
+  if (it && it.key === "イベントを試し送り" && P.indexOf(PANEL_IN_VDATE) === 0) return true;
+  return false;
+}
+
+/**
+ * 足りない空け行を入れる。
+ *
+ * ★入れるだけで、余分な空行は消しません。
+ *   人が わざと あけている行かもしれないからです。
+ *   指示されていないものを勝手に消さない、という決まりです。
+ */
+function panelFixGaps_(sh) {
+  const top = panelTop_(sh);
+  if (!top) return 0;
+  const last = panelLastRow_(sh);
+  if (!last || last < top) return 0;
+  const chk = panelChkCol_(sh, top);
+  const n = last - top + 1;
+
+  let grid;
+  try { grid = sh.getRange(top, 1, n, chk + 1).getValues(); } catch (e) { return 0; }
+
+  // 中身のある行（ボタン、または ▼ の入力らん）だけを拾う
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const v = grid[i][chk - 1];
+    const label = String(grid[i][chk] == null ? "" : grid[i][chk]).trim();
+    const isBtn = (v === true || v === false);
+    const isIn  = label.indexOf("▼") === 0;
+    if (isBtn || isIn) rows.push({ row: top + i, text: label });
+  }
+
+  // どこに1行 入れればよいかを、先に ぜんぶ決める
+  const put = [];
+  for (let i = 1; i < rows.length; i++) {
+    const gap = rows[i].row - rows[i - 1].row - 1;
+    if (gap >= 1) continue;                                  // もう あいている
+    if (panelSameGroup_(rows[i - 1].text, rows[i].text)) continue;   // ひとかたまり
+    put.push(rows[i].row);
+  }
+  if (!put.length) return 0;
+
+  /*
+   * ★下から入れます。
+   *   上から入れると、入れたぶんだけ下の行番号がずれて、
+   *   2つめから先が1行ずつ ずれた場所に入ってしまいます。
+   */
+  put.sort(function (a, b) { return b - a; });
+  put.forEach(function (r) {
+    try {
+      sh.insertRowsBefore(r, 1);
+      /*
+       * ★入れた行は、すぐ上の行の書式を引き継ぎます。
+       *   そのままだと、空け行にチェックが付いてしまい、
+       *   押せてしまう「幽霊ボタン」になります。必ず消します。
+       */
+      const rg = sh.getRange(r, 1, 1, chk + PANEL_LABEL_SPAN + PANEL_NOTE_SPAN);
+      try { rg.breakApart(); } catch (e) {}
+      try { rg.clearDataValidations(); } catch (e) {}
+      try { rg.clearContent(); } catch (e) {}
+      try { rg.setBackground(null); } catch (e) {}
+      try { sh.setRowHeight(r, PANEL_GAP_H); } catch (e) {}
+    } catch (e) {}
+  });
+  return put.length;
+}
+
+/** 空け行の高さ（1行ぶん） */
+const PANEL_GAP_H = 21;
+
+/**
+ * 「▼ 〇〇」の行を、ほかの行と同じ形にそろえる。
+ *
+ * ★まーくさんのご指示です。
+ *   名前は C〜F列、選ぶところは G〜H列をつないで1マスにします。
+ *   つながっていないと、そこだけ字が細切れに見えます。
+ */
+function panelFixInputRow_(sh, row, chk) {
+  const label = chk + 1;                       // C
+  const note  = label + PANEL_LABEL_SPAN;      // G
+  let name = "", val = "";
+  try {
+    const g = sh.getRange(row, label, 1, PANEL_LABEL_SPAN + PANEL_NOTE_SPAN).getValues()[0];
+    name = String(g[0] == null ? "" : g[0]).trim();
+    // ★選んだ値が、むかしの場所（D列）に入っていることがあります。
+    //   つなぎ直すと消えてしまうので、先に拾っておきます
+    for (let i = 1; i < g.length; i++) {
+      const v = String(g[i] == null ? "" : g[i]).trim();
+      if (v && !val) val = v;
+    }
+  } catch (e) { return false; }
+  if (!name) return false;
+
+  try {
+    const rg = sh.getRange(row, label, 1, PANEL_LABEL_SPAN);
+    try { rg.breakApart(); } catch (e) {}
+    rg.merge();
+    sh.getRange(row, label).setValue(name);
+  } catch (e) {}
+  try {
+    const rg2 = sh.getRange(row, note, 1, PANEL_NOTE_SPAN);
+    try { rg2.breakApart(); } catch (e) {}
+    rg2.merge().setWrap(true).setVerticalAlignment("middle");
+    if (val) sh.getRange(row, note).setValue(val);
+  } catch (e) {}
+  return true;
+}
+
+/** 「▼ 〇〇」の行を、ぜんぶそろえる */
+function panelFixInputs_(sh) {
+  const top = panelTop_(sh);
+  if (!top) return 0;
+  const last = panelLastRow_(sh);
+  if (!last || last < top) return 0;
+  const chk = panelChkCol_(sh, top);
+  let grid;
+  try { grid = sh.getRange(top, 1, last - top + 1, chk + 1).getValues(); } catch (e) { return 0; }
+  let n = 0;
+  for (let i = 0; i < grid.length; i++) {
+    const label = String(grid[i][chk] == null ? "" : grid[i][chk]).trim();
+    if (label.indexOf("▼") !== 0) continue;
+    if (panelFixInputRow_(sh, top + i, chk)) n++;
+  }
+  return n;
+}
+
+/** 形をそろえる（空け行と ▼ の行）。まとめて呼べるように1つにしてある */
+function panelTidy_(sh) {
+  let n = 0;
+  try { n += panelFixInputs_(sh); } catch (e) {}
+  try { n += panelFixGaps_(sh); } catch (e) {}
+  return n;
+}
 
 function panelSync_(sh, headRow) {
   const items = panelItems_();
@@ -6770,6 +6985,7 @@ function panelAutoSync_(sh) {
     if (!head) { pr.setProperty("PANEL_SETUP_SIG", sig); return; }
     const added = panelSync_(sh, head);
     const made  = panelEnsureInputs_(sh);
+    const tidy  = panelTidy_(sh);      // ★空け行と ▼ の行の形をそろえる（ご指示）
     if (added || made) {
       panelProtect_(sh);
       panelSay_(sh, "🧰 新しいボタンを足しました（" +
