@@ -1,7 +1,12 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C063ver  （2026/09/21）  ★★★   ← もとは version 232
+ *  ★★★  C064ver  （2026/09/22）  ★★★   ← もとは version 232
+ *
+ *  [C064ver]
+ *   ・🔌 記録用スプシの開き方を mainSS_ にまとめた（作り直しに要る）
+ *     ★離れた（単体の）プロジェクトでも、
+ *       スクリプトプロパティ MAIN_SS_ID で開けます
  *
  *  [C063ver]
  *   ・⏰「⏰ 23:30」で、作業を再開できる時刻に知らせるようにした（ご指示）
@@ -616,7 +621,45 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C063ver";
+const CODE_VERSION = "C064ver";
+
+/* ================================================================
+ *  記録用スプシを開く（くっついていても、離れていても）
+ *
+ *  ★このコードは、いままで記録用スプシに「くっついた」形でした。
+ *    くっついていると mainSS_() で開けます。
+ *
+ *  ★けれど、版（バージョン）が200こで満杯になると、
+ *    プロジェクトを作り直すしかありません。
+ *    そのとき作れるのは「離れた（単体の）」プロジェクトです。
+ *    くっついていないので、getActiveSpreadsheet() は空を返します。
+ *    54か所ぜんぶが動かなくなります。
+ *
+ *  ★そこで、開き方を1か所にまとめました。
+ *      ① くっついていれば、そのまま開く
+ *      ② 離れていれば、覚えてあるIDで開く
+ *    これで、作り直したあとも そのまま動きます。
+ *
+ *  ★IDの覚えさせ方（1回だけ）
+ *    スクリプトプロパティに MAIN_SS_ID を作り、
+ *    記録用スプシのURLの d/……/edit の「……」を入れてください。
+ * ================================================================ */
+
+/** 記録用スプシのIDを覚えておく名札 */
+const MAIN_SS_KEY = "MAIN_SS_ID";
+
+/** 記録用スプシを開く。開けなければ null */
+function mainSS_() {
+  try {
+    const a = SpreadsheetApp.getActiveSpreadsheet();
+    if (a) return a;
+  } catch (e) {}
+  try {
+    const id = PropertiesService.getScriptProperties().getProperty(MAIN_SS_KEY) || "";
+    if (id) return SpreadsheetApp.openById(id);
+  } catch (e) {}
+  return null;
+}
 
 const SENDER_MAP = {
   "Ued4659890c83b3b0bcf2a3f8bf008e7f": "ﾀﾞｲｽｹ",
@@ -669,7 +712,7 @@ const INFO_ROW = {
 
 /** 説明タブ（無ければ null） */
 function infoSheet_() {
-  try { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INFO_TAB); }
+  try { return mainSS_().getSheetByName(INFO_TAB); }
   catch (e) { return null; }
 }
 
@@ -875,7 +918,7 @@ function cfgSheet_() {
       if (got) return got;
     }
   } catch (e) {}
-  try { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETTINGS_TAB); }
+  try { return mainSS_().getSheetByName(SETTINGS_TAB); }
   catch (e) { return null; }
 }
 
@@ -998,7 +1041,7 @@ function cfgHoursText_() {
  * 人が書いた値は消さない。見出しと説明だけ書き直す。
  */
 function menuSetupSettings() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let sh = ss.getSheetByName(SETTINGS_TAB);
   const isNew = !sh;
   if (isNew) sh = ss.insertSheet(SETTINGS_TAB);
@@ -2244,7 +2287,7 @@ function handleDateNote_(ev, note) {
  */
 function fixOpuchaDate_(mid, bizDate) {
   if (!mid) return 0;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const touched = [];
   let n = 0;
 
@@ -2593,7 +2636,7 @@ function opuchaLabel_(x) {
  * 落としたものを黙って捨てず、理由を持ち帰って送り主に伝えるため。
  */
 function writeOpuchaRecords_(list, messageId, bizDate) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const buckets = {};
   ALL_TABS.forEach(function (n) { buckets[n] = []; });
   let wrote = 0;
@@ -3073,7 +3116,7 @@ function matchWord_(p, list) {
 }
 
 function writeRecord_(rec) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const row = buildRow_(rec);
 
   const targets = [rec.ownerTab || rec.sender];
@@ -3127,7 +3170,7 @@ function buildRow_(rec) {
 
 function deleteByMessageId_(mid) {
   if (!mid) return;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   ALL_TABS.forEach(function (name) {
     const sh = ss.getSheetByName(name);
     if (!sh) return;
@@ -3615,7 +3658,7 @@ function applyStyles_(sheet, out, meta) {
  * J列が空の行＝手打ちなので、そのまま残す。
  */
 function rebuildDerivedTabs() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   progSet_(60, "連動タブを作り直しています");
   const derived = AREA_TABS.concat(FLAG_TABS);
   const bucket = {};
@@ -3774,7 +3817,7 @@ function onOpen() {
  * ※ toast にシークバーは入れられない仕様なので、推定時間の文字だけ出す。
  */
 function onOpenCheck() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let name = "";
   try {
     name = ss.getActiveSheet().getName();
@@ -3846,7 +3889,7 @@ function triggerCount_(fn) {
  * スマホからでも分かるように、実行ログを見に行かなくてよい形にしてある。
  */
 function menuOpenCheckStatus() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const ui = SpreadsheetApp.getUi();
   const pr = PropertiesService.getScriptProperties();
   const L = [];
@@ -3920,7 +3963,7 @@ function menuOpenCheckStatus() {
 }
 
 function menuOpenCheckOn() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === "onOpenCheck") ScriptApp.deleteTrigger(t);
   });
@@ -3930,7 +3973,7 @@ function menuOpenCheckOn() {
 
 /** 開いたときのチェックを OFF にする（重いと感じたらこちら） */
 function menuOpenCheckOff() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let n = 0;
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === "onOpenCheck") { ScriptApp.deleteTrigger(t); n++; }
@@ -3941,7 +3984,7 @@ function menuOpenCheckOff() {
 function menuFormatCurrent() {
   const name = SpreadsheetApp.getActiveSheet().getName();
   if (ALL_TABS.indexOf(name) === -1) {
-    SpreadsheetApp.getActiveSpreadsheet().toast("このタブは対象外です");
+    mainSS_().toast("このタブは対象外です");
     return;
   }
   showSyncDialog_(name);
@@ -3949,7 +3992,7 @@ function menuFormatCurrent() {
 
 /** 説明タブ以外の全タブを整形する */
 function formatAllTabs() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   progSet_(2, "タイムゾーンを確認中");
   ensureTimeZone_(ss);
   ensureOpuchaTab_(ss);
@@ -4114,7 +4157,7 @@ function menuSetToken() {
 }
 
 function executeSingleTabCheck(sheetName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   ensureTimeZone_(ss);
   const sh = ss.getSheetByName(sheetName);
   const changed = formatTab_(sh);
@@ -4385,7 +4428,7 @@ function dedupKey_(tab, bizDate, time, money) {
 }
 
 function importLineHistory(text, fromStr, toStr) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
 
   let from = null, to = null;
   if (fromStr) { const p = fromStr.split("-"); from = new Date(+p[0], +p[1] - 1, +p[2], 0, 0, 0); }
@@ -4546,7 +4589,7 @@ function fmtDate_(d) {
  * apply=true  … 不足を追加／内容違いを修正／LINEに無いLINE由来行を削除
  */
 function verifyAgainstHistory(text, fromStr, toStr, apply) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
 
   let from = null, to = null;
   if (fromStr) { const p = fromStr.split("-"); from = new Date(+p[0], +p[1] - 1, +p[2], 0, 0, 0); }
@@ -4766,7 +4809,7 @@ function repairKey_(tab, bizDate, money) {
 function computeRepair_(text, fromStr, toStr) {
   progClear_();
   progSet_(3, "LINE履歴を解析中");
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
 
   let from = null, to = null;
   if (fromStr) { const p = fromStr.split("-"); from = new Date(+p[0], +p[1] - 1, +p[2], 0, 0, 0); }
@@ -4867,7 +4910,7 @@ const ymdOf_ = function (d) {
 function repairFromHistory(text, fromStr, toStr, apply) {
   const R = computeRepair_(text, fromStr, toStr);
   if (!R) return "⚠️ LINE履歴から記録を1件も読み取れませんでした。\n貼り付けた内容と期間をご確認ください。";
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const truth = R.truth, sheetRows = R.sheetRows, pairs = R.pairs;
   const passCount = R.passCount, PASSES = R.passes, minD = R.minD, maxD = R.maxD;
   const ymd = ymdOf_;
@@ -5006,7 +5049,7 @@ function normalizePlace_(str) {
 }
 
 function menuPlaceNames() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const groups = {};   // 正規化名 -> { total, variants: {表記: 件数} }
 
   PERSONAL_TABS.forEach(function (name) {
@@ -5098,7 +5141,7 @@ function canonicalPlace_(s) {
 
 /** 全タブのG列を集計してグループを作る */
 function collectPlaceGroups_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const groups = {};
   PERSONAL_TABS.forEach(function (name) {
     const sh = ss.getSheetByName(name);
@@ -5216,7 +5259,7 @@ function applyPlaceUnify(selectedJson) {
   savePlaceAlias_(map);
 
   // 全タブのG列を書き換える
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let rewritten = 0;
   ALL_TABS.forEach(function (name) {
     const sh = ss.getSheetByName(name);
@@ -5448,7 +5491,7 @@ function menuDedupe() {
 function runDedupe(apply) {
   progClear_();
   progSet_(10, "重複を探しています");
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const groups = collectDupes_(ss);
   if (!groups.length) return "✅ 重複している行はありませんでした。";
 
@@ -5721,7 +5764,7 @@ function onEdit(e) {
 /* ============ 11. 診断・ログ ============ */
 
 function menuFindBadDates() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const out = [];
   ALL_TABS.forEach(function (n) {
     const sh = ss.getSheetByName(n);

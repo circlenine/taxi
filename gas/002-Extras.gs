@@ -119,7 +119,7 @@ function stShrink_(sum, n, globalAvg) {
 
 /** 期間内の乗車を集める。startD/endD 省略で全期間 */
 function stCollect_(startD, endD) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const rows = [];
   const seen = {};
   // Opucha.gs の印を使う。無ければ全件を自社として扱う
@@ -568,7 +568,7 @@ function opuIsOpucha_(who, rideKey, marks) {
  * 同じ乗車が個人タブとエリアタブの両方にあっても1件として扱う。
  */
 function opuCollect_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const marks = opuMarks_();
   const byKey = {};
 
@@ -663,7 +663,7 @@ function opuFilter_(list, c) {
  * 戻り値 { marked, unmarked, cells }
  */
 function opuApply_(setKeys, clearKeys) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const marks = opuMarks_();
   const all = opuCollect_();
   const byKey = {};
@@ -1231,7 +1231,7 @@ function menuMapLinksApply() {
 
 function runMapLinksApply(_apply) {
   progClear_();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let total = 0, body = "";
   ALL_TABS.forEach(function (name, i) {
     progSet_(Math.round(5 + 90 * i / ALL_TABS.length), name + "タブにリンクを貼っています");
@@ -1267,7 +1267,7 @@ function menuMapLinksCheck() {
 function runMapLinksCheck(_apply) {
   progClear_();
   progSet_(10, "乗り場を集計中");
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
 
   // 個人タブだけ見れば、写しの分を数えずに済む
   const count = {}, disp = {};

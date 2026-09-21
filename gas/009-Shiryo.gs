@@ -104,7 +104,7 @@ function shCollect_(names) {
     spots: (names || []).slice(0, 6)
   };
   let ss;
-  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { return out; }
+  try { ss = mainSS_(); } catch (e) { return out; }
   if (!ss || !names || !names.length) return out;
 
   const want = names.map(function (n) { return String(n).replace(/[\s　]/g, ""); });

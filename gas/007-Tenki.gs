@@ -434,7 +434,7 @@ function tkHoursLine_(hours) {
 /** 天気タブを用意する（無ければ作る） */
 function tkSheet_() {
   let ss;
-  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { return null; }
+  try { ss = mainSS_(); } catch (e) { return null; }
   if (!ss) return null;
   let sh = ss.getSheetByName(TK_TAB);
   if (sh) return sh;

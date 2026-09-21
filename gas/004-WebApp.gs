@@ -387,7 +387,7 @@ function wbAlert_(title, body) {
  * ダイアログが出ない環境でも、結果がセルに残る。
  */
 function menuWebAppCheck() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const r = wbSelfTest_();
   const head = (r.ok ? "✅ " : "❌ ") + r.title;
   const body = (r.url ? r.url + "\n" : "") + (r.how || "");
@@ -408,7 +408,7 @@ function menuWebAppCheck() {
  * メニューから送るとき。ここでは画面が出せるので、送る前に必ず聞く。
  */
 function menuWebAppSendLine() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const url = wbUrl_();
   wbWriteInfo_(url, "");
   if (!url) {
@@ -564,7 +564,7 @@ function wbSlot_(hh) { return hh < wbBizStart_() ? hh + 24 : hh; }
  * エリアタブには個人タブの写しも入っているので、同じ乗車を二度数えないようにする。
  */
 function wbCollect_(all) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const since = all ? null : new Date(Date.now() - WB_DAYS * 86400000);
 
   const own = [], opu = [];

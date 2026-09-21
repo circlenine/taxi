@@ -1071,7 +1071,7 @@ function menuShowVersions() {
  * 二重に作らないよう、既にあるものは消してから作り直します。
  */
 function setupReportMenu() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   // 起動時トリガーを作り直す。
   // setupReportMenu 自身に向いたトリガーがあると毎回作り直しが走るので、それも消す
   // （メニューが二重に出る原因にもなる）。
@@ -1137,7 +1137,7 @@ function lrPeriodsFrom_(minDate, today) {
 
 /** 画面から呼ばれる。記録の一番古い営業日を調べて期間一覧を返す */
 function getReportPeriods() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let minD = null;
   ALL_TABS.forEach(function (name) {
     const sh = ss.getSheetByName(name);
@@ -1160,7 +1160,7 @@ function getReportPeriods() {
 /** 送信先のグループIDを設定する（説明タブ Z1） */
 function menuSetGroupId() {
   const ui = SpreadsheetApp.getUi();
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("説明");
+  const sh = mainSS_().getSheetByName("説明");
   if (!sh) { ui.alert("説明タブが見つかりません。"); return; }
   const cur = (typeof infoGet_ === "function") ? infoGet_(INFO_ROW.GROUP) : "";
   const res = ui.prompt("グループLINEのID",
@@ -1488,7 +1488,7 @@ function rpFmt_(d) {
  * 何が起きたかを文字で返す（そうさボタンの結果らんに出る）。
  */
 function menuSendReportPanel() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const sh = ss.getSheetByName("説明");
 
   // 入力らんを読む。005-Updater.gs が入っていないときは、既定（今期・自分だけ）
@@ -2054,7 +2054,7 @@ function menuAutoReportTestNow() {
 /* ============ 集計 → Flex Message → LINE送信 ============ */
 
 function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet(); let startD = customStartD, endD = customEndD;
+  const ss = mainSS_(); let startD = customStartD, endD = customEndD;
   const rpOpt = opt || {};
 
   // ★テスト送信のときは、まとめスプシを「本番用」とは別に作る。
@@ -4953,7 +4953,7 @@ function dbOpenTarget_(mainSS, isTest) {
 function dbViewerText_() {
   let dbSS = null, mainSS = null;
   try {
-    mainSS = SpreadsheetApp.getActiveSpreadsheet();
+    mainSS = mainSS_();
     dbSS = dbOpenTarget_(mainSS, false);   // ここで見るのは本番用だけ
   } catch (e) {
     return "まとめスプシ：❌ 開けませんでした（" + (e && e.message ? e.message : e) + "）";

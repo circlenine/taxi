@@ -1021,7 +1021,7 @@ function vnPlaceStats_(names, fromHour, toHour) {
                 // ★どの乗り場を数えたのか。あとで案内にそのまま書くため
                 spots: (names || []).slice(0, 4) };
   let ss;
-  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { return out; }
+  try { ss = mainSS_(); } catch (e) { return out; }
   if (!ss || !names || !names.length) return out;
 
   const want = names.map(function (n) { return String(n).replace(/[\s　]/g, ""); });

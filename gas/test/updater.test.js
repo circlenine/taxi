@@ -480,6 +480,16 @@ vm.runInContext(`
     return true;
   }`, ctx);
 
+/*
+ * ★記録用スプシの開き方は、001-Code の mainSS_ にまとめてあります。
+ *   ここは 001 を読み込まないので、同じ働きのものを置きます。
+ *   本物と同じで「くっついていれば そのまま、離れていれば IDで開く」。
+ */
+vm.runInContext(
+  (fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8')
+    .match(/function mainSS_\(\)[\s\S]*?\n}\n/) || [''])[0] +
+  'var MAIN_SS_KEY = "MAIN_SS_ID";', ctx);
+
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8'), ctx,
   { filename: '005-Updater.gs' });
 const F = n => vm.runInContext(n, ctx);
@@ -4222,6 +4232,84 @@ console.log('\n■ 片づけは、かならず2回に分ける');
     source: { userId: 'Umark' }, replyToken: 'r' });
   t(del2.length === 0, '★時間があいたら、また1回目からやり直す');
   ctx.UrlFetchApp.fetch = keep2;
+}
+
+console.log('\n■ 結果らんの下に、よけいな空きを残さない（ご指摘）');
+/*
+ * ★前は「半角1文字＝7px」「1行＝19px」「余白12px」で見積もっていました。
+ *   実際は 字の大きさ11なら、全角1文字がおよそ11px、1行はおよそ15pxです。
+ *   多めに取っておけば安心、と思っていましたが、
+ *   毎回そのぶん下が空いて見えて、かえって汚くなっていました。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const rr = F('panelResultRow_')(panel);
+
+  // ★本物と同じく、結果らんは B〜H をつないで1マスにしてある
+  panel.getRange(rr, 2, 1, 7).merge();
+
+  const body = '03:47  ✅ [15] 古いデプロイを片づける が終わりました（約1分26秒）\n' +
+               '片づけました\n' +
+               '・デプロイ：46件（しくじり 0件）\n' +
+               '・版の数：200 → 200\n' +
+               '\n' +
+               '版は減りませんでした\n' +
+               'デプロイと版は、別ものでした\n' +
+               'プロジェクトの作り直しになります\n' +
+               'クロちゃんに声をかけてください';
+  F('panelFitRow_')(panel, rr, 2, body);
+  const h = panel._heights[rr];
+  const n = body.split('\n').length;
+
+  t(h >= n * 15, '★文が隠れない（' + n + '行ぶんは入る／' + h + 'px）', String(h));
+  t(h <= n * 19, '★★よけいな空きを残さない（' + n + '行で ' + h + 'px）', String(h));
+
+  // 1行だけのときは、ふだんの高さのまま
+  F('panelFitRow_')(panel, rr, 2, '03:47  おわりました');
+  t(panel._heights[rr] === vm.runInContext('PANEL_RESULT_H', ctx),
+    '★短いときは、ふだんの高さ（' + panel._heights[rr] + 'px）');
+
+  // うんと長くても、画面を埋めない
+  F('panelFitRow_')(panel, rr, 2, new Array(80).join('あ\n'));
+  t(panel._heights[rr] === vm.runInContext('PANEL_RESULT_MAX_H', ctx),
+    '★長すぎるときは、上限で止める（' + panel._heights[rr] + 'px）');
+}
+
+console.log('\n■ ★スプシから離れても、動くこと（作り直しに要る）');
+/*
+ * ★版が200こで満杯になったら、プロジェクトを作り直すしかありません。
+ *   そのとき作れるのは「離れた（単体の）」プロジェクトです。
+ *   くっついていないので getActiveSpreadsheet() は空を返します。
+ *   54か所ぜんぶが動かなくなるところでした。
+ *
+ * ★開き方を1か所（mainSS_）にまとめ、
+ *   離れていても 覚えてあるIDで開けるようにしました。
+ */
+{
+  const M = F('mainSS_');
+  const keep = ctx.SpreadsheetApp.getActiveSpreadsheet;
+
+  // ① くっついているとき
+  t(M() !== null, '★くっついていれば、そのまま開ける');
+
+  // ② 離れていて、IDを覚えているとき
+  ctx.SpreadsheetApp.getActiveSpreadsheet = () => null;
+  let opened = '';
+  const keepOpen = ctx.SpreadsheetApp.openById;
+  ctx.SpreadsheetApp.openById = id => { opened = id; return { _byId: id }; };
+  props['MAIN_SS_ID'] = 'SSID-ABC';
+  const got = M();
+  t(!!got && got._byId === 'SSID-ABC',
+    '★★離れていても、覚えてあるIDで開ける（作り直しても動く）');
+  t(opened === 'SSID-ABC', '　 そのIDで開きにいく');
+
+  // ③ 離れていて、IDも覚えていないとき
+  delete props['MAIN_SS_ID'];
+  t(M() === null, '　 IDが無ければ null（落ちない）');
+
+  ctx.SpreadsheetApp.getActiveSpreadsheet = keep;
+  ctx.SpreadsheetApp.openById = keepOpen;
 }
 
 console.log('\n■ リセットのチェックは、どこに動かしても効く（ご指摘）');

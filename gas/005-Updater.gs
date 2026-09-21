@@ -2,7 +2,23 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U108ver  （2026/09/22）  ★★★
+ *  ★★★  U109ver  （2026/09/22）  ★★★
+ *
+ *  [U109ver]
+ *   ・🔌 記録用スプシから離れても動くようにした（作り直しに要る）
+ *     ★版が200こで満杯になったら、作り直すしかありません。
+ *       そのとき作れるのは「離れた（単体の）」プロジェクトです。
+ *       くっついていないので getActiveSpreadsheet() は空を返し、
+ *       54か所ぜんぶが動かなくなるところでした。
+ *     ★開き方を1か所（001-Code の mainSS_）にまとめ、
+ *       離れていても スクリプトプロパティ MAIN_SS_ID で開けるようにしました。
+ *   ・📐 結果らんの下の、よけいな空きを減らした（ご指摘）
+ *     ★「半角1文字＝7px」「1行＝19px」「余白12px」で見積もっていました。
+ *       実際は 字の大きさ11なら、全角1文字がおよそ11px、1行はおよそ15pxです。
+ *       多めに取れば安心、と思っていましたが、
+ *       毎回そのぶん下が空いて、かえって汚くなっていました。
+ *     ★同じ文で 226px → 150px になりました。
+ *   ・📝 消した手順書（docs/…md）を案内していたのを直した
  *
  *  [U108ver]
  *   ・🔲 リセットのチェックを、どこに動かしても効くようにした（ご指摘）
@@ -1146,7 +1162,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U108ver";
+const UPD_VERSION = "U109ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -1307,7 +1323,7 @@ function updSource_() { return updRepo_() ? "github" : "drive"; }
 function きょかをもらう() {
   const L = [];
   // 使う先を、ひととおり触っておく（そのぶんの許可がまとめて出る）
-  try { SpreadsheetApp.getActiveSpreadsheet().getName(); L.push("スプシ：OK"); }
+  try { mainSS_().getName(); L.push("スプシ：OK"); }
   catch (e) { L.push("スプシ：" + e.message); }
   try { PropertiesService.getScriptProperties().getProperty("GH_REPO"); L.push("覚え書き：OK"); }
   catch (e) { L.push("覚え書き：" + e.message); }
@@ -3878,7 +3894,7 @@ const UPD_FUN_TAB = "🎬おもしろ動画";
 /** タブが無ければ作る。すでにあれば、そのまま */
 function updFunSheet_() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = mainSS_();
     let sh = ss.getSheetByName(UPD_FUN_TAB);
     if (!sh) {
       sh = ss.insertSheet(UPD_FUN_TAB);
@@ -4586,7 +4602,7 @@ function updHandleYes_(ev) {
  * 何を入れ替えるかを見せて、確認してから書き込む。
  */
 function menuUpdateCode() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   let ui = null;
   try { ui = SpreadsheetApp.getUi(); } catch (e) {}
 
@@ -4939,7 +4955,7 @@ function updToastText_(body) {
 
 function updTell_(title, body) {
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast(updToastText_(body), title, 12);
+    mainSS_().toast(updToastText_(body), title, 12);
   } catch (e) {}
   try { infoSet_(INFO_ROW.UPDATE, title + "\n" + body, "最後の更新"); } catch (e) {}
   try {
@@ -5773,7 +5789,7 @@ function updHandleFullCmd_(ev) {
     "▼ それでも直らないときは",
     "版を消す入り口を、Googleは出していません。",
     "そのときはプロジェクトの作り直しになります。",
-    "手順は docs/版が満杯になったら.md に書いてあります。",
+    "手順は マニュアルの「満杯」タブにあります（[16]）。",
     "私に言ってもらえれば、付き添います。"
   ].join("\n"));
   return true;
@@ -5893,6 +5909,17 @@ const PANEL_RESULT_EMPTY_H = 21;
 // 結果らんが、どれだけ高くなってよいか（だいたい10行ぶん）。
 // これより長い文も、セルの中には全部入っている
 const PANEL_RESULT_MAX_H = 200;
+/*
+ * 結果らんの高さを見積もるための目安（まーくさんのご指摘で直しました）。
+ *   PANEL_CHAR_PX … 半角1文字ぶんの幅。全角はこの2つぶん
+ *   PANEL_LINE_PX … 1行ぶんの高さ
+ *   PANEL_PAD_PX  … 上下の余白
+ * ★大きめに取ると安心ですが、毎回そのぶん下が空いて見えます。
+ *   字の大きさ11に合わせた、ぎりぎりの数にしてあります。
+ */
+const PANEL_CHAR_PX = 5.5;
+const PANEL_LINE_PX = 16;
+const PANEL_PAD_PX  = 6;
 const PANEL_STALL_SEC = 150;  // 何秒うんともすんとも言わなければ「止まった」とみなすか
 const PANEL_HEAD      = "▼ チェックを入れると動きます（終わると自動で外れます）";
 // 見出しを探すときの手がかり。文言を少し直しても見つけられるようにしておく
@@ -6066,7 +6093,7 @@ function panelCleanDeploys() {
               : "版は減りませんでした\n" +
                 "デプロイと版は、別ものでした\n" +
                 "プロジェクトの作り直しになります\n" +
-                "docs/版が満杯になったら.md を見てください");
+                "クロちゃんに声をかけてください");
 }
 
 /**
@@ -6320,7 +6347,7 @@ function panelSetVenueDateList_(sh) {
 /** いま入っている「イベントの日付」の文字（空なら ""） */
 function panelVenueDateText_() {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
+    const sh = mainSS_().getSheetByName(PANEL_TAB);
     return panelInputGet_(sh, PANEL_IN_VDATE);
   } catch (e) { return ""; }
 }
@@ -6823,7 +6850,7 @@ function panelResultRow_(sh) {
  * 上書きせずに中止する。消してしまうほうが困るため。
  */
 function menuMakePanel() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const sh = ss.getSheetByName(PANEL_TAB);
   if (!sh) {
     return updTell_("❌ 「" + PANEL_TAB + "」タブがありません",
@@ -7339,7 +7366,7 @@ function menuPanelRepair() {
     ui.alert("🔧 ボタンの見張りを入れ直す", text, ui.ButtonSet.OK);
   } catch (e) {}
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
+    const sh = mainSS_().getSheetByName(PANEL_TAB);
     if (sh) panelSay_(sh, "🔧 " + text);
   } catch (e) {}
   return text;
@@ -7347,7 +7374,7 @@ function menuPanelRepair() {
 
 /** チェックを見張るしくみを入れる（すでにあれば入れ直す） */
 function panelInstall_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   ScriptApp.getProjectTriggers().forEach(function (t) {
     const f = t.getHandlerFunction();
     if (f === "panelOnEdit" || f === "panelWatch") ScriptApp.deleteTrigger(t);
@@ -8127,7 +8154,7 @@ function panelWatch() {
   try {
     panelBeatWatch_();                 // 「見張りは生きている」の足あと
 
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
+    const sh = mainSS_().getSheetByName(PANEL_TAB);
     if (!sh) return;
 
     // 「結果を空にする」が押されていたら、まずそれ
@@ -8190,7 +8217,7 @@ function panelWatch() {
  * onEdit と見張りの両方から呼ばれるので、二重に動かないよう鍵をかける。
  */
 function panelRun_(row) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = mainSS_();
   const sh = ss.getSheetByName(PANEL_TAB);
   if (!sh) return;
 
@@ -8291,7 +8318,16 @@ function panelFitRow_(sh, row, col, text) {
     for (let c = c1; c <= c2; c++) { try { w += sh.getColumnWidth(c); } catch (e) {} }
     if (w <= 0) w = 400;
 
-    const per = Math.max(12, Math.floor(w / 7));   // 1行に入るおおよその文字ぶん
+    /*
+     * ★1行に何文字入るかの見積もりを、直しました（ご指摘）。
+     *
+     *   前は「半角1文字＝7px」で数えていました。
+     *   実際は、いまの字の大きさ（11）だと
+     *   全角1文字がおよそ11px、半角1文字はその半分です。
+     *   7pxで数えると「入る文字が少ない」と思い込んで、
+     *   行数を多く見積もり、そのぶん下に余白が残っていました。
+     */
+    const per = Math.max(12, Math.floor(w / PANEL_CHAR_PX));
     let lines = 0;
     String(text).split("\n").forEach(function (ln) {
       lines += Math.max(1, Math.ceil(updWidth_(ln) / per));
@@ -8304,7 +8340,17 @@ function panelFitRow_(sh, row, col, text) {
      *   セルの中には全部入っているので、そのマスを押せば
      *   上の入力らんに全文が出ます。
      */
-    sh.setRowHeight(r, Math.min(PANEL_RESULT_MAX_H, Math.max(PANEL_RESULT_H, lines * 19 + 12)));
+    /*
+     * ★1行ぶんの高さも、19 → 16 にしました（ご指摘）。
+     *   字の大きさ11なら、1行はおよそ15pxです。
+     *   19で数えると、8行の文でも 32px ぶん（2行ぶん）
+     *   よけいな空きが下に残ります。
+     * ★下の余白も 12 → 6 にしました。
+     *   多めに取っておけば安心、と思っていましたが、
+     *   毎回そのぶん空いて見えるので、かえって汚くなっていました。
+     */
+    sh.setRowHeight(r, Math.min(PANEL_RESULT_MAX_H,
+      Math.max(PANEL_RESULT_H, lines * PANEL_LINE_PX + PANEL_PAD_PX)));
   } catch (e) {}
 }
 
@@ -8383,7 +8429,7 @@ function updProgress_(text, restSec) {
   try {
     if (!panelMarkGet_()) return;
     updBeat_(text);
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PANEL_TAB);
+    const sh = mainSS_().getSheetByName(PANEL_TAB);
     if (!sh) return;
     panelSay_(sh, "⏳ " + text +
       (restSec ? "（のこり " + updSecText_(restSec) + "）" : ""));

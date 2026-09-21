@@ -51,6 +51,17 @@ ctx.SpreadsheetApp = {
   getUi: () => { throw new Error('no ui'); }
 };
 
+/*
+ * ★記録用スプシの開き方は、001-Code の mainSS_ にまとめてあります。
+ *   ここは 001 を読み込まないので、同じ働きのものを置きます。
+ *   本物と同じで「くっついていれば そのまま、離れていれば IDで開く」。
+ */
+vm.runInContext('function mainSS_(){' +
+  ' try { var a = SpreadsheetApp.getActiveSpreadsheet(); if (a) return a; } catch (e) {}' +
+  ' try { var id = PropertiesService.getScriptProperties().getProperty("MAIN_SS_ID");' +
+  '       if (id) return SpreadsheetApp.openById(id); } catch (e) {}' +
+  ' return null; }', ctx);
+
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '007-Tenki.gs'), 'utf8'), ctx);
 
 let fail = 0;

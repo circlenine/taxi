@@ -182,7 +182,7 @@ function mnFindSheet_(name, alsoLike) {
   } catch (e) {}
 
   // ② 記録用スプシ
-  try { return look(SpreadsheetApp.getActiveSpreadsheet()); } catch (e) {}
+  try { return look(mainSS_()); } catch (e) {}
   return null;
 }
 
@@ -202,7 +202,7 @@ function panelMoveTabs() {
 
   let ss, book;
   try {
-    ss = SpreadsheetApp.getActiveSpreadsheet();
+    ss = mainSS_();
     book = mnBook_();
   } catch (e) { return "❌ 開けませんでした\n" + ((e && e.message) || e); }
 
