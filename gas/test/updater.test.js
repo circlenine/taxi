@@ -4049,7 +4049,16 @@ console.log('\n■ 版（バージョン）が200こで満杯になったとき'
     vm.runInContext('UPD_DEPLOY_FULL', ctx));
   const m = String(ctx.pu[0].msgs[0].text);
   t(m.indexOf('版（バージョン）が200こで満杯') !== -1, '★原因を ひとことで言う', m);
-  t(m.indexOf('「❗」') !== -1, '★どうすればよいかを言う（❗で手順が出る）', m);
+  /*
+   * ★「LINEで❗と送ってください」は書きません（ご指摘）。
+   *   公開に失敗しているときは LINEの受け口が古いままなので、
+   *   ❗ は いくら送っても返ってきません。
+   *   届かない直し方を案内するのが、いちばん不親切です
+   */
+  t(m.indexOf('スプシ[15]') !== -1,
+    '★★押すボタンと順番を、そのまま書く（スプシ[15]→[1]）', m);
+  t(m.indexOf('LINEで「❗」') === -1,
+    '★★届かない直し方（LINEで❗）を案内しない', m);
   t(m.indexOf('limit of 200 versions') === -1,
     '★長い英語のエラーは、そのまま貼らない', m);
   t(m.split('\n').length <= 5, '★5行まで（' + m.split('\n').length + '行）', m);
@@ -4207,6 +4216,29 @@ console.log('\n■ 片づけは、かならず2回に分ける');
     source: { userId: 'Umark' }, replyToken: 'r' });
   t(del2.length === 0, '★時間があいたら、また1回目からやり直す');
   ctx.UrlFetchApp.fetch = keep2;
+}
+
+console.log('\n■ 心当たりのない失敗は、クロちゃんに聞いてもらう（ご指示）');
+/*
+ * ★知らないものに、それらしい直し方を書くのが いちばん害になります。
+ *   たまごが先かにわとりが先かの話は、その場では気づけません。
+ *   無理に考えさせず、聞いてもらいます。
+ */
+{
+  const W = F('updDeployWhy_');
+
+  const full = W(vm.runInContext('UPD_DEPLOY_FULL', ctx));
+  t(full.indexOf('スプシ[15]') !== -1, '★満杯は、押すボタンと順番を書く', full);
+  t(full.split('\n').length === 2, '　 2行におさめる（LINEは5行までなので）', full);
+
+  const none = W('デプロイがまだありません');
+  t(none.indexOf('新しいデプロイ') !== -1, '★公開が無いときも、押すものを書く', none);
+
+  const odd = W('デプロイのやり直しは失敗しました（なにか知らないこと）');
+  t(odd.indexOf('クロちゃんに聞いてください') !== -1,
+    '★★心当たりが無ければ、クロちゃんに聞いてもらう', odd);
+  t(odd.indexOf('なにか知らないこと') !== -1, '　 分かっている原因は、そのまま出す', odd);
+  t(odd.indexOf('LINEで') === -1, '★届かない直し方を、書かない', odd);
 }
 
 console.log('\n■ ⏰ 再開できる時刻に知らせる（ご指示）');
