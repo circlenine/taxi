@@ -4523,6 +4523,57 @@ console.log('\n■ 片づけは、かならず2回に分ける');
   ctx.UrlFetchApp.fetch = keep2;
 }
 
+console.log('\n■ まーくさんが置き直された形（□はH2、結果はB3〜H3）');
+/*
+ * ★まーくさんが、こう置き直されました。
+ *   ・2行目：B列に「更新履歴」、H列にリセットの□
+ *   ・3行目：B〜H列を1マスにつないで、そこに結果
+ *   たてにつないでいないので、ふくらむ行がありません。
+ *   これまででいちばん簡単な形です。ここで固めておきます。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  // 前の形（ボタンの下の結果らん）を消して、上に置き直す
+  const oldRow = F('panelResultRow_')(panel);
+  for (let c = 1; c <= 9; c++) {
+    delete panel._cells[(oldRow - 1) + ',' + c];
+    delete panel._cells[oldRow + ',' + c];
+  }
+  panel._cells['2,2'] = '更新履歴';
+  panel._cells['2,8'] = false;              // H2 のリセット□
+  panel.getRange(3, 2, 1, 7).merge();       // B3〜H3
+  panel._heights[3] = 200;
+
+  const rc = F('panelResultCell_')(panel);
+  t(!!rc && rc.row === 3 && rc.col === 2, '★結果らんは3行目B列だと分かる（' +
+    (rc ? rc.row + '行' + rc.col + '列' : 'なし') + '）');
+
+  const rcell = F('panelResetCell_')(panel);
+  t(!!rcell && rcell.row === 2 && rcell.col === 8,
+    '★リセットの□はH2だと分かる（' + (rcell ? rcell.row + '行' + rcell.col + '列' : 'なし') + '）');
+
+  const msg = '09:00  ✅ [1] コードを更新する が終わりました\n' +
+              '✅ すでに最新です\n' +
+              '前に取り込んだときから、どれも変わっていません。';
+  F('panelSay_')(panel, msg);
+  const n3 = msg.split('\n').length + 1;          // 時刻の行がひとつ増える見立て
+  t(panel._heights[3] <= n3 * 17 + 10,
+    '★★下に空きを残さない（' + panel._heights[3] + 'px）', String(panel._heights[3]));
+  t(panel._soft[3] === false, '★★ふくらまない高さにする（ここが5回ぶんの原因でした）');
+  t(panel._heights[2] === undefined || panel._heights[2] === 21,
+    '　2行目（見出しと□の行）には、手を出さない');
+
+  // リセットの□を押す
+  panel._cells['2,8'] = true;
+  t(F('panelResetIfAsked_')(panel) === true, '★H2の□を押すと、効く');
+  t(String(panel._cells['3,2'] || '') === '', '　結果が空になる');
+  t(panel._heights[3] === 21, '　3行目は標準（21）に戻る（' + panel._heights[3] + '）');
+  t(panel._soft[3] === false, '　そのときも、ふくらまない高さ');
+  t(panel._cells['2,8'] === false, '　□は、押していない形に戻る');
+}
+
 console.log('\n■ [20] 結果らんの形を、そのまま出す');
 /*
  * ★結果らんの下の空きを、4回 直して4回とも外しました。
