@@ -2,11 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V048ver  （2026/09/21）  ★★★
+ *  ★★★  V049ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V049ver]
+ *   ・🔣 台帳の絵文字を 📒 にした（ご指示）
  *
  *  [V048ver]
  *   ・🔣 LINEからの呼び出しを、絵文字ひとつでもできるようにした（ご指示）
@@ -2947,8 +2950,8 @@ function vnLedgerBuild_(days, withGuess) {
 function vnHandleListCmd_(ev, sentAt) {
   const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
   // 「読み取り確認」…先の日付まで、ちゃんと読めているかを見る（まーくさんだけ）
-  // ★絵文字ひとつでも呼べるようにする（ご指示）。🗓＝読み取り台帳
-  if (/^(🗓|🗓️|📋|読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
+  // ★絵文字ひとつで呼べるようにする（ご指示）。📒＝読み取り台帳
+  if (/^(📒|読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
     let me = "";
     try { me = vnTestTarget_(); } catch (e) {}
     if (!me || ((ev.source && ev.source.userId) || "") !== me) return false;

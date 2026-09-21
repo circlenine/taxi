@@ -18,7 +18,7 @@
  *  [C056ver]
  *   ・🚨 しくじりを、まーくさんの個人LINEにも知らせるようにした（errTell_）
  *     ★黙って壊れたままになるのが、いちばん困るためです
- *     ★「エラー」と送れば、直近5件を見られます（updHandleErr_）
+ *     ★「❌」と送れば、直近5件を見られます（updHandleErr_）
  *
  *  [C055ver]
  *   ・設定「イベント情報を自動で送る」の既定を「いいえ」→「はい」にした
@@ -1619,6 +1619,8 @@ function handleEvent_(ev) {
   if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
   // --- 「天気」… ためてある天気の中身を見せる（まーくさんだけ）---
   if (typeof tkHandleCmd_ === "function" && tkHandleCmd_(ev)) return;
+  // --- 「❓」… どの絵文字で何が出るかを見せる（まーくさんだけ）---
+  if (typeof updHandleHelp_ === "function" && updHandleHelp_(ev)) return;
   /*
    * --- 「アニメに名言変更してください」… 終わったときのひとことを切り替える ---
    *     英語の名言 ⇔ ジャンプ作品の名言・迷言
@@ -5611,7 +5613,7 @@ function errTell_(where, msg) {
    * ★残りの通数が少ないときは、知らせません。
    *   いちばん大事なのは「グループへのイベント案内」です。
    *   しくじりの知らせで、それを食いつぶしては元も子もありません。
-   *   そのときは「エラー」と送れば、いつでも見られます。
+   *   そのときは「❌」と送れば、いつでも見られます。
    */
   try {
     if (typeof lrPushLeft_ === "function" && lrPushLeft_() <= 40) return;
@@ -5638,7 +5640,7 @@ function errTell_(where, msg) {
             "　どこ：" + String(where) + "\n" +
             "　中身：" + String(msg).slice(0, 180) + "\n\n" +
             "※ 同じものは1時間に1回、1日3回までしか出しません。\n" +
-            "※ ぜんぶ見るときは「エラー」と送ってください。\n" +
+            "※ ぜんぶ見るときは「❌」と送ってください。\n" +
             "※ いらないときは「💩🆖」で止められます。" }]);
   } catch (e) {}
 }

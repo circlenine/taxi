@@ -3584,5 +3584,26 @@ console.log('\n■ 🚨 しくじりを、黙ったままにしない（クロ�
   delete props['LAST_ERRORS'];
 }
 
+console.log('\n■ ❓ 絵文字の一覧を、LINEの中で引ける');
+{
+  const H = F('updHandleHelp_');
+  ctx.rep.length = 0;
+  t(H({ message: { text: '❓' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '★「❓」で、一覧が出る');
+  const x = String(ctx.rep[0]);
+  ['📈', '🎪', '📅', '📒', '📄', '☀️', '❌', '⏳', '💩'].forEach(function (e) {
+    t(x.indexOf(e) !== -1, '  ' + e + ' が一覧にある');
+  });
+  t(x.indexOf('みんな使えます') !== -1, '★だれが使えるかも書いてある');
+
+  ctx.rep.length = 0;
+  t(H({ message: { text: '？' }, source: { userId: 'Umark' }, replyToken: 'r' }) === true,
+    '  全角の「？」でも出る');
+  ctx.rep.length = 0;
+  t(H({ message: { text: '❓' }, source: { userId: 'Uother' }, replyToken: 'r' }) === false,
+    '★ほかの人には、返さない');
+  t(ctx.rep.length === 0, '  何も言わない');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
