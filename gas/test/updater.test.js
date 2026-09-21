@@ -3605,5 +3605,34 @@ console.log('\n■ ❓ 絵文字の一覧を、LINEの中で引ける');
   t(ctx.rep.length === 0, '  何も言わない');
 }
 
+console.log('\n■ 無反応を、どこにも作らない（ご指摘）');
+{
+  const K = F('updHandleKata_');
+  props['GH_REPO'] = 'circlenine/test';
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uother'); } catch (e) {}
+  ctx.rep.length = 0; ctx.pu.length = 0;
+
+  t(K({ message: { text: 'カタストロフィ' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    '1回目は、ふつうに遊びが返る');
+  t(String(ctx.rep[0]).indexOf('きみは　えらばれません') !== -1, '  星人が出る');
+
+  // 立て続けに打たれたとき
+  ctx.rep.length = 0;
+  t(K({ message: { text: 'カタストロフィ' }, source: { userId: 'Uother' }, replyToken: 'r' }) === true,
+    '★立て続けに打たれても、受ける');
+  t(ctx.rep.length === 1, '★黙って見送らない（かならず何か返す）');
+  t(String(ctx.rep[0]).indexOf('出したばかり') !== -1, '  「いま出したばかり」と伝える');
+
+  // 星人が作れないときでも、返す
+  try { ctx.CacheService.getScriptCache().remove('KATA_FUN_Uthird'); } catch (e) {}
+  const keepFB = vm.runInContext('updAlienFallback_', ctx);
+  vm.runInContext('function updAlienFallback_(){ throw new Error("作れない"); }', ctx);
+  ctx.rep.length = 0;
+  K({ message: { text: 'カタストロフィ' }, source: { userId: 'Uthird' }, replyToken: 'r' });
+  t(ctx.rep.length === 1, '★星人が作れなくても、かならず返す');
+  t(String(ctx.rep[0]).indexOf('星人が　出てきません') !== -1, '  出せないと、はっきり言う');
+  ctx.updAlienFallback_ = keepFB;
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

@@ -2,7 +2,14 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U089ver  （2026/09/21）  ★★★
+ *  ★★★  U090ver  （2026/09/21）  ★★★
+ *
+ *  [U090ver]
+ *   ・🛸 星人の遊びで「黙って見送る」のをやめた（ご指摘）
+ *     ★立て続けに打たれたときも、短く返します
+ *     ★星人が作れなかったときも、必ず何か返します
+ *       （無反応だけは、どこにも作らない）
+ *   ・🔣 似た絵文字でも通るようにした（❌❎✖／⏳⌛ など）
  *
  *  [U089ver]
  *   ・🔣 絵文字を、まーくさんのご指示のものにそろえた
@@ -3262,7 +3269,7 @@ function updHandleQuota_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s\u3000]/g, "");
   // ★絵文字ひとつで呼べるようにする（ご指示）。⏳＝残りの通数
-  if (!/^(⏳|⌛|通数|つうすう|送信数|のこり|残り|残数)$/.test(t)) return false;
+  if (!/^(⏳|⌛|⏳️|⌛️|通数|つうすう|送信数|のこり|残り|残数)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   const me = updMe_();
   if (!me || uid !== me) return false;
@@ -3301,7 +3308,7 @@ function updHandleErr_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s\u3000]/g, "");
   // ★絵文字ひとつで呼べるようにする（ご指示）。❌＝しくじり
-  if (!/^(❌|✖|✖️|エラー|えらー|しくじり|不具合|ログ)$/.test(t)) return false;
+  if (!/^(❌|❎|✖|✖️|✗|×|エラー|えらー|しくじり|不具合|ログ)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   const me = updMe_();
   if (!me || uid !== me) return false;            // ほかの人には、何も返さない
@@ -3728,15 +3735,33 @@ function updHandleKata_(ev) {
      *   10分だと、うまくいかなくて もう一度打った人にも
      *   黙って何も返らず、こわれていると思わせてしまいます。
      */
+    /*
+     * ★黙って見送るのを、やめました（ご指摘：何も反応がない）。
+     *
+     *   前は、1分以内に もう一度打たれたら 何も返しませんでした。
+     *   打った人からは「こわれている」としか見えません。
+     *   短くても、かならず何か返します。
+     */
+    let tooSoon = false;
     try {
       const cc = CacheService.getScriptCache();
       const kk = "KATA_FUN_" + (uid || "anon");
-      if (cc.get(kk)) return true;               // 1分以内の連投は、見送る
-      cc.put(kk, "1", 60);
+      tooSoon = !!cc.get(kk);
+      if (!tooSoon) cc.put(kk, "1", 60);
     } catch (e) {}
+    if (tooSoon) {
+      try {
+        if (typeof lineReply_ === "function") {
+          lineReply_((ev && ev.replyToken) || "",
+            "●\nいま　出したばかりです。\n1分ほど　おいて下ちい。\n\nという　りくつなわけだす。");
+        }
+      } catch (e) {}
+      return true;
+    }
 
     let alien = null, fun = null;
-    try { alien = updAlienFallback_(); } catch (e) { alien = null; }
+    try { alien = updAlienFallback_(); }
+    catch (e) { alien = null; if (typeof logErr_ === "function") logErr_("updKataAlien", e); }
     try { fun = updFunPick_(); } catch (e) { fun = null; }
     let replied = false;
     if (alien) {
@@ -3745,7 +3770,23 @@ function updHandleKata_(ev) {
           lineReply_((ev && ev.replyToken) || "", updKataDenied_(alien, fun));
           replied = true;
         }
-      } catch (e) { replied = false; }
+      } catch (e) {
+        replied = false;
+        if (typeof logErr_ === "function") logErr_("updKataReply", e);
+      }
+    }
+    /*
+     * ★星人が作れなかったときでも、必ず何か返します。
+     *   「無反応」だけは、絶対に作らないためです。
+     */
+    if (!replied) {
+      try {
+        if (typeof lineReply_ === "function") {
+          lineReply_((ev && ev.replyToken) || "",
+            "●\n星人が　出てきません。\nすこし　あとで　もう一度　試して下ちい。\n\n" +
+            "という　りくつなわけだす。");
+        }
+      } catch (e) {}
     }
     // 絵は裏から。返事そのものが出せなかったときだけ、文も裏から送る
     updKataJobAdd_(replied

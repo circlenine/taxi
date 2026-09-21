@@ -2,11 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V049ver  （2026/09/21）  ★★★
+ *  ★★★  V050ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V050ver]
+ *   ・🔣 似た絵文字でも通るようにした（📒📕📗／📄📃📑／📅📆🗓／📈📊／🎪🎡）
  *
  *  [V049ver]
  *   ・🔣 台帳の絵文字を 📒 にした（ご指示）
@@ -2951,7 +2954,7 @@ function vnHandleListCmd_(ev, sentAt) {
   const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
   // 「読み取り確認」…先の日付まで、ちゃんと読めているかを見る（まーくさんだけ）
   // ★絵文字ひとつで呼べるようにする（ご指示）。📒＝読み取り台帳
-  if (/^(📒|読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
+  if (/^(📒|📕|📗|📘|📙|📓|読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
     let me = "";
     try { me = vnTestTarget_(); } catch (e) {}
     if (!me || ((ev.source && ev.source.userId) || "") !== me) return false;
@@ -2965,7 +2968,7 @@ function vnHandleListCmd_(ev, sentAt) {
     return true;
   }
   // ★絵文字ひとつでも呼べるようにする（ご指示）。📅＝今日のイベント一覧
-  if (!/^(📅|📆|イベント一覧|いべんと一覧|イベント確認|今日のイベント|イベント)$/.test(t)) return false;
+  if (!/^(📅|📆|🗓|🗓️|イベント一覧|いべんと一覧|イベント確認|今日のイベント|イベント)$/.test(t)) return false;
   const d = sentAt || new Date();
   const reply = ev.replyToken || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
@@ -3868,8 +3871,8 @@ function vnOkMsg_(title, label, goData) {
  */
 function vnHandlePickCmd_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim();
-  const isRep = /^(📈|📊)$/.test(t);
-  const isEv  = /^(🎪|🎡)$/.test(t);
+  const isRep = /^(📈|📊|📉)$/.test(t);
+  const isEv  = /^(🎪|🎡|🎠|🎢)$/.test(t);
   if (!isRep && !isEv) return false;
 
   const uid = (ev && ev.source && ev.source.userId) || "";
@@ -4047,7 +4050,7 @@ function vnHandleDocCmd_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s\u3000]/g, "");
   // ★絵文字ひとつでも呼べるようにする（ご指示）
-  if (!/^(📄|📃|🗂|🗂️|資料|しりょう|紙|写真|資料一覧)$/.test(t)) return false;
+  if (!/^(📄|📃|📑|🗂|🗂️|🗒|🗒️|資料|しりょう|紙|写真|資料一覧)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   const reply = (ev && ev.replyToken) || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
