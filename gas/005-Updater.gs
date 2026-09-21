@@ -2,7 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U091ver  （2026/09/21）  ★★★
+ *  ★★★  U092ver  （2026/09/21）  ★★★
+ *
+ *  [U092ver]
+ *   ・🔎 そうさタブに [14]「LINEの調子を調べる」を足した
+ *     ★LINEが無反応だと「LINEで調べてください」も使えません。
+ *       スプシのボタンから押せて、結果もスプシに出る道が要ります
+ *     ★出すもの：LINEの受け口が最後に動いた時刻／鍵の有無／
+ *       送り先の有無／今月の送信数／直近のしくじり5件
+ *     ★同じ中身をLINEにも1通送ります。
+ *       それが届けば「送るほう」は生きている、と切り分けられます
  *
  *  [U091ver]
  *   ・📝 自動の「とりこみ かんりょう」を1行だけにした（ご指示）
@@ -4701,8 +4710,112 @@ function panelItems_() {
     { key: "読み取れているもの",   label: "[13] 読み取れているものの一覧を見る", fn: "panelVenueList",
       sec: 70, stall: 240,
       note: "各ページから、きょうのぶんが実際に何件読めているかを出します。" +
-            "読んだ元の文字もそのまま出るので、外していればすぐ分かります" }
+            "読んだ元の文字もそのまま出るので、外していればすぐ分かります" },
+    /*
+     * ★[14] は、LINEが無反応になったときの最後の頼りです。
+     *
+     *   LINEの受け口が動いていないと、LINEから何を送っても返りません。
+     *   そのとき「調べてください」とお願いする先も、LINEしかありません。
+     *   それでは、どうにもなりません。
+     *   このボタンは、スプシから押せて、結果も
+     *   スプシと（届くなら）LINEの両方に出します。
+     */
+    { key: "LINEの調子",           label: "[14] LINEの調子を調べる",      fn: "panelLineCheck",
+      sec: 30,
+      note: "LINEの受け口が動いているか、最後に届いたのはいつか、" +
+            "直近のしくじりは何かを出します。LINEが無反応のときは、まずこれを押してください" }
   ];
+}
+
+/**
+ * [14] LINEの調子を調べる。
+ *
+ * ★LINEが無反応のときの、最後の頼りです。
+ *   結果はスプシのパネルに出し、送れるなら まーくさんのLINEにも送ります。
+ *   LINEが死んでいても、スプシには必ず出ます。
+ */
+function panelLineCheck() {
+  const L = [];
+  const pr = (typeof updProps_ === "function") ? updProps_() : PropertiesService.getScriptProperties();
+
+  // ① LINEの受け口（Webhook）が、最後に呼ばれたのはいつか
+  let last = "";
+  try { last = pr.getProperty("LAST_LINE") || ""; } catch (e) {}
+  if (last) {
+    let when = last, mins = -1;
+    try {
+      const d = new Date(last);
+      when = (d.getMonth() + 1) + "/" + d.getDate() + " " +
+             ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+      mins = Math.round((Date.now() - d.getTime()) / 60000);
+    } catch (e) {}
+    L.push("📨 LINEから最後に届いた：" + when + (mins >= 0 ? "（" + mins + "分前）" : ""));
+    if (mins > 60) {
+      L.push("　⚠️ 1時間以上、1通も届いていません。");
+      L.push("　　LINEの「Webhook（ウェブフック）」の設定か、");
+      L.push("　　ウェブアプリの公開（デプロイ）が外れている可能性があります。");
+    } else {
+      L.push("　→ 受け口そのものは動いています。");
+    }
+  } else {
+    L.push("📨 LINEから届いた記録が、1件もありません。");
+    L.push("　⚠️ LINEの「Webhook」の設定が外れているか、");
+    L.push("　　ウェブアプリが公開されていない可能性が高いです。");
+  }
+
+  // ② 鍵と送り先
+  let tok = "";
+  try { tok = pr.getProperty("LINE_TOKEN") || ""; } catch (e) {}
+  L.push("");
+  L.push("🔑 LINEの鍵：" + (tok ? "入っています（" + tok.length + "文字）" : "❌ 入っていません"));
+  let me = "";
+  try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
+  L.push("👤 まーくさんの送り先：" + (me ? "分かっています" : "❌ 分かりません"));
+
+  // ③ 送信数の残り
+  try {
+    if (typeof lrPushCount_ === "function") {
+      L.push("📮 今月の送信数：" + lrPushCount_() + "通（残り " + lrPushLeft_() + "通）");
+    }
+  } catch (e) {}
+
+  // ④ 直近のしくじり
+  L.push("");
+  let errs = [];
+  try { errs = JSON.parse(pr.getProperty("LAST_ERRORS") || "[]"); } catch (e) { errs = []; }
+  if (!errs.length) {
+    L.push("🟢 しくじりの記録はありません。");
+  } else {
+    L.push("🚨 直近のしくじり（新しい順）");
+    errs.slice(0, 5).forEach(function (x, i) {
+      let when = String(x.at || "");
+      try {
+        const d = new Date(x.at);
+        when = (d.getMonth() + 1) + "/" + d.getDate() + " " +
+               ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+      } catch (e) {}
+      L.push("　" + (i + 1) + ". " + when + "　" + String(x.where || ""));
+      L.push("　　" + String(x.msg || "").slice(0, 120));
+    });
+  }
+
+  // ⑤ 実際に1通送ってみる（これが届けば、送るほうは生きている）
+  L.push("");
+  if (me && typeof lrPush_ === "function") {
+    try {
+      lrPush_(me, [{ type: "text",
+        text: "🔎 LINEの調子しらべ（スプシの[14]から）\n\n" + L.join("\n") }]);
+      L.push("📤 同じ中身を、まーくさんのLINEにも送りました。");
+      L.push("　これが届いていれば「送るほう」は生きています。");
+      L.push("　届いていなければ、鍵か送信数の問題です。");
+    } catch (e) {
+      L.push("📤 LINEに送れませんでした：" + ((e && e.message) || e));
+    }
+  } else {
+    L.push("📤 送り先が分からないので、LINEには送っていません。");
+  }
+
+  return L.join("\n");
 }
 
 /* ---- [7] の入力らん（プルダウン） ---- */
@@ -4986,7 +5099,8 @@ const PANEL_FROM = {
   menuVenueSample: "006-Venue",
   menuVenueTestSend: "006-Venue",
   panelVenueAuto: "006-Venue",
-  panelVenueList: "006-Venue"
+  panelVenueList: "006-Venue",
+  panelLineCheck: "005-Updater"
 };
 
 /** その関数がこのプロジェクトに入っているか */

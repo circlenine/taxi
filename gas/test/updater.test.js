@@ -797,14 +797,14 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 13, 'いつも13個並ぶ（' + items.length + '個）');
+t(items.length === 14, 'いつも14個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
 t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
-  'menuVenueTestSend,panelVenueAuto,panelVenueList',
+  'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -965,7 +965,7 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B24',
+t(panel._prot[0]._a1 === 'B9:B25',
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -1090,7 +1090,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '9個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '10個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1208,7 +1208,9 @@ panel._cells['47,2'] = false;
 panel._cells['47,3'] = '[12] イベントの自動発信を入切する';
 panel._cells['48,2'] = false;
 panel._cells['48,3'] = '[13] 読み取れているものの一覧を見る';
-panel._cells['49,2'] = '結果';
+panel._cells['49,2'] = false;
+panel._cells['49,3'] = '[14] LINEの調子を調べる';
+panel._cells['50,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1289,15 +1291,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 7, '[7]〜[13] が足りない');
+t(F('panelCheck_')(panel).missing.length === 8, '[7]〜[14] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 9, '9つ足りない');
+t(miss.length === 10, '10個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 13, '13個になった');
+t(F('panelReadRows_')(panel).length === 14, '14個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -1378,7 +1380,7 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
     delete panel._cells[r + ',2']; delete panel._cells[r + ',3']; delete panel._cells[r + ',4'];
   });
   props['PANEL_SETUP_VER'] = 'U006ver';
-  t(F('panelCheck_')(panel).missing.length === 7, '[7]〜[13] が無い状態');
+  t(F('panelCheck_')(panel).missing.length === 8, '[7]〜[14] が無い状態');
 
   F('panelWatch')();                       // 1分おきの見張りが気づいて足す
   t(F('panelCheck_')(panel).missing.length === 0, '見張りが [7] を足した');
@@ -3661,6 +3663,39 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   const z = String(ctx.pu[0].msgs[0].text);
   t(z.indexOf('001-Code') !== -1, '★手で打ったときは、これまでどおり くわしく（本人が待っているため）');
   t(z.split('\n').length > 1, '  1行ではなく、これまでどおりの形');
+  ctx.pu.length = 0;
+}
+
+console.log('\n■ [14] LINEの調子を調べる（LINEが無反応のときの、最後の頼り）');
+{
+  /*
+   * ★LINEが無反応だと「LINEで調べてください」も使えません。
+   *   スプシのボタンから押せて、結果もスプシに出る道が要ります
+   */
+  const C = F('panelLineCheck');
+  // 送り先と、送る道をまねる（005-Updater だけでは、どちらも入っていない）
+  vm.runInContext('function rpTestTarget_(){ return "Umark"; }', ctx);
+  vm.runInContext('function lrPush_(to, m){ pu.push({ to: to, msgs: m }); }', ctx);
+  props['LINE_TOKEN'] = 'aaaabbbbcccc';
+  props['LAST_LINE'] = new Date(Date.now() - 5 * 60000).toISOString();
+  props['LAST_ERRORS'] = JSON.stringify([
+    { at: new Date().toISOString(), where: 'lineReply(届かず)', msg: '400 Invalid reply token' }
+  ]);
+  ctx.pu.length = 0;
+  const out = String(C());
+  t(out.indexOf('LINEから最後に届いた') !== -1, '★受け口が最後に動いた時刻を出す');
+  t(out.indexOf('5分前') !== -1, '  何分前かも出す', out.slice(0, 60));
+  t(out.indexOf('受け口そのものは動いています') !== -1, '  届いていれば、そう言う');
+  t(out.indexOf('入っています') !== -1, '★鍵が入っているかを出す');
+  t(out.indexOf('400 Invalid reply token') !== -1, '★直近のしくじりも出す');
+  t(ctx.pu.length === 1, '★同じ中身を、LINEにも送ってみる（届けば送るほうは生きている）');
+
+  // 1件も届いていないとき
+  delete props['LAST_LINE'];
+  const out2 = String(C());
+  t(out2.indexOf('1件もありません') !== -1, '★1通も届いていなければ、はっきりそう言う');
+  t(out2.indexOf('Webhook') !== -1, '  どこを見ればよいかも書く');
+  delete props['LAST_ERRORS'];
   ctx.pu.length = 0;
 }
 
