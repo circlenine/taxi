@@ -1828,15 +1828,17 @@ t(panel._cells['48,2'] === '', '中身も空になる');
 
 /*
  * ★下の行（49行目）には、リセットの□が置いてあります。
- *   ここを低くすると、指で押せなくなります。
- *   だから、下の行の高さには手を出しません。
+ *   前は「押せなくなる」と思って手を出さずにいましたが、
+ *   その行がひとりで太いままだと、そこが ぽっかり空いて見えます。
+ *   パネルの他の□は ぜんぶ21の行に置いてあって、ふつうに押せます。
+ *   だから、標準の21までは縮めます。それより低くはしません。
  */
 {
   panel._heights[48] = 180;
   panel._heights[49] = 50;
   F('panelClear_')(panel);
-  t(panel._heights[49] === 50, '下の行（□がある）の高さは、そのまま（' + panel._heights[49] + '）');
-  t(panel._heights[48] === 21, 'いちばん上は標準（21）まで下げる（' + panel._heights[48] + '）');
+  t(panel._heights[49] === 21, '下の行（□がある）も標準（21）まで縮める（' + panel._heights[49] + '）');
+  t(panel._heights[48] === 21, 'いちばん上も標準（21）（' + panel._heights[48] + '）');
   panel._heights[49] = 21;
 }
 
@@ -2292,9 +2294,11 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
    *   結局ぜんぶ太いままに見えます
    */
   /*
-   * ★下の行は、そのままにします。
-   *   そこにリセットの□が置いてあることがあり、
-   *   低くすると指で押せなくなるためです
+   * ★下の行も、標準（21）まで縮めます。
+   *   下の行が太いままだと、そこが ぽっかり空いて見えます
+   *   （まーくさんの画面が、まさにそうでした）。
+   *   21までなら、リセットの□はふつうに押せます。
+   *   21より低くはしません（□が潰れます）
    */
   panel._heights[rr] = 600; panel._heights[rr + 1] = 50;
   panel.getRange(rr, 3, 2, 1).merge();
@@ -2304,9 +2308,18 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
   t(panel._heights[rr] === 21,
     '★つないでいても、いちばん上の行は標準に戻す（' + panel._heights[rr] + '）',
     String(panel._heights[rr]));
-  t(panel._heights[rr + 1] === 50,
-    '★★下の行（□があるかもしれない）は、そのまま（' +
+  t(panel._heights[rr + 1] === 21,
+    '★★下の行も標準（21）まで縮める（' +
     panel._heights[rr + 1] + '）', String(panel._heights[rr + 1]));
+  // 21より低くはしない（□が潰れる）
+  panel._heights[rr] = 600; panel._heights[rr + 1] = 12;
+  panel._cells[rr + ',3'] = '長かった結果';
+  panel._cells['4,7'] = true;
+  F('panelResetIfAsked_')(panel);
+  t(panel._heights[rr + 1] === 12,
+    '★★もともと21より低ければ、そのまま（' + panel._heights[rr + 1] + '）',
+    String(panel._heights[rr + 1]));
+  panel._heights[rr + 1] = 21;
   panel.getRange(rr, 3, 2, 1).breakApart();
 
   // ボタンの列のチェックは、拾わない（そちらは「動かす」ためのもの）
@@ -4309,7 +4322,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   const n = body.split('\n').length;
 
   t(h >= n * 15, '★文が隠れない（' + n + '行ぶんは入る／' + h + 'px）', String(h));
-  t(h <= n * 19, '★★よけいな空きを残さない（' + n + '行で ' + h + 'px）', String(h));
+  t(h <= n * 17, '★★よけいな空きを残さない（' + n + '行で ' + h + 'px）', String(h));
 
   // 1行だけのときは、ふだんの高さのまま
   F('panelFitRow_')(panel, rr, 2, '03:47  おわりました');
@@ -4329,15 +4342,20 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
    */
   panel.getRange(rr, 2, 1, 7).breakApart();
   panel.getRange(rr, 2, 2, 7).merge();            // たてに2行つなぐ
-  panel._heights[rr + 1] = 50;                    // 下の行（□のぶん）は そのまま
+  panel._heights[rr + 1] = 50;                    // 下の行（□のぶん）が太い
   F('panelFitRow_')(panel, rr, 2, body);
   const tot = panel._heights[rr] + panel._heights[rr + 1];
   t(tot >= n * 15, '★つないでいても、文が隠れない（合計 ' + tot + 'px）', String(tot));
-  t(tot <= n * 19,
+  /*
+   * ★ここは ぎりぎりまで詰めて見ます。
+   *   ゆるく見ていると「下の行のぶんを差し引き忘れた」ときに
+   *   すり抜けてしまい、下が空いたまま気づけません。
+   */
+  t(tot <= n * 17,
     '★★下の行のぶんも数えて、よけいな空きを残さない（合計 ' + tot + 'px）',
     String(tot));
-  t(panel._heights[rr + 1] === 50,
-    '★下の行（□があるかもしれない）の高さは、変えない');
+  t(panel._heights[rr + 1] === 21,
+    '★下の行（□がある）は、標準（21）まで縮める（' + panel._heights[rr + 1] + '）');
 }
 
 console.log('\n■ ★スプシから離れても、動くこと（作り直しに要る）');
