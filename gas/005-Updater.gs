@@ -2,7 +2,23 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U099ver  （2026/09/21）  ★★★
+ *  ★★★  U100ver  （2026/09/21）  ★★★
+ *
+ *  [U100ver]
+ *   ・💾 [17] 版をドライブに保存する を足した（ご指示）
+ *     ★版は、こちらからは消せません。Googleが窓口を出していないためです。
+ *       「180で自動で100個消す」はできません。できないことは作りません。
+ *     ★代わりに、いずれ作り直すときに1枚も失わないよう、
+ *       過去の版の中身を ぜんぶドライブへ写します。
+ *     ★1回では終わりません（6分で打ち切られます）。
+ *       どこまで写したかを覚えて、次に押したときに続きからやります。
+ *     ★版が180をこえたら、取り込みのついでに20秒ぶんずつ自動で写します。
+ *       押し忘れる前提で作るのが、正しいやり方です。
+ *     ★「ひっこしメモ.txt」も置きます。作り直しに要るものの一覧です。
+ *       鍵の中身は わざと書きません（ドライブは開けてしまうことがあるため）。
+ *   ・📦 [18] 設定・地図タブを引っ越す を足した（ご指示）
+ *     ★記録用スプシはタブが多く、スマホでは行がすぐ埋まります。
+ *       まーくさんしか触らないタブは、マニュアルのスプシへ移します
  *
  *  [U099ver]
  *   ・📘 [16] マニュアルを作り直す を足した（ご指示）
@@ -1008,7 +1024,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U099ver";
+const UPD_VERSION = "U100ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -4965,6 +4981,207 @@ function updVerCount_() {
  *   無くすと、LINEは完全に無反応になり、URLも配り直しになります。
  *   だから「守る側の名簿」として、いちばん先に取ります。
  */
+/* ================================================================
+ *  版（バージョン）をドライブに保存する
+ *
+ *  ★まーくさんのご指示です。
+ *    「消す前に、過去のバージョン履歴をドライブに保存しておきたい」
+ *
+ *  ★大事なので、先に はっきり書きます。
+ *    版は、こちらからは消せません。
+ *    Googleが「消す」入り口（窓口）を出していないためです。
+ *    作る・見る はありますが、消す はありません。
+ *    なので「180になったら自動で100個消す」はできません。
+ *    できないことを、できるようには作りません。
+ *
+ *  ★では、この保存は何のためか。
+ *    版が満杯になると、いずれプロジェクトを作り直すことになります。
+ *    そのときに「前はどう書いてあったか」を1つも失わないためです。
+ *    保存しておけば、作り直しても、いつでも中身を見に行けます。
+ *
+ *  ★1回では終わりません。
+ *    Googleは1回の処理を6分で打ち切ります。
+ *    版が200個あると、とても6分では読み切れません。
+ *    だから「どこまで保存したか」を覚えておいて、
+ *    次に押したときに、その続きからやります。
+ * ================================================================ */
+
+/** どこまで保存したかを覚えておく名札 */
+const UPD_VSAVE_KEY = "UPD_VSAVE_DONE";
+/** 保存先のフォルダ名 */
+const UPD_VSAVE_DIR = "versions";
+/** 1回の処理に使ってよい時間（ミリ秒）。6分より手前で必ず切り上げる */
+const UPD_VSAVE_MS = 4 * 60000;
+
+/** 版をしまっておくフォルダ（taxi-gas/versions） */
+function updVerFolder_() {
+  const parent = updFolder_();
+  const it = parent.getFoldersByName(UPD_VSAVE_DIR);
+  return it.hasNext() ? it.next() : parent.createFolder(UPD_VSAVE_DIR);
+}
+
+/** 版の一覧を、ぜんぶ取る（50個ずつしか返らないので、続きをたどる） */
+function updVerList_() {
+  const out = [];
+  let token = "", guard = 0;
+  do {
+    const r = updApi_("/versions?pageSize=50" +
+                      (token ? "&pageToken=" + encodeURIComponent(token) : ""), "get", null);
+    (r.versions || []).forEach(function (v) { out.push(v); });
+    token = r.nextPageToken || "";
+  } while (token && ++guard < 12);
+  out.sort(function (a, b) { return Number(a.versionNumber) - Number(b.versionNumber); });
+  return out;
+}
+
+/** すでに保存した版の番号（覚えているもの） */
+function updVerSaved_() {
+  try {
+    const raw = updProps_().getProperty(UPD_VSAVE_KEY) || "";
+    const m = {};
+    raw.split(",").forEach(function (x) { if (x) m[x] = 1; });
+    return m;
+  } catch (e) { return {}; }
+}
+
+/**
+ * 版をドライブに保存する。続きからやる。
+ * 戻り値 { all, done, saved, left, ng, folder }
+ */
+function updSaveVersions_(ms) {
+  const folder = updVerFolder_();
+  const list = updVerList_();
+  const had = updVerSaved_();
+  const until = Date.now() + (Number(ms) || UPD_VSAVE_MS);
+
+  let saved = 0, ng = 0, left = 0;
+  for (let i = 0; i < list.length; i++) {
+    const v = list[i];
+    const n = String(v.versionNumber);
+    if (had[n]) continue;                       // もう保存してある
+    if (Date.now() > until) { left = list.length - i; break; }
+
+    if (typeof updBeat_ === "function") updBeat_("版を保存中 " + n + "/" + list.length);
+    try {
+      /*
+       * ★その版の中身を読みます。
+       *   いまの中身ではなく、その版が作られたときの中身です。
+       *   ここを取りちがえると、200個ぜんぶ同じものを保存してしまいます。
+       */
+      const r = updApi_("/content?versionNumber=" + encodeURIComponent(n), "get", null);
+      const files = r.files || [];
+      // ★1つの版を1つのファイルにまとめます。
+      //   版ごとにフォルダを作ると、ドライブに200個のフォルダができて、
+      //   スマホではもう開く気になりません。
+      const body = files.map(function (f) {
+        return "/* ===== " + f.name + " (" + f.type + ") ===== */\n" + String(f.source || "");
+      }).join("\n\n");
+      const name = "v" + ("000" + n).slice(-4) + "_" +
+                   String(v.description || "").replace(/[\/\\:*?"<>|]/g, "").slice(0, 40) + ".txt";
+      // 同じ名前があれば、中身を入れ替える（押すたびに増やさない）
+      let f0 = null;
+      const it = folder.getFilesByName(name);
+      if (it.hasNext()) f0 = it.next();
+      if (f0) f0.setContent(body); else folder.createFile(name, body, "text/plain");
+      had[n] = 1;
+      saved++;
+    } catch (e) { ng++; }
+  }
+
+  try {
+    updProps_().setProperty(UPD_VSAVE_KEY, Object.keys(had).join(","));
+  } catch (e) {}
+
+  return { all: list.length, done: Object.keys(had).length,
+           saved: saved, left: left, ng: ng, folder: folder.getName() };
+}
+
+/**
+ * 引っ越しの荷物リストを、ドライブに1枚だけ置く。
+ *
+ * ★版が満杯になると、いずれプロジェクトを作り直すことになります。
+ *   そのとき、いちばん怖いのは「何を持っていけばよいか分からない」ことです。
+ *   ここに、持っていくものを ぜんぶ並べておきます。
+ *
+ * ★鍵（トークン）の中身は、わざと書きません。
+ *   ドライブのファイルは、URLを知っていれば誰でも開けてしまうことがあります。
+ *   鍵はスクリプトプロパティにだけ置く、という決まりを破れません。
+ *   名前だけ並べるので、作り直したあとに手で入れ直してください。
+ */
+function updMoveKit_() {
+  const L = [];
+  L.push("＝＝ 引っ越しの荷物リスト ＝＝");
+  L.push("作った日：" + new Date().toLocaleString("ja-JP"));
+  L.push("");
+  L.push("■ いまのスクリプトID");
+  try { L.push("　" + ScriptApp.getScriptId()); } catch (e) { L.push("　（取れません）"); }
+  L.push("");
+  L.push("■ いまのウェブアプリのURL（これが変わります）");
+  try {
+    const u = ScriptApp.getService().getUrl() || "（まだありません）";
+    L.push("　" + u);
+    L.push("　※ 作り直すと、このURLは使えなくなります。");
+    L.push("　※ 公式LINEの Webhook URL を、新しいものに貼り替えてください。");
+  } catch (e) { L.push("　（取れません）"); }
+  L.push("");
+  L.push("■ 入れ直す鍵（名前だけ。中身はここには書きません）");
+  try {
+    const pr = updProps_().getProperties();
+    Object.keys(pr).sort().forEach(function (k) {
+      const secret = /TOKEN|KEY|SECRET|WEBHOOK|PASS/i.test(k);
+      L.push("　" + k + (secret ? "　← 手で入れ直す（中身は書いていません）" : "　= " + String(pr[k]).slice(0, 60)));
+    });
+  } catch (e) { L.push("　（取れません）"); }
+  L.push("");
+  L.push("■ 立て直す見張り（トリガー）");
+  try {
+    const ts = ScriptApp.getProjectTriggers();
+    if (!ts.length) L.push("　（いまは1つもありません）");
+    ts.forEach(function (t) { L.push("　" + t.getHandlerFunction()); });
+    L.push("　※ 作り直したあと、[1] コードを更新する を押せば、");
+    L.push("　　 足りない見張りは こちらで立て直します。");
+  } catch (e) { L.push("　（取れません）"); }
+  L.push("");
+  L.push("■ コードそのもの");
+  L.push("　GitHub にぜんぶ入っています。作り直したあと、");
+  L.push("　スクリプトプロパティに GH_REPO と GH_BRANCH を入れて、");
+  L.push("　[1] コードを更新する を押せば、そのまま入ります。");
+
+  const text = L.join("\n");
+  const folder = updFolder_();
+  const name = "ひっこしメモ.txt";
+  try {
+    const it = folder.getFilesByName(name);
+    if (it.hasNext()) { const f = it.next(); f.setContent(text); return f; }
+  } catch (e) {}
+  return folder.createFile(name, text, "text/plain");
+}
+
+/**
+ * [17] 版をドライブに保存する（そうさボタンから）。
+ * 1回で終わらなければ、もう一度押せば続きからやります。
+ */
+function panelSaveVersions() {
+  let r, kit = "";
+  try { r = updSaveVersions_(); }
+  catch (e) { return "❌ 保存できませんでした\n" + ((e && e.message) || e); }
+  try { kit = updMoveKit_().getName(); } catch (e) {}
+
+  const out = [];
+  out.push(r.left ? "途中まで保存しました" : "ぜんぶ保存しました");
+  out.push("・版：" + r.done + " / " + r.all + " 個");
+  out.push("・今回ふえた：" + r.saved + " 個");
+  if (r.ng)   out.push("・読めなかった：" + r.ng + " 個");
+  out.push("・置き場：" + UPD_FOLDER + "/" + UPD_VSAVE_DIR);
+  if (kit) out.push("・" + kit + " も置きました");
+  if (r.left) {
+    out.push("");
+    out.push("あと " + r.left + " 個 残っています");
+    out.push("もう一度チェックすれば、続きからやります");
+  }
+  return out.join("\n");
+}
+
 /** 「2026/09/21」の形にする（日付が無ければ空） */
 function updDayOf_(iso) {
   try {
@@ -5207,6 +5424,17 @@ function updRedeploy_() {
    *   LINEの受け口だけが古いまま動きます。
    *   版の番号は増える一方なので、そのまま めやすに使えます。
    */
+  /*
+   * ★満杯が近づいたら、取り込みのついでに少しずつドライブへ写します。
+   *   まとめて200個を1回で写すことはできません（6分で打ち切られます）。
+   *   取り込みのたびに20秒ぶんずつ進めておけば、
+   *   いざ作り直すときには、もう写し終わっています。
+   *   押し忘れる前提で作るのが、正しいやり方です。
+   */
+  if (ver.versionNumber >= UPD_VER_WARN) {
+    try { updSaveVersions_(20000); } catch (e) {}
+  }
+
   const warn = (ver.versionNumber >= UPD_VER_WARN)
     /*
      * ★案内先は「スプシの[15]」です。「LINEで❗」ではありません。
@@ -5216,7 +5444,7 @@ function updRedeploy_() {
      *   スプシのボタンは、いつでも今のコードで動きます。
      */
     ? "（⚠️ 版が " + ver.versionNumber + "／" + UPD_VER_LIMIT + "。" +
-      "満杯が近いです。スプシの[15]）"
+      "満杯が近いです。スプシの[15][17]）"
     : "";
   return "デプロイもやり直しました（版 " + ver.versionNumber + " / " + n + "件）" + warn;
 }
@@ -5349,7 +5577,32 @@ function panelItems_() {
     { key: "マニュアル",           label: "[16] マニュアルを作り直す",    fn: "panelManual",
       sec: 90, stall: 300,
       note: "手順書をスプシにまとめ直します。タブは 目次／合図／満杯／読取／予定／困り。" +
-            "押すたびに、いちばん新しい中身で作り直します" }
+            "押すたびに、いちばん新しい中身で作り直します" },
+    /*
+     * ★[17] は、版が満杯になったときの保険です。
+     *   版は、こちらからは消せません（Googleが窓口を出していません）。
+     *   いずれプロジェクトを作り直すことになるので、
+     *   そのときに「前はどう書いてあったか」を1つも失わないよう、
+     *   先にドライブへ写しておきます。
+     */
+    { key: "版をドライブ",         label: "[17] 版をドライブに保存する",  fn: "panelSaveVersions",
+      sec: 260, stall: 340,
+      note: "過去のバージョンの中身を、ぜんぶドライブに写します。" +
+            "1回で終わらなければ、もう一度押せば続きからやります。" +
+            "引っ越しに要るもの（鍵の名前・見張り・URL）のメモも置きます" },
+    /*
+     * ★[18] は、記録用スプシのタブを減らすためのボタンです。
+     *   タブが多いと、スマホではタブの行がすぐ埋まって、
+     *   みんなが使うタブを探せません。
+     *   まーくさんしか触らないタブは、マニュアルのスプシへ移します。
+     */
+    // ★key は、ほかのボタンの文言に含まれない言葉にすること。
+    //   「マニュアル」にすると [16] と見分けがつかなくなります（実際なりました）
+    { key: "タブを引っ越",         label: "[18] 設定・地図タブを引っ越す", fn: "panelMoveTabs",
+      sec: 60, stall: 240,
+      note: "「設定」「🗺️乗り場マップ」を、マニュアルのスプシへ移します。" +
+            "1回目は何を移すか出るだけ。3分以内にもう一度で移ります。" +
+            "移したあとも、これまでどおり動きます" }
   ];
 }
 

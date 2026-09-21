@@ -6,14 +6,14 @@
 
 | 記号 | ファイル | いま | Apps Script 側の名前 |
 |---|---|---|---|
-| **C** | `001-Code.gs`（統合スクリプト） | C060ver | `001-Code` |
+| **C** | `001-Code.gs`（統合スクリプト） | C061ver | `001-Code` |
 | **E** | `002-Extras.gs` | E005ver | `002-Extras` |
-| **L** | `003-LineReport.gs` | L058ver | `003-LineReport` |
+| **L** | `003-LineReport.gs` | L059ver | `003-LineReport` |
 | **W** | `004-WebApp.gs`（みんなの記録ページ） | W011ver | `004-WebApp` |
-| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U099ver | `005-Updater` |
+| **U** | `005-Updater.gs`（コードの自動更新・そうさボタン） | U100ver | `005-Updater` |
 | **V** | `006-Venue.gs`（会場・イベント情報あつめ） | V051ver | `006-Venue` |
 | **T** | `007-Tenki.gs`（天気の記録） | T003ver | `007-Tenki` |
-| **M** | `008-Manual.gs`（手順書のスプシ） | M001ver | `008-Manual` |
+| **M** | `008-Manual.gs`（手順書のスプシ） | M002ver | `008-Manual` |
 
 > **コードの貼り替えは、ふだん要りません。**
 > 記録用スプシ「説明」タブの **[1] コードを更新する** に☑を入れるだけで、GitHubから取り込まれます

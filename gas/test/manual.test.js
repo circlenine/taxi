@@ -32,7 +32,16 @@ function mkSheet(name) {
     setColumnWidth: (c, w) => { sh._widths[c] = w; return sh; },
     autoResizeRows: () => sh,
     setFrozenRows: () => sh,
-    getRange: (r, c, nr, nc) => mkRange(sh, r, c, nr || 1, nc || 1)
+    getRange: (r, c, nr, nc) => mkRange(sh, r, c, nr || 1, nc || 1),
+    setName: n => { sh._name = n; return sh; },
+    // ★写し先のスプシに、同じ中身のタブを1枚ふやす
+    copyTo: dest => {
+      if (sh._noCopy) throw new Error('写せません');
+      const c = mkSheet(sh._name + ' のコピー');
+      c._vals = sh._vals.slice();
+      dest._add(c);
+      return c;
+    }
   };
   return sh;
 }
@@ -63,6 +72,7 @@ function mkBook(id, name) {
     getSheets: () => sheets.slice(),
     getSheetByName: n => sheets.filter(s => s._name === n)[0] || null,
     insertSheet: n => { const s = mkSheet(n); sheets.push(s); return s; },
+    _add: s => { sheets.push(s); return s; },
     deleteSheet: s => { const i = sheets.indexOf(s); if (i >= 0) sheets.splice(i, 1); },
     setActiveSheet: s => { ss._active = s; return s; },
     moveActiveSheet: pos => {
@@ -75,9 +85,11 @@ function mkBook(id, name) {
   return ss;
 }
 let made = 0;
+let active = null;
 ctx.SpreadsheetApp = {
   create: n => mkBook('SSID' + (++made), n),
-  openById: id => { if (!books[id]) throw new Error('開けません'); return books[id]; }
+  openById: id => { if (!books[id]) throw new Error('開けません'); return books[id]; },
+  getActiveSpreadsheet: () => active
 };
 
 let pushed = [], replied = [];
@@ -147,8 +159,14 @@ console.log('\n■ 中身（読む人がいちばん知りたいところ）');
   has(full, '[15] 古いデプロイを片づける', '★満杯：押すボタンを、番号と名前で書く');
   has(full, '3分以内', '　 2回目が要ることを書く');
   has(full, '使用中', '★満杯：使用中を残すことを、目で確かめさせる');
-  has(full, '消す入り口を、Googleは出していません',
+  has(full, 'この200枚は、こちらからは消せません',
       '★満杯：できないことを、できるように書かない');
+  has(full, 'バージョン（版）', '★満杯：デプロイと版のちがいを説明する');
+  has(full, 'デプロイ（公開）', '　 両方そろっている');
+  has(full, '札（デプロイ）を消しても、写真（版）は減りません',
+      '★満杯：片づけても版が減らないことを、先に書く');
+  has(full, '[17] 版をドライブに保存する', '★満杯：消える前に写す手順を書く');
+  has(full, '鍵の中身は、わざと書いていません', '★満杯：鍵を書き出さない理由を書く');
   /*
    * ★満杯のときは、LINEの受け口が古いコードのまま動きます。
    *   新しく足した合図は、いくら送っても届きません。
@@ -251,6 +269,100 @@ console.log('\n■ [16] のボタン');
     '★行の頭に「・」を付けて並べる（スマホで目が追えるように）', out);
   t(pushed.length === 1, '★LINEにもURLを送る（スマホでは押せるほうが早い）');
   has(pushed[0].msgs[0].text, 'https://docs.google.com/spreadsheets/', '　 LINEにもURL');
+}
+
+
+console.log('\n■ タブの引っ越し（まーくさんしか触らないタブを、こちらへ）');
+{
+  /*
+   * ★記録用スプシはタブが多く、スマホではタブの行がすぐ埋まります。
+   *   みんなが使うタブだけを残したいので、
+   *   まーくさんしか触らないタブは、こちらへ移します。
+   */
+  const setup = function () {
+    props = {}; Object.keys(books).forEach(k => delete books[k]);
+    active = mkBook('REC', '記録用スプシ');
+    active._add(mkSheet('設定'));
+    active._add(mkSheet('🗺️乗り場マップ'));
+    active._add(mkSheet('天気'));
+  };
+
+  setup();
+  // 1回目は、何を移すか出るだけ
+  const a1 = String(F('panelMoveTabs')());
+  has(a1, 'まだ何もしていません', '★1回目は、何も移さない');
+  has(a1, '設定', '　 何を移すか出る');
+  has(a1, '🗺️乗り場マップ', '　 地図も');
+  t(!!active.getSheetByName('設定'), '★1回目では、記録用スプシから消えていない');
+
+  // 2回目で移る
+  const a2 = String(F('panelMoveTabs')());
+  has(a2, '移しました', '★2回目で移る');
+  const book = books[props['MN_MANUAL_SS']];
+  t(!!book.getSheetByName('設定'), '★マニュアル側に「設定」ができる');
+  t(!!book.getSheetByName('🗺️乗り場マップ'), '★地図も');
+  t(!active.getSheetByName('設定'), '★記録用スプシからは消える');
+  t(!!active.getSheetByName('天気'), '★みんなが使うタブ（天気）は、そのまま残す');
+
+  // もう一度押しても、こわれない
+  const a3 = String(F('panelMoveTabs')());
+  has(a3, '移すものがありません', '★2回やっても、こわれない');
+}
+
+console.log('\n■ 写せなかったものは、消さない');
+{
+  /*
+   * ★「消えたのに、向こうにも無い」がいちばん困ります。
+   *   写してから消す、写せなければ消さない、の順を守ります
+   */
+  props = {}; Object.keys(books).forEach(k => delete books[k]);
+  active = mkBook('REC2', '記録用スプシ');
+  const bad = mkSheet('設定');
+  bad._noCopy = true;                       // 写すと失敗する
+  active._add(bad);
+  active._add(mkSheet('🗺️乗り場マップ'));
+
+  F('panelMoveTabs')();                      // 1回目（見せるだけ）
+  const r = String(F('panelMoveTabs')());    // 2回目
+  t(!!active.getSheetByName('設定'),
+    '★★写せなかったタブは、記録用スプシから消さない');
+  has(r, 'できなかった', '★できなかったことを、はっきり出す');
+  t(!active.getSheetByName('🗺️乗り場マップ'),
+    '　 写せたほうは、ちゃんと移る');
+}
+
+console.log('\n■ 移す前でも、移したあとでも、同じように読める');
+{
+  /*
+   * ★ここがいちばん大事なところです。
+   *   移したせいで設定が読めなくなると、決まりごとが
+   *   ぜんぶ初期値に戻って、黙っておかしな動きをします
+   */
+  props = {}; Object.keys(books).forEach(k => delete books[k]);
+  active = mkBook('REC3', '記録用スプシ');
+  active._add(mkSheet('設定'));
+
+  // ① マニュアルのスプシを、まだ作っていない
+  t(F('mnFindSheet_')('設定', null) !== null, '★作る前は、記録用スプシから読める');
+  t(F('mnFindSheet_')('設定', null).getName() === '設定', '　 名前も合っている');
+
+  // ② 移したあと
+  F('panelMoveTabs')(); F('panelMoveTabs')();
+  const got = F('mnFindSheet_')('設定', null);
+  t(got !== null, '★移したあとも、ちゃんと読める');
+  const book = books[props['MN_MANUAL_SS']];
+  t(got === book.getSheetByName('設定'), '　 読む先が、マニュアル側に変わる');
+
+  // ③ 名前を変えられてしまっても、地図は見つける
+  props = {}; Object.keys(books).forEach(k => delete books[k]);
+  active = mkBook('REC4', '記録用スプシ');
+  active._add(mkSheet('地図'));
+  const m = F('mnFindSheet_')('🗺️乗り場マップ', ['地図', 'マップ', 'map']);
+  t(m !== null && m.getName() === '地図',
+    '★名前を「地図」に変えられていても、見つける');
+
+  // ④ どこにも無ければ null（呼んだ側で作れるように）
+  t(F('mnFindSheet_')('そんなタブ', null) === null, '　 無ければ null');
 }
 
 console.log('\n■ バージョン');

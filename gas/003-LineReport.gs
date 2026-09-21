@@ -2,7 +2,12 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L058ver  （2026/09/21）  ★★★
+ *  ★★★  L059ver  （2026/09/21）  ★★★
+ *
+ *  [L059ver]
+ *   ・📦「🗺️乗り場マップ」タブを、マニュアルのスプシへ移せるようにした（ご指示）
+ *     ★読むときは マニュアル → 記録用 の順に探します
+ *
  *
  *  [L058ver]
  *   ・🗓 祝前日を「金曜」の区分に入れた（ご指示）
@@ -774,7 +779,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L058ver";
+const LR_VERSION = "L059ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -5014,6 +5019,16 @@ const MAP_TAB  = "🗺️乗り場マップ";
  *   どちらも無ければ null（呼んだ側で、新しく作ります）
  */
 function mapFindSheet_(ss) {
+  /*
+   * ★まーくさんしか触らないタブなので、マニュアルのスプシへ移せます。
+   *   移したあとも同じように動くよう、まず両方を探します。
+   */
+  try {
+    if (typeof mnFindSheet_ === "function") {
+      const got = mnFindSheet_(MAP_TAB, ["地図", "マップ", "map"]);
+      if (got) return got;
+    }
+  } catch (e) {}
   if (!ss) return null;
   try {
     const exact = ss.getSheetByName(MAP_TAB);

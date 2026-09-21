@@ -1,7 +1,12 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C060ver  （2026/09/21）  ★★★   ← もとは version 232
+ *  ★★★  C061ver  （2026/09/21）  ★★★   ← もとは version 232
+ *
+ *  [C061ver]
+ *   ・📦「設定」タブを、マニュアルのスプシへ移せるようにした（ご指示）
+ *     ★読むときは マニュアル → 記録用 の順に探します。
+ *       移す前でも、移したあとでも、同じように動くためです
  *
  *  [C060ver]
  *   ・📘「📘」でマニュアルのスプシを開けるようにした（ご指示）
@@ -605,7 +610,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C060ver";
+const CODE_VERSION = "C061ver";
 
 const SENDER_MAP = {
   "Ued4659890c83b3b0bcf2a3f8bf008e7f": "ﾀﾞｲｽｹ",
@@ -848,13 +853,33 @@ let _cfgCache = null;
 // 並び替えの比較（timeRank_）から何度も呼ばれるので、毎回さがし直すと遅い。
 let _cfgVal = {};
 
+/**
+ * 「設定」タブを探す。
+ *
+ * ★まーくさんしか触らないタブなので、マニュアルのスプシへ移せます。
+ *   記録用スプシはタブが多く、スマホでは行がすぐ埋まるためです。
+ *   移したあとも、移す前と同じように動かないといけないので、
+ *   マニュアル → 記録用 の順に探します。
+ *   こうしておけば、移す前でも、移したあとでも動きます。
+ */
+function cfgSheet_() {
+  try {
+    if (typeof mnFindSheet_ === "function") {
+      const got = mnFindSheet_(SETTINGS_TAB, null);
+      if (got) return got;
+    }
+  } catch (e) {}
+  try { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETTINGS_TAB); }
+  catch (e) { return null; }
+}
+
 /** 「設定」タブを読む。無ければ空のまま（＝初期値が使われる） */
 function cfgLoad_() {
   if (_cfgCache) return _cfgCache;
   _cfgCache = {};
   _cfgVal = {};
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETTINGS_TAB);
+    const sh = cfgSheet_();
     if (sh) {
       const last = sh.getLastRow();
       if (last >= 2) {
@@ -878,7 +903,7 @@ function cfgLoad_() {
  */
 function cfgSet_(key, value) {
   try {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETTINGS_TAB);
+    const sh = cfgSheet_();
     if (!sh) return false;
     const last = sh.getLastRow();
     if (last < 2) return false;
