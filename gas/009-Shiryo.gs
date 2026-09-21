@@ -2,7 +2,25 @@
  * ================================================================
  *  イベント参考資料（009-Shiryo.gs）
  *
- *  ★★★  S001ver  （2026/09/21）  ★★★
+ *  ★★★  S002ver  （2026/09/21）  ★★★
+ *
+ *  [S002ver]
+ *   ・🔗 公式サイト・公式SNSを「公式」として出せるようにした（ご要望）
+ *     ★Wikidata には、人が確かめて登録したURLが入っています。
+ *       これなら「公式」と言い切れます。
+ *       これまでは「公式サイトを探す」という検索の入口だけでした。
+ *   ・🎂 結成年・デビュー年から、年齢の手がかりを出すようにした
+ *     ★MusicBrainz から取ります（鍵は要りません）。
+ *     ★「調べた数字」ではなく「そこから考えたこと」なので、
+ *       そう書いて出します。グラフにはしません。
+ *   ・📋「出典」タブを足した（ここが、ご要望への本当の答え）
+ *     ★ファンの年齢・男女の数字は、どこの無料の窓口にもありません。
+ *       Xにも Spotify にも、公開されていません。
+ *       けれど、ぴあ総研の白書のような有料の調査には載っています。
+ *     ★そこで「人が、出典つきで書き写す」形にしました。
+ *       書き写されたものだけを出します。無いものは作りません。
+ *     ★出典のらんが空の行は、資料に出しません。
+ *       どこから来たか分からない数字を出さないためです。
  *
  *  [S001ver]
  *   ・📊 イベントごとの参考資料スプシを作るようにした（ご指示）
@@ -29,7 +47,7 @@
  * ================================================================ */
 
 /** このファイルのバージョン（先頭の ★★★ と必ずそろえる） */
-const SH_VERSION = "S001ver";
+const SH_VERSION = "S002ver";
 
 /** 参考資料スプシを覚えておく名札と、その題 */
 const SH_SS_KEY  = "SH_SHIRYO_SS";
@@ -174,6 +192,166 @@ function shArtistName_(title) {
   return t.slice(0, 40);
 }
 
+/* ================================================================
+ *  鍵なしで読める、外の置き場から手がかりを取る
+ *
+ *  ★まーくさんのご質問への答えです。
+ *    「Xの代わりに読めるものは無いか」「自分のログインがあれば読めるか」
+ *
+ *  ★Xは、ログインがあっても読めません。理由は3つです。
+ *      ① Xの規約が、決められた窓口（API）以外からの
+ *         読み取りを はっきり禁じています。破ると
+ *         まーくさんのアカウントが止まります。
+ *      ② 仮に読めても、欲しいもの（ファンの年齢・男女）は
+ *         そもそも公開されていません。
+ *         年齢・男女が見えるのは「自分のアカウントの分析画面」だけで、
+ *         他人のアカウントのそれは、誰にも見えません。
+ *      ③ Apps Script は、ログイン画面や2段階認証を通れません。
+ *    ①〜③のどれか1つでも、越えられません。
+ *
+ *  ★Spotify も同じです。年齢・男女が見えるのは
+ *    「自分の Spotify for Artists の画面」だけです。
+ *
+ *  ★では何が取れるか。鍵なしで、規約の中で読めるものだけを使います。
+ *      MusicBrainz … 結成年・デビュー年・種別（個人かグループか）・国
+ *      Wikidata    … 公式サイト・公式SNSのURL（これは「公式」と言い切れる）
+ *    結成年は、客層の年齢を考えるときの、いちばん確かな手がかりです。
+ *    「2005年デビュー」なら、当時10代だった人は いま30代です。
+ *    これは「調べた数字」ではなく「そこから考えたこと」なので、
+ *    かならず そう書いて出します。グラフにはしません。
+ * ================================================================ */
+
+/** MusicBrainz（鍵は要りません。ただし1秒に1回まで） */
+const SH_MB_URL = "https://musicbrainz.org/ws/2/artist/";
+/** Wikidata（鍵は要りません） */
+const SH_WD_SEARCH = "https://www.wikidata.org/w/api.php";
+/** 名乗り。MusicBrainz は、これが無いと断られます */
+const SH_UA = "TaxiReport/1.0 (Osaka taxi group; internal use)";
+/** 一度調べたら、これだけ覚えておく（毎回たずねない） */
+const SH_CACHE_SEC = 21600;   // 6時間
+
+/** 外の置き場に、1回だけたずねる。だめなら null（決して止めない） */
+function shGetJson_(url, headers) {
+  try {
+    const res = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true, followRedirects: true,
+      headers: headers || { "User-Agent": SH_UA, "Accept": "application/json" }
+    });
+    if (res.getResponseCode() !== 200) return null;
+    return JSON.parse(res.getContentText());
+  } catch (e) { return null; }
+}
+
+/**
+ * MusicBrainz で、アーティストを1人ひく。
+ * 戻り値 { name, type, country, begin, end, mbid } … 見つからなければ null
+ *
+ * ★同じ名前がいくつも出ます。いちばん点の高いものを使いますが、
+ *   点が低いものは使いません。別人を出すほうが、何も出さないより害です。
+ */
+function shMbArtist_(name) {
+  const q = String(name || "").trim();
+  if (!q) return null;
+  const j = shGetJson_(SH_MB_URL + "?query=" + encodeURIComponent(q) +
+                       "&fmt=json&limit=3");
+  if (!j || !j.artists || !j.artists.length) return null;
+  const a = j.artists[0];
+  // ★点が低い＝たぶん別人。出しません
+  if (typeof a.score === "number" && a.score < 85) return null;
+  const life = a["life-span"] || {};
+  return {
+    name: String(a.name || ""),
+    type: String(a.type || ""),              // Person / Group
+    country: String(a.country || ""),
+    begin: String(life.begin || ""),         // 「2005-04-01」や「2005」
+    end: String(life.end || ""),
+    mbid: String(a.id || "")
+  };
+}
+
+/**
+ * Wikidata で、公式サイトと公式SNSをひく。
+ *
+ * ★ここが、いちばん値打ちのあるところです。
+ *   これまでは「公式サイトを探す」という検索の入口しか出せませんでした。
+ *   Wikidata には「公式サイト（P856）」として、
+ *   人が確かめて登録したURLが入っています。
+ *   これなら「公式」と言い切れます。
+ *
+ * 戻り値 { site, x, instagram, youtube, wd } … 見つからなければ null
+ */
+function shWdArtist_(name) {
+  const q = String(name || "").trim();
+  if (!q) return null;
+
+  // ① 名前から、Wikidata の番号（Q…）をさがす
+  const s = shGetJson_(SH_WD_SEARCH + "?action=wbsearchentities&format=json" +
+                       "&language=ja&uselang=ja&type=item&limit=1" +
+                       "&search=" + encodeURIComponent(q));
+  const hit = (s && s.search && s.search.length) ? s.search[0] : null;
+  if (!hit || !hit.id) return null;
+
+  // ② その番号の中身を取る
+  const e = shGetJson_(SH_WD_SEARCH + "?action=wbgetentities&format=json" +
+                       "&props=claims&ids=" + encodeURIComponent(hit.id));
+  const ent = (e && e.entities && e.entities[hit.id]) ? e.entities[hit.id] : null;
+  if (!ent || !ent.claims) return null;
+  const c = ent.claims;
+
+  const one = function (prop) {
+    try {
+      const arr = c[prop];
+      if (!arr || !arr.length) return "";
+      const v = arr[0].mainsnak && arr[0].mainsnak.datavalue;
+      return v ? String(v.value || "") : "";
+    } catch (err) { return ""; }
+  };
+
+  const site = one("P856");        // 公式サイト
+  const xId  = one("P2002");       // X（旧Twitter）のユーザー名
+  const ig   = one("P2003");       // Instagram
+  const yt   = one("P2397");       // YouTube のチャンネルID
+  if (!site && !xId && !ig && !yt) return null;
+
+  return {
+    wd: hit.id,
+    site: site,
+    x:  xId ? "https://x.com/" + xId : "",
+    instagram: ig ? "https://www.instagram.com/" + ig + "/" : "",
+    youtube: yt ? "https://www.youtube.com/channel/" + yt : ""
+  };
+}
+
+/**
+ * 結成年から、客層の年齢の手がかりを作る。
+ *
+ * ★これは「調べた数字」ではありません。「そこから考えたこと」です。
+ *   だから、かならず そう書いて出します。グラフにもしません。
+ *
+ * ★考え方も、いっしょに書きます。
+ *   書かないと、どこから出た話なのか分からず、
+ *   読んだ人が「調べた数字」だと思ってしまいます。
+ */
+function shAgeHint_(mb, now) {
+  if (!mb || !mb.begin) return "";
+  const y = parseInt(String(mb.begin).slice(0, 4), 10);
+  if (isNaN(y) || y < 1900) return "";
+  const nowY = (now || new Date()).getFullYear();
+  const yrs = nowY - y;
+  if (yrs < 0) return "";
+
+  let s = (mb.type === "Person" ? "活動開始" : "結成") + " " + y + "年（" + yrs + "年目）";
+  /*
+   * ★当時10代だったファンが、いま何歳かを出します。
+   *   ここが手がかりの中身です。当たり外れはありますが、
+   *   「なぜそう考えたか」が書いてあるぶん、AIの見当より確かめられます。
+   */
+  const lo = 15 + yrs, hi = 25 + yrs;
+  s += "／デビュー当時に10代〜20代だった人は、いま " + lo + "〜" + hi + "歳";
+  s += "（結成年からの見当。調べた数字ではありません）";
+  return s;
+}
+
 /**
  * アーティストの手がかりリンクを作る。
  *
@@ -185,11 +363,24 @@ function shArtistName_(title) {
  * ★会場のページに本人へのリンクが載っていれば、それは確かなものなので
  *   「会場ページに載っていたリンク」として、別に出します。
  */
-function shArtistLinks_(title, venueUrl) {
+function shArtistLinks_(title, venueUrl, wd) {
   const name = shArtistName_(title);
   const out = [];
   if (!name) return out;
   const q = encodeURIComponent(name);
+
+  /*
+   * ★Wikidata で見つかったものは「公式」と言い切れます。
+   *   人が確かめて登録したものだからです。上に出します。
+   *   見つからなければ、これまでどおり検索の入口だけを出します。
+   */
+  if (wd) {
+    if (wd.site)      out.push({ label: "公式サイト", sure: true, url: wd.site });
+    if (wd.x)         out.push({ label: "公式X（旧Twitter）", sure: true, url: wd.x });
+    if (wd.instagram) out.push({ label: "公式Instagram", sure: true, url: wd.instagram });
+    if (wd.youtube)   out.push({ label: "公式YouTube", sure: true, url: wd.youtube });
+  }
+
   out.push({ label: "名前で探す（Google）", sure: false,
              url: "https://www.google.com/search?q=" + q });
   out.push({ label: "公式サイトを探す", sure: false,
@@ -456,6 +647,23 @@ function shBuild_(day, list) {
       kAt += 2;
     }
 
+    /*
+     * ★出典のある数字を、AIの見当より先に出します。
+     *   先に出ているほうを、人は信じます。
+     *   出典のあるものが下にあると、見当のほうが本命に見えてしまいます。
+     */
+    let src = null;
+    try { src = shSourceFind_(ss, e.title, e.venue); } catch (err) { src = null; }
+    if (src) {
+      try {
+        kSh.getRange(kAt, 1).setValue("調べた客層");
+        kSh.getRange(kAt, 2).setValue(src.value);
+        kSh.getRange(kAt, 3).setValue("出典：" + src.source);
+        kSh.getRange(kAt, 1, 1, 4).setBackground("#e6f4ea");
+        kAt += 2;
+      } catch (err) {}
+    }
+
     // 推定は、文字だけ。グラフにはしない
     let guess = "";
     try {
@@ -481,12 +689,33 @@ function shBuild_(day, list) {
     pRows.push([String(e.venue || ""), String(e.title || "").slice(0, 30), ""]);
     const name = shArtistName_(e.title);
     pRows.push(["　読み取った名前", name || "（読み取れませんでした）", ""]);
-    shArtistLinks_(e.title, e.url).forEach(function (L) {
-      pRows.push(["　" + (L.sure ? "◎ " : "　") + L.label, L.url, ""]);
+
+    /*
+     * ★外の置き場（MusicBrainz・Wikidata）に たずねます。
+     *   だめでも null が返るだけで、資料づくりは止まりません。
+     */
+    let mb = null, wd = null;
+    if (name) {
+      try { mb = shMbArtist_(name); } catch (err) { mb = null; }
+      try { wd = shWdArtist_(name); } catch (err) { wd = null; }
+    }
+    if (mb) {
+      pRows.push(["　種別", (mb.type === "Person" ? "個人" : mb.type === "Group" ? "グループ" : mb.type) +
+                            (mb.country ? "／" + mb.country : ""), "MusicBrainz"]);
+      const hint = shAgeHint_(mb, d);
+      if (hint) pRows.push(["　年齢の手がかり", hint, "MusicBrainzの結成年から"]);
+    } else if (name) {
+      pRows.push(["　種別", "見つかりませんでした", "MusicBrainz"]);
+    }
+
+    shArtistLinks_(e.title, e.url, wd).forEach(function (L) {
+      pRows.push(["　" + (L.sure ? "◎ " : "　") + L.label, L.url,
+                  L.sure ? "確かなもの" : "探しに行く入口"]);
     });
     pRows.push(["", "", ""]);
   });
   const pSh = shWriteTab_(ss, "参考", pRows);
+  shSourceTab_(ss);
   try { shHead_(pSh, 1, 3); } catch (e) {}
   try { pSh.setColumnWidth(2, 420); } catch (e) {}
 
@@ -499,6 +728,89 @@ function shBuild_(day, list) {
   } catch (e) {}
   try { ss.setActiveSheet(ss.getSheetByName("目次")); } catch (e) {}
   return ss;
+}
+
+/* ================================================================
+ *  出典タブ（人が埋める、確かな客層の数字）
+ *
+ *  ★まーくさんのご要望「裏付けの取れる客層データ」への答えです。
+ *
+ *  ★ファンの年齢・男女の数字は、どこの無料の窓口にもありません。
+ *    Xにも、Spotifyにも、公開されていません。
+ *    けれど「世の中に無い」わけではありません。
+ *    ぴあ総研の『ライブ・エンタテインメント白書』のような
+ *    有料の調査には、ジャンル別・世代別の数字が載っています。
+ *
+ *  ★そこで、こうします。
+ *    「人が、出典つきで、ここに書き写す」
+ *    書き写されたものだけを、資料に出します。
+ *    書いていないものは、出しません。作りません。
+ *
+ *  ★出典のらんが空の行は、資料に出しません。
+ *    どこから来たか分からない数字を出さないためです。
+ *    ここが、この仕組みのいちばん大事な決まりです。
+ * ================================================================ */
+
+const SH_SRC_TAB = "出典";
+const SH_SRC_HEAD = ["ジャンル・アーティスト", "客層（そのまま書く）",
+                     "出典（ここが空なら、資料に出しません）", "調べた日"];
+
+/** 出典タブを用意する。人が書いたものは、絶対に消さない */
+function shSourceTab_(ss) {
+  let sh = ss.getSheetByName(SH_SRC_TAB);
+  if (sh) return sh;                          // ★あれば触らない（人が書いたものを消さない）
+  sh = ss.insertSheet(SH_SRC_TAB);
+  const rows = [
+    SH_SRC_HEAD,
+    ["", "", "", ""],
+    ["※ ここは、人が書き写すところです", "", "", ""],
+    ["※ 出典のらんが空の行は、資料に出しません", "", "", ""],
+    ["※ どこから来たか分からない数字を出さないためです", "", "", ""],
+    ["", "", "", ""],
+    ["（書き方の例）", "", "", ""],
+    ["ロック（邦楽）", "20〜30代が中心／女性やや多め",
+     "ぴあ総研 ライブ・エンタテインメント白書2025 p.○○", "2026/09/21"],
+    ["〇〇（アーティスト名）", "30〜40代が中心",
+     "公式サイトのファンクラブ会員データ", "2026/09/21"]
+  ];
+  sh.getRange(1, 1, rows.length, 4).setValues(rows);
+  sh.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#1a73e8")
+    .setFontColor("#ffffff");
+  [200, 260, 300, 100].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  sh.getRange(1, 1, rows.length, 4).setWrap(true).setVerticalAlignment("top");
+  try { sh.setFrozenRows(1); } catch (e) {}
+  return sh;
+}
+
+/**
+ * 出典タブから、その公演に当てはまる行をさがす。
+ *
+ * ★出典が書いていない行は、無かったことにします。
+ *   数字だけ書いて出典を書き忘れた行を出してしまうと、
+ *   この仕組みを作った意味がなくなります。
+ */
+function shSourceFind_(ss, title, venue) {
+  let sh;
+  try { sh = ss.getSheetByName(SH_SRC_TAB); } catch (e) { return null; }
+  if (!sh) return null;
+  let vals;
+  try {
+    const last = sh.getLastRow();
+    if (last < 2) return null;
+    vals = sh.getRange(2, 1, last - 1, 4).getValues();
+  } catch (e) { return null; }
+
+  const hay = (String(title || "") + " " + String(venue || "")).replace(/[\s　]/g, "");
+  for (let i = 0; i < vals.length; i++) {
+    const key = String(vals[i][0] || "").replace(/[\s　]/g, "");
+    const val = String(vals[i][1] || "").trim();
+    const src = String(vals[i][2] || "").trim();
+    if (!key || !val) continue;
+    if (!src) continue;                       // ★出典が無ければ、出さない
+    if (hay.indexOf(key) === -1) continue;
+    return { key: key, value: val, source: src, at: String(vals[i][3] || "") };
+  }
+  return null;
 }
 
 /**

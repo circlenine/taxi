@@ -106,6 +106,17 @@ ctx.Charts = { ChartType: { PIE: 'PIE', COLUMN: 'COLUMN' } };
 
 let replied = [];
 ctx.lineReply_ = (tok, text) => { replied.push(String(text)); };
+
+/* ---- 外の置き場（MusicBrainz・Wikidata）のまね ---- */
+let fetched = [], webReply = {};
+ctx.UrlFetchApp = { fetch: (url, opt) => {
+  fetched.push({ url: String(url), opt: opt });
+  let r = null;
+  Object.keys(webReply).forEach(k => { if (String(url).indexOf(k) !== -1 && !r) r = webReply[k]; });
+  if (!r) r = { code: 404, body: '' };
+  if (r.throw) throw new Error(r.throw);
+  return { getResponseCode: () => r.code, getContentText: () => r.body };
+} };
 ctx.updMe_ = () => 'Umark';
 ctx.logErr_ = () => {};
 // 記録用スプシの「時刻」から、時を取り出す（006-Venue の同名と同じ働き）
@@ -240,8 +251,8 @@ console.log('\n■ ★作り話でグラフを作らない');
     [{ venue: '大阪城ホール', title: 'あいうえお BAND LIVE TOUR 2026', url: 'https://example.com/x' }]);
 
   const names = ss.getSheets().map(s => s.getName());
-  t(names.join('／') === '目次／実績／客層／参考',
-    '★タブは 目次／実績／客層／参考（' + names.join('／') + '）', names.join('／'));
+  t(names.join('／') === '目次／実績／客層／参考／出典',
+    '★タブは 目次／実績／客層／参考／出典（' + names.join('／') + '）', names.join('／'));
   names.forEach(n => t(n.length <= 2, '　 「' + n + '」は全角2文字'));
 
   const kSh = ss.getSheetByName('客層');
@@ -370,6 +381,181 @@ console.log('\n■ 資料が作れなくても、イベント通知は止めな�
   t(F('shLinkFor_')(new Date(), []) === '',
     '★作れなければ、空のURLを返す（通知そのものは止めない）');
   ctx.SpreadsheetApp.create = keep;
+}
+
+console.log('\n■ 外の置き場から、確かな手がかりを取る');
+/*
+ * ★まーくさんのご質問「Xの代わりに読めるものは無いか」への答えです。
+ *   鍵が要らず、規約の中で読めるものだけを使います。
+ *     MusicBrainz … 結成年・種別
+ *     Wikidata    … 公式サイト・公式SNS（これは「公式」と言い切れる）
+ */
+{
+  fetched.length = 0;
+  webReply = {
+    'musicbrainz.org': { code: 200, body: JSON.stringify({ artists: [
+      { id: 'MBID1', name: 'あいうえお', type: 'Group', country: 'JP',
+        score: 100, 'life-span': { begin: '2005-04-01' } }
+    ]})},
+    'wbsearchentities': { code: 200, body: JSON.stringify({ search: [{ id: 'Q123' }] })},
+    'wbgetentities': { code: 200, body: JSON.stringify({ entities: { Q123: { claims: {
+      P856:  [{ mainsnak: { datavalue: { value: 'https://example.jp/' } } }],
+      P2002: [{ mainsnak: { datavalue: { value: 'aiueo_staff' } } }],
+      P2397: [{ mainsnak: { datavalue: { value: 'UCxxxx' } } }]
+    }}}})}
+  };
+
+  const mb = F('shMbArtist_')('あいうえお');
+  t(!!mb && mb.type === 'Group' && mb.begin === '2005-04-01',
+    '★MusicBrainz から、結成年と種別が取れる');
+  const ua = fetched.filter(x => x.url.indexOf('musicbrainz') !== -1)[0];
+  t(!!ua && !!(ua.opt.headers || {})['User-Agent'],
+    '★名乗り（User-Agent）を付ける（無いと断られる）');
+
+  /*
+   * ★同じ名前の別人を出すほうが、何も出さないより害があります。
+   *   点が低いものは使いません
+   */
+  webReply['musicbrainz.org'] = { code: 200, body: JSON.stringify({ artists: [
+    { id: 'X', name: 'ぜんぜん別人', type: 'Person', score: 40, 'life-span': {} }
+  ]})};
+  t(F('shMbArtist_')('あいうえお') === null,
+    '★★似ていないもの（点が低い）は、出さない');
+  webReply['musicbrainz.org'] = { code: 200, body: JSON.stringify({ artists: [
+    { id: 'MBID1', name: 'あいうえお', type: 'Group', country: 'JP',
+      score: 100, 'life-span': { begin: '2005-04-01' } }
+  ]})};
+
+  const wd = F('shWdArtist_')('あいうえお');
+  t(!!wd && wd.site === 'https://example.jp/', '★Wikidata から、公式サイトが取れる');
+  t(wd.x === 'https://x.com/aiueo_staff', '★公式Xも（IDからURLを組み立てる）');
+  t(wd.youtube.indexOf('UCxxxx') !== -1, '　 公式YouTubeも');
+  t(wd.instagram === '', '　 無いものは、空のまま');
+
+  // つながらなくても、落ちない
+  webReply = { 'musicbrainz.org': { throw: 'つながりません' } };
+  t(F('shMbArtist_')('あいうえお') === null, '★つながらなくても落ちない');
+  t(F('shWdArtist_')('あいうえお') === null, '　 Wikidataも同じ');
+}
+
+console.log('\n■ 公式と、探しに行く入口を、はっきり分ける');
+{
+  const wd = { site: 'https://example.jp/', x: 'https://x.com/a',
+               instagram: '', youtube: '' };
+  const L = F('shArtistLinks_')('あいうえお BAND LIVE TOUR 2026', '', wd);
+  const sure = L.filter(x => x.sure);
+  t(sure.length === 2, '★Wikidata で見つかったものは「確かなもの」（' + sure.length + '本）');
+  t(sure[0].label === '公式サイト', '★「公式サイトを探す」ではなく「公式サイト」と書ける');
+  t(L[0].sure === true, '★確かなものを、いちばん上に出す');
+  t(L.filter(x => !x.sure).length >= 3, '　 検索の入口も、これまでどおり残す');
+
+  // 見つからなければ、これまでどおり検索の入口だけ
+  const L2 = F('shArtistLinks_')('あいうえお', '', null);
+  t(L2.every(x => x.sure === false),
+    '★見つからなければ、ぜんぶ「探しに行く入口」のまま');
+}
+
+console.log('\n■ 結成年からの手がかりは、「考えたこと」だと書く');
+{
+  const H = F('shAgeHint_');
+  const now = new Date(2026, 8, 21);
+  const h = H({ type: 'Group', begin: '2005-04-01' }, now);
+  t(h.indexOf('2005年') !== -1, '★結成年を出す');
+  t(h.indexOf('21年目') !== -1, '　 何年目かも');
+  t(h.indexOf('36〜46歳') !== -1, '★当時10代〜20代だった人の、いまの年齢（' + h + '）', h);
+  t(h.indexOf('調べた数字ではありません') !== -1,
+    '★★「調べた数字ではない」と、必ず書く');
+  t(H({ type: 'Group', begin: '' }, now) === '', '　 結成年が無ければ、何も出さない');
+  t(H(null, now) === '', '　 見つからなければ、何も出さない');
+}
+
+console.log('\n■ ★出典タブ（裏付けの取れる客層は、人が書き写す）');
+/*
+ * ★ファンの年齢・男女の数字は、どこの無料の窓口にもありません。
+ *   Xにも Spotify にも、公開されていません。
+ *   けれど、ぴあ総研の白書のような有料の調査には載っています。
+ *   そこで「人が、出典つきで書き写す」形にしました。
+ */
+{
+  setRecords([]);
+  webReply = {};
+  const ss = F('shBuild_')(new Date(2026, 8, 21),
+    [{ venue: '大阪城ホール', title: 'あいうえお BAND', url: '' }]);
+  const src = ss.getSheetByName('出典');
+  t(!!src, '★「出典」のタブができる');
+  const head = (src._vals[0] || []).join('／');
+  t(head.indexOf('出典') !== -1, '★出典のらんがある（' + head + '）', head);
+  const txt = src._vals.map(r => (r || []).join(' ')).join('\n');
+  has(txt, '出典のらんが空の行は、資料に出しません', '★決まりを、その場に書く');
+  has(txt, 'ぴあ総研', '★どこから写せばよいかの例を出す');
+
+  // ★人が書いたものは、作り直しても消さない
+  src._vals.push(['あいうえお', '30〜40代が中心', 'ぴあ総研 白書2025 p.12', '2026/09/21']);
+  const keep = src._vals.length;
+  F('shBuild_')(new Date(2026, 8, 21),
+    [{ venue: '大阪城ホール', title: 'あいうえお BAND', url: '' }]);
+  t(ss.getSheetByName('出典')._vals.length === keep,
+    '★★人が書いた出典は、作り直しても消さない');
+}
+
+console.log('\n■ 出典が無い数字は、出さない');
+{
+  setRecords([]);
+  webReply = {};
+  const ss = F('shBuild_')(new Date(2026, 8, 21),
+    [{ venue: '大阪城ホール', title: 'あいうえお BAND', url: '' }]);
+  const src = ss.getSheetByName('出典');
+
+  // ① 出典つき → 出る
+  src._vals.push(['あいうえお', '30〜40代が中心', 'ぴあ総研 白書2025 p.12', '2026/09/21']);
+  const f1 = F('shSourceFind_')(ss, 'あいうえお BAND', '大阪城ホール');
+  t(!!f1 && f1.value === '30〜40代が中心', '★出典つきなら、引ける');
+  t(f1.source.indexOf('ぴあ総研') !== -1, '　 出典も一緒に返る');
+
+  // ② 出典が空 → 出ない
+  src._vals.length = 0;
+  src._vals.push(['見出し', '', '', '']);
+  src._vals.push(['あいうえお', '20代女性が中心', '', '']);
+  t(F('shSourceFind_')(ss, 'あいうえお BAND', '大阪城ホール') === null,
+    '★★出典のらんが空なら、引かない（どこから来たか分からない数字は出さない）');
+
+  // ③ 当てはまらない → 出ない
+  src._vals.length = 0;
+  src._vals.push(['見出し', '', '', '']);
+  src._vals.push(['まったく別のひと', '20代', 'どこかの本', '']);
+  t(F('shSourceFind_')(ss, 'あいうえお BAND', '大阪城ホール') === null,
+    '　 名前が当てはまらなければ、引かない');
+}
+
+console.log('\n■ 調べた客層は、AIの見当より先に出す');
+{
+  /*
+   * ★先に出ているほうを、人は信じます。
+   *   出典のあるものが下にあると、見当のほうが本命に見えます
+   */
+  setRecords([]);
+  webReply = {};
+  vm.runInContext('function vnTopicInfo_(){ return { audience: "20代女性が中心とみられます" }; }', ctx);
+  const ss = F('shBuild_')(new Date(2026, 8, 21),
+    [{ venue: '大阪城ホール', title: 'あいうえお BAND', url: '' }]);
+  ss.getSheetByName('出典')._vals.push(
+    ['あいうえお', '30〜40代が中心', 'ぴあ総研 白書2025 p.12', '2026/09/21']);
+  F('shBuild_')(new Date(2026, 8, 21),
+    [{ venue: '大阪城ホール', title: 'あいうえお BAND', url: '' }]);
+
+  const k = ss.getSheetByName('客層');
+  // ★とびとびに書かれるので、穴のあいた配列になる。穴も1行として数える
+  const lines = [];
+  for (let i = 0; i < k._vals.length; i++) {
+    const row = k._vals[i];
+    lines.push(row ? Array.from(row, v => (v == null ? '' : v)).join(' ') : '');
+  }
+  const iSrc = lines.findIndex(x => x.indexOf('調べた客層') !== -1);
+  const iAi  = lines.findIndex(x => x.indexOf('推定（AIの見当）') !== -1);
+  t(iSrc !== -1, '★調べた客層が出る');
+  t(iAi !== -1, '　 AIの見当も、これまでどおり出る');
+  t(iSrc < iAi, '★★調べた客層が、AIの見当より上にある');
+  has(lines.join('\n'), '出典：ぴあ総研', '★出典も、その場に書く');
 }
 
 console.log('\n■ バージョン');
