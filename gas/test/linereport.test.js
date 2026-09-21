@@ -1339,5 +1339,38 @@ console.log('\n■ 戦略予想の区切り線は、LINEの絵では出さない
   eq(line.indexOf('▼ おすすめの動き方') !== -1, true, '  見出しそのものは、ちゃんと残る');
 }
 
+console.log('\n■ 📮 公式LINEの送信数を、自分で数える（クロちゃんからの見直し）');
+{
+  /*
+   * ★無料プランは月200通まで。上限に当たると、いちばん大事な
+   *   「グループへのイベント案内」から黙って止まります。
+   *   数えていないと、当たるまで気づけません
+   */
+  const src = fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  eq(vm.runInContext('LR_PUSH_LIMIT', ctx), 200, '★上限（月200通）を、1か所で決めている');
+  eq(src.indexOf('lrPushAdd_((messages || []).length || 1)') !== -1, true,
+     '★送れたときだけ、メッセージの数ぶんを足す（LINEは1通ずつ数えるため）');
+  eq(src.indexOf('lrPushAdd_') !== -1 && src.indexOf('if (code >= 200 && code < 300) {') !== -1, true,
+     '  しくじったぶんは数えない');
+
+  const key = ctx.lrPushKey_(new D(2026, 8, 21));
+  eq(key, 'PUSH_CNT_202609', '  数える入れものは、月ごとに分かれている');
+  // ここだけ、覚え書きを自前のものに差しかえて数えてみる
+  const P2 = {};
+  const keepPS = ctx.PropertiesService;
+  ctx.PropertiesService = { getScriptProperties: () => ({
+    getProperty: k => (k in P2 ? P2[k] : null),
+    setProperty: (k, v) => { P2[k] = String(v); },
+    deleteProperty: k => { delete P2[k]; } }) };
+  const nowKey = ctx.lrPushKey_();
+  ctx.lrPushAdd_(3);
+  eq(P2[nowKey], '3', '★送ったぶんが、ちゃんとたまる');
+  eq(ctx.lrPushCount_(), 3, '  いまの通数が読める');
+  eq(ctx.lrPushLeft_(), 197, '  残りも読める');
+  P2[nowKey] = '250';
+  eq(ctx.lrPushLeft_(), 0, '★使い切っていても、マイナスにはしない');
+  ctx.PropertiesService = keepPS;
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

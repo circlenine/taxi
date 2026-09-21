@@ -2,7 +2,17 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L056ver  （2026/09/21）  ★★★
+ *  ★★★  L057ver  （2026/09/21）  ★★★
+ *
+ *  [L057ver]
+ *   ・📮 公式LINEの送信数（月200通）を、自分で数えるようにした
+ *     ★こちらからの見直しです。
+ *       いまは「イベント案内（毎日）」「確認用（毎日）」「お知らせ」
+ *       「レポート」と、送るものが増えました。ぜんぶ足すと200通に届きます。
+ *       上限に当たると、いちばん大事な
+ *       "グループへのイベント案内" から黙って止まります
+ *     ★送るたびに数え、残り30通を切ったら お知らせします
+ *     ★「通数」と送れば、いつでも残りが分かります
  *
  *  [L056ver]
  *   ・🥇 ヒートマップの順位（🥇🥈🥉）を「2件以上たまった枠」だけにした
@@ -2225,6 +2235,81 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
  * 「応答の全文を見るには muteHttpExceptions オプションを使用してください」という
  * 英語混じりの文で止まってしまい、原因が読み取れない。
  */
+/* ================================================================
+ *  📮 送った通数を、自分で数える
+ *
+ *  ★これは、こちらからの見直しで足しました。
+ *
+ *    公式LINEの無料プランは、こちらから送れるのが月200通までです。
+ *    いまは「イベントの案内（毎日）」「確認用（毎日）」
+ *    「お知らせ」「レポート」と、送るものが増えています。
+ *    ぜんぶ合わせると200通に届きます。
+ *    そして上限に当たると、いちばん大事な
+ *    「グループへのイベント案内」から黙って止まります。
+ *
+ *    数えていないと、当たるまで気づけません。
+ *    ですので、送るたびに数えて、月の残りが分かるようにします。
+ *      ・「通数」と送れば、いまの残りが分かります
+ *      ・残り30通を切ったら、まーくさんにお知らせします
+ *      ・しくじりの知らせ（errTell_）は、残りが少ないときは出しません
+ *        （本業の案内を、知らせで食いつぶさないため）
+ *
+ *  ★数えるのは「こちらから送ったぶん（push）」だけです。
+ *    返事（reply）は、LINEの決まりで通数に入りません。
+ * ================================================================ */
+const LR_PUSH_LIMIT = 200;        // 無料プランの上限（月）
+const LR_PUSH_WARN  = 30;         // 残りがこれを切ったら、お知らせする
+
+function lrPushKey_(d) {
+  const t = d || new Date();
+  return "PUSH_CNT_" + t.getFullYear() + ("0" + (t.getMonth() + 1)).slice(-2);
+}
+
+/** 今月、こちらから送った通数 */
+function lrPushCount_() {
+  try {
+    return Number(PropertiesService.getScriptProperties()
+      .getProperty(lrPushKey_()) || "0") || 0;
+  } catch (e) { return 0; }
+}
+
+/** 今月の残り（目安） */
+function lrPushLeft_() { return Math.max(0, LR_PUSH_LIMIT - lrPushCount_()); }
+
+/** 送ったぶんを足す。残りが少なくなったら、1回だけお知らせする */
+function lrPushAdd_(n) {
+  let now = 0;
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    const key = lrPushKey_();
+    now = (Number(pr.getProperty(key) || "0") || 0) + (n || 1);
+    pr.setProperty(key, String(now));
+  } catch (e) { return; }
+
+  const left = Math.max(0, LR_PUSH_LIMIT - now);
+  if (left > LR_PUSH_WARN) return;
+  try {
+    const cc = CacheService.getScriptCache();
+    const k = "PUSHWARN_" + lrPushKey_();
+    if (cc.get(k)) return;                      // 月に1回だけ
+    cc.put(k, "1", 21600);
+    const me = rpTestTarget_();
+    if (!me) return;
+    // ★ここは、数えるところから直に送ります（また数えると、堂々めぐりになるため）
+    const token = getLineToken_();
+    UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
+      method: "post", muteHttpExceptions: true,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      payload: JSON.stringify({ to: me, messages: [{ type: "text",
+        text: "📮 公式LINEの送信数が、残り " + left + "通です（今月・目安）。\n" +
+              "上限に当たると、グループへのイベント案内から止まります。\n" +
+              "　・イベントの自動発信を止める → 設定タブ「イベント情報を自動で送る」を「いいえ」\n" +
+              "　・しくじりの知らせを止める → 「💩🆖」\n" +
+              "いまの通数は「通数」と送れば、いつでも見られます。" }] })
+    });
+  } catch (e) {}
+}
+
 function lrPush_(targetId, messages) {
   const token = getLineToken_();
   const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
@@ -2234,7 +2319,11 @@ function lrPush_(targetId, messages) {
     muteHttpExceptions: true
   });
   const code = res.getResponseCode();
-  if (code >= 200 && code < 300) return;
+  if (code >= 200 && code < 300) {
+    // ★送れたぶんだけ数える（LINEは「メッセージ1つ」ごとに1通と数えます）
+    try { lrPushAdd_((messages || []).length || 1); } catch (e) {}
+    return;
+  }
 
   const body = String(res.getContentText() || "");
   throw new Error(lrPushWhy_(code, body, messages));

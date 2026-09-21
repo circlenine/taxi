@@ -2,7 +2,10 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U086ver  （2026/09/21）  ★★★
+ *  ★★★  U087ver  （2026/09/21）  ★★★
+ *
+ *  [U087ver]
+ *   ・📮 「通数」で、公式LINEの送信数の残りを見られるようにした
  *
  *  [U086ver]
  *   ・🚨 しくじりを、黙ったままにしないようにした（こちらからの見直し）
@@ -3190,6 +3193,44 @@ function updPoopTell_(text) {
  * LINEで「💩🆗」「💩🆖」が来たときの受け口。
  * 受け止めたら true（true を返すと、ほかの受け口は動きません）。
  */
+/**
+ * 「通数」… 今月、公式LINEから送った通数と残りを見せる（まーくさんだけ）。
+ *
+ * ★こちらからの見直しで足しました。
+ *   無料プランは月200通までで、上限に当たると
+ *   いちばん大事な「グループへのイベント案内」から黙って止まります。
+ *   当たってから気づくのでは遅いので、いつでも見られるようにします。
+ */
+function updHandleQuota_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim()
+    .replace(/[\s\u3000]/g, "");
+  if (!/^(通数|つうすう|送信数|のこり|残り|残数)$/.test(t)) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const me = updMe_();
+  if (!me || uid !== me) return false;
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+
+  if (typeof lrPushCount_ !== "function") {
+    say("📮 数えるしくみが、まだ入っていません。");
+    return true;
+  }
+  const used = lrPushCount_();
+  const left = (typeof lrPushLeft_ === "function") ? lrPushLeft_() : 0;
+  const limit = (typeof LR_PUSH_LIMIT !== "undefined") ? LR_PUSH_LIMIT : 200;
+  const d = new Date();
+  const rest = new Date(d.getFullYear(), d.getMonth() + 1, 1) - d;
+  const days = Math.max(1, Math.ceil(rest / 86400000));
+  say("📮 公式LINEの送信数（今月・目安）\n" +
+      "　送ったぶん：" + used + "通／" + limit + "通\n" +
+      "　残り：" + left + "通（今月はあと" + days + "日）\n\n" +
+      "※ 返事（reply）は通数に入りません。数えているのは、\n" +
+      "　 こちらから送るぶん（イベント案内・お知らせ・レポート）です。\n" +
+      "※ 足りなくなりそうなときは、設定タブ\n" +
+      "　 「イベント情報を自動で送る」を「いいえ」にすると止まります。");
+  return true;
+}
+
 /**
  * 「エラー」… 直近のしくじりを、そのまま見せる（まーくさんだけ）。
  *

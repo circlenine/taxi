@@ -1590,6 +1590,8 @@ function handleEvent_(ev) {
   if (typeof updHandleTell_ === "function" && updHandleTell_(ev)) return;
   // --- 「エラー」… 直近のしくじりを見せる（まーくさんだけ）---
   if (typeof updHandleErr_ === "function" && updHandleErr_(ev)) return;
+  // --- 「通数」… 公式LINEの送信数の残りを見せる（まーくさんだけ）---
+  if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
   /*
    * --- 「アニメに名言変更してください」… 終わったときのひとことを切り替える ---
    *     英語の名言 ⇔ ジャンプ作品の名言・迷言
@@ -5541,7 +5543,7 @@ function menuFindBadDates() {
  *    ・1日ぜんぶで5回まで（公式LINEの月200通を食いつぶさないため）
  *    ・通知を切っている（💩🆖）ときは、送りません
  * ================================================================ */
-const ERR_TELL_MAX_DAY = 5;
+const ERR_TELL_MAX_DAY = 3;
 
 function errTell_(where, msg) {
   // 通知を切っているときは、何もしない
@@ -5552,6 +5554,16 @@ function errTell_(where, msg) {
   let me = "";
   try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
   if (!me || typeof lrPush_ !== "function") return;
+
+  /*
+   * ★残りの通数が少ないときは、知らせません。
+   *   いちばん大事なのは「グループへのイベント案内」です。
+   *   しくじりの知らせで、それを食いつぶしては元も子もありません。
+   *   そのときは「エラー」と送れば、いつでも見られます。
+   */
+  try {
+    if (typeof lrPushLeft_ === "function" && lrPushLeft_() <= 40) return;
+  } catch (e) {}
 
   const cc = CacheService.getScriptCache();
   const key = "ERRTELL_" + String(where || "").slice(0, 40);
@@ -5573,7 +5585,7 @@ function errTell_(where, msg) {
       text: "🚨 うまくいかなかったところがあります\n" +
             "　どこ：" + String(where) + "\n" +
             "　中身：" + String(msg).slice(0, 180) + "\n\n" +
-            "※ 同じものは1時間に1回、1日5回までしか出しません。\n" +
+            "※ 同じものは1時間に1回、1日3回までしか出しません。\n" +
             "※ ぜんぶ見るときは「エラー」と送ってください。\n" +
             "※ いらないときは「💩🆖」で止められます。" }]);
   } catch (e) {}
