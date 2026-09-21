@@ -33,6 +33,7 @@ function mkSheet(name) {
     autoResizeRows: () => sh,
     setFrozenRows: () => sh,
     getRange: (r, c, nr, nc) => mkRange(sh, r, c, nr || 1, nc || 1),
+    getLastRow: () => sh._vals.length,
     setName: n => { sh._name = n; return sh; },
     // ★写し先のスプシに、同じ中身のタブを1枚ふやす
     copyTo: dest => {
@@ -47,7 +48,24 @@ function mkSheet(name) {
 }
 function mkRange(sh, r, c, nr, nc) {
   const rg = {
-    setValues: v => { sh._vals = v.slice(); return rg; },
+    getValues: () => {
+      const out = [];
+      for (let i = 0; i < nr; i++) {
+        const row = sh._vals[r - 1 + i] || [];
+        out.push(row.slice(c - 1, c - 1 + nc));
+      }
+      return out;
+    },
+    // ★書き込む場所（行・列）を守ります。
+    //   まるごと入れ替える作りにすると、書き足しの試験になりません
+    setValues: v => {
+      v.forEach((row, i) => {
+        const y = r - 1 + i;
+        if (!sh._vals[y]) sh._vals[y] = [];
+        row.forEach((val, j) => { sh._vals[y][c - 1 + j] = val; });
+      });
+      return rg;
+    },
     setValue: () => rg,
     clear: () => rg,
     merge: () => { sh._merged.push(r + ':' + c + 'x' + nc); return rg; },
@@ -201,6 +219,15 @@ console.log('\n■ 中身（読む人がいちばん知りたいところ）');
   // 困りのタブ
   const help = text('困り');
   has(help, '[14] LINEの調子を調べる', '★困り：いちばん先に押すものを書く');
+
+  // 目次のタブ（自分のひらき方が書いていないと、二度とたどり着けない）
+  const toc = text('目次');
+  has(toc, 'LINEで「📘」と送ると、URLが返ってきます',
+      '★目次：このスプシの ひらき方を、自分の中に書いておく');
+  has(toc, '[16] マニュアルを作り直す',
+      '　 LINEが無反応のときの、ひらき方も');
+  has(toc, '乗り場マップはレポートの材料ですが、移して大丈夫です',
+      '★目次：移してよいかどうかを、理由つきで書く');
 }
 
 console.log('\n■ 1行は、スマホで読める長さに収める');
@@ -363,6 +390,78 @@ console.log('\n■ 移す前でも、移したあとでも、同じように読�
 
   // ④ どこにも無ければ null（呼んだ側で作れるように）
   t(F('mnFindSheet_')('そんなタブ', null) === null, '　 無ければ null');
+}
+
+
+console.log('\n■ 乗り場マップを移しても、レポートが困らないか');
+/*
+ * ★まーくさんからのご指摘です。
+ *   「乗り場マップもレポート材料なのですが、移して大丈夫なのでしょうか」
+ *
+ * ★ほんとうに危ないのは「読めるかどうか」ではありません。
+ *   読めないだけなら、リンクが付かないだけで済みます。
+ *   危ないのは、移したことに気づかずに
+ *   記録用スプシへ もう1枚 同じタブを作ってしまうことです。
+ *   そうなると、貼ったリンクは向こうに、書き込みはこちらに、と
+ *   二手に分かれて、どちらが本物か分からなくなります。
+ */
+{
+  // 003-LineReport.gs から、地図まわりの2つだけを持ってくる
+  const lr = fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+  const take = function (name) {
+    const i = lr.indexOf('function ' + name + '(');
+    if (i < 0) throw new Error(name + ' が見つかりません');
+    // 次の「\nfunction 」または「\nconst 」までを切り出す
+    let j = lr.length;
+    ['\nfunction ', '\nconst ', '\n/**'].forEach(function (mark) {
+      const k = lr.indexOf(mark, i + 10);
+      if (k >= 0 && k < j) j = k;
+    });
+    return lr.slice(i, j);
+  };
+  vm.runInContext('var MAP_TAB = "🗺️乗り場マップ";', ctx);
+  vm.runInContext('var MAP_HEAD = ["乗り場名", "リンク", "状態", "候補"];', ctx);
+  vm.runInContext('function mapKey_(n){ return String(n).trim(); }', ctx);
+  vm.runInContext('function dbHasPlace_(n){ return true; }', ctx);
+  vm.runInContext('function mapUrlFor_(n){ return "https://maps.example/" + n; }', ctx);
+  vm.runInContext(take('mapFindSheet_'), ctx);
+  vm.runInContext(take('mapEnsureSheet_'), ctx);
+
+  props = {}; Object.keys(books).forEach(k => delete books[k]);
+  active = mkBook('REC5', '記録用スプシ');
+  const src = mkSheet('🗺️乗り場マップ');
+  src._vals = [['乗り場名', 'リンク', '状態', '候補'],
+               ['梅田', 'https://maps.example/umeda', '登録ずみ', '']];
+  active._add(src);
+
+  // 移す前：記録用スプシから読める
+  t(F('mapFindSheet_')(active) === src, '★移す前は、記録用スプシの表を読む');
+
+  // 移す
+  F('panelMoveTabs')(); F('panelMoveTabs')();
+  const book = books[props['MN_MANUAL_SS']];
+  const moved = book.getSheetByName('🗺️乗り場マップ');
+  t(!!moved, '★マニュアル側に移っている');
+  t(!active.getSheetByName('🗺️乗り場マップ'), '　 記録用スプシからは消えている');
+
+  // 移したあと：レポートは、ちゃんと向こうを読む
+  t(F('mapFindSheet_')(active) === moved,
+    '★移したあとも、レポートは同じ表を読む（リンクは消えない）');
+  t(moved._vals.length === 2, '　 貼ってあったリンクも、そのまま残っている');
+
+  /*
+   * ★ここが、いちばん危ないところです。
+   *   レポートは、新しい乗り場が出てくるたびに表へ書き足します。
+   *   そのとき記録用スプシに もう1枚 作ってしまうと、
+   *   貼ったリンクは向こう、書き足しはこちら、と二手に分かれます
+   */
+  const before = active.getSheets().length;
+  F('mapEnsureSheet_')(active, ['なんば', '天満']);
+  t(active.getSheets().length === before,
+    '★★記録用スプシに、同じタブをもう1枚 作らない');
+  t(!active.getSheetByName('🗺️乗り場マップ'),
+    '　 記録用スプシには、やはり無いまま');
+  t(moved._vals.length > 2, '★新しい乗り場は、移したほうの表に書き足される');
 }
 
 console.log('\n■ バージョン');
