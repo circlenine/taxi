@@ -2,7 +2,19 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L054ver  （2026/09/21）  ★★★
+ *  ★★★  L055ver  （2026/09/21）  ★★★
+ *
+ *  [L055ver]
+ *   ・🔎 参考資料として成り立つように、こちらから見直したぶん
+ *     （まーくさんのご指摘ではなく、クロちゃんの見直しです）
+ *     ★曜日区分（平日＝月〜木／金曜／土曜／日祝＝日曜・祝日）を、
+ *       資料の中に書きました。何度も出てくるのに、中身が
+ *       どこにも書いていませんでした。はじめて見る人には
+ *       「平日に金曜は入るのか」すら分かりません
+ *     ★個別乗り場の「アツい時間」は、記録が3件に満たないものを
+ *       灰色にしました。1件しかない乗り場の「いちばん良かった1本」を
+ *       黒い太字で出すと、何件も積み上がった乗り場と同じ重みに見えます
+ *     ★待ち時間が「書いてあったぶんだけの平均」であることを書きました
  *
  *  [L054ver]
  *   ・📐 いちばん下の空きの決め方を、行数から「高さ（ピクセル）」に変えた（ご指摘）
@@ -867,6 +879,19 @@ const LR_DOW_NOTE =
   //   どれが見出しで、どれが中身なのか 見分けがつきませんでした
   "◆ 曜日について　出勤した曜日を基準にしています。\n" +
   "例）月曜に出勤して日付をまたいだ【火曜 00:05】は、【月曜 00:05】と書いています。";
+
+/*
+ * 曜日区分（平日・金曜・土曜・日祝）が、それぞれ何を指すのか。
+ *
+ * ★これは、わたしのほうから足しました（ご指摘ではありません）。
+ *   この資料には【平日】【金曜】【土曜】【日祝】が何度も出てきますが、
+ *   その中身が どこにも書いてありませんでした。
+ *   はじめて見る人（上の人）には、
+ *   「平日に金曜は入っているのか」すら分かりません。
+ *   数字の意味が決まらない資料は、参考資料になりません。
+ */
+const LR_DAYTYPE_NOTE =
+  "◆ 曜日区分　平日＝月〜木／金曜／土曜／日祝＝日曜・祝日（祝日は日祝に入れています）。";
 
 /** 祝日判定。HOLIDAYS は v232 側の定義を使う */
 function isHolidayFunc(dateObj) {
@@ -3738,6 +3763,8 @@ function lrThin_(n) {
 
 const LR_DISCLAIMER = [
   "※ この資料には、AIによる集計と推測が含まれています。参考資料としてご了承ください。",
+  // ★曜日区分の中身を、必ず書く（これが無いと、数字の意味が決まらない）
+  "・曜日区分は 平日＝月〜木／金曜／土曜／日祝＝日曜・祝日 です（出勤した曜日で数えます）。",
   "・件数・金額・待ち時間は、記録用スプレッドシートの実績を数えたものです。",
   "・「おすすめ」「戦略予想」は、その実績と暦から組み立てた推測です（" + LR_NIGHT_MIN_N + "件未満は おすすめにしません）。",
   "・入力もれや書き間違いがあると、数字もそのぶんずれます。"
@@ -5791,7 +5818,10 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     // ★リンクを出しているときだけ、下線の意味を説明します（ご指示）。
     //   いまはリンクを止めているので、この1文も出しません。
     //   出ていないものの説明を読まされるのが、いちばん分かりにくいためです
-    "ヒートマップに出ない乗り場（月に1〜2件）を、ここにまとめています。" +
+    "ヒートマップに出ない乗り場（月に1〜2件）を、ここにまとめています。\n" +
+    "⭕️アツい時間は「いちばん高かった1本」の曜日と時刻です。" +
+    LR_NIGHT_MIN_N + "件に満たない乗り場は灰色にしています（1本だけの結果かもしれないため）。\n" +
+    "待ち時間は、書いてあったぶんだけの平均です。" +
     (lrMapLinkOn_() ? "\n" + LR_MAP_LINK_NOTE : ""),
     "#cfe2f3", 12);
   /*
@@ -5799,11 +5829,11 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
    *   下の表には「月曜 00:05」のような書き方が並びます。
    *   何を基準にした曜日なのかを先に言っておかないと、読みちがえます。
    */
-  sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(LR_DOW_NOTE)
+  sheet.getRange(curRow, 1, 1, DB_COLS).merge().setValue(LR_DOW_NOTE + "\n" + LR_DAYTYPE_NOTE)
     .setFontSize(11).setFontWeight("bold").setFontColor("#b71c1c").setBackground("#fff8e1")
     .setHorizontalAlignment("left").setVerticalAlignment("middle").setWrap(true);
   sheet.getRange(curRow, 1, 1, DB_COLS).setWrap(true);
-  dbFit_(sheet, curRow, [{ text: LR_DOW_NOTE, span: DB_COLS, size: 11 }], 30); curRow++;
+  dbFit_(sheet, curRow, [{ text: LR_DOW_NOTE + "\n" + LR_DAYTYPE_NOTE, span: DB_COLS, size: 11 }], 30); curRow++;
 
   /*
    * ★らんの幅は「再現したい乗車」の表にそろえました（まーくさんのご指示）。
@@ -5913,7 +5943,17 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
      *   金額のマスを、ほかの表と同じ決まり（dbMoneyBg_／dbMoneyColor_）で塗ります。
      *   こうすれば、どの表でも「この色はこの金額」と同じ意味になります。
      */
+    /*
+     * ★記録が少ない乗り場は、字を灰色にします（わたしのほうから足しました）。
+     *   1件しかない乗り場の「いちばん良かった1本」は、まぐれかもしれません。
+     *   それを黒い太字で出すと、ほかの「何件も積み上がった乗り場」と
+     *   同じ重みに見えてしまいます。
+     *   言葉は足しません（件数はすぐとなりのらんに出ています）。
+     *   色だけで「これは参考」と分かるようにします。
+     */
+    const thin = item.d.count < LR_NIGHT_MIN_N;
     drngs[2].merge().setValue(item.bestT).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")
+      .setFontColor(thin ? "#9e9e9e" : "#000000")
       .setBackground("#ffffff");
     // ★「件数/平均」と「待ち時間」を入れかえ、待ち時間をいちばん右にした
     drngs[3].merge().setValue(priceStyleText).setFontSize(11).setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setFontWeight("bold")

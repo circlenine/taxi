@@ -815,5 +815,30 @@ console.log('\n■ まとめスプシを、もっとコンパクトに（ご指�
   ok(N.indexOf('◆') === 0, '  見出しは、べつの記号で立てる');
 }
 
+console.log('\n■ 参考資料として成り立つか（クロちゃんからの見直し）');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '003-LineReport.gs'), 'utf8');
+
+  /*
+   * ★ここは、まーくさんの指摘ではなく、こちらから見直して足したぶんです。
+   *   「上の人にも見せられる資料か」という目で、数字の意味が
+   *   決まっていないところを探しました。
+   */
+  const N = vm.runInContext('LR_DAYTYPE_NOTE', ctx);
+  ok(N.indexOf('平日＝月〜木') !== -1, '★曜日区分の中身を、資料の中に書く（平日に金曜は入らない）');
+  ok(N.indexOf('日祝＝日曜・祝日') !== -1, '  日祝が何かも書く');
+  ok(src.indexOf('LR_DOW_NOTE + "\\n" + LR_DAYTYPE_NOTE') !== -1,
+     '  まとめスプシの注釈にも出す');
+  const D = vm.runInContext('LR_DISCLAIMER', ctx).join('\n');
+  ok(D.indexOf('曜日区分は 平日＝月〜木') !== -1, '  LINEの絵の注釈にも出す');
+
+  ok(src.indexOf('const thin = item.d.count < LR_NIGHT_MIN_N;') !== -1,
+     '★記録が少ない乗り場は、灰色にして「参考」と分かるようにする');
+  ok(src.indexOf('件に満たない乗り場は灰色にしています') !== -1,
+     '  その決まりも、表の注釈に書いてある');
+  ok(src.indexOf('待ち時間は、書いてあったぶんだけの平均です。') !== -1,
+     '★待ち時間が「書いてあったぶんだけ」であることを、はっきり書く');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
