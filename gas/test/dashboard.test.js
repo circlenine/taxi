@@ -560,10 +560,32 @@ console.log('\n■ 下のほうの、いらない空っぽの行を片づける'
    * ★止まりどころは「最後の表の見出しが、画面の2行目に来るところ」（ご指示）。
    *   見出しが画面のまん中や下で止まると、目が迷う
    */
-  eq(src.indexOf('const DB_VIEW_ROWS = 45;') !== -1, true,
-     '★画面に入る行数の目安を、1か所で決めている');
-  eq(src.indexOf('lastTitleRow ? (lastTitleRow + DB_VIEW_ROWS - 2) : (curRow + 3)') !== -1, true,
+  /*
+   * ★「だいたい45行」という行数での見積もりは、やめました（ご指摘）。
+   *   行の高さは、20 のところも 340（おまけの絵）のところもあります。
+   *   行の数で数えると、まるで合いません。高さ（ピクセル）で数えます
+   */
+  eq(src.indexOf('const DB_VIEW_H = 640;') !== -1, true,
+     '★画面の高さ（ピクセル）の目安を、1か所で決めている');
+  eq(src.indexOf('const padRows = lastTitleRow ? dbTailPad_(sheet, lastTitleRow, curRow - 1) : 3;') !== -1, true,
      '★最後の見出しが、画面の2行目に来るところまで残す');
+
+  // 実際に数えて、合っているかを見る
+  const H = {};                        // 行ごとの高さ（にせのスプシ）
+  const fakeSheet = { getRowHeight: r => (H[r] === undefined ? 21 : H[r]) };
+  // ① 中身が短いとき … 画面の高さぶんまで、空きを足す
+  for (let r = 1; r <= 200; r++) H[r] = 21;
+  const pad1 = ctx.dbTailPad_(fakeSheet, 100, 104);   // 見出し＋5行＝126px
+  ok(pad1 > 0, '★中身が短いときは、空きを足す（' + pad1 + '行）');
+  ok(Math.abs((21 * 6 + pad1 * 21) - 640) < 21,
+     '  足したぶんを入れて、ちょうど画面の高さになる（' + (21 * 6 + pad1 * 21) + 'px）');
+  // ② 中身だけで画面がいっぱいのとき … 足さない
+  H[101] = 400; H[102] = 400;
+  ok(ctx.dbTailPad_(fakeSheet, 100, 104) === 0,
+     '★中身だけで画面がうまるときは、1行も足さない');
+  // ③ 数えられなくても落ちない
+  ok(ctx.dbTailPad_({ getRowHeight: () => { throw new Error('だめ'); } }, 100, 104) === 0,
+     '  高さが読めなくても、落ちない');
   eq(src.indexOf('const lastTitleRow = curRow;') !== -1, true,
      '  最後の表の見出しが何行目かを覚えている');
   eq(src.indexOf('sheet.setRowHeights(curRow, lastText - curRow + 1, DB_ROW_H)') !== -1, true,

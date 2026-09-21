@@ -749,7 +749,9 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   has(rep0, 'お知らせを入れました', '★こちらのものは「お知らせ」と呼ぶ');
   eq(rep0.indexOf('リマインダーを入れました'), -1,
      '★「リマインダー」とは呼ばない（iPhoneのアプリ名とまぎれるため）');
-  has(rep0, '終了予定', '  ★「終了」ではなく「終了予定」と書く');
+  has(rep0, '終わりの見込み',
+      '  ★終わりが決まっていないものは「終わりの見込み」と正直に書く（ご指示）');
+  eq(rep0.indexOf('終了予定'), -1, '  ★「終了予定」とは、もう書かない');
   has(rep0, 'あなたの個人LINEへ', '★公式アカウントから個人LINEへ届く、と分かるように書く');
   has(rep0, 'アプリは開きません', '  アプリは開かないことも、はっきり書く');
   eq(JSON.parse(props['VN_REMIND']).length, 1, '予約が1つ入る');
@@ -1197,7 +1199,7 @@ console.log('\n■ 📣 スマホ通知（いまは使いませんが、仕掛�
   const b2 = JSON.parse(sent[0].opt.payload);
   eq(b2.topic, topic2, '  宛先は、その人の合言葉');
   has(b2.title, '京セラドーム', '  ★題に会場名（開かなくても分かる）');
-  has(b2.message, '終了予定', '  中身も同じ');
+  has(b2.message, '終わりの時刻は決まっていません', '  ★終わりが確かでないことも、はっきり書く');
   eq(b2.click, 'https://kyocera/', '★押したら、その会場のページが開く');
   eq(b2.priority >= 4, true, '  音が鳴るよう、強さを上げておく');
 
@@ -1284,7 +1286,7 @@ console.log('\n■ 📧 メール通知（いまは使いませんが、仕掛�
   eq(pushed.length, 1, 'LINEにも届く');
   eq(mails.length, 1, '★メールにも届く');
   has(mails[0].subject, '京セラドーム', '  件名に会場名（開かなくても分かる）');
-  has(mails[0].body, '終了予定', '  中身も同じ');
+  has(mails[0].body, '終わりの時刻は決まっていません', '  ★終わりが確かでないことも、はっきり書く');
 
   // 止めたら、メールは飛ばない
   ctx.vnHandleMailCmd_({ replyToken: 'r', source: { userId: 'Umark' },
@@ -1832,28 +1834,40 @@ console.log('\n■ ワントゥワンは、詳細まで開いて「徹夜」を�
 }
 
 
-console.log('\n■ 「終了」とは書かない（必ず「終了予定」）');
+console.log('\n■ 終わりの時刻は「はっきり決まっているもの」しか書かない');
 {
-  // ★催しの終わりは ほぼ必ず前後する。言い切ると、それを信じて動いた人が損をする
+  /*
+   * ★まーくさんのご指示です。
+   *   コンサートはアンコールで延びます。決まっていない終わりの時刻を
+   *   「終了予定」と書けば、それを信じて動いた人が空振りします。
+   *   ページに「終演」「終了」と書いてあるとき（endSure）だけ出します。
+   * ★始まりも「開演」と「開場」を分けます。大事なのは開演です。
+   */
   const c1 = JSON.stringify(ctx.vnCard_({ venue: '京セラドーム', kind: 'event', title: 'x',
-    start: '18:00', end: '21:00', url: '' }, 0, null));
-  has(c1, '18:00〜21:00予定', '★始まりと終わりが分かるときも「予定」と付ける');
-  eq(/21:00[^予]/.test(c1.replace('18:00〜21:00予定', '')), false, '  言い切らない');
+    start: '18:00', startKind: '開演', end: '21:00', endSure: true, url: '' }, 0, null));
+  has(c1, '18:00 開演〜21:00 終演', '★はっきりしているときは、開演〜終演で出す');
 
   const c2 = JSON.stringify(ctx.vnCard_({ venue: '京セラドーム', kind: 'event', title: 'x',
-    end: '21:00', url: '' }, 0, null));
-  has(c2, '21:00 終了予定', '★終わりだけ分かるときも「終了予定」');
-  eq(c2.indexOf('21:00 終了"'), -1, '  「終了」で言い切らない');
+    start: '18:00', startKind: '開演', end: '21:00', url: '' }, 0, null));
+  has(c2, '18:00 開演', '★はっきりしない終わりは、書かない');
+  eq(c2.indexOf('21:00'), -1, '  ★見込みの終わりは、どこにも出さない');
+  eq(c2.indexOf('終了予定'), -1, '  「終了予定」とも書かない（ご指示）');
 
   const c3 = JSON.stringify(ctx.vnCard_({ venue: '京セラドーム', kind: 'event', title: 'x',
-    start: '18:00', url: '' }, 0, null));
-  has(c3, '18:00 開始', '始まりだけのときは「開始」');
+    start: '18:00', startKind: '開場', url: '' }, 0, null));
+  has(c3, '18:00 開場', '★開場しか分からないときは「開場」と正直に書く');
+  eq(c3.indexOf('開演'), -1, '  開場を開演と呼ばない（1時間近くずれる）');
 
-  // 予約のお知らせの文も同じ
-  const r = ctx.vnRemText_({ venue: '京セラドーム', title: 'x', start: '18:00', end: '21:00', url: '' });
-  has(r, '終了予定', '★お知らせの文も「終了予定」');
+  const c4 = JSON.stringify(ctx.vnCard_({ venue: '帝国ホテル', kind: 'hotel', title: 'x',
+    end: '20:00', endSure: true, url: '' }, 0, null));
+  has(c4, '20:00 終演', '★紙（写真）から読んだ終わりは、はっきりしているので出す');
+
+  // 動く予想も、終わりがはっきりしているときだけ
+  const line = ctx.vnAdvice_('京セラドーム', '', null);
+  eq(line.indexOf('動く予想'), -1, '★終わりが分からなければ、動く予想も出さない（ご指示）');
+  has(ctx.vnAdvice_('京セラドーム', '21:00', null), '20:30〜動く予想',
+      '  はっきりしているときは、これまでどおり出す');
 }
-
 
 const ok2 = (cond, msg) => { if (!cond) { fail++; console.log('NG  ', msg); } };
 console.log('\n■ イベントの注意書きは、入るだけ詰める');
@@ -2169,7 +2183,8 @@ console.log('\n■ リマインダーは、終了予定の5分前ぴったりに
   ctx.vnRemindTick_();
   eq(pushed.length, 1, '★時刻が来たら送る');
   has(msgText(pushed[0].msgs[0]), '京セラドーム', '  そのイベントのもの');
-  has(msgText(pushed[0].msgs[0]), '終了予定', '  ★「終了」ではなく「終了予定」と書く');
+  has(msgText(pushed[0].msgs[0]), '終わりの時刻は決まっていません',
+      '  ★終わりが決まっていないことを、はっきり書く（ご指示）');
   eq(JSON.parse(props['VN_REMIND']).length, 0, '  送ったら消える');
 
   // 役目を終えた「1回きりの見張り」は、たまらないように片づける
@@ -2355,6 +2370,57 @@ console.log('\n■ お知らせを「何分前」にするかを、押して変�
   eq(ctx.vnLeadFor_('Uother'), 5, '  決めていない人は、これまでどおり5分前');
   delete props['VNLEAD_Umark'];
   delete props['VN_REMIND'];
+}
+
+console.log('\n■ 「資料」と送れば、紙（写真）の置き場がそのまま出る');
+{
+  for (const k in props) if (k.indexOf('VNDOC') === 0) delete props[k];
+  pushed.length = 0;
+  vm.runInContext('function lineReply_(tk, t){ lastReply = t; }', ctx);
+  ctx.lastReply = '';
+
+  // まだ1枚も無いとき
+  eq(ctx.vnHandleDocCmd_({ message: { text: '資料' }, source: { userId: 'Umark' },
+       replyToken: 'r' }), true, '★「資料」と送れば、ここが受ける');
+  has(ctx.lastReply, 'まだ1枚もありません', '  無ければ、無いと言う');
+  has(ctx.lastReply, '↓帝国', '  どうやって送るのかも、その場で伝える');
+
+  // 1枚しまってあるとき
+  const day = new Date(2026, 8, 17);
+  ctx.vnDocSet_(day, 'リーガロイヤル', 'https://drive.example/doc1');
+  ctx.lastReply = '';
+  ctx.vnHandleDocCmd_({ message: { text: '資料' }, source: { userId: 'Umark' }, replyToken: 'r' });
+  has(ctx.lastReply, 'リーガロイヤルホテル', '★どの場所のものかが出る');
+  has(ctx.lastReply, 'https://drive.example/doc1', '★そのまま開けるリンクが出る');
+  has(ctx.lastReply, '2026/09/17', '  いつ受け取ったぶんかも出る');
+
+  // ほかの人には、何も返さない（資料は身内のものなので）
+  ctx.lastReply = '';
+  eq(ctx.vnHandleDocCmd_({ message: { text: '資料' }, source: { userId: 'Uother' },
+       replyToken: 'r' }), false, '★ほかの人には、返さない');
+  eq(ctx.lastReply, '', '  何も言わない');
+  for (const k in props) if (k.indexOf('VNDOC') === 0) delete props[k];
+}
+
+console.log('\n■ 終わりが確かでない催しには、動く予想も付けない');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  // ① 1件ぶんに 実績・推定・助言を足すところ
+  const d1 = ctx.vnDecorate_({ venue: '京セラドーム', kind: 'event', title: 'x',
+                               start: '18:00', end: '21:00' });
+  eq(String(d1.advice || '').indexOf('動く予想'), -1,
+     '★終わりが確かでなければ、動く予想は付けない（ご指示）');
+  const d2 = ctx.vnDecorate_({ venue: '京セラドーム', kind: 'event', title: 'x',
+                               start: '18:00', end: '21:00', endSure: true });
+  has(String(d2.advice || ''), '動く予想', '  確かなときは、これまでどおり付ける');
+
+  // ② ホームページを読むところでも、開場を開演と呼ばない
+  eq(/\(開演\|開場\|スタート\|開始\)/.test(src), false,
+     '★「開場」を開演と同じあつかいにしない（1時間近くずれる）');
+  ok2(src.indexOf('const startKind = kai ? "開演" : (ba ? "開場" : "");') !== -1,
+      '  開場しか読めないときは「開場」と覚えておく');
+  ok2(src.indexOf('endSure: !!fin') !== -1,
+      '★終わりは「終演／終了と書いてあった」ときだけ、確かなものにする');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

@@ -2,11 +2,26 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V043ver  （2026/09/21）  ★★★
+ *  ★★★  V044ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V044ver]
+ *   ・⏱ 終わりの時刻は「はっきり決まっているもの」しか書かないようにした（ご指示）
+ *     ★コンサートはアンコールで延びます。決まっていない時刻を
+ *       「終了予定」と書けば、それを信じて動いた人が空振りします
+ *     ★ページに「終演」「終了」と書いてあるときだけ出します（endSure）
+ *     ★終わりが確かでない催しには、動く予想も付けません
+ *     ★お知らせ（通知）の時刻は、ほかに手がかりが無いので
+ *       見込みの時刻から数えますが、文には
+ *       「終わりの時刻は決まっていません（見込みで鳴らします）」と書きます
+ *   ・🎫 「開場」と「開演」を分けた（ご指示）
+ *     ★大事なのは開演です。開場しか読めないときは「開場」と正直に書きます
+ *   ・📄 「資料」と送れば、紙（写真）の置き場を一覧で返すようにした（ご指示）
+ *     ★案内の中のリンクが開けるかどうかに頼らず、ありかそのものを出します
+ *   ・📏 案内の見出しを4文字でそろえ、「：」の位置を合わせた
  *
  *  [V043ver]
  *   ・📏 案内の見出しを4文字でそろえ、「：」の位置を合わせた（ご指示）
@@ -1154,9 +1169,23 @@ function vnCard_(ev, idx, day, noBells) {
   //   もし万が一きても、時刻のところは空にして、うその時間を見せない
   // ★「終了」とは書かない。催しの終わりは ほぼ必ず前後するので、
   //   言い切ると、それを信じて動いた人が損をする。必ず「終了予定」と書く
-  const when = ev.start && ev.end ? `${ev.start}〜${ev.end}予定`
-             : ev.end   ? `${ev.end} 終了予定`
-             : ev.start ? `${ev.start} 開始`
+  /*
+   * ★終わりの時刻は「はっきり決まっているもの」しか書きません（ご指示）。
+   *
+   *   前は、2つめの時刻を終わりだと決めつけたり、
+   *   こちらで見積もったりしたものまで「終了予定」と書いていました。
+   *   コンサートはアンコールで延びます。決まっていない時刻を書けば、
+   *   それを信じて動いた人が空振りします。
+   *   ですので、ページに「終演」「終了」と書いてあるときだけ出します。
+   *
+   * ★始まりも「開演」と「開場」を分けます。
+   *   大事なのは開演です。開場しか分からないときは「開場」と書きます。
+   */
+  const endShow = (ev.end && ev.endSure) ? ev.end : "";
+  const startLabel = ev.startKind === "開場" ? " 開場" : (ev.start ? " 開演" : "");
+  const when = ev.start && endShow ? `${ev.start}${startLabel}〜${endShow} 終演`
+             : ev.start ? `${ev.start}${startLabel}`
+             : endShow  ? `${endShow} 終演`
              : "";
   const head1 = [];
   // 確認用のときだけ、頭に ❶❷… の番号を付ける。
@@ -1496,7 +1525,7 @@ function vnSampleEvents_() {
              people: people, url: url,
              stats: line || "📒自社記録：この乗り場の記録はまだありません",
              guess: guess || "", know: know || "", avoid: avoid || "",
-             advice: vnAdvice_(venue, end, st) };
+             advice: vnAdvice_(venue, end, st), endSure: true };
   };
   return [
     mk("京セラドーム", "event", "🏟", "コンサート", "18:00", "21:00", 0,
@@ -2118,6 +2147,8 @@ function vnHotelForDay_(d) {
     const title = [x.name, x.room].filter(String).join("／") + vnDayNo_("VNH", hotel, x.name, d);
     return { venue: hotel, kind: "hotel", icon: "🍽", title: title,
              start: String(x.start || ""), end: String(x.end || ""),
+             // ★紙（写真）に書いてある時刻なので、終わりもはっきりしています
+             endSure: !!String(x.end || "").trim(), fromPhoto: true,
              people: Number(x.people) > 0 ? Number(x.people) : 0,
              // 送ってもらった紙そのもの。名前を押すと開く（AIの読み違いを、目で確かめられるように）
              url: vnDocFind_(x.doc, d, hotel) };
@@ -2292,7 +2323,9 @@ function vnHallForDay_(d) {
     const no = vnDayNo_("VNV", x.hall, x.name, d);
     return { venue: x.hall, kind: "event", icon: "🎤", fromPhoto: true,
              title: String(x.name || "") + no,
-             start: String(x.start || ""), end: String(x.end || ""), people: 0,
+             start: String(x.start || ""), end: String(x.end || ""),
+             // ★紙（写真）に書いてある時刻なので、終わりもはっきりしています
+             endSure: !!String(x.end || "").trim(), people: 0,
              url: vnDocFind_(x.doc, d, x.hall) };
   });
 }
@@ -2383,6 +2416,9 @@ function vnHandleNote_(ev, sentAt) {
 
   // ⓪-5「ショートカット 〇〇」… iPhoneのリマインダーへ入れる用意（まーくさんだけ）
   if (vnHandleShortcutCmd_(ev)) return true;
+
+  // ⓪-6「資料」… 紙（写真）から読んだ資料の置き場を、そのまま出す（まーくさんだけ）
+  if (vnHandleDocCmd_(ev)) return true;
 
   // ① 確認用の手直し（「❶削除」「❶❸削除」「❶修正：〜」など）
   if (vnHandleEditCmd_(ev, sentAt)) return true;
@@ -3046,10 +3082,25 @@ function vnScrapeDeep_(src, day, html) {
     const hasDay = lines.some(function (x) { return dre.test(x); });
     if (!hasDay) continue;
     const text = lines.join("　");
-    const kick = text.match(/(開演|開場|スタート|開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    /*
+     * ★「開場」と「開演」は、別のものです（まーくさんのご指示）。
+     *   大事なのは開演です。開場の時刻を開演として書くと、
+     *   1時間近くずれた案内になります。
+     *   開演が読めたときだけ「開演」と言い、
+     *   開場しか読めないときは「開場」と正直に書きます。
+     */
+    const kai = text.match(/(開演|スタート|開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    const ba  = text.match(/(開場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
-    const start = kick ? kick[2] : (times.length ? times[0] : "");
+    const start = kai ? kai[2] : (ba ? ba[2] : (times.length ? times[0] : ""));
     if (!start) continue;                       // 時刻が無いなら出さない
+    const startKind = kai ? "開演" : (ba ? "開場" : "");
+    /*
+     * ★終わりの時刻は「ページにそう書いてあるとき」だけ 確かなものにします。
+     *   2つめの時刻を終わりだと決めつけたり、こちらで見積もったりしたものは
+     *   確かではありません（endSure: false）。
+     *   確かでない終わりは、案内には出しません（ご指示）。
+     */
     const fin = text.match(/(終了|終演|閉場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
     let end = fin ? fin[2] : (times.length >= 2 && times[1] !== start ? times[1] : "");
     let guessed = false;
@@ -3057,7 +3108,8 @@ function vnScrapeDeep_(src, day, html) {
     out.push({
       venue: src.name, kind: src.kind || "event", icon: "🎤",
       title: links[i].text.slice(0, 60) || "（名前を読み取れませんでした）",
-      start: start, end: end, endGuess: guessed, people: 0, url: links[i].url,
+      start: start, startKind: startKind,
+      end: end, endGuess: guessed, endSure: !!fin, people: 0, url: links[i].url,
       raw: text.slice(0, 120)
     });
   }
@@ -3223,8 +3275,11 @@ function vnScrapeOne_(src, day, htmlIn) {
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
     let start = "", end = "";
     const kick = text.match(/(キックオフ|開演|試合開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    const ba2  = text.match(/(開場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
     const fin  = text.match(/(終了|終演)[^0-9]{0,6}(\d{1,2}:\d{2})/);
-    if (kick) start = kick[2];
+    let startKind = "";
+    if (kick) { start = kick[2]; startKind = "開演"; }
+    else if (ba2) { start = ba2[2]; startKind = "開場"; }   // ★開場を開演と呼ばない
     else if (times.length) start = times[0];
     if (fin) end = fin[2];
     else if (times.length >= 2 && times[1] !== start) end = times[1];
@@ -3243,7 +3298,8 @@ function vnScrapeOne_(src, day, htmlIn) {
       venue: src.name, kind: src.kind || "event",
       icon: src.kind === "barasi" ? "🔧" : "🎤",
       title: vnTitleOf_(block) || "（名前を読み取れませんでした）",
-      start: start, end: end, endGuess: guessed, people: 0, url: src.url,
+      start: start, startKind: startKind,
+      end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
       raw: text.slice(0, 120)
     });
   });
@@ -3424,6 +3480,17 @@ function vnDayLoad_(d) {
 
 /** その催しで「知らせるべき時刻」（終わりの◯分前。分からなければ始まりの◯分前） */
 function vnRemindAt_(ev, day, lead) {
+  /*
+   * ★鳴らす時刻は、これまでどおり「終わりの◯分前」から数えます。
+   *
+   *   ただし、終わりの時刻がはっきりしていない催しでは、
+   *   それは "見込み" でしかありません。
+   *   案内の文には出しませんが（ご指示）、
+   *   鳴らす時刻の目安としては、これ以外に手がかりがありません。
+   *   ですので、時刻は使い、返事のほうで
+   *   「終わりは分かっていません（見込みで鳴らします）」と
+   *   はっきりお伝えします。数字を黙って使うことはしません。
+   */
   const base = ev.end || ev.start;
   const h = vnHourOf_(base);
   if (h === null) return 0;
@@ -3532,6 +3599,72 @@ function vnShortcutUrl_(ev, day, at) {
   const input = title + "｜" + when;
   return "shortcuts://x-callback-url/run-shortcut?name=" + encodeURIComponent(name) +
          "&input=text&text=" + encodeURIComponent(input);
+}
+
+/**
+ * 「資料」… いま覚えている「紙（写真）の置き場」を、そのまま出す。
+ *
+ * ★まーくさんのご指示「紙媒体（写真）で読み取ったやつを見返せるように」。
+ *   案内の中のリンクが開けるかどうかに頼らず、
+ *   ここで ありか そのものを一覧にします。
+ *   開けないものがあれば、その場で分かります。
+ */
+function vnHandleDocCmd_(ev) {
+  const t = String((ev && ev.message && ev.message.text) || "").trim()
+    .replace(/[\s\u3000]/g, "");
+  if (!/^(資料|しりょう|紙|写真|資料一覧)$/.test(t)) return false;
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const reply = (ev && ev.replyToken) || "";
+  const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
+  let me = "";
+  try { me = vnTestTarget_(); } catch (e) {}
+  if (!me || uid !== me) return false;          // ほかの人には、何も返さない
+
+  const L = ["📄 紙（写真）から読んだ資料の置き場", ""];
+  let n = 0;
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    const props = pr.getProperties() || {};
+
+    // ① 場所ごとの「最後に受け取った1枚」
+    let last = {};
+    try { last = JSON.parse(props[VN_DOC_LAST] || "{}"); } catch (e) { last = {}; }
+    const names = Object.keys(last);
+    if (names.length) {
+      L.push("▼ 最後に受け取ったぶん");
+      names.forEach(function (k) { n++; L.push("　" + k, "　" + last[k]); });
+      L.push("");
+    }
+
+    // ② 日づけごとに、しまってあるぶん
+    const days = Object.keys(props).filter(function (k) { return /^VNDOC_\d{8}$/.test(k); }).sort();
+    days.slice(-10).forEach(function (k) {
+      let map = {};
+      try { map = JSON.parse(props[k] || "{}"); } catch (e) { map = {}; }
+      const ks = Object.keys(map);
+      if (!ks.length) return;
+      const ymd = k.slice("VNDOC_".length);   // 「VNDOC_」のうしろが、日づけ
+      L.push("▼ " + ymd.slice(0, 4) + "/" + ymd.slice(4, 6) + "/" + ymd.slice(6, 8));
+      ks.forEach(function (x) { n++; L.push("　" + x, "　" + map[x]); });
+    });
+  } catch (e) {
+    L.push("⚠️ 取り出せませんでした：" + ((e && e.message) || e));
+  }
+
+  if (!n) {
+    L.push("まだ1枚もありません。");
+    L.push("");
+    L.push("写真を送るときは、先に合図をひとこと送ってください。");
+    L.push("　「↓帝国」「↓リーガ」「↓フェス」など。");
+    const why = vnDocErrGet_();
+    if (why) L.push("", "前に しまえなかった理由：" + why);
+  } else {
+    L.push("");
+    L.push("押すと、送ってもらった写真がそのまま開きます。");
+    L.push("開けないものがあれば、その名前を教えてください。");
+  }
+  say(L.join("\n"));
+  return true;
 }
 
 /**
@@ -3825,7 +3958,8 @@ function vnRemAdd_(at, how, to, ev) {
   const k = vnRemKey_();
   list.push({ id: id, k: k, at: at, how: how, to: to,
               venue: ev.venue, title: ev.title || "", start: ev.start || "", end: ev.end || "",
-              url: ev.url || "" });
+              // ★終わりの時刻が、はっきりしたものかどうかも覚えておく
+              endSure: !!ev.endSure, url: ev.url || "" });
   vnRemSave_(list);
   return { added: true, key: k };
 }
@@ -4324,7 +4458,14 @@ function vnRemCancelMsg_(text, key, opt) {
 /** 知らせる文 */
 function vnRemText_(r) {
   const v = VN_VENUES[r.venue] || {};
-  const when = r.end ? r.end + " 終了予定" : (r.start ? r.start + " 開始" : "時間不明");
+  /*
+   * ★終わりの時刻が はっきりしていないときは、そう書きます（ご指示）。
+   *   鳴らす時刻の手がかりが ほかに無いので 時刻そのものは使いますが、
+   *   決まっていないものを「終了予定」と言い切ることはしません。
+   */
+  const when = (r.end && r.endSure) ? (r.end + " 終演")
+             : r.end ? ("終わりの時刻は決まっていません（" + r.end + " ごろの見込みで鳴らしています）")
+             : (r.start ? r.start + " 開演" : "時間不明");
   return "⏰ 早くなんとかしないと…\n" +
          "🎪 " + r.venue + (r.title ? "　" + r.title : "") + "\n" +
          "🕒 " + when + "\n" +
@@ -4863,7 +5004,12 @@ function vnHandlePostback_(ev) {
   if (!at) { say("⏰ だ…ダメだ…時間が分からない…"); return true; }
 
   const lead = vnLeadFor_(uidNow);
-  const base = item.end ? "終了予定" : "始まり";
+  /*
+   * ★「終了予定」とは言いません（ご指示）。
+   *   終わりが はっきりしているものだけ「終演」と呼び、
+   *   そうでないものは「終わりの見込み」と正直に書きます。
+   */
+  const base = item.end ? (item.endSure ? "終演" : "終わりの見込み") : "開演";
   if (at <= Date.now()) {
     // もう過ぎている。いま1回だけ送る
     const r = { how: q.vn, to: (ev.source && ev.source.userId) || "", venue: item.venue,
@@ -4982,7 +5128,9 @@ function vnDecorate_(e) {
   const c = {};
   for (const k in e) c[k] = e[k];
   c.stats  = vnStatsLine_(st) || "自社の記録：この乗り場の記録はまだありません";
-  c.advice = vnAdvice_(e.venue, e.end, st);
+  // ★終わりの時刻がはっきりしないものには、動く予想も出しません（ご指示）。
+  //   終わりが分からないのに「何時から動く」と言えるはずがありません
+  c.advice = vnAdvice_(e.venue, (e.endSure ? e.end : ""), st);
   try {
     const ti = vnTopicInfo_(e.title, e.venue);
     c.guess = ti.audience; c.know = ti.know; c.avoid = ti.avoid;
@@ -5030,7 +5178,7 @@ function vnDedup_(list) {
   const seen = {};
   const score = function (e) {
     let n = 0;
-    if (e.end && !e.endGuess) n += 100;                       // ① 終わりがはっきり
+    if (e.end && e.endSure) n += 100;                         // ① 終わりがはっきり
     const t = String(e.title || "");
     if (t && t.indexOf("読み取れません") < 0) n += 50;        // ② 名前が読めている
     n += Math.min(40, t.length);                              // ③ 書いてあることが多い
