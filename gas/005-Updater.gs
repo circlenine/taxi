@@ -2,7 +2,12 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U087ver  （2026/09/21）  ★★★
+ *  ★★★  U088ver  （2026/09/21）  ★★★
+ *
+ *  [U088ver]
+ *   ・🔣 LINEからの呼び出しを、絵文字ひとつでもできるようにした（ご指示）
+ *       🚨＝エラー ／ 📮＝通数
+ *     ★走りながら打つので、字を打たせないのが一番です
  *
  *  [U087ver]
  *   ・📮 「通数」で、公式LINEの送信数の残りを見られるようにした
@@ -3204,7 +3209,8 @@ function updPoopTell_(text) {
 function updHandleQuota_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s\u3000]/g, "");
-  if (!/^(通数|つうすう|送信数|のこり|残り|残数)$/.test(t)) return false;
+  // ★絵文字ひとつでも呼べるようにする（ご指示）
+  if (!/^(📮|📪|通数|つうすう|送信数|のこり|残り|残数)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   const me = updMe_();
   if (!me || uid !== me) return false;
@@ -3242,7 +3248,8 @@ function updHandleQuota_(ev) {
 function updHandleErr_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s\u3000]/g, "");
-  if (!/^(エラー|えらー|しくじり|不具合|ログ)$/.test(t)) return false;
+  // ★絵文字ひとつでも呼べるようにする（ご指示）
+  if (!/^(🚨|⚠|⚠️|エラー|えらー|しくじり|不具合|ログ)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   const me = updMe_();
   if (!me || uid !== me) return false;            // ほかの人には、何も返さない

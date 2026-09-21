@@ -105,23 +105,44 @@ console.log('\n■ 1日1行だけ、ためる');
   ok(rows.length === 1, '  1行だけ入る', rows.length);
   ok(rows[0][2] === '雨' && rows[0][3] === '雨', '  天気と「雨か」が入る', rows[0]);
   ok(rows[0][8] === '気象庁（予報）', '★出所も必ず書く（実測ではないため）');
+  ok(vm.runInContext('TK_TAB', ctx) === '天気',
+     '★タブ名は「天気」だけ（絵文字なし・全角2文字以内）');
   ok(ctx.tkRecordToday() === false, '★同じ日は、二度ためない');
   ok(rows.length === 1, '  行も増えない');
 }
 
-console.log('\n■ 夜になってから、その日のぶんだけ取りにいく');
+console.log('\n■ 18:00〜翌05:00 のあいだに、その日のぶんだけ取りにいく');
 {
-  rows.length = 0; props = {}; cache = {};
   const Real = Date;
-  const mk = h => { const D = function (...a) { return a.length ? new Real(...a) : new Real(2026, 8, 21, h, 0); };
-                    D.prototype = Real.prototype; D.now = () => new Real(2026, 8, 21, h, 0).getTime(); return D; };
-  ctx.Date = mk(12);
-  ok(ctx.tkTick_() === false, '★昼は、取りにいかない（天気がまだ決まっていない）');
-  ok(rows.length === 0, '  何もためない');
-  ctx.Date = mk(21);
-  ok(ctx.tkTick_() === true, '★夜（20時以降）なら、取りにいく');
+  const mk = (day, h) => { const D = function (...a) { return a.length ? new Real(...a) : new Real(2026, 8, day, h, 0); };
+                    D.prototype = Real.prototype; D.now = () => new Real(2026, 8, day, h, 0).getTime(); return D; };
+
+  rows.length = 0; props = {}; cache = {};
+  ctx.Date = mk(21, 12);
+  ok(ctx.tkInWindow_() === false, '★昼（12時）は、取りにいかない');
+  ok(ctx.tkTick_() === false, '  何もしない');
+  ok(rows.length === 0, '  1行もためない');
+
+  ctx.Date = mk(21, 18);
+  ok(ctx.tkInWindow_() === true, '★18:00 から、取りにいく（ご指示）');
+  ok(ctx.tkTick_() === true, '  取りにいく');
   ok(rows.length === 1, '  1行ためる');
+  ok(rows[0][0] === '2026-09-21', '  その日（9/21）のぶんとして入る', rows[0][0]);
   ok(ctx.tkTick_() === false, '★取れた日は、もう取りにいかない');
+
+  /*
+   * ★深夜2時に取ったぶんは、前の日（営業日）のものです。
+   *   営業日は 17:00〜翌16:59。ここを取りちがえると、
+   *   レポートで雨の日と晴れの日が入れかわります
+   */
+  rows.length = 0; props = {}; cache = {};
+  ctx.Date = mk(22, 2);
+  ok(ctx.tkInWindow_() === true, '★深夜2時も、まだ取りにいく（翌05:00まで）');
+  ok(ctx.tkTick_() === true, '  取りにいく');
+  ok(rows[0][0] === '2026-09-21', '★深夜のぶんは、前の日（9/21）としてためる', rows[0][0]);
+
+  ctx.Date = mk(22, 5);
+  ok(ctx.tkInWindow_() === false, '★朝5時をすぎたら、もう取らない');
   ctx.Date = Real;
 }
 

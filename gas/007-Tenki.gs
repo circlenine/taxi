@@ -2,14 +2,24 @@
  * ================================================================
  *  天気の記録（007-Tenki.gs）
  *
- *  ★★★  T001ver  （2026/09/21）  ★★★
+ *  ★★★  T002ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue / T=007-Tenki
  *  ※記号は、ファイル名の頭文字にそろえています（T=Tenki）。
  *
+ *  [T002ver]
+ *   ・🕕 取りにいく時間帯を 18:00〜翌05:00 にした（ご指示）
+ *     ★夜のあいだに何度でも試せるようにしました。
+ *       1日でも抜けると、その日の乗車がぜんぶ「天気なし」になります
+ *   ・🗓 深夜に取ったぶんは、前の日（営業日）としてためるようにした
+ *     ★営業日は 17:00〜翌16:59 です。ここを取りちがえると、
+ *       レポートで雨の日と晴れの日が入れかわります
+ *   ・🏷 タブ名を「天気」にした（絵文字をやめた）（ご指示）
+ *     ★記録用スプシのタブ名は、絵文字なし・全角2文字以内にそろえます
+ *
  *  [T001ver]
- *   ・☔ 毎日の天気を、記録用スプシの「☀️天気」タブに自動でためる（まーくさんのご指示）
+ *   ・☔ 毎日の天気を、記録用スプシの「天気」タブに自動でためる（まーくさんのご指示）
  *     ★雨の日に動くのは、みんな体で分かっていることです。
  *       でも、それが数字になっていませんでした。
  *       「雨の金曜23時台は平均いくらか」を言えるようにするには、
@@ -32,8 +42,14 @@
  * ================================================================
  */
 
-/** 天気をためるタブの名前 */
-const TK_TAB = "☀️天気";
+/*
+ * 天気をためるタブの名前。
+ *
+ * ★記録用スプシのタブ名は「絵文字なし・全角2文字以内」にします
+ *   （まーくさんのご指示）。タブが多く、絵文字や長い名前が混ざると
+ *   スマホでは タブの行がすぐ埋まって、目当てのものを探せません。
+ */
+const TK_TAB = "天気";
 
 /** 気象庁の予報データ（大阪府＝270000） */
 const TK_URL = "https://www.jma.go.jp/bosai/forecast/data/forecast/270000.json";
@@ -44,8 +60,39 @@ const TK_AREA = "大阪";
 /** 最後に記録した営業日を覚えておく場所 */
 const TK_LAST_KEY = "TK_LAST_YMD";
 
-/** 何時以降に取りにいくか（その日の天気が ほぼ決まってから） */
-const TK_FROM_HOUR = 20;
+/*
+ * 天気を取りにいく時間帯（まーくさんのご指示）。
+ *   18:00 〜 翌05:00
+ *
+ * ★夜のうちに取ります。昼に取ると、その日の天気がまだ決まっていません。
+ * ★朝5時まで試すのは、1日でも抜けると
+ *   その日の乗車がぜんぶ「天気なし」になるためです。
+ *   夜のあいだに何度でも試せるようにしてあります。
+ */
+const TK_FROM_HOUR = 18;   // この時刻から
+const TK_TO_HOUR   = 5;    // 翌朝この時刻まで
+
+/** いま、取りにいってよい時間帯か */
+function tkInWindow_(d) {
+  const h = (d || new Date()).getHours();
+  return (h >= TK_FROM_HOUR) || (h < TK_TO_HOUR);
+}
+
+/**
+ * その天気が「どの営業日のものか」。
+ *
+ * ★営業日は 17:00〜翌16:59 です。
+ *   深夜2時に取った天気は、前の日（営業日）のものです。
+ *   ここを取りちがえると、レポートで日付が1日ずれて、
+ *   雨の日と晴れの日が入れかわってしまいます。
+ */
+function tkBizDate_(d) {
+  const t = d || new Date();
+  if (t.getHours() < TK_TO_HOUR) {
+    return new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1);
+  }
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+}
 
 /** 日付を「2026-09-21」の形にする（並べ替えと、引き当てに使う） */
 function tkKey_(d) {
@@ -170,7 +217,9 @@ function tkHasDay_(sh, key) {
  */
 function tkRecordToday() {
   const now = new Date();
-  const key = tkKey_(now);
+  // ★深夜に取ったぶんは、前の日（営業日）としてためます
+  const biz = tkBizDate_(now);
+  const key = tkKey_(biz);
   const sh = tkSheet_();
   if (!sh) return false;
   if (tkHasDay_(sh, key)) return false;
@@ -180,7 +229,7 @@ function tkRecordToday() {
 
   const days = ["日", "月", "火", "水", "木", "金", "土"];
   const hhmm = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
-  sh.appendRow([key, days[now.getDay()], w.weather, tkIsRain_(w.weather) ? "雨" : "",
+  sh.appendRow([key, days[biz.getDay()], w.weather, tkIsRain_(w.weather) ? "雨" : "",
                 w.pop, w.tmax, w.tmin, tkKey_(now) + " " + hhmm, "気象庁（予報）"]);
   try {
     PropertiesService.getScriptProperties().setProperty(TK_LAST_KEY, key);
@@ -199,8 +248,8 @@ function tkRecordToday() {
 function tkTick_() {
   try {
     const now = new Date();
-    if (now.getHours() < TK_FROM_HOUR) return false;
-    const key = tkKey_(now);
+    if (!tkInWindow_(now)) return false;          // 18:00〜翌05:00 のあいだだけ
+    const key = tkKey_(tkBizDate_(now));
     let last = "";
     try { last = PropertiesService.getScriptProperties().getProperty(TK_LAST_KEY) || ""; } catch (e) {}
     if (last === key) return false;               // きょうのぶんは、もう取れている
@@ -253,7 +302,11 @@ function tkLoadAll_() {
 function tkHandleCmd_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s　]/g, "");
-  if (!/^(天気|てんき|weather)$/.test(t)) return false;
+  /*
+   * ★LINEからの呼び出しは、絵文字ひとつで済む形にそろえます
+   *   （まーくさんのご指示）。走りながら打つので、字を打たせないのが一番です。
+   */
+  if (!/^(☀|☀️|🌤|🌤️|☔|天気|てんき|weather)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   let me = "";
   try { if (typeof rpTestTarget_ === "function") me = rpTestTarget_(); } catch (e) {}
@@ -263,7 +316,7 @@ function tkHandleCmd_(ev) {
 
   const map = tkLoadAll_();
   const keys = Object.keys(map).sort();
-  const today = tkKey_(new Date());
+  const today = tkKey_(tkBizDate_(new Date()));
   const L = ["☀️ 天気の記録", ""];
   L.push("ためてあるぶん：" + keys.length + "日");
   if (keys.length) {
@@ -279,11 +332,14 @@ function tkHandleCmd_(ev) {
            (map[today].pop ? "／降水" + map[today].pop + "%" : ""));
   } else {
     L.push("きょう（" + today + "）は、まだ取れていません。");
-    L.push("　※ " + TK_FROM_HOUR + "時を過ぎてから、自動で取りにいきます。");
+    L.push("　※ " + TK_FROM_HOUR + ":00〜翌" + ("0" + TK_TO_HOUR).slice(-2) +
+           ":00 のあいだに、自動で取りにいきます。");
   }
   L.push("");
   L.push("※ 気象庁の「予報」です（実測ではありません）。");
-  L.push("※ " + TK_FROM_HOUR + "時以降に取るので、その日の天気としては ほぼ合っています。");
+  L.push("※ " + TK_FROM_HOUR + ":00〜翌" + ("0" + TK_TO_HOUR).slice(-2) +
+         ":00 に取るので、その日の天気としては ほぼ合っています。");
+  L.push("※ 深夜に取ったぶんは、営業日（17:00〜翌16:59）に合わせて、前の日としてためます。");
   say(L.join("\n"));
   return true;
 }

@@ -11,7 +11,7 @@
  *     ★記録用スプシのB列も、金曜と同じ濃い黄土色にしました
  *     ★説明にも「金曜＝金曜と祝前日」と書きました
  *   ・☔ 天気別の実績を足した（ご指示）
- *     ★「☀️天気」タブにためた天気で、雨の日とそうでない日を比べます
+ *     ★「天気」タブにためた天気で、雨の日とそうでない日を比べます
  *     ★どちらかが3件に満たないときは、比べません（数件で語らない）
  *     ★「天気の記録が無い日の〇件は入れていません」と、母数も書きます
  *
@@ -2063,7 +2063,7 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
    * ★天気別の集計（まーくさんのご指示）。
    *   雨の日に動くのは体で分かっていることですが、
    *   数字にしておかないと、人に見せられません。
-   *   ためてある「☀️天気」タブから、日付ごとに引いて数えます。
+   *   ためてある「天気」タブから、日付ごとに引いて数えます。
    *   天気が1日も無いときは、この集計ごと出しません（うそにならないように）。
    */
   let tkMap = {};
@@ -5552,7 +5552,7 @@ function updateDetailedDashboard(mainSS, startD, endD, recordsForGraph, areaStat
     const wxParts = (typeof lrWeatherParts_ === "function") ? lrWeatherParts_(wxStats) : null;
     if (wxParts) {
       curRow = dbTitleNote_(curRow, "☔ 天気別の実績",
-        "「☀️天気」タブにためた天気で、雨の日とそうでない日を比べています。" +
+        "「天気」タブにためた天気で、雨の日とそうでない日を比べています。" +
         "どちらかが" + LR_WX_MIN_N + "件に満たないときは、比べません。",
         "#e8f0fe", 12);
       const wtxt = dbRich_(sheet, curRow, 1, DB_COLS, wxParts, 11, "#f5f9ff");

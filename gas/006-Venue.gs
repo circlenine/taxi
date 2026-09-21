@@ -2,11 +2,16 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V047ver  （2026/09/21）  ★★★
+ *  ★★★  V048ver  （2026/09/21）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  ※記号は、ファイル名の頭文字にそろえています（V=Venue）。
+ *
+ *  [V048ver]
+ *   ・🔣 LINEからの呼び出しを、絵文字ひとつでもできるようにした（ご指示）
+ *       📄＝資料 ／ 🗓＝読み取り確認 ／ 📅＝イベント一覧
+ *       （📈＝まとめスプシ、🎪＝イベント通知は V047ver から）
  *
  *  [V047ver]
  *   ・📈🎪 絵文字ひとつで、確認用を出せるようにした（ご指示）
@@ -2942,7 +2947,8 @@ function vnLedgerBuild_(days, withGuess) {
 function vnHandleListCmd_(ev, sentAt) {
   const t = String((ev.message && ev.message.text) || "").trim().replace(/[\s\u3000]/g, "");
   // 「読み取り確認」…先の日付まで、ちゃんと読めているかを見る（まーくさんだけ）
-  if (/^(読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
+  // ★絵文字ひとつでも呼べるようにする（ご指示）。🗓＝読み取り台帳
+  if (/^(🗓|🗓️|📋|読み取り確認|読取確認|イベント台帳|台帳|読み取り台帳)(\d+日?)?(詳しく|くわしく)?$/.test(t)) {
     let me = "";
     try { me = vnTestTarget_(); } catch (e) {}
     if (!me || ((ev.source && ev.source.userId) || "") !== me) return false;
@@ -2955,7 +2961,8 @@ function vnHandleListCmd_(ev, sentAt) {
     catch (e) { say0("🔍 くそっ!!!!やられた!!!!　台帳を作れませんでした：" + (e && e.message ? e.message : e)); }
     return true;
   }
-  if (!/^(イベント一覧|いべんと一覧|イベント確認|今日のイベント|イベント)$/.test(t)) return false;
+  // ★絵文字ひとつでも呼べるようにする（ご指示）。📅＝今日のイベント一覧
+  if (!/^(📅|📆|イベント一覧|いべんと一覧|イベント確認|今日のイベント|イベント)$/.test(t)) return false;
   const d = sentAt || new Date();
   const reply = ev.replyToken || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
@@ -4036,7 +4043,8 @@ function vnHandleTestCmd_(ev) {
 function vnHandleDocCmd_(ev) {
   const t = String((ev && ev.message && ev.message.text) || "").trim()
     .replace(/[\s\u3000]/g, "");
-  if (!/^(資料|しりょう|紙|写真|資料一覧)$/.test(t)) return false;
+  // ★絵文字ひとつでも呼べるようにする（ご指示）
+  if (!/^(📄|📃|🗂|🗂️|資料|しりょう|紙|写真|資料一覧)$/.test(t)) return false;
   const uid = (ev && ev.source && ev.source.userId) || "";
   const reply = (ev && ev.replyToken) || "";
   const say = function (x) { if (typeof lineReply_ === "function") lineReply_(reply, x); };
