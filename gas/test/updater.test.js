@@ -185,7 +185,7 @@ function mkPanel() {
   }
   let protFails = false;
   const mergedCalls = [];
-  return {
+  const sh0 = {
     _merged: mergedCalls,
     _cells: cells,
     _sizes: sizes,
@@ -268,6 +268,31 @@ function mkPanel() {
     setRowHeightsForced: (r, n, h) => {
       for (let i = 0; i < (n || 1); i++) { heights[r + i] = h; soft[r + i] = false; }
     },
+    /*
+     * ★本物の autoResizeRows は、中身に合わせて高さを測ってくれます。
+     *   こちらの見積もり（1行◯px）は、どこまでいっても当て推量です。
+     *   だから、ふだんはスプシ自身に測らせます。
+     * ★ここでは「1行15px＋上下4px」で測ることにします。
+     *   わざと こちらの見積もり（16／6）とちがう数にしてあります。
+     *   同じ数だと、どちらを使っているのか確かめられません。
+     * ★つないだマスでは効かないことがあります。
+     *   _noAuto を立てると、そのようすを作れます
+     */
+    autoResizeRows: (r, n) => {
+      if (sh0._noAuto) return;
+      for (let i = 0; i < (n || 1); i++) {
+        const row = r + i;
+        let txt = '';
+        for (let c = 1; c <= 9; c++) {
+          const v = cells[row + ',' + c];
+          if (typeof v === 'string' && v.length > txt.length) txt = v;
+        }
+        const ln = txt ? txt.split('\n').length : 1;
+        heights[row] = ln * 15 + 4;
+        soft[row] = true;
+      }
+    },
+    _noAuto: false,
     _soft: soft,
     // ★行の高さを読むのも、本物にはある。無いと
     //   「たてにつないだ行の、下のぶん」を数えられない
@@ -398,6 +423,7 @@ function mkPanel() {
       return px;
     }
   };
+  return sh0;
 }
 
 let ghUrls = [];        // GitHubに投げたURLを、そのまま覚えておく
@@ -2442,8 +2468,14 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
   panel._cells[rr + ',3'] = '長かった結果';
   panel._cells['4,7'] = true;
   F('panelResetIfAsked_')(panel);
-  t(panel._heights[rr] === 21,
-    '★★空にしたら、高さを標準（21）に戻す（' + panel._heights[rr] + '）',
+  /*
+   * ★空にしたあとは、2行ぶん（42px）にします（まーくさんのご指示）。
+   *   1行（21）まで潰すと、枠が線のようになって、
+   *   そこが結果らんだと分からなくなります。
+   *   2行あれば、何も書いていなくても「ここに出る」と分かります。
+   */
+  t(panel._heights[rr] === 42,
+    '★★空にしたら、2行ぶん（42）に戻す（' + panel._heights[rr] + '）',
     String(panel._heights[rr]));
 
   /*
@@ -2463,8 +2495,9 @@ console.log('\n■ 🧹 結果を空にするボタン（リセット）');
   panel._cells[rr + ',3'] = '長かった結果';
   panel._cells['4,7'] = true;
   F('panelResetIfAsked_')(panel);
+  // つないであるときは、下の行のぶん（21）を差し引いて、合計42にする
   t(panel._heights[rr] === 21,
-    '★つないでいても、いちばん上の行は標準に戻す（' + panel._heights[rr] + '）',
+    '★つないでいても、合計で2行ぶんになる（上=' + panel._heights[rr] + '）',
     String(panel._heights[rr]));
   t(panel._heights[rr + 1] === 21,
     '★★下の行も標準（21）まで縮める（' +
@@ -2523,11 +2556,20 @@ console.log('\n■ 結果らんは、高くなりすぎない');
   panel._heights[70] = 0;
   F('panelFitRow_')(panel, 70, 3, new Array(80).join('とても長い結果の行\n'));
   t(panel._heights[70] <= 200, '★どんなに長い結果でも、200より高くしない');
-  t(panel._heights[70] >= 42, '  短くもしすぎない');
+  t(panel._heights[70] >= 21, '  短くもしすぎない');
 
+  /*
+   * ★1行しかないときに42pxを敷くのは、やめました（ご指摘）。
+   *   書き始めの「いまのコードを保存しています…」の1行でも、
+   *   はじめから太って見えていました。
+   *   「読み込み開始時点からふくらむ」は、これが原因です。
+   */
   panel._heights[71] = 0;
   F('panelFitRow_')(panel, 71, 3, 'みじかい');
-  t(panel._heights[71] === 42, '  みじかい結果は、ふだんの高さのまま');
+  t(panel._heights[71] <= 30,
+    '★みじかい結果は、みじかいまま（' + panel._heights[71] + 'px）',
+    String(panel._heights[71]));
+  t(panel._heights[71] >= 21, '  標準（21）より低くはしない');
 }
 
 console.log('\n■ 🔁 新しいコードに、自分で気づいて取り込む');
@@ -4569,7 +4611,7 @@ console.log('\n■ まーくさんが置き直された形（□はH2、結果�
   panel._cells['2,8'] = true;
   t(F('panelResetIfAsked_')(panel) === true, '★H2の□を押すと、効く');
   t(String(panel._cells['3,2'] || '') === '', '　結果が空になる');
-  t(panel._heights[3] === 21, '　3行目は標準（21）に戻る（' + panel._heights[3] + '）');
+  t(panel._heights[3] === 42, '　3行目は2行ぶん（42）に戻る（' + panel._heights[3] + '）');
   t(panel._soft[3] === false, '　そのときも、ふくらまない高さ');
   t(panel._cells['2,8'] === false, '　□は、押していない形に戻る');
 }
@@ -4628,6 +4670,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
                'デプロイと版は、別ものでした\n' +
                'プロジェクトの作り直しになります\n' +
                'クロちゃんに声をかけてください';
+  panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
   F('panelFitRow_')(panel, rr, 2, body);
   const h = panel._heights[rr];
   const n = body.split('\n').length;
@@ -4640,12 +4683,50 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
    */
   t(h <= n * 17 + 10, '★★よけいな空きを残さない（' + n + '行で ' + h + 'px）', String(h));
 
-  // 1行だけのときは、ふだんの高さのまま
+  /*
+   * ★★ここが、この直しのかなめです。
+   *
+   *   こちらの見積もり（1行16px＋余白6px）は、当て推量です。
+   *   字の大きさ・絵文字・折り返しで、実際とずれます。
+   *   5回 直して5回とも外したのは、当てようとしたからです。
+   *
+   *   スプシには「中身に合わせて測る」しくみ（autoResizeRows）が
+   *   あります。まずそれに測らせて、その数をそのまま使います。
+   *   （このテストの偽スプシは、1行15px＋4pxで測ります。
+   *     わざと見積もりとちがう数にしてあります）
+   */
+  {
+    panel._noAuto = false;
+    panel._cells[rr + ',2'] = body;      // 本物は、書いてから高さを直します
+    panel._heights[rr] = 0;
+    panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
+    F('panelFitRow_')(panel, rr, 2, body);
+    const measured = n * 15 + 4;
+    t(panel._heights[rr] === measured,
+      '★★スプシ自身に測らせた数を使う（' + panel._heights[rr] + 'px）',
+      String(panel._heights[rr]));
+    t(panel._heights[rr] !== n * 16 + 6, '　見積もりのほうは使っていない');
+
+    // 測ってもらえないとき（つないだマスでは効かないことがあります）
+    panel._noAuto = true;
+    panel._cells[rr + ',2'] = body;
+    panel._heights[rr] = 0;
+    panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
+    F('panelFitRow_')(panel, rr, 2, body);
+    t(panel._heights[rr] === n * 16 + 6,
+      '★測ってもらえなければ、見積もりに戻る（' + panel._heights[rr] + 'px）',
+      String(panel._heights[rr]));
+    panel._noAuto = false;
+  }
+
+  // 1行だけのときは、1行ぶんの高さ（42pxを敷くのは やめました）
+  panel._cells[rr + ',2'] = '03:47  おわりました';
   F('panelFitRow_')(panel, rr, 2, '03:47  おわりました');
-  t(panel._heights[rr] === vm.runInContext('PANEL_RESULT_H', ctx),
-    '★短いときは、ふだんの高さ（' + panel._heights[rr] + 'px）');
+  t(panel._heights[rr] <= 30,
+    '★短いときは、短いまま（' + panel._heights[rr] + 'px）', String(panel._heights[rr]));
 
   // うんと長くても、画面を埋めない
+  panel._cells[rr + ',2'] = new Array(80).join('あ\n');
   F('panelFitRow_')(panel, rr, 2, new Array(80).join('あ\n'));
   t(panel._heights[rr] === vm.runInContext('PANEL_RESULT_MAX_H', ctx),
     '★長すぎるときは、上限で止める（' + panel._heights[rr] + 'px）');
@@ -4659,6 +4740,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   panel.getRange(rr, 2, 1, 7).breakApart();
   panel.getRange(rr, 2, 2, 7).merge();            // たてに2行つなぐ
   panel._heights[rr + 1] = 50;                    // 下の行（□のぶん）が太い
+  panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
   F('panelFitRow_')(panel, rr, 2, body);
   const tot = panel._heights[rr] + panel._heights[rr + 1];
   t(tot >= n * 15, '★つないでいても、文が隠れない（合計 ' + tot + 'px）', String(tot));
@@ -4684,6 +4766,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   panel.getRange(rr, 2, 1, 7).merge();            // 横だけつなぐ
   panel._heights[rr + 1] = 57;                    // すぐ下の行が、ひとりで太い
   panel._cells[(rr + 1) + ',8'] = false;          // リセットの□だけ置いてある
+  panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
   F('panelFitRow_')(panel, rr, 2, body);
   t(panel._heights[rr + 1] === 21,
     '★つないでいなくても、すぐ下の空っぽな行は標準に戻す（' +
@@ -4692,6 +4775,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   // 何か書いてある行には、さわらない
   panel._heights[rr + 1] = 57;
   panel._cells[(rr + 1) + ',2'] = 'だいじな見出し';
+  panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
   F('panelFitRow_')(panel, rr, 2, body);
   t(panel._heights[rr + 1] === 57,
     '★何か書いてある行には、さわらない（' + panel._heights[rr + 1] + '）');
@@ -4726,6 +4810,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   panel._heights[rr] = 180;
   panel._heights[rr + 1] = 57;
   panel._cells[(rr + 1) + ',8'] = false;         // H列の□（つないだ外）
+  panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
   F('panelFitRow_')(panel, rr, 2, body);
   const real = panel._heights[rr] + panel._heights[rr + 1];
   t(real >= n * 15, '★★本物の形でも、文が隠れない（合計 ' + real + 'px）', String(real));
@@ -4822,7 +4907,7 @@ console.log('\n■ リセットのチェックは、どこに動かしても効�
   t(F('panelResetIfAsked_')(panel) === true, '★H列4行目でも、押せば効く');
   t(String(panel._cells[rr + ',3'] || '') === '', '　 結果が空になる');
   t(panel._cells['4,8'] === false, '　 チェックも □ に戻る');
-  t(panel._heights[rr] === 21, '　 高さも標準（21）に戻る');
+  t(panel._heights[rr] === 42, '　 高さも2行ぶん（42）に戻る');
 
   /*
    * ★動かしたあと、古いチェックが上に残っていることがあります。
