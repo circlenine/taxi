@@ -4172,8 +4172,8 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   T('スプシ', '入れ替え：001-Code、005-Updater\nバージョン：C064/*U114');
   const z = String(ctx.pu[0].msgs[0].text);
   t(z.indexOf('とりこみ かんりょう') !== -1, '★スプシからでも「とりこみ かんりょう」');
-  t(z.indexOf('064 Code') !== -1 && z.indexOf('114 Updater　←NEW!!') !== -1,
-    '★バージョンは、1行に1つ。変わったものに ←NEW!!', z);
+  t(z.indexOf('064 Code') !== -1 && z.indexOf('114 Updater　←Shooting Star New✨️') !== -1,
+    '★バージョンは、1行に1つ。変わったものに印', z);
   /*
    * ★ここだけは、縦長になってもかまいません（ご指示）。
    *   ほかの知らせは5行までですが、
@@ -4353,8 +4353,8 @@ console.log('\n■ 自動の知らせの2行目に、そのバージョンが出
    *   入れ替わったものだけに付けます。
    */
   t(st[1] === '059 Code', '　変わっていないものには、何も付けない');
-  t(st[2] === '059 LineReport　←NEW!!',
-    '★★変わったものに ←NEW!! を付ける', st.join('／'));
+  t(st[2] === '059 LineReport　←Shooting Star New✨️',
+    '★★変わったものに ←Shooting Star New✨️ を付ける', st.join('／'));
   t(st[3] === '096 Updater', '　残りも、そのまま');
   t(st.join('').indexOf('*') === -1, '★「*」は、もう使わない', st.join('／'));
 
@@ -4466,7 +4466,7 @@ console.log('\n■ 版（バージョン）が200こで満杯になったとき'
   t(m.indexOf('limit of 200 versions') === -1,
     '★長い英語のエラーは、そのまま貼らない', m);
   t(m.split('\n').length <= 5, '★5行まで（' + m.split('\n').length + '行）', m);
-  t(m.indexOf('098 Updater　←NEW!!') !== -1, '  入ったバージョンは、ちゃんと出す', m);
+  t(m.indexOf('098 Updater　←Shooting Star New✨️') !== -1, '  入ったバージョンは、ちゃんと出す', m);
   ctx.pu.length = 0;
 }
 
@@ -4851,12 +4851,27 @@ console.log('\n■ 🔢 バージョンは、1行に1つ並べる（ご指示）
    *   左はしに数字がそろうので、上から目で追いやすくなります。
    */
   t(V('C065/E005/*U121') ===
-    '065 Code\n005 Extras\n121 Updater　←NEW!!',
+    '065 Code\n005 Extras\n121 Updater　←Shooting Star New✨️',
     '★★バージョンが先、スクリプト名があと',
     JSON.stringify(V('C065/E005/*U121')));
-  t(V('*U121') === '121 Updater　←NEW!!', '★変わったものには ←NEW!!');
+  t(V('*U121') === '121 Updater　←Shooting Star New✨️', '★変わったものには ←Shooting Star New✨️');
   t(V('U121') === '121 Updater', '　変わっていないものには、何も付けない');
   t(V('C065/E005').indexOf('*') === -1, '★「*」は、もう出さない');
+
+  /*
+   * ★1行が折り返さないこと（ご指示「改行の恐れあるならもっと短縮」）。
+   *   いちばん長い名前は LineReport です。
+   *   決まりは「1行は全角42文字まで」＝半角84文字ぶんまで。
+   */
+  {
+    const w = t2 => { let n = 0;
+      for (const c of String(t2)) n += /[ -~]/.test(c) ? 1 : 2;
+      return n; };
+    const longest = V('*L062').split('\n')[0];
+    t(w(longest) <= 84,
+      '★★いちばん長い行でも、折り返さない（半角' + w(longest) + '文字ぶん）',
+      longest);
+  }
 
   // ★9つぜんぶ、名前に戻せること（1つでも抜けると、そこだけ記号のまま出る）
   const NAMES = vm.runInContext('UPD_VERS_FILE', ctx);
@@ -4865,7 +4880,7 @@ console.log('\n■ 🔢 バージョンは、1行に1つ並べる（ご指示）
 
   // 知らない記号でも止まらない（ファイルを足したとき、直し忘れても困らない）
   t(V('X999') === 'X999', '★知らない記号でも止まらない（記号のまま出す）');
-  t(V('*X999') === 'X999　←NEW!!', '　そのときも ←NEW!! は付く');
+  t(V('*X999') === 'X999　←Shooting Star New✨️', '　そのときも 印は付く');
 
   t(V('') === '', '空でも落ちない');
   t(V(null) === '', 'null でも落ちない');

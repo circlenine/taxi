@@ -2,7 +2,14 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U128ver  （2026/09/25）  ★★★
+ *  ★★★  U129ver  （2026/09/25）  ★★★
+ *
+ *  [U129ver]
+ *   ・✨ 入れ替わった印を「←Shooting Star New✨️」にした（ご指示）
+ *     ★いちばん長い行でも半角39文字ぶんで、折り返しません。
+ *       決まりは全角42文字（＝半角84文字）までです。
+ *     ★文言は1か所（UPD_VERS_NEW）にまとめてあります。
+ *       もし折り返すようなら、そこだけ短くすれば済みます。
  *
  *  [U128ver]
  *   ・📛 記号（C・E・L…）も外した（ご指示）
@@ -1382,7 +1389,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U128ver";
+const UPD_VERSION = "U129ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3848,6 +3855,17 @@ function updSrcVers_(files, changed) {
  * ★ここに無い記号が来ても、止まりません。記号のまま出します。
  *   ファイルを足したときに、ここを直し忘れても困らないようにです。
  */
+/*
+ * ★入れ替わったものに付ける印（まーくさんのご指示）。
+ *   いちばん長い行で「062 LineReport　←Shooting Star New✨️」、
+ *   半角にして39文字ぶんです（テストで測っています）。
+ *   1行は全角42文字（＝半角84文字）までの決まりなので、
+ *   スマホでも折り返しません。
+ * ★もし折り返すようなら、ここだけ短くします。
+ *   文言を1か所にまとめてあるので、ここを直せば済みます。
+ */
+const UPD_VERS_NEW = "　←Shooting Star New✨️";
+
 const UPD_VERS_FILE = {
   C: "Code",
   E: "Extras",
@@ -3882,7 +3900,7 @@ function updVersLines_(vers) {
      */
     const file = UPD_VERS_FILE[one.charAt(0)] || "";
     const num = file ? one.replace(/^[A-Za-z]+/, "") : one;
-    out.push(num + (file ? " " + file : "") + (isNew ? "　←NEW!!" : ""));
+    out.push(num + (file ? " " + file : "") + (isNew ? UPD_VERS_NEW : ""));
   });
   return out.join("\n");
 }
