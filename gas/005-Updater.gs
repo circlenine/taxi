@@ -2,7 +2,12 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U126ver  （2026/09/25）  ★★★
+ *  ★★★  U127ver  （2026/09/25）  ★★★
+ *
+ *  [U127ver]
+ *   ・📛 並びを「バージョン → 名前」にし、頭の「001-」を外した（ご指示）
+ *     ★「C066 Code」の形です。
+ *       左はしに数字がそろうので、上から目で追いやすくなります。
  *
  *  [U126ver]
  *   ・📛 LINEのバージョンに、スクリプト名を添えた（ご指示）
@@ -1371,7 +1376,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U126ver";
+const UPD_VERSION = "U127ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3833,20 +3838,20 @@ function updSrcVers_(files, changed) {
  * ★記号（C・E・L…）から、スクリプトの名前に戻す表（まーくさんのご指示）。
  *   「ここだけは略称せずに、正確な英語名を入れておいてください」
  *   C066 とだけ出ても、どのファイルのことか思い出せません。
- *   001-Code C066 と書けば、そのまま分かります。
+ *   C066 Updater のように書けば、そのまま分かります。
  * ★ここに無い記号が来ても、止まりません。記号のまま出します。
  *   ファイルを足したときに、ここを直し忘れても困らないようにです。
  */
 const UPD_VERS_FILE = {
-  C: "001-Code",
-  E: "002-Extras",
-  L: "003-LineReport",
-  W: "004-WebApp",
-  U: "005-Updater",
-  V: "006-Venue",
-  T: "007-Tenki",
-  M: "008-Manual",
-  S: "009-Shiryo"
+  C: "Code",
+  E: "Extras",
+  L: "LineReport",
+  W: "WebApp",
+  U: "Updater",
+  V: "Venue",
+  T: "Tenki",
+  M: "Manual",
+  S: "Shiryo"
 };
 
 function updVersLines_(vers) {
@@ -3858,8 +3863,12 @@ function updVersLines_(vers) {
     if (!one) return;
     let isNew = false;
     if (one.charAt(0) === "*") { isNew = true; one = one.slice(1); }
+    /*
+     * ★並びは「バージョン → スクリプト名」です（ご指示で前後させました）。
+     *   左はしに数字がそろうので、上から目で追いやすくなります。
+     */
     const file = UPD_VERS_FILE[one.charAt(0)] || "";
-    out.push((file ? file + " " : "") + one + (isNew ? "　←NEW!!" : ""));
+    out.push(one + (file ? " " + file : "") + (isNew ? "　←NEW!!" : ""));
   });
   return out.join("\n");
 }
