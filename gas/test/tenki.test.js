@@ -31,15 +31,36 @@ ctx.UrlFetchApp = { fetch: (url, opt) => {
 
 // にせのスプシ（天気タブだけ）
 const rows = [];
+/*
+ * ★1行目（見出し）も、ちゃんと持たせます。
+ *   前は見出しを持っていなかったので、
+ *   「見出しが古いまま残る」という不具合を確かめられませんでした。
+ *   実際、まーくさんの天気タブは見出しが9つ・中身が14こでした。
+ */
+let head = [];
+let cols = 14;
 let made = 0;
 const fakeSheet = () => ({
   // 「何行目から・何列ぶん」を、ちゃんと見て返す（本物と同じように）
   getRange: (r0, c0, n, w) => ({
-    setValues: () => ({ setFontWeight: () => ({ setBackground: () => ({ setWrap: () => {} }) }) }),
-    getValues: () => rows.slice((r0 || 2) - 2, (r0 || 2) - 2 + (n || rows.length))
-                         .map(r => r.slice((c0 || 1) - 1, (c0 || 1) - 1 + (w || 1)))
+    setValues: v => {
+      if ((r0 || 2) === 1) head = (v && v[0] ? v[0].slice() : []);
+      return { setFontWeight: () => ({ setBackground: () => ({ setWrap: () => {} }) }) };
+    },
+    getValues: () => {
+      if ((r0 || 2) === 1) {
+        const out = [];
+        for (let i = 0; i < (w || 1); i++) out.push(head[(c0 || 1) - 1 + i]);
+        return [out];
+      }
+      return rows.slice((r0 || 2) - 2, (r0 || 2) - 2 + (n || rows.length))
+                 .map(r => r.slice((c0 || 1) - 1, (c0 || 1) - 1 + (w || 1)));
+    }
   }),
   setFrozenRows: () => {}, setColumnWidth: () => {},
+  // ★本物にある。らんが足りるかを見るのに要る
+  getMaxColumns: () => cols,
+  insertColumnsAfter: (at, n) => { cols += n; },
   getLastRow: () => rows.length + 1,
   appendRow: r => { rows.push(r); }
 });
@@ -124,8 +145,55 @@ console.log('\n■ 1日1行だけ、ためる');
      '★らんの数が、見出しとそろっている', rows[0].length);
   ok(vm.runInContext('TK_TAB', ctx) === '天気',
      '★タブ名は「天気」だけ（絵文字なし・全角2文字以内）');
+  ok(head.length === vm.runInContext('TK_COLS', ctx),
+     '★見出しも、らんの数とそろっている', head.length);
   ok(ctx.tkRecordToday() === false, '★同じ日は、二度ためない');
   ok(rows.length === 1, '  行も増えない');
+}
+
+console.log('\n■ 見出しが古いままなら、書き直す（ご指摘）');
+/*
+ * ★まーくさんの天気タブが、こうなっていました。
+ *     見出し … 9つ（古い形）
+ *     中身　 … 14こ（いまの形）
+ *   見出しだけ古いので、気温のらんに別のものが入っているように見えます。
+ *
+ * ★なぜ こうなったか
+ *   見出しは「タブを作るとき」にしか書いていませんでした。
+ *   らんを9つから14こに増やしたとき、
+ *   すでにタブがある人の見出しは、そのまま残りました。
+ *   作り直しのときだけ直る、というのは直っていないのと同じです。
+ */
+{
+  const TK_HEAD = vm.runInContext('TK_HEAD', ctx);
+
+  /*
+   * ★もう在るタブを開いただけで、直っていること。
+   *   tkSheet_ を呼ぶだけ、というのが大事です。
+   *   前は「タブを作るとき」にしか見出しを書いていませんでした。
+   */
+  head = ['日付', '曜日', '天気', '雨か', '降水確率(%)', '最高気温', '最低気温', '取った時刻', '出所'];
+  made = 1;                                   // タブは、もう在る
+  ctx.tkSheet_();                             // 開くだけ
+  ok(head.length === TK_HEAD.length,
+     '★★開いただけで、古い見出しが いまの形に直る（' + head.length + '）', head.length);
+  ok(head[0] === '日付' && head[TK_HEAD.length - 1] === '出所',
+     '　 中身も、決めたとおりに並ぶ');
+
+  // すでに正しければ、何もしない
+  ok(ctx.tkFixHead_(ctx.tkSheet_()) === false, '★合っていれば、書き直さない');
+
+  /*
+   * ★らんが足りないときは、先に増やすこと。
+   *   増やさずに書こうとすると、そこで落ちて、
+   *   見出しが古いまま残ります。
+   */
+  head = ['日付'];
+  cols = 5;
+  ctx.tkSheet_();
+  ok(cols >= TK_HEAD.length, '★★らんが足りなければ、先に増やす（' + cols + '）', cols);
+  ok(head.length === TK_HEAD.length, '　 そのうえで、見出しも書ける（' + head.length + '）');
+  cols = 14;
 }
 
 console.log('\n■ 18:00〜翌05:00 のあいだに、その日のぶんだけ取りにいく');

@@ -483,7 +483,14 @@ console.log('\n■ 乗り場マップを移しても、レポートが困らな�
     });
     return lr.slice(i, j);
   };
-  vm.runInContext('var MAP_TAB = "🗺️乗り場マップ";', ctx);
+  /*
+   * ★タブの名前は「絵文字なし・全角2文字以内」です（まーくさんの決まり）。
+   *   まーくさんは手で「地図」に変えてくださっていたのに、
+   *   こちらは「🗺️乗り場マップ」のままでした。
+   *   決まりを作っていただいたのに、追いかけていませんでした。
+   */
+  vm.runInContext('var MAP_TAB = "地図";', ctx);
+  vm.runInContext('var MAP_TAB_OLD = ["🗺️乗り場マップ", "乗り場マップ", "マップ", "map"];', ctx);
   vm.runInContext('var MAP_HEAD = ["乗り場名", "リンク", "状態", "候補"];', ctx);
   vm.runInContext('function mapKey_(n){ return String(n).trim(); }', ctx);
   vm.runInContext('function dbHasPlace_(n){ return true; }', ctx);
@@ -493,7 +500,7 @@ console.log('\n■ 乗り場マップを移しても、レポートが困らな�
 
   props = {}; Object.keys(books).forEach(k => delete books[k]);
   active = mkBook('REC5', '記録用スプシ');
-  const src = mkSheet('🗺️乗り場マップ');
+  const src = mkSheet('地図');
   src._vals = [['乗り場名', 'リンク', '状態', '候補'],
                ['梅田', 'https://maps.example/umeda', '登録ずみ', '']];
   active._add(src);
@@ -504,9 +511,9 @@ console.log('\n■ 乗り場マップを移しても、レポートが困らな�
   // 移す
   F('panelMoveTabs')(); F('panelMoveTabs')();
   const book = books[props['MN_MANUAL_SS']];
-  const moved = book.getSheetByName('🗺️乗り場マップ');
+  const moved = book.getSheetByName('地図');
   t(!!moved, '★マニュアル側に移っている');
-  t(!active.getSheetByName('🗺️乗り場マップ'), '　 記録用スプシからは消えている');
+  t(!active.getSheetByName('地図'), '　 記録用スプシからは消えている');
 
   // 移したあと：レポートは、ちゃんと向こうを読む
   t(F('mapFindSheet_')(active) === moved,
@@ -523,9 +530,25 @@ console.log('\n■ 乗り場マップを移しても、レポートが困らな�
   F('mapEnsureSheet_')(active, ['なんば', '天満']);
   t(active.getSheets().length === before,
     '★★記録用スプシに、同じタブをもう1枚 作らない');
-  t(!active.getSheetByName('🗺️乗り場マップ'),
+  t(!active.getSheetByName('地図'),
     '　 記録用スプシには、やはり無いまま');
   t(moved._vals.length > 2, '★新しい乗り場は、移したほうの表に書き足される');
+
+  /*
+   * ★まだ前の名前（🗺️乗り場マップ）のままのスプシもあります。
+   *   名前を変えていないだけで、中身は同じものです。
+   *   そこも、ちゃんと見つけて移せること。
+   */
+  props = {}; Object.keys(books).forEach(k => delete books[k]);
+  active = mkBook('REC6', '記録用スプシ');
+  const oldName = mkSheet('🗺️乗り場マップ');
+  oldName._vals = [['乗り場名', 'リンク', '状態', '候補']];
+  active._add(oldName);
+  t(F('mapFindSheet_')(active) === oldName, '★★前の名前のままでも、見つける');
+  F('panelMoveTabs')(); F('panelMoveTabs')();
+  const book2 = books[props['MN_MANUAL_SS']];
+  t(!!book2.getSheetByName('🗺️乗り場マップ'),
+    '★★前の名前のままでも、ちゃんと移せる');
 }
 
 console.log('\n■ バージョン');

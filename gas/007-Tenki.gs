@@ -2,7 +2,19 @@
  * ================================================================
  *  天気の記録（007-Tenki.gs）
  *
- *  ★★★  T004ver  （2026/09/21）  ★★★
+ *  ★★★  T005ver  （2026/09/25）  ★★★
+ *
+ *  [T005ver]
+ *   ・📋 見出しが古いまま残るのを直した（ご指摘で気づきました）
+ *     ★まーくさんの天気タブは、見出しが9つ・中身が14こでした。
+ *       気温のらんに別のものが入っているように見えていました。
+ *     ★見出しは「タブを作るとき」にしか書いていませんでした。
+ *       らんを9つから14こに増やしたとき、
+ *       すでにタブがある人の見出しは、そのまま残りました。
+ *     ★開くたびに見て、ちがえば書き直します。
+ *       らんが足りなければ、先に増やします。
+ *     ★中身のほうは触りません。古い形の行を並べ替えると、
+ *       かえって取り違えるためです。
  *
  *  [T004ver]
  *   ・☀️ 天気タブに絵文字のらんを足した（ご指示）
@@ -77,7 +89,7 @@
  *   スマホでは タブの行がすぐ埋まって、目当てのものを探せません。
  */
 /** このファイルのバージョン（先頭の ★★★ と必ずそろえる） */
-const TK_VERSION = "T004ver";
+const TK_VERSION = "T005ver";
 
 const TK_TAB = "天気";
 
@@ -432,26 +444,72 @@ function tkHoursLine_(hours) {
 }
 
 /** 天気タブを用意する（無ければ作る） */
+/*
+ * ★らんの並びは TK_C_* と、かならずそろえます。
+ *   ずれると、気温のらんに降水量が入るような事故になります。
+ */
+const TK_HEAD = ["日付", "曜日", "絵", "天気（予報）", "雨か",
+                 "夜の雨%", "実測mm", "夜の内訳",
+                 "最高気温", "最低気温", "夜の気温",
+                 "警報・注意報", "取った時刻", "出所"];
+const TK_WIDTH = [96, 44, 44, 180, 52, 70, 68, 150, 70, 70, 70, 220, 120, 150];
+
+/**
+ * 見出しが、いまの らんの数と合っているか見て、ちがえば書き直す。
+ *
+ * ★まーくさんの天気タブが、こうなっていました。
+ *     見出し … 9つ（古い形）
+ *     中身　 … 14こ（いまの形）
+ *   見出しだけ古いので、気温のらんに別のものが入っているように見えます。
+ *
+ * ★なぜ こうなったか
+ *   見出しは「タブを作るとき」にしか書いていませんでした。
+ *   らんを9つから14こに増やしたとき、
+ *   すでにタブがある人の見出しは、そのまま残りました。
+ *   作り直しのときだけ直る、というのは直っていないのと同じです。
+ *
+ * ★中身のほうは触りません。
+ *   古い形で入っている行を、こちらで並べ替えると、
+ *   かえって取り違えます。見出しだけ、正しくします。
+ */
+function tkFixHead_(sh) {
+  if (!sh) return false;
+  try {
+    // らんが足りなければ、先に増やす
+    const need = TK_HEAD.length;
+    const have = sh.getMaxColumns();
+    if (have < need) sh.insertColumnsAfter(have, need - have);
+
+    const now = sh.getRange(1, 1, 1, need).getValues()[0];
+    let same = true;
+    for (let i = 0; i < need; i++) {
+      if (String(now[i] == null ? "" : now[i]).trim() !== TK_HEAD[i]) { same = false; break; }
+    }
+    if (same) return false;
+
+    sh.getRange(1, 1, 1, need).setValues([TK_HEAD])
+      .setFontWeight("bold").setBackground("#dbe5f1").setWrap(true);
+    try { sh.setFrozenRows(1); } catch (e) {}
+    TK_WIDTH.forEach(function (w, i) {
+      try { sh.setColumnWidth(i + 1, w); } catch (e) {}
+    });
+    return true;
+  } catch (e) { return false; }
+}
+
 function tkSheet_() {
   let ss;
   try { ss = mainSS_(); } catch (e) { return null; }
   if (!ss) return null;
   let sh = ss.getSheetByName(TK_TAB);
-  if (sh) return sh;
-  sh = ss.insertSheet(TK_TAB);
   /*
-   * ★らんの並びは TK_COL_* と、かならずそろえます。
-   *   ずれると、気温のらんに降水量が入るような事故になります。
+   * ★もう在るときも、見出しを見ます（ご指摘で気づきました）。
+   *   作るときにしか書いていなかったので、
+   *   らんを増やしたあとも、古い見出しのままでした。
    */
-  const head = ["日付", "曜日", "絵", "天気（予報）", "雨か",
-                "夜の雨%", "実測mm", "夜の内訳",
-                "最高気温", "最低気温", "夜の気温",
-                "警報・注意報", "取った時刻", "出所"];
-  sh.getRange(1, 1, 1, head.length).setValues([head])
-    .setFontWeight("bold").setBackground("#dbe5f1").setWrap(true);
-  sh.setFrozenRows(1);
-  [96, 44, 44, 180, 52, 70, 68, 150, 70, 70, 70, 220, 120, 150]
-    .forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  if (sh) { tkFixHead_(sh); return sh; }
+  sh = ss.insertSheet(TK_TAB);
+  tkFixHead_(sh);
   return sh;
 }
 
