@@ -70,6 +70,8 @@ ctx.SpreadsheetApp = {
   },
   getActiveSpreadsheet: () => ({
     toast: (m, t) => toasts.push({ t: t, m: m }),
+    // ★本物にある。無いと「どのスプシを開いたか」を出すところで落ちる
+    getName: () => '🧟‍♂️僕はグールだ【記録用】🧟‍♀️',
     getSheetByName: n => (n === '説明') ? panel : null,
     insertSheet: () => (panel = mkPanel())
   }),
@@ -4707,6 +4709,47 @@ console.log('\n■ 💾 ドライブが一杯でも、空きが戻れば自分�
   delete props['UPD_DISK_SEEN'];
   delete props['UPD_DISK_TODO'];
   drive['taxi-gas'].createFile = keepCreate;
+  ctx.pu.length = 0;
+}
+
+console.log('\n■ 🚑 fixAll ―― どこからも動かせなくなったときの入口');
+/*
+ * ★まーくさんのご指摘です。
+ *   ・ボタンに☑を入れても、何も起きない
+ *   ・LINEに「なおして」と送っても、何も返ってこない
+ *   この2つが同時に起きました。戻り道がありません。
+ *   そのときに残る入口は、スクリプトの画面だけです。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  // 見張りを消して、動きっぱなしの札も残しておく
+  triggers = triggers.filter(x => x.getHandlerFunction() !== 'panelWatch');
+  props['PANEL_RUNNING'] = JSON.stringify({ row: 9, label: '[1]', sec: 180, at: Date.now() });
+  ctx.pu.length = 0;
+
+  const out = String(F('fixAll')());
+  has(out, '記録用スプシ', '★スプシが開けるかを、まず確かめる');
+  has(out, '見張りを入れ直しました', '★★見張りを入れ直す');
+  t(triggers.some(x => x.getHandlerFunction() === 'panelWatch') === true,
+    '★★1分おきの見張りが戻る');
+  t(props['PANEL_RUNNING'] === undefined, '★動きっぱなしの札を、はがす');
+  t(ctx.pu.length === 1, '★LINEにも知らせる（どれか1つでも届けば、直ったと分かる）');
+  has(String(panel._cells[F('panelResultCell_')(panel).row + ',' +
+      F('panelResultCell_')(panel).col] || ''), 'なおしました',
+      '★スプシの結果らんにも出す');
+
+  // スプシが開けないときは、そこで止めて、はっきり言う
+  const keepSS = ctx.SpreadsheetApp.getActiveSpreadsheet;
+  ctx.SpreadsheetApp.getActiveSpreadsheet = () => { throw new Error('権限がありません'); };
+  const keepOpen = ctx.SpreadsheetApp.openById;
+  ctx.SpreadsheetApp.openById = () => { throw new Error('権限がありません'); };
+  const ng = String(F('fixAll')());
+  has(ng, '開けません', '★★開けないときは、はっきり そう言う');
+  has(ng, '許可', '★直し方（許可のボタン）まで書く');
+  ctx.SpreadsheetApp.getActiveSpreadsheet = keepSS;
+  ctx.SpreadsheetApp.openById = keepOpen;
   ctx.pu.length = 0;
 }
 
