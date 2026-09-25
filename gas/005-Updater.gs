@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U121ver  （2026/09/25）  ★★★
+ *  ★★★  U122ver  （2026/09/25）  ★★★
+ *
+ *  [U122ver]
+ *   ・🔢 LINEのバージョンを、1行に1つ並べるようにした（ご指示）
+ *     ★「C065/E005/L062/W011/*U121/…」は、走りながらでは目で追えません。
+ *       ＊がどこに付いているのか、ぱっと見て分かりません。
+ *     ★1行に1つ並べて、変わったものに ←NEW!! を付けます。
+ *       記号だけでは、何のことか分からないためです。
+ *     ★ここだけは、縦長になってもかまいません（ご指示）。
+ *       ほかの知らせは5行までですが、バージョンは
+ *       「どれが入れ替わったか」がすべてなので、そちらを取ります。
+ *     ★LINEの知らせだけです。スプシの結果らんは、これまでどおりです。
  *
  *  [U121ver]
  *   ・🗺 [18] の説明を「設定」「地図」に直した（ご指摘）
@@ -1325,7 +1336,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U121ver";
+const UPD_VERSION = "U122ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -3529,7 +3540,7 @@ function updKataDone_(body, vers) {
   return UPD_BALL + "\n" +
          "とりこみ　かんりょう。\n" +
          (what && what !== "なし" ? "　" + what.slice(0, 60) + "\n" : "") +
-         (vers ? "　" + String(vers) + "\n" : "") +
+         (vers ? updVersLines_(vers) + "\n" : "") +
          "\n" +
          UPD_KATA_END +
          (q ? "\n\n" + q : "");
@@ -3765,6 +3776,37 @@ function updSrcVers_(files, changed) {
   return out.join("/");
 }
 
+/**
+ * バージョンの並びを、LINEで読みやすい形に開く。
+ *
+ * ★まーくさんのご指示です。
+ *   「／で分けるのではなく、改行してください」
+ *   「ここだけは、縦長になってもよい」
+ *   「＊もやめて ←NEW!! みたいに、すぐ分かるように」
+ *
+ * ★なぜ縦にするのか
+ *   「C065/E005/L062/W011/*U121/…」は、目で追えません。
+ *   走りながらでは、＊がどこに付いているのか分かりません。
+ *   1行に1つ並べて、変わったものに ←NEW!! を付ければ、
+ *   ぱっと見て どれが入れ替わったのかが分かります。
+ *
+ * ★入ってくるのは updSrcVers_ が作った1行の形です。
+ *   そちらは機械が読むためのもので、形は変えません。
+ *   ここは、人が読むためだけのものです。
+ */
+function updVersLines_(vers) {
+  const t = String(vers == null ? "" : vers).trim();
+  if (!t) return "";
+  const out = [];
+  t.split("/").forEach(function (x) {
+    const one = String(x).trim();
+    if (!one) return;
+    if (one.charAt(0) === "*") out.push(one.slice(1) + "　←NEW!!");
+    else out.push(one);
+  });
+  return out.join("\n");
+}
+
 /** 取り込みの知らせに書く、バージョンの行の頭 */
 const UPD_VERS_MARK = "バージョン：";
 
@@ -3854,7 +3896,7 @@ function updTellResult_(from, out) {
      *   くわしくは1日に1回だけにして、あとは1行で済ませます。
      */
     text = "《" + String(from || "") + "》 ⚠️ 公開だけ しっぱい" +
-           (vers ? "\n" + vers : "");
+           (vers ? "\n" + updVersLines_(vers) : "");
     if (updWhyDue_(body)) {
       text += "\nコードは入りました。LINEの受け口だけ古いままです。\n" +
               updDeployWhy_(body);
@@ -3896,9 +3938,14 @@ function updTellResult_(from, out) {
       const mn = body.match(/⚠️ 版が (\d+)／(\d+)/);
       if (mn) near = "\n⚠️ 版 " + mn[1] + "/" + mn[2] + "（満杯が近い→スプシ[15]）";
     } catch (e) {}
+    /*
+     * ★バージョンは、1行に1つ並べます（ご指示）。
+     *   ここだけは縦長になってもかまいません。
+     *   どれが入れ替わったのかが、ぱっと分かることのほうが大事です。
+     */
     text = "《" + String(from || "") + "》 とりこみ かんりょう" +
            (n ? "（" + n + "件）" : "") +
-           (vers ? "\n" + vers : "") + near;
+           (vers ? "\n" + updVersLines_(vers) : "") + near;
   }
 
   /*
