@@ -2593,7 +2593,12 @@ console.log('\n■ 結果らんは、高くなりすぎない');
    */
   panel._heights[71] = 0;
   F('panelFitRow_')(panel, 71, 3, 'みじかい');
-  t(panel._heights[71] <= 30,
+  /*
+   * ★いちばん下に、1行ぶんの空きを残します（ご指示）。
+   *   ぴったりに詰めると、字が枠の線にくっついて窮屈に見えます。
+   *   だから「1行ぶんの文＋1行ぶんの空き」で、だいたい2行ぶんです。
+   */
+  t(panel._heights[71] <= 45,
     '★みじかい結果は、みじかいまま（' + panel._heights[71] + 'px）',
     String(panel._heights[71]));
   t(panel._heights[71] >= 21, '  標準（21）より低くはしない');
@@ -4915,11 +4920,15 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
     panel._heights[rr] = 0;
     panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
     F('panelFitRow_')(panel, rr, 2, body);
-    const measured = n * 15 + 4;
+    // 測った数 ＋ いちばん下の1行ぶん（ご指示）
+    const LINE = vm.runInContext('PANEL_LINE_PX', ctx);
+    const measured = n * 15 + 4 + LINE;
     t(panel._heights[rr] === measured,
       '★★スプシ自身に測らせた数を使う（' + panel._heights[rr] + 'px）',
       String(panel._heights[rr]));
-    t(panel._heights[rr] !== n * 16 + 6, '　見積もりのほうは使っていない');
+    t(panel._heights[rr] !== n * 16 + 6 + LINE, '　見積もりのほうは使っていない');
+    t(panel._heights[rr] - (n * 15 + 4) === LINE,
+      '★★いちばん下に、1行ぶんの空きが残る（' + LINE + 'px）');
 
     // 測ってもらえないとき（つないだマスでは効かないことがあります）
     panel._noAuto = true;
@@ -4927,7 +4936,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
     panel._heights[rr] = 0;
     panel._cells[rr + ',2'] = body;   // 本物は、書いてから高さを直します
     F('panelFitRow_')(panel, rr, 2, body);
-    t(panel._heights[rr] === n * 16 + 6,
+    t(panel._heights[rr] === n * 16 + 6 + LINE,
       '★測ってもらえなければ、見積もりに戻る（' + panel._heights[rr] + 'px）',
       String(panel._heights[rr]));
     panel._noAuto = false;
@@ -4936,7 +4945,7 @@ console.log('\n■ 結果らんの下に、よけいな空きを残さない（�
   // 1行だけのときは、1行ぶんの高さ（42pxを敷くのは やめました）
   panel._cells[rr + ',2'] = '03:47  おわりました';
   F('panelFitRow_')(panel, rr, 2, '03:47  おわりました');
-  t(panel._heights[rr] <= 30,
+  t(panel._heights[rr] <= 45,
     '★短いときは、短いまま（' + panel._heights[rr] + 'px）', String(panel._heights[rr]));
 
   // うんと長くても、画面を埋めない
