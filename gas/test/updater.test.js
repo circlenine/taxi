@@ -4688,6 +4688,75 @@ console.log('\n■ まーくさんが置き直された形（□はH2、結果�
   t(panel._cells['2,8'] === false, '　□は、押していない形に戻る');
 }
 
+console.log('\n■ ⏪ 止まっていたあいだのぶんを、復旧したら すぐ追いかける（ご指示）');
+/*
+ * ★まーくさんのご指示です。
+ *   「エラーで止まっていたときも、復旧後は、
+ *     読み取れてなかった分を自動反映させていた」
+ *
+ * ★いまは17:00の1日1回だけでした。
+ *   9/23の夜から9/25の午前まで見張りが止まっていて、
+ *   9/24 のぶんは、まるまる反映されませんでした。
+ *   次の17:00まで待つ、というのは「止まったまま」と同じです。
+ */
+{
+  // 001-Code.gs から、追いつきのところだけを持ってくる
+  const code = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+  const i0 = code.indexOf('/** 毎日17時の反映が、最後にうまくいった時刻 */');
+  const i1 = code.indexOf('\nfunction fmtCatchUp_(');
+  const i2 = code.indexOf('\n}\n', i1);
+  vm.runInContext(code.slice(i0, i2 + 3)
+    .replace(/function autoFormatJob\(\)[\s\S]*?\n}\n/, ''), ctx);
+  vm.runInContext('var fmtRan = 0;', ctx);
+  vm.runInContext('function autoFormatJob(){ fmtRan++; ' +
+    'PropertiesService.getScriptProperties().setProperty("AUTO_FMT_AT", String(Date.now())); }', ctx);
+
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+  const H = 3600000;
+
+  // ① 一度も走っていないときは、いまを起点にするだけ
+  delete props['AUTO_FMT_AT']; delete props['AUTO_FMT_TRY'];
+  vm.runInContext('fmtRan = 0;', ctx);
+  t(F('fmtCatchUp_')() === false, '★一度も走っていなければ、いきなり走らせない');
+  t(vm.runInContext('fmtRan', ctx) === 0, '　入れたばかりで、重い処理を走らせない');
+  t(!!props['AUTO_FMT_AT'], '　そのかわり、起点だけ残す');
+
+  // ② 抜けていなければ、何もしない
+  props['AUTO_FMT_AT'] = String(Date.now() - 3 * H);
+  delete props['AUTO_FMT_TRY'];
+  t(F('fmtCatchUp_')() === false, '★3時間なら、抜けていない');
+  t(vm.runInContext('fmtRan', ctx) === 0, '　走らせない');
+
+  // ③ 25時間あいたら、その場で追いかける
+  props['AUTO_FMT_AT'] = String(Date.now() - 30 * H);
+  delete props['AUTO_FMT_TRY'];
+  ctx.pu.length = 0;
+  t(F('fmtCatchUp_')() === true, '★★30時間あいていたら、その場で追いかける');
+  t(vm.runInContext('fmtRan', ctx) === 1, '★★反映を、ちゃんと走らせた');
+  t(ctx.pu.length === 1, '★追いついたことを、1回だけ知らせる');
+  has(String(ctx.pu[0].msgs[0].text), '止まっていたあいだのぶん', '　そう伝える');
+  has(String(panel._cells[F('panelResultCell_')(panel).row + ',' +
+      F('panelResultCell_')(panel).col] || ''), '止まっていたあいだのぶん',
+      '　スプシの結果らんにも出す');
+
+  // ④ 追いついたら、もう走らせない
+  delete props['AUTO_FMT_TRY'];
+  vm.runInContext('fmtRan = 0;', ctx);
+  t(F('fmtCatchUp_')() === false, '★★一度追いついたら、もう走らせない');
+  t(vm.runInContext('fmtRan', ctx) === 0, '　同じことを繰り返さない');
+
+  // ⑤ 30分に1回までしか試さない（反映は重いため）
+  props['AUTO_FMT_AT'] = String(Date.now() - 30 * H);
+  props['AUTO_FMT_TRY'] = String(Date.now());
+  vm.runInContext('fmtRan = 0;', ctx);
+  t(F('fmtCatchUp_')() === false,
+    '★★30分たっていなければ、見にいかない（反映は重い）');
+  t(vm.runInContext('fmtRan', ctx) === 0, '　走らせない');
+  delete props['AUTO_FMT_AT']; delete props['AUTO_FMT_TRY'];
+  ctx.pu.length = 0;
+}
+
 console.log('\n■ 💾 [17] は1回押すだけ。あとはこちらで続ける（ご指示）');
 /*
  * ★まーくさんのご指示です。

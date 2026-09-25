@@ -1,7 +1,20 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C065ver  （2026/09/25）  ★★★   ← もとは version 232
+ *  ★★★  C066ver  （2026/09/25）  ★★★   ← もとは version 232
+ *
+ *  [C066ver]
+ *   ・⏪ 止まっていたあいだのぶんを、復旧したら すぐ追いかける（ご指示）
+ *     ★「エラーで止まっていたときも、復旧後は、
+ *       読み取れてなかった分を自動反映させていた」
+ *     ★いまは17:00の1日1回だけでした。
+ *       9/23の夜から9/25の午前まで見張りが止まっていて、
+ *       9/24 のぶんは まるまる反映されませんでした。
+ *       次の17:00まで待つのは「止まったまま」と同じです。
+ *     ★25時間あいていたら、その場で走ります（fmtCatchUp_）。
+ *       個人タブから作り直すので、抜けたぶんも まとめて追いつきます。
+ *     ★30分に1回までしか試しません。反映は重い処理です。
+ *     ★追いついたときだけ、1回だけ知らせます。
  *
  *  [C065ver]
  *   ・🔧 LINEに何か届いたら、そうさボタンの見張りが生きているか見る
@@ -626,7 +639,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C065ver";
+const CODE_VERSION = "C066ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -4119,6 +4132,17 @@ function menuInstallTriggers() {
   return made ? "✅ 毎日17時の自動チェックを入れました" : "⚠️ 入れられませんでした";
 }
 
+/** 毎日17時の反映が、最後にうまくいった時刻 */
+const FMT_AT_KEY = "AUTO_FMT_AT";
+/*
+ * ★何時間あいたら「止まっていた」と見なすか。
+ *   17:00の1日1回なので、25時間あけば1回ぶん抜けたということです。
+ */
+const FMT_GAP_H = 25;
+/** 追いつきを試すのは、何分に1回までか */
+const FMT_TRY_MIN = 30;
+const FMT_TRY_KEY = "AUTO_FMT_TRY";
+
 function autoFormatJob() {
   try {
     const props = PropertiesService.getScriptProperties();
@@ -4129,7 +4153,68 @@ function autoFormatJob() {
     } else {
       formatAllTabs();
     }
+    // ★うまくいった時刻を残す。追いつきの目印にします
+    try { props.setProperty(FMT_AT_KEY, String(Date.now())); } catch (e2) {}
   } catch (e) { logErr_("autoFormatJob", e); }
+}
+
+/**
+ * 止まっていたあいだの反映を、復旧したら すぐ追いかける。
+ *
+ * ★まーくさんのご指示です。
+ *   「エラーで止まっていたときも、復旧後は、読み取れてなかった分を
+ *     自動反映させていた」
+ *
+ * ★いまは17:00の1日1回だけでした。
+ *   9/23の夜から9/25の午前まで見張りが止まっていて、
+ *   9/24 のぶんは、まるまる反映されませんでした。
+ *   次の17:00まで待つ、というのは「止まったまま」と同じです。
+ *
+ * ★25時間あいていたら、1回ぶん抜けたということなので、その場で走ります。
+ *   個人タブから作り直すので、抜けたぶんも まとめて追いつきます。
+ * ★30分に1回までしか試しません。
+ *   反映は重い処理です。1分おきに走らせると、持ち時間を食いつぶします。
+ * ★追いついたときだけ、1回だけ知らせます。
+ *   黙って直ると、止まっていたことに気づけないためです。
+ */
+function fmtCatchUp_() {
+  const props = PropertiesService.getScriptProperties();
+
+  // 何分かに1回しか試さない
+  try {
+    const t = Number(props.getProperty(FMT_TRY_KEY) || 0);
+    if (t && (Date.now() - t) < FMT_TRY_MIN * 60000) return false;
+    props.setProperty(FMT_TRY_KEY, String(Date.now()));
+  } catch (e) {}
+
+  const at = Number(props.getProperty(FMT_AT_KEY) || 0);
+  if (!at) {
+    /*
+     * ★一度も走っていないときは、いまを起点にするだけにします。
+     *   入れたばかりのときに いきなり重い処理を走らせないためです。
+     */
+    try { props.setProperty(FMT_AT_KEY, String(Date.now())); } catch (e) {}
+    return false;
+  }
+  const hours = (Date.now() - at) / 3600000;
+  if (hours < FMT_GAP_H) return false;               // 抜けていない
+
+  try { autoFormatJob(); } catch (e) { logErr_("fmtCatchUp", e); return false; }
+
+  const text = "⏪ 止まっていたあいだのぶんを反映しました\n" +
+               "・およそ " + Math.floor(hours) + " 時間ぶん\n" +
+               "・個人タブから作り直したので、抜けはありません";
+  try {
+    const sh = mainSS_() && mainSS_().getSheetByName("説明");
+    if (sh && typeof panelSay_ === "function") panelSay_(sh, text);
+  } catch (e) {}
+  try {
+    const me = (typeof updMe_ === "function") ? updMe_() : "";
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text: text }]);
+    }
+  } catch (e) {}
+  return true;
 }
 
 function menuRebuild() {
