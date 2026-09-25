@@ -31,11 +31,15 @@ function mkFolder(name) {
   return f;
 }
 function mkFile(name, content, updated) {
-  return {
+  const f = {
+    _trashed: false,
     getName: () => name,
     getLastUpdated: () => new CtxDate(updated || Date.now()),
+    // ★本物にある。捨てられるかどうかを確かめるのに要る
+    setTrashed: v => { f._trashed = !!v; return f; },
     getBlob: () => ({ getDataAsString: () => content })
   };
+  return f;
 }
 function iter(arr) {
   let i = 0;
@@ -45,6 +49,8 @@ ctx.DriveApp = {
   getFoldersByName: n => iter(drive[n] ? [drive[n]] : []),
   createFolder: n => (drive[n] = mkFolder(n))
 };
+// ★本物にある入れもの。無いと、ファイルを作るところで落ちる
+ctx.MimeType = { PLAIN_TEXT: 'text/plain', CSV: 'text/csv', HTML: 'text/html' };
 
 /* ---- 偽のスプシ ---- */
 const toasts = [], alerts = [], cells = {};
@@ -688,10 +694,29 @@ t(threw, '空でも書き込まない');
 console.log('\n■ 保存に失敗したら書き込まない');
 reset([['001-Code.gs', 'あたらしい']]);
 const realCreate = drive['taxi-gas'].createFolder;
-drive['taxi-gas'].createFolder = () => { throw new Error('ドライブがいっぱいです'); };
+drive['taxi-gas'].createFolder = () => { throw new Error('こわれています'); };
 F('menuUpdateCode')();
 t(lastPut() === undefined, '書き込みまで進まない');
 has(alerts[alerts.length - 1].t, 'バックアップできませんでした', '理由を出す');
+
+/*
+ * ★ドライブが一杯のときは、言い方を変えて、宿題帳に書き留めること。
+ *   空きが戻れば、見張りが自分で控えを取り直します。
+ *   （控えが無いまま入れ替えるのは危ないので、中止はそのままです）
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  delete props['UPD_DISK_TODO'];
+  drive['taxi-gas'].createFolder = () => { throw new Error('ドライブがいっぱいです'); };
+  F('menuUpdateCode')();
+  t(lastPut() === undefined, '★一杯のときも、書き込みまでは進まない');
+  has(alerts[alerts.length - 1].t, 'ドライブが一杯', '★一杯だと はっきり言う');
+  const todo = JSON.parse(props['UPD_DISK_TODO'] || '[]');
+  t(todo.length === 1 && todo[0].kind === 'コードの控え',
+    '★★宿題帳に書き留める（空きが戻ったら、やり直すため）',
+    props['UPD_DISK_TODO']);
+  delete props['UPD_DISK_TODO'];
+}
 t(project.files.filter(f => f.name === '001-Code')[0].source === 'ふるい',
   'コードは元のまま');
 
@@ -4614,6 +4639,110 @@ console.log('\n■ まーくさんが置き直された形（□はH2、結果�
   t(panel._heights[3] === 42, '　3行目は2行ぶん（42）に戻る（' + panel._heights[3] + '）');
   t(panel._soft[3] === false, '　そのときも、ふくらまない高さ');
   t(panel._cells['2,8'] === false, '　□は、押していない形に戻る');
+}
+
+console.log('\n■ 💾 ドライブが一杯でも、空きが戻れば自分でやり直す（ご指示）');
+/*
+ * ★ドライブが一杯になると、控えを取るところで止まります。
+ *   危ないので中止するのは正しい作りです。
+ *   けれど そのまま忘れると、空きが戻っても動きません。
+ *   実際、まーくさんに気づいていただくまで2日 止まっていました。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+
+  // ① 一杯かどうかの見分け
+  const full = F('updDiskFull_');
+  t(full(new Error('ドライブがいっぱいです')) === true, '「いっぱい」を見分ける');
+  t(full(new Error('The user has exceeded their Drive storage quota')) === true,
+    '英語の言い方も見分ける');
+  t(full(new Error('容量が足りません')) === true, '「容量」も見分ける');
+  t(full(new Error('こわれています')) === false, 'ふつうのしくじりは、ちがうと分かる');
+  t(full(null) === false, '空でも落ちない');
+
+  // ② 宿題帳
+  delete props['UPD_DISK_TODO'];
+  t(F('updTodoAdd_')('版をドライブに保存') === true, '★はじめて書いたら true');
+  t(F('updTodoAdd_')('版をドライブに保存') === false,
+    '★★同じ宿題は、二重に書かない（知らせも2通目を出さないため）');
+  t(F('updTodoList_')().length === 1, '　宿題はひとつだけ');
+  F('updTodoDone_')('版をドライブに保存');
+  t(F('updTodoList_')().length === 0, '　やり終えたら、消える');
+
+  // ③ 空きがあるか、実際に書いて確かめる
+  const keepCreate = drive['taxi-gas'].createFile;
+  let trashed = 0;
+  drive['taxi-gas'].createFile = () => ({ setTrashed: () => { trashed++; } });
+  t(F('updDiskOk_')() === true, '★書けたら、空きがあると分かる');
+  t(trashed === 1, '★★確かめに使ったファイルは、すぐ捨てる（ゴミを残さない）');
+  drive['taxi-gas'].createFile = () => { throw new Error('ドライブがいっぱいです'); };
+  t(F('updDiskOk_')() === false, '★書けなければ、まだ一杯だと分かる');
+
+  // ④ 空きが戻ったら、宿題をやり直す
+  delete props['UPD_DISK_TODO'];
+  delete props['UPD_DISK_SEEN'];
+  t(F('updDiskTick_')() === false, '★宿題が無ければ、空きも見にいかない');
+
+  F('updTodoAdd_')('版をドライブに保存');
+  t(F('updDiskTick_')() === false, '★まだ一杯なら、何もしない');
+  t(F('updTodoList_')().length === 1, '★★そのときも、宿題は消さない');
+
+  // 空きが戻った
+  drive['taxi-gas'].createFile = () => ({ setTrashed: () => {} });
+  let ran = 0;
+  vm.runInContext('function panelSaveVersions(){ ranSave++; return "ぜんぶ保存しました"; }', ctx);
+  vm.runInContext('var ranSave = 0;', ctx);
+  delete props['UPD_DISK_SEEN'];
+  ctx.pu.length = 0;
+  t(F('updDiskTick_')() === true, '★★空きが戻ったら、自分でやり直す');
+  t(vm.runInContext('ranSave', ctx) === 1, '★★宿題を、ちゃんと実行した');
+  t(F('updTodoList_')().length === 0, '★やり終えた宿題は、消す');
+  t(ctx.pu.length === 1, '★戻ったことを、1通だけ知らせる');
+  has(String(ctx.pu[0].msgs[0].text), '空きが戻りました', '　そう伝える');
+
+  // 10分に1回まで
+  F('updTodoAdd_')('版をドライブに保存');
+  t(F('updDiskTick_')() === false,
+    '★10分たっていなければ、見にいかない（持ち時間を食わない）');
+  delete props['UPD_DISK_SEEN'];
+  delete props['UPD_DISK_TODO'];
+  drive['taxi-gas'].createFile = keepCreate;
+  ctx.pu.length = 0;
+}
+
+console.log('\n■ 🔧 見張りが消えていたら、外から入れ直す（ご指摘）');
+/*
+ * ★見張りが止まると、それを直すしくみも一緒に止まります。
+ *   ボタンに☑を入れても、誰も見に来ません。
+ *   たまごが先か にわとりが先か、です。
+ *   だから、見張りの「外」から呼べるところに置きます。
+ *   ・LINEに何か届いたとき　・スプシのどこかを触ったとき
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  delete props['PANEL_HEAL_AT'];
+  t(F('panelHealWatch_')() === false, '★生きているうちは、何もしない');
+
+  // 見張りを消してみる
+  triggers = triggers.filter(x => x.getHandlerFunction() !== 'panelWatch');
+  t(triggers.some(x => x.getHandlerFunction() === 'panelWatch') === false,
+    '　消した状態を作った');
+  delete props['PANEL_HEAL_AT'];
+  ctx.pu.length = 0;
+  t(F('panelHealWatch_')() === true, '★★消えていたら、入れ直す');
+  t(triggers.some(x => x.getHandlerFunction() === 'panelWatch') === true,
+    '★★1分おきの見張りが戻る');
+  t(ctx.pu.length === 1, '★入れ直したときだけ、1通知らせる');
+  has(String(ctx.pu[0].msgs[0].text), '見張りが止まっていた', '　そう伝える');
+
+  // 10分に1回まで
+  triggers = triggers.filter(x => x.getHandlerFunction() !== 'panelWatch');
+  t(F('panelHealWatch_')() === false,
+    '★10分たっていなければ、見にいかない（仕掛けの一覧を読むのは ただではない）');
+  delete props['PANEL_HEAL_AT'];
+  ctx.pu.length = 0;
 }
 
 console.log('\n■ [20] 結果らんの形を、そのまま出す');

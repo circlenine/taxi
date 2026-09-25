@@ -1,7 +1,12 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C064ver  （2026/09/22）  ★★★   ← もとは version 232
+ *  ★★★  C065ver  （2026/09/25）  ★★★   ← もとは version 232
+ *
+ *  [C065ver]
+ *   ・🔧 LINEに何か届いたら、そうさボタンの見張りが生きているか見る
+ *     ★消えていれば、黙って入れ直します（panelHealWatch_）。
+ *       見張りが止まると、それを直すしくみも一緒に止まるためです。
  *
  *  [C064ver]
  *   ・🔌 記録用スプシの開き方を mainSS_ にまとめた（作り直しに要る）
@@ -621,7 +626,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C064ver";
+const CODE_VERSION = "C065ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -1613,6 +1618,16 @@ function doPost(e) {
       PropertiesService.getScriptProperties()
         .setProperty("LAST_LINE", new Date().toISOString());
     } catch (e3) {}
+    /*
+     * ★LINEに何か届いたら、そうさボタンの見張りが生きているか見ます。
+     *   消えていれば、黙って入れ直します（まーくさんのご指摘）。
+     *   見張りが止まると、それを直すしくみも一緒に止まるためです。
+     *   10分に1回までしか見にいきません。
+     */
+    try {
+      if (typeof panelHealWatch_ === "function") panelHealWatch_();
+    } catch (e4) { logErr_("doPostHeal", e4); }
+
     (body.events || []).forEach(function (ev) {
       try { handleEvent_(ev); } catch (err) { logErr_("handleEvent", err); }
     });

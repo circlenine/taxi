@@ -2,7 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U118ver  （2026/09/22）  ★★★
+ *  ★★★  U119ver  （2026/09/25）  ★★★
+ *
+ *  [U119ver]
+ *   ・💾 ドライブが一杯で止まった仕事を、空きが戻ったらやり直す（ご指示）
+ *     ★一杯だと、控えを取るところで止まります。中止するのは正しいのですが、
+ *       そのまま忘れると、空きが戻っても誰かが押し直すまで動きません。
+ *       実際、気づいていただくまで2日 止まっていました。
+ *     ★止まった仕事を「宿題帳」に書き留めます。
+ *       見張りが10分に1回だけ空きを見にいき、戻っていればやり直します。
+ *       空きを見るといっても、小さなファイルを1つ作って すぐ捨てるだけです。
+ *     ★知らせは2通だけ。止まったとき1通、戻ったとき1通です。
+ *   ・🔧 見張りが消えていたら、外から入れ直すようにした（ご指摘）
+ *     ★見張りが止まると、それを直すしくみも一緒に止まります。
+ *       ボタンに☑を入れても、誰も見に来ません。
+ *     ★LINEに何か届いたとき・スプシを触ったときに、生きているか見ます。
+ *       消えていれば、黙って入れ直して、1通だけ知らせます。
  *
  *  [U118ver]
  *   ・📏 高さを「当てる」のをやめ、スプシ自身に測らせるようにした
@@ -1291,7 +1306,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U118ver";
+const UPD_VERSION = "U119ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -4875,6 +4890,18 @@ function menuUpdateCode() {
   try {
     backupName = updBackup_(cur);
   } catch (e) {
+    /*
+     * ★ドライブが一杯で控えが取れないときは、宿題帳に書き留めます。
+     *   空きが戻れば、見張りが自分で控えを取り直します。
+     *   （控えが無いまま入れ替えるのは危ないので、中止はそのままです）
+     */
+    if (updDiskFull_(e)) {
+      updDiskStopped_("コードの控え");
+      return updTell_("💾 ドライブが一杯です",
+        "控えが取れないので、中止しました。\n" +
+        "空きが戻れば、こちらで控えを取り直します。\n" +
+        "そのあと、もう一度 [1] に☑を入れてください。");
+    }
     return updTell_("❌ バックアップできませんでした",
       "危ないので中止しました。\n" + e.message);
   }
@@ -5409,6 +5436,201 @@ function updVerSaved_() {
   } catch (e) { return {}; }
 }
 
+/* ================================================================
+ *  💾 ドライブが一杯のときに止まった仕事を、空きが戻ったらやり直す
+ *
+ *  ★まーくさんのご指示です。
+ *    「空き容量が問題なくなった時点で、きちんと処理が自動で戻る形に」
+ *
+ *  ★なぜ要るのか
+ *    ドライブが一杯になると、控えを取るところで止まります。
+ *    危ないので、そこで中止するのは正しい作りです。
+ *    けれど、そのまま忘れてしまうと、
+ *    空きが戻っても、誰かが気づいて押し直すまで動きません。
+ *    実際に、まーくさんに気づいていただくまで2日 止まっていました。
+ *
+ *  ★やり方
+ *    ①一杯で止まったら、その仕事を「宿題帳」に書き留めます。
+ *    ②見張り（1分おき）が、10分に1回だけ空きを見にいきます。
+ *      見にいくといっても、小さなファイルを1つ作って、すぐ捨てるだけです。
+ *      「空きがあるか」を聞く窓口は無いので、実際に書いてみるのが確かです。
+ *    ③空きが戻っていたら、宿題を順にやり直して、宿題帳から消します。
+ *    ④知らせは2通だけ。止まったとき1通、戻ったとき1通です。
+ *      ふだんは1通も出しません。
+ * ================================================================ */
+
+/** 宿題帳のしまい場所 */
+const UPD_TODO_KEY  = "UPD_DISK_TODO";
+/** 空きを見にいくのは、何分に1回までか */
+const UPD_TODO_MIN  = 10;
+const UPD_TODO_AT   = "UPD_DISK_SEEN";
+/** 宿題の名前（ここに無いものは、やり直しません） */
+const UPD_TODO_KINDS = ["版をドライブに保存", "マニュアルを作る", "コードの控え"];
+
+/**
+ * 宿題を1つ、やり直す。
+ *
+ * ★関数の名前を文字で持って呼び出す書き方は、やめました。
+ *   名前を打ちまちがえても、その場では気づけないからです。
+ *   ここに並べたものだけを、名指しで呼びます。
+ * ★008-Manual が入っていないこともあるので、あるか確かめてから呼びます。
+ */
+function updTodoRun_(kind) {
+  if (kind === "版をドライブに保存") return String(panelSaveVersions());
+  if (kind === "マニュアルを作る") {
+    if (typeof panelManual !== "function") return "❌ マニュアルの係が見あたりません";
+    return String(panelManual());
+  }
+  if (kind === "コードの控え") {
+    // ★[1] のときに取れなかった控えです。いまの中身を、そのまま控えます
+    const cur = updGetProject_();
+    return "控えました：" + updBackup_(cur);
+  }
+  return "❌ 知らない宿題です";
+}
+
+/**
+ * その失敗は「ドライブが一杯」か。
+ *
+ * ★Googleは、場合によってちがう言い方をします。
+ *   英語で返ることも、日本語で返ることもあります。
+ *   心当たりのある言い方を、まとめて見ます。
+ * ★取りこぼしても害はありません。
+ *   ふつうのしくじりとして、これまでどおり出るだけです。
+ */
+function updDiskFull_(e) {
+  const t = String((e && e.message) || e || "");
+  if (!t) return false;
+  return /storage quota|quota.*exceed|exceed.*quota|out of space|not enough space|insufficient|容量|空き|いっぱい|一杯/i.test(t);
+}
+
+/** 宿題帳を読む */
+function updTodoList_() {
+  try {
+    const v = JSON.parse(updProps_().getProperty(UPD_TODO_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+
+/** 宿題帳に書き留める。同じものは1つだけ */
+function updTodoAdd_(kind) {
+  const k = String(kind || "");
+  if (!k) return false;
+  const list = updTodoList_();
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] && list[i].kind === k) return false;      // もう書いてある
+  }
+  list.push({ kind: k, at: Date.now() });
+  try { updProps_().setProperty(UPD_TODO_KEY, JSON.stringify(list)); } catch (e) {}
+  return true;                                            // 今回 はじめて書いた
+}
+
+/** 宿題帳から消す */
+function updTodoDone_(kind) {
+  const k = String(kind || "");
+  const left = updTodoList_().filter(function (x) { return !x || x.kind !== k; });
+  try { updProps_().setProperty(UPD_TODO_KEY, JSON.stringify(left)); } catch (e) {}
+}
+
+/**
+ * ドライブに空きが戻ったか、実際に書いて確かめる。
+ *
+ * ★「あと何バイト空いているか」を聞く窓口はありません。
+ *   小さなファイルを1つ作って、すぐ捨てるのが、いちばん確かです。
+ * ★捨てそこねても、次に来たときに同じ名前のものを作り直すだけです。
+ */
+function updDiskOk_() {
+  let f = null;
+  try {
+    f = updFolder_().createFile("._あきしらべ", "1", MimeType.PLAIN_TEXT);
+  } catch (e) {
+    return false;
+  }
+  try { f.setTrashed(true); } catch (e) {}
+  return true;
+}
+
+/**
+ * 一杯で止まったことを、1回だけ知らせる。
+ * ★2通目からは出しません。止まっているあいだ ずっと鳴り続けたら、
+ *   かえって何も見なくなります。
+ */
+function updDiskStopped_(kind) {
+  if (!updTodoAdd_(kind)) return;                        // もう知らせてある
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text:
+        "💾 ドライブが一杯です\n" +
+        "・" + kind + " を見あわせました\n" +
+        "・空きが戻れば、こちらで やり直します\n" +
+        "・要らないファイルを捨てていただくと早く済みます" }]);
+    }
+  } catch (e) {}
+}
+
+/**
+ * 見張りから呼ぶ。空きが戻っていたら、宿題を片づける。
+ *
+ * ★宿題が無ければ、何もしません（ふだんは、ここで帰ります）。
+ * ★10分に1回までにしぼります。
+ *   1分おきに小さなファイルを作っては捨てると、持ち時間を食いつぶします。
+ */
+function updDiskTick_() {
+  const list = updTodoList_();
+  if (!list.length) return false;
+
+  const pr = updProps_();
+  const at = Number(pr.getProperty(UPD_TODO_AT) || 0);
+  if (at && (Date.now() - at) < UPD_TODO_MIN * 60000) return false;
+  try { pr.setProperty(UPD_TODO_AT, String(Date.now())); } catch (e) {}
+
+  if (!updDiskOk_()) return false;                       // まだ一杯
+
+  const done = [], ng = [];
+  list.forEach(function (x) {
+    const kind = x && x.kind;
+    if (UPD_TODO_KINDS.indexOf(kind) === -1) {
+      updTodoDone_(kind);                                // 知らない宿題は、置いておかない
+      return;
+    }
+    let out = "";
+    try {
+      out = updTodoRun_(kind);
+    } catch (e) {
+      if (updDiskFull_(e)) return;                       // また一杯。宿題は残したまま
+      out = "❌ " + ((e && e.message) || e);
+    }
+    if (String(out).indexOf("❌") === 0) ng.push(kind);
+    else done.push(kind);
+    updTodoDone_(kind);
+  });
+
+  if (!done.length && !ng.length) return false;
+
+  // ★戻ったことを1通だけ知らせます
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      const L = ["💾 ドライブの空きが戻りました"];
+      if (done.length) L.push("・やり直しました：" + done.join("、"));
+      if (ng.length)   L.push("・うまくいかなかった：" + ng.join("、"));
+      lrPush_(me, [{ type: "text", text: L.join("\n") }]);
+    }
+  } catch (e) {}
+
+  // スプシの結果らんにも、そのまま出します
+  try {
+    const sh = mainSS_() && mainSS_().getSheetByName(PANEL_TAB);
+    if (sh) {
+      panelSay_(sh, "💾 ドライブの空きが戻ったので、やり直しました\n" +
+        (done.length ? "・やり直した：" + done.join("、") : "") +
+        (ng.length ? "\n・だめだった：" + ng.join("、") : ""));
+    }
+  } catch (e) {}
+  return true;
+}
+
 /**
  * 版をドライブに保存する。続きからやる。
  * 戻り値 { all, done, saved, left, ng, folder }
@@ -5529,7 +5751,16 @@ function updMoveKit_() {
 function panelSaveVersions() {
   let r, kit = "";
   try { r = updSaveVersions_(); }
-  catch (e) { return "❌ 保存できませんでした\n" + ((e && e.message) || e); }
+  catch (e) {
+    // ★一杯で止まったら、宿題帳へ。空きが戻れば、自分で続きをやります
+    if (updDiskFull_(e)) {
+      updDiskStopped_("版をドライブに保存");
+      return "💾 ドライブが一杯です\n" +
+             "・保存を見あわせました\n" +
+             "・空きが戻れば、こちらで続きをやります";
+    }
+    return "❌ 保存できませんでした\n" + ((e && e.message) || e);
+  }
   try { kit = updMoveKit_().getName(); } catch (e) {}
 
   const out = [];
@@ -7716,6 +7947,58 @@ function menuPanelRepair() {
   return text;
 }
 
+/**
+ * 1分おきの見張りが消えていたら、黙って入れ直す。
+ *
+ * ★なぜ要るのか（まーくさんのご指摘）
+ *   ドライブが一杯だったあと、見張りが動かなくなっていました。
+ *   ボタンに☑を入れても、誰も見に来ません。
+ *   見張りが止まると、それを直すしくみも一緒に止まります。
+ *   たまごが先か にわとりが先か、です。
+ *
+ * ★だから、見張りの「外」から呼べるところに置きます。
+ *   ・LINEに何か届いたとき（ウェブフック）
+ *   ・スプシのどこかを触ったとき（onEdit）
+ *   このどちらかが動けば、見張りは戻ります。
+ *
+ * ★10分に1回までにしぼります。
+ *   仕掛けの一覧を読むのは、ただではありません。
+ * ★入れ直したときだけ、1通お知らせします。
+ *   黙って戻ると、止まっていたことに気づけないためです。
+ */
+const PANEL_HEAL_AT  = "PANEL_HEAL_AT";
+const PANEL_HEAL_MIN = 10;
+
+function panelHealWatch_() {
+  const pr = updProps_();
+  try {
+    const at = Number(pr.getProperty(PANEL_HEAL_AT) || 0);
+    if (at && (Date.now() - at) < PANEL_HEAL_MIN * 60000) return false;
+    pr.setProperty(PANEL_HEAL_AT, String(Date.now()));
+  } catch (e) {}
+
+  let alive = false;
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === "panelWatch") alive = true;
+    });
+  } catch (e) { return false; }          // 一覧が読めないときは、何もしない
+  if (alive) return false;
+
+  try { panelInstall_(); } catch (e) { return false; }
+
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text:
+        "🔧 見張りが止まっていたので、入れ直しました\n" +
+        "・ボタンの☑は、また効きます\n" +
+        "・押したままのものがあれば、入れ直してください" }]);
+    }
+  } catch (e) {}
+  return true;
+}
+
 /** チェックを見張るしくみを入れる（すでにあれば入れ直す） */
 function panelInstall_() {
   const ss = mainSS_();
@@ -7745,6 +8028,12 @@ function panelOnEdit(e) {
   try {
     if (!e || !e.range) return;
     if (e.range.getSheet().getName() !== PANEL_TAB) return;
+    /*
+     * ★1分おきの見張りが消えていたら、ここで入れ直します。
+     *   触ったときにしか効きませんが、
+     *   見張りが止まったときは、これが唯一の戻り道です。
+     */
+    try { panelHealWatch_(); } catch (e2) {}
     if (String(e.value).toUpperCase() !== "TRUE") return;
     const sh = e.range.getSheet();
     const top = panelTop_(sh);
@@ -8639,6 +8928,14 @@ function panelWatch() {
      */
     try { if (typeof tkTick_ === "function") tkTick_(); }
     catch (e) { logErr_("panelWatchTenki", e); }
+
+    /*
+     * ★ドライブが一杯で止まった仕事が残っていれば、
+     *   空きが戻ったかを見て、戻っていればやり直します（ご指示）。
+     *   宿題が無ければ、ここは何もせずに帰ります。
+     */
+    try { if (updDiskTick_()) return; }
+    catch (e) { logErr_("panelWatchDisk", e); }
 
     // コードが新しくなっていたら、増えたボタンをここで足す。
     // 押されているものが無いときだけ。行を差し込むと下のボタンが動くので、
