@@ -4662,6 +4662,23 @@ console.log('\n■ まーくさんが置き直された形（□はH2、結果�
   t(panel._heights[2] === undefined || panel._heights[2] === 21,
     '　2行目（見出しと□の行）には、手を出さない');
 
+  /*
+   * ★途中経過（「いまのコードを保存しています…」など）も、同じです。
+   *   まーくさんに「そのままで大丈夫」とご確認いただきました。
+   *   途中経過は updProgress_ → panelSay_ と、同じ道を通ります。
+   *   短い1行でも、下に1行ぶんの空きが残ります。
+   */
+  {
+    const LINE2 = vm.runInContext('PANEL_LINE_PX', ctx);
+    panel._heights[3] = 200;
+    F('panelSay_')(panel, '⏳ いまのコードを保存しています…（のこり 約1分10秒）');
+    const h1 = panel._heights[3];
+    t(h1 <= 45, '★途中経過も、短い1行ぶん（' + h1 + 'px）', String(h1));
+    t(h1 >= 15 + LINE2,
+      '★★途中経過にも、下に1行ぶんの空きが残る（' + h1 + 'px）', String(h1));
+    t(panel._soft[3] === false, '　そのときも、ふくらまない高さ');
+  }
+
   // リセットの□を押す
   panel._cells['2,8'] = true;
   t(F('panelResetIfAsked_')(panel) === true, '★H2の□を押すと、効く');
