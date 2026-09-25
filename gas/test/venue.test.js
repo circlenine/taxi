@@ -2596,5 +2596,93 @@ console.log('\n■ 📈🎪 絵文字ひとつで、選んでから出す（ご�
        replyToken: 'r' }), false, '★ほかの人には、返さない');
 }
 
+console.log('\n■ 🎤 アーティストの公式リンクと、その出どころ（ご指示）');
+/*
+ * ★まーくさんのご指示です。
+ *   ・参考資料のスプシは「全然意味ない」ので やめる
+ *   ・アーティスト名があるイベントには、関連リンクを出す
+ *   ・出典先を簡略的に載せて、しっかりしたデータだと分かるように
+ *
+ * ★出すのは「公式」と言い切れるものだけにします。
+ *   検索の入口（「Googleで探す」）は出しません。
+ *   あて推量を並べると、確かなものと見分けがつかなくなります。
+ */
+{
+  const day = new (vm.runInContext('Date', ctx))(2026, 8, 25);
+
+  // 009-Shiryo の係を、テスト用に差し替える
+  vm.runInContext('function shArtistName_(t){ return String(t||"").indexOf("ロック") !== -1 ? "テスト楽団" : ""; }', ctx);
+  vm.runInContext('function shWdArtist_(n){ return { site:"https://example.com/",' +
+                  ' x:"https://x.com/test", instagram:"", youtube:"" }; }', ctx);
+  vm.runInContext('function shMbArtist_(n){ return { name:"テスト楽団", begin:"2005-04-01" }; }', ctx);
+
+  const ev = { venue: '京セラドーム', kind: 'event', title: 'ロックの夜',
+               start: '18:00', url: 'https://example.com/ev' };
+  const card = JSON.stringify(ctx.vnCard_(ev, 0, day, true, { left: 4 }));
+  has(card, '🎤 テスト楽団', '★アーティストの名前を出す');
+  has(card, '公式サイト', '★公式サイトへのリンクを出す');
+  has(card, 'https://example.com/', '　行き先も入っている');
+  has(card, 'X（旧Twitter）', '★公式Xも出す');
+  has(card, '📖 出典：', '★★出どころを、かならず書く');
+  has(card, 'Wikidata', '　リンクの出どころ');
+  has(card, '2005年から活動', '★いつから活動しているかも出す');
+  has(card, 'MusicBrainz', '　その出どころ');
+  eq(card.indexOf('Google') !== -1, false,
+     '★★検索の入口（あて推量）は出さない（確かなものと見分けがつかなくなる）');
+
+  // アーティスト名が取れないイベントには、何も足さない
+  const plain = JSON.stringify(ctx.vnCard_(
+    { venue: '京セラドーム', kind: 'event', title: '会社の式典', start: '18:00' },
+    0, day, true, { left: 4 }));
+  eq(plain.indexOf('🎤') !== -1, false, '★名前が取れなければ、何も足さない');
+  eq(plain.indexOf('出典') !== -1, false, '　出典の行も出さない');
+
+  // 1通あたりの回数を使い切ったら、もう調べに出ない
+  let asked = 0;
+  vm.runInContext('function shWdArtist_(n){ asked++; return { site:"https://example.com/" }; }', ctx);
+  vm.runInContext('var asked = 0;', ctx);
+  const over = JSON.stringify(ctx.vnCard_(ev, 0, day, true, { left: 0 }));
+  eq(vm.runInContext('asked', ctx), 0,
+     '★★回数を使い切ったら、外に聞きにいかない（案内が遅れては本末転倒）');
+  eq(over.indexOf('🎤') !== -1, false, '　そのときは、何も足さない');
+
+  // 調べに出られなくても、イベント通知そのものは止めない
+  vm.runInContext('function shWdArtist_(n){ throw new Error("つながりません"); }', ctx);
+  vm.runInContext('function shMbArtist_(n){ throw new Error("つながりません"); }', ctx);
+  const ng = JSON.stringify(ctx.vnCard_(ev, 0, day, true, { left: 4 }));
+  has(ng, '京セラドーム', '★★外に出られなくても、イベントの中身は出る');
+  eq(ng.indexOf('🎤') !== -1, false, '　そのときは、アーティストの行は出さない');
+
+  /*
+   * ★出せるものが1つも無いときは、名前の行だけを残さないこと。
+   *   「🎤 テスト楽団」とだけ出ても、何の足しにもなりません。
+   *   リンクも無い、いつからかも分からない、では
+   *   「しっかりしたデータ」の逆です。
+   */
+  vm.runInContext('function shWdArtist_(n){ return null; }', ctx);
+  vm.runInContext('function shMbArtist_(n){ return { name:"テスト楽団", begin:"" }; }', ctx);
+  const bare = JSON.stringify(ctx.vnCard_(ev, 0, day, true, { left: 4 }));
+  eq(bare.indexOf('🎤') !== -1, false,
+     '★★出せるものが無ければ、名前の行も出さない');
+
+  /*
+   * ★途中でつまずいたときも、書きかけを残さないこと。
+   *   名前の行だけ出て、リンクも出典も無い形になります。
+   */
+  vm.runInContext('function shWdArtist_(n){ return { site:"https://example.com/" }; }', ctx);
+  vm.runInContext('function shMbArtist_(n){ return { name:"テスト楽団",' +
+                  ' get begin(){ throw new Error("こわれた"); } }; }', ctx);
+  const half = JSON.stringify(ctx.vnCard_(ev, 0, day, true, { left: 4 }));
+  eq(half.indexOf('🎤') !== -1, false, '★★途中でつまずいたら、書きかけを残さない');
+  has(half, '京セラドーム', '　イベントの中身そのものは、ちゃんと出る');
+
+  // 参考資料スプシへの入口は、もう出さない
+  vm.runInContext('function shWdArtist_(n){ return null; }', ctx);
+  vm.runInContext('function shMbArtist_(n){ return null; }', ctx);
+  const flex = JSON.stringify(ctx.vnFitMessages_(day, [ev], ''));
+  eq(flex.indexOf('参考資料') !== -1, false,
+     '★★参考資料スプシへの入口は、もう出さない（ご指示）');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

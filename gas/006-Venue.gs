@@ -2,7 +2,29 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V052ver  （2026/09/21）  ★★★
+ *  ★★★  V053ver  （2026/09/25）  ★★★
+ *
+ *  [V053ver]
+ *   ・📊 参考資料スプシへの入口を やめた（ご指示）
+ *     ★「全然意味ない」とのことでした。そのとおりです。
+ *       走りながら、別のスプシを開いてタブを行き来する人はいません。
+ *       要るものは、この1通の中に入っていなければ意味がありません。
+ *   ・🎤 アーティストの公式リンクを、枠の中に出すようにした（ご指示）
+ *     ★「アーティスト名があるイベントは、関連リンクが実装されていない」
+ *     ★出すのは「公式」と言い切れるものだけです。
+ *       Wikidata に、人が確かめて登録した公式サイト・公式SNSがあります。
+ *       検索の入口（「Googleで探す」）は出しません。
+ *       あて推量を並べると、確かなものと見分けがつかなくなります。
+ *   ・📖 出どころを、かならず書くようにした（ご指示）
+ *     ★「出典先を簡略的に載せて、しっかりしたデータだと分かるように」
+ *     ★「リンク＝Wikidata／2005年から活動＝MusicBrainz」のように、
+ *       1行で短く書きます。
+ *     ★出せるものが1つも無いときは、名前の行も出しません。
+ *       名前だけ出ても、何の足しにもなりません。
+ *   ・⏱ 調べに出るのは、1通あたり4件までにした
+ *     ★外に問い合わせると、1件1〜2秒かかります。
+ *       案内そのものが遅れては、本末転倒です。
+ *     ★つながらなくても、イベント通知そのものは絶対に止めません。
  *
  *  [V052ver]
  *   ・📊 イベント通知に「参考資料をひらく」の行を足した（ご指示）
@@ -729,7 +751,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V052ver";
+const VN_VERSION = "V053ver";
 
 /**
  * 見にいく先の一覧。
@@ -1318,6 +1340,13 @@ function vnDateLabel_(d) {
 
 const VN_COLOR_HEAD = "#6a1b9a";   // 紫（レポートの青 #1155ca と分ける）
 const VN_COLOR_SUB  = "#7b1fa2";
+/*
+ * ★アーティストを調べに出るのは、1通あたり何件までか。
+ *   外に問い合わせると、1件につき1〜2秒かかります。
+ *   イベントが10件あれば、それだけで20秒。
+ *   案内そのものが遅れては、本末転倒です。
+ */
+const VN_ARTIST_MAX = 4;
 const VN_COLOR_TEXT = "#4a148c";
 
 /** 「9/16(水)」 */
@@ -1331,8 +1360,85 @@ function vnAltText_(d) {
   return "🎪" + vnDayLabel_(d) + "イベント等情報 byシバンニ";
 }
 
+/**
+ * アーティストの公式リンクと、その出どころを1〜2行で出す。
+ *
+ * ★まーくさんのご指示です。
+ *   「アーティスト名があるイベントは、関連リンクが実装されていない」
+ *   「出典先を簡略的に載せて、しっかりしたデータだと分かるように」
+ *
+ * ★出すのは「公式」と言い切れるものだけです。
+ *   Wikidata には、人が確かめて登録した公式サイト・公式SNSが入っています。
+ *   検索の入口（「Googleで探す」など）は出しません。
+ *   探すだけなら自分で打てますし、ただのあて推量を
+ *   「関連リンク」として並べると、確かなものと見分けがつかなくなります。
+ *
+ * ★出どころは、かならず書きます。
+ *   どこから来た話か分からないものは、走りながら信じられません。
+ *
+ * ★調べに出られないとき・見つからないときは、何も出しません。
+ *   イベント通知そのものは、絶対に止めません。
+ */
+function vnArtistRows_(ev, budget) {
+  const rows = [];
+  try {
+    if (!ev || !ev.title) return rows;
+    if (budget && budget.left <= 0) return rows;        // 1通あたりの回数を使い切った
+    if (typeof shArtistName_ !== "function") return rows;
+
+    const name = shArtistName_(ev.title);
+    if (!name || name.length < 2) return rows;
+
+    if (budget) budget.left--;
+
+    let wd = null, mb = null;
+    try { if (typeof shWdArtist_ === "function") wd = shWdArtist_(name); } catch (e) {}
+    try { if (typeof shMbArtist_ === "function") mb = shMbArtist_(name); } catch (e) {}
+    if (!wd && !mb) return rows;
+
+    // ① 公式リンクを集める
+    const links = [];
+    if (wd) {
+      if (wd.site)      links.push({ l: "公式サイト", u: wd.site });
+      if (wd.x)         links.push({ l: "X（旧Twitter）", u: wd.x });
+      if (wd.instagram) links.push({ l: "Instagram", u: wd.instagram });
+      if (wd.youtube)   links.push({ l: "YouTube", u: wd.youtube });
+    }
+
+    const who = (mb && mb.name) ? mb.name : name;
+    rows.push({ "type": "text", "size": "xxs", "wrap": true, "margin": "sm",
+      "contents": [{ "type": "span", "text": "🎤 " + who, "weight": "bold", "color": "#4527a0" }] });
+
+    /*
+     * ★LINEの span は、1つずつには押せません。押せるのは行ぜんたいです。
+     *   ですので、リンクが1つのときは その行を押せるようにし、
+     *   2つ以上あるときは、1行に1つずつ並べます。
+     *   「押したのに ちがうところへ飛んだ」がいちばん困るためです。
+     */
+    links.forEach(function (x) {
+      rows.push({ "type": "text", "text": "　🔗 " + x.l, "size": "xxs",
+                  "color": "#1a73e8", "decoration": "underline", "wrap": true,
+                  "action": { "type": "uri", "label": x.l.slice(0, 12), "uri": x.u } });
+    });
+
+    // ② 出どころ。短く、しかし必ず書きます
+    const src = [];
+    if (links.length) src.push("リンク＝Wikidata（公式として登録されたもの）");
+    if (mb && mb.begin) {
+      const y = String(mb.begin).slice(0, 4);
+      if (/^\d{4}$/.test(y)) src.push(y + "年から活動＝MusicBrainz");
+    }
+    if (!src.length) return [];                         // 出せるものが無ければ、何も出さない
+    rows.push({ "type": "text", "text": "　📖 出典：" + src.join("／"),
+                "size": "xxs", "color": "#6a1b9a", "wrap": true });
+  } catch (e) {
+    return [];
+  }
+  return rows;
+}
+
 /** 1件ぶんの箱 */
-function vnCard_(ev, idx, day, noBells) {
+function vnCard_(ev, idx, day, noBells, budget) {
   const v = VN_VENUES[ev.venue] || {};
   const rows = [];
 
@@ -1452,6 +1558,11 @@ function vnCard_(ev, idx, day, noBells) {
   // 6行目：禁止（触れてはいけないこと）。ここは赤。ひと目で分かるように
   if (ev.avoid) rows.push({ "type": "text", "text": "🚫禁止事項：" + ev.avoid, "size": "xxs", "color": "#c62828", "wrap": true, "margin": "xs", "weight": "bold" });
 
+  // アーティストの公式リンクと、その出どころ（ご指示）
+  try {
+    vnArtistRows_(ev, budget).forEach(function (r) { rows.push(r); });
+  } catch (e) {}
+
   // 5行目：この1件についての助言
   if (ev.advice) rows.push({ "type": "text", "text": "▶ " + ev.advice, "size": "xs", "color": "#1b5e20", "wrap": true, "margin": "sm", "weight": "bold" });
 
@@ -1498,13 +1609,20 @@ function vnBuildMessages_(day, events, note, noBells) {
 
   const kinds = VN_KIND_ORDER.map(function (k) { return [k, VN_KIND_LABEL[k]]; });
   let shown = 0;
+  /*
+   * ★アーティストを調べに出るのは、1通あたり4件までにします。
+   *   外に問い合わせると、1件につき1〜2秒かかります。
+   *   イベントが10件あると、それだけで20秒。
+   *   案内そのものが遅れては、本末転倒です。
+   */
+  const budget = { left: VN_ARTIST_MAX };
   kinds.forEach(function (k) {
     const list = (events || []).filter(function (e) { return (e.kind || "event") === k[0]; });
     if (!list.length) return;
     contents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": k[1], "weight": "bold", "size": "sm", "color": VN_COLOR_SUB, "margin": "md" });
     list.forEach(function (e) {
-      contents.push(vnCard_(e, (events || []).indexOf(e), day, noBells));
+      contents.push(vnCard_(e, (events || []).indexOf(e), day, noBells, budget));
       shown++;
     });
   });
@@ -1519,27 +1637,12 @@ function vnBuildMessages_(day, events, note, noBells) {
   }
 
   /*
-   * ★参考資料スプシへの入口（まーくさんのご指示）。
-   *   アーティストを探すリンク・自社の実績のグラフ・客層が
-   *   1か所にまとまっています。
-   *
-   * ★作れなかったときは、行そのものを出しません。
-   *   押しても開かないリンクを出すのが、いちばん不親切なためです。
-   *   資料が作れなくても、イベント通知そのものは絶対に止めません。
+   * ★参考資料スプシへの入口は、やめました（まーくさんのご指示）。
+   *   「全然意味ない」とのことでした。そのとおりです。
+   *   走りながら、別のスプシを開いて、タブを行き来する人はいません。
+   *   要るものは、この1通の中に入っていなければ意味がありません。
+   *   アーティストの公式リンクは、それぞれの枠の中に出します。
    */
-  if (shown) {
-    let sUrl = "";
-    try {
-      if (typeof shLinkFor_ === "function") sUrl = shLinkFor_(day, events || []);
-    } catch (e) { sUrl = ""; }
-    if (sUrl) {
-      contents.push({ "type": "separator", "margin": "lg" },
-        { "type": "text", "text": "📊 参考資料をひらく（実績のグラフ・客層・リンク）",
-          "size": "xxs", "color": "#1a73e8", "weight": "bold",
-          "decoration": "underline", "wrap": true, "margin": "md",
-          "action": { "type": "uri", "label": "参考資料", "uri": sUrl } });
-    }
-  }
 
   // ★注釈は必ず最後に入れる。削る対象にもしない（危ないので）
   contents.push({ "type": "separator", "margin": "lg" },
