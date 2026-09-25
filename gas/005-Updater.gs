@@ -2,7 +2,21 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U123ver  （2026/09/25）  ★★★
+ *  ★★★  U124ver  （2026/09/25）  ★★★
+ *
+ *  [U124ver]
+ *   ・💾 [17] を、1回押すだけで終わるようにした（ご指示）
+ *     ★「何回も押さなきゃいけないのってどうにかならないんでしょうか」
+ *     ★Apps Script は1回に6分しか動けません。版は200個あるので、
+ *       途中で切れます。これは こちらでは変えられません。
+ *     ★切れたところから続けるしくみは、もうありました。
+ *       足りなかったのは「続きを押す人」だけでした。
+ *       それを、1分おきの見張りにやらせます。
+ *     ★押すのは1回。途中では何も言わず、終わったときだけ知らせます。
+ *     ★押されているボタンが無いときだけ動かします。
+ *       ボタンを待たせてまで、やることではありません。
+ *     ★ドライブが一杯なら、宿題帳にまわします。
+ *       空きが戻れば、そちらのしくみが やり直します。
  *
  *  [U123ver]
  *   ・📐 結果らんのいちばん下に、1行ぶんの空きを残すようにした（ご指示）
@@ -1344,7 +1358,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U123ver";
+const UPD_VERSION = "U124ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5818,6 +5832,87 @@ function updMoveKit_() {
   return folder.createFile(name, text, "text/plain");
 }
 
+/* ================================================================
+ *  💾 版の保存を、こちらで最後まで続ける
+ *
+ *  ★まーくさんのご指示です。
+ *    「17って、何回も押さなきゃいけないのってどうにかならないんでしょうか」
+ *
+ *  ★なぜ1回で終わらないのか
+ *    Apps Script は、1回に6分しか動けません。
+ *    版は200個あり、1つ読むのに数秒かかります。
+ *    だから途中で切れます。これは こちらでは変えられません。
+ *
+ *  ★では、どうするか
+ *    切れたところから続けるしくみは、もうあります（updVerSaved_）。
+ *    足りなかったのは「続きを押す人」だけでした。
+ *    それを、1分おきの見張りにやらせます。
+ *    押すのは1回。あとは黙って終わらせて、終わったときだけ知らせます。
+ *
+ *  ★ボタンを押したときは、そちらを先にやります。
+ *    この続きは、押されているボタンが無いときだけ動かします。
+ *    待たせてまでやることではありません。
+ * ================================================================ */
+
+/** 「最後まで続ける」の札 */
+const UPD_VSAVE_GO = "UPD_VSAVE_GO";
+/*
+ * ★1回ぶんの持ち時間。見張りは1分おきなので、短めにします。
+ *   長くすると、次の見張りと重なって、二重に動きます。
+ */
+const UPD_VSAVE_TICK_MS = 45 * 1000;
+
+/**
+ * 見張りから呼ぶ。版の保存が途中なら、続きを少しだけ進める。
+ * 何かした（終わった・進めた）なら true。
+ */
+function updVsaveTick_() {
+  const pr = updProps_();
+  if (pr.getProperty(UPD_VSAVE_GO) !== "1") return false;
+
+  let r;
+  try { r = updSaveVersions_(UPD_VSAVE_TICK_MS); }
+  catch (e) {
+    /*
+     * ★ドライブが一杯なら、宿題帳にまわします。
+     *   空きが戻れば、そちらのしくみが やり直します。
+     */
+    if (updDiskFull_(e)) {
+      try { pr.deleteProperty(UPD_VSAVE_GO); } catch (e2) {}
+      updDiskStopped_("版をドライブに保存");
+      return true;
+    }
+    try { pr.deleteProperty(UPD_VSAVE_GO); } catch (e2) {}
+    updVsaveSay_("❌ 版の保存が止まりました\n・" + ((e && e.message) || e) +
+                 "\n・もう一度 [17] に☑を入れてください");
+    return true;
+  }
+
+  if (r.left > 0) return true;                 // まだ途中。次の見張りで続けます
+
+  // 終わった
+  try { pr.deleteProperty(UPD_VSAVE_GO); } catch (e) {}
+  updVsaveSay_("💾 版をぜんぶ保存しました\n" +
+               "・版：" + r.done + " / " + r.all + " 個" +
+               (r.ng ? "\n・読めなかった：" + r.ng + " 個" : "") +
+               "\n・置き場：" + UPD_FOLDER + "/" + UPD_VSAVE_DIR);
+  return true;
+}
+
+/** 終わったこと（しくじったこと）を、スプシとLINEに1回だけ出す */
+function updVsaveSay_(text) {
+  try {
+    const sh = mainSS_() && mainSS_().getSheetByName(PANEL_TAB);
+    if (sh) panelSay_(sh, text);
+  } catch (e) {}
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text: text }]);
+    }
+  } catch (e) {}
+}
+
 /**
  * [17] 版をドライブに保存する（そうさボタンから）。
  * 1回で終わらなければ、もう一度押せば続きからやります。
@@ -5845,9 +5940,18 @@ function panelSaveVersions() {
   out.push("・置き場：" + UPD_FOLDER + "/" + UPD_VSAVE_DIR);
   if (kit) out.push("・" + kit + " も置きました");
   if (r.left) {
+    /*
+     * ★何度も押していただくのは、こちらの手落ちです（ご指示）。
+     *   続きは、1分おきの見張りが黙って進めます。
+     *   終わったときだけ、お知らせします。
+     */
+    try { updProps_().setProperty(UPD_VSAVE_GO, "1"); } catch (e) {}
     out.push("");
     out.push("あと " + r.left + " 個 残っています");
-    out.push("もう一度チェックすれば、続きからやります");
+    out.push("あとは、こちらで続けます（もう押さなくて大丈夫です）");
+    out.push("終わったら、お知らせします");
+  } else {
+    try { updProps_().deleteProperty(UPD_VSAVE_GO); } catch (e) {}
   }
   return out.join("\n");
 }
@@ -6544,7 +6648,8 @@ function panelItems_() {
     { key: "版をドライブ",         label: "[17] 版をドライブに保存する",  fn: "panelSaveVersions",
       sec: 260, stall: 340,
       note: "過去のバージョンの中身を、ぜんぶドライブに写します。" +
-            "1回で終わらなければ、もう一度押せば続きからやります。" +
+            "押すのは1回だけ。1回で終わらなければ、あとはこちらで続けます。" +
+            "終わったらお知らせします。" +
             "引っ越しに要るもの（鍵の名前・見張り・URL）のメモも置きます" },
     /*
      * ★[18] は、記録用スプシのタブを減らすためのボタンです。
@@ -9110,6 +9215,14 @@ function panelWatch() {
      */
     try { if (updDiskTick_()) return; }
     catch (e) { logErr_("panelWatchDisk", e); }
+
+    /*
+     * ★版の保存が途中なら、続きを少しだけ進めます（ご指示）。
+     *   「何回も押さなきゃいけない」を、こちらで引き取ります。
+     *   押されているボタンが無いときだけです（上で確かめてあります）。
+     */
+    try { if (updVsaveTick_()) return; }
+    catch (e) { logErr_("panelWatchVsave", e); }
 
     // コードが新しくなっていたら、増えたボタンをここで足す。
     // 押されているものが無いときだけ。行を差し込むと下のボタンが動くので、

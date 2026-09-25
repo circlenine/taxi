@@ -4688,6 +4688,80 @@ console.log('\n■ まーくさんが置き直された形（□はH2、結果�
   t(panel._cells['2,8'] === false, '　□は、押していない形に戻る');
 }
 
+console.log('\n■ 💾 [17] は1回押すだけ。あとはこちらで続ける（ご指示）');
+/*
+ * ★まーくさんのご指示です。
+ *   「17って、何回も押さなきゃいけないのってどうにかならないんでしょうか」
+ *
+ * ★Apps Script は1回に6分しか動けません。版は200個あるので、途中で切れます。
+ *   切れたところから続けるしくみは、もうありました。
+ *   足りなかったのは「続きを押す人」だけでした。
+ *   それを、1分おきの見張りにやらせます。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  // 途中で切れたことにする
+  let leftNow = 3;
+  vm.runInContext('var vsaveCalls = 0;', ctx);
+  vm.runInContext('function updSaveVersions_(ms){ vsaveCalls++; ' +
+    'return { all: 200, done: 200 - leftBox.n, saved: 1, left: leftBox.n, ng: 0, ' +
+    'folder: "versions" }; }', ctx);
+  vm.runInContext('var leftBox = { n: 3 };', ctx);
+  vm.runInContext('function updMoveKit_(){ return { getName: function(){ return "ひっこしメモ.txt"; } }; }', ctx);
+
+  delete props['UPD_VSAVE_GO'];
+  const out1 = String(F('panelSaveVersions')());
+  t(out1.indexOf('こちらで続けます') !== -1,
+    '★★「もう押さなくて大丈夫」と言い切る', out1);
+  t(out1.indexOf('もう一度チェック') === -1, '★「もう一度押してください」とは、もう言わない', out1);
+  t(props['UPD_VSAVE_GO'] === '1', '★★「続ける」の札を立てる');
+
+  // 見張りが、続きを進める
+  vm.runInContext('vsaveCalls = 0;', ctx);
+  ctx.pu.length = 0;
+  t(F('updVsaveTick_')() === true, '★見張りが、続きを進める');
+  t(vm.runInContext('vsaveCalls', ctx) === 1, '　1回ぶんだけ進める');
+  t(props['UPD_VSAVE_GO'] === '1', '　まだ途中なので、札は立てたまま');
+  t(ctx.pu.length === 0, '★★途中では、いちいち知らせない（うるさくなるため）');
+
+  // 終わったら、札をはずして1回だけ知らせる
+  vm.runInContext('leftBox.n = 0;', ctx);
+  t(F('updVsaveTick_')() === true, '★最後まで進める');
+  t(props['UPD_VSAVE_GO'] === undefined, '★★終わったら、札をはずす');
+  t(ctx.pu.length === 1, '★★終わったときだけ、1通 知らせる');
+  has(String(ctx.pu[0].msgs[0].text), 'ぜんぶ保存しました', '　そう伝える');
+  has(String(panel._cells[F('panelResultCell_')(panel).row + ',' +
+      F('panelResultCell_')(panel).col] || ''), 'ぜんぶ保存しました',
+      '　スプシの結果らんにも出す');
+
+  // 札が立っていなければ、何もしない
+  ctx.pu.length = 0;
+  vm.runInContext('vsaveCalls = 0;', ctx);
+  t(F('updVsaveTick_')() === false, '★札が無ければ、何もしない');
+  t(vm.runInContext('vsaveCalls', ctx) === 0, '　版も読みにいかない（ふだんは ただで帰る）');
+
+  // 1回で終わったときは、札を立てない
+  vm.runInContext('leftBox.n = 0;', ctx);
+  props['UPD_VSAVE_GO'] = '1';
+  const out2 = String(F('panelSaveVersions')());
+  t(out2.indexOf('ぜんぶ保存しました') !== -1, '★1回で終われば、そう出る');
+  t(props['UPD_VSAVE_GO'] === undefined, '★そのときは、札を立てない');
+
+  // ドライブが一杯なら、宿題帳にまわす
+  delete props['UPD_DISK_TODO'];
+  props['UPD_VSAVE_GO'] = '1';
+  vm.runInContext('function updSaveVersions_(ms){ throw new Error("ドライブがいっぱいです"); }', ctx);
+  ctx.pu.length = 0;
+  t(F('updVsaveTick_')() === true, '★一杯のときも、ちゃんと気づく');
+  t(props['UPD_VSAVE_GO'] === undefined, '　そのときは、札をはずす');
+  t(JSON.parse(props['UPD_DISK_TODO'] || '[]').length === 1,
+    '★★宿題帳にまわす（空きが戻ったら、そちらがやり直す）');
+  delete props['UPD_DISK_TODO'];
+  ctx.pu.length = 0;
+}
+
 console.log('\n■ 🔢 バージョンは、1行に1つ並べる（ご指示）');
 /*
  * ★「C065/E005/L062/W011/*U121/…」は、走りながらでは目で追えません。
