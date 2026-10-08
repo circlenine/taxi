@@ -156,9 +156,9 @@ p{margin:0}
 ASP = {1: 4 / 3, 2: 1.0}
 TAGS = {"3-2": "回りきったら、左に半回転戻す！"}
 KEYS = {"1-1": ["cap", "c04"], "2-4": ["c44", "c13", "c14"], "4-2": ["c27"], "5-1": ["c33"], "5-2": ["c35"]}
-CAP = {("2-5", "twist"): "手でたどって見る", ("2-5", "strap"): "ストラップ", ("1-1", "cap"): "キャップを外す",
+CAP = {("2-5", "twist"): "手でたどって見る", ("2-5", "strap"): "ストラップ<small>※基本はお腹の横らへんにあるよ！</small>", ("1-1", "cap"): "キャップを外す",
        ("1-1", "c04"): "タンクくるくるを右手で持つ", ("2-4", "c13"): "引く前", ("2-4", "c14"): "引いた後",
-       ("2-4", "c44"): "L字サインホースに付ける<small>正式名称：インフレーターホース</small>", ("2-3", "c11"): "赤い丸＝銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("2-2", "c10"): "赤い丸＝銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c24"): "赤い丸＝タンクくるくる<small>正式名称：タンクバルブ</small>", ("5-2", "c35"): "黒いスーツ着てて見づらいね"}
+       ("2-4", "c44"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("2-3", "c11"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("2-2", "c10"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c24"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("5-2", "c35"): "黒いスーツ着てて見づらいね", ("5-1", "c33"): "この人、ウエスト細いね", ("3-1", "c19"): "目はつぶらなくていいよ", ("4-2", "c27"): "L字サインホース<small>正式名称：インフレーターホース</small>"}
 
 _slots = {}
 def im(k, asp):
@@ -216,7 +216,7 @@ def photos(s):
     elif len(keys) == 3:
         a, b, la, lb, red = keys[0], keys[1:], cap(keys[0]), f"上：{cap(keys[1])}<br>下：{cap(keys[2])}", False
     else:
-        if len(keys) == 1: return f'<div class="photos">{fig(keys[0], 4/3, cap(keys[0]), "赤い丸" in (cap(keys[0]) or ""))}</div>'
+        if len(keys) == 1: return f'<div class="photos">{fig(keys[0], 4/3, cap(keys[0]), (s["id"], keys[0]) in REDCAP)}</div>'
         cls = " strap2" if "strap" in keys else ""
         return f'<div class="photos{cls}">' + "".join(fig(k, 1.0, cap(k)) for k in keys) + "</div>"
     big = f'<figure class="ph3">{im(a, 1.0)}<span class="cap3">{la}</span></figure>'
@@ -225,6 +225,9 @@ def photos(s):
     if s["id"] == "2-4":
         return f'<div class="photos p3 rev">{stk}{big}</div>'
     return f'<div class="photos p3">{big}{stk}</div>'
+
+# 名前を赤い字にする写真（赤い丸で囲んだ物の名前）
+REDCAP = {("2-2", "c10"), ("2-3", "c11"), ("3-2", "c24")}
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
 WIDE = set()
@@ -268,9 +271,9 @@ page("道具", "“ダイビング機材”じゃ！", f"""
 <div class="names">{names_html}</div></div></section>
 <section class="step"><h3 class="sh3"><span class="sn">2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
  <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？！　あぁーっと！！吸えたぁー！！</p>
- <div class="sum"><p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともある）</p>
+ <div class="sum"><p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p>
   <div class="row2"><p><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースがつなぐのはこの2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
-  <div class="row2"><p><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いよいよ吸う！</b></p></div></div></div>
+  <div class="row2"><p><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div></div></div>
 </section>
 <section class="step"><h3 class="sh3"><span class="sn">3</span><span>大きな道具</span></h3>
 <div class="big">
@@ -763,6 +766,12 @@ CSS += """
 /* 使い方の行：左に「どのページか」の札（幅をそろえる）、右に説明 */
 #p1 .howto .hrows{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:2.4mm;row-gap:.6mm;align-items:center;margin-top:.6mm}
 #p1 .howto .hp{background:var(--p-blue);color:var(--navy);border-radius:1mm;font-size:9pt;font-weight:900;text-align:center;padding:0 1.6mm;line-height:1.6}
+"""
+CSS += """
+/* ふり返り：写真の出どころ（URL）と「ふり返ってみようクイズ！」のあいだに横線を1本（10/8 ご指示） */
+#p10 .tcol .ph2{border-top:1px solid var(--line);padding-top:3mm}
+/* URL は途中で折り返さない（「youtu. / be」のように切れないように） */
+.src a{white-space:nowrap}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
