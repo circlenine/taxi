@@ -253,7 +253,7 @@ def page(head_no, head_title, inner, toc=True):
 pages.append(None)
 
 # 道具
-RX0, RY0, RX1, RY1 = 195, 62, 1085, 515
+RX0, RY0, RX1, RY1 = 265, 88, 1045, 500   # 写真 reg2.jpg の範囲（動画の画面での位置）
 MK = [(668, 140), (372, 165), (885, 262), (852, 334), (800, 412)]
 # 名札は、器材に重ならない位置（器材の上ではなく、まわりの地面の上）に置き、白い線で器材とつなぐ
 LB = [(807, 126, "silver", "銀色金具"), (300, 264, "regu", "レギュ"), (1004, 310, "octo", "オクト"), (972, 393, "kachi", "カチカチホース"), (963, 468, "gauge", "残圧計")]
@@ -270,7 +270,7 @@ names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class
 page("器材", "“ダイビング器材”じゃ！", f"""
 <div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
-<div class="reg"><img src="img/reg.jpg" alt="" style="aspect-ratio:890/453">{marks}</div>
+<div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:780/412">{marks}</div>
 <div class="names">{names_html}</div></div></section>
 <section class="step"><h3 class="sh3"><span class="sn">2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
  <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？！　あぁーっと！！吸えたぁー！！</p>
@@ -314,7 +314,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずこれじゃあ！</p><div class="cv-f"><span class="cv-e">器材準備編</span></div></div>
+pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">器材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -691,7 +691,7 @@ CSS += """
 /* 道具のページ：右上の memo を広げる（10/8 ご指示「右際のスペースを頑張って空けて」）
    ・大きな道具の写真を 31mm → 26mm に下げ、下の段を SASUKE と同じ高さまで縮める
    ・あいた高さは、上の段（凡例・参考動画／memo）に回す。左の参考動画は下にそろえ、memo と下の線を合わせる */
-#p2 .tools .bg>img{height:26mm!important}
+#p2 .tools .bg>img{height:33mm!important;max-width:34mm!important;object-fit:contain}
 #p2 .grid2.tools{flex:none!important}
 #p2 .toprow{flex:1}
 /* 参考動画の枠は、凡例の下から memo の下はしまで伸ばし、中身はまん中に置く（あいだに半端なすき間を作らない） */
