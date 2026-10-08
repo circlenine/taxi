@@ -158,7 +158,7 @@ TAGS = {"3-2": "回りきったら、左に半回転戻す！"}
 KEYS = {"1-1": ["cap", "c04"], "2-4": ["c44", "c13", "c14"], "4-2": ["c27"], "5-1": ["c33"], "5-2": ["c35"]}
 CAP = {("2-5", "twist"): "手でたどって見る", ("2-5", "strap"): "ストラップ<small>※基本はお腹の横らへんにあるよ！</small>", ("1-1", "cap"): "キャップを外す",
        ("1-1", "c04"): "タンクくるくるを右手で持つ", ("2-4", "c13"): "引く前", ("2-4", "c14"): "引いた後",
-       ("2-4", "c44"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("2-3", "c11"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("2-2", "c10"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c24"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("5-2", "c35"): "黒いスーツ着てて見づらいね", ("5-1", "c33"): "この人、ウエスト細いね", ("2-1", "c09"): "Ｏって感じだよね", ("3-1", "c19"): "目はつぶらなくていいよ", ("4-2", "c27"): "L字サインホース<small>正式名称：インフレーターホース</small>"}
+       ("2-4", "c44"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("2-3", "c11"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("2-2", "c10"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c24"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("5-2", "c35"): "黒いスーツ着てて見づらいね", ("5-1", "c33"): "この人、ウエスト細いね", ("2-1", "c09"): "Oって感じだよね", ("3-1", "c19"): "目はつぶらなくていいよ", ("4-2", "c27"): "L字サインホース<small>正式名称：インフレーターホース</small>"}
 
 _slots = {}
 def im(k, asp):
@@ -311,7 +311,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt"><span class="tapm scr">*</span>{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてる時は、ほかの操作ができない時もあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、ほかの操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
