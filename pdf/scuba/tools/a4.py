@@ -259,8 +259,8 @@ lines = "".join(f'<line x1="{x-RX0}" y1="{y-RY0}" x2="{cx-RX0}" y2="{cy-RY0}" st
 marks = f'<svg viewBox="0 0 {W_} {H_}" preserveAspectRatio="none">{lines}</svg>' + "".join(
     # 写真の上には番号だけを置く（名前の札は器材にかぶるため。名前は右の表で照らし合わせる）
     f'<span class="lb" style="left:{(cx-RX0)/W_*100:.2f}%;top:{(cy-RY0)/H_*100:.2f}%"><span class="nn">{i+1}</span></span>' for i, (cx, cy, k, name) in enumerate(LB))
-names = [("{silver}", "{tank}につなぐ", "ファーストステージ"), ("{regu}", "自分が吸う", "セカンドステージ"),
-         ("{octo}", "緊急用<span class=\"dsn\">（黄色って緊急っぽいよね）</span>", "オクトパス"), ("{kachi}", "{bc}につなぐ", "中圧ホース"),
+names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"), ("{regu}", "自分が吸う", "セカンドステージ"),
+         ("{octo}", "緊急用<span class=\"dsn\">（黄色って緊急っぽいよね）</span>", "オクトパス"), ("{kachi}", "{bc}と合体！", "中圧ホース"),
          ("{gauge}", "空気の残り", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
@@ -277,8 +277,8 @@ page("道具", "“ダイビング機材”じゃ！", f"""
 </section>
 <section class="step"><h3 class="sh3"><span class="sn">3</span><span>大きな道具</span></h3>
 <div class="big">
- <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。</p></div>
- <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
+ <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{silver}")}と合体！</p></div>
+ <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
  <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
 </div></section></div>""")
 
