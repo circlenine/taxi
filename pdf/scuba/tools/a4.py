@@ -308,7 +308,8 @@ quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span 
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
-toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
+TOC_LB = {"最後に": "その他・クイズ"}
+toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
@@ -789,6 +790,13 @@ CSS += """
 /* クイズの説明は1行に収める（10/8 ご指示：印刷で消えたあとに2行ぶんの空きが残るのが気になる）。
    字をつめる（かっこ・読点の空きを詰める palt）だけで、字の大きさ（9pt）は変えない */
 #p10 .ph2 small.qhint{white-space:nowrap;font-feature-settings:"palt";letter-spacing:-.01em}
+"""
+CSS += """
+/* もくじの札の列：いちばん長い「その他・クイズ」が1行に入る幅にそろえる（どの行も題の書き出しは同じ位置） */
+#p1 .tc{grid-template-columns:max-content minmax(0,1fr) auto!important}
+#p1 .toc{display:grid!important;grid-template-columns:max-content minmax(0,1fr) auto}
+#p1 .tc{display:grid;grid-column:1/-1;grid-template-columns:subgrid!important}
+#p1 .tl{padding:0 2mm;white-space:nowrap}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
