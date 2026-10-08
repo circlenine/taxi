@@ -6,7 +6,7 @@
 import json, sys
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import (DictionaryObject, NameObject, ArrayObject, FloatObject, NumberObject,
-                           TextStringObject, BooleanObject)
+                           TextStringObject, BooleanObject, StreamObject)
 src, pos, out = sys.argv[1:4]
 w = PdfWriter(clone_from=PdfReader(src))
 P = json.load(open(pos))
@@ -16,7 +16,9 @@ font = DictionaryObject({NameObject("/Type"): NameObject("/Font"), NameObject("/
                          NameObject("/BaseFont"): NameObject("/Helvetica"), NameObject("/Encoding"): NameObject("/WinAnsiEncoding")})
 af[NameObject("/DR")] = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/Helv"): w._add_object(font)})})
 af[NameObject("/DA")] = TextStringObject("/Helv 11 Tf 0.122 0.165 0.216 rg")
-af[NameObject("/NeedAppearances")] = BooleanObject(True)
+# NeedAppearances は False にする（10/8：True だと iPhone がクイズの □ の見た目を作り直し、✓ が □ からずれて出た）。
+# そのかわり、memo の欄には「空っぽの見た目」を自分で付けておく。字を打てば、iPhone がその字の見た目を作る
+af[NameObject("/NeedAppearances")] = BooleanObject(False)
 for i, p in enumerate(P):
     page = w.pages[p["page"]]
     H = float(page.mediabox.height)
@@ -29,6 +31,11 @@ for i, p in enumerate(P):
         NameObject("/F"): NumberObject(4), NameObject("/P"): page.indirect_reference,
         NameObject("/MK"): DictionaryObject(),         # 地もふちも付けない
     })
+    ap = StreamObject(); ap._data = b"/Tx BMC EMC"
+    ap.update({NameObject("/Type"): NameObject("/XObject"), NameObject("/Subtype"): NameObject("/Form"),
+               NameObject("/BBox"): ArrayObject([FloatObject(0), FloatObject(0), FloatObject(p["w"]), FloatObject(p["h"])]),
+               NameObject("/Resources"): DictionaryObject()})
+    f[NameObject("/AP")] = DictionaryObject({NameObject("/N"): w._add_object(ap)})
     ref = w._add_object(f)
     if "/Annots" not in page: page[NameObject("/Annots")] = ArrayObject()
     page["/Annots"].append(ref); fields.append(ref)

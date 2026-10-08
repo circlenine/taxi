@@ -44,7 +44,7 @@ for i, p in enumerate(P):
             NameObject("/Rect"): ArrayObject([FloatObject(v) for v in rect]),
             NameObject("/AS"): NameObject("/Off"), NameObject("/F"): NumberObject(4),
             NameObject("/MK"): DictionaryObject({NameObject("/CA"): TextStringObject("4")}),
-            NameObject("/DA"): TextStringObject("/ZaDb 0 Tf 0.05 0.25 0.37 rg"),
+            NameObject("/DA"): TextStringObject(f"/ZaDb {s*0.8:.1f} Tf 0.05 0.25 0.37 rg"),
             NameObject("/AP"): DictionaryObject({NameObject("/N"): DictionaryObject({NameObject("/Yes"): on, NameObject("/Off"): off})}),
         })
         kref = w._add_object(k)
