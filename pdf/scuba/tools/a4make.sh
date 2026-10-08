@@ -16,6 +16,8 @@ node $S/tools/wrapcheck.js $S/build/a4.html
 python3 -I $S/tools/pairalign.py $S/build/img/s
 python3 -I $S/tools/markreview.py $S/build/img/s $S/build/review_marks.png
 python3 -I $S/tools/termcheck.py $S/build/a4.html
+# 読みでまとめる表記ゆれの検査（janome が要る：pip install janome）。確認待ちのものが残っている間は、止めずに知らせるだけ
+python3 $S/tools/yomicheck.py $S/build/a4.html || echo "↑ 表記ゆれ：まーくさんに確認中のもの"
 python3 -I $S/tools/chipcheck.py $S/build/a4.html
 node $S/tools/palette.js $S/build/a4.html
 node $S/tools/borders.js $S/build/a4.html
