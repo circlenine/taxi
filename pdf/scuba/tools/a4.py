@@ -798,6 +798,10 @@ CSS += """
 CSS += """
 /* もくじの札は、どれも3文字（器　材・工程1〜6・ラスト）にそろえたので、列の幅はもとの 18mm のまま */
 """
+CSS += """
+/* 大きな器材：写真は、その行の上下のまん中に置く（10/8 ご指摘：文が長い BCD の行だけ、写真が上に寄っていた） */
+.tools .bg>img{align-self:center!important}
+"""
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}

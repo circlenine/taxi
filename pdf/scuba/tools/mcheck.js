@@ -79,6 +79,9 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
  document.querySelectorAll('.page[data-ph]').forEach(pg=>{if(+pg.dataset.ph<40)out.push(pg.id+' 写真が低すぎ '+(+pg.dataset.ph).toFixed(0)+'mm');});
  // 同じ札（補足と補足・大事と大事）が続いていないか（10/8 ご指摘：補足が2回続く意味が分からない）
  document.querySelectorAll('.notes').forEach(ns=>{const k=[...ns.querySelectorAll(':scope>.nt')].map(n=>n.classList.contains('kpk')?'大事':'補足');for(let i=1;i<k.length;i++)if(k[i]===k[i-1])out.push(ns.closest('.page').id+' 同じ札が続く（'+k[i]+'） '+ns.closest('.step').querySelector('.sn').textContent);});
+ // 大きな器材：写真が、その行（線と線のあいだ）の上下のまん中にあるか（10/8 ご指摘：BCDの写真だけ上に寄っていた）
+ document.querySelectorAll('.tools .bg').forEach(bg=>{const im=bg.querySelector(':scope>img');if(!im)return;const r=bg.getBoundingClientRect(),cs=getComputedStyle(bg),t=r.top+parseFloat(cs.paddingTop),b=r.bottom-parseFloat(cs.paddingBottom),q=im.getBoundingClientRect();
+  const d=((q.top+q.bottom)/2-(t+b)/2)*25.4/96;if(Math.abs(d)>.5)out.push(bg.closest('.page').id+' 大きな器材の写真が上下のまん中にない「'+bg.textContent.trim().slice(0,4)+'」 '+d.toFixed(1)+'mm');});
  // memo の欄が、ほかの中身（字・写真・線）に重なっていないか（10/8）
  document.querySelectorAll('.page').forEach((pg,i)=>{const ms=[...pg.querySelectorAll(':scope>.memo')].map(m=>m.getBoundingClientRect());
   pg.querySelectorAll('*').forEach(e=>{if(e.closest('.memo,.pno')||e.contains(pg.querySelector('.memo')))return;const r=e.getBoundingClientRect();if(!r.width||!r.height)return;
