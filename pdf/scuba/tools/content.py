@@ -96,8 +96,8 @@ STEPS = [
    dict(id="6-1", key=["c37"], frames=["c37"], title="{regu}が使えるか"),
    dict(id="6-2", key=["c38"], frames=["c38"], title="{octo}が使えるか"),
    dict(id="6-3", key=["c39"], frames=["c39"], title="<span class=\"nw\">{tank}くるくる</span>が開いているか"),
-   dict(id="6-4", key=["c40"], frames=["c40"], title="空気は180以上あるか"),
-   dict(id="6-5", key=["c41"], frames=["c41"], title="ゆるみがないか"),
+   dict(id="6-4", key=["c40"], frames=["c40"], title="{gauge}の空気は180以上あるか"),
+   dict(id="6-5", key=["c41"], frames=["c41"], title="{bc}の緩みはないか"),
   ]),
 ]
 
