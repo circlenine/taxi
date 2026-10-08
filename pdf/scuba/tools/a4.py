@@ -277,8 +277,8 @@ page("道具", "“ダイビング機材”じゃ！", f"""
 </section>
 <section class="step"><h3 class="sh3"><span class="sn">3</span><span>大きな道具</span></h3>
 <div class="big">
- <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{silver}")}と合体！</p></div>
- <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
+ <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{silver}")}＆{T("{bc}")}と合体！</p></div>
+ <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{tank}")}＆{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
  <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
 </div></section></div>""")
 
