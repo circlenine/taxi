@@ -243,7 +243,7 @@ def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
-    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>とくに大事な話</span>' if (head_no == "道具" or head_no.startswith("工程")) else ""
+    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>とくに大事な話</span>' if (head_no == "器材" or head_no.startswith("工程")) else ""
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
@@ -267,7 +267,7 @@ names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"
          ("{gauge}", "空気の残り", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
-page("道具", "“ダイビング機材”じゃ！", f"""
+page("器材", "“ダイビング機材”じゃ！", f"""
 <div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg.jpg" alt="" style="aspect-ratio:890/453">{marks}</div>
@@ -278,7 +278,7 @@ page("道具", "“ダイビング機材”じゃ！", f"""
   <div class="row2"><p><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースがつなぐのはこの2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
   <div class="row2"><p><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div></div></div>
 </section>
-<section class="step"><h3 class="sh3"><span class="sn">3</span><span>大きな道具</span></h3>
+<section class="step"><h3 class="sh3"><span class="sn">3</span><span>大きな器材</span></h3>
 <div class="big">
  <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{bc}")}＆{T("{silver}")}と合体！</p></div>
  <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{tank}")}＆{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
@@ -311,8 +311,9 @@ quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span 
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
-TOC_LB = {"最後に": "その他・クイズ"}
-toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
+TOC_LB = {"最後に": "ラスト", "器材": "器　材"}
+TOC_TT = {"最後に": "その他・クイズ"}
+toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
@@ -795,11 +796,7 @@ CSS += """
 #p10 .ph2 small.qhint{white-space:nowrap;font-feature-settings:"palt";letter-spacing:-.01em}
 """
 CSS += """
-/* もくじの札の列：いちばん長い「その他・クイズ」が1行に入る幅にそろえる（どの行も題の書き出しは同じ位置） */
-#p1 .tc{grid-template-columns:max-content minmax(0,1fr) auto!important}
-#p1 .toc{display:grid!important;grid-template-columns:max-content minmax(0,1fr) auto}
-#p1 .tc{display:grid;grid-column:1/-1;grid-template-columns:subgrid!important}
-#p1 .tl{padding:0 2mm;white-space:nowrap}
+/* もくじの札は、どれも3文字（器　材・工程1〜6・ラスト）にそろえたので、列の幅はもとの 18mm のまま */
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
