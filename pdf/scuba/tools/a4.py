@@ -214,7 +214,7 @@ def photos(s):
     if s.get("ng"):
         a, b, la, lb, red = keys[0], ("nghi", "nglo"), "○ 正しい高さ", "上：✕ 高すぎ<br>下：✕ 低すぎ", True
     elif len(keys) == 3:
-        a, b, la, lb, red = keys[0], keys[1:], cap(keys[0]), f"上：{cap(keys[1])}<br>下：{cap(keys[2])}", False
+        a, b, la, lb, red = keys[0], keys[1:], cap(keys[0]), f"上：{cap(keys[1])}<br>下：{cap(keys[2])}" + STK_OF.get(s["id"], ""), False
     else:
         if len(keys) == 1: return f'<div class="photos">{fig(keys[0], 4/3, cap(keys[0]), (s["id"], keys[0]) in REDCAP)}</div>'
         cls = " strap2" if "strap" in keys else ""
@@ -225,6 +225,9 @@ def photos(s):
     if s["id"] == "2-4":
         return f'<div class="photos p3 rev">{stk}{big}</div>'
     return f'<div class="photos p3">{big}{stk}</div>'
+
+# 2-4 の左の名前に「カチカチホース（正式名称：中圧ホース）」を足すと、細い欄で3〜4行になり、はみ出してごちゃつくので足さない（10/8 試した結果）
+STK_OF = {}
 
 # 名前を赤い字にする写真（赤い丸で囲んだ物の名前）
 REDCAP = {("2-2", "c10"), ("2-3", "c11"), ("3-2", "c24")}
