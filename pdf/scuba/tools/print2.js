@@ -18,6 +18,8 @@ const { chromium } = require('playwright');
     return r;
   });
   console.log(bad.length ? bad.join('\n') : 'no overflow');
+  // 画面だけの説明（.scr）は本文に印刷しない。あとで「印刷しない注釈」として重ねる（10/8 ご指示）
+  await p.addStyleTag({content:'.scr{visibility:hidden!important}'});
   await p.pdf({ path: out, width: '210mm', height: '297mm', printBackground: true, preferCSSPageSize: true });
   await b.close();
 })();

@@ -262,7 +262,7 @@ names = [("{silver}", "{tank}につなぐ", "ファーストステージ"), ("{r
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
 page("道具", "“ダイビング機材”じゃ！", f"""
-<div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru">youtu.be/twjEJS_0kms</span><span class="rn">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
+<div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru">youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg.jpg" alt="" style="aspect-ratio:890/453">{marks}</div>
 <div class="names">{names_html}</div></div></section>
@@ -302,13 +302,13 @@ for sec in STEPS:
 pts = "".join(f'<p class="pth">{h}</p>' + "".join(f"<p>・{T(l)}</p>" for l in ls) for h, ls in POINTS)
 quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q">{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB">https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small>□を押すと、答えが出るよ（もう一度押すと消える）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB">https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr">□を押すと、答えが出るよ（もう一度押すと消える）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto"><p class="hh">このPDFの使い方</p><p>・クイズの□を押すと、答えが出るよ（もう一度押すと消える）</p><p>・memo は、押すと字が書けるよ</p><p>・青い字のリンクを押すと、動画へ移動するよ</p><p class="hw">memo を書いている間は、□やリンクが効かないよ。<br>キーボードの【完了】を押してから、押してね</p></div>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p>・クイズの□を押すと、答えが出るよ（もう一度押すと消える）</p><p>・memo は、押すと字が書けるよ</p><p>・青い字のリンクを押すと、動画へ移動するよ</p><p class="hw">memo を書いている間は、□やリンクが効かないよ。<br>キーボードの【完了】を押してから、押してね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
@@ -648,7 +648,8 @@ CSS += """
  background-image:radial-gradient(circle,#ecd48a .45mm,transparent .5mm)!important;background-size:5mm 5mm;background-position:2.5mm 7.5mm;
  clip-path:polygon(0 -3mm,100% -3mm,100% calc(100% - 5mm),calc(100% - 5mm) 100%,0 100%)}
 .page>.memo::before{content:"";position:absolute;left:50%;top:-1.6mm;width:18mm;height:4.4mm;translate:-50% 0;background:rgba(212,236,250,.9)}
-.page>.memo::after{content:"";position:absolute;right:0;bottom:0;width:5mm;height:5mm;background:linear-gradient(315deg,transparent 50%,#ecd48a 50%);border-radius:0 0 0 0}
+/* 右下の折り目：ぼかし（グラデーション）ではなく、ふつうの三角にする。グラデーションは印刷のときに黒くなることがある */
+.page>.memo::after{content:"";position:absolute;right:0;bottom:0;width:5mm;height:5mm;background:#ecd48a;clip-path:polygon(0 0,100% 0,0 100%)}
 .memo .mh{color:#9a6b00!important;background:#fffaeb;display:block!important;width:fit-content;padding-right:1mm}
 """
 CSS += """
@@ -749,6 +750,10 @@ CSS += """
 #p1 .howto .hh{font-weight:900;color:var(--navy);font-size:11pt}
 #p1 .howto .hw{margin-top:.8em;color:var(--p-ink-red);font-weight:900}
 """
+CSS += """
+/* .scr＝画面で見るときだけの説明（「タップすると〜」など）。印刷では消す（10/8 ご指示）
+   PDFの本文からは消し、同じ見た目の絵を「印刷しない注釈」として同じ場所に重ねる（scrshot.js・addscr.py） */
+"""
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
@@ -780,7 +785,7 @@ function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=p
  cols.forEach(c=>c.b=lim);return cols;}
 function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m.className='memo';
  Object.assign(m.style,{left:(q.l-P.left)+'px',top:(q.t-P.top)+'px',width:(q.r-q.l)+'px',height:(q.b-q.t)+'px'});
- m.innerHTML='<span class="mh">memo<small>※タップすると入力</small></span>';pg.appendChild(m);
+ m.innerHTML='<span class="mh">memo<small class="scr">※タップすると入力</small></span>';pg.appendChild(m);
  const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;
  const n=Math.floor(inner/(8.5*MM));for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;

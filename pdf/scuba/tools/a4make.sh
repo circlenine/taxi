@@ -25,6 +25,10 @@ node $S/tools/memopos.js $S/build/a4.html $S/build/a4memo.json
 python3 -I $S/tools/addmemo.py $S/build/a4c.pdf $S/build/a4memo.json $S/build/a4m.pdf
 mv $S/build/a4m.pdf $S/build/a4c.pdf
 $S/tools/pdfimgcheck.sh $S/build/a4c.pdf
+rm -rf $S/build/scr && mkdir -p $S/build/scr
+node $S/tools/scrshot.js $S/build/a4.html $S/build/scr $S/build/a4scr.json
+python3 -I $S/tools/addscr.py $S/build/a4c.pdf $S/build/a4scr.json $S/build/a4s.pdf
+mv $S/build/a4s.pdf $S/build/a4c.pdf
 # 仕上がりのPDFを、ファイル名に「直した日（日本時間）」を入れて置く（10/8 ご指示：日付は必ず直した日に合わせる）
 D=$(TZ=Asia/Tokyo date +%y%m%d)
 rm -f $S/out/1_*_ｽｷｭｰﾊﾞ_機材準備編.pdf
