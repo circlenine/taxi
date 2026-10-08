@@ -308,7 +308,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p>・memo は、タップすると字が書けるよ（もう一度タップすると消えるよ）</p><p>・青い字のリンクをタップすると、YouTubeへ移動するよ</p><p>・クイズの□をタップすると、答えが出るよ</p><p class="hw">memo、YouTubeのリンク、クイズの□<br>どれかをタップしてる時は、他の操作ができないから<br>もういいや、ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><div class="hrows"><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ（もう一度タップすると消えるよ）</span><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ</span></div><p class="hw">memo、YouTubeのリンク、クイズの□<br>どれかをタップしてる時は、他の操作ができないから<br>もういいや、ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
@@ -758,6 +758,11 @@ CSS += """
 /* クイズの中の正式名称（呼び方のすぐ後ろに、かっこで小さく） */
 .qz .of2{color:var(--muted);font-weight:700}
 .qz .a .of2{color:var(--navy)}
+"""
+CSS += """
+/* 使い方の行：左に「どのページか」の札（幅をそろえる）、右に説明 */
+#p1 .howto .hrows{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:2.4mm;row-gap:.6mm;align-items:center;margin-top:.6mm}
+#p1 .howto .hp{background:var(--p-blue);color:var(--navy);border-radius:1mm;font-size:9pt;font-weight:900;text-align:center;padding:0 1.6mm;line-height:1.6}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
