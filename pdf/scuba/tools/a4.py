@@ -302,13 +302,13 @@ for sec in STEPS:
 pts = "".join(f'<p class="pth">{h}</p>' + "".join(f"<p>・{T(l)}</p>" for l in ls) for h, ls in POINTS)
 quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q">{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB">https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr">□を押すと、答えが出るよ（もう一度押すと消える）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB">https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr">□をタップすると、答えが出るよ<span class="nw">（もう一度タップすると消える）</span></small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p>・クイズの□を押すと、答えが出るよ（もう一度押すと消える）</p><p>・memo は、押すと字が書けるよ</p><p>・青い字のリンクを押すと、動画へ移動するよ</p><p class="hw">memo を書いている間は、□やリンクが効かないよ。<br>キーボードの【完了】を押してから、押してね</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p>・クイズの□をタップすると、答えが出るよ（もう一度タップすると消える）</p><p>・memo は、タップすると字が書けるよ</p><p>・青い字のリンクをタップすると、動画へ移動するよ</p><p class="hw">memo を書いている間は、□やリンクが効かないよ。<br>キーボードの【完了】をタップしてから、タップしてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
@@ -753,6 +753,11 @@ CSS += """
 CSS += """
 /* .scr＝画面で見るときだけの説明（「タップすると〜」など）。印刷では消す（10/8 ご指示）
    PDFの本文からは消し、同じ見た目の絵を「印刷しない注釈」として同じ場所に重ねる（scrshot.js・addscr.py） */
+"""
+CSS += """
+/* クイズの中の正式名称（呼び方のすぐ後ろに、かっこで小さく） */
+.qz .of2{color:var(--muted);font-weight:700}
+.qz .a .of2{color:var(--navy)}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>

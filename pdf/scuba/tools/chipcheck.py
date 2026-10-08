@@ -19,7 +19,7 @@ for pat in [r'<div class="ph[^"]*">.*?</h2></div>',        # ページの見出�
     h = re.sub(pat, '', h, flags=re.S)
 h = re.sub(r'<span class="t t-\w+">[^<]*</span>', '■', h)  # 札になっているものは消す
 t = re.sub(r'<[^>]+>', '', h)
-WORDS = ["BCD", "タンク", "銀色金具", "レギュ(?!レーター)", "オクト(?!パス)", "残圧計", "重り", "カチカチホース"]
+WORDS = ["BCD", "タンク(?!バルブ)", "銀色金具", "レギュ(?!レーター)", "オクト(?!パス)", "残圧計", "重り", "カチカチホース"]
 bad = []
 for w in WORDS:
     for m in re.finditer(w, t):
