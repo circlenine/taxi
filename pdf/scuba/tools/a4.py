@@ -308,10 +308,10 @@ quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span 
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr">□をタップすると、答えが出るよ<span class="nw">（もう一度タップすると消えるよ）</span></small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
-toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt"><span class="tapm scr">*</span>{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
+toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、ほかの操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
@@ -777,6 +777,13 @@ CSS += """
 /* タップできるところの印「*」：字より少し大きく、大事と同じ赤で、すぐ後ろの字とくっつけすぎない */
 .tapm{display:inline-block;color:var(--p-ink-red)!important;font-weight:900;font-size:1.15em;line-height:1;margin-right:.15em;vertical-align:-.05em;text-decoration:none}
 #p1 .howto .htap{margin-top:.4mm;margin-bottom:.4mm}
+"""
+CSS += """
+/* memo のテープ：紙（うすい黄色）とはっきり違う、マスキングテープらしい濃いめの黄色。
+   両はしを、手でちぎったようなギザギザにする（10/8 ご指示：青いテープは紛らわしい）。
+   ぼかし（グラデーション）は印刷で黒くなるので使わない */
+.page>.memo::before{background:#f3d36b!important;width:20mm!important;height:4.6mm!important;
+ clip-path:polygon(0 0,100% 0,97% 18%,100% 36%,97% 54%,100% 72%,97% 88%,100% 100%,0 100%,3% 82%,0 64%,3% 46%,0 28%,3% 12%)}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
