@@ -308,7 +308,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{lb}</span><span class="tt">{T(tt)}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p>・クイズの□をタップすると、答えが出るよ（もう一度タップすると消える）</p><p>・memo は、タップすると字が書けるよ</p><p>・青い字のリンクをタップすると、動画へ移動するよ</p><p class="hw">memo を書いている間は、□やリンクが効かないよ。<br>キーボードの【完了】をタップしてから、タップしてね</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p>・クイズの□をタップすると、答えが出るよ（もう一度タップすると消える）</p><p>・memo は、タップすると字が書けるよ</p><p>・青い字のリンクをタップすると、動画へ移動するよ</p><p class="hw">memo を書いている間は、□やリンクが効かないよ。<br>右上の「✔︎」をタップしたら、通常に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
