@@ -311,10 +311,10 @@ quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span 
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
-TOC_LB = {"最後に": "ラスト", "器材": "器　材"}
+TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">機材準備編</span></div></div>
+pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずこれじゃあ！</p><div class="cv-f"><span class="cv-e">器材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -513,9 +513,9 @@ CSS += """
 .pts small{display:block;padding-left:1em;font-size:10.5pt;color:var(--muted)}
 """
 CSS += """
-/* 「機材準備編」は表紙でいちばん大きく（ほかの編と見分けるため） */
+/* 「器材準備編」は表紙でいちばん大きく（ほかの編と見分けるため） */
 .cover .cv-e{font-size:42pt!important;line-height:1.35!important;padding:1mm 5mm!important;letter-spacing:.12em}
-/* by まーく は「機材準備編」のすぐ下に */
+/* by まーく は「器材準備編」のすぐ下に */
 .cover .cv-f{flex-direction:column;align-items:flex-start;gap:1.2mm}
 .cover .cv-b{font-size:11pt!important}
 /* もくじはタップしやすいよう、行の高さを広げる */
@@ -666,7 +666,7 @@ CSS += """
 .notes .nt,.notes .kpk{padding:1.8mm 1.4mm!important}
 """
 CSS += """
-/* 表紙：「生きるために…」と「機材準備編」のあいだの横線は引かない（10/8 ご指示） */
+/* 表紙：「生きるために…」と「器材準備編」のあいだの横線は引かない（10/8 ご指示） */
 .cover .cv-f{border-top:0!important;padding-top:0!important}
 /* ✕ の大きさ：5.4mm 四方（線 1.2mm ＝ 54 のうち 12） */
 .ngx .ngv{position:absolute;right:1mm;top:1mm;width:7mm;height:7mm}
@@ -840,6 +840,6 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  place(pg,best);});}
 document.fonts.ready.then(()=>{fixOrphans();markRight();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
 open(os.path.join(B, "a4.html"), "w").write(
-    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>機材準備編</title>{FONTS}<style>{CSS}</style></head>'
+    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材準備編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{"".join(pages)}{FIT}</body></html>')
 print("pages", len(pages))

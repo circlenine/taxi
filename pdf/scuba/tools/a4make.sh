@@ -16,8 +16,8 @@ node $S/tools/wrapcheck.js $S/build/a4.html
 python3 -I $S/tools/pairalign.py $S/build/img/s
 python3 -I $S/tools/markreview.py $S/build/img/s $S/build/review_marks.png
 python3 -I $S/tools/termcheck.py $S/build/a4.html
-# 読みでまとめる表記ゆれの検査（janome が要る：pip install janome）。確認待ちのものが残っている間は、止めずに知らせるだけ
-python3 $S/tools/yomicheck.py $S/build/a4.html || echo "↑ 表記ゆれ：まーくさんに確認中のもの"
+# 読みでまとめる表記ゆれの検査（janome が要る：pip install janome）。ゆれが見つかったら止める
+python3 $S/tools/yomicheck.py $S/build/a4.html
 python3 -I $S/tools/chipcheck.py $S/build/a4.html
 node $S/tools/palette.js $S/build/a4.html
 node $S/tools/borders.js $S/build/a4.html
@@ -36,6 +36,6 @@ mv $S/build/a4l.pdf $S/build/a4c.pdf
 python3 -I $S/tools/lnkcheck.py $S/build/a4c.pdf
 # 仕上がりのPDFを、ファイル名に「直した日（日本時間）」を入れて置く（10/8 ご指示：日付は必ず直した日に合わせる）
 D=$(TZ=Asia/Tokyo date +%y%m%d)
-rm -f $S/out/1_*_ｽｷｭｰﾊﾞ_機材準備編.pdf
-cp $S/build/a4c.pdf "$S/out/1_${D}_ｽｷｭｰﾊﾞ_機材準備編.pdf"
-echo "出力: 1_${D}_ｽｷｭｰﾊﾞ_機材準備編.pdf"
+rm -f $S/out/1_*_ｽｷｭｰﾊﾞ_器材準備編.pdf
+cp $S/build/a4c.pdf "$S/out/1_${D}_ｽｷｭｰﾊﾞ_器材準備編.pdf"
+echo "出力: 1_${D}_ｽｷｭｰﾊﾞ_器材準備編.pdf"
