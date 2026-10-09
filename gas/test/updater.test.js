@@ -5018,6 +5018,49 @@ console.log('\n■ 💾 ドライブが一杯でも、空きが戻れば自分�
   ctx.pu.length = 0;
 }
 
+console.log('\n■ 🚑 「なおす」を、いちばん探しやすいところに置く（ご指示）');
+/*
+ * ★まーく様のご指示です。
+ *   「どうしても手動承認が必要な際、もっと簡略化して、
+ *     全てを許可できる形に設定できませんか」
+ *
+ * ★許可そのものは、もともと1回でまとめて出ます（プロジェクトごと）。
+ *   簡略にできるのは「探す手間」のほうです。
+ *   ・001-Code の いちばん先頭に置く
+ *     → スクリプトの画面を開くと、最初からこのファイルが開いている
+ *     → 関数の一覧は「書いてある順」なので、1番目に出る
+ *   ・スプシの上のメニューにも置く
+ *     → スクリプトの画面を開く必要すらない
+ */
+{
+  const code = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+
+  const at = code.indexOf('\nfunction なおす()');
+  t(at > 0, '★「なおす」がある');
+
+  // ★ほかのどの関数よりも先に書いてあること（関数の一覧で1番目に出るため）
+  let first = code.length;
+  const re = /\nfunction\s+([^\s(]+)\s*\(/g;
+  let m, firstName = '';
+  while ((m = re.exec(code))) { first = m.index; firstName = m[1]; break; }
+  t(firstName === 'なおす',
+    '★★いちばん先頭の関数が「なおす」（一覧の1番目に出る）', firstName);
+
+  // ★中身は fixAll を呼ぶだけ。同じ名前を2つ作るとプロジェクトが止まる
+  const body = code.slice(at, at + 600);
+  t(body.indexOf('fixAll') !== -1, '★中身は fixAll を呼ぶ');
+  t(code.indexOf('\nfunction fixAll(') === -1,
+    '★★001-Code に fixAll を2つめ作らない（作ると全部止まる）');
+
+  // ★スプシのメニューにも置く（スクリプトの画面を開かずに済む）
+  t(code.indexOf('"🚑 なおす"') !== -1, '★メニューにも「🚑 なおす」がある');
+  t(code.indexOf('"なおす"') !== -1, '　メニューから「なおす」を呼ぶ');
+  const menuAt = code.indexOf('createMenu("🚑 なおす")');
+  const m1At = code.indexOf('createMenu("🅰️ はじめの設定');
+  t(menuAt > 0 && menuAt < m1At,
+    '★★メニューの いちばん上に置く（困ったとき すぐ目に入るように）');
+}
+
 console.log('\n■ 🚑 fixAll ―― どこからも動かせなくなったときの入口');
 /*
  * ★まーく様のご指摘です。
