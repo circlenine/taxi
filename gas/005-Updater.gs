@@ -2,7 +2,26 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U129ver  （2026/09/25）  ★★★
+ *  ★★★  U130ver  （2026/10/09）  ★★★
+ *
+ *  [U130ver]
+ *   ・⚡ 1分おきの見張りを、ぐっと安くした（ご指示・全自動にしたい）
+ *     ★1分おき × 1日1440回。無料のGmailは、見張りの合計が
+ *       1日90分までです。1回4秒かかると96分で、上限を超えます。
+ *       超えた日は、その日ぜんぶの見張りが止まります。
+ *       10/02から10/09まで7日間 止まっていた、いちばん濃い心当たりです。
+ *     ★これまで毎分こうしていました（テストで数えました）
+ *       ・シート全体の文字さがし … 1回
+ *       ・読み（getValues） … 10往復
+ *       ・□を1つずつ聞き直し … 4回
+ *     ★いまはこうです
+ *       ・シート全体の文字さがし … 0回
+ *       ・読み … 2往復
+ *       ・聞き直し … 0回
+ *     ★②で読んだ中身から「押されているか」も「ボタンの列はどこか」も
+ *       分かるのに、そのたびに聞き直していました。無駄でした。
+ *     ★置き場所が要るときは、これまでどおり panelResetCell_ を使います。
+ *       安いほう（panelResetOn_）は、見張り専用です。
  *
  *  [U129ver]
  *   ・✨ 入れ替わった印を「←Shooting Star New✨️」にした（ご指示）
@@ -1389,7 +1408,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U129ver";
+const UPD_VERSION = "U130ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9154,15 +9173,73 @@ function panelResetCell_(sh) {
 }
 
 /**
+ * 押されているリセットの□だけを、いちばん安い読み方で探す。
+ *
+ * ★なぜ要るのか（まーく様のご指摘「全自動にしたい」から）
+ *   1分おきの見張りは、1日1440回 走ります。
+ *   無料のGmailは、見張りの合計が1日90分までです。
+ *   1回4秒かかると96分で、上限を超えます。
+ *   超えた日は、その日ぜんぶの見張りが止まります。
+ *
+ * ★これまで、毎分こうしていました
+ *   ①シート全体を文字さがし（createTextFinder）… いちばん重い
+ *   ②ボタンより上を380マス読む
+ *   ③見つかった□を、1つずつ もう一度 聞きにいく（1個につき1往復）
+ *   ②で中身を読んでいるのに、③でまた聞いていました。無駄でした。
+ *
+ * ★ここでは②だけにします。読んだ中身から、押されているかが分かります。
+ *   1往復で済みます。①と③は、まるごと要りません。
+ *
+ * ★見張りが知りたいのは「押されているものが在るか」だけです。
+ *   押されていないときの「どこに在るか」は、誰も使っていません。
+ *   置き場所が要るときは、これまでどおり panelResetCell_ を使います。
+ */
+function panelResetOn_(sh) {
+  if (!sh) return null;
+  try {
+    const top = panelTop_(sh);
+    if (!top || top < 2) return null;
+    const rows = Math.min(top, sh.getMaxRows());
+    const cols = Math.min(10, sh.getMaxColumns());
+    if (rows < 2 || cols < 1) return null;
+
+    /*
+     * ★ボタンの行（top）まで、ひと息に読みます。
+     *   ボタンの列がどこかは、その行に□が並んでいるかで分かります。
+     *   そのためだけに もう1往復するのは、もったいないので、
+     *   同じ読みの中から取ります。
+     */
+    const grid = sh.getRange(1, 1, rows, cols).getValues();   // ★1往復だけ
+
+    let chk = PANEL_CHK_COL;
+    const headRow = grid[rows - 1];
+    for (let c = 0; c < Math.min(headRow.length, 6); c++) {
+      if (headRow[c] === true || headRow[c] === false) { chk = c + 1; break; }
+    }
+
+    // ★見るのは「ボタンより上」だけ。ボタンの行そのものは見ません
+    for (let i = 0; i < rows - 1; i++) {
+      for (let c = 0; c < cols; c++) {
+        if (c + 1 === chk) continue;            // ボタンの列は、別の役目
+        if (grid[i][c] === true) return { row: i + 1, col: c + 1 };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+/**
  * リセットのチェックが押されていたら、結果を空にして、チェックを外す。
  * 押されていなければ false。
  */
 function panelResetIfAsked_(sh) {
-  const c = panelResetCell_(sh);
+  /*
+   * ★押されているものだけを、安い読み方で探します。
+   *   押されていなければ、ここで帰ります。ふだんはこちらです。
+   *   読んだ中身から true と分かっているので、聞き直しません。
+   */
+  const c = panelResetOn_(sh);
   if (!c) return false;
-  let on = false;
-  try { on = sh.getRange(c.row, c.col).getValue() === true; } catch (e) { return false; }
-  if (!on) return false;
   // ★panelSay_ は時刻を頭に付けるので、空にするには使えません。
   //   ここは、セルそのものを空にします
   try {

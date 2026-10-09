@@ -5018,6 +5018,83 @@ console.log('\n■ 💾 ドライブが一杯でも、空きが戻れば自分�
   ctx.pu.length = 0;
 }
 
+console.log('\n■ ⚡ 1分おきの見張りを、安くする（ご指示・全自動にしたい）');
+/*
+ * ★1分おき × 1日1440回。無料のGmailは、見張りの合計が1日90分までです。
+ *   1回4秒かかると96分で、上限を超えます。
+ *   超えた日は、その日ぜんぶの見張りが止まります。
+ *
+ * ★これまで毎分こうしていました
+ *   ①シート全体を文字さがし（createTextFinder）… いちばん重い
+ *   ②ボタンより上を380マス読む
+ *   ③見つかった□を、1つずつ もう一度 聞きにいく（1個につき1往復）
+ *   ②で読んでいるのに③でまた聞いていました。無駄でした。
+ */
+{
+  reset([['001-Code.gs', 'あたらしい']]);
+  F('menuMakePanel')();
+
+  // 何回 外に聞きにいったかを数える
+  let finds = 0, gets = 0, grids = 0;
+  const realFinder = panel.createTextFinder;
+  panel.createTextFinder = q => { finds++; return realFinder(q); };
+  const realRange = panel.getRange;
+  panel.getRange = function (r, c, n, w) {
+    const rg = realRange.apply(panel, arguments);
+    const g0 = rg.getValues, v0 = rg.getValue;
+    rg.getValues = function () { grids++; return g0.apply(rg, arguments); };
+    rg.getValue = function () { gets++; return v0.apply(rg, arguments); };
+    return rg;
+  };
+
+  // ボタンより上に□を3つ置く（1つも押されていない＝ふだんの形）
+  panel._cells['4,7'] = false;
+  panel._cells['4,8'] = false;
+  panel._cells['5,8'] = false;
+
+  finds = 0; gets = 0; grids = 0;
+  t(F('panelResetIfAsked_')(panel) === false, '★押されていなければ、何もしない');
+  t(finds === 0,
+    '★★シート全体の文字さがしを、もうしない（' + finds + '回）', String(finds));
+  t(grids <= 2, '★★読みは2往復まで（' + grids + '往復）', String(grids));
+  t(gets <= 2,
+    '★★□を1つずつ聞き直さない（' + gets + '回）', String(gets));
+
+  // 押されていれば、ちゃんと効く
+  panel._cells['4,8'] = true;
+  t(F('panelResetIfAsked_')(panel) === true, '★★押されていれば、ちゃんと効く');
+  t(panel._cells['4,8'] === false, '　□は、押していない形に戻る');
+
+  // どこに動かしても効く（場所を覚えこまない）
+  panel._cells['4,8'] = false;
+  panel._cells['5,8'] = true;
+  t(F('panelResetIfAsked_')(panel) === true, '★★動かした先でも、すぐ効く');
+  panel._cells['5,8'] = false;
+
+  // ボタンの列（B列）の☑は、リセットとして拾わない
+  panel._cells['4,2'] = true;
+  t(F('panelResetIfAsked_')(panel) === false,
+    '★ボタンの列の☑は、リセットとして拾わない');
+  panel._cells['4,2'] = false;
+
+  /*
+   * ★ボタンの行そのものは、見てはいけません。
+   *   そこはボタンの説明が並んでいる行で、リセットの□ではありません。
+   *   ボタンの列の位置を知るために その行も読んでいますが、
+   *   拾うのは「ボタンより上」だけです。
+   */
+  {
+    const topRow = F('panelTop_')(panel);
+    panel._cells[topRow + ',8'] = true;
+    t(F('panelResetIfAsked_')(panel) === false,
+      '★★ボタンの行そのものは、拾わない（' + topRow + '行目）');
+    delete panel._cells[topRow + ',8'];
+  }
+
+  panel.createTextFinder = realFinder;
+  panel.getRange = realRange;
+}
+
 console.log('\n■ 🚑 「なおす」を、いちばん探しやすいところに置く（ご指示）');
 /*
  * ★まーく様のご指示です。
