@@ -2,7 +2,11 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V053ver  （2026/09/25）  ★★★
+ *  ★★★  V054ver  （2026/10/09）  ★★★
+ *
+ *  [V054ver]
+ *   ・🦵 イベントの見張りからも、そうさボタンの見張りを入れ直す
+ *     ★足が1本だと、それが折れたときに誰も直せません（ご指示）。
  *
  *  [V053ver]
  *   ・📊 参考資料スプシへの入口を やめた（ご指示）
@@ -751,7 +755,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V053ver";
+const VN_VERSION = "V054ver";
 
 /**
  * 見にいく先の一覧。
@@ -6448,6 +6452,11 @@ function vnSelfHeal_() {
   // 毎日17時の自動チェック（001-Code）
   try {
     if (typeof ensureAutoFormatTrigger_ === "function") ensureAutoFormatTrigger_();
+    /*
+     * ★そうさボタンの見張りも、ここから見ます（足を増やすため）。
+     *   1本の足に頼ると、それが折れたときに誰も直せません。
+     */
+    try { if (typeof panelHealWatch_ === "function") panelHealWatch_(); } catch (e) {}
   } catch (e) {}
 
   if (made.length && typeof logErr_ === "function") {

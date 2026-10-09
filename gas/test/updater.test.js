@@ -4690,6 +4690,67 @@ console.log('\n■ まーくさんが置き直された形（□はH2、結果�
   t(panel._cells['2,8'] === false, '　□は、押していない形に戻る');
 }
 
+console.log('\n■ ⚠️ 開いた瞬間に「止まっている」と分かる（ご指摘）');
+/*
+ * ★いちばん困ったのは、止まったことに1週間 気づけなかったことです。
+ *   10/02 から 10/09 まで、誰も気づけませんでした。
+ *
+ * ★スプシを開いたときに走る onOpen は、承認が切れていても動きます。
+ *   そこでできるのは「スプシに書く」ことだけですが、
+ *   赤い字で1行出すだけで、その場で気づけます。
+ */
+{
+  const code = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+  const i0 = code.indexOf('const OPEN_WARN_H');
+  const i1 = code.indexOf('\nfunction openWarnIfStale_(');
+  const i2 = code.indexOf('\n}\n', i1);
+  vm.runInContext(code.slice(i0, i2 + 3), ctx);
+
+  const D = vm.runInContext('Date', ctx);
+  const now = new D(2026, 9, 9, 12, 0, 0);          // 2026/10/09 12:00
+  let b1 = '', color = '', bold = '';
+  const fake = { getSheetByName: n => (n === '説明' ? {
+    getRange: () => ({
+      getValue: () => b1,
+      setValue: v => { b1 = v; },
+      setFontColor: c => { color = c; return { setFontWeight: w => { bold = w; } }; }
+    })
+  } : null) };
+
+  // ① 新しければ、何も出さない
+  b1 = '🔄最終更新：2026/10/09(金) 11:30';
+  t(F('openWarnIfStale_')(fake, now) === false, '★新しければ、何も出さない');
+  t(b1.indexOf('⚠️') === -1, '　1行目は、そのまま');
+
+  // ② 古ければ、赤く出す
+  b1 = '🔄最終更新：2026/10/02(金) 11:07';
+  t(F('openWarnIfStale_')(fake, now) === true, '★★古ければ、その場で出す');
+  has(b1, '⚠️', '　警告の印が付く');
+  has(b1, '止まっています', '　止まっていると書く');
+  has(b1, 'fixAll', '★★直し方（fixAll）まで書く');
+  t(color === '#c62828', '　赤くする（見落とさないように）');
+  t(bold === 'bold', '　太くする');
+
+  // ③ もう出ていれば、二重に書かない
+  const before = b1;
+  t(F('openWarnIfStale_')(fake, now) === true, '　もう出ていても true');
+  t(b1 === before, '★二重に書き足さない');
+
+  // ④ 読めない形でも落ちない
+  b1 = 'なにかちがう文字';
+  t(F('openWarnIfStale_')(fake, now) === false, '★読めない形なら、何もしない');
+  b1 = '';
+  t(F('openWarnIfStale_')(fake, now) === false, '　空でも落ちない');
+  t(F('openWarnIfStale_')(null, now) === false, '　スプシが無くても落ちない');
+
+  // 時刻の読み取り
+  const at = F('openStampAt_')('🔄最終更新：2026/10/02(金) 11:07');
+  t(!!at && at.getFullYear() === 2026 && at.getMonth() === 9 && at.getDate() === 2,
+    '★日付を、ちゃんと読む');
+  t(at.getHours() === 11 && at.getMinutes() === 7, '　時刻も読む');
+  t(F('openStampAt_')('') === null, '　空なら null');
+}
+
 console.log('\n■ ⏪ 止まっていたあいだのぶんを、復旧したら すぐ追いかける（ご指示）');
 /*
  * ★まーくさんのご指示です。

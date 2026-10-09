@@ -1,7 +1,21 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C066ver  （2026/09/25）  ★★★   ← もとは version 232
+ *  ★★★  C067ver  （2026/10/09）  ★★★   ← もとは version 232
+ *
+ *  [C067ver]
+ *   ・🦵 止まったときの「戻り道」を増やした（ご指示・全自動にしたい）
+ *     ★10/02から10/09まで、7日間 止まっていました。
+ *       戻り道が「LINEの受け口」1本しか無く、そこは版が満杯で
+ *       古いままだったので、誰も直せませんでした。
+ *     ★スプシを開いたとき（onOpen）からも、見張りを入れ直します。
+ *     ★毎日17時の仕事（autoFormatJob）からも、入れ直します。
+ *   ・⚠️ 止まっていたら、開いた瞬間に赤く出す
+ *     ★onOpen は、承認が切れていても動きます。
+ *       そこでできるのは「スプシに書く」ことだけですが、
+ *       赤い字で1行出すだけで、その場で気づけます。
+ *     ★「◯時間 止まっています（fixAll を実行してください）」と、
+ *       直し方まで書きます。
  *
  *  [C066ver]
  *   ・⏪ 止まっていたあいだのぶんを、復旧したら すぐ追いかける（ご指示）
@@ -639,7 +653,7 @@
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C066ver";
+const CODE_VERSION = "C067ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -3764,7 +3778,62 @@ function rebuildDerivedTabs() {
 
 /* ============ 8. メニュー・画面まわり ============ */
 
+/*
+ * ★「止まっていること」が、開いた瞬間に分かるようにする。
+ *
+ *   いちばん困るのは、止まったことに1週間 気づけないことでした。
+ *   実際、10/02から10/09まで誰も気づけませんでした。
+ *
+ * ★ここ（onOpen）は、承認が切れていても動きます。
+ *   スプシを開けば必ず走る、いちばん丈夫な入口です。
+ *   ただし、できることは「スプシに書く」ことだけです。
+ *   見張りを入れ直すには承認が要るので、そちらは try で包みます。
+ */
+const OPEN_WARN_H = 3;        // 何時間 古ければ「止まっている」と見なすか
+
+/** 「🔄最終更新：2026/10/02(金) 11:07」から、時刻を読む。読めなければ null */
+function openStampAt_(text) {
+  try {
+    const m = String(text == null ? "" : text)
+      .match(/(\d{4})\/(\d{1,2})\/(\d{1,2}).*?(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+                       Number(m[4]), Number(m[5]), 0);
+    return isNaN(d.getTime()) ? null : d;
+  } catch (e) { return null; }
+}
+
+/**
+ * 止まっていれば、1行目に赤く出す。止まっていなければ、何もしない。
+ * ★戻り値は「出したかどうか」。テストで確かめるために返します。
+ */
+function openWarnIfStale_(ss, now) {
+  try {
+    const sh = ss && ss.getSheetByName("説明");
+    if (!sh) return false;
+    const cur = String(sh.getRange("B1").getValue() || "");
+    if (!cur) return false;
+    if (cur.indexOf("⚠️") !== -1) return true;        // もう出ている
+    const at = openStampAt_(cur);
+    if (!at) return false;
+    const hours = ((now || new Date()).getTime() - at.getTime()) / 3600000;
+    if (hours < OPEN_WARN_H) return false;
+
+    sh.getRange("B1").setValue(cur + "　⚠️ " + Math.floor(hours) +
+      "時間 止まっています（スクリプトの画面で fixAll を実行してください）");
+    try { sh.getRange("B1").setFontColor("#c62828").setFontWeight("bold"); } catch (e) {}
+    return true;
+  } catch (e) { return false; }
+}
+
 function onOpen() {
+  /*
+   * ★開いたついでに、見張りが消えていないか見ます。
+   *   承認が切れていると ここは失敗しますが、下の警告は出ます。
+   */
+  try { if (typeof panelHealWatch_ === "function") panelHealWatch_(); } catch (e) {}
+  try { openWarnIfStale_(SpreadsheetApp.getActiveSpreadsheet(), new Date()); } catch (e) {}
+
   const ui = SpreadsheetApp.getUi();
 
   const m1 = ui.createMenu("🅰️ はじめの設定（初回だけ）")
@@ -4155,6 +4224,12 @@ function autoFormatJob() {
     }
     // ★うまくいった時刻を残す。追いつきの目印にします
     try { props.setProperty(FMT_AT_KEY, String(Date.now())); } catch (e2) {}
+    /*
+     * ★ここからも、見張りが消えていないか見ます。
+     *   足が1本だと、その1本が折れたときに誰も直せません。
+     *   毎日17時のこれが生きていれば、1分おきの見張りは戻ります。
+     */
+    try { if (typeof panelHealWatch_ === "function") panelHealWatch_(); } catch (e2) {}
   } catch (e) { logErr_("autoFormatJob", e); }
 }
 
