@@ -2,12 +2,15 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W011ver  （2026/09/16）  ★★★
+ *  ★★★  W012ver  （2026/09/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *
+ *  [W012ver] ページを開くたびに、そうさボタンの見張りが消えていないか見るようにした
+ *            （Googleの見張りは承認が切れると全部止まるが、外から叩かれる
+ *              このページは止まらない。いちばん丈夫な戻り道）
  *  [W011ver] 予定ファイル(.ics)を、ダウンロードさせずに そのまま返すようにした
  *    ★downloadAsFile を付けていたため、iPhone がいったん「ファイル」に
  *      落とそうとして、「ファイルを開くことができません」と出ていた。
@@ -58,13 +61,26 @@
  * ================================================================
  */
 
-const WB_VERSION = "W011ver";
+const WB_VERSION = "W012ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
 
 /** ブラウザからページを開いたとき */
 function doGet(e) {
+  /*
+   * ★ページを開いてもらうたびに、見張りが消えていないか見ます。
+   *
+   *   いちばん丈夫な足は「外から来る人」です。
+   *   Googleの見張りは、承認が切れると ぜんぶ止まります。
+   *   けれど、このページは外から叩かれるので、止まりません。
+   *   みんなが記録ページを開くたびに、見張りが戻ります。
+   *
+   * ★10分に1回までしか見にいきません（panelHealWatch_ の中でしぼっています）。
+   * ★ここで失敗しても、ページは必ず出します。
+   */
+  try { if (typeof panelHealWatch_ === "function") panelHealWatch_(); } catch (e0) {}
+
   /*
    * ★予定ファイル（.ics）を取りに来たとき。
    *
@@ -387,7 +403,7 @@ function wbAlert_(title, body) {
  * ダイアログが出ない環境でも、結果がセルに残る。
  */
 function menuWebAppCheck() {
-  const ss = mainSS_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const r = wbSelfTest_();
   const head = (r.ok ? "✅ " : "❌ ") + r.title;
   const body = (r.url ? r.url + "\n" : "") + (r.how || "");
@@ -408,7 +424,7 @@ function menuWebAppCheck() {
  * メニューから送るとき。ここでは画面が出せるので、送る前に必ず聞く。
  */
 function menuWebAppSendLine() {
-  const ss = mainSS_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const url = wbUrl_();
   wbWriteInfo_(url, "");
   if (!url) {
@@ -564,7 +580,7 @@ function wbSlot_(hh) { return hh < wbBizStart_() ? hh + 24 : hh; }
  * エリアタブには個人タブの写しも入っているので、同じ乗車を二度数えないようにする。
  */
 function wbCollect_(all) {
-  const ss = mainSS_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const since = all ? null : new Date(Date.now() - WB_DAYS * 86400000);
 
   const own = [], opu = [];

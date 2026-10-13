@@ -388,7 +388,7 @@ console.log('\n■ 年をまたぐ日付も取り違えない');
 console.log('\n■ 自動発信は、はじめから「入」');
 {
   /*
-   * ★前は「切」が既定だった（まーくさんのご指示で変えた）。
+   * ★前は「切」が既定だった（まーく様のご指示で変えた）。
    *   そのため、設定タブで「はい」にしないかぎり、
    *   イベントの案内もリマインダーも1回も動かなかった。
    *   こちらから「まず設定してください」とお願いする作りが、
@@ -416,7 +416,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 前日18:00に確認用（まーくさんだけ）、当日17:00にグループ');
+console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -435,7 +435,7 @@ console.log('\n■ 前日18:00に確認用（まーくさんだけ）、当日17
   const back = () => { ctx.Date = RealDate; };
 
   /*
-   * ★確認用は「前の日の18:00に、あすのぶん」（まーくさんのご指示）。
+   * ★確認用は「前の日の18:00に、あすのぶん」（まーく様のご指示）。
    *   当日の夕方に「これで出します」と言われても、直す時間がない。
    *   前の日の晩に見ておけば、落ち着いて手直しできる
    */
@@ -455,7 +455,7 @@ console.log('\n■ 前日18:00に確認用（まーくさんだけ）、当日17
   pushed.length = 0;
   ctx.venueDailyJob();
   eq(pushed.length, 1, '★前日の18:00 に、あすのぶんの確認用を1通');
-  eq(pushed[0].to, 'Umark', '  宛先はまーくさんだけ（グループではない）');
+  eq(pushed[0].to, 'Umark', '  宛先はまーく様だけ（グループではない）');
   eq(props['VNSENT_20260916_T'], '1', '★印は「あすの日付」で残す（9/16ぶん）');
 
   // 同じ日に二度は送らない
@@ -808,7 +808,7 @@ console.log('\n■ お知らせの予約（終わりの◯分前）');
   const rep0 = msgText(pushed[0].msgs[0]);
   has(rep0, '20:55', '★21:00の5分前＝20:55に届くと伝える（60分前は早すぎた）');
   /*
-   * ★「リマインダー」は iPhone のアプリの名前とまぎれる（まーくさんのご指摘）。
+   * ★「リマインダー」は iPhone のアプリの名前とまぎれる（まーく様のご指摘）。
    *   こちらのものは「お知らせ」と呼ぶ
    */
   has(rep0, 'お知らせを入れました', '★こちらのものは「お知らせ」と呼ぶ');
@@ -1083,7 +1083,7 @@ console.log('\n■ 写真の読み取り：返事が途中で切れても、あ�
   eq(W('↑フェス').up, true, '  「↑」なら、直前の写真を読み直す');
 }
 
-console.log('\n■ 🗓️ 台帳は、まーくさん専用のスプシに書く');
+console.log('\n■ 🗓️ 台帳は、まーく様専用のスプシに書く');
 {
   madeBooks.length = 0;
   delete props['VN_LEDGER_SS'];
@@ -1098,7 +1098,7 @@ console.log('\n■ 🗓️ 台帳は、まーくさん専用のスプシに書�
   eq(madeBooks[0].getSheetByName('🗓️イベント台帳') !== null, true, '  台帳は専用スプシのほうに書く');
   eq(madeBooks[0].getSheetByName('📋 いまの条件') !== null, true,
      '★「いまの条件」タブも、同じスプシに並べる');
-  has(text, 'まーくさんだけが開けます', '★だれにも共有していないと、はっきり書く');
+  has(text, 'まーく様だけが開けます', '★だれにも共有していないと、はっきり書く');
   has(text, 'LINEに出るもの', '  出る件数と、落とした件数を分けて出す');
   /*
    * ★会場ごとの件数（ご指示）。
@@ -1586,7 +1586,7 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
 
   pushed.length = 0;
   eq(ctx.vnSendTest_(base, evs), true, '確認用を送れる');
-  eq(pushed[0].to, 'Umark', '★まーくさんだけに行く（グループではない）');
+  eq(pushed[0].to, 'Umark', '★まーく様だけに行く（グループではない）');
   const j = JSON.stringify(pushed[0].msgs[0]);
   has(j, '❶', '  番号が付く');
   has(j, '❸', '  3件目まで');
@@ -1634,7 +1634,7 @@ console.log('\n■ 確認用（16:30）の番号と、手直し');
   // ほかの人の「①削除」は効かない
   pushed.length = 0; ctx.lastReply = '';
   eq(ctx.vnHandleNote_({ message: { text: '①削除' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), false,
-     '★まーくさん以外の「①削除」は受けない');
+     '★まーく様以外の「①削除」は受けない');
   eq(pushed.length, 0, '  何も送らない');
 }
 
@@ -1704,7 +1704,7 @@ console.log('\n■ 個人LINEから、その場でグループへ出す（必ず
   // ほかの人は使えない
   pushed.length = 0;
   eq(ctx.vnHandleNote_({ message: { text: 'グループへ送信' }, source: { userId: 'Uother' }, replyToken: 'r' }, base), false,
-     '★まーくさん以外は、グループへ送れない');
+     '★まーく様以外は、グループへ送れない');
   eq(pushed.length, 0, '  何も送らない');
   delete props['VNSENT_20260916'];
 }
@@ -1823,10 +1823,10 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   eq(web.notes.some(x => x.indexOf('✅') === 0), true, '  読めた会場には ✅');
   eq(web.notes.some(x => x.indexOf('3日ぶんを見て') !== -1), true, '  何日ぶん見たかも書く');
 
-  // 「読み取り確認」はまーくさんだけ
+  // 「読み取り確認」はまーく様だけ
   ctx.lastReply = '';
   eq(ctx.vnHandleNote_({ message: { text: '読み取り確認' }, source: { userId: 'Uother' }, replyToken: 'r' }, today), false,
-     '★まーくさん以外は使えない');
+     '★まーく様以外は使えない');
   eq(ctx.lastReply, '', '  何も返さない');
 }
 
@@ -1913,7 +1913,7 @@ console.log('\n■ ワントゥワンは、詳細まで開いて「徹夜」を�
 console.log('\n■ 終わりの時刻は「はっきり決まっているもの」しか書かない');
 {
   /*
-   * ★まーくさんのご指示です。
+   * ★まーく様のご指示です。
    *   コンサートはアンコールで延びます。決まっていない終わりの時刻を
    *   「終了予定」と書けば、それを信じて動いた人が空振りします。
    *   ページに「終演」「終了」と書いてあるとき（endSure）だけ出します。
@@ -2048,12 +2048,12 @@ console.log('\n■ 同じ公演が2つならばないようにする');
   eq(ctx.vnDedup_(null).length, 0, 'null でも落ちない');
 }
 
-console.log('\n■ 💬 ディスコードの用意（まーくさんが1回だけ）');
+console.log('\n■ 💬 ディスコードの用意（まーく様が1回だけ）');
 {
   /*
-   * ★Androidの人にも確実に届く道が要る（まーくさんのご指摘）。
+   * ★Androidの人にも確実に届く道が要る（まーく様のご指摘）。
    *   押した人に「ウェブフックを作ってURLを渡して」とお願いしていたのは重すぎた。
-   *   用意は まーくさんが1回だけ。ほかの人は招待リンクを1回押すだけ
+   *   用意は まーく様が1回だけ。ほかの人は招待リンクを1回押すだけ
    */
   const W = ctx.vnDiscordWord_;
   eq(W('ディスコード用意して').kind, 'how', '★「ディスコード用意して」で道順が出る');
@@ -2072,7 +2072,7 @@ console.log('\n■ 💬 ディスコードの用意（まーくさんが1回だ�
   vm.runInContext('function lineReply_(tok, t){ rep2.push(t); }', ctx);
   ctx.rep2 = rep;
 
-  // まーくさん以外は、設定を触れない
+  // まーく様以外は、設定を触れない
   delete props['DISCORD_WEBHOOK']; delete props['DISCORD_INVITE'];
   rep.length = 0;
   eq(H({ message: { text: 'ディスコード https://discord.com/api/webhooks/1/abc' },
@@ -2080,10 +2080,10 @@ console.log('\n■ 💬 ディスコードの用意（まーくさんが1回だ�
   eq(props['DISCORD_WEBHOOK'], undefined, '★ほかの人には、設定を触らせない');
   has(rep[0], 'まだ用意ができていません', '  代わりに、いまの状態を返す');
 
-  // まーくさん → 道順
+  // まーく様 → 道順
   rep.length = 0;
   eq(H({ message: { text: 'ディスコード用意して' }, source: { userId: 'Umark' }, replyToken: 'r' }), true,
-     'まーくさんには、道順を返す');
+     'まーく様には、道順を返す');
   /*
    * ★サーバーはもうある（西東卍会・4人）。やることは「送り先」1つだけ
    */
@@ -2407,7 +2407,7 @@ console.log('\n■ リマインダーは、iPhoneの「リマインダー」�
   const before = props['VN_SHORTCUT_NAME'];
   ctx.vnHandleShortcutCmd_({ replyToken: 'r', source: { userId: 'Uother' },
     message: { text: 'ショートカット いたずら' } });
-  eq(props['VN_SHORTCUT_NAME'], before, '★まーくさん以外は、変えられない');
+  eq(props['VN_SHORTCUT_NAME'], before, '★まーく様以外は、変えられない');
   delete props['VN_SHORTCUT_NAME'];
 }
 
@@ -2551,7 +2551,7 @@ console.log('\n■ 🧪 LINEから「確認用」を出せる（日時も決め�
   ctx.vnHandleTestCmd_({ message: { text: 'レポートテスト 9/1〜9/15' },
     source: { userId: 'Umark' }, replyToken: 'r' });
   got = vm.runInContext('sent2', ctx);
-  eq(got && got.to, 'Umark', '★レポートも、まーくさんにだけ送る');
+  eq(got && got.to, 'Umark', '★レポートも、まーく様にだけ送る');
   eq(got && got.t, true, '★かならず「テスト用」として作る（本番のまとめスプシを汚さない）');
   eq(got && ymd(got.s) + '-' + ymd(got.e), '9/1-9/15', '  指定した期間で作る');
   has(ctx.lastReply, '少し時間がかかります', '★先に「作ります」と返す（黙って待たせない）');
@@ -2598,7 +2598,7 @@ console.log('\n■ 📈🎪 絵文字ひとつで、選んでから出す（ご�
 
 console.log('\n■ 🎤 アーティストの公式リンクと、その出どころ（ご指示）');
 /*
- * ★まーくさんのご指示です。
+ * ★まーく様のご指示です。
  *   ・参考資料のスプシは「全然意味ない」ので やめる
  *   ・アーティスト名があるイベントには、関連リンクを出す
  *   ・出典先を簡略的に載せて、しっかりしたデータだと分かるように
