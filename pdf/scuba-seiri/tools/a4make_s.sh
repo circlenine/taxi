@@ -17,6 +17,9 @@ python3 -I $S/tools/termcheck.py $S/build_s/a4.html
 # 読みでまとめる表記ゆれの検査（janome が要る：pip install janome）。ゆれが見つかったら止める
 python3 $S/tools/yomicheck.py $S/build_s/a4.html
 python3 -I $S/tools/chipcheck.py $S/build_s/a4.html
+python3 $S/tools/upcheck.py
+python3 -I $S/tools/jumpcheck.py $S/build_s/a4.html
+node $S/tools/relcheck.js $S/build_s/a4.html
 node $S/tools/palette.js $S/build_s/a4.html
 node $S/tools/borders.js $S/build_s/a4.html
 node $S/tools/chkpos.js $S/build_s/a4.html $S/build_s/a4chk.json
