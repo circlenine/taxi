@@ -247,7 +247,7 @@ def page(head_no, head_title, inner, toc=True):
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
-    pages.append(f'<div class="page" id="p{n}">{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
+    pages.append(f'<div class="page" id="p{n}">{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
 
 # 1ページ目は表紙＋もくじ（あとで差しこむ）
 pages.append(None)
@@ -264,7 +264,7 @@ marks = f'<svg viewBox="0 0 {W_} {H_}" preserveAspectRatio="none">{lines}</svg>'
     f'<span class="lb" style="left:{(cx-RX0)/W_*100:.2f}%;top:{(cy-RY0)/H_*100:.2f}%"><span class="nn">{i+1}</span></span>' for i, (cx, cy, k, name) in enumerate(LB))
 names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"), ("{regu}", "自分が吸う", "セカンドステージ"),
          ("{octo}", "緊急用<span class=\"dsn\">（黄色って緊急っぽいよね）</span>", "オクトパス"), ("{kachi}", "{bc}と合体！", "中圧ホース"),
-         ("{gauge}", "空気の残り", "")]
+         ("{gauge}", "空気の残りを確認するゲージ", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
 page("器材", "“ダイビング器材”じゃ！", f"""
@@ -272,7 +272,7 @@ page("器材", "“ダイビング器材”じゃ！", f"""
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:780/412">{marks}</div>
 <div class="names">{names_html}</div></div></section>
-<section class="step"><h3 class="sh3"><span class="sn">2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
+<section class="step"><h3 class="sh3"><span class="sn">2</span><span>SASUKEで覚えるといいかも！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
  <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？！　あぁーっと！！吸えたぁー！！</p>
  <div class="sum"><p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p>
   <div class="row2"><p><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースがつなぐのはこの2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
@@ -282,7 +282,7 @@ page("器材", "“ダイビング器材”じゃ！", f"""
 <div class="big">
  <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{bc}")}＆{T("{silver}")}と合体！</p></div>
  <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{tank}")}＆{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
- <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
+ <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターさんに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
 </div></section></div>""")
 
 # 工程4は、4-2の「大事」が長く、4-1の下に大きな空きができる。そのままでは memo がページのまん中に来てしまい、
@@ -317,7 +317,7 @@ toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb
 pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">器材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
-<div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
+<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
 # ── 参考2（TRAVEL PLAN）に合わせた仕上げ（10/7 ご指摘「本当に参考にしたのか」）──

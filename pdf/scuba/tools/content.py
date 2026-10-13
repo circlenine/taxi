@@ -24,7 +24,7 @@ STEPS = [
   subs=[
    dict(id="2-1", key=["c09"], frames=["c09"],
      title="Oリングがあるか見る",
-     extra=["よく分からん！と思ったら遠慮せずインストラクターに確認しよう！"]),
+     extra=["よく分からん！と思ったら遠慮せずインストラクターさんに確認しよう！"]),
    dict(id="2-2", key=["c10"], frames=["c10"],
      title="{silver}をかぶせる",
      extra=["<span class=\"nw\">{silver}ぐるぐる</span>は<span class=\"nw\">自分のほう</span><span class=\"nw\">（{bc}の反対）！</span>"]),
@@ -57,7 +57,7 @@ STEPS = [
      extra=["なんで戻すの？<br>→ <span class=\"nw\">万が一</span>ぶつかっても、<span class=\"nw\">{tank}くるくる</span>が固く締まることを防ぐためじゃよ！"]),
    dict(id="3-3", key=["c21","c22"], frames=["c20","c21","c22"], gif="s3-3",
      title="{gauge}の針が動いたか、<span class=\"nw\">もう一度見る</span>",
-     pinkx=["170以下なら<wbr><span class=\"nw\">インストラクターに確認しよう！</span><br>180以上でも、インストラクターに伝えておくと◎"]),
+     pinkx=["170以下なら<wbr><span class=\"nw\">インストラクターさんに確認しよう！</span><br>180以上でも、インストラクターさんに伝えておくと◎"]),
   ]),
  dict(id="4", title="全システム起動！“動作”チェック！",
   subs=[
@@ -147,6 +147,6 @@ POINTS = [
  ("用語は後回しでOK！", []),
  ("慣れてきたら、とにかく楽しよう！",
   ["{bc}はベンチに置いたまま着けてOK",
-   "フィンは一生懸命動かさなくてOK<small>（ペースはインストラクターが合わせてくれるよ）</small>",
+   "フィンは一生懸命動かさなくてOK<small>（ペースはインストラクターさんが合わせてくれるよ）</small>",
    "呼吸は、リラックスできるペースでOK"]),
 ]
