@@ -33,7 +33,7 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
  // 線と文字が重なっていないか（10/7 ご指摘：たての線が「レギュレーター」の字に重なっていた）
  document.querySelectorAll('.page').forEach((pg,i)=>{const lines=[];
   pg.querySelectorAll('*').forEach(e=>{const ps=getComputedStyle(e,'::before');if(ps.content!=='none'&&ps.position==='absolute'&&parseFloat(ps.width)<=1.5&&e.classList.contains('rc')){const r=e.getBoundingClientRect();lines.push({x:r.left+parseFloat(ps.left),t:r.top,b:r.bottom});}});
-  const qz=pg.querySelector('.quiz');if(qz){const r=qz.getBoundingClientRect();lines.push({x:(r.left+r.right)/2,t:r.top,b:r.bottom});}
+  const qz=pg.querySelector('.quiz');if(qz&&getComputedStyle(qz).gridTemplateColumns.trim().split(/\s+/).length>1){const r=qz.getBoundingClientRect();lines.push({x:(r.left+r.right)/2,t:r.top,b:r.bottom});}
   const w=document.createTreeWalker(pg,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){if(!n.textContent.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);
    [...rg.getClientRects()].forEach(q=>{lines.forEach(L=>{if(q.left<L.x&&q.right>L.x&&q.bottom>L.t&&q.top<L.b)out.push('p'+(i+1)+' 線と文字が重なる「'+n.textContent.trim().slice(0,12)+'」');});});}});
  // 二重線：横の線が、8mm以内の上下に2本並んでいないか（10/7 ご指摘）

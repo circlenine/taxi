@@ -16,3 +16,10 @@
   29〜30. レギュレーターを水に沈める 31. 干している部屋 32. 終わりの画面（制作協力 沖縄県立沖縄水産高等学校／著作 沖縄県教育委員会）
 - 字幕に「？？？」「？」「説明お願いします」が残っている所は、動画が作りかけ。説明は画面から読みとり、まーく様に確かめてから入れる。
 - 参考動画のURL（10/13 まーく様より）：https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN （表示は youtu.be/Cg4JdxYFcoo）
+
+## 作り方（10/13）
+- 道具は `tools/`。準備編の道具（`pdf/scuba/tools/`）をそのまま使い、清掃編だけ違うところを足している：
+  `content_s.py`（文）・`a4s.py`（組み立て。最後に水色→オレンジに色を置きかえる）・`focus_s.py`（写真の切り抜き。SEIRI）・`a4make_s.sh`
+- ファイル名：`2_YYMMDD_ｽｷｭｰﾊﾞ_器材清掃編.pdf`
+- オーバーホールの費用の目安（2ページ）：ショップの料金表（DGMS https://dgms.co.jp/ ・アイダック https://i-dac.co.jp/price.html ・NagisaHiroi の事例）から、部品代こみ・税込のおおよそ。
+  目安「1年に1回か100本」は PADI の日本語ブログ（https://blog.padi.com/jp/is-your-diving-gear-okay/）
