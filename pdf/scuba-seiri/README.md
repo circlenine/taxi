@@ -23,3 +23,7 @@
 - ファイル名：`2_YYMMDD_ｽｷｭｰﾊﾞ_器材清掃編.pdf`
 - オーバーホールの費用の目安（2ページ）：ショップの料金表（DGMS https://dgms.co.jp/ ・アイダック https://i-dac.co.jp/price.html ・NagisaHiroi の事例）から、部品代こみ・税込のおおよそ。
   目安「1年に1回か100本」は PADI の日本語ブログ（https://blog.padi.com/jp/is-your-diving-gear-okay/）
+- 説明の確かめ（10/13）：ボタン（パージボタン）を押さない理由・ダストキャップ・真水につける時間・BCDの中の洗い方（2〜3回くり返す）・逆さに陰干し を、次で確かめた：
+  PADI日本語ブログ（https://blog.padi.com/jp/scuba-diving-gear-regulator/ ）、マリンダイビングweb（https://marinediving.com/skill/basic_skill/44_bc_wash/ ・ https://marinediving.com/skill/scubaproshop/13/ ）、
+  ダイビングショップの解説（https://www.alies.jp/dustcap ・ https://1-diving-plus.com/equipment/1621/ ・ https://1-diving-plus.com/equipment/1613/ ・ https://oceana.ne.jp/equipment/57685 ）
+- 動画の後半は字幕が作りかけ。2ページの参考動画の下に注意書きを入れた。

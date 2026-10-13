@@ -270,9 +270,9 @@ names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class
 OH = [("{silver}＋{regu}", "約1.5〜2万円"), ("{octo}", "＋約5,000円〜"), ("L字サインホース", "＋約2,000〜4,000円"), ("中に水が入ったとき", "部品の交換が増えて、高くなる")]
 oh_rows = "".join(f'<span class="nn2">{i+1}</span><span class="sp2">{T(a)}</span><span class="sd2">{b}</span>' for i, (a, b) in enumerate(OH))
 page("大事", "コレだけは守るんじゃ！", f"""
-<div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="play">▶</span><span><b>参考動画「ダイビング 器材の片付け」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/Cg4JdxYFcoo</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作協力 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
+<div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="play">▶</span><span><b>参考動画「ダイビング 器材の片付け」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/Cg4JdxYFcoo</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="rn">※動画の後半は、字幕の説明が変な文になっているので気をつけてね</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作協力 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1</span><span>ホースの中に、水を入れない！</span></h3>
-<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>ホースや{T("{silver}")}の中は、とても繊細</b></span><div class="ns">水（とくに海水）が入ると、サビたり塩が固まったりして、<br>息が吸いにくくなる・空気が止まる原因になるよ</div><div class="ns np"><b>守ることは3つだけ</b></div><div class="ns">① {T("{silver}")}を外したら、すぐキャップ（1-4）<br>② {T("{regu}")}を洗うときは、ボタンを押さない（4-1）<br>③ {T("{silver}")}は、キャップをしたまま洗う（4-3）</div><div class="ns np"><small>※もし水が入ったら、使わずに、すぐお店に見てもらおう</small></div></div></div></section>
+<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>ホースや{T("{silver}")}の中は、とても繊細</b></span><div class="ns">水（とくに海水）が入ると、サビたり塩が固まったりして、<br>息が吸いにくくなる・空気が止まる原因になるよ</div><div class="ns np"><b>守ることは3つだけ</b></div><div class="ns">① {T("{silver}")}を外したら、すぐキャップ（1-4）<br>② {T("{regu}")}を洗うときは、真ん中のボタンを押さない（4-1）<br>③ {T("{silver}")}は、キャップをしたまま洗う（4-3）</div><div class="ns np"><small>※もし水が入ったら、使わずに、すぐお店に見てもらおう</small></div></div></div></section>
 <section class="step wide"><h3 class="sh3"><span class="sn">2</span><span>オーバーホール＝器材の健康診断</span></h3>
 <div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx">お店で分解して、すり減ったゴムの部品を新しくし、<br>ちゃんと動くか点検してもらうことだよ</span><div class="ns np"><b>目安：1年に1回か100本の、早いほう</b></div><div class="ns np"><b>費用の目安</b><div class="srows">{oh_rows}</div><small>※部品代こみ・税込のおおよそ（2026年10月）。お店やメーカーで変わるので、見積もりで確認しよう</small></div></div></div></section></div>""")
 
@@ -304,7 +304,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">器材を長持ちさせるには、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">器材清掃編</span></div></div>
+pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">器材を長持ちさせるには、まずコレじゃあ！</p><div class="cv-f"><span class="cv-no">2</span><span class="cv-e">器材清掃編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -803,6 +803,13 @@ CSS += """
 /* 清掃編のクイズは5問と短いので、クイズの見出しを下に寄せず、まとめのすぐ下に置く（大きな空きを作らない） */
 #p10 .tcol .ph2{margin-top:6mm!important}
 #p10 .quiz.q1{grid-template-columns:minmax(0,1fr)!important;margin-top:2.4mm}
+"""
+CSS += """
+/* 編の番号（10/13 ご指示）。❶❷ は ❿（10）までしかないので使わず、四角い札にした。何番まででも同じ形で出せる。
+   「〇〇編」の箱と同じ高さ・同じ角の丸みで、左に並べる。地は濃い色、数字は白（いちばん目立つように） */
+.cover .cv-f{flex-direction:row!important;align-items:stretch!important;justify-content:flex-start!important;gap:2.4mm!important}
+.cover .cv-no{display:flex;align-items:center;justify-content:center;min-width:17mm;padding:0 3mm;background:var(--navy);color:#fff;
+ border-radius:1mm;font-size:42pt;line-height:1.35;font-weight:900;font-feature-settings:"tnum"}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
