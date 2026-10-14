@@ -2,9 +2,42 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U132ver  （2026/10/14）  ★★★
+ *  ★★★  U134ver  （2026/10/14）  ★★★
  *
- *  [U132ver]
+ *  [U134ver]
+ *   ・🔕 再開の知らせが 鳴りつづけた事故を直した（まーく様のお仕事中・深夜）
+ *     ★原因は3つ重なっていました。
+ *       ① 鳴ったときに「もう鳴らした」札（UPD_WORK_ARMED）を
+ *          自分で捨てていた。3分後の見張りが またゼロから見直す
+ *       ② 再開できる時刻が過ぎていると「1分後」に置き直していた。
+ *          ①と組んで、3〜4分おきに鳴りつづける輪になった
+ *       ③ 1日に何回まで、という歯止めが無かった
+ *     ★3つとも直しました。
+ *       ① 札は、足あとが新しくなったときにだけ外す
+ *       ② 再開の時刻が過ぎていたら、そもそも鳴らさない。
+ *          待つものが無いのに鳴らす意味がないため
+ *       ③ 1日3回まで（安全網）
+ *     ★テストの抜けも直しました。
+ *       前は「鳴る前に二度 予約しない」しか見ていませんでした。
+ *       「鳴ったあと」を1つも見ていなかったので、見逃しました。
+ *
+ *   ・🚦 信号の見出しを そろえた（ご指示）
+ *     ★ご指示：「見出し文字、もっと統一性かつ分かりやすくをもたせてほしい」
+ *             「できれば、漢字2文字がいいです」
+ *     ★前は ばらばらでした。
+ *         🟢 順調 14:47 ／ ⚠️ しくじり1件 14:18
+ *         🟡 おくれ8分 14:40 ／ 🔴 止まってます 11:05
+ *       語の長さも、言い方も、うしろの数字の意味も、そろっていません。
+ *     ★きまりを3つに決めました。形は panelLampText_ の1か所だけで作ります。
+ *       ① 丸1つ … 色だけで重さが分かる（🟢→🟡→🟠→🔴 の順に重い）
+ *       ② 漢字2文字 … 順調／遅延／失敗／停止／不明
+ *       ③ うしろは時刻 … 無いときは --:--（位置を空けない）
+ *     ★⚠️ をやめて 🟠 にしました。形のちがう印が1つあると、そこだけ浮きます。
+ *       丸4色なら、並べたときに重さの順が そのまま目に入ります。
+ *     ★「1件」「8分」は、セルから外してメモへ移しました。
+ *       ひと目で見るのは「どの色か」だけで足ります。
+ *     ★メモの中も、同じ言葉・同じ順（軽い順）にそろえました。
+ *
  *   ・🚦 いまの調子の信号を足した（ご指示・「説明」タブ 1行目 F〜G）
  *     ★まーく様のご指示：「問題なく動いているか、何かエラーが
  *       起きているのかが分かる、スマートな形で、G列に右寄せで」
@@ -1448,7 +1481,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U132ver";
+const UPD_VERSION = "U134ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -6608,7 +6641,52 @@ function updResumeClear_() {
   } catch (e) {}
 }
 
-/** その時刻になったら鳴る。1通だけ送って、自分を片づける */
+/** その日に何回 鳴ったか（安全網） */
+const UPD_RESUME_DAY = "UPD_RESUME_DAY";
+const UPD_RESUME_CNT = "UPD_RESUME_CNT";
+/** 1日に鳴らしてよい回数の上限（これを超えたら、もう立てない） */
+const UPD_RESUME_MAX_DAY = 3;
+
+/** その日を「2026-10-14」の形にする（日またぎを数えるため） */
+function updDayKey_(ms) {
+  const d = new Date(Number(ms) || Date.now());
+  return d.getFullYear() + "-" + pad2_(d.getMonth() + 1) + "-" + pad2_(d.getDate());
+}
+
+/** きょう、もう何回 鳴ったか */
+function updResumeCount_(pr) {
+  try {
+    const today = updDayKey_(Date.now());
+    if (String(pr.getProperty(UPD_RESUME_DAY) || "") !== today) return 0;
+    return Number(pr.getProperty(UPD_RESUME_CNT) || 0) || 0;
+  } catch (e) { return 0; }
+}
+
+/** 鳴った回数を1つ進める */
+function updResumeBump_(pr) {
+  try {
+    const today = updDayKey_(Date.now());
+    const n = updResumeCount_(pr) + 1;
+    pr.setProperty(UPD_RESUME_DAY, today);
+    pr.setProperty(UPD_RESUME_CNT, String(n));
+  } catch (e) {}
+}
+
+/**
+ * その時刻になったら鳴る。1通だけ送って、自分を片づける。
+ *
+ * ★ここで「もう鳴らした」という札（UPD_WORK_ARMED）を捨ててはいけません。
+ *
+ *   【実際に起きたこと・2026/10/14】
+ *   捨てていたので、3分後の見張りが またゼロから見直し、
+ *   「作業中なのに古いまま」→ もう一度 予約を立てる、を
+ *   延々とくり返しました。しかも再開の時刻は もう過ぎているので
+ *   「1分後」に置き直され、3〜4分おきに鳴りつづけました。
+ *   まーく様がお仕事中の深夜に、何十通も鳴らしてしまいました。
+ *
+ *   札は、足あとが新しくなったときにだけ外します（updWorkTick_ の中）。
+ *   新しい作業が始まれば、そこでまた鳴らせるようになります。
+ */
 function updResumeFire() {
   try {
     const me = updMe_();
@@ -6623,7 +6701,12 @@ function updResumeFire() {
   } catch (e) {}
   try { updProps_().deleteProperty(UPD_RESUME_KEY); } catch (e) {}
   try { updProps_().deleteProperty("UPD_RESUME_KIND"); } catch (e) {}
-  try { updProps_().deleteProperty(UPD_WORK_ARMED); } catch (e) {}
+  /*
+   * ★UPD_WORK_ARMED は、わざと残します。
+   *   これが「この足あとには、もう鳴らした」という札です。
+   *   捨てると、3分後の見張りが また予約を立てて、鳴りつづけます。
+   */
+  try { updResumeBump_(updProps_()); } catch (e) {}
   try { updResumeClear_(); } catch (e) {}
 }
 
@@ -8440,6 +8523,31 @@ function panelLampHm_(ms) {
   } catch (e) { return "？"; }
 }
 
+/*
+ * 信号の文を作る。**形は、この1か所だけで決めます。**
+ *
+ * ★まーく様のご指示です。
+ *   「見出し文字、もっと統一性かつ分かりやすくをもたせてほしい」
+ *   「できれば、漢字2文字がいいです」
+ *
+ * ★きまりは3つだけ。
+ *   ① 丸 … 色だけで重さが分かる（🟢→🟡→🟠→🔴 の順に重い）
+ *   ② 漢字2文字 … 順調／遅延／失敗／停止／不明。字数がそろう
+ *   ③ 時刻 … うしろは必ず「そうなった時刻」。無いときは --:--
+ *
+ * ★前は ばらばらでした。
+ *     🟢 順調 14:47 ／ ⚠️ しくじり1件 14:18
+ *     🟡 おくれ8分 14:40 ／ 🔴 止まってます 11:05
+ *   語の長さも、言い方も、うしろの数字の意味も、そろっていません。
+ *   件数や「何分おくれ」は、メモのほうへ移しました。
+ *   ひと目で見るのは「どの色か」だけで足ります。
+ */
+const PANEL_LAMP_NOTIME = "--:--";
+
+function panelLampText_(mark, word, ms) {
+  return mark + " " + word + "　" + (ms ? panelLampHm_(ms) : PANEL_LAMP_NOTIME);
+}
+
 /**
  * 直近のしくじりを数える。
  * ★控えは logErr_ が LAST_ERRORS に5件まで残しています。
@@ -8498,8 +8606,8 @@ function panelLampState_(now) {
   // まだ1回も見張りが動いていない（入れたばかり）
   if (!beat) {
     return {
-      mark: "⚪", word: "まだ 動いていません",
-      text: "⚪ まだ 動いていません",
+      mark: "⚪", word: "不明",
+      text: panelLampText_("⚪", "不明", 0),
       color: "#5f6368", bg: "#f1f3f4", bold: false,
       beat: 0, late: -1, err: err
     };
@@ -8509,36 +8617,37 @@ function panelLampState_(now) {
 
   if (late >= PANEL_LAMP_DEAD) {
     return {
-      mark: "🔴", word: "止まってます",
-      text: "🔴 止まってます " + panelLampHm_(beat),
+      mark: "🔴", word: "停止",
+      text: panelLampText_("🔴", "停止", beat),
       color: "#b00020", bg: "#fde7e9", bold: true,
       beat: beat, late: late, err: err
     };
   }
   /*
-   * ★しくじりを「おくれ」より先に出します。
+   * ★失敗を「遅延」より先に出します。
    *   5〜24分のおくれは、持ち時間のゆらぎでも起きます。
-   *   しくじりは、ゆらぎでは起きません。そちらが先に目に入るべきです。
+   *   失敗は、ゆらぎでは起きません。そちらが先に目に入るべきです。
+   *   丸の色も、重い順（🟡 → 🟠 → 🔴）にそろえてあります。
    */
   if (err.n > 0) {
     return {
-      mark: "⚠️", word: "しくじり" + err.n + "件",
-      text: "⚠️ しくじり" + err.n + "件 " + panelLampHm_(err.at),
-      color: "#e65100", bg: "#fff4e5", bold: true,
+      mark: "🟠", word: "失敗",
+      text: panelLampText_("🟠", "失敗", err.at),
+      color: "#e65100", bg: "#fff0e0", bold: true,
       beat: beat, late: late, err: err
     };
   }
   if (late >= PANEL_LAMP_LATE) {
     return {
-      mark: "🟡", word: "おくれ" + late + "分",
-      text: "🟡 おくれ" + late + "分 " + panelLampHm_(beat),
-      color: "#e65100", bg: "#fff4e5", bold: false,
+      mark: "🟡", word: "遅延",
+      text: panelLampText_("🟡", "遅延", beat),
+      color: "#8d6e00", bg: "#fff8e1", bold: false,
       beat: beat, late: late, err: err
     };
   }
   return {
     mark: "🟢", word: "順調",
-    text: "🟢 順調 " + panelLampHm_(beat),
+    text: panelLampText_("🟢", "順調", beat),
     color: "#1b5e20", bg: "#e6f4ea", bold: false,
     beat: beat, late: late, err: err
   };
@@ -8553,21 +8662,30 @@ function panelLampState_(now) {
  */
 function panelLampNote_(st) {
   const L = [];
-  L.push("【いまの調子】");
-  L.push("🟢 順調 … 見張りが動いています");
-  L.push("⚠️ しくじり … " + PANEL_LAMP_ERR_H + "時間以内にエラーがありました");
-  L.push("🟡 おくれ … " + PANEL_LAMP_LATE + "分以上 動いていません");
-  L.push("🔴 止まってます … " + PANEL_LAMP_DEAD + "分以上 動いていません");
+  /*
+   * ★メモの中も、セルと同じ形でそろえます。
+   *   「丸・漢字2文字・説明」の順。軽い順に上から並べます。
+   *   セルとメモで言葉が違うと、同じものだと分かりません。
+   */
+  L.push("【いまの調子】うしろの数字は、そうなった時刻です");
+  L.push("🟢 順調　いつもどおり動いています");
+  L.push("🟡 遅延　" + PANEL_LAMP_LATE + "分以上 動いていません");
+  L.push("🟠 失敗　" + PANEL_LAMP_ERR_H + "時間以内にエラーがありました");
+  L.push("🔴 停止　" + PANEL_LAMP_DEAD + "分以上 動いていません");
+  L.push("⚪ 不明　まだ一度も動いていません");
   L.push("");
-  L.push("最後に動いた：" + (st.beat ? panelLampWhen_(st.beat) : "まだ ありません"));
+  L.push("最後に動いた：" +
+         (st.beat ? panelLampWhen_(st.beat) +
+                    (st.late > 0 ? "（" + st.late + "分前）" : "（たったいま）")
+                  : "まだ ありません"));
   if (st.err && st.err.n > 0) {
-    L.push("しくじり：" + st.err.n + "件（最後は " + panelLampWhen_(st.err.at) +
+    L.push("エラー：" + st.err.n + "件（最後は " + panelLampWhen_(st.err.at) +
            (st.err.where ? "・" + st.err.where : "") + "）");
   } else {
-    L.push("しくじり：なし");
+    L.push("エラー：なし");
   }
   L.push("");
-  L.push("🔴 や ⚠️ が出たときは");
+  L.push("🟠 失敗 や 🔴 停止 が出たときは");
   L.push("① 上のメニュー【🚑 ニア僕の勝ちだ】を押す");
   L.push("② それでも直らなければ、クロちゃんに知らせる");
   return L.join("\n");
@@ -9402,7 +9520,34 @@ function updWorkTick_() {
   try { r = Date.parse(String(j.resetAt || "")); } catch (e) { r = 0; }
   if (r && r > Date.now()) { fire = r; kind = String(j.kind || "週の上限"); }
   else { fire = at + UPD_5H_MIN * 60000; kind = "5時間枠"; }
-  if (fire <= Date.now()) fire = Date.now() + 60000;
+
+  /*
+   * ★再開できる時刻が、もう過ぎていたら、鳴らしません。
+   *
+   *   【実際に起きたこと・2026/10/14】
+   *   前は「過ぎていたら1分後に置き直す」としていました。
+   *   足あとが何時間も古いままだと、見張りのたびに
+   *   「1分後」が作り直され、3〜4分おきに鳴りつづけました。
+   *
+   *   そもそも、この知らせの役目は「いつ再開できるか」を伝えることです。
+   *   もう過ぎているなら、待つものがありません。鳴らす意味がありません。
+   *   札だけ立てて、黙っておきます。
+   */
+  if (fire <= Date.now()) {
+    try { pr.setProperty(UPD_WORK_ARMED, String(at)); } catch (e) {}
+    return false;
+  }
+
+  /*
+   * ★安全網。1日に鳴らすのは UPD_RESUME_MAX_DAY 回まで。
+   *   上の2つの歯止めが効いていれば、ここには来ません。
+   *   それでも来たときは、ここで止めます。
+   *   知らせが多すぎることのほうが、少なすぎることより ずっと困ります。
+   */
+  if (updResumeCount_(pr) >= UPD_RESUME_MAX_DAY) {
+    try { pr.setProperty(UPD_WORK_ARMED, String(at)); } catch (e) {}
+    return false;
+  }
 
   try {
     updResumeClear_();
