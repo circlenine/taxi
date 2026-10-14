@@ -17,11 +17,11 @@ const OK={'#1f2a37':'字','#6b7785':'うすい字','#d9e1ea':'ふち','#ffffff':
  '#4f3a00':'黄の字','#fffaeb':'黄の地','#ecd48a':'黄のふち','#9a6b00':'黄の見出し','#7d1236':'ピンクの字','#fff5f8':'ピンクの地','#efb3c4':'ピンクのふち','#b0154a':'ピンクの見出し',
  '#5f6b73':'銀色金具','#ad1457':'レギュ','#3a2e00':'オクトの字','#f2c200':'オクト','#8b5a2b':'カチカチホース','#2e7d32':'タンク','#1565c0':'BCD','#4a1424':'重りの字','#e8a1b3':'重り','#6a3fb5':'残圧計','#ef7fa0':'重り'};
 // 角の丸み：0（上の帯）・1mm・2mm・円 だけか
-const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAll('.page *').forEach(e=>{if(e.closest('svg'))return;if(e.matches('#p1 .cv-no,#p1 .cv-e'))return;   /* 表紙の〇〇編のバッジと札は丸くてよい（10/15 ご指示） */const cs=getComputedStyle(e);const r=e.getBoundingClientRect();if(!r.width)return;
+const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAll('.page *').forEach(e=>{if(e.closest('svg'))return;const cs=getComputedStyle(e);const r=e.getBoundingClientRect();if(!r.width)return;
  const v=cs.borderTopLeftRadius;if(v==='0px')return;const mm=parseFloat(v)/MM;if(v.includes('%')||parseFloat(v)>=Math.min(r.width,r.height)/2-0.5){out[(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' 丸']=1;return;}
  if(Math.abs(mm-1)>.05&&Math.abs(mm-2)>.05&&parseFloat(v)<Math.min(r.width,r.height)/2-0.5){const k=(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' '+mm.toFixed(2)+'mm';out[k]=1;}});return Object.keys(out);});
 console.log(rad.length?'NG 決めていない角の丸み … '+rad.join(' / '):'角の丸み OK（1mm・2mm だけ。丸い形なし）');
-OK['#e0507f']='表紙の題のピンク（Girlie・SDGs だけ。10/15 ご指示：案A）';
+OK['#e0507f']='表紙のピンク（題の S・D・G・s の頭文字と、副題の SDGs だけ。10/15 ご指示）';
 // 洗浄編のオレンジ（a4s.py の COLORS と同じ）
 ['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='洗浄編のオレンジ');
 const bad=Object.entries(r).filter(([k])=>!OK[k]);
