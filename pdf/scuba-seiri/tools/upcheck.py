@@ -1,12 +1,12 @@
 # 届いた動画の画面を、1枚も見落とさないための検査（10/13：まーく様が送ってくれた「残圧計が0」の画面を見落とした反省から）
-# 清掃編の作業を始めてから届いた「動画の画面」（横長 2000x923 と同じ形）は、
+# 洗浄編の作業を始めてから届いた「動画の画面」（横長 2000x923 と同じ形）は、
 #   ・PDFで使っている（focus_s.py に名前がある）か、
 #   ・下の SKIP に「なぜ使わないか」を書いてある か、
 # のどちらかでなければ、NG にして組み立てを止める。届いたのに、だれも見ていない画面を残さないため。
 import os, sys, datetime
 from PIL import Image
 UP = "/root/.claude/uploads/647c6673-e0d4-50d5-a1f6-0c9285b7952c"
-SINCE = datetime.datetime(2026, 10, 13, tzinfo=datetime.timezone.utc)   # 清掃編の画面が届きはじめた日
+SINCE = datetime.datetime(2026, 10, 13, tzinfo=datetime.timezone.utc)   # 洗浄編の画面が届きはじめた日
 SKIP = {  # 使わない画面と、そのわけ
  "617c5ba5": "バケツとBCDだけ（2-3の洗う画面を使用）",
  "6182161b": "動画の題の画面",

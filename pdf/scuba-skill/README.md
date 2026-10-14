@@ -26,7 +26,7 @@
 - 文字起こしは、こちらで取る（10/14〜）。URLだけもらえばよい。
   `python3 tools/getscript.py <URL> transcripts` … yoututranscript.com から時刻つきで保存する。
   時刻があるので、スクショは「何分何秒の場面」と頼める。
-- 決まり（`pdf/DESIGN.md`）は、準備編・清掃編と同じものを全部守る。
+- 決まり（`pdf/DESIGN.md`）は、準備編・洗浄編と同じものを全部守る。
 
 ## 動画の一覧
 

@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const FONTS='https://fonts.googleapis.com/css2?family=Pacifico&family=Dancing+Script:wght@700&family=Fredoka:wght@600;700&family=Baloo+2:wght@800&family=Quicksand:wght@700&display=block';
 const E1='<span class="emj">🫧</span>', E2='<span class="emj">🤿</span>';
 const ROSE='#e0507f';
-// m = 本の色（準備編は紺、清掃編は茶）、a = 明るい色、pl = 薄い色
+// m = 本の色（準備編は紺、洗浄編は茶）、a = 明るい色、pl = 薄い色
 const V={
  v1:{name:'スクリプト',html:()=>`${E1} <span class="w">Safe Dive for a <span class="g">Girlie</span> smile</span> ${E2}`,
   css:c=>`.ttl{font-family:'Pacifico',cursive;font-weight:400;color:${c.m};letter-spacing:.01em}
