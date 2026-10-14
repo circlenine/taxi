@@ -17,6 +17,21 @@ const V={
   .cover .cv-f{gap:0!important;align-items:stretch!important}
   .cover .cv-no{border-radius:1mm 0 0 1mm!important}
   .cover .cv-e{border-radius:0 1mm 1mm 0!important;background:#fff!important;border:1.2mm solid #16466b!important;border-left:0!important;padding:0 7mm!important}`},
+
+ s4:{name:'マーカー',css:BASE+`
+  #p1 .cv-sd{font-weight:500!important;color:#1f2a37!important;letter-spacing:.1em!important}
+  .cover .cv-f{gap:3mm!important;align-items:center!important}
+  .cover .cv-e{background:linear-gradient(transparent 58%,#d4ecfa 58%)!important;color:#16466b!important;border-radius:0!important;padding:0 1.5mm!important}`},
+ s5:{name:'線をのばす',css:BASE+`
+  #p1 .cv-sd{font-weight:700!important;color:#1c6ea4!important;letter-spacing:.06em!important}
+  .cover .cv-f{gap:3mm!important;align-items:center!important;width:100%}
+  .cover .cv-e{background:none!important;color:#16466b!important;padding:0!important}
+  .cover .cv-f::after{content:"";flex:1;height:1.2mm;background:#16466b;border-radius:0}`},
+ s6:{name:'こい帯',css:BASE+`
+  #p1 .cv-sd{font-weight:700!important;color:#16466b!important;letter-spacing:.06em!important}
+  .cover .cv-f{gap:0!important;align-items:stretch!important;background:#16466b;border-radius:1mm;width:100%}
+  .cover .cv-no{background:#fff!important;color:#16466b!important;border-radius:0!important;box-shadow:inset 0 0 0 1.2mm #16466b}
+  .cover .cv-e{background:none!important;color:#fff!important;padding:0 6mm!important}`},
 };
 (async()=>{const [S,OUT]=process.argv.slice(2);const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 for(const ed of ['build','build_s']){
