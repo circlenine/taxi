@@ -264,6 +264,8 @@
 - **PDF・文字起こしは GitHub に上げない。**（10/14 まーく様：B）リポジトリが公開のため。
   PDF は、まーく様のドライブに置く。上げる前に `sh pdf/pubcheck.sh` を必ず通す。
 
+- **動画の画質は、毎回そろっているか確かめる。**（10/15 まーく様）`pdf/scuba-skill/tools/vidcheck.py`
+
 ## 作り方（道具）
 
 `pdf/scuba/tools/`（準備編）・`pdf/scuba-seiri/tools/`（清掃編：`a4s.py`・`content_s.py`・`focus_s.py`・`a4make_s.sh`。共通の検査は準備編の側を使う）にある。中のパスは作ったときの作業場所（scratchpad）のままなので、使う前に直す。
