@@ -158,18 +158,18 @@ ASP = {1: 4 / 3, 2: 1.0}
 TAGS = {}
 KEYS = {}
 # 写真の下の名前。器材が写っている写真には、必ず正式名称を添える（10/13 ご指示）
-CAP = {("1-1", "tv"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("1-2", "s05"): "レギュの真ん中のボタン<small>正式名称：パージボタン</small>",
-       ("1-3", "s08"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ</small>", ("1-4", "s10"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ</small>",
-       ("2-1", "s11"): "カチカチホース<small>正式名称：中圧ホース</small>", ("2-2", "s14"): "BCD<small>正式名称：Buoyancy Control Device（浮力調整装置）</small>",
-       ("2-3", "s17"): "水を張ったバケツで洗うよ", ("3-1", "s18"): "L字サインホース<small>正式名称：インフレーターホース</small>",
-       ("3-2", "s19"): "口から吹きこむ<small>正式名称：オーラル吸気</small>", ("3-3", "s20"): "上下左右にゆすってね",
-       ("3-4", "s21"): "下の空気を抜く口<small>正式名称：排気バルブ</small>", ("4-1", "s25"): "レギュ<small>正式名称：セカンドステージ</small>",
-       ("4-2", "s27"): "オクト<small>正式名称：オクトパス</small>", ("4-3", "s28"): "銀色金具<small>正式名称：ファーストステージ</small>",
-       ("4-4", "s30"): "キャップをしたまま沈めるよ", ("5-1", "s23"): "タンクの口のキャップ",
-       ("5-2", "s31"): "干す場所の例",
+CAP = {("2-1", "tv"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("2-2", "s05"): "レギュの真ん中のボタン<small>正式名称：パージボタン</small>",
+       ("2-3", "s08"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
+       ("3-1", "s11"): "カチカチホース<small>正式名称：中圧ホース</small>", ("3-1", "c14"): "銀色の輪を、引いた後", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>正式名称：<br>Buoyancy Control Device<br>（浮力調整装置）</small>",
+       ("3-3", "s17"): "水を張ったバケツなどで洗うよ", ("4-2", "s18"): "L字サインホース<small>正式名称：インフレーターホース</small>",
+       ("4-1", "s19"): "口から吹きこむ<small>正式名称：オーラル吸気</small>", ("4-3", "s20"): "上下左右にゆすってね",
+       ("4-4", "s21"): "下の空気を抜く口<small>正式名称：排気バルブ</small>", ("5-1", "s25"): "レギュ<small>正式名称：セカンドステージ</small>",
+       ("5-2", "s27"): "オクト<small>正式名称：オクトパス</small>", ("5-3", "s28"): "銀色金具<small>正式名称：ファーストステージ</small>",
+       ("5-4", "s30"): "キャップをしたまま沈めるよ", ("6-1", "s23"): "タンクの口のキャップ",
+       ("6-2", "s31"): "干す場所は、インストラクターさんに<br>聞いて、ウラァ！と干しちゃおう",
        # 10/13 ご指示：水をかけていない大写し・持ち方の写真
-       ("1-2", "g0"): "残圧計の針が0", ("3-1", "infl"): "ここから水を入れる", ("3-4", "infl2"): "ここから水が抜ける",
-       ("4-1", "r7250"): "持ち方は、こんな感じ", ("4-2", "oc3473"): "持ち方は、こんな感じ"}
+       ("2-2", "g0"): "残圧計の針が0", ("4-2", "infl"): "ここから水を入れる", ("4-4", "infl2"): "ここから水が抜ける",
+       ("5-1", "r7250"): "持ち方は、こんな感じ", ("5-2", "oc3473"): "持ち方は、こんな感じ"}
 
 _slots = {}
 def im(k, asp):
@@ -245,7 +245,7 @@ STK_OF = {}
 REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
-WIDE = set()
+WIDE = {"3-1"}   # 3-1：手元を横長に大きく写すため、横いっぱいの1段にする（10/14：字幕のすぐ上なので、たてには広げられない）
 def jump(sid):
     # 「くわしくは 1-4（3ページ）」：タップでそのページへ飛ぶ。印刷しても何ページ目かが分かるよう、ページ番号は必ず書く（10/13 ご指示）
     # ページ番号は、手順のページを作り終えてから入れる（2ページを作る時点では、まだ決まっていないため）
@@ -261,7 +261,12 @@ def withjump(ph, sid):
     return ph[:i] + jump(sid) + ph[i:]
 SUBPG = {}   # 手順の番号 → その手順があるページ
 
-EDTAG = '<span class="edtag"><b>2</b>器材清掃編</span>'   # 全ページの左上の、編の番号と名前
+# 更新日（10/14 ご指示：版の番号ではなく「2026/10/14（水）更新」の形で全ページに入れる）
+# 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
+import datetime as _dt
+_d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
+VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
+EDTAG = f'<span class="edtag"><b>2</b>器材清掃編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
 def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
@@ -293,33 +298,45 @@ names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
 # 2ページ：いちばん大事な話（ホースに水を入れない）と、オーバーホール（10/13 ご指示）
 # 費用の目安は、ショップの料金表（DGMS・アイダックなど、2026年10月）から、部品代こみ・税込のおおよそで出した
-OH = [("{silver}＋{regu}", "約1.5〜2万円"), ("{octo}", "＋約5,000円〜"), ("L字サインホース", "＋約2,000〜4,000円"), ("修理が必要なとき", "約3〜5万円")]
-oh_rows = "".join(f'<span class="nn2">{i+1}</span><span class="sp2">{T(a)}</span><span class="sd2">{b}</span>' for i, (a, b) in enumerate(OH))
+# 費用の目安（10/14 ご指示：「〇万円」「〇,〇〇〇円」が混ざっていた → 全部「￥00,000」の形にそろえ、桁の位置も縦にそろえる）
+# （名前, 頭の記号, いくらから, いくらまで）。「＋」は、銀色金具＋レギュに足す分
+OH = [("{silver}＋{regu}", "", "￥15,000", "￥20,000"), ("{octo}", "＋", "￥5,000", ""),
+      ("L字サインホース", "＋", "￥2,000", "￥4,000"), ("修理が必要なとき", "", "￥30,000", "￥50,000")]
+oh_rows = "".join(f'<span class="nn2">{i+1}</span><span class="sp2">{T(a)}</span><span class="sd2 yen"><span class="yp">{pl}</span><span class="ya">約</span><span class="y1">{lo}</span><span class="yt">〜</span><span class="y2">{hi}</span></span>' for i, (a, pl, lo, hi) in enumerate(OH))
 # 2ページは、ほかのページと同じ「2列に、題・写真・札」の形で作る（10/13 ご指摘：決まりとちがう作りで、見た感じがもやもやする）
 # 2ページは「導入」のページ（10/13 ご指摘：いきなり決まりが並ぶと、初心者は「何これ？」となる）
 #   ① まず、なぜ気をつけるのか（ホースや銀色金具の中は繊細）を伝える
 #   ② とくに気をつける3つを、写真で見せる（くわしくは各ページへ飛べる）
 #   ③ 万が一、故障したら（レンタル／自分の器材で、やることがちがう）
-P2 = [
- dict(id="1", key=["s10"], jump="1-4", title="{silver}のキャップの水気を飛ばしたら、すぐ締め直す"),
- dict(id="2", key=["s25"], jump="4-1", title="{regu}を洗うときは、真ん中のボタンを押さない"),
- dict(id="3", key=["s28"], jump="4-3", title="{silver}は、キャップをしたまま洗う"),
- # 4は写真を使わず、題のすぐ下から文を書く（費用の表まで入れて、1ページに収めるため）
- dict(id="4", key=[], title="万が一、水が入ったり、故障したら",
-      extra=["<b>レンタルの人</b><br>使わずに、すぐお店に伝えよう",
-             f'<b>自分の器材を買った人</b><br>お店で、器材の健康診断（正式名称：オーバーホール）を受けよう。<br>目安：1年に1回か100本の、早いほう<div class="srows">{oh_rows}</div><small>※部品代こみ・税込のおおよそ（2026年10月）</small>']),
-]
-CAP.update({("1", "s10"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ</small>", ("2", "s25"): "レギュ<small>正式名称：セカンドステージ</small>",
-            ("3", "s28"): "銀色金具<small>正式名称：ファーストステージ</small>", ("4", "s15"): "お店で分解して、部品を新しくするよ"})
-page("大事", "先に、とくに注意が必要な部分の説明じゃ！", f"""
-<div class="toprow"><div class="tcol"><div class="notes intro"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>ホースや{T("{silver}")}の中は、とても繊細</b></span><div class="ns">水（とくに海水）がたくさん入ると、修理が必要になることも。<br>下の3つを押さえておけば、大丈夫！</div></div></div>
-<p class="more">細かくは、次のページ以降で紹介するぞい！</p></div><div class="tcol"><a class="ref" href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="play">▶</span><span><b>参考動画「ダイビング 器材の片付け」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/Cg4JdxYFcoo</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="rn">※動画の後半は、字幕の説明が変な文になっているので気をつけてね</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作協力 沖縄県立沖縄水産高等学校</span></span></a></div></div>
-<div class="grid2">{"".join(stepbox(x) for x in P2)}</div>""")
+# 2ページ（導入）は、準備編の2ページと同じく「写真から入る」形（10/13 ご指示）
+#   1-1 写真で、BCD と 銀色金具のホース類の「洗い方のちがい」を見せる → いちばん大事なこと
+#   1-2 とくに気をつける3つを、写真で（くわしくは各ページへ飛べる）
+#   1-3 万が一、水が入ったり、故障したら
+SUBPG_P2 = 2
+def jl(sid):   # 写真の名前の下の「くわしくは〜」
+    return jump(sid)
+P2_TRIO = [("s10", "{silver}のキャップの水気を飛ばしたら、すぐ締め直す", "2-4"),
+           ("s25", "{regu}と{octo}を洗うときは、真ん中のボタンを押さない", "5-1"),
+           ("s28", "{silver}の外側やホース類は、キャップを締めたまま洗う", "5-3")]
+trio = "".join(f'<figure class="ph3">{im(k, 1.0)}<span class="cap3">{T(t)}</span>{jl(j)}</figure>' for k, t, j in P2_TRIO)
+page("大事", "先に“取扱注意”なものを伝えるぞい！", f"""
+<div class="grid2">
+<section class="step wide w2"><h3 class="sh3"><span class="sn">1-1</span><span>{T("{bc}")}と{T("{silver}のホース類")}は、洗い方がちがう！</span></h3>
+<div class="photos two">
+<figure class="ph3">{im("bc", 1.0)}<span class="cap3"><b class="ct">{T("{bc}")}</b><br>L字サインホースの口が<b>開いてる</b><br>→ 海水が“入ってる”<br><b class="cr">だから“中”も洗う</b></span></figure>
+<figure class="ph3">{im("s15", 1.0)}<span class="cap3"><b class="ct">{T("{silver}のホース類")}</b><br>隙間を<b>締める</b><br>→ 海水が“入らない”<br><b class="cr">だから“外”だけ洗う</b></span></figure>
+</div>
+<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{T("{silver}のホース類")}の中は、海水を入れちゃダメ！</b></span><div class="ns">水が入ると、故障の原因に。下の3つを押さえておけば、大丈夫！<br>細かくは、次のページ以降で紹介するぞい！</div></div></div></section>
+<section class="step wide w2"><h3 class="sh3"><span class="sn">1-2</span><span>とくに気をつける3つ</span></h3><div class="trio">{trio}</div></section>
+<section class="step wide w2 nophoto"><h3 class="sh3"><span class="sn">1-3</span><span>万が一、水が入ったり、故障したら</span></h3>
+<div class="oh2"><div class="ohl"><div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>レンタルの人</b></span><div class="ns">そのまま使わずに、すぐお店に伝えよう</div></div></div><div class="memo-slot"></div></div>
+<div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>自分の器材を買った人</b></span><div class="ns">お店で、器材の健康診断<br><span class="nw">（正式名称：オーバーホール）</span>を受けよう。<br>目安：1年に1回 or 100本潜水後<br><span class="ind">どちらか早い方のタイミング</span></div><div class="ns np"><div class="srows">{oh_rows}</div><small>※部品代こみ・税込（2026年10月）。<span class="nw">時期による品薄などで、</span><span class="nw">部品代が変動するよ</span></small></div></div></div></div></section>
+</div>""")
 
 # 工程4は、4-2の「大事」が長く、4-1の下に大きな空きができる。そのままでは memo がページのまん中に来てしまい、
 # 写真を小さくして下をあけると、残圧計やBCDが切れてしまう（10/8 ご指摘・試した結果）。
 # そこで工程4だけは、左右の列をそれぞれ上から詰める。4-3が4-1のすぐ下に上がり、左の列の下に memo の場所ができる
-COLS = {"4"}   # 4-1 の大事が長いので、左右の列を上から詰める
+COLS = {"5"}   # 4-1 の大事が長いので、左右の列を上から詰める
 # 工程1〜6：1工程＝1ページ
 for sec in STEPS:
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
@@ -339,17 +356,17 @@ for sec in STEPS:
         page(f"工程{sec['id']}", t, body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
 # まとめ
-pts = "".join(f'<p class="pth">{h}</p>' + "".join(f"<p>・{T(l)}</p>" for l in ls) for h, ls in POINTS)
+pts = "".join(f'<p class="pth">{h}</p>' + "".join(f'<p class="bl"><span class="bm">・</span><span>{T(l)}</span></p>' for l in ls) for h, ls in POINTS)
 quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz q1">{quiz}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>""")
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz q1">{quiz}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">器材を長持ちさせるには、まずコレじゃあ！</p><div class="cv-f"><span class="cv-no">2</span><span class="cv-e">器材清掃編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>つけたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>清掃だけのやり方</p>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t"><span class="emj">🫧</span> Safe Dive for a Good smile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜</p><div class="cv-f"><span class="cv-no">2</span><span class="cv-e">器材清掃編</span></div></div>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>清掃だけのやり方</p>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 pages = [re.sub(r"__PG_([0-9A-Z-]+)__", lambda m: str(SUBPG[m.group(1)]), x) for x in pages]
@@ -624,6 +641,10 @@ CSS += """
 CSS += """
 /* もくじ：表紙の文を少しつめて、あいた高さを全部もくじの行に配る（行の高さを最大にして、押しまちがいを防ぐ） */
 #p1 .cv-t{font-size:28pt!important}
+/* 表紙の題（10/14 ご指示で「専門用語がなんぼのもんじゃい！」から変更。インストラクターさんにも共有しやすい題に） */
+#p1 .cv-t{letter-spacing:0;white-space:nowrap;font-size:24pt!important}   /* 1行に収める（10/14 ご指示） */
+#p1 .cv-t .emj{font-family:"Noto Color Emoji",sans-serif;font-weight:400}
+#p1 .cv-sd{margin:1mm 0 0;font-size:12pt;line-height:1.6;font-weight:900;color:var(--ink)}
 #p1 .cover{gap:1.4mm!important}
 #p1 .toc{flex:1;display:flex!important;flex-direction:column}
 #p1 .tc{flex:1;padding:0!important;min-height:0}
@@ -848,11 +869,12 @@ CSS += """
 #p10 .tcol .ph2{margin-top:6mm!important}
 #p10 .quiz.q1{grid-template-columns:minmax(0,1fr)!important;margin-top:2.4mm}
 /* 清掃編のクイズは6問（10/13 ご指示で1問追加）。1ページに収めるため、出どころの文とクイズの間・問いの上下の余白を少しつめる */
-#p10 .tcol .ph2{margin-top:3mm!important}
+#p10 .tcol .ph2{margin-top:1.6mm!important}
 #p10 .quiz.q1{margin-top:1mm!important}
 #p10 .quiz .qh{margin-top:0!important}
-#p10 .qz{padding:.9mm 0!important}
-#p10 .tcol{gap:3mm!important}
+#p10 .qz{padding:.6mm 0!important}
+#p10 .pts p{margin:0!important}
+#p10 .tcol{gap:1.6mm!important}
 /* 問いは、ふつうに折り返す（そろえる折り返しだと「レギュを／洗うとき…」のように、短い1行目ができて読みにくい） */
 #p10 .q{text-wrap-style:auto!important}
 """
@@ -875,13 +897,21 @@ CSS += """
 .ohrow .notes .nt:first-child{border-top:0!important;padding-top:0!important}
 #p2 .tools>.step.wide>.trio+.notes{margin-top:2.4mm}
 /* memo：清掃編は黄色ではなく、白に近いあたたかい灰色（準備編の黄色の memo と見分けるため。10/13 ご指示） */
-.page>.memo{background-color:#f7f4ef!important}
-.page>.memo::after{background:#e2dcd2!important}
-.memo .mh{color:var(--navy)!important;background:#f7f4ef!important}
+/* 10/13 ご指摘：白に近すぎて、memo だと分かりにくかった。主張しすぎず、書く場所だと分かる濃さにする */
+/* 10/14 ご指摘：ページ全体がオレンジなので、白に近いままでも黄みに見えた。
+   準備編（水色のページに黄色の memo）と同じ考え方で、オレンジの反対の色＝ごくうすい水色に寄せた白にする。テープも水色 */
+.page>.memo{background-color:#f6f9fb!important;box-shadow:inset 0 0 0 1px #cfdde7}
+.page>.memo::after{background:#cfdde7!important}
+.page>.memo::before{background:#a8d3ea!important}
+.memo .mh{color:var(--navy)!important;background:#f6f9fb!important}
+/* 10/14 ご指示：memo は白に近い色（ボールペンの色が見やすいように）。ページ全体がオレンジなので、
+   うすい灰茶のふちで「memo の欄」と分かるようにし、行の線は準備編（水色の線）と同じくらいの濃さの灰茶にする */
+.memo .ml{border-bottom-color:#cfdde7!important}
 """
 CSS += """
 /* 全ページの左上はしに、小さく編の番号と名前（10/13 ご指示）。白いカードの上のすき間に置き、見出しには重ねない */
 .edtag{position:absolute!important;left:14mm;top:9.6mm;display:flex;align-items:center;gap:1.2mm;font-size:7.5pt;line-height:1;font-weight:900;color:var(--navy)}
+.edtag .ver{font-weight:700;color:var(--muted);margin-left:1mm;letter-spacing:.02em}
 .edtag b{display:inline-flex;align-items:center;justify-content:center;min-width:3.6mm;height:3.6mm;padding:0 .8mm;background:var(--navy);color:#fff;border-radius:1mm;font-size:7pt}
 """
 CSS += """
@@ -901,13 +931,65 @@ CSS += """
 .kk{display:inline-block;margin-left:-.5em}
 /* 写真のない手順：文を、写真の段から始める（となりの手順の写真と、上の線をそろえる） */
 .grid2>.step.nophoto>.notes{grid-row:span 2}
+/* 「・」で並べる行は、2行目からを「・」の右（字の位置）にそろえる（10/13 ご指示） */
+.pts p.bl{display:grid;grid-template-columns:1em minmax(0,1fr)}
+/* 2ページ：BCDとホースの洗い方のちがい（名前／わけ の2列） */
+/* 名前が「銀色金具のホース類」と長くなったので（10/13）、名前を1行目に、わけを2行目からにする（2列だと、わけの欄がせまくなり行がふえる） */
+#p2 .srows.wash{grid-template-columns:minmax(0,1fr)!important;row-gap:0!important}
+#p2 .srows.wash .sd2{padding-left:1em;margin-bottom:1mm}
+/* 2ページ：上の説明が2行ふえたので（10/13）、説明の中の余白と、写真の上下のすき間を少しつめて、1ページに収める */
+#p2 .intro .ns.np{margin-top:1mm!important}
+#p2 .intro .srows.wash{row-gap:.6mm!important}
+#p2 .grid2{row-gap:0!important}
+#p2 .toprow{margin-bottom:0!important;padding-bottom:0!important}
+#p2 .grid2{margin-top:-2.4mm!important;padding-top:0!important}   /* 上の段と1の間を、ほかの手順の間と同じくらいにつめる */
+#p2 .step.nophoto .notes .ns.np{margin-top:1.2mm!important}
+#p2 .step.nophoto .notes .nt{padding-bottom:0!important}
+#p2 .grid2>.step:nth-child(-n+2){padding-bottom:2.4mm!important}
+#p2 .grid2>.step:nth-child(n+3){padding-top:2.4mm!important}
 /* 2ページ（導入）：題は横いっぱいに（memo は題の下から） */
 #p2 .ph h2{max-width:none!important}
 #p2 .intro .nt:first-child{border-top:0!important}
 #p2 .more{margin:0;font-size:11.5pt;line-height:1.6;font-weight:900;color:var(--navy)}
 #p2 .tcol{gap:2.4mm!important}
+#p2 .toprow .nt{padding-top:0!important}
 #p2 .srows{column-gap:2mm!important}
-#p2 .srows .sd2{white-space:nowrap}
+#p2 .srows:not(.wash) .sd2{white-space:nowrap;text-align:right}
+/* 費用の表：値段は右はしにそろえ、欄の幅に収める（10/13 ご指摘：右にはみ出していた） */
+#p2 .srows:not(.wash){grid-template-columns:auto minmax(0,1fr) max-content!important;column-gap:2mm!important}
+/* 2ページ（導入）：BCDとホース類の洗い方のちがいを、左右に並べたカードで見せる（10/13 ご指摘：見づらい）
+   左右の同じ段に同じ話（口／海水／洗い方）が来るので、見くらべやすい */
+#p2 .cmp{display:grid;grid-template-columns:1fr 1fr;column-gap:7mm}
+#p2 .cc{border:1px solid var(--line);border-radius:2mm;padding:1mm 3mm;text-align:center}
+#p2 .cc p{margin:0;font-size:10.5pt;white-space:nowrap;letter-spacing:-.02em;line-height:1.6;font-weight:700}
+#p2 .cc .ch{font-size:12pt;font-weight:900;border-bottom:1px solid var(--line);padding-bottom:.8mm;margin-bottom:.8mm}
+#p2 .cc .cr{font-weight:900;color:var(--navy)}
+#p2 .cmp+.notes{margin-top:-2.4mm!important}   /* ページのすき間（約5mm）をつめて、カードと大事をひとまとまりに見せる */
+#p2 .cmp+.notes .nt{padding-top:1.6mm!important}
+/* 2ページ（導入・写真から入る形。10/13） */
+#p2 .w2{display:flex!important;flex-direction:column;gap:2.4mm}
+/* 1-1：左右それぞれ「写真（たて長）＋右に説明」。器材はたて長なので、写真をたてに大きく取る */
+#p2 .photos.two{display:grid;grid-template-columns:1fr 1fr;gap:7mm}
+#p2 .photos.two .ph3{display:grid!important;grid-template-columns:42mm minmax(0,1fr);column-gap:3mm;align-items:center}
+/* 10/14 ご指摘：BCDの左右が見切れていた → 器材の形（ほぼ正方形）に合わせた枠にして、全体を入れる */
+#p2 .photos.two img{height:42mm!important;width:42mm!important;aspect-ratio:auto!important;object-fit:cover;border-radius:2mm}
+#p2 .photos.two .cap3{font-size:10.5pt!important;line-height:1.6!important;color:var(--ink)!important;white-space:normal!important;text-align:left!important}
+#p2 .w2>.notes{align-self:stretch!important;width:100%}
+#p2 .ohl{display:flex;flex-direction:column;gap:3mm}
+#p2 .ohl .memo-slot{flex:1;min-height:20mm}
+#p2 .cap3 .ct{font-size:11.5pt}
+#p2 .cap3 .cr{color:var(--navy)}
+#p2 .trio{margin-top:2.4mm!important}   /* 題の下のすき間は、どの手順も 2.4mm（10/14 ご指摘） */
+#p2 .trio img{height:calc(var(--ph,40mm) * .8)!important}
+#p2 .oh2{display:grid;grid-template-columns:1fr 1fr;column-gap:7mm}
+#p2 .oh2 .nt{border-top:0!important}
+/* 費用の表：「＋」「いくらから」「〜」「いくらまで」を列にして、桁の位置を縦にそろえる（数字は等幅） */
+.sd2.yen{display:grid!important;font-size:.92em!important;grid-template-columns:.8em 1em 3.9em .9em 3.9em;justify-items:end;align-items:center;font-feature-settings:"tnum","palt";letter-spacing:-.03em;white-space:nowrap;margin-left:1.2mm}
+.sd2.yen .yt{justify-self:center}
+.srows:has(.yen){align-items:center!important}
+.srows:has(.yen)>*{margin:0!important;padding-top:0!important;padding-bottom:0!important;line-height:1.6!important}
+/* 「目安：」の2行目を「目安：」の右の字にそろえる（10/14 ご指示） */
+.ind{display:block;padding-left:3em}
 /* 「くわしくは 1-4（3ページ）」：写真の名前のすぐ下に、リンクと同じ色の字で */
 .jump{display:block;text-align:center;font-size:9pt;line-height:1.6;font-weight:700;color:#1c6ea4;text-decoration:underline;margin-top:.8mm}
 .jump b{margin:0 .6mm}
@@ -933,13 +1015,15 @@ function fixOrphans(){document.querySelectorAll('.nx,.ns,.sd2,.ds,.q,.say,.pts p
 //  ・工程 … 左の列か右の列の「下があいているところ」から、ページの下まで。いちばん高く取れるほうを使う
 //           どちらも低すぎるとき（40mm 未満）は、写真を少し小さくして、ページの下に横いっぱいの memo（34mm）をあける
 //  ・表紙 … 置かない
+// 写真の高さの上限（10/13 ご指摘：手順の少ないページだけ写真が大きすぎて、つり合いが悪い）。あまった高さは memo に回す
+const PHMAX=48;
 const MM=96/25.4,GAP=4*MM,MINC=40*MM,RES=34*MM,RES2=20*MM;
 function vis(el){let m=-1e9;const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){if(!n.textContent.trim())continue;const r=document.createRange();r.selectNodeContents(n);[...r.getClientRects()].forEach(q=>m=Math.max(m,q.bottom));}
  [el,...el.querySelectorAll('*')].forEach(c=>{const r=c.getBoundingClientRect();if(!r.height)return;const s=getComputedStyle(c);
   if(c.tagName==='IMG'||c.tagName==='svg'||parseFloat(s.borderBottomWidth)>0||(s.backgroundColor!=='rgba(0, 0, 0, 0)'&&c!==el))m=Math.max(m,r.bottom);});return m;}
 function frame(pg){const P=pg.getBoundingClientRect(),cs=getComputedStyle(pg);return {P,L:P.left+parseFloat(cs.paddingLeft),R:P.right-parseFloat(cs.paddingRight),lim:P.bottom-parseFloat(cs.paddingBottom)};}
 function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *')].map(c=>c.getBoundingClientRect().bottom))-1;
- let lo=30,hi=pg.querySelector('[data-k=strap]')?56:95;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
+ let lo=30,hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
  g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
@@ -958,7 +1042,26 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  // 2ページ（導入）は、写真を小さくすると表がはみ出すので、3の下のあき（25mm 以上）を memo にする（10/13）
  if(best.b-best.t<(pg.id==='p2'?0:MINC)){fit(pg,lim-RES);if(+pg.dataset.ph<40)fit(pg,lim-RES2);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
  place(pg,best);});}
-document.fonts.ready.then(()=>{fixOrphans();markRight();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
+// 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
+function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;
+ const n=Math.max(...cs.map(c=>c.children.length));for(let i=0;i<n;i++){const st=cs.map(c=>c.children[i]).filter(Boolean);if(st.length<2)continue;
+  const tops=st.map(x=>x.getBoundingClientRect().top);if(Math.max(...tops)-Math.min(...tops)>1)continue;
+  const hs=st.map(x=>x.querySelector(':scope>.sh3'));hs.forEach(h=>h.style.minHeight='');const m=Math.max(...hs.map(h=>h.getBoundingClientRect().height));hs.forEach(h=>h.style.minHeight=m+'px');}});}
+// 表紙の題とサブタイトルを、1行のまま横幅ぎりぎりまで大きくする。ただし「〇〇編」の字（42pt）より大きくはしない（10/14 ご指示）
+// 「※」で始まる説明が2行以上になるときは、2行目からを「※」の右（2文字目）にそろえる（10/14 ご指示）
+function hangKome(){document.querySelectorAll('.page small,.page .rn,.page p,.page .ns,.page span').forEach(e=>{if(e.closest('.pno,.howto'))return;
+ const t=e.textContent.trim();if(!t.startsWith('※'))return;if([...e.children].some(c=>c.textContent.trim().startsWith('※')))return;
+ if(getComputedStyle(e).display==='inline')e.style.display='block';
+ // 「※」1文字ぶんの幅を実際に測って、その幅だけ2行目から下げる（字によって幅がちがうため）
+ const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n;while((n=w.nextNode())&&!n.textContent.includes('※'));if(!n)return;
+ const i=n.textContent.indexOf('※'),r=document.createRange();r.setStart(n,i);r.setEnd(n,i+1);const kw=r.getBoundingClientRect().width;
+ e.style.paddingLeft=kw+'px';e.style.textIndent=(-kw)+'px';});}
+function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;const W=c.getBoundingClientRect().width;
+ const ed=parseFloat(getComputedStyle(c.querySelector('.cv-e')).fontSize);
+ ['.cv-t','.cv-sd'].forEach(sel=>{const e=c.querySelector(sel);if(!e)return;e.style.whiteSpace='nowrap';e.style.display='inline-block';e.style.maxWidth='none';e.style.width='max-content';
+  let lo=8,hi=ed;for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
+  e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
+document.fonts.ready.then(()=>{hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
 # ── 色：器材清掃編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#c2571a", "#16466b": "#6b3410", "#d7eef9": "#ffe6d2", "#a9d8ef": "#f6c095", "#cfe5f2": "#f6d9c2",

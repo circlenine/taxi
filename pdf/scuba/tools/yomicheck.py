@@ -10,24 +10,28 @@ OK = {
  "カ": {"か", "可"}, "タ": {"た", "他"}, "テ": {"て", "手"}, "デ": {"で", "出"},
  "ナッ": {"なっ", "鳴っ"}, "ヒク": {"引く", "低"}, "ヨウ": {"よう", "用"},
  "ツケ": {"付け", "着け"},
- "イキ": {"息", "行き"}, "キ": {"き", "着", "気", "来"}, "ヘン": {"編", "変"},   # 気をつける／来ていない、器材準備編／変な文 は別の言葉
- "カイ": {"会", "回"},   # 息と「行きわたる」、委員会と「回す」は別の言葉
- "シメル": {"閉める", "締める"},   # バルブを閉める／キャップを締める の使い分け（どちらも正しい）   # 付ける（物どうし）と着ける（体に）は使い分け（DESIGN.md）
+ "イキ": {"息", "行き"}, "キ": {"き", "着", "気", "来", "器"}, "ヘン": {"編", "変"},   # 気をつける／来ていない、器材準備編／変な文 は別の言葉
+ "カイ": {"会", "回", "買い"}, "スウ": {"吸う", "数"},   # 息と「行きわたる」、委員会と「回す」は別の言葉
 }
 # 書き方を変えてはいけない固有の名前（動画の題名など）。ここに入っている文字列は、調べる前に取りのぞく
 PROPER = ["ダイビング機材セッティング"]   # 動画の正式な題名なので「機材」のまま
 h = open(sys.argv[1]).read()
 body = h[h.index("<body>"):]
-body = re.sub(r"<script.*?</script>|<svg.*?</svg>", "", body, flags=re.S)
+body = re.sub(r"<script.*?</script>|<svg.*?</svg>|<style.*?</style>", "", body, flags=re.S)
 t = re.sub(r"&[a-z#0-9]+;", "", re.sub(r"<[^>]+>", "\n", body))
 for p in PROPER: t = t.replace(p, "")
 tk = Tokenizer(); by = defaultdict(lambda: defaultdict(int))
 for line in t.split("\n"):
     line = line.strip()
     if not line: continue
+    pos = 0
     for x in tk.tokenize(line):
+        a = pos; pos += len(x.surface)
         if x.part_of_speech.startswith("記号"): continue
-        by[x.reading if x.reading != "*" else x.surface][x.surface] += 1
+        r = x.reading if x.reading != "*" else x.surface
+        # 「水につける（浸ける）」は「付ける」と別の言葉。前に「水に」「バケツに」がある「つけ」は、別に数える（10/13）
+        if x.surface == "つけ" and re.search(r"(水|バケツ)に[^。！]{0,4}$", line[:a]): r = "ツケ（浸）"
+        by[r][x.surface] += 1
 bad = [f"NG 表記ゆれ（読み {r}）… " + "／".join(f"{k}×{v}" for k, v in d.items())
        for r, d in sorted(by.items()) if len(d) > 1 and not set(d) <= OK.get(r, set())]
 print("\n".join(bad) if bad else f"表記ゆれ（読みでまとめる検査）OK（{len(by)}語）")

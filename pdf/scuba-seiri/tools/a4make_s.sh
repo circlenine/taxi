@@ -12,7 +12,9 @@ python3 -I $S/tools/focus_s.py a4sizes.json img/s
 node $S/tools/print2.js $S/build_s/a4.html $S/build_s/a4.pdf
 SIDE=14 node $S/tools/mcheck.js $S/build_s/a4.html
 python3 -I $S/tools/toccheck2.py $S/build_s/a4.html
-node $S/tools/wrapcheck.js $S/build_s/a4.html
+WRAPDUMP=$S/build_s/wrap.json node $S/tools/wrapcheck.js $S/build_s/a4.html
+node $S/tools/gapcheck.js $S/build_s/a4.html
+python3 $S/tools/wordbreak.py $S/build_s/wrap.json
 python3 -I $S/tools/termcheck.py $S/build_s/a4.html
 # 読みでまとめる表記ゆれの検査（janome が要る：pip install janome）。ゆれが見つかったら止める
 python3 $S/tools/yomicheck.py $S/build_s/a4.html

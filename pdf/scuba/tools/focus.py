@@ -74,6 +74,8 @@ MARK = {
 RED = (249, 54, 18)            # #f93612：2-1 の動画の赤い丸と同じ色。囲み・丸・矢印・✕は、全部この色にそろえる（10/8 ご指示）
 # 赤い囲みの線の太さ（紙の上の mm）。2-1 の動画の赤い丸を紙の上で測ると 2.2mm なので、全部これにそろえる（10/8 ご指示）
 LINE_MM = 2.2
+# 印のすけぐあい（清掃編と同じ。10/13）
+MARK_ALPHA = 0.8
 # 印の形は、動画にもともと描かれている赤い丸（1-3・2-1）に合わせて、全部「丸（だ円）」にそろえる（10/8 ご指示）
 # 下の MARKR・MARKQ・MARK は「囲みたい物の範囲」。丸はその範囲を、すき間を少しとって外から囲む（OV 倍）
 OV = 1.2
@@ -104,6 +106,9 @@ def mark(im, key, box, sx, sy, ppx):
     import math
     from PIL import Image, ImageDraw, ImageFont
     if key not in MARK and key not in MARKR and key not in MARKE and key not in MARKQ: return im
+    # 印は、透明な紙に描いてから、少しすかして写真に重ねる（10/13 ご指示：清掃編と同じ濃さにそろえる）
+    base = im
+    im = Image.new("RGBA", base.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     x0, y0 = box[0], box[1]
     k = im.size[0] / ((box[2] - box[0]) * sx)
@@ -167,7 +172,10 @@ def mark(im, key, box, sx, sy, ppx):
         d.rounded_rectangle((bx - o, by - o, bx + bw + o, by + bh + o), radius=TAG["radius_mm"] * mm + o, fill=(255, 255, 255))
         d.rounded_rectangle((bx, by, bx + bw, by + bh), radius=TAG["radius_mm"] * mm, fill=RED)
         d.text((bx + TAG["pad_x_mm"] * mm, by + bh / 2), text, font=f, fill=(255, 255, 255), anchor="lm")
-    return im
+    a = im.getchannel("A").point(lambda v: round(v * MARK_ALPHA))
+    im.putalpha(a)
+    out = base.convert("RGBA"); out.alpha_composite(im)
+    return out.convert("RGB")
 
 def load(frame):
     if frame == 45:

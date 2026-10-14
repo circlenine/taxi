@@ -6,7 +6,7 @@ await p.emulateMedia({media:'print'});await p.goto('file://'+src,{waitUntil:'net
 const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b)<=1;
  document.querySelectorAll('.page').forEach((pg,i)=>{const P=pg.getBoundingClientRect(),L=P.left+SIDE*MM,R=P.right-SIDE*MM;
   {const lim=P.bottom-parseFloat(getComputedStyle(pg).paddingBottom)+1;pg.querySelectorAll('*').forEach(e=>{if(e.closest('.pno'))return;const r=e.getBoundingClientRect();if(r.height&&r.bottom>lim)out.push('p'+(i+1)+' ページの下にはみ出し '+e.className+' '+e.textContent.slice(0,10));});}
-  [...pg.children].forEach(c=>{const r=c.getBoundingClientRect();if(!r.width||c.classList.contains('memo'))return;if(!ok(r.left,L)||!ok(r.right,R))out.push('p'+(i+1)+' 左右が本文の線とずれ '+c.className+' '+Math.round(r.left-L)+'/'+Math.round(R-r.right));});
+  [...pg.children].forEach(c=>{const r=c.getBoundingClientRect();if(!r.width||c.classList.contains('memo')||c.classList.contains('edtag'))return;   /* 左上の編の札は、本文の線の外に置くもの */if(!ok(r.left,L)||!ok(r.right,R))out.push('p'+(i+1)+' 左右が本文の線とずれ '+c.className+' '+Math.round(r.left-L)+'/'+Math.round(R-r.right));});
   pg.querySelectorAll('*').forEach(e=>{const r=e.getBoundingClientRect();if(r.width&&(r.right>R+1||r.left<L-1)&&!e.closest('.pno'))out.push('p'+(i+1)+' 横にはみ出し '+e.className+' '+e.textContent.slice(0,12));});
   pg.querySelectorAll('.step>.photos,.step>.notes,.step>.names,.step>.reg,.step>.sasuke,.step>.big').forEach(e=>{const r=e.getBoundingClientRect(),S=e.parentElement.getBoundingClientRect();if(!ok(r.left,S.left)||!ok(r.right,S.right))out.push('p'+(i+1)+' 写真・補足の幅がそろっていない '+e.className);});
   const L2=[...pg.querySelectorAll('.t,.sn,.fs,.nk,.nn,.tl')].map(e=>({e,r:e.getBoundingClientRect()})).filter(o=>o.r.height);
