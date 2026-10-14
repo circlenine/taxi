@@ -2,9 +2,32 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U131ver  （2026/10/09）  ★★★
+ *  ★★★  U132ver  （2026/10/14）  ★★★
  *
- *  [U131ver]
+ *  [U132ver]
+ *   ・🚦 いまの調子の信号を足した（ご指示・「説明」タブ 1行目 F〜G）
+ *     ★まーく様のご指示：「問題なく動いているか、何かエラーが
+ *       起きているのかが分かる、スマートな形で、G列に右寄せで」
+ *     ★見ているのは2つだけです。
+ *       ① 心ぱく（PANEL_WATCH_AT）… 1分おきの見張りの足あと
+ *       ② しくじり（LAST_ERRORS）… 直近のエラーの控え（3時間ぶん）
+ *     ★4つの顔
+ *       🟢 順調 ／ ⚠️ しくじり ／ 🟡 おくれ（5分）／ 🔴 止まってます（25分）
+ *       うしろに「最後に動いた時刻」を出します。
+ *     ★お知らせ（LINE）にはしていません。
+ *       ふだんは1通も出さない、というのがこの置き場の決まりです。
+ *       開いたときに見るだけで分かるほうが、ずっと軽いです。
+ *     ★書きこみは しぼっています。顔が変わったとき、か、5分おきだけ。
+ *       1分おきに書くと1日1440回で、持ち時間（90分）を食いつぶします。
+ *     ★つないだらんの左上（F1）に書きます。内側に書くと怒られます。
+ *       つなぎを外されても動きます。
+ *     ★折り返しは切っています。1行目が太ると、ボタンが下に押し下がります。
+ *     ★控えがまるごと読めないときは、何も書きません。
+ *       「分からない」を誤報として出さないためです。
+ *     ★信号の文は、結果らんをさがす言葉と かぶらないようにしてあります
+ *       （かぶると1行目を結果らんと思いこみ、画面が壊れます）。
+ *   ・なおす係（fixAll）からも、その場で信号を作り直すようにした
+ *
  *   ・合図「ニア僕の勝ちだ」を足した（ご指示）
  *     ★どう書いても通ります。打ち方を覚える必要はありません。
  *       ニア僕の勝ちだ ／ ニア、僕の勝ちだ ／ ニア僕の勝ちだ！
@@ -1425,7 +1448,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U131ver";
+const UPD_VERSION = "U132ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -8355,6 +8378,289 @@ function panelIsProtected_(sh) {
  */
 
 /** 見張りが動いた足あとを残す */
+/* ================================================================
+ *  🚦 いまの調子 ―― 「説明」タブ 1行目 F〜G に、一目で分かる信号
+ *
+ *  ★まーく様のご指示です。
+ *    「しばらくこっちを進められないので、問題なく動いているか、
+ *      何かエラーが起きているのかが分かるお知らせかボタンか
+ *      スマートな形で、1行目F〜G列（結合ずみ）のG列に右寄せで」
+ *
+ *  ★なぜ「信号」にしたか。
+ *    お知らせ（LINE）だと、ふだん動いているときにも1通来ます。
+ *    この置き場の決まりは「ふだんは1通も出さない」です。
+ *    スプシを開いたときに、見るだけで分かるのが いちばん軽いです。
+ *
+ *  ★何を見ているか。2つだけです。
+ *    ① 心ぱく … 1分おきの見張りが残す足あと（PANEL_WATCH_AT）。
+ *       これが古ければ、見張りが止まっています。
+ *    ② しくじり … 直近のエラーの控え（LAST_ERRORS）。
+ *       3時間以内に1件でもあれば、知らせます。
+ *
+ *  ★4つの顔
+ *    🟢 順調        … 見張りが動いていて、しくじりも無い
+ *    ⚠️ しくじり     … 動いてはいるが、3時間以内にエラーがあった
+ *    🟡 おくれ      … 5分以上 動いていない
+ *    🔴 止まってます … 25分以上 動いていない（いちばん重い）
+ *
+ *  ★肝心なところ：**スプシを開いた瞬間にも 作り直します**。
+ *    見張りが全部止まると、だれも書けません。
+ *    「🟢 順調」のまま固まっていては、かえって危ないです。
+ *    開いたとき（onOpen）は、承認が切れていても動きます。
+ *    そこで作り直すので、開けば必ず いまの顔になります。
+ *
+ *  ★書きこみは しぼっています（1日の持ち時間を食わないため）。
+ *    顔が変わったとき、か、5分たったときだけ書きます。
+ *    ふだんは1分おきに読むだけで、書きません。
+ * ================================================================ */
+
+const PANEL_LAMP_ROW   = 1;    // 1行目
+const PANEL_LAMP_COL   = 6;    // F列（まーく様が F1:G1 をつないでおられる）
+const PANEL_LAMP_LATE  = 5;    // 心ぱくが何分 古ければ「おくれ」
+const PANEL_LAMP_DEAD  = 25;   // 何分 古ければ「止まってます」
+const PANEL_LAMP_ERR_H = 3;    // しくじりを何時間ぶん 見るか
+const PANEL_LAMP_EVERY = 5;    // ふだんは何分おきに書き直すか
+const PANEL_LAMP_MK_KEY = "PANEL_LAMP_MK";   // 前に出した顔
+const PANEL_LAMP_AT_KEY = "PANEL_LAMP_AT";   // 前に書いた時刻
+
+/** 時刻を「10/14 14:48」の形にする */
+function panelLampWhen_(ms) {
+  try {
+    const d = new Date(Number(ms));
+    return (d.getMonth() + 1) + "/" + d.getDate() + " " +
+           pad2_(d.getHours()) + ":" + pad2_(d.getMinutes());
+  } catch (e) { return "？"; }
+}
+
+/** 時刻を「14:48」の形にする（信号の中は短くしたい） */
+function panelLampHm_(ms) {
+  try {
+    const d = new Date(Number(ms));
+    return pad2_(d.getHours()) + ":" + pad2_(d.getMinutes());
+  } catch (e) { return "？"; }
+}
+
+/**
+ * 直近のしくじりを数える。
+ * ★控えは logErr_ が LAST_ERRORS に5件まで残しています。
+ *   そのうち「決めた時間のうちに起きたぶん」だけを見ます。
+ *   古いものまで数えると、いつまでも ⚠️ が消えません。
+ */
+function panelLampErr_(t) {
+  const out = { n: 0, at: 0, where: "" };
+  let raw = "";
+  try { raw = String(PropertiesService.getScriptProperties().getProperty("LAST_ERRORS") || ""); }
+  catch (e) { return out; }
+  if (!raw) return out;
+  let list = [];
+  try { list = JSON.parse(raw); } catch (e) { return out; }
+  if (!list || !list.length) return out;
+  const limit = PANEL_LAMP_ERR_H * 60 * 60 * 1000;
+  for (let i = 0; i < list.length; i++) {
+    const it = list[i] || {};
+    let ms = 0;
+    try { ms = new Date(it.at).getTime(); } catch (e) { ms = 0; }
+    if (!ms || isNaN(ms)) continue;
+    if (t - ms > limit) continue;          // 古いものは数えない
+    if (ms - t > 60 * 60 * 1000) continue; // 時計がずれて未来のものも数えない
+    out.n++;
+    if (ms > out.at) { out.at = ms; out.where = String(it.where || ""); }
+  }
+  return out;
+}
+
+/**
+ * いまの顔を決める。
+ *
+ * ★戻りが null のときは「分からなかった」です。そのときは書きません。
+ *   控えそのものが読めないとき（開いた直後など）に、
+ *   「⚪ まだ分かりません」と書いてしまうと、ただの誤報になります。
+ *   分からないときは、前の顔をそのまま残すほうが親切です。
+ */
+function panelLampState_(now) {
+  /*
+   * ★「instanceof Date」では見ません。
+   *   渡されたものが、別の場所で作られた Date だと false になります
+   *   （テストの箱の中で、実際にそうなりました）。
+   *   getTime() が呼べるかどうかで見るほうが、確かです。
+   */
+  const t = (now && typeof now.getTime === "function") ? now.getTime() : Date.now();
+  let beat = 0;
+  try {
+    const v = PropertiesService.getScriptProperties().getProperty("PANEL_WATCH_AT");
+    beat = Number(v || 0);
+    if (!beat || isNaN(beat)) beat = 0;
+  } catch (e) {
+    return null;                       // ★控えが読めない。黙って何もしない
+  }
+  const err = panelLampErr_(t);
+
+  // まだ1回も見張りが動いていない（入れたばかり）
+  if (!beat) {
+    return {
+      mark: "⚪", word: "まだ 動いていません",
+      text: "⚪ まだ 動いていません",
+      color: "#5f6368", bg: "#f1f3f4", bold: false,
+      beat: 0, late: -1, err: err
+    };
+  }
+
+  const late = Math.max(0, Math.floor((t - beat) / 60000));
+
+  if (late >= PANEL_LAMP_DEAD) {
+    return {
+      mark: "🔴", word: "止まってます",
+      text: "🔴 止まってます " + panelLampHm_(beat),
+      color: "#b00020", bg: "#fde7e9", bold: true,
+      beat: beat, late: late, err: err
+    };
+  }
+  /*
+   * ★しくじりを「おくれ」より先に出します。
+   *   5〜24分のおくれは、持ち時間のゆらぎでも起きます。
+   *   しくじりは、ゆらぎでは起きません。そちらが先に目に入るべきです。
+   */
+  if (err.n > 0) {
+    return {
+      mark: "⚠️", word: "しくじり" + err.n + "件",
+      text: "⚠️ しくじり" + err.n + "件 " + panelLampHm_(err.at),
+      color: "#e65100", bg: "#fff4e5", bold: true,
+      beat: beat, late: late, err: err
+    };
+  }
+  if (late >= PANEL_LAMP_LATE) {
+    return {
+      mark: "🟡", word: "おくれ" + late + "分",
+      text: "🟡 おくれ" + late + "分 " + panelLampHm_(beat),
+      color: "#e65100", bg: "#fff4e5", bold: false,
+      beat: beat, late: late, err: err
+    };
+  }
+  return {
+    mark: "🟢", word: "順調",
+    text: "🟢 順調 " + panelLampHm_(beat),
+    color: "#1b5e20", bg: "#e6f4ea", bold: false,
+    beat: beat, late: late, err: err
+  };
+}
+
+/**
+ * 信号のメモ（セルをタップすると出てくる説明）。
+ *
+ * ★ここに置いたのは、セルの中は短くしたいからです。
+ *   横に長いと、スマホでは となりのらんを押しつぶします。
+ *   詳しいことは、押したときだけ出れば足ります。
+ */
+function panelLampNote_(st) {
+  const L = [];
+  L.push("【いまの調子】");
+  L.push("🟢 順調 … 見張りが動いています");
+  L.push("⚠️ しくじり … " + PANEL_LAMP_ERR_H + "時間以内にエラーがありました");
+  L.push("🟡 おくれ … " + PANEL_LAMP_LATE + "分以上 動いていません");
+  L.push("🔴 止まってます … " + PANEL_LAMP_DEAD + "分以上 動いていません");
+  L.push("");
+  L.push("最後に動いた：" + (st.beat ? panelLampWhen_(st.beat) : "まだ ありません"));
+  if (st.err && st.err.n > 0) {
+    L.push("しくじり：" + st.err.n + "件（最後は " + panelLampWhen_(st.err.at) +
+           (st.err.where ? "・" + st.err.where : "") + "）");
+  } else {
+    L.push("しくじり：なし");
+  }
+  L.push("");
+  L.push("🔴 や ⚠️ が出たときは");
+  L.push("① 上のメニュー【🚑 ニア僕の勝ちだ】を押す");
+  L.push("② それでも直らなければ、クロちゃんに知らせる");
+  return L.join("\n");
+}
+
+/**
+ * 信号を書く。書いたら true。
+ *
+ * @param {Sheet}   sh    「説明」タブ
+ * @param {Date}    now   いまの時刻
+ * @param {boolean} force 顔が変わっていなくても、必ず書き直すか
+ */
+function panelLamp_(sh, now, force) {
+  try {
+    if (!sh) return false;
+    const t = (now && typeof now.getTime === "function") ? now : new Date();
+    const st = panelLampState_(t);
+    if (!st) return false;              // 分からないときは、前のままにしておく
+
+    let pr = null;
+    try { pr = PropertiesService.getScriptProperties(); } catch (e) { pr = null; }
+    let prevMk = "", prevAt = 0;
+    if (pr) {
+      try { prevMk = String(pr.getProperty(PANEL_LAMP_MK_KEY) || ""); } catch (e) {}
+      try { prevAt = Number(pr.getProperty(PANEL_LAMP_AT_KEY) || 0); } catch (e) {}
+      if (!prevAt || isNaN(prevAt)) prevAt = 0;
+    }
+    const changed = (st.mark !== prevMk);
+    const aged = !prevAt || (t.getTime() - prevAt) >= PANEL_LAMP_EVERY * 60000;
+    /*
+     * ★ふだんは書きません。顔が変わったとき、か、5分たったときだけです。
+     *   1分おきに書くと、1日1440回の書きこみになります。
+     *   1日の持ち時間（90分）を、見るだけのことで食いつぶします。
+     */
+    if (!force && !changed && !aged) return false;
+
+    let rg = sh.getRange(PANEL_LAMP_ROW, PANEL_LAMP_COL);
+    /*
+     * ★F1とG1は つないであります。つないだらんは、左上に書きます。
+     *   内側（G1）に書こうとすると、本物では怒られます。
+     *   つなぎを外されても動くよう、つないであるときだけ左上に寄せます。
+     */
+    try {
+      if (rg.isPartOfMerge()) {
+        const m = rg.getMergedRanges();
+        if (m && m.length) rg = m[0].getCell(1, 1);
+      }
+    } catch (e) {}
+
+    rg.setValue(st.text);
+    /*
+     * ★見た目。右寄せはご指示です（つないだらんの右端＝G列側に出ます）。
+     * ★折り返しは切ります。折り返すと1行目が太り、
+     *   ボタンの並びが下に押し下げられて、画面が狭くなります。
+     */
+    try { rg.setHorizontalAlignment("right"); } catch (e) {}
+    try { rg.setVerticalAlignment("middle"); } catch (e) {}
+    try { rg.setWrap(false); } catch (e) {}
+    try { rg.setFontSize(10); } catch (e) {}
+    try { rg.setFontWeight(st.bold ? "bold" : "normal"); } catch (e) {}
+    try { rg.setFontColor(st.color); } catch (e) {}
+    try { rg.setBackground(st.bg); } catch (e) {}
+    // メモは長いので、顔が変わったときだけ書き直します
+    if (force || changed) { try { rg.setNote(panelLampNote_(st)); } catch (e) {} }
+
+    if (pr) {
+      try { pr.setProperty(PANEL_LAMP_MK_KEY, st.mark); } catch (e) {}
+      try { pr.setProperty(PANEL_LAMP_AT_KEY, String(t.getTime())); } catch (e) {}
+    }
+    return true;
+  } catch (e) {
+    try { logErr_("panelLamp", e); } catch (e2) {}
+    return false;
+  }
+}
+
+/**
+ * 開いたときに、信号を作り直す。
+ *
+ * ★ここが肝心です。見張りが全部止まると、だれも書けません。
+ *   「🟢 順調」のまま固まっていては、かえって危ないです。
+ *   開いたとき（onOpen）は、承認が切れていても動きます。
+ */
+function panelLampOnOpen_(ss) {
+  try {
+    const s = ss || (typeof mainSS_ === "function" ? mainSS_() : null);
+    if (!s) return false;
+    const sh = s.getSheetByName(PANEL_TAB);
+    if (!sh) return false;
+    return panelLamp_(sh, new Date(), true);
+  } catch (e) { return false; }
+}
+
 function panelBeatWatch_() {
   try { PropertiesService.getScriptProperties().setProperty("PANEL_WATCH_AT", String(Date.now())); }
   catch (e) {}
@@ -8514,6 +8820,8 @@ function fixAll() {
   try {
     const p = ss.getSheetByName(PANEL_TAB);
     if (p) panelSay_(p, "🚑 なおしました\n" + text);
+    // ★信号も、その場で作り直します（直したのに赤いままでは、わけが分かりません）
+    if (p) { try { panelLamp_(p, new Date(), true); } catch (e2) {} }
   } catch (e) {}
   try {
     const me = updMe_();
@@ -9515,6 +9823,12 @@ function panelWatch() {
 
     const sh = mainSS_().getSheetByName(PANEL_TAB);
     if (!sh) return;
+
+    /*
+     * ★いまの調子の信号（1行目F〜G）を、いまの顔にそろえます。
+     *   ふだんは読むだけで、書くのは顔が変わったときと5分おきだけです。
+     */
+    try { panelLamp_(sh, new Date(), false); } catch (e) {}
 
     // 「結果を空にする」が押されていたら、まずそれ
     if (panelResetIfAsked_(sh)) return;

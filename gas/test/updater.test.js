@@ -141,6 +141,18 @@ function mkPanel() {
   const soft = {};
   const valids = {};      // 'r,c' → 入力規則（プルダウン）
   const prot = [];
+  /*
+   * ★見た目も、本物と同じように覚えておく。
+   *   「右寄せにしたか」「赤くしたか」「メモを付けたか」を
+   *   あとで確かめられないと、信号が正しいかを測れない。
+   */
+  const aligns = {};      // 'r,c' → 横の寄せ
+  const valigns = {};     // 'r,c' → たての寄せ
+  const bgs = {};         // 'r,c' → 背景の色
+  const fcolors = {};     // 'r,c' → 文字の色
+  const weights = {};     // 'r,c' → 太字か
+  const wraps = {};       // 'r,c' → 折り返すか
+  const notes = {};       // 'r,c' → メモ
 
   /*
    * ★行を足したときに、下にあるものを ぜんぶ動かす。
@@ -187,15 +199,32 @@ function mkPanel() {
 
   // 結合セルの左上を返す小さな入れ物
   function panelCell(r, c) {
-    const C = { setValue: v => { cells[r + ',' + c] = v; return C; },
-                getValue: () => cells[r + ',' + c] };
-    return new Proxy(C, { get: (t, k) => (k in t ? t[k] : () => C) });
+    const k = r + ',' + c;
+    const C = { setValue: v => { cells[k] = v; return C; },
+                getValue: () => cells[k],
+                // ★見た目も覚える。つないだらんの左上に書くときは、こちらを通る
+                setHorizontalAlignment: v => { aligns[k] = v; return C; },
+                setVerticalAlignment: v => { valigns[k] = v; return C; },
+                setBackground: v => { bgs[k] = v; return C; },
+                setFontColor: v => { fcolors[k] = v; return C; },
+                setFontWeight: v => { weights[k] = v; return C; },
+                setWrap: v => { wraps[k] = v; return C; },
+                setNote: v => { notes[k] = v; return C; },
+                getNote: () => notes[k] };
+    return new Proxy(C, { get: (t, k2) => (k2 in t ? t[k2] : () => C) });
   }
   let protFails = false;
   const mergedCalls = [];
   const sh0 = {
     _merged: mergedCalls,
     _cells: cells,
+    _aligns: aligns,
+    _valigns: valigns,
+    _bgs: bgs,
+    _fcolors: fcolors,
+    _weights: weights,
+    _wraps: wraps,
+    _notes: notes,
     _sizes: sizes,
     _heights: heights,
     _valids: valids,
@@ -411,6 +440,36 @@ function mkPanel() {
         },
         setValue: v => { cells[r + ',' + c] = v; return px; },
         getValue: () => cells[r + ',' + c],
+        setHorizontalAlignment: v => {
+          for (let i = 0; i < (nr || 1); i++) {
+            for (let j = 0; j < (nc || 1); j++) aligns[(r + i) + ',' + (c + j)] = v;
+          }
+          return px;
+        },
+        setVerticalAlignment: v => {
+          for (let i = 0; i < (nr || 1); i++) valigns[(r + i) + ',' + c] = v;
+          return px;
+        },
+        setBackground: v => {
+          for (let i = 0; i < (nr || 1); i++) {
+            for (let j = 0; j < (nc || 1); j++) bgs[(r + i) + ',' + (c + j)] = v;
+          }
+          return px;
+        },
+        setFontColor: v => {
+          for (let i = 0; i < (nr || 1); i++) fcolors[(r + i) + ',' + c] = v;
+          return px;
+        },
+        setFontWeight: v => {
+          for (let i = 0; i < (nr || 1); i++) weights[(r + i) + ',' + c] = v;
+          return px;
+        },
+        setWrap: v => {
+          for (let i = 0; i < (nr || 1); i++) wraps[(r + i) + ',' + c] = v;
+          return px;
+        },
+        setNote: v => { notes[r + ',' + c] = v; return px; },
+        getNote: () => notes[r + ',' + c],
         getValues: () => {
           const out = [];
           for (let i = 0; i < (nr || 1); i++) {
@@ -6208,6 +6267,189 @@ console.log('\n■ 足したボタンも、ほかの行と同じ形にそろえ�
   const m = panel._merged.map(function (x) { return x.c + ':' + x.w; });
   t(m.indexOf('3:4') !== -1, '★名前のらんを、C列から4つぶんつなぐ（' + m.join('、') + '）');
   t(m.indexOf('7:2') !== -1, '★説明のらんは、G列から2つぶんつなぐ（' + m.join('、') + '）');
+}
+
+console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）');
+/*
+ * ★まーく様のご指示です。
+ *   「問題なく動いているか、何かエラーが起きているのかが分かる
+ *     お知らせかボタンかスマートな形で、1行目F〜G列（結合ずみ）の
+ *     G列に右寄せで、一目でエラー起きてないかどうかわかるものを」
+ *
+ * ★見ているのは2つだけ。
+ *   ① 心ぱく（PANEL_WATCH_AT）… 1分おきの見張りの足あと
+ *   ② しくじり（LAST_ERRORS）… 直近のエラーの控え
+ *
+ * ★ここで必ず確かめること
+ *   ・右寄せになっているか（ご指示）
+ *   ・つないだらんの左上（F1）に書いているか
+ *   ・顔の出し分け（境目の分と秒まで）
+ *   ・ふだんは書かない（1日の持ち時間を食わないため）
+ *   ・開いた瞬間は必ず書き直す（固まった「🟢」がいちばん危ない）
+ *   ・結果らんと まちがえられない言葉になっているか
+ */
+{
+  reset();
+  panel._merge(1, 6, 1, 7);                 // F1:G1 をつないでおく（本物と同じ）
+  const LAMP = F('panelLamp_');
+  const ST = F('panelLampState_');
+  const NOW = new Date('2026-10-14T14:48:00+09:00');
+  const beatAt = ms => { props['PANEL_WATCH_AT'] = String(NOW.getTime() - ms); };
+  // ★時刻の形は決め打ちにしない。テストの箱は UTC、本番は日本時間なので、
+  //   同じ数え方で作ったものと見くらべる
+  const hm = ms => ('0' + new Date(ms).getHours()).slice(-2) + ':' +
+                   ('0' + new Date(ms).getMinutes()).slice(-2);
+  const clearLamp = () => {
+    delete props['PANEL_LAMP_MK']; delete props['PANEL_LAMP_AT'];
+    delete panel._cells['1,6']; delete panel._aligns['1,6'];
+  };
+
+  // ――― 心ぱくが新しい ＝ 🟢 順調
+  beatAt(60 * 1000);                        // 1分前
+  t(ST(NOW).mark === '🟢', '★1分前に動いていれば 🟢', ST(NOW).mark);
+  t(ST(NOW).text === '🟢 順調 ' + hm(NOW.getTime() - 60000),
+    '　文は「🟢 順調 ' + hm(NOW.getTime() - 60000) + '」', ST(NOW).text);
+
+  // ――― 書く場所と、右寄せ（ご指示）
+  clearLamp();
+  t(LAMP(panel, NOW, true) === true, '★書けた');
+  t(panel._cells['1,6'] === '🟢 順調 ' + hm(NOW.getTime() - 60000),
+    '★★つないだらんの左上（F1）に書く', String(panel._cells['1,6']));
+  t(panel._aligns['1,6'] === 'right',
+    '★★右寄せ（つないだらんの右端＝G列側に出る）', String(panel._aligns['1,6']));
+  t(panel._cells['1,7'] === undefined,
+    '★★内側（G1）には書かない（本物では怒られる）');
+  t(panel._wraps['1,6'] === false,
+    '★折り返さない（1行目が太るとボタンが下へ押し下がる）');
+  t(panel._bgs['1,6'] === '#e6f4ea', '　順調の背景は うすい緑');
+  t(String(panel._notes['1,6'] || '').indexOf('ニア僕の勝ちだ') !== -1,
+    '★メモに「どうすればよいか」が入っている');
+
+  // ――― 顔の出し分け（境目をきっちり）
+  beatAt(4 * 60 * 1000 + 59 * 1000);  t(ST(NOW).mark === '🟢', '　4分59秒前は まだ 🟢');
+  beatAt(5 * 60 * 1000);              t(ST(NOW).mark === '🟡', '★5分前から 🟡 おくれ');
+  t(ST(NOW).text === '🟡 おくれ5分 ' + hm(NOW.getTime() - 5 * 60000),
+    '　文は「🟡 おくれ5分 …」', ST(NOW).text);
+  beatAt(24 * 60 * 1000 + 59 * 1000); t(ST(NOW).mark === '🟡', '　24分59秒前は まだ 🟡');
+  beatAt(25 * 60 * 1000);             t(ST(NOW).mark === '🔴', '★25分前から 🔴 止まってます');
+  t(ST(NOW).text === '🔴 止まってます ' + hm(NOW.getTime() - 25 * 60000),
+    '　文は「🔴 止まってます …」', ST(NOW).text);
+  t(ST(NOW).bold === true, '　🔴 は太字にする');
+  beatAt(7 * 60 * 60 * 1000);
+  t(ST(NOW).mark === '🔴', '　7時間前でも 🔴');
+
+  // ――― しくじりがあれば ⚠️（おくれより先に出す）
+  beatAt(60 * 1000);
+  props['LAST_ERRORS'] = JSON.stringify([
+    { at: new Date(NOW.getTime() - 30 * 60 * 1000).toISOString(), where: 'panelWatch', msg: 'x' }
+  ]);
+  t(ST(NOW).mark === '⚠️', '★3時間以内のしくじりがあれば ⚠️', ST(NOW).mark);
+  t(ST(NOW).text === '⚠️ しくじり1件 ' + hm(NOW.getTime() - 30 * 60000),
+    '　文は「⚠️ しくじり1件 …」', ST(NOW).text);
+  beatAt(10 * 60 * 1000);
+  t(ST(NOW).mark === '⚠️', '★★おくれ(🟡)より しくじり(⚠️)を先に出す');
+  beatAt(30 * 60 * 1000);
+  t(ST(NOW).mark === '🔴', '★★止まってます(🔴)は、しくじりより さらに先');
+
+  // ――― 古いしくじりは、いつまでも数えない
+  beatAt(60 * 1000);
+  props['LAST_ERRORS'] = JSON.stringify([
+    { at: new Date(NOW.getTime() - 4 * 60 * 60 * 1000).toISOString(), where: 'x', msg: 'x' }
+  ]);
+  t(ST(NOW).mark === '🟢', '★★4時間前のしくじりは、もう数えない');
+  // 時計がずれて「未来のしくじり」が入っていても数えない
+  props['LAST_ERRORS'] = JSON.stringify([
+    { at: new Date(NOW.getTime() + 5 * 60 * 60 * 1000).toISOString(), where: 'x', msg: 'x' }
+  ]);
+  t(ST(NOW).mark === '🟢', '　未来の時刻のしくじりも数えない');
+  // 控えが壊れていても落ちない
+  props['LAST_ERRORS'] = '{こわれた';
+  t(ST(NOW).mark === '🟢', '　控えが壊れていても落ちない');
+  delete props['LAST_ERRORS'];
+
+  // ――― まだ1回も動いていないとき
+  delete props['PANEL_WATCH_AT'];
+  t(ST(NOW).mark === '⚪', '★まだ動いていなければ ⚪');
+
+  // ――― ふだんは書かない（持ち時間を食わないため）
+  beatAt(60 * 1000);
+  clearLamp();
+  LAMP(panel, NOW, true);                              // 1回目は書く
+  const after1 = panel._cells['1,6'];
+  delete panel._cells['1,6'];
+  const soon = new Date(NOW.getTime() + 60 * 1000);    // 1分後
+  props['PANEL_WATCH_AT'] = String(soon.getTime() - 60 * 1000);
+  t(LAMP(panel, soon, false) === false, '★★顔が同じなら、1分後は書かない');
+  t(panel._cells['1,6'] === undefined, '　書いていない（持ち時間を食わない）');
+  const later = new Date(NOW.getTime() + 5 * 60 * 1000);  // 5分後
+  props['PANEL_WATCH_AT'] = String(later.getTime() - 60 * 1000);
+  t(LAMP(panel, later, false) === true, '★5分たてば、書き直す');
+
+  // ――― 顔が変わったら、すぐ書く
+  clearLamp();
+  beatAt(60 * 1000);
+  LAMP(panel, NOW, true);
+  delete panel._cells['1,6'];
+  props['PANEL_WATCH_AT'] = String(NOW.getTime() - 40 * 60 * 1000);   // 止まった
+  const soon2 = new Date(NOW.getTime() + 60 * 1000);
+  t(LAMP(panel, soon2, false) === true, '★★顔が変わったら、5分待たずに すぐ書く');
+  t(String(panel._cells['1,6']).indexOf('🔴') === 0, '　🔴 になっている',
+    String(panel._cells['1,6']));
+
+  // ――― 控えがまるごと読めないときは、何も書かない（誤報を出さない）
+  clearLamp();
+  const realProps = ctx.PropertiesService;
+  ctx.PropertiesService = { getScriptProperties: () => { throw new Error('権限がありません'); } };
+  t(ST(NOW) === null, '★★控えが読めないときは「分からない」を返す');
+  t(LAMP(panel, NOW, true) === false, '★★そのときは何も書かない（前のままにする）');
+  t(panel._cells['1,6'] === undefined, '　書いていない');
+  ctx.PropertiesService = realProps;
+
+  // ――― つなぎを外されても動く
+  reset();
+  beatAt(60 * 1000);
+  t(LAMP(panel, NOW, true) === true, '★F1:G1 のつなぎが無くても書ける');
+  t(String(panel._cells['1,6']).indexOf('🟢') === 0, '　F1 に書く');
+
+  // ――― 結果らんと まちがえられない言葉か（いちばん怖いところ）
+  /*
+   * ★結果らんは「結果」「履歴」などの短い言葉をさがして見つけています。
+   *   信号の文が その言葉と同じになると、1行目を結果らんと思いこみ、
+   *   2行目に結果を書きはじめて、画面が壊れます。
+   */
+  const WORDS = vm.runInContext('PANEL_RESULT_WORDS', ctx);
+  ['🟢 順調 14:47', '🟡 おくれ5分 14:43', '🔴 止まってます 14:23',
+   '⚠️ しくじり1件 14:18', '⚪ まだ 動いていません'].forEach(function (x) {   // 形の見本
+    t(WORDS.indexOf(x) === -1, '★★「' + x + '」は結果らんの言葉と かぶらない');
+  });
+  t(WORDS.indexOf('順調') === -1 && WORDS.indexOf('しくじり') === -1,
+    '　短い語そのものも かぶらない');
+
+  // ――― 開いたときは、必ず作り直す
+  reset();
+  panel._merge(1, 6, 1, 7);
+  props['PANEL_WATCH_AT'] = String(Date.now() - 3 * 60 * 60 * 1000);   // 3時間 止まっている
+  const ONOPEN = F('panelLampOnOpen_');
+  t(ONOPEN({ getSheetByName: n => (n === '説明' ? panel : null) }) === true,
+    '★★開いた瞬間に作り直す（固まった🟢がいちばん危ない）');
+  t(String(panel._cells['1,6']).indexOf('🔴') === 0, '　🔴 になっている',
+    String(panel._cells['1,6']));
+  t(ONOPEN({ getSheetByName: () => null }) === false, '　説明タブが無くても落ちない');
+  /*
+   * ★スプシを渡されなかったときは、mainSS_() に頼ります（わざとの逃げ道）。
+   *   落ちないこと、そして真偽のどちらかを返すことだけを見ます。
+   */
+  t(typeof ONOPEN(null) === 'boolean', '　渡されなくても落ちない（逃げ道に頼る）');
+
+  // ――― 毎分の見張りと、なおす係から呼んでいるか
+  const upd = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const code = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+  t(upd.indexOf('panelLamp_(sh, new Date(), false)') !== -1,
+    '★毎分の見張り（panelWatch）から呼んでいる');
+  t(upd.indexOf('panelLamp_(p, new Date(), true)') !== -1,
+    '★なおす係（fixAll）からも呼んでいる');
+  t(code.indexOf('panelLampOnOpen_(SpreadsheetApp.getActiveSpreadsheet())') !== -1,
+    '★★開いたとき（onOpen）からも呼んでいる');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
