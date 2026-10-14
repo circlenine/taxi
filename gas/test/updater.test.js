@@ -6307,13 +6307,13 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
   // ――― 心ぱくが新しい ＝ 🟢 順調
   beatAt(60 * 1000);                        // 1分前
   t(ST(NOW).mark === '🟢', '★1分前に動いていれば 🟢', ST(NOW).mark);
-  t(ST(NOW).text === '🟢 順調 ' + hm(NOW.getTime() - 60000),
-    '　文は「🟢 順調 ' + hm(NOW.getTime() - 60000) + '」', ST(NOW).text);
+  t(ST(NOW).text === '🟢 順調　' + hm(NOW.getTime() - 60000),
+    '　文は「🟢 順調　' + hm(NOW.getTime() - 60000) + '」', ST(NOW).text);
 
   // ――― 書く場所と、右寄せ（ご指示）
   clearLamp();
   t(LAMP(panel, NOW, true) === true, '★書けた');
-  t(panel._cells['1,6'] === '🟢 順調 ' + hm(NOW.getTime() - 60000),
+  t(panel._cells['1,6'] === '🟢 順調　' + hm(NOW.getTime() - 60000),
     '★★つないだらんの左上（F1）に書く', String(panel._cells['1,6']));
   t(panel._aligns['1,6'] === 'right',
     '★★右寄せ（つないだらんの右端＝G列側に出る）', String(panel._aligns['1,6']));
@@ -6327,13 +6327,13 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
 
   // ――― 顔の出し分け（境目をきっちり）
   beatAt(4 * 60 * 1000 + 59 * 1000);  t(ST(NOW).mark === '🟢', '　4分59秒前は まだ 🟢');
-  beatAt(5 * 60 * 1000);              t(ST(NOW).mark === '🟡', '★5分前から 🟡 おくれ');
-  t(ST(NOW).text === '🟡 おくれ5分 ' + hm(NOW.getTime() - 5 * 60000),
-    '　文は「🟡 おくれ5分 …」', ST(NOW).text);
+  beatAt(5 * 60 * 1000);              t(ST(NOW).mark === '🟡', '★5分前から 🟡 遅延');
+  t(ST(NOW).text === '🟡 遅延　' + hm(NOW.getTime() - 5 * 60000),
+    '　文は「🟡 遅延　…」（何分おくれかは、メモのほうへ）', ST(NOW).text);
   beatAt(24 * 60 * 1000 + 59 * 1000); t(ST(NOW).mark === '🟡', '　24分59秒前は まだ 🟡');
-  beatAt(25 * 60 * 1000);             t(ST(NOW).mark === '🔴', '★25分前から 🔴 止まってます');
-  t(ST(NOW).text === '🔴 止まってます ' + hm(NOW.getTime() - 25 * 60000),
-    '　文は「🔴 止まってます …」', ST(NOW).text);
+  beatAt(25 * 60 * 1000);             t(ST(NOW).mark === '🔴', '★25分前から 🔴 停止');
+  t(ST(NOW).text === '🔴 停止　' + hm(NOW.getTime() - 25 * 60000),
+    '　文は「🔴 停止　…」', ST(NOW).text);
   t(ST(NOW).bold === true, '　🔴 は太字にする');
   beatAt(7 * 60 * 60 * 1000);
   t(ST(NOW).mark === '🔴', '　7時間前でも 🔴');
@@ -6343,25 +6343,25 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
   props['LAST_ERRORS'] = JSON.stringify([
     { at: new Date(NOW.getTime() - 30 * 60 * 1000).toISOString(), where: 'panelWatch', msg: 'x' }
   ]);
-  t(ST(NOW).mark === '⚠️', '★3時間以内のしくじりがあれば ⚠️', ST(NOW).mark);
-  t(ST(NOW).text === '⚠️ しくじり1件 ' + hm(NOW.getTime() - 30 * 60000),
-    '　文は「⚠️ しくじり1件 …」', ST(NOW).text);
+  t(ST(NOW).mark === '🟠', '★3時間以内にエラーがあれば 🟠 失敗', ST(NOW).mark);
+  t(ST(NOW).text === '🟠 失敗　' + hm(NOW.getTime() - 30 * 60000),
+    '　文は「🟠 失敗　…」（件数は、メモのほうへ）', ST(NOW).text);
   beatAt(10 * 60 * 1000);
-  t(ST(NOW).mark === '⚠️', '★★おくれ(🟡)より しくじり(⚠️)を先に出す');
+  t(ST(NOW).mark === '🟠', '★★遅延(🟡)より 失敗(🟠)を先に出す');
   beatAt(30 * 60 * 1000);
-  t(ST(NOW).mark === '🔴', '★★止まってます(🔴)は、しくじりより さらに先');
+  t(ST(NOW).mark === '🔴', '★★停止(🔴)は、失敗(🟠)より さらに先');
 
   // ――― 古いしくじりは、いつまでも数えない
   beatAt(60 * 1000);
   props['LAST_ERRORS'] = JSON.stringify([
     { at: new Date(NOW.getTime() - 4 * 60 * 60 * 1000).toISOString(), where: 'x', msg: 'x' }
   ]);
-  t(ST(NOW).mark === '🟢', '★★4時間前のしくじりは、もう数えない');
+  t(ST(NOW).mark === '🟢', '★★4時間前のエラーは、もう数えない');
   // 時計がずれて「未来のしくじり」が入っていても数えない
   props['LAST_ERRORS'] = JSON.stringify([
     { at: new Date(NOW.getTime() + 5 * 60 * 60 * 1000).toISOString(), where: 'x', msg: 'x' }
   ]);
-  t(ST(NOW).mark === '🟢', '　未来の時刻のしくじりも数えない');
+  t(ST(NOW).mark === '🟢', '　未来の時刻のエラーも数えない');
   // 控えが壊れていても落ちない
   props['LAST_ERRORS'] = '{こわれた';
   t(ST(NOW).mark === '🟢', '　控えが壊れていても落ちない');
@@ -6369,7 +6369,9 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
 
   // ――― まだ1回も動いていないとき
   delete props['PANEL_WATCH_AT'];
-  t(ST(NOW).mark === '⚪', '★まだ動いていなければ ⚪');
+  t(ST(NOW).mark === '⚪', '★まだ動いていなければ ⚪ 不明');
+  t(ST(NOW).text === '⚪ 不明　--:--',
+    '　時刻が無いときも、時刻のところを空けない', ST(NOW).text);
 
   // ――― ふだんは書かない（持ち時間を食わないため）
   beatAt(60 * 1000);
@@ -6418,12 +6420,13 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
    *   2行目に結果を書きはじめて、画面が壊れます。
    */
   const WORDS = vm.runInContext('PANEL_RESULT_WORDS', ctx);
-  ['🟢 順調 14:47', '🟡 おくれ5分 14:43', '🔴 止まってます 14:23',
-   '⚠️ しくじり1件 14:18', '⚪ まだ 動いていません'].forEach(function (x) {   // 形の見本
+  ['🟢 順調　14:47', '🟡 遅延　14:43', '🟠 失敗　14:18',
+   '🔴 停止　14:23', '⚪ 不明　--:--'].forEach(function (x) {   // 形の見本
     t(WORDS.indexOf(x) === -1, '★★「' + x + '」は結果らんの言葉と かぶらない');
   });
-  t(WORDS.indexOf('順調') === -1 && WORDS.indexOf('しくじり') === -1,
-    '　短い語そのものも かぶらない');
+  ['順調', '遅延', '失敗', '停止', '不明'].forEach(function (w) {
+    t(WORDS.indexOf(w) === -1, '　「' + w + '」そのものも かぶらない');
+  });
 
   // ――― 開いたときは、必ず作り直す
   reset();
@@ -6440,6 +6443,72 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
    *   落ちないこと、そして真偽のどちらかを返すことだけを見ます。
    */
   t(typeof ONOPEN(null) === 'boolean', '　渡されなくても落ちない（逃げ道に頼る）');
+
+  // ――― 形がそろっているか（まーく様のご指示の本体）
+  /*
+   * ★ご指示：「見出し文字、もっと統一性かつ分かりやすくをもたせてほしい」
+   *          「できれば、漢字2文字がいいです」
+   *
+   * ★きまりは3つだけ。ここで固定しておきます。
+   *   ① 丸1つ（🟢🟡🟠🔴⚪）… 色だけで重さが分かる。形のちがう印は使わない
+   *   ② 漢字2文字 … 字数がそろう。ひらがな・送り字・件数を混ぜない
+   *   ③ うしろは時刻（無いときは --:--）… 位置を空けない
+   *
+   * ★あとから1つだけ言い方を変えると、ここで落ちます。
+   */
+  {
+    const five = [];
+    const push = () => { const x = ST(NOW); five.push(x); return x; };
+    delete props['LAST_ERRORS'];
+    beatAt(60 * 1000);                     push();   // 🟢 順調
+    beatAt(10 * 60 * 1000);                push();   // 🟡 遅延
+    beatAt(60 * 1000);
+    props['LAST_ERRORS'] = JSON.stringify([
+      { at: new Date(NOW.getTime() - 10 * 60000).toISOString(), where: 'x', msg: 'x' }]);
+                                           push();   // 🟠 失敗
+    delete props['LAST_ERRORS'];
+    beatAt(60 * 60 * 1000);                push();   // 🔴 停止
+    delete props['PANEL_WATCH_AT'];        push();   // ⚪ 不明
+
+    t(five.length === 5, '★5つの顔が そろっている');
+    t(five.map(x => x.mark).join('') === '🟢🟡🟠🔴⚪',
+      '★★丸は 軽い順に 🟢🟡🟠🔴⚪', five.map(x => x.mark).join(''));
+    t(five.map(x => x.word).join('／') === '順調／遅延／失敗／停止／不明',
+      '★★言葉は 順調／遅延／失敗／停止／不明', five.map(x => x.word).join('／'));
+
+    five.forEach(function (x) {
+      t(/^[\u4E00-\u9FFF]{2}$/.test(x.word),
+        '★★「' + x.word + '」は 漢字2文字（ご指示）');
+      t(/^[🟢🟡🟠🔴⚪] [\u4E00-\u9FFF]{2}　(\d{2}:\d{2}|--:--)$/u.test(x.text),
+        '★★「' + x.text + '」は「丸・漢字2文字・時刻」の形', x.text);
+    });
+
+    // ★見た目の長さも そろう（ひと目で見くらべられるように）
+    const lens = five.map(x => Array.from(x.text).length);
+    t(lens.every(n => n === lens[0]),
+      '★★5つとも 同じ長さ（' + lens.join('、') + '）');
+
+    // ★形のちがう印（⚠️ など）は、もう使わない
+    const upd0 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+    const lampPart = upd0.slice(upd0.indexOf('function panelLampState_'),
+                                upd0.indexOf('function panelLamp_('));
+    t(lampPart.indexOf('⚠️') === -1,
+      '★★信号には ⚠️（形のちがう印）を混ぜない');
+
+    // ★メモの中も、セルと同じ言葉・同じ順で並べる
+    const note = F('panelLampNote_')(five[0]);
+    ['🟢 順調', '🟡 遅延', '🟠 失敗', '🔴 停止', '⚪ 不明'].forEach(function (x, i) {
+      t(note.indexOf(x) !== -1, '★メモにも「' + x + '」がある');
+      if (i > 0) {
+        t(note.indexOf(x) > note.indexOf(['🟢 順調', '🟡 遅延', '🟠 失敗',
+                                          '🔴 停止'][i - 1]),
+          '　メモも 軽い順に並んでいる（' + x + '）');
+      }
+    });
+    t(note.indexOf('しくじり') === -1,
+      '★メモにも 古い言い方（しくじり）を残さない');
+    delete props['LAST_ERRORS'];
+  }
 
   // ――― 毎分の見張りと、なおす係から呼んでいるか
   const upd = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');

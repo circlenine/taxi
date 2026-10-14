@@ -2,9 +2,26 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U132ver  （2026/10/14）  ★★★
+ *  ★★★  U133ver  （2026/10/14）  ★★★
  *
- *  [U132ver]
+ *  [U133ver]
+ *   ・🚦 信号の見出しを そろえた（ご指示）
+ *     ★ご指示：「見出し文字、もっと統一性かつ分かりやすくをもたせてほしい」
+ *             「できれば、漢字2文字がいいです」
+ *     ★前は ばらばらでした。
+ *         🟢 順調 14:47 ／ ⚠️ しくじり1件 14:18
+ *         🟡 おくれ8分 14:40 ／ 🔴 止まってます 11:05
+ *       語の長さも、言い方も、うしろの数字の意味も、そろっていません。
+ *     ★きまりを3つに決めました。形は panelLampText_ の1か所だけで作ります。
+ *       ① 丸1つ … 色だけで重さが分かる（🟢→🟡→🟠→🔴 の順に重い）
+ *       ② 漢字2文字 … 順調／遅延／失敗／停止／不明
+ *       ③ うしろは時刻 … 無いときは --:--（位置を空けない）
+ *     ★⚠️ をやめて 🟠 にしました。形のちがう印が1つあると、そこだけ浮きます。
+ *       丸4色なら、並べたときに重さの順が そのまま目に入ります。
+ *     ★「1件」「8分」は、セルから外してメモへ移しました。
+ *       ひと目で見るのは「どの色か」だけで足ります。
+ *     ★メモの中も、同じ言葉・同じ順（軽い順）にそろえました。
+ *
  *   ・🚦 いまの調子の信号を足した（ご指示・「説明」タブ 1行目 F〜G）
  *     ★まーく様のご指示：「問題なく動いているか、何かエラーが
  *       起きているのかが分かる、スマートな形で、G列に右寄せで」
@@ -1448,7 +1465,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U132ver";
+const UPD_VERSION = "U133ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -8440,6 +8457,31 @@ function panelLampHm_(ms) {
   } catch (e) { return "？"; }
 }
 
+/*
+ * 信号の文を作る。**形は、この1か所だけで決めます。**
+ *
+ * ★まーく様のご指示です。
+ *   「見出し文字、もっと統一性かつ分かりやすくをもたせてほしい」
+ *   「できれば、漢字2文字がいいです」
+ *
+ * ★きまりは3つだけ。
+ *   ① 丸 … 色だけで重さが分かる（🟢→🟡→🟠→🔴 の順に重い）
+ *   ② 漢字2文字 … 順調／遅延／失敗／停止／不明。字数がそろう
+ *   ③ 時刻 … うしろは必ず「そうなった時刻」。無いときは --:--
+ *
+ * ★前は ばらばらでした。
+ *     🟢 順調 14:47 ／ ⚠️ しくじり1件 14:18
+ *     🟡 おくれ8分 14:40 ／ 🔴 止まってます 11:05
+ *   語の長さも、言い方も、うしろの数字の意味も、そろっていません。
+ *   件数や「何分おくれ」は、メモのほうへ移しました。
+ *   ひと目で見るのは「どの色か」だけで足ります。
+ */
+const PANEL_LAMP_NOTIME = "--:--";
+
+function panelLampText_(mark, word, ms) {
+  return mark + " " + word + "　" + (ms ? panelLampHm_(ms) : PANEL_LAMP_NOTIME);
+}
+
 /**
  * 直近のしくじりを数える。
  * ★控えは logErr_ が LAST_ERRORS に5件まで残しています。
@@ -8498,8 +8540,8 @@ function panelLampState_(now) {
   // まだ1回も見張りが動いていない（入れたばかり）
   if (!beat) {
     return {
-      mark: "⚪", word: "まだ 動いていません",
-      text: "⚪ まだ 動いていません",
+      mark: "⚪", word: "不明",
+      text: panelLampText_("⚪", "不明", 0),
       color: "#5f6368", bg: "#f1f3f4", bold: false,
       beat: 0, late: -1, err: err
     };
@@ -8509,36 +8551,37 @@ function panelLampState_(now) {
 
   if (late >= PANEL_LAMP_DEAD) {
     return {
-      mark: "🔴", word: "止まってます",
-      text: "🔴 止まってます " + panelLampHm_(beat),
+      mark: "🔴", word: "停止",
+      text: panelLampText_("🔴", "停止", beat),
       color: "#b00020", bg: "#fde7e9", bold: true,
       beat: beat, late: late, err: err
     };
   }
   /*
-   * ★しくじりを「おくれ」より先に出します。
+   * ★失敗を「遅延」より先に出します。
    *   5〜24分のおくれは、持ち時間のゆらぎでも起きます。
-   *   しくじりは、ゆらぎでは起きません。そちらが先に目に入るべきです。
+   *   失敗は、ゆらぎでは起きません。そちらが先に目に入るべきです。
+   *   丸の色も、重い順（🟡 → 🟠 → 🔴）にそろえてあります。
    */
   if (err.n > 0) {
     return {
-      mark: "⚠️", word: "しくじり" + err.n + "件",
-      text: "⚠️ しくじり" + err.n + "件 " + panelLampHm_(err.at),
-      color: "#e65100", bg: "#fff4e5", bold: true,
+      mark: "🟠", word: "失敗",
+      text: panelLampText_("🟠", "失敗", err.at),
+      color: "#e65100", bg: "#fff0e0", bold: true,
       beat: beat, late: late, err: err
     };
   }
   if (late >= PANEL_LAMP_LATE) {
     return {
-      mark: "🟡", word: "おくれ" + late + "分",
-      text: "🟡 おくれ" + late + "分 " + panelLampHm_(beat),
-      color: "#e65100", bg: "#fff4e5", bold: false,
+      mark: "🟡", word: "遅延",
+      text: panelLampText_("🟡", "遅延", beat),
+      color: "#8d6e00", bg: "#fff8e1", bold: false,
       beat: beat, late: late, err: err
     };
   }
   return {
     mark: "🟢", word: "順調",
-    text: "🟢 順調 " + panelLampHm_(beat),
+    text: panelLampText_("🟢", "順調", beat),
     color: "#1b5e20", bg: "#e6f4ea", bold: false,
     beat: beat, late: late, err: err
   };
@@ -8553,21 +8596,30 @@ function panelLampState_(now) {
  */
 function panelLampNote_(st) {
   const L = [];
-  L.push("【いまの調子】");
-  L.push("🟢 順調 … 見張りが動いています");
-  L.push("⚠️ しくじり … " + PANEL_LAMP_ERR_H + "時間以内にエラーがありました");
-  L.push("🟡 おくれ … " + PANEL_LAMP_LATE + "分以上 動いていません");
-  L.push("🔴 止まってます … " + PANEL_LAMP_DEAD + "分以上 動いていません");
+  /*
+   * ★メモの中も、セルと同じ形でそろえます。
+   *   「丸・漢字2文字・説明」の順。軽い順に上から並べます。
+   *   セルとメモで言葉が違うと、同じものだと分かりません。
+   */
+  L.push("【いまの調子】うしろの数字は、そうなった時刻です");
+  L.push("🟢 順調　いつもどおり動いています");
+  L.push("🟡 遅延　" + PANEL_LAMP_LATE + "分以上 動いていません");
+  L.push("🟠 失敗　" + PANEL_LAMP_ERR_H + "時間以内にエラーがありました");
+  L.push("🔴 停止　" + PANEL_LAMP_DEAD + "分以上 動いていません");
+  L.push("⚪ 不明　まだ一度も動いていません");
   L.push("");
-  L.push("最後に動いた：" + (st.beat ? panelLampWhen_(st.beat) : "まだ ありません"));
+  L.push("最後に動いた：" +
+         (st.beat ? panelLampWhen_(st.beat) +
+                    (st.late > 0 ? "（" + st.late + "分前）" : "（たったいま）")
+                  : "まだ ありません"));
   if (st.err && st.err.n > 0) {
-    L.push("しくじり：" + st.err.n + "件（最後は " + panelLampWhen_(st.err.at) +
+    L.push("エラー：" + st.err.n + "件（最後は " + panelLampWhen_(st.err.at) +
            (st.err.where ? "・" + st.err.where : "") + "）");
   } else {
-    L.push("しくじり：なし");
+    L.push("エラー：なし");
   }
   L.push("");
-  L.push("🔴 や ⚠️ が出たときは");
+  L.push("🟠 失敗 や 🔴 停止 が出たときは");
   L.push("① 上のメニュー【🚑 ニア僕の勝ちだ】を押す");
   L.push("② それでも直らなければ、クロちゃんに知らせる");
   return L.join("\n");
