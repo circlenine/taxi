@@ -2,9 +2,25 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U133ver  （2026/10/14）  ★★★
+ *  ★★★  U134ver  （2026/10/14）  ★★★
  *
- *  [U133ver]
+ *  [U134ver]
+ *   ・🔕 再開の知らせが 鳴りつづけた事故を直した（まーく様のお仕事中・深夜）
+ *     ★原因は3つ重なっていました。
+ *       ① 鳴ったときに「もう鳴らした」札（UPD_WORK_ARMED）を
+ *          自分で捨てていた。3分後の見張りが またゼロから見直す
+ *       ② 再開できる時刻が過ぎていると「1分後」に置き直していた。
+ *          ①と組んで、3〜4分おきに鳴りつづける輪になった
+ *       ③ 1日に何回まで、という歯止めが無かった
+ *     ★3つとも直しました。
+ *       ① 札は、足あとが新しくなったときにだけ外す
+ *       ② 再開の時刻が過ぎていたら、そもそも鳴らさない。
+ *          待つものが無いのに鳴らす意味がないため
+ *       ③ 1日3回まで（安全網）
+ *     ★テストの抜けも直しました。
+ *       前は「鳴る前に二度 予約しない」しか見ていませんでした。
+ *       「鳴ったあと」を1つも見ていなかったので、見逃しました。
+ *
  *   ・🚦 信号の見出しを そろえた（ご指示）
  *     ★ご指示：「見出し文字、もっと統一性かつ分かりやすくをもたせてほしい」
  *             「できれば、漢字2文字がいいです」
@@ -1465,7 +1481,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U133ver";
+const UPD_VERSION = "U134ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -6625,7 +6641,52 @@ function updResumeClear_() {
   } catch (e) {}
 }
 
-/** その時刻になったら鳴る。1通だけ送って、自分を片づける */
+/** その日に何回 鳴ったか（安全網） */
+const UPD_RESUME_DAY = "UPD_RESUME_DAY";
+const UPD_RESUME_CNT = "UPD_RESUME_CNT";
+/** 1日に鳴らしてよい回数の上限（これを超えたら、もう立てない） */
+const UPD_RESUME_MAX_DAY = 3;
+
+/** その日を「2026-10-14」の形にする（日またぎを数えるため） */
+function updDayKey_(ms) {
+  const d = new Date(Number(ms) || Date.now());
+  return d.getFullYear() + "-" + pad2_(d.getMonth() + 1) + "-" + pad2_(d.getDate());
+}
+
+/** きょう、もう何回 鳴ったか */
+function updResumeCount_(pr) {
+  try {
+    const today = updDayKey_(Date.now());
+    if (String(pr.getProperty(UPD_RESUME_DAY) || "") !== today) return 0;
+    return Number(pr.getProperty(UPD_RESUME_CNT) || 0) || 0;
+  } catch (e) { return 0; }
+}
+
+/** 鳴った回数を1つ進める */
+function updResumeBump_(pr) {
+  try {
+    const today = updDayKey_(Date.now());
+    const n = updResumeCount_(pr) + 1;
+    pr.setProperty(UPD_RESUME_DAY, today);
+    pr.setProperty(UPD_RESUME_CNT, String(n));
+  } catch (e) {}
+}
+
+/**
+ * その時刻になったら鳴る。1通だけ送って、自分を片づける。
+ *
+ * ★ここで「もう鳴らした」という札（UPD_WORK_ARMED）を捨ててはいけません。
+ *
+ *   【実際に起きたこと・2026/10/14】
+ *   捨てていたので、3分後の見張りが またゼロから見直し、
+ *   「作業中なのに古いまま」→ もう一度 予約を立てる、を
+ *   延々とくり返しました。しかも再開の時刻は もう過ぎているので
+ *   「1分後」に置き直され、3〜4分おきに鳴りつづけました。
+ *   まーく様がお仕事中の深夜に、何十通も鳴らしてしまいました。
+ *
+ *   札は、足あとが新しくなったときにだけ外します（updWorkTick_ の中）。
+ *   新しい作業が始まれば、そこでまた鳴らせるようになります。
+ */
 function updResumeFire() {
   try {
     const me = updMe_();
@@ -6640,7 +6701,12 @@ function updResumeFire() {
   } catch (e) {}
   try { updProps_().deleteProperty(UPD_RESUME_KEY); } catch (e) {}
   try { updProps_().deleteProperty("UPD_RESUME_KIND"); } catch (e) {}
-  try { updProps_().deleteProperty(UPD_WORK_ARMED); } catch (e) {}
+  /*
+   * ★UPD_WORK_ARMED は、わざと残します。
+   *   これが「この足あとには、もう鳴らした」という札です。
+   *   捨てると、3分後の見張りが また予約を立てて、鳴りつづけます。
+   */
+  try { updResumeBump_(updProps_()); } catch (e) {}
   try { updResumeClear_(); } catch (e) {}
 }
 
@@ -9454,7 +9520,34 @@ function updWorkTick_() {
   try { r = Date.parse(String(j.resetAt || "")); } catch (e) { r = 0; }
   if (r && r > Date.now()) { fire = r; kind = String(j.kind || "週の上限"); }
   else { fire = at + UPD_5H_MIN * 60000; kind = "5時間枠"; }
-  if (fire <= Date.now()) fire = Date.now() + 60000;
+
+  /*
+   * ★再開できる時刻が、もう過ぎていたら、鳴らしません。
+   *
+   *   【実際に起きたこと・2026/10/14】
+   *   前は「過ぎていたら1分後に置き直す」としていました。
+   *   足あとが何時間も古いままだと、見張りのたびに
+   *   「1分後」が作り直され、3〜4分おきに鳴りつづけました。
+   *
+   *   そもそも、この知らせの役目は「いつ再開できるか」を伝えることです。
+   *   もう過ぎているなら、待つものがありません。鳴らす意味がありません。
+   *   札だけ立てて、黙っておきます。
+   */
+  if (fire <= Date.now()) {
+    try { pr.setProperty(UPD_WORK_ARMED, String(at)); } catch (e) {}
+    return false;
+  }
+
+  /*
+   * ★安全網。1日に鳴らすのは UPD_RESUME_MAX_DAY 回まで。
+   *   上の2つの歯止めが効いていれば、ここには来ません。
+   *   それでも来たときは、ここで止めます。
+   *   知らせが多すぎることのほうが、少なすぎることより ずっと困ります。
+   */
+  if (updResumeCount_(pr) >= UPD_RESUME_MAX_DAY) {
+    try { pr.setProperty(UPD_WORK_ARMED, String(at)); } catch (e) {}
+    return false;
+  }
 
   try {
     updResumeClear_();

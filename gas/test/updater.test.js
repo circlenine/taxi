@@ -5776,6 +5776,78 @@ console.log('\n■ ★止まったときだけ、再開の予約を立てる（�
   // ⑦ メモが無くても、落ちない
   gh = { repo: { default_branch: 'main' }, dir: [], raw: {} };
   t(W() === false, '　 メモが無くても落ちない');
+
+  /*
+   * ⑧ ★★鳴ったあと、同じ足あとでは 二度と鳴らない
+   *
+   *   【2026/10/14 に実際に起きた事故】
+   *   鳴ったときに「もう鳴らした」という札を自分で捨てていました。
+   *   3分後の見張りが またゼロから見直して、もう一度 予約を立て、
+   *   しかも再開の時刻は過ぎているので「1分後」に置き直され、
+   *   3〜4分おきに 鳴りつづけました。
+   *   まーく様がお仕事中の深夜に、何十通も鳴らしてしまいました。
+   *
+   *   ここが、前のテストに無かったところです。
+   *   ③は「鳴る前に二度 予約しない」しか見ていませんでした。
+   */
+  reset([]); props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+  const n8 = Date.now();
+  // 止まったのは40分前。再開できるのは その5時間後＝まだ先
+  setWork({ state: 'working', at: iso(n8 - 40 * 60000) });
+  W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 1,
+    '★止まったので、1回だけ予約が立つ');
+  F('updResumeFire')();                       // その時刻が来て、鳴った
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '　 鳴ったあと、予約そのものは片づく');
+  t(props['UPD_WORK_ARMED'] === String(Date.parse(iso(n8 - 40 * 60000))),
+    '★★鳴ったあとも「もう鳴らした」札は残す');
+  // ここから3分おきの見張りが何度来ても、二度と鳴らない
+  W(); W(); W(); W(); W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '★★★鳴ったあと、何度 見張りが来ても 二度と鳴らない（事故の本体）');
+
+  // ⑨ ★再開できる時刻が もう過ぎていたら、そもそも鳴らさない
+  reset([]); props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+  const n9 = Date.now();
+  setWork({ state: 'working', at: iso(n9 - 9 * 60 * 60000) });   // 9時間 古い
+  t(W() === false, '★★9時間 古い足あとでは、鳴らさない（待つものが無い）');
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '　 予約も立てない');
+  W(); W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '★★何度 見張りが来ても、やはり鳴らさない');
+  t(!!props['UPD_WORK_ARMED'], '　 札だけ立てて、黙っておく');
+
+  // ⑩ ★安全網：1日に鳴らすのは3回まで
+  reset([]); props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+  const n10 = Date.now();
+  const dk = F('updDayKey_')(n10);
+  props['UPD_RESUME_DAY'] = dk; props['UPD_RESUME_CNT'] = '3';
+  setWork({ state: 'working', at: iso(n10 - 40 * 60000) });
+  t(W() === false, '★★きょう3回 鳴っていたら、もう立てない（安全網）');
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 0,
+    '　 予約も立てない');
+  // 日が変われば、また立てられる
+  props['UPD_RESUME_DAY'] = '2000-01-01';
+  delete props['UPD_WORK_ARMED'];
+  W();
+  t(triggers.filter(x => x.getHandlerFunction() === 'updResumeFire').length === 1,
+    '　 日が変われば、また立てられる');
+
+  // ⑪ 新しい足あとが来たら、札を外して また鳴らせるようにする
+  reset([]); props['GH_REPO'] = 'circlenine/taxi'; props['GH_BRANCH'] = 'main';
+  triggers.length = 0;
+  const n11 = Date.now();
+  setWork({ state: 'working', at: iso(n11 - 40 * 60000) });
+  W(); F('updResumeFire')();
+  t(!!props['UPD_WORK_ARMED'], '　 1回目の札が立っている');
+  setWork({ state: 'working', at: iso(n11) });              // 動き出した
+  W();
+  t(!props['UPD_WORK_ARMED'], '★★新しい足あとが来たら、札を外す（次はまた鳴らせる）');
 }
 
 console.log('\n■ ⏰ 毎週おなじ時刻に知らせる（ご指摘への答え）');
