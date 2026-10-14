@@ -5,6 +5,8 @@ S=/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad
 export NODE_PATH=$(npm root -g)
 cd $S/build_s
 python3 $S/tools/a4s.py $S/build_s
+# 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
+python3 -I $S/tools/numcheck.py $S/build_s/num.png $(node $S/tools/numcheck.js $S/build_s/a4.html $S/build_s/num.png)
 # PDFは、まーく様の許可が出たときだけ作る（10/15 ご指摘：許可なくPDFを作った）。
 # 許可がないときは、ここで止める（見た目の確かめは、HTMLを画像にして見せる）。許可が出たら PDF_OK=1 をつけて動かす
 if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi

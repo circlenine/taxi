@@ -320,7 +320,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no">1</span><span class="cv-e">器材<span class="g">準備</span>編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e">器材<span class="g">準備</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -841,6 +841,9 @@ CSS += """
    ピンクは、副題の「SDGs」と、名前の「準備」「洗浄」だけ（10/15 ご指示） */
 #p1 .cv-sd{font-family:"Kaisei Decol",serif!important;font-weight:500!important;color:#1c6ea4!important;letter-spacing:.08em!important}
 #p1 .cv-sd .g,.cover .cv-e .g{color:#e0507f}
+/* 数字はわくのまん中より、気持ち上に置く（10/15 ご指示）。字の形の都合で、そのままだと約1mm下に下がって見えるため。
+   上のすき間：下のすき間 ＝ 約45：55（目で見てまん中に見える位置）。numcheck で毎回測る */
+.cover .cv-no .cvn{display:block;transform:translateY(-1.35mm)}   /* 名前は cvn（.nn は本文の札で使っているので使わない） */
 .cover .cv-f{gap:3mm!important;align-items:center!important}
 .cover .cv-no{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:#fff!important;color:#16466b!important;border-radius:0!important;box-shadow:inset 0 0 0 1.2mm #16466b}
 .cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
