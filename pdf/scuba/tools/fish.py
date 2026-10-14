@@ -88,6 +88,10 @@ def shark(flip=False):          # サメ（ホホジロザメ）：大きな背�
          '<path d="M44 26 C48 28 52 28 55 26"/>' + eye(48, 19))
     return W(b, flip)
 TEN = [clown, tang, moorish_idol, yellow_tang, royal_gramma, puffer, damsel, butterfly, seahorse, shark]
+# 10/15 ご指示：表紙（1ページ目）の魚は、題の絵文字と重なってごちゃごちゃするので置かない。
+# タツノオトシゴは何の魚か分かりにくいので外す。2ページ目からクマノミ、そのあとは1ページずつずらす
+NINE = [clown, tang, moorish_idol, yellow_tang, royal_gramma, puffer, damsel, butterfly, shark]
 def page_fish(n):
-    """n ページ目（1〜10）の見出しの右上に置く魚。10ページとも全部ちがう種類"""
-    return f'<span class="hfish">{bubbles()}{TEN[(n - 1) % len(TEN)](flip=True)}</span>'
+    """n ページ目（2〜10）の見出しの右上に置く魚。表紙には置かない。9ページぶん全部ちがう種類"""
+    if n <= 1: return ""
+    return f'<span class="hfish">{bubbles()}{NINE[(n - 2) % len(NINE)](flip=True)}</span>'

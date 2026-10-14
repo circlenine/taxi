@@ -320,7 +320,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t"><span class="emj">🫧</span> Safe Dive for a Girlie smile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜</p><div class="cv-f"><span class="cv-no">1</span><span class="cv-e">器材準備編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材</p><h1 class="cv-t"><span class="emj">🫧</span> Safe Dive for a <span class="g">Girlie</span> smile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no">1</span><span class="cv-e">器材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -825,7 +825,26 @@ CSS += """
 .edtag .ver{font-weight:700;color:var(--muted);margin-left:1mm;letter-spacing:.02em}
 .edtag b{display:inline-flex;align-items:center;justify-content:center;min-width:3.6mm;height:3.6mm;padding:0 .8mm;background:var(--navy);color:#fff;border-radius:1mm;font-size:7pt}
 """
-FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
+
+CSS += """
+/* ── 表紙のデザイン（10/15 ご指示：案A「スクリプト」）──────────────────────
+   題は丸みのある手書きの筆記体（Pacifico）。「Girlie」だけピンクにして目立たせる。
+   副題と「〇〇編」は、題のやわらかさに合わせて丸ゴシック（Zen Maru Gothic）にする。
+   色は準備編の紺・水色で書く（洗浄編は、作るときに茶・オレンジへ自動で置きかわる） */
+#p1 .cv-t{font-family:"Pacifico",cursive!important;font-weight:400!important;color:#16466b!important;line-height:1.35!important;
+ letter-spacing:.01em!important;text-shadow:0 .06em 0 #d4ecfa}   /* ぼかしの影は PDF で画像になるので使わない。ずらした影だけ */
+#p1 .cv-t .g{color:#e0507f}
+#p1 .cv-t .emj{text-shadow:none}
+#p1 .cv-sd{font-family:"Zen Maru Gothic",sans-serif!important;font-weight:700!important;color:#1c6ea4!important;letter-spacing:.04em}
+#p1 .cv-sd .g{color:#e0507f}
+/* 〇〇編：数字はまるいバッジ（題と同じ筆記体）、名前はまるい札。札のふちに白い点線を入れて、手作りのやわらかさを出す */
+.cover .cv-f{align-items:center!important;gap:3mm!important;margin-top:1.5mm!important}
+.cover .cv-no{min-width:0!important;width:21mm;height:21mm;padding:0!important;border-radius:50%!important;background:#16466b!important;color:#fff!important;
+ font-family:"Pacifico",cursive!important;font-weight:400!important;font-size:42pt!important;line-height:1!important;box-shadow:0 0 0 1.3mm #d4ecfa;padding-bottom:2.6mm!important;box-sizing:border-box}
+.cover .cv-e{font-family:"Zen Maru Gothic",sans-serif!important;font-weight:900!important;border-radius:999px!important;background:#d4ecfa!important;color:#16466b!important;
+ padding:1.2mm 9mm!important;letter-spacing:.14em!important;line-height:1.3!important;box-shadow:inset 0 0 0 1.1mm #d4ecfa,inset 0 0 0 1.5mm #fff}
+"""
+FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Zen+Maru+Gothic:wght@700;900&display=swap">'   # Pacifico・Zen Maru Gothic は表紙用（10/15）
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
 
