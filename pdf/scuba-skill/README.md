@@ -17,7 +17,7 @@
 
 ## 動画の一覧
 
-| No. | 分野 | 題名 | 投稿者 | URL | 文字起こし |
+| No. | 分野 | 題名 | 投稿者 | URL | 文字起こし（GitHubには上げない。道具で取り直す） |
 |---|---|---|---|---|---|
 | 1 | 耳抜き | 耳抜きやり方３選｜前編 | Totty / scuba diving | https://youtu.be/alBpGGh6Ab0 | transcripts/alBpGGh6Ab0.txt |
 | 2 | 耳抜き | 耳抜きやり方３選｜後編 | Totty / scuba diving | https://youtu.be/CPUb0DKusX4 | transcripts/CPUb0DKusX4.txt |
