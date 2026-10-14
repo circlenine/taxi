@@ -13,6 +13,7 @@ node $S/tools/print2.js $S/build/a4.html $S/build/a4.pdf
 SIDE=14 node $S/tools/mcheck.js $S/build/a4.html
 python3 -I $S/tools/toccheck2.py $S/build/a4.html
 node $S/tools/wrapcheck.js $S/build/a4.html
+node $S/tools/gapcheck.js $S/build/a4.html
 python3 -I $S/tools/pairalign.py $S/build/img/s
 python3 -I $S/tools/markreview.py $S/build/img/s $S/build/review_marks.png
 python3 -I $S/tools/termcheck.py $S/build/a4.html

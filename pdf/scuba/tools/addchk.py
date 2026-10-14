@@ -11,7 +11,8 @@ src, pos, out = sys.argv[1:4]
 r = PdfReader(src); w = PdfWriter(); w.append(r)
 P = json.load(open(pos))
 H = 841.92
-COVER = "0.831 0.925 0.980"   # 答えの欄の色（#d4ecfa）と同じ
+import os
+COVER = os.environ.get("COVER", "0.831 0.925 0.980")   # 答えの欄の色（#d4ecfa）と同じ。清掃編はオレンジ（#ffe2cc）を渡す
 def form(data, bw, bh):
     s = StreamObject(); s._data = data.encode()
     s.update({NameObject("/Type"): NameObject("/XObject"), NameObject("/Subtype"): NameObject("/Form"),

@@ -1,0 +1,5 @@
+# 資料のPDF（YouTubeの画面を含む）と文字起こし（よその方の言葉）は、
+# このリポジトリが公開なので上げない。PDFはまーく様のドライブに置く。
+# 文字起こしは pdf/scuba-skill/tools/getscript.py でいつでも取り直せる。
+pdf/**/*.pdf
+pdf/scuba-skill/transcripts/

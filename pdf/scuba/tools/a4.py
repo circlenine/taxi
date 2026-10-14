@@ -154,11 +154,11 @@ p{margin:0}
 
 # 写真の切り抜きの縦横比（スマホの1列に合わせる）
 ASP = {1: 4 / 3, 2: 1.0}
-TAGS = {"3-2": "回りきったら、左に半回転戻す！"}
-KEYS = {"1-1": ["cap", "c04"], "2-4": ["c44", "c13", "c14"], "4-2": ["c27"], "5-1": ["c33"], "5-2": ["c35"]}
-CAP = {("2-5", "twist"): "手でたどって見る", ("2-5", "strap"): "ストラップ<small>※基本はお腹の横らへんにあるよ！</small>", ("1-1", "cap"): "キャップを外す",
-       ("1-1", "c04"): "タンクくるくるを右手で持つ", ("2-4", "c13"): "引く前", ("2-4", "c14"): "引いた後",
-       ("2-4", "c44"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("2-3", "c11"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("2-2", "c10"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c24"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("5-2", "c35"): "黒いスーツ着てて見づらいね", ("5-1", "c33"): "この人、ウエスト細いね", ("2-1", "c09"): "Oって感じだよね", ("3-1", "c19"): "目はつぶらなくていいよ", ("4-2", "c27"): "L字サインホース<small>正式名称：インフレーターホース</small>"}
+TAGS = {"4-2": "左に回りきったら、右に半回転戻す！"}
+KEYS = {"2-1": ["cap", "c04"], "3-4": ["c44", "c13", "c14"], "5-2": ["c27"], "6-1": ["c33"], "6-2": ["c35"]}
+CAP = {("3-5", "twist"): "手でたどって見る", ("3-5", "strap"): "ストラップ<small>※基本はお腹の横らへんにあるよ！</small>", ("2-1", "cap"): "キャップを外す",
+       ("2-1", "c04"): "タンクくるくるを右手で持つ", ("3-4", "c13"): "引く前", ("3-4", "c14"): "引いた後",
+       ("3-4", "c44"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("3-3", "c11"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c10"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("4-2", "c24"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("6-2", "c35"): "黒いスーツ着てて見づらいね", ("6-1", "c33"): "この人、ウエスト細いね", ("3-1", "c09"): "Oって感じだよね", ("4-1", "c19"): "目はつぶらなくて良いよ", ("5-2", "c27"): "L字サインホース<small>正式名称：インフレーターホース</small>"}
 
 _slots = {}
 def im(k, asp):
@@ -222,7 +222,7 @@ def photos(s):
     big = f'<figure class="ph3">{im(a, 1.0)}<span class="cap3">{la}</span></figure>'
     stk = f'<figure class="ph3 stack"><span class="st2">{xm(b[0], red)}{xm(b[1], red)}</span><span class="cap3{" red" if red else ""}">{lb}</span></figure>'
     # 2-4は、やる順番（引く前 → 引いた後 → L字サインホースに付ける）のとおり、左に2枚・右に大きく1枚（10/7 ご指示）
-    if s["id"] == "2-4":
+    if s["id"] == "3-4":
         return f'<div class="photos p3 rev">{stk}{big}</div>'
     return f'<div class="photos p3">{big}{stk}</div>'
 
@@ -230,7 +230,7 @@ def photos(s):
 STK_OF = {}
 
 # 名前を赤い字にする写真（赤い丸で囲んだ物の名前）
-REDCAP = {("2-2", "c10"), ("2-3", "c11"), ("3-2", "c24")}
+REDCAP = {("3-2", "c10"), ("3-3", "c11"), ("4-2", "c24")}
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
 WIDE = set()
@@ -238,6 +238,12 @@ def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
             f'{photos(s)}{notes(s)}</section>')
 
+# 更新日（10/14 ご指示：版の番号ではなく「2026/10/14（水）更新」の形で全ページに入れる）
+# 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
+import datetime as _dt
+_d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
+VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
+EDTAG = f'<span class="edtag"><b>1</b>器材準備編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
 def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
@@ -247,7 +253,7 @@ def page(head_no, head_title, inner, toc=True):
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
-    pages.append(f'<div class="page" id="p{n}">{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
+    pages.append(f'<div class="page" id="p{n}">{EDTAG}{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
 
 # 1ページ目は表紙＋もくじ（あとで差しこむ）
 pages.append(None)
@@ -264,37 +270,37 @@ marks = f'<svg viewBox="0 0 {W_} {H_}" preserveAspectRatio="none">{lines}</svg>'
     f'<span class="lb" style="left:{(cx-RX0)/W_*100:.2f}%;top:{(cy-RY0)/H_*100:.2f}%"><span class="nn">{i+1}</span></span>' for i, (cx, cy, k, name) in enumerate(LB))
 names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"), ("{regu}", "自分が吸う", "セカンドステージ"),
          ("{octo}", "緊急用<span class=\"dsn\">（黄色って緊急っぽいよね）</span>", "オクトパス"), ("{kachi}", "{bc}と合体！", "中圧ホース"),
-         ("{gauge}", "空気の残り", "")]
+         ("{gauge}", "空気の残りを確認するゲージ", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
-page("器材", "“ダイビング器材”じゃ！", f"""
+page("器材", "まずは“ダイビング器材”じゃ！", f"""
 <div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
-<div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
+<div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:780/412">{marks}</div>
 <div class="names">{names_html}</div></div></section>
-<section class="step"><h3 class="sh3"><span class="sn">2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
+<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
  <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？！　あぁーっと！！吸えたぁー！！</p>
  <div class="sum"><p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p>
   <div class="row2"><p><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースがつなぐのはこの2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
   <div class="row2"><p><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div></div></div>
 </section>
-<section class="step"><h3 class="sh3"><span class="sn">3</span><span>大きな器材</span></h3>
+<section class="step"><h3 class="sh3"><span class="sn">1-3</span><span>大きな器材</span></h3>
 <div class="big">
  <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{bc}")}＆{T("{silver}")}と合体！</p></div>
  <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{tank}")}＆{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
- <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
+ <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターさんに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
 </div></section></div>""")
 
 # 工程4は、4-2の「大事」が長く、4-1の下に大きな空きができる。そのままでは memo がページのまん中に来てしまい、
 # 写真を小さくして下をあけると、残圧計やBCDが切れてしまう（10/8 ご指摘・試した結果）。
 # そこで工程4だけは、左右の列をそれぞれ上から詰める。4-3が4-1のすぐ下に上がり、左の列の下に memo の場所ができる
-COLS = {"4"}
+COLS = {"5"}
 # 工程1〜6：1工程＝1ページ
 for sec in STEPS:
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
     # 手順が多くて文が長い工程（工程2）だけ、2ページに分ける（1項目は多くても2ページ）
     subs = sec["subs"]
-    groups = [subs[:3], subs[3:]] if sec["id"] == "2" else [subs]
+    groups = [subs[:3], subs[3:]] if sec["id"] == "3" else [subs]
     for gi, g in enumerate(groups):
         t = sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>'
         if sec["id"] in COLS:
@@ -314,10 +320,10 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1"><div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t">専門用語が<br>なんぼのもんじゃい！</h1><p class="cv-s">生きるために必要なのは、まずコレじゃあ！</p><div class="cv-f"><span class="cv-e">器材準備編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t"><span class="emj">🫧</span> Safe Dive for a Good smile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜</p><div class="cv-f"><span class="cv-no">1</span><span class="cv-e">器材準備編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もういいよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
-<div class="pno"><span>※ 講習で教わった内容・インストラクターの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
 # ── 参考2（TRAVEL PLAN）に合わせた仕上げ（10/7 ご指摘「本当に参考にしたのか」）──
@@ -590,6 +596,10 @@ CSS += """
 CSS += """
 /* もくじ：表紙の文を少しつめて、あいた高さを全部もくじの行に配る（行の高さを最大にして、押しまちがいを防ぐ） */
 #p1 .cv-t{font-size:28pt!important}
+/* 表紙の題（10/14 ご指示で「専門用語がなんぼのもんじゃい！」から変更。インストラクターさんにも共有しやすい題に） */
+#p1 .cv-t{letter-spacing:0;white-space:nowrap;font-size:24pt!important}   /* 1行に収める（10/14 ご指示） */
+#p1 .cv-t .emj{font-family:"Noto Color Emoji",sans-serif;font-weight:400}
+#p1 .cv-sd{margin:1mm 0 0;font-size:12pt;line-height:1.6;font-weight:900;color:var(--ink)}
 #p1 .cover{gap:1.4mm!important}
 #p1 .toc{flex:1;display:flex!important;flex-direction:column}
 #p1 .tc{flex:1;padding:0!important;min-height:0}
@@ -802,6 +812,19 @@ CSS += """
 /* 大きな器材：写真は、その行の上下のまん中に置く（10/8 ご指摘：文が長い BCD の行だけ、写真が上に寄っていた） */
 .tools .bg>img{align-self:center!important}
 """
+CSS += """
+/* 編の番号（10/13 ご指示）。❶❷ は ❿（10）までしかないので使わず、四角い札にした。何番まででも同じ形で出せる。
+   「〇〇編」の箱と同じ高さ・同じ角の丸みで、左に並べる。地は濃い色、数字は白（いちばん目立つように） */
+.cover .cv-f{flex-direction:row!important;align-items:stretch!important;justify-content:flex-start!important;gap:2.4mm!important}
+.cover .cv-no{display:flex;align-items:center;justify-content:center;min-width:17mm;padding:0 3mm;background:var(--navy);color:#fff;
+ border-radius:1mm;font-size:42pt;line-height:1.35;font-weight:900;font-feature-settings:"tnum"}
+"""
+CSS += """
+/* 全ページの左上はしに、小さく編の番号と名前（10/13 ご指示）。白いカードの上のすき間に置き、見出しには重ねない */
+.edtag{position:absolute!important;left:14mm;top:9.6mm;display:flex;align-items:center;gap:1.2mm;font-size:7.5pt;line-height:1;font-weight:900;color:var(--navy)}
+.edtag .ver{font-weight:700;color:var(--muted);margin-left:1mm;letter-spacing:.02em}
+.edtag b{display:inline-flex;align-items:center;justify-content:center;min-width:3.6mm;height:3.6mm;padding:0 .8mm;background:var(--navy);color:#fff;border-radius:1mm;font-size:7pt}
+"""
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
@@ -842,7 +865,30 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
  if(best.b-best.t<MINC){fit(pg,lim-RES);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
  place(pg,best);});}
-document.fonts.ready.then(()=>{fixOrphans();markRight();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
+// 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
+function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;
+ const n=Math.max(...cs.map(c=>c.children.length));for(let i=0;i<n;i++){const st=cs.map(c=>c.children[i]).filter(Boolean);if(st.length<2)continue;
+  const tops=st.map(x=>x.getBoundingClientRect().top);if(Math.max(...tops)-Math.min(...tops)>1)continue;
+  const hs=st.map(x=>x.querySelector(':scope>.sh3'));hs.forEach(h=>h.style.minHeight='');const m=Math.max(...hs.map(h=>h.getBoundingClientRect().height));hs.forEach(h=>h.style.minHeight=m+'px');}});}
+// 表紙の題とサブタイトルを、1行のまま横幅ぎりぎりまで大きくする。ただし「〇〇編」の字（42pt）より大きくはしない（10/14 ご指示）
+// 2ページの題（左半分の幅）が2行になるときだけ、1行に収まるまで字を小さくする（10/14：「まずは」を足して2行になり、ページからはみ出したため）
+function fitP2(){const h=document.querySelector('#p2 .ph h2');if(!h)return;const W=h.getBoundingClientRect().width;h.style.whiteSpace='nowrap';
+ let f=parseFloat(getComputedStyle(h).fontSize);const rg=document.createRange();rg.selectNodeContents(h);
+ while(rg.getBoundingClientRect().width>W-2&&f>10){f-=.5;h.style.setProperty('font-size',f+'px','important');}}
+// 「※」で始まる説明が2行以上になるときは、2行目からを「※」の右（2文字目）にそろえる（10/14 ご指示）
+function hangKome(){document.querySelectorAll('.page small,.page .rn,.page p,.page .ns,.page span').forEach(e=>{if(e.closest('.pno,.howto'))return;
+ const t=e.textContent.trim();if(!t.startsWith('※'))return;if([...e.children].some(c=>c.textContent.trim().startsWith('※')))return;
+ if(getComputedStyle(e).display==='inline')e.style.display='block';
+ // 「※」1文字ぶんの幅を実際に測って、その幅だけ2行目から下げる（字によって幅がちがうため）
+ const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n;while((n=w.nextNode())&&!n.textContent.includes('※'));if(!n)return;
+ const i=n.textContent.indexOf('※'),r=document.createRange();r.setStart(n,i);r.setEnd(n,i+1);const kw=r.getBoundingClientRect().width;
+ e.style.paddingLeft=kw+'px';e.style.textIndent=(-kw)+'px';});}
+function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;const W=c.getBoundingClientRect().width;
+ const ed=parseFloat(getComputedStyle(c.querySelector('.cv-e')).fontSize);
+ ['.cv-t','.cv-sd'].forEach(sel=>{const e=c.querySelector(sel);if(!e)return;e.style.whiteSpace='nowrap';e.style.display='inline-block';e.style.maxWidth='none';e.style.width='max-content';
+  let lo=8,hi=ed;for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
+  e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
+document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材準備編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{"".join(pages)}{FIT}</body></html>')

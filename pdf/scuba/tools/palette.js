@@ -21,5 +21,7 @@ const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAl
  const v=cs.borderTopLeftRadius;if(v==='0px')return;const mm=parseFloat(v)/MM;if(v.includes('%')||parseFloat(v)>=Math.min(r.width,r.height)/2-0.5){out[(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' 丸']=1;return;}
  if(Math.abs(mm-1)>.05&&Math.abs(mm-2)>.05&&parseFloat(v)<Math.min(r.width,r.height)/2-0.5){const k=(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' '+mm.toFixed(2)+'mm';out[k]=1;}});return Object.keys(out);});
 console.log(rad.length?'NG 決めていない角の丸み … '+rad.join(' / '):'角の丸み OK（1mm・2mm だけ。丸い形なし）');
+// 清掃編のオレンジ（a4s.py の COLORS と同じ）
+['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='清掃編のオレンジ');
 const bad=Object.entries(r).filter(([k])=>!OK[k]);
 console.log(bad.length?bad.map(([k,v])=>'NG 決めていない色 '+k+' … '+v.join(' / ')).join('\n'):'色 OK（'+Object.keys(r).length+'色、すべて決めた色）');await b.close();})();
