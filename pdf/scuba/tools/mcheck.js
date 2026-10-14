@@ -21,6 +21,9 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
    if(Math.max(...T)-Math.min(...T)>1)out.push('となりの手順と写真の上がずれ '+r.map(x=>x.querySelector('.sn').textContent).join('/'));
    if(Math.max(...B)-Math.min(...B)>1)out.push('となりの手順と写真の下がずれ '+r.map(x=>x.querySelector('.sn').textContent).join('/'));
    r.forEach(x=>{const a=[...x.querySelectorAll('.photos img')].map(i=>i.getBoundingClientRect());const b=Math.round(Math.max(...a.map(q=>q.bottom)));a.forEach(q=>{});});});});
+ // 表紙の題：ページ（本文）の幅いっぱいに広がっているか（10/15 ご指示：題をページ幅に合わせる）
+ {const c=document.querySelector('#p1 .cover'),t=c&&c.querySelector('.cv-t');if(t){const rg=document.createRange();rg.selectNodeContents(t);
+  const w=rg.getBoundingClientRect().width,W=c.getBoundingClientRect().width;if(w<W*0.97)out.push('表紙の題がページ幅に届いていない '+Math.round(w/W*100)+'%');}}
  // 本文の行の間隔：どこも字の大きさの1.6倍か（10/7 ご指摘）
  {const bad={};document.querySelectorAll('.notes *,.nmr *,.bg *,.sasuke *,.pts *,.qz *').forEach(e=>{const cs=getComputedStyle(e);if(!e.textContent.trim()||cs.display==='none')return;
   const r=parseFloat(cs.lineHeight)/parseFloat(cs.fontSize);if(Math.abs(r-1.6)>.02)bad[(e.className||e.tagName)+' '+r.toFixed(2)]=1;});
@@ -87,4 +90,6 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
   pg.querySelectorAll('*').forEach(e=>{if(e.closest('.memo,.pno')||e.contains(pg.querySelector('.memo')))return;const r=e.getBoundingClientRect();if(!r.width||!r.height)return;
    if([...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())||e.tagName==='IMG')ms.forEach(m=>{if(r.left<m.right-1&&r.right>m.left+1&&r.top<m.bottom-1&&r.bottom>m.top+1)out.push('p'+(i+1)+' memoが中身に重なる '+(e.className||e.tagName));});});});
  return out;},+(process.env.SIDE||10.5));
-console.log(r.length?r.join('\n'):'並び OK');await b.close();})();
+console.log(r.length?r.join('\n'):'並び OK');
+// 表紙の題がページ幅に届いていないときだけは、作るのを止める（10/15 ご指示。ほかの行は今までどおり知らせるだけ）
+if(r.some(x=>x.startsWith('表紙の題')))process.exitCode=1;await b.close();})();
