@@ -1,9 +1,32 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C070ver  （2026/10/14）  ★★★   ← もとは version 232
+ *  ★★★  C075ver  （2026/10/16）  ★★★   ← もとは version 232
  *
- *  [C070ver]
+ *  [C075ver]
+ *   ・🕓 設定タブの「イベントをグループへ送る時刻」を 16:30 にした（ご指示）
+ *
+ *   ・⏱ 設定タブに、イベントの対象時間帯を足した（ご指示）
+ *     ・イベントの対象にする時間帯（はじめ）… 既定 17:30
+ *     ・イベントの対象にする時間帯（おわり）… 既定 04:00
+ *
+ *   ・⚙️ 設定タブに「まだ無い行」を、こちらで足すようにした
+ *     ★これまでは、設定を新しく足すたびに
+ *       「メニュー →『設定タブを作る・直す』を押してください」と
+ *       お願いしていました。押すのを忘れれば、黙って効きません。
+ *       お願いするほうが間違っています。
+ *     ★作り直しはしません。下に足すだけです。
+ *       作り直すと、まーく様が手で書き足した行まで消えてしまいます。
+ *     ★1日1回（イベントの見回り）から、ひとりでに走ります。
+ *     ★LINEの🕓から書き込むときも、行が無ければ先に足します。
+ *
+ *   ・🕓 イベントの通知時刻を、設定タブに足した（ご指示）
+ *     ・イベントをグループへ送る時刻（既定 16:00）
+ *     ・イベントの確認用を送る時刻（前日・既定 05:00）
+ *   ・LINEの「🕓」を受けるようにした（006-Venue の vnHandleTime_）
+ *
+ *   ・🕓 説明の時刻を直した（確認用 前日18:00 → 16:00・ご指示）
+ *
  *   ・🚦 開いた瞬間に、いまの調子の信号を作り直すようにした（ご指示）
  *     ★「説明」タブ 1行目 F〜G（まーく様がつないでおられる）に出ます。
  *     ★ここが肝心です。見張りが全部止まると、だれも書けません。
@@ -750,7 +773,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C070ver";
+const CODE_VERSION = "C075ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -959,6 +982,23 @@ const SETTINGS_DEFS = [
     help: "空ならLINEにおまかせ。数字（20〜60）を入れると、その幅で句読点のところで改行します" },
   { key: "イベント案内の1行の文字数", def: "",     kind: "text",
     help: "空なら既定（23）。数字（20〜40）を入れると、注意書きがその幅で詰まります" },
+  /*
+   * ★イベントの通知時刻（まーく様のご指示・2026/10/15）。
+   *   ここを書き換えれば、その場で変わります。公開のやり直しは要りません。
+   *   LINEの「🕓」からも変えられます（どちらもここに入ります）。
+   */
+  { key: "イベントをグループへ送る時刻", def: "16:30", kind: "time",
+    help: "みんなへ送る時刻。当日のぶん。例 16:30" },
+  { key: "イベントの確認用を送る時刻（前日）", def: "05:00", kind: "time",
+    help: "まーく様だけへ、あすのぶんを送る時刻。例 05:00" },
+  /*
+   * ★17:00に車を出して間に合うものだけを出す、というご指示から。
+   *   走ってみて合わなければ、ここで直せます。
+   */
+  { key: "イベントの対象にする時間帯（はじめ）", def: "17:30", kind: "time",
+    help: "この時刻より後に終わる催しだけ出します。17:00に出て間に合う線。例 17:30" },
+  { key: "イベントの対象にする時間帯（おわり）", def: "04:00", kind: "time",
+    help: "翌朝の、この時刻まで。例 04:00" },
   { key: "ショートの上限（円）",       def: 4999,   kind: "num",
     help: "これ以下がショート" },
   { key: "ロングの下限（円）",         def: 10000,  kind: "num",
@@ -1008,7 +1048,7 @@ const SETTINGS_DEFS = [
     help: "ボタンで「お知らせ」を選んだとき、催しが終わる何分前に知らせるか。" +
           "5〜300で指定します（既定は60分前）" },
   { key: "イベント情報を自動で送る",   def: "はい", kind: "text",
-    help: "前の日の18:00に まーく様へ「あすのぶん」の確認用を送り、" +
+    help: "前の日の16:00に まーく様へ「あすのぶん」の確認用を送り、" +
           "当日の17:00に グループLINEへ送ります。" +
           "何も無い日は送りません。止めたいときは「いいえ」にしてください" },
   { key: "まとめスプシを同じ人に見せる", def: "はい", kind: "text",
@@ -1079,19 +1119,67 @@ function cfgLoad_() {
  *   使うのは、決まりそのものを変えたとき（引っ越し）だけ。
  *   人が入れた値を勝手に上書きしないよう、呼ぶ側で1回きりの印を付けること。
  */
+/**
+ * 設定タブに「まだ無い項目」の行を、下に足す。足した数を返す。
+ *
+ * ★まーく様の手を増やさないためのものです。
+ *   新しい設定を足したとき、これまでは
+ *   「メニュー →『設定タブを作る・直す』を押してください」と
+ *   お願いしていました。押すのを忘れれば、黙って効きません。
+ *   お願いするほうが間違っています。こちらで足します。
+ *
+ * ★作り直しはしません。下に足すだけです。
+ *   作り直すと、まーく様が手で書き足した行まで消えてしまいます。
+ */
+function cfgEnsureRows_() {
+  try {
+    const sh = cfgSheet_();
+    if (!sh) return 0;
+    const last = sh.getLastRow();
+    const have = {};
+    if (last >= 2) {
+      sh.getRange(2, 2, last - 1, 1).getValues().forEach(function (r) {
+        const k = String(r[0]).trim();
+        if (k) have[k] = true;
+      });
+    }
+    const add = [];
+    SETTINGS_DEFS.forEach(function (d) {
+      if (!have[d.key]) add.push(["", d.key, d.def, d.help]);
+    });
+    if (!add.length) return 0;
+    const at = Math.max(last, 1) + 1;
+    sh.getRange(at, 1, add.length, 4).setValues(add);
+    // 触ってよい列（値）を、ほかの行と同じ色にしておく
+    try { sh.getRange(at, 3, add.length, 1).setBackground("#fff8e1"); } catch (e) {}
+    try { sh.getRange(at, 1, add.length, 4).setVerticalAlignment("middle").setWrap(true); } catch (e) {}
+    _cfgCache = null; _cfgVal = {};
+    return add.length;
+  } catch (e) { try { logErr_("cfgEnsureRows", e); } catch (e2) {} return 0; }
+}
+
 function cfgSet_(key, value) {
   try {
     const sh = cfgSheet_();
     if (!sh) return false;
-    const last = sh.getLastRow();
-    if (last < 2) return false;
-    const rows = sh.getRange(2, 2, last - 1, 2).getValues();
-    for (let i = 0; i < rows.length; i++) {
-      if (String(rows[i][0]).trim() === key) {
-        sh.getRange(2 + i, 3).setValue(value);
-        _cfgCache = null; _cfgVal = {};      // 読み直させる
-        return true;
+    /*
+     * ★その項目の行がまだ無いことがあります（設定を新しく足したとき）。
+     *   そのときは、まず行を足してから書き込みます。
+     *   「設定タブを作り直してください」とお願いせずに済みます。
+     */
+    for (let pass = 0; pass < 2; pass++) {
+      const last = sh.getLastRow();
+      if (last >= 2) {
+        const rows = sh.getRange(2, 2, last - 1, 2).getValues();
+        for (let i = 0; i < rows.length; i++) {
+          if (String(rows[i][0]).trim() === key) {
+            sh.getRange(2 + i, 3).setValue(value);
+            _cfgCache = null; _cfgVal = {};      // 読み直させる
+            return true;
+          }
+        }
       }
+      if (pass === 0) { if (!cfgEnsureRows_()) break; }
     }
   } catch (e) { logErr_("cfgSet", e); }
   return false;
@@ -1876,6 +1964,13 @@ function handleEvent_(ev) {
   if (typeof updHandleQuota_ === "function" && updHandleQuota_(ev)) return;
   // --- 「天気」… ためてある天気の中身を見せる（まーく様だけ）---
   if (typeof tkHandleCmd_ === "function" && tkHandleCmd_(ev)) return;
+  /*
+   * --- 「🕓」… イベントの通知時刻を見る・変える（まーく様だけ）---
+   *     ★ボタンを押すだけで変わります。字は打ちません。
+   *     ★この合図が届くのは「公開のやり直し」が通ってからです。
+   *       それまでは「設定」タブの2行から変えてください（すぐ効きます）。
+   */
+  if (typeof vnHandleTime_ === "function" && vnHandleTime_(ev)) return;
   // --- 「⏰」… 作業を再開できる時刻に知らせる（まーく様だけ）---
   if (typeof updHandleResume_ === "function" && updHandleResume_(ev)) return;
   // --- 「📊」… イベントの参考資料スプシを作る（まーく様だけ）---

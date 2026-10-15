@@ -416,7 +416,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00にグループ');
+console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:30にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -435,26 +435,26 @@ console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00
   const back = () => { ctx.Date = RealDate; };
 
   /*
-   * ★確認用は「前の日の18:00に、あすのぶん」（まーく様のご指示）。
+   * ★確認用は「前の日の05:00に、あすのぶん」（まーく様のご指示・10/15）。
    *   当日の夕方に「これで出します」と言われても、直す時間がない。
-   *   前の日の晩に見ておけば、落ち着いて手直しできる
+   *   前の日の朝に見ておけば、1日かけて落ち着いて手直しできる
    */
-  // 9/15 の 18:00 → あす（9/16）のぶんの確認用が飛ぶ
+  // 9/15 の 05:00 → あす（9/16）のぶんの確認用が飛ぶ
   const at15 = (h, m) => {
     const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 15, h, m); };
     D.prototype = RealDate.prototype; D.now = RealDate.now; ctx.Date = D;
   };
   delete props['VNSENT_20260916_T'];
 
-  at15(17, 30);
+  at15(4, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '前日の17:30 には、まだ何も送らない');
+  eq(pushed.length, 0, '前日の04:30 には、まだ何も送らない');
 
-  at15(18, 0);
+  at15(5, 0);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★前日の18:00 に、あすのぶんの確認用を1通');
+  eq(pushed.length, 1, '★前日の05:00 に、あすのぶんの確認用を1通');
   eq(pushed[0].to, 'Umark', '  宛先はまーく様だけ（グループではない）');
   eq(props['VNSENT_20260916_T'], '1', '★印は「あすの日付」で残す（9/16ぶん）');
 
@@ -466,18 +466,26 @@ console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00
   /*
    * ★本番は「当日の17:00」。前の日に人の目を通したものだけが出る
    */
-  at(16, 30);
+  /*
+   * ★05:00 をすぎたら「あすのぶんの確認用」が出る時刻でもあります。
+   *   見るのは「グループへ出ていないか」です。
+   *   まーく様あての確認用が出るのは、これで正しい動きです。
+   */
+  at(15, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '当日の16:30 には、まだグループへ送らない');
+  eq(pushed.filter(x => x.to === 'Cgroup').length, 0,
+     '当日の15:30 には、まだグループへ送らない');
+  eq(props['VNSENT_20260916'], undefined, '　 グループへ送った印も残らない');
+  delete props['VNSENT_20260917_T'];       // あすのぶんの印は、次の確かめのために戻す
 
-  at(17, 0);
+  at(16, 30);
   // グループの送り先が分かっている状態にする
   const keepG = vm.runInContext('vnGroupTarget_', ctx);
   vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★当日の17:00 に、グループへ1通');
+  eq(pushed.length, 1, '★当日の16:30 に、グループへ1通');
   eq(pushed[0].to, 'Cgroup', '  宛先はグループ');
   delete props['VNSENT_20260916'];
   // もとに戻す（次のテストは「送り先が分からない」状態から始めるため）
@@ -501,7 +509,7 @@ console.log('\n■ 確認用を送っていない日は、グループへ絶対�
    */
   props.VN_AUTO = '1';
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   const keepG2 = vm.runInContext('vnGroupTarget_', ctx);
@@ -534,8 +542,8 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 {
   props.VN_AUTO = '1';
   const RealDate = Date;
-  // ★グループへ出すのは 当日の17:00
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  // ★グループへ出すのは 当日の16:30
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
@@ -1481,8 +1489,14 @@ console.log('\n■ 読み取り先');
   const urls = ctx.VN_SOURCES ? ctx.VN_SOURCES.map(x => x.url) : vm.runInContext('VN_SOURCES.map(function(x){return x.url;})', ctx);
   const names = vm.runInContext('VN_SOURCES.map(function(x){return x.name;})', ctx);
   eq(urls.indexOf('https://spocale.com/places/31') !== -1, true, '長居はスポカレを見る');
-  eq(urls.indexOf('https://suitacityfootballstadium.jp/schedule/') !== -1, true, 'パナスタは公式を見る');
-  eq(names.indexOf('万博記念公園'), -1, '万博記念公園は、いったん読みに行かない');
+  eq(urls.indexOf('https://suitacityfootballstadium.jp/schedule/') !== -1, true,
+     '★パナスタは公式を見る（吹田市だが大阪府内）');
+  /*
+   * ★万博記念公園は、戻しました（2026/10/15）。
+   *   以前ご指示で外しましたが、「大阪圏内であれば残す」との
+   *   ことでしたので、吹田市＝大阪府として戻しています。
+   */
+  eq(names.indexOf('万博記念公園') !== -1, true, '★万博記念公園も読みに行く（吹田市・大阪府）');
   eq(vm.runInContext('!!VN_VENUES["万博記念公園"]', ctx), true, '  ただし会場の情報そのものは消していない（戻せる）');
   eq(vm.runInContext('!!VN_VENUES["フェスティバルホール"]', ctx), true, 'フェスティバルホールを足した');
 }
@@ -1720,12 +1734,12 @@ console.log('\n■ 見られていなくても、当日17:00には最新のま�
     { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'ライブ', start: '18:00', end: '21:00', url: '' }
   ]);
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★【はい】が押されていなくても、当日17:00には送る');
+  eq(pushed.length, 1, '★【はい】が押されていなくても、当日16:30には送る');
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   ctx.Date = RealDate;
   delete props['VNSENT_20260916'];
@@ -1779,11 +1793,15 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   // ★条件の一覧が、そのまま読める形で出ること
   const rules = ctx.vnLedgerRules_();
   const flat = rules.map(r => r.join(' ')).join('\n');
-  has(flat, '18:00', '「いまの条件」に、時間帯が出る');
+  /*
+   * ★17:00に車を出して間に合うものだけ、というご指示（2026/10/15）。
+   *   前は 18:00 で切っていて、17:30〜18:00 に終わる催しを落としていました。
+   */
+  has(flat, '17:30', '「いまの条件」に、時間帯が出る（17:30から）');
   has(flat, '04:00（翌日）', '  終わりの時刻も');
   has(flat, '100人', '  人数の下限も');
-  has(flat, '18:00', '  確認用の時刻も');
-  has(flat, '17:00', '  グループへ送る時刻も');
+  has(flat, '5:00', '  確認用の時刻も（前日05:00）');
+  has(flat, '16:30', '  グループへ送る時刻も（当日16:30）');
   has(flat, '5 分前', '  リマインダーの何分前かも');
   has(flat, '大阪城ホール', '  見に行くページの名前も');
   has(flat, '万博記念公園', '  外しているところも、はっきり書く');
@@ -2015,6 +2033,358 @@ console.log('\n■ 見にいく先に、大阪城音楽堂とフェスティバ�
   eq(!!V['フェスティバルホール'], true, 'フェスティバルホールも、これまでどおり');
 }
 
+console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使い物になっていない）');
+/*
+ * ★まーく様のご指摘です。
+ *   「LINEへのイベント通知が全く機能せず、使い物になってない状態です」
+ *   「友人がChatGPTに聞いたら、あっという間に直近データを拾い上げてくれた」
+ *
+ * ★調べたら、そのとおりでした。
+ *   ご友人の画面に出ていた8会場のうち、こちらに入っていたのは
+ *   大阪城ホールと フェスティバルホールの2つだけ。
+ *   しかもフェスティバルホールの読み先は 404（ページが無い）でした。
+ *   タクシーがいちばん当てにする夜のライブ会場が、まるごと抜けていました。
+ *
+ * ★ここで止めておけば、次に誰かが会場を消しても気づけます。
+ */
+{
+  const SRC2 = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx));
+  const V2 = JSON.parse(vm.runInContext('JSON.stringify(VN_VENUES)', ctx));
+  const names2 = SRC2.map(x => x.name);
+  const url2 = n => (SRC2.filter(x => x.name === n)[0] || {}).url || '';
+
+  // ★ご友人の画面に出ていた会場
+  ['Zepp Namba', 'Zepp Osaka Bayside', 'BIGCAT', 'グランキューブ大阪',
+   '大阪城ホール', 'フェスティバルホール'].forEach(function (n) {
+    eq(names2.indexOf(n) !== -1, true, '★「' + n + '」を見にいく');
+  });
+  // ★そのほかに足した、夜に人が出る会場
+  ['GORILLA HALL OSAKA', 'サンケイホールブリーゼ', '梅田芸術劇場',
+   '新歌舞伎座'].forEach(function (n) {
+    eq(names2.indexOf(n) !== -1, true, '　「' + n + '」も見にいく');
+  });
+
+  // ★死んでいた読み先に、戻さない
+  eq(url2('フェスティバルホール').indexOf('/schedule/') === -1, true,
+     '★★フェスティバルホールを、404 だった /schedule/ に戻さない');
+
+  /*
+   * ★★いちばん大事なところ。
+   *   見にいく先に「会場のこと（入る人数・近くの乗り場）」が無いと、
+   *   読めても黙って落ちます。1つでも抜けていたら、ここで止めます。
+   */
+  SRC2.forEach(function (x) {
+    eq(!!V2[x.name], true, '★★「' + x.name + '」の会場情報（人数・乗り場）がある');
+  });
+  // 近くの乗り場が空のままになっていないか（バラシの会場だけは空でよい）
+  SRC2.forEach(function (x) {
+    const v = V2[x.name] || {};
+    const ok = (x.kind === 'barasi') || (v.near && v.near.length > 0);
+    eq(ok, true, '　「' + x.name + '」に 近くの乗り場がある');
+  });
+  // 読み先が、どれも空でない・http で始まる
+  SRC2.forEach(function (x) {
+    eq(/^https?:\/\//.test(x.url || ''), true, '　「' + x.name + '」の読み先が ちゃんとある');
+  });
+
+  /*
+   * ★★大阪府内の会場だけにする（まーく様のご指示・2026/10/15）。
+   *   「大阪以外の会場がもしあった場合は除外しておいて下さい」
+   *
+   *   ★一度ここを **大阪市内** と読み違えて、吹田市の
+   *     パナソニックスタジアムを外してしまいました。
+   *     おっしゃっていたのは **大阪府外** のことでした。
+   *     しかもガンバ大阪のホームで4万人。いちばん大きい日を
+   *     落とすところでした。
+   *
+   *   ★だから「市」ではなく「府」で見ます。
+   *     市の名前も持っていますが、入れる・外すの判断は府でします。
+   *     これから兵庫や京都の会場を足したら、その場で落ちます。
+   */
+  /*
+   * ★★大阪A地区（大阪市域交通圏）だけにする（ご指示・2026/10/15）。
+   *   「高槻はいりません。これは、大阪A地区の交通圏外です
+   *     必ず大阪A地区のみとしてください」
+   *
+   *   府内かどうかでは足りません。**営業できる区域かどうか**です。
+   *   圏外の催しを出しても、そもそも行けません。
+   *   わたしが府だけで見ていたのが間違いでした。
+   */
+  SRC2.forEach(function (x) {
+    const v = V2[x.name] || {};
+    eq(v.pref === '大阪府', true,
+       '　「' + x.name + '」は 大阪府内（' + (v.pref || '不明') + '）');
+    eq(ctx.vnInAreaA_(v.city) === true, true,
+       '★★「' + x.name + '」は 大阪A地区（' + (v.city || '不明') + '）');
+  });
+
+  // ★A地区の外は、見にいかない
+  eq(names2.indexOf('高槻城公園芸術文化劇場') === -1, true,
+     '★★★高槻は見にいかない（大阪A地区の外）');
+  /*
+   * ★まーく様から、大阪府の交通圏の地図をいただきました（2026/10/15）。
+   *   緑色＝大阪市域交通圏＝大阪A地区。**この11市だけ**です。
+   *   前の表には、よその交通圏が13も混ざっていました。
+   */
+  const A11 = ['大阪市', '堺市', '豊中市', '吹田市', '守口市', '門真市',
+               '大東市', '東大阪市', '八尾市', '松原市', '摂津市'];
+  const LIST = vm.runInContext('JSON.stringify(VN_AREA_A)', ctx);
+  eq(LIST, JSON.stringify(A11), '★★★A地区は この11市だけ', LIST);
+
+  A11.forEach(function (c) {
+    eq(ctx.vnInAreaA_(c), true, '　 ' + c + ' は A地区');
+  });
+
+  // ★よその交通圏は、1つも入れない
+  [['高槻市', '北摂'], ['茨木市', '北摂'], ['池田市', '北摂'], ['箕面市', '北摂'],
+   ['豊能町', '豊能郡'], ['能勢町', '豊能郡'],
+   ['寝屋川市', '河北'], ['四條畷市', '河北'], ['交野市', '河北'], ['枚方市', '河北'],
+   ['柏原市', '河南'], ['羽曳野市', '河南'], ['藤井寺市', '河南'], ['大阪狭山市', '河南'],
+   ['高石市', '泉州'], ['忠岡町', '泉州'], ['岸和田市', '泉州'],
+   ['神戸市中央区', '兵庫']].forEach(function (x) {
+    eq(ctx.vnInAreaA_(x[0]), false, '★' + x[0] + ' は A地区ではない（' + x[1] + '）');
+  });
+  eq(ctx.vnInAreaA_(''), false, '　 分からないものは、入れない');
+
+  // ★大阪府内の会場を足した（ご指示・2026/10/15）
+  ['花園ラグビー場', '東和薬品RACTABドーム', 'エディオンアリーナ大阪',
+   '舞洲アリーナ', 'フェニーチェ堺',
+   '万博記念公園'].forEach(function (n) {
+    eq(names2.indexOf(n) !== -1, true,
+       '★「' + n + '」を見にいく（' + ((V2[n] || {}).city || '') + '）');
+  });
+
+  // ★大阪府内なら、市外でも見にいく（吹田市のパナスタ）
+  eq(names2.indexOf('パナソニックスタジアム') !== -1, true,
+     '★★★パナソニックスタジアム（吹田市）は、見にいく');
+  eq((V2['パナソニックスタジアム'] || {}).pref, '大阪府',
+     '　 吹田市は大阪府（市外でも府内）');
+  eq((V2['パナソニックスタジアム'] || {}).cap >= 40000, true,
+     '　 4万人。いちばん大きい日を落とさない');
+}
+
+console.log('\n■ 💴 参考金額（ご指摘：1件だけの数字・関係ない売上）');
+/*
+ * ★まーく様のご指摘です。
+ *   「参考金額とかも1件のみの情報を出したりと
+ *     しかもイベントに関係ない売上を載せてたりして
+ *     さらに不信感が高まってます」
+ *
+ * ★2つとも、そのとおりでした。
+ *   ① 1件しかなくても「平均￥◯◯」と書いていました。
+ *      1件は平均ではありません。たまたまの1本です。
+ *   ② 会場の近くの乗り場で「夜に稼いだぶん」を ぜんぶ数えていました。
+ *      イベントが無い ただの金曜の夜も、同じ数字に混ざっていました。
+ *      それをイベントの案内に並べれば「この公演のときの数字」に見えます。
+ *
+ * ★数字が嘘でなくても、出し方が嘘になります。いちばん効く壊れ方です。
+ */
+{
+  const LINE = ctx.vnStatsLine_;
+  const MIN = vm.runInContext('VN_STATS_MIN', ctx);
+
+  eq(MIN >= 5, true, '★何件そろうまで金額を出さないか（' + MIN + '件）');
+
+  /*
+   * ★★ここが結論です（まーく様のご指摘・2026/10/15）。
+   *   「イベントのアーティストが全く一緒であれば良いですが
+   *     そうでないなら、会場だけ見ても アーティストが違って、
+   *     また意味不明な情報の流出の出来上がりとなり
+   *     更に友人関係のきれつがうまれます」
+   *
+   *   同じ大阪城ホールでも、ミスチルの日とアイドルの日では、
+   *   乗る人も、行き先も、金額も、まるで違います。
+   *   会場が同じというだけでは、根拠になりません。
+   *   そして それをグループに流すのは まーく様です。
+   *   外れれば、恥をかくのも 信用を失うのも まーく様です。
+   *
+   *   だから **1件も出しません**。
+   */
+  eq(vm.runInContext('VN_SHOW_MONEY', ctx), false, '★★金額は出さない設定になっている');
+
+  const one = { count: 1, sales: 2867, max: 2867, waitSum: 0, waitCount: 0,
+                male: 0, female: 0, ages: {}, spots: ['難波'], days: { '20261010': true } };
+  eq(LINE(one), '', '★★1件でも 何も出さない');
+
+  const five = { count: 5, sales: 15000, max: 5000, waitSum: 0, waitCount: 0,
+                 male: 0, female: 0, ages: {},
+                 spots: ['難波', 'なんば'], days: { '20261010': true, '20261001': true } };
+  eq(LINE(five), '', '★★★5件そろっていても 出さない（会場が同じでも別の公演）');
+
+  const many = { count: 50, sales: 200000, max: 9000, waitSum: 100, waitCount: 10,
+                 male: 20, female: 20, ages: { '20': 10, '30': 10 },
+                 spots: ['難波'], days: { '20261010': true } };
+  const tm = LINE(many);
+  eq(tm, '', '★★50件あっても 出さない');
+
+  eq(LINE({ count: 0 }), '', '　 1件も無ければ、何も出さない');
+  eq(LINE(null), '', '　 渡されなくても落ちない');
+
+  // ★助言のほうにも、金額をまぎれこませない
+  const AD = ctx.vnAdvice_;
+  const ad = AD('大阪城ホール', '21:00', many);
+  eq(ad.indexOf('￥') === -1, true, '★★助言にも 金額を出さない');
+  eq(ad.indexOf('平均') === -1, true, '　 「平均」とも書かない');
+  eq(ad.indexOf('動く予想') !== -1, true, '　 動く時刻の予想は、これまでどおり出す');
+
+  // ★カードに載る中身にも、金額が1文字も無いこと
+  const card = ctx.vnDecorate_({ venue: '大阪城ホール', title: 'テスト公演',
+                                 start: '18:00', end: '21:00', endSure: true });
+  eq(String(card.stats || ''), '', '★★カードの「近場実績」は空');
+  eq(String(card.advice || '').indexOf('￥') === -1, true, '★★カードの助言にも 金額なし');
+
+  // ⑤ ★★数えるとき、ほんとうに「イベントがあった日」だけを数えているか
+  /*
+   * ★ここが ご指摘②の本体です。
+   *   文の出し方だけ直しても、数える中身が直っていなければ意味がありません。
+   *   なので、売上の記録をこしらえて、実際に数えさせます。
+   *
+   *   こしらえる記録（どれも 難波・夜）
+   *     10/10（この会場でイベントがあった日） … ￥3,000／￥5,000
+   *     10/11（イベントが無い ただの土曜）    … ￥90,000  ← 混ぜてはいけない
+   */
+  {
+    const rows = [
+      // A列,     B列(日付),           C, D(待ち), E(時刻), F(金額), G(乗り場)
+      ['', new Date(2026, 9, 10), '', '', '20:30', '3000', '難波', '', '', '', ''],
+      ['', new Date(2026, 9, 10), '', '', '21:30', '5000', '難波', '', '', '', ''],
+      ['', new Date(2026, 9, 11), '', '', '21:00', '90000', '難波', '', '', '', '']
+    ];
+    const mkTab = () => ({
+      getLastRow: () => 3 + rows.length,
+      getRange: (r, c, n, w) => ({
+        getValues: () => rows,
+        getDisplayValues: () => rows.map(x => x.map(y =>
+          (y && typeof y.getFullYear === 'function')
+            ? ((y.getMonth() + 1) + '/' + y.getDate()) : String(y)))
+      })
+    });
+    const realGet = activeBook.getSheetByName;
+    activeBook.getSheetByName = n => (n === 'ﾏｰｸ' ? mkTab() : null);
+    // ★記録用スプシを開く係は 001-Code のものなので、ここで差し込む
+    const realMain = ctx.mainSS_;
+    ctx.mainSS_ = () => activeBook;
+
+    // 10/10 だけが「この会場でイベントがあった日」
+    const daySet = { '20261010': true };
+    const st = ctx.vnPlaceStats_(['難波'], 18, 28, daySet, new Date(2026, 9, 15));
+    eq(st.count, 2, '★★イベントがあった日の2件だけを数える');
+    eq(st.sales, 8000, '★★★イベントが無い日の￥90,000を 混ぜない（ご指摘の本体）');
+    eq(Object.keys(st.days).length, 1, '　 何日ぶんかも数えている');
+
+    // しぼりを渡さなければ、これまでどおり全部数える（ほかの使い道のため）
+    const st2 = ctx.vnPlaceStats_(['難波'], 18, 28, null, new Date(2026, 9, 15));
+    eq(st2.count, 3, '　 しぼりを渡さなければ、全部数える');
+
+    activeBook.getSheetByName = realGet;
+    ctx.mainSS_ = realMain;
+  }
+
+  // ⑥ ★★数えるとき、イベントがあった日だけに絞っているか（日づけの読み取り）
+  /*
+   * ★ここが②の本体です。
+   *   日づけの控えを渡したら、その日のぶんしか数えてはいけません。
+   */
+  const YMD = ctx.vnRowYmd_;
+  eq(YMD(new Date(2026, 9, 15)), '20261015', '★日付のらんが日付でも読める');
+  eq(YMD('2026/10/15'), '20261015', '　 文字でも読める');
+  eq(YMD('10/15(木)', new Date(2026, 9, 15)), '20261015', '　 月日だけでも読める');
+  eq(YMD(''), '', '　 空なら空を返す（数えない）');
+}
+
+console.log('\n■ 🩺 読み先が「黙って死んでいないか」の見張り');
+/*
+ * ★今回の事故の本体は、ここです。
+ *   フェスティバルホールの読み先は 404 になっていました。
+ *   ワントゥワンも 大阪城音楽堂も、ずっと0件でした。
+ *   それでも通知は毎日ふつうに出ていたので、
+ *   まーく様からは「動いているように」見えていました。
+ *   何か月も だれも気づけません。黙って死ぬのが いちばん たちが悪い。
+ *
+ * ★だから「最後に1件でも読めた日」を控えて、古くなったら知らせます。
+ */
+{
+  const DK = ctx.vnAliveDayKey_;
+  const MARK = ctx.vnAliveMark_;
+  const DEAD = ctx.vnDeadList_;
+  const NOTE = ctx.vnDeadNote_;
+  const today = new Date(2026, 9, 15);           // 2026/10/15
+  const ago = n => {
+    const d = new Date(today.getTime() - n * 86400000);
+    return DK(d);
+  };
+
+  // ① どこも生きていれば、1文字も増えない
+  props['VN_ALIVE'] = JSON.stringify({});
+  props['VN_SEEN'] = JSON.stringify({});
+  const names = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx))
+                    .map(x => x.name);
+  const allAlive = {}; names.forEach(n => { allAlive[n] = ago(0); });
+  props['VN_ALIVE'] = JSON.stringify(allAlive);
+  props['VN_SEEN'] = JSON.stringify(allAlive);
+  eq(DEAD(today).length, 0, '★どこも生きていれば、1件も挙がらない');
+  eq(NOTE(today), '', '★★ふだんは1文字も増えない（決まり：ふだんは1通も出さない）');
+
+  // ② 6日 読めていないだけでは、まだ騒がない
+  const a2 = {}; names.forEach(n => { a2[n] = ago(0); });
+  a2['BIGCAT'] = ago(6);
+  props['VN_ALIVE'] = JSON.stringify(a2);
+  eq(DEAD(today).length, 0, '★6日なら、まだ騒がない（その日に何も無いことはある）');
+
+  // ③ 7日 読めていなければ、死んだとみなす
+  const a3 = {}; names.forEach(n => { a3[n] = ago(0); });
+  a3['BIGCAT'] = ago(7);
+  props['VN_ALIVE'] = JSON.stringify(a3);
+  const d3 = DEAD(today);
+  eq(d3.length, 1, '★★7日 読めていなければ、挙げる');
+  eq(d3[0].name, 'BIGCAT', '　 会場の名前が出る');
+  eq(d3[0].days, 7, '　 何日ぶんかも出る');
+  eq(NOTE(today).indexOf('BIGCAT') !== -1, true, '★知らせの文に会場名が入る');
+  eq(NOTE(today).indexOf('クロちゃんに') !== -1, true, '　 どうすればよいかも書く');
+  /*
+   * ★見出しの1行目も、必ず見ます。
+   *   会場名だけが入っていても、何のことか分かりません。
+   *   （わざと見出しを消してみたら、ここが無いと素通りしました）
+   */
+  eq(NOTE(today).split('\n')[0], '⚠️ 読めていない会場があります',
+     '★★1行目に「読めていない会場があります」と出る');
+  eq(NOTE(today).split('\n').length >= 3, true, '　 見出し・会場・どうするか の3行以上');
+
+  // ④ ★★一度も読めたことが無い会場（フェスティバルホールの 404 がこれ）
+  const a4 = {}; const s4 = {};
+  names.forEach(n => { a4[n] = ago(0); s4[n] = ago(0); });
+  delete a4['フェスティバルホール'];              // 一度も読めていない
+  s4['フェスティバルホール'] = ago(30);           // 30日前から見にいってはいる
+  props['VN_ALIVE'] = JSON.stringify(a4);
+  props['VN_SEEN'] = JSON.stringify(s4);
+  const d4 = DEAD(today);
+  eq(d4.length, 1, '★★一度も読めたことが無い会場も、挙げる（今回の404がこれ）');
+  eq(d4[0].ever, false, '　 一度も読めていない、と分かる');
+  eq(NOTE(today).indexOf('一度も読めていません') !== -1, true, '　 文にもそう出る');
+
+  // ⑤ 見にいきはじめたばかりの会場で、いきなり騒がない
+  const s5 = {}; names.forEach(n => { s5[n] = ago(0); });
+  props['VN_ALIVE'] = JSON.stringify({});
+  props['VN_SEEN'] = JSON.stringify(s5);
+  eq(DEAD(today).length, 0, '★足したばかりの会場では、いきなり騒がない');
+
+  // ⑥ 控えが壊れていても落ちない
+  props['VN_ALIVE'] = '{こわれた';
+  props['VN_SEEN'] = '{こわれた';
+  eq(Array.isArray(DEAD(today)), true, '　 控えが壊れていても落ちない');
+
+  // ⑦ 読めたら控える／読めなくても見にいった印は残す
+  props['VN_ALIVE'] = JSON.stringify({});
+  props['VN_SEEN'] = JSON.stringify({});
+  MARK('BIGCAT', 3);
+  eq(!!JSON.parse(props['VN_ALIVE'])['BIGCAT'], true, '★1件でも読めたら、その日を控える');
+  eq(!!JSON.parse(props['VN_SEEN'])['BIGCAT'], true, '　 見にいった印も残る');
+  props['VN_ALIVE'] = JSON.stringify({});
+  MARK('BIGCAT', 0);
+  eq(JSON.parse(props['VN_ALIVE'])['BIGCAT'], undefined,
+     '★★0件のときは「読めた」にしない（ここを緩めると、また黙って死ぬ）');
+}
+
 console.log('\n■ 同じ公演が2つならばないようにする');
 {
   /*
@@ -2166,7 +2536,322 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
-console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴったりに動かす');
+console.log('\n■ 📞 問い合わせ先（主催・招聘）');
+/*
+ * ★まーく様のご指示です。
+ *   「各イベントの問い合わせ先(サウンドクリエーター、夢番地、
+ *     ビーイング、キョードー、ソーゴー、etc)なども抜けて」
+ *
+ * ★終演の時刻や、規制退場のあるなしを確かめたいとき、聞く先はここです。
+ *   会場に電話しても、公演のことは分かりません。
+ *
+ * ★ページに書いてあるときだけ出します。
+ *   会場ごとに「ここはだいたい〇〇」と決め打ちにはしません。
+ *   外れたものを出せば、ちがう会社に電話をかけさせることになります。
+ */
+{
+  const WHO = ctx.vnPromoter_;
+  const LINE2 = ctx.vnPromoterLine_;
+
+  // ① まーく様が挙げられた会社
+  eq(WHO('お問い合わせ：サウンドクリエーター'), 'サウンドクリエーター', '★サウンドクリエーター');
+  eq(WHO('主催：夢番地'), '夢番地', '★夢番地');
+  eq(WHO('お問合せ：キョードー大阪'), 'キョードー大阪', '★キョードー大阪');
+  eq(WHO('問い合わせ ソーゴー大阪'), 'ソーゴー大阪', '★ソーゴー大阪');
+  eq(WHO('企画制作：ビーイング'), 'ビーイング', '★ビーイング');
+  eq(WHO('お問い合わせ：GREENS'), 'GREENS', '　GREENS');
+  eq(WHO('招聘：ウドー音楽事務所'), 'ウドー音楽事務所', '　ウドー音楽事務所');
+  eq(WHO('お問い合わせ：清水音泉'), '清水音泉', '　清水音泉');
+  eq(WHO('主催：サンライズプロモーション大阪'), 'サンライズプロモーション大阪',
+     '　サンライズプロモーション大阪');
+
+  // ② 英語の書き方でも拾う
+  eq(WHO('INFO：SOUND CREATOR'), 'サウンドクリエーター', '　英語でも拾う（SOUND CREATOR）');
+  eq(WHO('お問い合わせ：KYODO OSAKA'), 'キョードー大阪', '　KYODO OSAKA');
+
+  // ③ ★「お問い合わせ」のそばにあるほうを選ぶ
+  eq(WHO('共催：FM802　お問い合わせ：夢番地'), '夢番地',
+     '★★見出しのそばにあるほうを選ぶ（共催より問い合わせ先）');
+
+  // ④ ★出してはいけないもの
+  eq(WHO(''), '', '　 何も書いていなければ、出さない');
+  eq(WHO('大阪城ホール 18:00開演'), '', '★★知らない会社なら、出さない（当てずっぽうをしない）');
+  eq(WHO(null), '', '　 渡されなくても落ちない');
+  eq(LINE2({ raw: '' }), '', '　 行も出さない');
+  eq(LINE2({}), '', '　 raw が無くても落ちない');
+
+  // ⑤ 行の形
+  eq(LINE2({ raw: 'お問い合わせ：夢番地' }), '📞問い合わせ：夢番地', '★行の形');
+
+  // ⑥ 絵（カード）に出ているか
+  const src7 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  eq(src7.indexOf('const who = vnPromoterLine_(ev);') !== -1, true,
+     '★★カードに出している');
+  // ★拾える文字数を増やしてあるか（120文字では、問い合わせ先まで届かない）
+  eq(src7.indexOf('raw: text.slice(0, 400)') !== -1, true,
+     '★★ページの文字を400字ぶん持つ（120字では問い合わせ先まで届かない）');
+}
+
+console.log('\n■ 📅 何日中の何日目か・最終日か');
+/*
+ * ★まーく様のご指示です。
+ *   「各イベントが続く場合、何日中の何日目、最終日なのかどうか
+ *     というのも抜けてますし」
+ *
+ * ★最終日は打ち上げが増え、遠くまで行く車も出ます。
+ *   初日と最終日では、待つ場所も時間も変わります。
+ *
+ * ★ページに期間が書いてあるときだけ出します。推し量りません。
+ */
+{
+  const RUN = ctx.vnRunText_;
+  const d = (m, day) => new Date(2026, m - 1, day);
+
+  // ① よくある書き方
+  eq(RUN({ raw: '開催日：10/14〜10/16' }, d(10, 15)), '📅 3日中の2日目',
+     '★「10/14〜10/16」の2日目', RUN({ raw: '開催日：10/14〜10/16' }, d(10, 15)));
+  eq(RUN({ raw: '開催日：10/14〜10/16' }, d(10, 16)), '📅 3日中の最終日',
+     '★★最終日は「最終日」と出す（打ち上げが増える）');
+  eq(RUN({ raw: '開催日：10/14〜10/16' }, d(10, 14)), '📅 3日中の初日',
+     '　 初日は「初日」と出す');
+
+  // ② 書き方がちがっても読める
+  eq(RUN({ raw: '10月14日〜10月16日' }, d(10, 16)), '📅 3日中の最終日', '　 「10月14日〜10月16日」');
+  eq(RUN({ raw: '10月14日〜16日' }, d(10, 15)), '📅 3日中の2日目', '　 「10月14日〜16日」');
+  eq(RUN({ raw: '10.14-10.16' }, d(10, 15)), '📅 3日中の2日目', '　 「10.14-10.16」');
+  eq(RUN({ raw: '２０２６/１０/１４〜１０/１６' }, d(10, 15)), '📅 3日中の2日目', '　 全角でも');
+  eq(RUN({ raw: '2026/10/14〜2026/10/16' }, d(10, 15)), '📅 3日中の2日目', '　 年つきでも');
+
+  // ③ 年をまたぐ
+  eq(RUN({ raw: '12/30〜1/3' }, new Date(2026, 11, 31)), '📅 5日中の2日目',
+     '★年をまたいでも、数えまちがえない');
+
+  // ④ ★出してはいけないもの
+  eq(RUN({ raw: '10/14' }, d(10, 14)), '', '★★1日だけの催しには、何も出さない');
+  eq(RUN({ raw: '開場17:00 開演18:00' }, d(10, 15)), '',
+     '★★★時刻を期間とまちがえない（17:00〜18:00 は期間ではない）');
+  eq(RUN({ raw: '10/14〜10/16' }, d(10, 20)), '',
+     '★★期間の外の日には、出さない');
+  eq(RUN({ raw: '' }, d(10, 15)), '', '　 何も書いていなければ、出さない');
+  eq(RUN({}, d(10, 15)), '', '　 raw が無くても落ちない');
+  eq(RUN(null, d(10, 15)), '', '　 渡されなくても落ちない');
+  eq(RUN({ raw: '1/1〜12/31' }, d(10, 15)), '',
+     '★★長すぎるもの（1年）は、期間とみなさない');
+
+  // ⑤ 催しの名前のほうに書いてあっても拾う
+  eq(RUN({ raw: '', title: '〇〇展 10/14〜10/16' }, d(10, 16)), '📅 3日中の最終日',
+     '　 名前のほうに書いてあっても拾う');
+
+  // ⑥ 絵（カード）に出ているか
+  const src6 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  eq(src6.indexOf('const run = vnRunText_(ev, day);') !== -1, true,
+     '★★カードに出している');
+}
+
+console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
+/*
+ * ★まーく様から、はっきり言い渡されたものです。
+ *
+ *   「とにかく大阪圏内で、夜勤タクシーに関係する催し事
+ *     (タクシー需要がありそうなイベント)は全て対象です
+ *     16:00発信で
+ *     17:00放出スタートで間に合いそうなもののみ、対象です
+ *     大阪タクシーA地区のみの部分です
+ *     ↑に伝えた条件は、必ず守ってください」
+ *
+ * ★4つを、ここで1か所にまとめて見張ります。
+ *   どれか1つでも崩れたら、ここで落ちます。
+ *   先のことは分かりませんが、この4つだけは動かしません。
+ */
+{
+  const V3 = JSON.parse(vm.runInContext('JSON.stringify(VN_VENUES)', ctx));
+  const S3 = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx));
+
+  // ① 大阪タクシーA地区のものだけ
+  const outside = S3.filter(x => !ctx.vnInAreaA_((V3[x.name] || {}).city));
+  eq(outside.length, 0,
+     '★①大阪A地区だけ' + (outside.length ? '（外：' + outside.map(x => x.name).join('・') + '）' : ''));
+
+  // ② 夜勤タクシーに関係する催しは、ぜんぶ対象（種類でしぼらない）
+  const kinds = {};
+  S3.forEach(x => { const t = (V3[x.name] || {}).type || '?'; kinds[t] = (kinds[t] || 0) + 1; });
+  const kindList = Object.keys(kinds);
+  eq(kindList.length >= 5, true,
+     '★②催しの種類をしぼらない（' + kindList.join('・') + '）');
+  eq(S3.length >= 20, true, '★②会場は減らさない（いま ' + S3.length + 'か所）');
+  eq(vm.runInContext('VN_MIN_PEOPLE', ctx) <= 100, true,
+     '　 人数の下限は 100人まで（小さい催しも落とさない）');
+
+  // ③ グループへは 16:00、確認用は前日 05:00
+  eq(JSON.stringify(ctx.vnSendHm_()), JSON.stringify({ h: 16, m: 30 }),
+     '★③グループへの発信は 16:30', JSON.stringify(ctx.vnSendHm_()));
+  eq(JSON.stringify(ctx.vnTestHm_()), JSON.stringify({ h: 5, m: 0 }),
+     '★③確認用は 前日05:00', JSON.stringify(ctx.vnTestHm_()));
+
+  // ④ 17:00に出て間に合うものだけ
+  eq(ctx.vnFromHour_(), 17.5, '★④17:30より後に終わるものだけ', String(ctx.vnFromHour_()));
+  eq(ctx.vnInTimeRange_({ end: '17:30' }), true, '　 17:30 は 間に合う');
+  eq(ctx.vnInTimeRange_({ end: '17:29' }), false, '　 17:29 は 間に合わない');
+
+  // ★★お金の決まり（まーく様のご指示・ぜったい）
+  /*
+   * 「金銭的余裕がないので、1つシステムができたら、
+   *   課金は不要で全て完結する形に、必ずおさめてほしいです
+   *   この条件は絶対なので永久的に忘れないでください」
+   *
+   * ★動かすのにお金がかからないことを、ここで見張ります。
+   *   お金のかかるものを足したら、気づけるようにしておきます。
+   */
+  {
+    const money = fs.readFileSync(path.join(__dirname, '..', '..', 'CLAUDE.md'), 'utf8');
+    eq(money.indexOf('お金の決まり') !== -1, true,
+       '★★CLAUDE.md に「お金の決まり」が書いてある');
+    eq(money.indexOf('1円も払わずに動きつづける') !== -1, true,
+       '★★「1円も払わずに動きつづける」と書いてある');
+
+    // ★外に出ていく先が、無料のものだけか
+    const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+    const hosts = (src.match(/https?:\/\/[a-z0-9.\-]+/gi) || [])
+      .map(u => u.replace(/^https?:\/\//i, '').toLowerCase());
+    const paid = hosts.filter(h =>
+      /openai|anthropic|\.rapidapi\.|algolia|mapbox|twilio|sendgrid/.test(h));
+    eq(paid.length, 0,
+       '★★★お金のかかる先に、つなぎに行っていない' +
+       (paid.length ? '（' + paid.join('・') + '）' : ''));
+  }
+
+  // ★この4つが、決まりとして書き残してあること
+  const rules = fs.readFileSync(path.join(__dirname, '..', '..', 'CLAUDE.md'), 'utf8');
+  eq(rules.indexOf('イベント通知の決まり') !== -1, true,
+     '★★CLAUDE.md に、この4つが書いてある');
+  ['大阪タクシーA地区', '16:30', '17:30', 'ぜんぶ対象'].forEach(function (w) {
+    eq(rules.indexOf(w) !== -1, true, '　 決まりに「' + w + '」が入っている');
+  });
+}
+
+console.log('\n■ ⏱ 17:00に出て間に合うものだけを出す');
+/*
+ * ★まーく様のご指示（2026/10/15）。
+ *   「16:00発信で、17:00放出スタートで間に合いそうなもののみ、対象です」
+ *
+ *   17:00に車を出して、会場まで20〜40分。着くのは 17:20〜17:40。
+ *   だから「終わりが 17:30 より後」のものを対象にします。
+ *   前は 18:00 で切っていたので、17:30〜18:00 に終わる催しを
+ *   まるごと落としていました。17時に出れば、間に合うものです。
+ */
+{
+  const IN = ctx.vnInTimeRange_;
+  const FROM = ctx.vnFromHour_, TO = ctx.vnToHour_;
+
+  eq(FROM(), 17.5, '★はじめは 17:30（17時に出て間に合う線）', String(FROM()));
+  eq(TO(), 28, '　 おわりは 翌04:00');
+
+  // ★境目をきっちり
+  eq(IN({ end: '17:29' }), false, '　 17:29 に終わるものは、間に合わない');
+  eq(IN({ end: '17:30' }), true, '★★17:30 に終わるものから、対象にする');
+  eq(IN({ end: '18:00' }), true, '　 18:00 も もちろん対象');
+  eq(IN({ end: '21:00' }), true, '　 21:00 も');
+  eq(IN({ end: '03:00' }), true, '　 翌03:00 も（夜勤のうち）');
+  eq(IN({ end: '05:00' }), false, '　 翌05:00 は、もう遅い');
+  eq(IN({ start: '19:00' }), true, '　 開演しか分からなくても、夜なら出す');
+  eq(IN({ start: '13:00' }), false, '　 昼の催しは出さない');
+  eq(IN({}), false, '　 時刻がまったく無いものは、出さない');
+
+  // ★設定タブから変えられる
+  const cfgVals = {};
+  const realCfg = ctx.cfg_;
+  ctx.cfg_ = k => (k in cfgVals ? cfgVals[k] : '');
+  cfgVals['イベントの対象にする時間帯（はじめ）'] = '16:00';
+  eq(FROM(), 16, '★★設定タブで はじめを 16:00 にできる');
+  eq(IN({ end: '16:30' }), true, '　 16:30 に終わるものも出るようになる');
+  cfgVals['イベントの対象にする時間帯（おわり）'] = '05:00';
+  eq(TO(), 29, '★★おわりも 翌05:00 にできる');
+  eq(IN({ end: '04:30' }), true, '　 翌04:30 も出るようになる');
+
+  // ★おかしな値なら、決め打ちに戻す（黙って止まらない）
+  cfgVals['イベントの対象にする時間帯（はじめ）'] = 'あいうえお';
+  eq(FROM(), 17.5, '★★おかしな値なら、17:30 に戻す');
+  cfgVals['イベントの対象にする時間帯（はじめ）'] = '3:00';
+  eq(FROM(), 27, '　 朝3時と書けば 翌3時として読む');
+  ctx.cfg_ = realCfg;
+}
+
+console.log('\n■ 🕓 通知の時刻を、あとから変えられる');
+/*
+ * ★まーく様のご指示です。
+ *   「グループへの本番が16:00です
+ *     僕の確認は前日の05:00とかで一先ず設定してください
+ *     lineからも、通知時間簡単に変えられるようにしてください」
+ *
+ * ★決め打ちにすると、変えるたびに こちらの手が要ります。
+ *   それは「クロちゃんがいないと直せない」作りです。
+ *   設定タブに書けば、まーく様だけで変えられます。
+ */
+{
+  const SEND = ctx.vnSendHm_, TEST = ctx.vnTestHm_, PARSE = ctx.vnParseHm_;
+
+  // ① 何も設定していなければ、決め打ちを使う
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }),
+     '★ふだんは みんなへ 16:30', JSON.stringify(SEND()));
+  eq(JSON.stringify(TEST()), JSON.stringify({ h: 5, m: 0 }),
+     '★ふだんは 確認用 前日05:00', JSON.stringify(TEST()));
+
+  // ② 設定タブに入っていれば、そちらを使う
+  const cfgVals = {};
+  const realCfg = ctx.cfg_;
+  ctx.cfg_ = k => (k in cfgVals ? cfgVals[k] : '');
+  cfgVals['イベントをグループへ送る時刻'] = '14:30';
+  cfgVals['イベントの確認用を送る時刻（前日）'] = '6:15';
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 14, m: 30 }),
+     '★★設定タブに入れたら、そちらが効く');
+  eq(JSON.stringify(TEST()), JSON.stringify({ h: 6, m: 15 }), '　 確認用も');
+
+  // ③ おかしな値なら、決め打ちに戻す（黙って止まらない）
+  cfgVals['イベントをグループへ送る時刻'] = 'あいうえお';
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }),
+     '★★おかしな値なら、決め打ちに戻す（止まらない）');
+  cfgVals['イベントをグループへ送る時刻'] = '99:99';
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }), '　 ありえない時刻も');
+  ctx.cfg_ = realCfg;
+
+  // ④ 時刻の読み取り
+  eq(JSON.stringify(PARSE('16:00')), JSON.stringify({ h: 16, m: 0 }), '　 16:00 を読める');
+  eq(JSON.stringify(PARSE('５:３０')), JSON.stringify({ h: 5, m: 30 }), '　 全角でも読める');
+  eq(JSON.stringify(PARSE('16')), JSON.stringify({ h: 16, m: 0 }), '　 数字だけでも読める');
+  eq(JSON.stringify(PARSE('16時30分')), JSON.stringify({ h: 16, m: 30 }), '　 「時」でも読める');
+  eq(PARSE(''), null, '　 空なら null');
+  eq(PARSE('25:00'), null, '　 ありえない時刻は null');
+
+  // ⑤ LINEの「🕓」は、まーく様だけ
+  const TIME = ctx.vnHandleTime_;
+  const realTT = vm.runInContext('vnTestTarget_', ctx);
+  vm.runInContext('function vnTestTarget_(){ return "Umark"; }', ctx);
+  // 返事を受けとめる入れもの（ボタン付きのほうも見たいので msgs で受ける）
+  const replied = [];
+  ctx.__replied = replied;
+  vm.runInContext('function lineReplyMsgs_(tk, msgs){ __replied.push(msgs[0]); }', ctx);
+  vm.runInContext('function lineReply_(tk, t){ __replied.push({ type:"text", text:t }); }', ctx);
+  replied.length = 0;
+  eq(TIME({ message: { text: '🕓' }, source: { userId: 'other' }, replyToken: 'r' }), false,
+     '★★まーく様以外には、1文字も返さない');
+  eq(replied.length, 0, '　 返事もしない');
+
+  replied.length = 0;
+  eq(TIME({ message: { text: '🕓' }, source: { userId: 'Umark' }, replyToken: 'r' }), true,
+     '★まーく様なら、受ける');
+  eq(replied.length, 1, '　 1通 返す');
+  has(JSON.stringify(replied[0]), '16:00', '　 いまの時刻が出る');
+  has(JSON.stringify(replied[0]), 'quickReply', '★★ボタンが付く（字を打たせない）');
+  has(JSON.stringify(replied[0]), 'vn=time', '　 押すと時刻が変わるボタン');
+
+  // ⑥ ほかの言葉では動かない
+  replied.length = 0;
+  eq(TIME({ message: { text: '🕓の件ですが' }, source: { userId: 'Umark' }, replyToken: 'r' }), false,
+     '　 ほかの言葉が混ざったら、反応しない');
+  ctx.vnTestTarget_ = realTT;
+}
+
+console.log('\n■ 05:00（確認用）と 16:30（本番）も、時刻ぴったりに動かす');
 {
   /*
    * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
@@ -2180,30 +2865,30 @@ console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴっ�
 
   delete props[keyOf()]; delete props[keyOf() + '_T'];
 
-  // ① 17:50 … あすのぶんの確認用(18:00)まで10分。ぴったりの見張りを立てる
+  // ① 04:50 … あすのぶんの確認用(05:00)まで10分。ぴったりの見張りを立てる
   triggers.length = 0;
   delete props['VNSENT_20260918_T'];
-  eq(ctx.vnAimTick_(day(17, 50)), true, '★18:00 が近づいたら、見張りを立てる');
+  eq(ctx.vnAimTick_(day(4, 50)), true, '★05:00 が近づいたら、見張りを立てる');
   eq(aims().length, 1, '  立つのは1つだけ');
   eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝18:00ぴったり）に動く');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝05:00ぴったり）に動く');
 
   // ② 10:00 … まだ先。立てない（次のふだんの見張りでまた考える）
   triggers.length = 0;
   eq(ctx.vnAimTick_(day(10, 0)), false, '★まだ先のときは、立てない');
   eq(aims().length, 0, '  見張りを増やさない（持ち時間を使い切らないため）');
 
-  // ③ 16:50 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(17:00)を狙う
+  // ③ 16:20 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(16:30)を狙う
   triggers.length = 0;
   props[keyOf() + '_T'] = '1';
   props['VNSENT_20260918_T'] = '1';          // あすのぶんの確認用も済ませておく
-  eq(ctx.vnAimTick_(day(16, 50)), true, '★確認用が済んだら、次は当日17:00を狙う');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝17:00ぴったり）に動く');
+  eq(ctx.vnAimTick_(day(16, 20)), true, '★確認用が済んだら、次は当日16:30を狙う');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝16:30ぴったり）に動く');
 
   // ④ きょうのぶんが両方とも済んでいたら、もう立てない
   triggers.length = 0;
   props[keyOf()] = '1';
-  eq(ctx.vnAimTick_(day(16, 50)), false, '★両方とも済んでいたら、立てない');
+  eq(ctx.vnAimTick_(day(16, 20)), false, '★両方とも済んでいたら、立てない');
   eq(aims().length, 0, '  むだに動かさない');
   delete props['VNSENT_20260918_T'];
 
@@ -2213,7 +2898,7 @@ console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴっ�
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 1 });
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 2 });
   triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
-  ctx.vnAimTick_(day(17, 50));
+  ctx.vnAimTick_(day(4, 50));
   eq(aims().length, 1, '★古いものは片づけて、1つだけにする');
   eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
      '  ふだんの見張りは、消さない');
@@ -2222,7 +2907,7 @@ console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴっ�
   triggers.length = 0;
   const keepAuto = props['VN_AUTO'];
   props['VN_AUTO'] = '0';
-  eq(ctx.vnAimTick_(day(17, 50)), false, '★自動発信を切っていたら、何もしない');
+  eq(ctx.vnAimTick_(day(4, 50)), false, '★自動発信を切っていたら、何もしない');
   eq(aims().length, 0, '  そのときは、見張りも立てない');
   if (keepAuto === undefined) delete props['VN_AUTO']; else props['VN_AUTO'] = keepAuto;
 
@@ -2347,12 +3032,18 @@ console.log('\n■ 送ってもらった資料（写真）は、あとからで�
   for (const k in props) if (k.indexOf('VN') === 0) delete props[k];
 }
 
-console.log('\n■ 助言は「記録からそのまま数えた数」だけにする');
+console.log('\n■ 助言は「動く時刻の予想」だけにする');
 {
+  /*
+   * ★待ち時間も平均も、もう出しません（まーく様のご指摘・2026/10/15）。
+   *   どれも「乗り場ごと」の数字で、その公演のものではありません。
+   *   会場が同じでも、アーティストが違えば まるで別物です。
+   */
   const line = ctx.vnAdvice_('京セラドーム', '21:00',
     { count: 5, sales: 14000, waitSum: 45, waitCount: 5 });
   has(line, '20:30〜動く予想', '  動く時刻は、これまでどおり出る');
-  has(line, '待ち9分', '  記録からそのまま数えた数は、出す');
+  eq(line.indexOf('待ち'), -1, '★★待ち時間も、もう書かない（乗り場ごとの数字）');
+  eq(line.indexOf('￥'), -1, '★★金額も、もう書かない');
   eq(line.indexOf('1時間待ちに直すと'), -1,
      '★「1時間待ちに直すと￥〇〇のペース」は、もう書かない（ありえない数字だった）');
   eq(line.indexOf('近いのは'), -1, '★「近いのは 〇〇」も、もう書かない（ご指示）');

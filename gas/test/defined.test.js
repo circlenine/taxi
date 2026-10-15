@@ -72,14 +72,32 @@ if (uniq.length) {
 }
 
 /* ---- ついでに、同じ名前を2回宣言していないか ---- */
+/*
+ * ★2026/10/15、ここに助けられました。
+ *   新しく作った日づけの係に vnDayKey_ と名づけたところ、
+ *   006-Venue.gs に同じ名前が すでにありました。
+ *   そちらは「その日の催しの控え」を引く鍵を作る係です。
+ *   あとに書いたほうだけが生き残るので、イベントのボタンが
+ *   まるごと引き当てられなくなるところでした。
+ *
+ * ★どのファイルにあるかも出します。でないと、
+ *   803個の中から目で探すことになります。
+ */
 const names = [];
-(src.match(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm) || [])
-  .forEach(m => names.push(m.match(/function\s+([\w$]+)/)[1]));
+const whereOf = {};
+files.forEach(f => {
+  const re = /^function\s+([A-Za-z_$][\w$]*)\s*\(/gm;
+  let m;
+  while ((m = re.exec(byFile[f]))) {
+    names.push(m[1]);
+    (whereOf[m[1]] = whereOf[m[1]] || []).push(f);
+  }
+});
 const dup = Array.from(new Set(names.filter(n => names.filter(x => x === n).length > 1)));
 if (dup.length) {
   fail = 1;
   console.log('FAIL  同じ名前の関数が2つあります（Apps Script はプロジェクト全体が止まります）');
-  dup.forEach(n => console.log('   ' + n));
+  dup.forEach(n => console.log('   ' + n + '　… ' + (whereOf[n] || []).join('・')));
 } else {
   console.log('ok   同じ名前の関数が2つある、ということもない（' + names.length + '個）');
 }
