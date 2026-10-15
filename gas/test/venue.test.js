@@ -2536,6 +2536,71 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
+console.log('\n■ 🏨 ホテルの予定表が届いていないことに気づく');
+/*
+ * ★まーく様のご質問がきっかけです。
+ *   「イベント通知の大阪のホテル系はしっかり読み取れてるのですか」
+ *
+ * ★調べて分かったこと。ホテルの宴会の予定は、公開されていません。
+ *   帝国ホテルも、リーガロイヤルも、ホームページに出ているのは
+ *   宿泊とレストランの案内だけです。
+ *   だから、まーく様が館内の予定表を写真で送る道があります。
+ *
+ * ★困るのは「送り忘れ」です。送らなければ 黙って0件になります。
+ *   会場の読み先が死んだときと同じで、気づけません。
+ */
+{
+  const QUIET = ctx.vnHotelQuiet_;
+  const NOTE3 = ctx.vnHotelQuietNote_;
+  const today = new Date(2026, 9, 16);        // 2026/10/16
+  const keyOf = (y, m, dd) => 'VNH_' + y + ('0' + m).slice(-2) + ('0' + dd).slice(-2);
+  const clear = () => { for (const k in props) if (k.indexOf('VNH_') === 0) delete props[k]; };
+
+  // ① 先の予定が入っていれば、何も言わない
+  clear();
+  props[keyOf(2026, 10, 20)] = JSON.stringify([{ hotel: '帝国ホテル', name: '総会' }]);
+  props[keyOf(2026, 10, 25)] = JSON.stringify([{ hotel: 'リーガロイヤルホテル', name: '懇親会' }]);
+  props[keyOf(2026, 10, 28)] = JSON.stringify([{ hotel: 'ホテルニューオータニ大阪', name: '式' }]);
+  eq(QUIET(today).length, 0, '★先の予定が入っていれば、何も言わない');
+  eq(NOTE3(today), '', '★★ふだんは1文字も増えない');
+
+  // ② ひと月ぶんが切れていたら、言う
+  clear();
+  props[keyOf(2026, 10, 20)] = JSON.stringify([{ hotel: '帝国ホテル', name: '総会' }]);
+  const q2 = QUIET(today);
+  eq(q2.length, 2, '★★予定が切れているホテルを挙げる（' + q2.map(x => x.name).join('・') + '）');
+  eq(NOTE3(today).indexOf('リーガロイヤルホテル') !== -1, true, '　 リーガが挙がる');
+  eq(NOTE3(today).indexOf('一度も届いていません') !== -1, true, '　 一度も無いと分かる');
+  eq(NOTE3(today).split('\n')[0], '🏨 ホテルの予定表が届いていません',
+     '★1行目で、何の話か分かる');
+  eq(NOTE3(today).indexOf('ホームページに出ません') !== -1, true,
+     '★★なぜ写真が要るのかも書く（毎回聞かれないように）');
+  eq(NOTE3(today).indexOf('🏨') !== -1, true, '　 どうすればよいかも書く');
+
+  // ③ 過ぎた予定しか無ければ、言う
+  clear();
+  props[keyOf(2026, 9, 20)] = JSON.stringify([{ hotel: '帝国ホテル', name: '総会' }]);
+  const q3 = QUIET(today).filter(x => x.name === '帝国ホテル')[0];
+  eq(!!q3, true, '★★過ぎた予定しか無ければ、挙げる');
+  eq(q3 && q3.days === 26, true, '　 何日前のぶんが最後かも出る（' + (q3 && q3.days) + '日）');
+
+  // ④ 控えが壊れていても落ちない
+  clear();
+  props[keyOf(2026, 10, 20)] = '{こわれた';
+  eq(Array.isArray(QUIET(today)), true, '　 控えが壊れていても落ちない');
+  clear();
+
+  // ⑤ ★ホテルの宴会は、ホームページから読めない（作りの前提）
+  const SRC5 = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx)).map(x => x.name);
+  eq(SRC5.indexOf('帝国ホテル') === -1, true,
+     '★帝国ホテルは、ホームページを読みにいかない（宴会は公開されていない）');
+  eq(SRC5.indexOf('リーガロイヤルホテル') === -1, true,
+     '★リーガロイヤルも、読みにいかない');
+  const V5 = JSON.parse(vm.runInContext('JSON.stringify(VN_VENUES)', ctx));
+  eq(!!V5['帝国ホテル'] && !!V5['リーガロイヤルホテル'], true,
+     '　 ただし会場としては持っている（写真から読んだぶんを出すため）');
+}
+
 console.log('\n■ 📞 問い合わせ先（主催・招聘）');
 /*
  * ★まーく様のご指示です。

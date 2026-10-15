@@ -2,9 +2,25 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V069ver  （2026/10/09）  ★★★
+ *  ★★★  V070ver  （2026/10/09）  ★★★
  *
- *  [V069ver]
+ *  [V070ver]
+ *   ・🏨 ホテルの予定表が届いていないことに、気づけるようにした
+ *     ★まーく様のご質問：「大阪のホテル系はしっかり読み取れてるのですか」
+ *     ★調べました。**ホテルの宴会の予定は、公開されていません。**
+ *       帝国ホテルも、リーガロイヤルも、ホームページに出ているのは
+ *       宿泊とレストランの案内だけです。
+ *       宴会はお客様の催しなので、ホテルは外に出しません。
+ *       ニューオータニのイベントページも、中身は宿泊・レストラン・
+ *       ウエディングの案内で、宴会の予定ではありませんでした。
+ *     ★つまり、ホテルは **写真（館内の予定表）だけが頼り** です。
+ *       それは前からある作りで、いまも動きます。
+ *     ★困るのは「送り忘れ」です。送らなければ 黙って0件になります。
+ *       会場の読み先が死んだときと同じで、気づけません。
+ *       だから、ひと月ぶんが切れていたら、前日の確認用に1行 足します。
+ *       先の予定が入っているあいだは、1文字も増えません。
+ *     ★お金はかかりません。控えを見るだけです。
+ *
  *   ・📞 問い合わせ先（主催・招聘）を出すようにした（ご指示）
  *     ★ご指示：「各イベントの問い合わせ先(サウンドクリエーター、夢番地、
  *               ビーイング、キョードー、ソーゴー、etc)なども抜けて」
@@ -996,7 +1012,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V069ver";
+const VN_VERSION = "V070ver";
 
 /**
  * 見にいく先の一覧。
@@ -4735,6 +4751,111 @@ function vnDeadNote_(now) {
   return L.join("\n");
 }
 
+/* ================================================================
+ *  🏨 ホテルの予定表が、届いていないことに気づく
+ *
+ *  ★まーく様のご質問がきっかけです。
+ *    「イベント通知の大阪のホテル系はしっかり読み取れてるのですか」
+ *
+ *  ★調べて分かったこと。**ホテルの宴会の予定は、公開されていません。**
+ *    帝国ホテルも、リーガロイヤルも、ホームページに出ているのは
+ *    宿泊とレストランの案内だけです。宴会は、お客様の催しなので
+ *    ホテルは外に出しません。
+ *    だから、まーく様が館内の予定表を写真で送る道があります。
+ *
+ *  ★そこで困るのが「送り忘れ」です。
+ *    送らなければ、ホテルのぶんは**黙って0件**になります。
+ *    会場の読み先が死んだときと同じで、気づけません。
+ *    だから「しばらく届いていません」と、1行だけお知らせします。
+ *
+ *  ★お金はかかりません。控えを見るだけです。
+ * ================================================================ */
+
+/** 予定表が何日 届いていなければ、知らせるか */
+const VN_HOTEL_QUIET_DAYS = 35;
+
+/** 予定表を送ってほしいホテル（会場の表から、ホテルだけを拾う） */
+function vnHotelNames_() {
+  const out = [];
+  try {
+    for (const k in VN_VENUES) {
+      if ((VN_VENUES[k] || {}).type === "ホテル") out.push(k);
+    }
+  } catch (e) {}
+  return out;
+}
+
+/**
+ * ホテルごとに「最後に予定が入っている日」を見る。
+ * ★控え（VNH_…）の鍵は日付なので、キーを見れば分かります。
+ *   外に聞きにいかないので、お金も時間もかかりません。
+ */
+function vnHotelLastDay_() {
+  const last = {};
+  let all = {};
+  try { all = PropertiesService.getScriptProperties().getProperties() || {}; }
+  catch (e) { return last; }
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf("VNH_") !== 0) return;
+    const ymd = k.slice(4);
+    if (!/^\d{8}$/.test(ymd)) return;
+    let list = [];
+    try { list = JSON.parse(all[k] || "[]") || []; } catch (e) { return; }
+    list.forEach(function (x) {
+      const raw = String((x || {}).hotel || "");
+      const name = raw.indexOf("帝国") >= 0 ? "帝国ホテル"
+                 : raw.indexOf("リーガ") >= 0 ? "リーガロイヤルホテル"
+                 : raw.indexOf("オータニ") >= 0 ? "ホテルニューオータニ大阪" : raw;
+      if (!name) return;
+      if (!last[name] || ymd > last[name]) last[name] = ymd;
+    });
+  });
+  return last;
+}
+
+/**
+ * しばらく予定表が届いていないホテルを ならべる。
+ *
+ * ★「あしたの予定が無い」では騒ぎません。
+ *   宴会が無い日は、ふつうにあります。
+ *   ひと月ぶん まるごと無いときだけ、送り忘れとみなします。
+ */
+function vnHotelQuiet_(now) {
+  const base = (now && typeof now.getTime === "function") ? now : new Date();
+  const today = vnAliveDayKey_(base).replace(/-/g, "");
+  const last = vnHotelLastDay_();
+  const out = [];
+  vnHotelNames_().forEach(function (name) {
+    const ymd = last[name];
+    if (!ymd) { out.push({ name: name, days: -1 }); return; }   // 一度も届いていない
+    /*
+     * ★見るのは「いちばん先の予定の日」です。
+     *   月間の予定表を送っていただくので、先の日付まで入ります。
+     *   その先頭が きょうより前なら、ひと月ぶんが切れています。
+     */
+    if (ymd >= today) return;                                   // まだ先の予定がある
+    const d = vnDaysBetween_(
+      ymd.slice(0, 4) + "-" + ymd.slice(4, 6) + "-" + ymd.slice(6, 8),
+      vnAliveDayKey_(base));
+    if (d >= 1) out.push({ name: name, days: d });
+  });
+  return out;
+}
+
+/** 確認用に足す1行（届いていないホテルがあるときだけ）。無ければ "" */
+function vnHotelQuietNote_(now) {
+  const q = vnHotelQuiet_(now);
+  if (!q.length) return "";
+  const L = ["🏨 ホテルの予定表が届いていません"];
+  q.slice(0, 4).forEach(function (x) {
+    L.push("・" + x.name + "　" +
+           (x.days < 0 ? "一度も届いていません" : x.days + "日前のぶんが最後です"));
+  });
+  L.push("・ホテルの宴会は、ホームページに出ません");
+  L.push("・「🏨」と送ってから、予定表の写真を送ってください");
+  return L.join("\n");
+}
+
 /** 全部のサイトから、その日のぶんを読む（vnTodayEvents_ がここを拾う） */
 function vnScrapeAll_(day) {
   const out = [];
@@ -7308,6 +7429,15 @@ function vnSendTest_(d, list) {
   try {
     const dead = vnDeadNote_(new Date());
     if (dead && msgs.length < 5) msgs.push({ type: "text", text: dead });
+  } catch (e) {}
+  /*
+   * ★ホテルの予定表が、しばらく届いていないときも1行 足します。
+   *   ホテルの宴会はホームページに出ないので、写真だけが頼りです。
+   *   送り忘れると、黙って0件になります。
+   */
+  try {
+    const hq = vnHotelQuietNote_(new Date());
+    if (hq && msgs.length < 5) msgs.push({ type: "text", text: hq });
   } catch (e) {}
   lrPush_(to, msgs);
   return true;
