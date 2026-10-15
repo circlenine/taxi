@@ -4353,40 +4353,103 @@ console.log('\n■ 自動の「とりこみ かんりょう」は、1行だけ�
   delete props['UPD_TELL_SAME'];
 
   /*
-   * ★同じ「原因と直し方」を、毎回は出さないこと（決まりごと）。
-   *   版が満杯のあいだは押すたびに同じ4行が流れて、
-   *   肝心の知らせが見えなくなります。
+   * ★★「公開だけ しっぱい」は、同じ理由なら **1日に1回だけ**。
+   *
+   *   【2026/10/16 に実際に起きたこと】
+   *   版が200で満杯のあいだ、取り込みのたびに1通 出ていました。
+   *   こちらが直しを立て続けにpushしたので、
+   *   11:05〜11:47 のあいだに **10通** 積み上がりました（ver.019〜028）。
+   *   まーく様のお仕事中です。
+   *
+   *   前は「同じ文なら5分だけ黙る」でしたが、
+   *   中のバージョン番号が毎回ちがうので、すり抜けていました。
+   *   止めるべきは「文が同じか」ではなく「**理由が同じか**」でした。
+   *
+   *   版が満杯なのは、作り直しが済むまで直りません。
+   *   直らないことを何十回も知らせても、ただ うるさいだけです。
+   *   取り込みそのものは成功しているので、困ってもいません。
    */
   const FULL = 'とりこみ　かんりょう。\n入れ替え：001-Code\n' +
                'デプロイのやり直しは失敗しました（Script has reached the limit of 200 versions）';
   delete props['UPD_WHY_SEEN'];
+  delete props['UPD_DEPLOY_TELL'];
   ctx.pu.length = 0;
   T('じどう', FULL);
+  t(ctx.pu.length === 1, '★1回目は、ちゃんと知らせる');
   const f1 = String(ctx.pu[0].msgs[0].text);
-  t(f1.indexOf('直し方') !== -1, '★1回目は、直し方まで出す');
+  t(f1.indexOf('公開だけ しっぱい') !== -1, '　 しっぱいしたことを出す');
+  t(f1.indexOf('コードは入りました') !== -1, '　 コードは入った、とも出す');
+  t(f1.indexOf('直し方') !== -1, '　 1回目は、直し方まで出す');
 
+  /*
+   * ★ここが本体。2回目は1通も出さない。
+   *
+   *   ★毎回ちがうファイルが入った形にします。
+   *     実際そうでした（こちらが直しを立て続けにpushしたため）。
+   *     文が毎回ちがうので、「同じ文なら5分黙る」では止まりません。
+   *     そこを同じ文で試していたら、素通りしました。
+   */
+  const FULL2 = 'とりこみ　かんりょう。\n入れ替え：003-LineReport\n' +
+                'デプロイのやり直しは失敗しました（Script has reached the limit of 200 versions）';
+  const FULL3 = 'とりこみ　かんりょう。\n入れ替え：006-Venue\n' +
+                'デプロイのやり直しは失敗しました（Script has reached the limit of 200 versions）';
   ctx.pu.length = 0;
-  T('じどう', FULL);
-  const f2 = String(ctx.pu[0].msgs[0].text);
-  t(f2.indexOf('公開だけ しっぱい') !== -1, '★2回目も、しっぱいしたことは必ず出す');
-  t(f2.indexOf('直し方') === -1,
-    '★★2回目は、同じ直し方を くり返さない（' + f2.split('\n').length + '行）', f2);
+  T('じどう', FULL2);
+  t(ctx.pu.length === 0,
+    '★★★2回目は、1通も出さない（中身がちがっても。これが ver.019〜028 の事故）');
+  ctx.pu.length = 0;
+  T('じどう', FULL3); T('じどう', FULL2); T('じどう', FULL3);
+  t(ctx.pu.length === 0, '★★何回 取り込んでも、黙ったまま');
 
-  // 原因が変われば、すぐ出す
+  /*
+   * ★しぼっている係そのものも、直に試します。
+   *   上の試しは「同じ文は5分黙る」ほうでも通ってしまい、
+   *   わざと しぼりを外しても素通りしました。
+   *   それでは、何を守っているのか分かりません。
+   */
+  {
+    const DUE = F('updDeployTellDue_');
+    const KEY = F('updDeployWhyKey_');
+    delete props['UPD_DEPLOY_TELL'];
+    t(DUE(FULL) === true, '★しぼり：1回目は 知らせてよい');
+    t(DUE(FULL) === false, '★★しぼり：2回目は 黙る');
+    t(DUE(FULL2) === false, '★★しぼり：中身がちがっても、理由が同じなら黙る');
+    const other = 'とりこみ　かんりょう。\nデプロイのやり直しは失敗しました（デプロイがまだありません）';
+    t(DUE(other) === true, '★しぼり：理由が変われば 知らせる');
+    t(KEY(FULL) !== KEY(other), '　 理由の鍵が、ちゃんと分かれている');
+    t(KEY(FULL) === KEY(FULL2), '　 中身がちがっても、理由が同じなら同じ鍵');
+    props['UPD_DEPLOY_TELL'] = '2000-01-01|むかし';
+    t(DUE(FULL) === true, '★しぼり：日が変われば 知らせる');
+    delete props['UPD_DEPLOY_TELL'];
+  }
+
+  /*
+   * ★★しぼりを、ちゃんと呼んでいること。
+   *   係を作っても、呼ばなければ意味がありません。
+   *   ここを消すと、また何十通も流れます。
+   */
+  {
+    const src5 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+    t(src5.indexOf('if (!updDeployTellDue_(body)) return false;') !== -1,
+      '★★★「公開だけ しっぱい」で、しぼりを呼んでいる');
+  }
+
+  // ★ただし、理由が変われば すぐ出す（黙りすぎない）
   ctx.pu.length = 0;
+  delete props['UPD_TELL_SAME'];      // 「同じ文は5分黙る」ほうは、ここでは外す
   T('じどう', 'とりこみ　かんりょう。\n入れ替え：001-Code\n' +
               'デプロイのやり直しは失敗しました（デプロイがまだありません）');
-  t(String(ctx.pu[0].msgs[0].text).indexOf('直し方') !== -1,
-    '★原因が変われば、すぐ出す');
+  t(ctx.pu.length === 1, '★★理由が変われば、その日のうちでも すぐ出す');
 
-  // 1日たてば、また出す
-  props['UPD_WHY_SEEN'] = JSON.stringify(
-    { why: F('updDeployWhy_')(FULL), at: Date.now() - 25 * 3600000 });
+  // ★日が変われば、また出す
+  props['UPD_DEPLOY_TELL'] = '2000-01-01|むかしのりゆう';
+  delete props['UPD_TELL_SAME'];
   ctx.pu.length = 0;
   T('じどう', FULL);
-  t(String(ctx.pu[0].msgs[0].text).indexOf('直し方') !== -1, '★1日たてば、また出す');
+  t(ctx.pu.length === 1, '★日が変われば、また出す');
   ctx.pu.length = 0;
   delete props['UPD_WHY_SEEN'];
+  delete props['UPD_DEPLOY_TELL'];
 }
 
 console.log('\n■ とりこみの知らせに、入れ替わったバージョンを載せる（ご指示）');
