@@ -2581,6 +2581,33 @@ console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
   eq(ctx.vnInTimeRange_({ end: '17:30' }), true, '　 17:30 は 間に合う');
   eq(ctx.vnInTimeRange_({ end: '17:29' }), false, '　 17:29 は 間に合わない');
 
+  // ★★お金の決まり（まーく様のご指示・ぜったい）
+  /*
+   * 「金銭的余裕がないので、1つシステムができたら、
+   *   課金は不要で全て完結する形に、必ずおさめてほしいです
+   *   この条件は絶対なので永久的に忘れないでください」
+   *
+   * ★動かすのにお金がかからないことを、ここで見張ります。
+   *   お金のかかるものを足したら、気づけるようにしておきます。
+   */
+  {
+    const money = fs.readFileSync(path.join(__dirname, '..', '..', 'CLAUDE.md'), 'utf8');
+    eq(money.indexOf('お金の決まり') !== -1, true,
+       '★★CLAUDE.md に「お金の決まり」が書いてある');
+    eq(money.indexOf('1円も払わずに動きつづける') !== -1, true,
+       '★★「1円も払わずに動きつづける」と書いてある');
+
+    // ★外に出ていく先が、無料のものだけか
+    const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+    const hosts = (src.match(/https?:\/\/[a-z0-9.\-]+/gi) || [])
+      .map(u => u.replace(/^https?:\/\//i, '').toLowerCase());
+    const paid = hosts.filter(h =>
+      /openai|anthropic|\.rapidapi\.|algolia|mapbox|twilio|sendgrid/.test(h));
+    eq(paid.length, 0,
+       '★★★お金のかかる先に、つなぎに行っていない' +
+       (paid.length ? '（' + paid.join('・') + '）' : ''));
+  }
+
   // ★この4つが、決まりとして書き残してあること
   const rules = fs.readFileSync(path.join(__dirname, '..', '..', 'CLAUDE.md'), 'utf8');
   eq(rules.indexOf('イベント通知の決まり') !== -1, true,
