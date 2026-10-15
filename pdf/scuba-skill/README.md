@@ -238,6 +238,19 @@
 - どちらもスキル編とは**別の資料**。細かいスキルの中身・ドライスーツの種類は、サンライズの担当インストラクターに確認中。
   届いたら作り始める。動画は、ドライブのフォルダの「次の資料用」のもの。
 
+## p2 の出どころ（10/15 記事を読んで確かめた）
+| 文 | 出どころ |
+|---|---|
+| あわてることは事故の大きなきっかけ | Morgan 1995（PubMed 8614760）・Morgan 2004（PubMed 15162252）・Walton 2018（PubMed 30428239） |
+| 急な浮上がいちばん危ないことの1つ | DAN の 947件の死亡の研究（PubMed 19175195）：急な浮上が多く、肺の空気の病気につながる |
+| 落ち着くと空気が長持ち・中性浮力がとりやすい | https://blog.padi.com/how-do-you-breathe-while-scuba-diving/ ・ https://blog.padi.com/the-golden-rules-of-scuba-diving/ |
+| あわてる→息が速く浅く→息苦しい→急に上がりたくなる | https://dan.org/alert-diver/article/your-lungs-and-diving/ ・ https://blog.padi.com/how-to-breathe-properly-by-blowing-bubbles-underwater/ ・ https://www.divessi.com/ja/blog/preventing-dive-panic-1092 |
+| 止まる→ゆっくり全部吐く→深く吸うをくり返す→だめなら終える | https://blog.padi.com/jp/diving-accident-trends-and-tips-to-prevent/ ・ https://dan.org/alert-diver/article/public-safety-announcement-preventing-panic/ |
+| 息をぜったいに止めない | https://blog.padi.com/the-golden-rules-of-scuba-diving/ ・ https://dan.org/alert-diver/article/lung-expansion-injuries/ |
+| 不安は伝える・無理しない・体調が悪い日は潜らない | DAN の PSA（上と同じ）・PADI の決まり（上と同じ） |
+- 書かないこと：事故の何割がパニック、などの数字（出どころが又聞き）／「リラックスすると耳抜きが楽」（出どころ無し）／「速い呼吸で酸素が足りなくなる」（DAN は二酸化炭素と言っている）。
+- 「止まる・息・考える・動く」の合言葉は、公式の言い方としては確かめられなかった → 合言葉としては出さない。
+
 ## 文の確かめ（スキル編・10/15 調べた結果）
 | 文 | 確かめた出どころ |
 |---|---|
