@@ -7083,6 +7083,12 @@ function venueDailyJob() {
  */
 function vnSelfHeal_() {
   const pr = PropertiesService.getScriptProperties();
+  /*
+   * ★設定タブに、まだ無い項目の行を足します（1日1回のここで）。
+   *   新しい設定を足したときに「メニューを押してください」と
+   *   お願いせずに済みます。足すものが無ければ、何もしません。
+   */
+  try { if (typeof cfgEnsureRows_ === "function") cfgEnsureRows_(); } catch (e) {}
   const now = new Date();
   const ymd = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2) + ("0" + now.getDate()).slice(-2);
   if (pr.getProperty("VN_HEAL_YMD") === ymd) return false;

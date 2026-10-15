@@ -1,9 +1,19 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C072ver  （2026/10/15）  ★★★   ← もとは version 232
+ *  ★★★  C073ver  （2026/10/15）  ★★★   ← もとは version 232
  *
- *  [C072ver]
+ *  [C073ver]
+ *   ・⚙️ 設定タブに「まだ無い行」を、こちらで足すようにした
+ *     ★これまでは、設定を新しく足すたびに
+ *       「メニュー →『設定タブを作る・直す』を押してください」と
+ *       お願いしていました。押すのを忘れれば、黙って効きません。
+ *       お願いするほうが間違っています。
+ *     ★作り直しはしません。下に足すだけです。
+ *       作り直すと、まーく様が手で書き足した行まで消えてしまいます。
+ *     ★1日1回（イベントの見回り）から、ひとりでに走ります。
+ *     ★LINEの🕓から書き込むときも、行が無ければ先に足します。
+ *
  *   ・🕓 イベントの通知時刻を、設定タブに足した（ご指示）
  *     ・イベントをグループへ送る時刻（既定 16:00）
  *     ・イベントの確認用を送る時刻（前日・既定 05:00）
@@ -757,7 +767,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C072ver";
+const CODE_VERSION = "C073ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -1095,19 +1105,67 @@ function cfgLoad_() {
  *   使うのは、決まりそのものを変えたとき（引っ越し）だけ。
  *   人が入れた値を勝手に上書きしないよう、呼ぶ側で1回きりの印を付けること。
  */
+/**
+ * 設定タブに「まだ無い項目」の行を、下に足す。足した数を返す。
+ *
+ * ★まーく様の手を増やさないためのものです。
+ *   新しい設定を足したとき、これまでは
+ *   「メニュー →『設定タブを作る・直す』を押してください」と
+ *   お願いしていました。押すのを忘れれば、黙って効きません。
+ *   お願いするほうが間違っています。こちらで足します。
+ *
+ * ★作り直しはしません。下に足すだけです。
+ *   作り直すと、まーく様が手で書き足した行まで消えてしまいます。
+ */
+function cfgEnsureRows_() {
+  try {
+    const sh = cfgSheet_();
+    if (!sh) return 0;
+    const last = sh.getLastRow();
+    const have = {};
+    if (last >= 2) {
+      sh.getRange(2, 2, last - 1, 1).getValues().forEach(function (r) {
+        const k = String(r[0]).trim();
+        if (k) have[k] = true;
+      });
+    }
+    const add = [];
+    SETTINGS_DEFS.forEach(function (d) {
+      if (!have[d.key]) add.push(["", d.key, d.def, d.help]);
+    });
+    if (!add.length) return 0;
+    const at = Math.max(last, 1) + 1;
+    sh.getRange(at, 1, add.length, 4).setValues(add);
+    // 触ってよい列（値）を、ほかの行と同じ色にしておく
+    try { sh.getRange(at, 3, add.length, 1).setBackground("#fff8e1"); } catch (e) {}
+    try { sh.getRange(at, 1, add.length, 4).setVerticalAlignment("middle").setWrap(true); } catch (e) {}
+    _cfgCache = null; _cfgVal = {};
+    return add.length;
+  } catch (e) { try { logErr_("cfgEnsureRows", e); } catch (e2) {} return 0; }
+}
+
 function cfgSet_(key, value) {
   try {
     const sh = cfgSheet_();
     if (!sh) return false;
-    const last = sh.getLastRow();
-    if (last < 2) return false;
-    const rows = sh.getRange(2, 2, last - 1, 2).getValues();
-    for (let i = 0; i < rows.length; i++) {
-      if (String(rows[i][0]).trim() === key) {
-        sh.getRange(2 + i, 3).setValue(value);
-        _cfgCache = null; _cfgVal = {};      // 読み直させる
-        return true;
+    /*
+     * ★その項目の行がまだ無いことがあります（設定を新しく足したとき）。
+     *   そのときは、まず行を足してから書き込みます。
+     *   「設定タブを作り直してください」とお願いせずに済みます。
+     */
+    for (let pass = 0; pass < 2; pass++) {
+      const last = sh.getLastRow();
+      if (last >= 2) {
+        const rows = sh.getRange(2, 2, last - 1, 2).getValues();
+        for (let i = 0; i < rows.length; i++) {
+          if (String(rows[i][0]).trim() === key) {
+            sh.getRange(2 + i, 3).setValue(value);
+            _cfgCache = null; _cfgVal = {};      // 読み直させる
+            return true;
+          }
+        }
       }
+      if (pass === 0) { if (!cfgEnsureRows_()) break; }
     }
   } catch (e) { logErr_("cfgSet", e); }
   return false;

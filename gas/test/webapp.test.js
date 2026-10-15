@@ -649,5 +649,90 @@ console.log('\n■ まず自分だけ／もう一度でグループ');
   ok(F('wbTestTarget_')() === 'Uxxxx', '設定タブで宛先を変えられる');
 }
 
+console.log('\n■ ⚙️ 設定タブに、足りない行を こちらで足す');
+/*
+ * ★まーく様の手を増やさないためのものです。
+ *   前は「メニュー →『設定タブを作る・直す』を押してください」でした。
+ *   押すのを忘れれば、新しい設定は黙って効きません。
+ *   お願いするほうが間違っています。こちらで足します。
+ *
+ * ★作り直しはしません。下に足すだけです。
+ *   作り直すと、まーく様が手で書き足した行まで消えてしまいます。
+ */
+{
+  const rows = [['', '項目', '値', '説明']];
+  const rng = (r, c, n, w) => ({
+    getValues: () => {
+      const out = [];
+      for (let i = 0; i < (n || 1); i++) {
+        const row = rows[r - 1 + i] || [];
+        out.push(row.slice(c - 1, c - 1 + (w || 1)));
+      }
+      return out;
+    },
+    setValues: v => { v.forEach((row, i) => { rows[r - 1 + i] = row.slice(); }); return rng(r, c, n, w); },
+    setValue: v => {
+      rows[r - 1] = rows[r - 1] || ['', '', '', ''];
+      rows[r - 1][c - 1] = v;
+      return rng(r, c, n, w);
+    },
+    setBackground: () => rng(r, c, n, w),
+    setVerticalAlignment: () => ({ setWrap: () => ({}) })
+  });
+  ctx.__fakeCfg = { getLastRow: () => rows.length, getRange: rng };
+  vm.runInContext('function cfgSheet_(){ return __fakeCfg; }', ctx);
+  vm.runInContext('_cfgCache = null; _cfgVal = {}', ctx);
+
+  const n1 = F('cfgEnsureRows_')();
+  ok(n1 > 0, '★★行が無ければ、こちらで足す（' + n1 + '行）');
+  const keys = () => rows.map(r => String(r[1] || ''));
+  ok(keys().indexOf('イベントをグループへ送る時刻') !== -1,
+     '★みんなへ送る時刻の行ができる');
+  ok(keys().indexOf('イベントの確認用を送る時刻（前日）') !== -1,
+     '★確認用の時刻の行もできる');
+  const sendRow = rows.filter(r => r[1] === 'イベントをグループへ送る時刻')[0];
+  ok(sendRow && sendRow[2] === '16:00', '  はじめの値は 16:00');
+  const testRow = rows.filter(r => r[1] === 'イベントの確認用を送る時刻（前日）')[0];
+  ok(testRow && testRow[2] === '05:00', '  確認用は 05:00');
+
+  vm.runInContext('_cfgCache = null; _cfgVal = {}', ctx);
+  ok(F('cfgEnsureRows_')() === 0, '　 二度目は、足さない（毎回ふえたりしない）');
+
+  // ★まーく様が手で足した行を、消さない
+  /*
+   * ★ここは「足すものが1つある」状態で確かめます。
+   *   足すものが無いと、そもそも何も書かないので、
+   *   上から書きつぶす作りでも素通りしてしまいます（実際しました）。
+   */
+  rows.push(['', 'まーく様のメモ', 'だいじ', '']);
+  const dropAt = rows.findIndex(r => r[1] === 'イベントをグループへ送る時刻');
+  rows.splice(dropAt, 1);                      // 1つ消して、足す必要を作る
+  const before = rows.map(r => String(r[1] || ''));
+  vm.runInContext('_cfgCache = null; _cfgVal = {}', ctx);
+  ok(F('cfgEnsureRows_')() === 1, '　 足りない1行だけを足す');
+  const after2 = rows.map(r => String(r[1] || ''));
+  /*
+   * ★ここが肝心です。
+   *   「足した」だけでなく「1行も消えていない」ことを見ます。
+   *   上から書きつぶす作りにしてみたら、ここ以外は素通りしました。
+   */
+  const lost = before.filter(k => k && after2.indexOf(k) === -1);
+  ok(lost.length === 0,
+     '★★★もとからあった行を、1つも消さない' + (lost.length ? '（消えた：' + lost.join('・') + '）' : ''));
+  ok(after2.length === before.length + 1,
+     '★★行の数は ちょうど1つだけ増える（' + before.length + '→' + after2.length + '）');
+  ok(rows.filter(r => r[1] === 'まーく様のメモ' && r[2] === 'だいじ').length === 1,
+     '★手で足した行も、中身ごと残る');
+  ok(rows.some(r => r[1] === 'イベントをグループへ送る時刻'), '　 消えていた行は、戻る');
+
+  // ★行がまるごと無い状態からでも、書き込める
+  rows.length = 1;
+  vm.runInContext('_cfgCache = null; _cfgVal = {}', ctx);
+  ok(F('cfgSet_')('イベントをグループへ送る時刻', '14:00') === true,
+     '★★行が無くても、書き込める（足してから書く）');
+  const after = rows.filter(r => r[1] === 'イベントをグループへ送る時刻')[0];
+  ok(after && after[2] === '14:00', '  入れた値になっている');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
