@@ -2,9 +2,29 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V056ver  （2026/10/09）  ★★★
+ *  ★★★  V057ver  （2026/10/09）  ★★★
  *
- *  [V056ver]
+ *  [V057ver]
+ *   ・💴 参考金額を直した（ご指摘：1件だけの数字・関係ない売上）
+ *     ★ご指摘：「参考金額とかも1件のみの情報を出したりと、
+ *               しかもイベントに関係ない売上を載せてたりして」
+ *     ★2つとも そのとおりでした。
+ *       ① 1件しかなくても「平均￥◯◯」と書いていました。
+ *          1件は平均ではありません。たまたまの1本です。
+ *       ② 会場の近くの乗り場で「夜に稼いだぶん」を ぜんぶ数えて
+ *          いました。イベントが無い ただの金曜の夜も混ざっていました。
+ *          それをイベントの案内に並べれば「この公演のときの数字」に
+ *          見えます。数字が嘘でなくても、出し方が嘘になります。
+ *     ★直したところ
+ *       ① 5件そろうまで、金額を出しません。
+ *          かわりに「記録が◯件だけなので、金額は出しません」と書きます。
+ *       ② その会場でイベントがあった日の夜だけを数えます。
+ *          控えが足りないときは、何も出しません。
+ *       ③ 何を数えた数字かを、必ず添えます
+ *          （どの乗り場の夜か／イベントが何日ぶんか）。
+ *     ★テストは、文の出し方だけでなく「数えるところ」も見ます。
+ *       はじめ 文だけ見ていたので、しぼりを外しても素通りしました。
+ *
  *   ・🩺 読み先が「黙って死んでいないか」の見張りを足した（ご指示）
  *     ★今回の事故の本体は、ここでした。
  *       読み先が404になっても、0件が続いても、通知は毎日ふつうに
@@ -798,7 +818,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V056ver";
+const VN_VERSION = "V057ver";
 
 /**
  * 見にいく先の一覧。
@@ -1125,9 +1145,73 @@ function vnBigEnough_(ev) {
  *   よそから持ってきた一般論ではなく、自分たちが実際に稼いだ数字だけを使う。
  *   記録が無ければ「記録なし」と正直に言う（それらしい作り話はしない）。
  */
-function vnPlaceStats_(names, fromHour, toHour) {
+/** これより少ない件数では、平均を出さない */
+const VN_STATS_MIN = 5;
+
+/** B列の日づけを「20261015」の形にする（文字でも日付でも読めるように） */
+function vnRowYmd_(cell, base) {
+  try {
+    if (cell && typeof cell.getFullYear === "function") {
+      return "" + cell.getFullYear() +
+             ("0" + (cell.getMonth() + 1)).slice(-2) +
+             ("0" + cell.getDate()).slice(-2);
+    }
+    const t = String(cell == null ? "" : cell);
+    let m = t.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+    if (m) return m[1] + ("0" + m[2]).slice(-2) + ("0" + m[3]).slice(-2);
+    m = t.match(/(\d{1,2})[\/\-月](\d{1,2})/);
+    if (m) {
+      // 年が書いていないときは、いまの年とみなす（年またぎは1か月だけずらす）
+      const b = (base && typeof base.getFullYear === "function") ? base : new Date();
+      let y = b.getFullYear();
+      const mm = parseInt(m[1], 10);
+      if (mm === 12 && (b.getMonth() + 1) === 1) y -= 1;
+      return "" + y + ("0" + m[1]).slice(-2) + ("0" + m[2]).slice(-2);
+    }
+  } catch (e) {}
+  return "";
+}
+
+/*
+ * ================================================================
+ *  その会場で、過去にイベントがあった日をあつめる
+ *
+ *  ★まーく様のご指摘です。
+ *    「イベントに関係ない売上を載せてたりして」
+ *
+ *  ★そのとおりでした。
+ *    これまでは「会場の近くの乗り場で、夜に稼いだぶん」を
+ *    ぜんぶ数えていました。イベントが無い ただの金曜の夜も、
+ *    同じ数字に混ざっていました。
+ *    それを「近場実績」としてイベントの案内に並べれば、
+ *    読んだ人は「この公演のときの数字」と受け取ります。
+ *    数字そのものが嘘でなくても、出し方が嘘になります。
+ *
+ *  ★これからは「その会場でイベントがあった日」だけを数えます。
+ *    控えが足りないときは、**何も出しません**。
+ *    あやしい数字を出すくらいなら、黙っているほうがましです。
+ * ================================================================ */
+function vnEventDaySet_(venue) {
+  const set = {};
+  let all = {};
+  try { all = PropertiesService.getScriptProperties().getProperties() || {}; }
+  catch (e) { return set; }
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf("VNDAY_") !== 0) return;
+    const ymd = k.slice(6);
+    if (!/^\d{8}$/.test(ymd)) return;
+    let list = [];
+    try { list = JSON.parse(all[k]) || []; } catch (e) { return; }
+    for (let i = 0; i < list.length; i++) {
+      if (String((list[i] || {}).venue || "") === String(venue)) { set[ymd] = true; return; }
+    }
+  });
+  return set;
+}
+
+function vnPlaceStats_(names, fromHour, toHour, daySet, base) {
   const out = { count: 0, sales: 0, waitSum: 0, waitCount: 0, max: 0,
-                male: 0, female: 0, ages: {}, place: "",
+                male: 0, female: 0, ages: {}, place: "", days: {},
                 // ★どの乗り場を数えたのか。あとで案内にそのまま書くため
                 spots: (names || []).slice(0, 4) };
   let ss;
@@ -1159,6 +1243,18 @@ function vnPlaceStats_(names, fromHour, toHour) {
         if (h === null || h < fromHour || h > toHour) continue;
       }
 
+      /*
+       * ★日でもしぼります（まーく様のご指摘）。
+       *   その会場でイベントがあった日の夜だけを数えます。
+       *   イベントが無い ただの金曜の夜を混ぜると、
+       *   「この公演のときの数字」に見えてしまいます。
+       */
+      if (daySet) {
+        const ymd = vnRowYmd_(vals[r][1], base);
+        if (!ymd || !daySet[ymd]) continue;
+        out.days[ymd] = true;
+      }
+
       const price = parseInt(String(vals[r][5]).replace(/[^0-9]/g, ""), 10);
       if (isNaN(price) || price <= 0) continue;
       out.count++; out.sales += price;
@@ -1177,9 +1273,27 @@ function vnPlaceStats_(names, fromHour, toHour) {
   return out;
 }
 
-/** 集めた記録を、読める1〜2行にする。記録が無ければ "" */
+/**
+ * 集めた記録を、読める1〜2行にする。出せるものが無ければ ""。
+ *
+ * ★まーく様のご指摘です。
+ *   「参考金額とかも1件のみの情報を出したりと」
+ *
+ *   そのとおりでした。1件しかなくても「平均￥◯◯」と書いていました。
+ *   1件は平均ではありません。たまたまの1本です。
+ *   それを平均と書けば、読む人の判断を狂わせます。
+ *   これからは **5件そろうまで、金額を出しません**。
+ */
 function vnStatsLine_(st) {
   if (!st || st.count === 0) return "";
+  if (st.count < VN_STATS_MIN) {
+    /*
+     * ★黙って消すのではなく、「まだ少ない」と正直に出します。
+     *   何も出ないと「調べていない」のか「記録が無い」のか分かりません。
+     *   数字は出しません。少ない数で平均を名乗らせないためです。
+     */
+    return "📒近場実績：記録が" + st.count + "件だけなので、金額は出しません";
+  }
   const avg = Math.round(st.sales / st.count);
   /*
    * ★見出しは4文字でそろえます（まーく様のご指示）。
@@ -1197,6 +1311,7 @@ function vnStatsLine_(st) {
    *   何を数えた数字なのかを、必ず書きます。
    */
   const near = (st.spots && st.spots.length) ? st.spots.join("・") : "";
+  const nDays = st.days ? Object.keys(st.days).length : 0;
   let t = `📒近場実績：${st.count}件 平均￥${avg.toLocaleString()}`;
   if (st.max > avg) t += ` 最高￥${st.max.toLocaleString()}`;
   /*
@@ -1208,7 +1323,15 @@ function vnStatsLine_(st) {
     t += ` 待ち${Math.round(st.waitSum / st.waitCount)}分` +
          `（${st.count}件中${st.waitCount}件に記入）`;
   }
-  if (near) t += `\n　（対象の乗り場：${near}）`;
+  /*
+   * ★何を数えた数字なのかを、必ず書きます。
+   *   「近くの乗り場」で「イベントがあった日」の「夜」だけ、です。
+   *   ここを書かないと、その公演の実績だと受け取られます。
+   */
+  if (near) {
+    t += `\n　（${near} の夜` +
+         (nDays ? `／この会場でイベントがあった ${nDays}日ぶん` : "") + `）`;
+  }
 
   // 客層。備考に書いてあるぶんだけ数えたものなので、母数も一緒に出す
   const sex = st.male + st.female;
@@ -1917,7 +2040,8 @@ function vnSend_(text, where) {
 function vnSampleEvents_() {
   const mk = function (venue, kind, icon, title, start, end, people, url, guess, know, avoid) {
     const v = VN_VENUES[venue] || {};
-    const st = vnPlaceStats_(v.near, VN_FROM_HOUR, VN_TO_HOUR);
+    const st = vnPlaceStats_(v.near, VN_FROM_HOUR, VN_TO_HOUR,
+                             vnEventDaySet_(venue), new Date());
     const line = vnStatsLine_(st);
     return { venue: venue, kind: kind, icon: icon, title: title, start: start, end: end,
              people: people, url: url,
@@ -6123,10 +6247,18 @@ function menuVenueDiscord() {
 /** イベント1件に、実績・推定・助言を足す */
 function vnDecorate_(e) {
   const v = VN_VENUES[e.venue] || {};
-  const st = vnPlaceStats_(v.near, VN_FROM_HOUR, VN_TO_HOUR);
+  const st = vnPlaceStats_(v.near, VN_FROM_HOUR, VN_TO_HOUR,
+                           vnEventDaySet_(e.venue), new Date());
   const c = {};
   for (const k in e) c[k] = e[k];
-  c.stats  = vnStatsLine_(st) || "自社の記録：この乗り場の記録はまだありません";
+  /*
+   * ★出せないときの言い方も、正直にしました。
+   *   前は「この乗り場の記録はまだありません」でした。
+   *   ほんとうは「イベントがあった日の記録が、まだ足りない」です。
+   *   乗り場の記録そのものは、あることがあります。
+   */
+  c.stats  = vnStatsLine_(st) ||
+             "📒近場実績：この会場でイベントがあった日の記録が、まだありません";
   // ★終わりの時刻がはっきりしないものには、動く予想も出しません（ご指示）。
   //   終わりが分からないのに「何時から動く」と言えるはずがありません
   c.advice = vnAdvice_(e.venue, (e.endSure ? e.end : ""), st);

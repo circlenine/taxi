@@ -2070,6 +2070,115 @@ console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使�
   });
 }
 
+console.log('\n■ 💴 参考金額（ご指摘：1件だけの数字・関係ない売上）');
+/*
+ * ★まーく様のご指摘です。
+ *   「参考金額とかも1件のみの情報を出したりと
+ *     しかもイベントに関係ない売上を載せてたりして
+ *     さらに不信感が高まってます」
+ *
+ * ★2つとも、そのとおりでした。
+ *   ① 1件しかなくても「平均￥◯◯」と書いていました。
+ *      1件は平均ではありません。たまたまの1本です。
+ *   ② 会場の近くの乗り場で「夜に稼いだぶん」を ぜんぶ数えていました。
+ *      イベントが無い ただの金曜の夜も、同じ数字に混ざっていました。
+ *      それをイベントの案内に並べれば「この公演のときの数字」に見えます。
+ *
+ * ★数字が嘘でなくても、出し方が嘘になります。いちばん効く壊れ方です。
+ */
+{
+  const LINE = ctx.vnStatsLine_;
+  const MIN = vm.runInContext('VN_STATS_MIN', ctx);
+
+  eq(MIN >= 5, true, '★何件そろうまで金額を出さないか（' + MIN + '件）');
+
+  // ① 1件だけなら、金額を出さない
+  const one = { count: 1, sales: 2867, max: 2867, waitSum: 0, waitCount: 0,
+                male: 0, female: 0, ages: {}, spots: ['難波'], days: { '20261010': true } };
+  const t1 = LINE(one);
+  eq(t1.indexOf('平均') === -1, true, '★★1件だけなら「平均」と書かない');
+  eq(t1.indexOf('2,867') === -1, true, '★★1件だけなら 金額そのものを出さない');
+  eq(t1.indexOf('1件だけなので') !== -1, true, '　 かわりに「記録が1件だけ」と正直に書く');
+
+  // ② 4件でも、まだ出さない
+  const four = { count: 4, sales: 10000, max: 4000, waitSum: 0, waitCount: 0,
+                 male: 0, female: 0, ages: {}, spots: ['難波'], days: {} };
+  eq(LINE(four).indexOf('平均') === -1, true, '★4件でも、まだ平均を出さない');
+
+  // ③ 5件そろえば出す
+  const five = { count: 5, sales: 15000, max: 5000, waitSum: 0, waitCount: 0,
+                 male: 0, female: 0, ages: {},
+                 spots: ['難波', 'なんば'], days: { '20261010': true, '20261001': true } };
+  const t3 = LINE(five);
+  eq(t3.indexOf('平均￥3,000') !== -1, true, '★5件そろえば、平均を出す');
+  eq(t3.indexOf('難波・なんば の夜') !== -1, true,
+     '★★何を数えた数字か書く（どの乗り場の、夜か）');
+  eq(t3.indexOf('イベントがあった 2日ぶん') !== -1, true,
+     '★★★イベントがあった日のぶんだ、と はっきり書く');
+
+  // ④ 1件も無ければ、何も出さない
+  eq(LINE({ count: 0 }), '', '　 1件も無ければ、何も出さない');
+  eq(LINE(null), '', '　 渡されなくても落ちない');
+
+  // ⑤ ★★数えるとき、ほんとうに「イベントがあった日」だけを数えているか
+  /*
+   * ★ここが ご指摘②の本体です。
+   *   文の出し方だけ直しても、数える中身が直っていなければ意味がありません。
+   *   なので、売上の記録をこしらえて、実際に数えさせます。
+   *
+   *   こしらえる記録（どれも 難波・夜）
+   *     10/10（この会場でイベントがあった日） … ￥3,000／￥5,000
+   *     10/11（イベントが無い ただの土曜）    … ￥90,000  ← 混ぜてはいけない
+   */
+  {
+    const rows = [
+      // A列,     B列(日付),           C, D(待ち), E(時刻), F(金額), G(乗り場)
+      ['', new Date(2026, 9, 10), '', '', '20:30', '3000', '難波', '', '', '', ''],
+      ['', new Date(2026, 9, 10), '', '', '21:30', '5000', '難波', '', '', '', ''],
+      ['', new Date(2026, 9, 11), '', '', '21:00', '90000', '難波', '', '', '', '']
+    ];
+    const mkTab = () => ({
+      getLastRow: () => 3 + rows.length,
+      getRange: (r, c, n, w) => ({
+        getValues: () => rows,
+        getDisplayValues: () => rows.map(x => x.map(y =>
+          (y && typeof y.getFullYear === 'function')
+            ? ((y.getMonth() + 1) + '/' + y.getDate()) : String(y)))
+      })
+    });
+    const realGet = activeBook.getSheetByName;
+    activeBook.getSheetByName = n => (n === 'ﾏｰｸ' ? mkTab() : null);
+    // ★記録用スプシを開く係は 001-Code のものなので、ここで差し込む
+    const realMain = ctx.mainSS_;
+    ctx.mainSS_ = () => activeBook;
+
+    // 10/10 だけが「この会場でイベントがあった日」
+    const daySet = { '20261010': true };
+    const st = ctx.vnPlaceStats_(['難波'], 18, 28, daySet, new Date(2026, 9, 15));
+    eq(st.count, 2, '★★イベントがあった日の2件だけを数える');
+    eq(st.sales, 8000, '★★★イベントが無い日の￥90,000を 混ぜない（ご指摘の本体）');
+    eq(Object.keys(st.days).length, 1, '　 何日ぶんかも数えている');
+
+    // しぼりを渡さなければ、これまでどおり全部数える（ほかの使い道のため）
+    const st2 = ctx.vnPlaceStats_(['難波'], 18, 28, null, new Date(2026, 9, 15));
+    eq(st2.count, 3, '　 しぼりを渡さなければ、全部数える');
+
+    activeBook.getSheetByName = realGet;
+    ctx.mainSS_ = realMain;
+  }
+
+  // ⑥ ★★数えるとき、イベントがあった日だけに絞っているか（日づけの読み取り）
+  /*
+   * ★ここが②の本体です。
+   *   日づけの控えを渡したら、その日のぶんしか数えてはいけません。
+   */
+  const YMD = ctx.vnRowYmd_;
+  eq(YMD(new Date(2026, 9, 15)), '20261015', '★日付のらんが日付でも読める');
+  eq(YMD('2026/10/15'), '20261015', '　 文字でも読める');
+  eq(YMD('10/15(木)', new Date(2026, 9, 15)), '20261015', '　 月日だけでも読める');
+  eq(YMD(''), '', '　 空なら空を返す（数えない）');
+}
+
 console.log('\n■ 🩺 読み先が「黙って死んでいないか」の見張り');
 /*
  * ★今回の事故の本体は、ここです。
