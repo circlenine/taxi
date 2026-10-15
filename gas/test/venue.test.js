@@ -416,7 +416,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00にグループ');
+console.log('\n■ 前日16:00に確認用（まーく様だけ）、当日17:00にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -435,26 +435,26 @@ console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00
   const back = () => { ctx.Date = RealDate; };
 
   /*
-   * ★確認用は「前の日の18:00に、あすのぶん」（まーく様のご指示）。
+   * ★確認用は「前の日の16:00に、あすのぶん」（まーく様のご指示・10/15）。
    *   当日の夕方に「これで出します」と言われても、直す時間がない。
-   *   前の日の晩に見ておけば、落ち着いて手直しできる
+   *   前の日のうちに見ておけば、落ち着いて手直しできる
    */
-  // 9/15 の 18:00 → あす（9/16）のぶんの確認用が飛ぶ
+  // 9/15 の 16:00 → あす（9/16）のぶんの確認用が飛ぶ
   const at15 = (h, m) => {
     const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 15, h, m); };
     D.prototype = RealDate.prototype; D.now = RealDate.now; ctx.Date = D;
   };
   delete props['VNSENT_20260916_T'];
 
-  at15(17, 30);
+  at15(15, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '前日の17:30 には、まだ何も送らない');
+  eq(pushed.length, 0, '前日の15:30 には、まだ何も送らない');
 
-  at15(18, 0);
+  at15(16, 0);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★前日の18:00 に、あすのぶんの確認用を1通');
+  eq(pushed.length, 1, '★前日の16:00 に、あすのぶんの確認用を1通');
   eq(pushed[0].to, 'Umark', '  宛先はまーく様だけ（グループではない）');
   eq(props['VNSENT_20260916_T'], '1', '★印は「あすの日付」で残す（9/16ぶん）');
 
@@ -466,10 +466,18 @@ console.log('\n■ 前日18:00に確認用（まーく様だけ）、当日17:00
   /*
    * ★本番は「当日の17:00」。前の日に人の目を通したものだけが出る
    */
+  /*
+   * ★16:00 からは「あすのぶんの確認用」が出る時刻でもあります。
+   *   見るのは「グループへ出ていないか」です。
+   *   まーく様あての確認用が出るのは、これで正しい動きです。
+   */
   at(16, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '当日の16:30 には、まだグループへ送らない');
+  eq(pushed.filter(x => x.to === 'Cgroup').length, 0,
+     '当日の16:30 には、まだグループへ送らない');
+  eq(props['VNSENT_20260916'], undefined, '　 グループへ送った印も残らない');
+  delete props['VNSENT_20260917_T'];       // あすのぶんの印は、次の確かめのために戻す
 
   at(17, 0);
   // グループの送り先が分かっている状態にする
@@ -2423,7 +2431,7 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
-console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴったりに動かす');
+console.log('\n■ 16:00（確認用）と 17:00（本番）も、時刻ぴったりに動かす');
 {
   /*
    * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
@@ -2437,13 +2445,13 @@ console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴっ�
 
   delete props[keyOf()]; delete props[keyOf() + '_T'];
 
-  // ① 17:50 … あすのぶんの確認用(18:00)まで10分。ぴったりの見張りを立てる
+  // ① 15:50 … あすのぶんの確認用(16:00)まで10分。ぴったりの見張りを立てる
   triggers.length = 0;
   delete props['VNSENT_20260918_T'];
-  eq(ctx.vnAimTick_(day(17, 50)), true, '★18:00 が近づいたら、見張りを立てる');
+  eq(ctx.vnAimTick_(day(15, 50)), true, '★16:00 が近づいたら、見張りを立てる');
   eq(aims().length, 1, '  立つのは1つだけ');
   eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝18:00ぴったり）に動く');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝16:00ぴったり）に動く');
 
   // ② 10:00 … まだ先。立てない（次のふだんの見張りでまた考える）
   triggers.length = 0;
@@ -2470,7 +2478,7 @@ console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴっ�
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 1 });
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 2 });
   triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
-  ctx.vnAimTick_(day(17, 50));
+  ctx.vnAimTick_(day(15, 50));
   eq(aims().length, 1, '★古いものは片づけて、1つだけにする');
   eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
      '  ふだんの見張りは、消さない');
@@ -2479,7 +2487,7 @@ console.log('\n■ 18:00（確認用）と 17:00（本番）も、時刻ぴっ�
   triggers.length = 0;
   const keepAuto = props['VN_AUTO'];
   props['VN_AUTO'] = '0';
-  eq(ctx.vnAimTick_(day(17, 50)), false, '★自動発信を切っていたら、何もしない');
+  eq(ctx.vnAimTick_(day(15, 50)), false, '★自動発信を切っていたら、何もしない');
   eq(aims().length, 0, '  そのときは、見張りも立てない');
   if (keepAuto === undefined) delete props['VN_AUTO']; else props['VN_AUTO'] = keepAuto;
 
