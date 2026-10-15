@@ -416,7 +416,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 前日16:00に確認用（まーく様だけ）、当日17:00にグループ');
+console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:00にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -435,26 +435,26 @@ console.log('\n■ 前日16:00に確認用（まーく様だけ）、当日17:00
   const back = () => { ctx.Date = RealDate; };
 
   /*
-   * ★確認用は「前の日の16:00に、あすのぶん」（まーく様のご指示・10/15）。
+   * ★確認用は「前の日の05:00に、あすのぶん」（まーく様のご指示・10/15）。
    *   当日の夕方に「これで出します」と言われても、直す時間がない。
-   *   前の日のうちに見ておけば、落ち着いて手直しできる
+   *   前の日の朝に見ておけば、1日かけて落ち着いて手直しできる
    */
-  // 9/15 の 16:00 → あす（9/16）のぶんの確認用が飛ぶ
+  // 9/15 の 05:00 → あす（9/16）のぶんの確認用が飛ぶ
   const at15 = (h, m) => {
     const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 15, h, m); };
     D.prototype = RealDate.prototype; D.now = RealDate.now; ctx.Date = D;
   };
   delete props['VNSENT_20260916_T'];
 
-  at15(15, 30);
+  at15(4, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '前日の15:30 には、まだ何も送らない');
+  eq(pushed.length, 0, '前日の04:30 には、まだ何も送らない');
 
-  at15(16, 0);
+  at15(5, 0);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★前日の16:00 に、あすのぶんの確認用を1通');
+  eq(pushed.length, 1, '★前日の05:00 に、あすのぶんの確認用を1通');
   eq(pushed[0].to, 'Umark', '  宛先はまーく様だけ（グループではない）');
   eq(props['VNSENT_20260916_T'], '1', '★印は「あすの日付」で残す（9/16ぶん）');
 
@@ -467,25 +467,25 @@ console.log('\n■ 前日16:00に確認用（まーく様だけ）、当日17:00
    * ★本番は「当日の17:00」。前の日に人の目を通したものだけが出る
    */
   /*
-   * ★16:00 からは「あすのぶんの確認用」が出る時刻でもあります。
+   * ★05:00 をすぎたら「あすのぶんの確認用」が出る時刻でもあります。
    *   見るのは「グループへ出ていないか」です。
    *   まーく様あての確認用が出るのは、これで正しい動きです。
    */
-  at(16, 30);
+  at(15, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
   eq(pushed.filter(x => x.to === 'Cgroup').length, 0,
-     '当日の16:30 には、まだグループへ送らない');
+     '当日の15:30 には、まだグループへ送らない');
   eq(props['VNSENT_20260916'], undefined, '　 グループへ送った印も残らない');
   delete props['VNSENT_20260917_T'];       // あすのぶんの印は、次の確かめのために戻す
 
-  at(17, 0);
+  at(16, 0);
   // グループの送り先が分かっている状態にする
   const keepG = vm.runInContext('vnGroupTarget_', ctx);
   vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★当日の17:00 に、グループへ1通');
+  eq(pushed.length, 1, '★当日の16:00 に、グループへ1通');
   eq(pushed[0].to, 'Cgroup', '  宛先はグループ');
   delete props['VNSENT_20260916'];
   // もとに戻す（次のテストは「送り先が分からない」状態から始めるため）
@@ -509,7 +509,7 @@ console.log('\n■ 確認用を送っていない日は、グループへ絶対�
    */
   props.VN_AUTO = '1';
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 1); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   const keepG2 = vm.runInContext('vnGroupTarget_', ctx);
@@ -542,8 +542,8 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 {
   props.VN_AUTO = '1';
   const RealDate = Date;
-  // ★グループへ出すのは 当日の17:00
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  // ★グループへ出すのは 当日の16:00
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 1); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
@@ -1728,12 +1728,12 @@ console.log('\n■ 見られていなくても、当日17:00には最新のま�
     { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'ライブ', start: '18:00', end: '21:00', url: '' }
   ]);
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 17, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 1); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★【はい】が押されていなくても、当日17:00には送る');
+  eq(pushed.length, 1, '★【はい】が押されていなくても、当日16:00には送る');
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   ctx.Date = RealDate;
   delete props['VNSENT_20260916'];
@@ -1790,8 +1790,8 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   has(flat, '18:00', '「いまの条件」に、時間帯が出る');
   has(flat, '04:00（翌日）', '  終わりの時刻も');
   has(flat, '100人', '  人数の下限も');
-  has(flat, '18:00', '  確認用の時刻も');
-  has(flat, '17:00', '  グループへ送る時刻も');
+  has(flat, '5:00', '  確認用の時刻も（前日05:00）');
+  has(flat, '16:00', '  グループへ送る時刻も（当日16:00）');
   has(flat, '5 分前', '  リマインダーの何分前かも');
   has(flat, '大阪城ホール', '  見に行くページの名前も');
   has(flat, '万博記念公園', '  外しているところも、はっきり書く');
@@ -2451,7 +2451,82 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
-console.log('\n■ 16:00（確認用）と 17:00（本番）も、時刻ぴったりに動かす');
+console.log('\n■ 🕓 通知の時刻を、あとから変えられる');
+/*
+ * ★まーく様のご指示です。
+ *   「グループへの本番が16:00です
+ *     僕の確認は前日の05:00とかで一先ず設定してください
+ *     lineからも、通知時間簡単に変えられるようにしてください」
+ *
+ * ★決め打ちにすると、変えるたびに こちらの手が要ります。
+ *   それは「クロちゃんがいないと直せない」作りです。
+ *   設定タブに書けば、まーく様だけで変えられます。
+ */
+{
+  const SEND = ctx.vnSendHm_, TEST = ctx.vnTestHm_, PARSE = ctx.vnParseHm_;
+
+  // ① 何も設定していなければ、決め打ちを使う
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 0 }),
+     '★ふだんは みんなへ 16:00', JSON.stringify(SEND()));
+  eq(JSON.stringify(TEST()), JSON.stringify({ h: 5, m: 0 }),
+     '★ふだんは 確認用 前日05:00', JSON.stringify(TEST()));
+
+  // ② 設定タブに入っていれば、そちらを使う
+  const cfgVals = {};
+  const realCfg = ctx.cfg_;
+  ctx.cfg_ = k => (k in cfgVals ? cfgVals[k] : '');
+  cfgVals['イベントをグループへ送る時刻'] = '14:30';
+  cfgVals['イベントの確認用を送る時刻（前日）'] = '6:15';
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 14, m: 30 }),
+     '★★設定タブに入れたら、そちらが効く');
+  eq(JSON.stringify(TEST()), JSON.stringify({ h: 6, m: 15 }), '　 確認用も');
+
+  // ③ おかしな値なら、決め打ちに戻す（黙って止まらない）
+  cfgVals['イベントをグループへ送る時刻'] = 'あいうえお';
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 0 }),
+     '★★おかしな値なら、決め打ちに戻す（止まらない）');
+  cfgVals['イベントをグループへ送る時刻'] = '99:99';
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 0 }), '　 ありえない時刻も');
+  ctx.cfg_ = realCfg;
+
+  // ④ 時刻の読み取り
+  eq(JSON.stringify(PARSE('16:00')), JSON.stringify({ h: 16, m: 0 }), '　 16:00 を読める');
+  eq(JSON.stringify(PARSE('５:３０')), JSON.stringify({ h: 5, m: 30 }), '　 全角でも読める');
+  eq(JSON.stringify(PARSE('16')), JSON.stringify({ h: 16, m: 0 }), '　 数字だけでも読める');
+  eq(JSON.stringify(PARSE('16時30分')), JSON.stringify({ h: 16, m: 30 }), '　 「時」でも読める');
+  eq(PARSE(''), null, '　 空なら null');
+  eq(PARSE('25:00'), null, '　 ありえない時刻は null');
+
+  // ⑤ LINEの「🕓」は、まーく様だけ
+  const TIME = ctx.vnHandleTime_;
+  const realTT = vm.runInContext('vnTestTarget_', ctx);
+  vm.runInContext('function vnTestTarget_(){ return "Umark"; }', ctx);
+  // 返事を受けとめる入れもの（ボタン付きのほうも見たいので msgs で受ける）
+  const replied = [];
+  ctx.__replied = replied;
+  vm.runInContext('function lineReplyMsgs_(tk, msgs){ __replied.push(msgs[0]); }', ctx);
+  vm.runInContext('function lineReply_(tk, t){ __replied.push({ type:"text", text:t }); }', ctx);
+  replied.length = 0;
+  eq(TIME({ message: { text: '🕓' }, source: { userId: 'other' }, replyToken: 'r' }), false,
+     '★★まーく様以外には、1文字も返さない');
+  eq(replied.length, 0, '　 返事もしない');
+
+  replied.length = 0;
+  eq(TIME({ message: { text: '🕓' }, source: { userId: 'Umark' }, replyToken: 'r' }), true,
+     '★まーく様なら、受ける');
+  eq(replied.length, 1, '　 1通 返す');
+  has(JSON.stringify(replied[0]), '16:00', '　 いまの時刻が出る');
+  has(JSON.stringify(replied[0]), 'quickReply', '★★ボタンが付く（字を打たせない）');
+  has(JSON.stringify(replied[0]), 'vn=time', '　 押すと時刻が変わるボタン');
+
+  // ⑥ ほかの言葉では動かない
+  replied.length = 0;
+  eq(TIME({ message: { text: '🕓の件ですが' }, source: { userId: 'Umark' }, replyToken: 'r' }), false,
+     '　 ほかの言葉が混ざったら、反応しない');
+  ctx.vnTestTarget_ = realTT;
+}
+
+console.log('\n■ 05:00（確認用）と 16:00（本番）も、時刻ぴったりに動かす');
 {
   /*
    * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
@@ -2465,30 +2540,30 @@ console.log('\n■ 16:00（確認用）と 17:00（本番）も、時刻ぴっ�
 
   delete props[keyOf()]; delete props[keyOf() + '_T'];
 
-  // ① 15:50 … あすのぶんの確認用(16:00)まで10分。ぴったりの見張りを立てる
+  // ① 04:50 … あすのぶんの確認用(05:00)まで10分。ぴったりの見張りを立てる
   triggers.length = 0;
   delete props['VNSENT_20260918_T'];
-  eq(ctx.vnAimTick_(day(15, 50)), true, '★16:00 が近づいたら、見張りを立てる');
+  eq(ctx.vnAimTick_(day(4, 50)), true, '★05:00 が近づいたら、見張りを立てる');
   eq(aims().length, 1, '  立つのは1つだけ');
   eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝16:00ぴったり）に動く');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝05:00ぴったり）に動く');
 
   // ② 10:00 … まだ先。立てない（次のふだんの見張りでまた考える）
   triggers.length = 0;
   eq(ctx.vnAimTick_(day(10, 0)), false, '★まだ先のときは、立てない');
   eq(aims().length, 0, '  見張りを増やさない（持ち時間を使い切らないため）');
 
-  // ③ 16:50 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(17:00)を狙う
+  // ③ 15:50 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(16:00)を狙う
   triggers.length = 0;
   props[keyOf() + '_T'] = '1';
   props['VNSENT_20260918_T'] = '1';          // あすのぶんの確認用も済ませておく
-  eq(ctx.vnAimTick_(day(16, 50)), true, '★確認用が済んだら、次は当日17:00を狙う');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝17:00ぴったり）に動く');
+  eq(ctx.vnAimTick_(day(15, 50)), true, '★確認用が済んだら、次は当日16:00を狙う');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝16:00ぴったり）に動く');
 
   // ④ きょうのぶんが両方とも済んでいたら、もう立てない
   triggers.length = 0;
   props[keyOf()] = '1';
-  eq(ctx.vnAimTick_(day(16, 50)), false, '★両方とも済んでいたら、立てない');
+  eq(ctx.vnAimTick_(day(15, 50)), false, '★両方とも済んでいたら、立てない');
   eq(aims().length, 0, '  むだに動かさない');
   delete props['VNSENT_20260918_T'];
 
@@ -2498,7 +2573,7 @@ console.log('\n■ 16:00（確認用）と 17:00（本番）も、時刻ぴっ�
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 1 });
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 2 });
   triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
-  ctx.vnAimTick_(day(15, 50));
+  ctx.vnAimTick_(day(4, 50));
   eq(aims().length, 1, '★古いものは片づけて、1つだけにする');
   eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
      '  ふだんの見張りは、消さない');
@@ -2507,7 +2582,7 @@ console.log('\n■ 16:00（確認用）と 17:00（本番）も、時刻ぴっ�
   triggers.length = 0;
   const keepAuto = props['VN_AUTO'];
   props['VN_AUTO'] = '0';
-  eq(ctx.vnAimTick_(day(15, 50)), false, '★自動発信を切っていたら、何もしない');
+  eq(ctx.vnAimTick_(day(4, 50)), false, '★自動発信を切っていたら、何もしない');
   eq(aims().length, 0, '  そのときは、見張りも立てない');
   if (keepAuto === undefined) delete props['VN_AUTO']; else props['VN_AUTO'] = keepAuto;
 

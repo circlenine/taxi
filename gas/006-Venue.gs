@@ -2,9 +2,25 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V059ver  （2026/10/09）  ★★★
+ *  ★★★  V060ver  （2026/10/09）  ★★★
  *
- *  [V059ver]
+ *  [V060ver]
+ *   ・🕓 通知の時刻を直し、あとから変えられるようにした（ご指示）
+ *     ★ご指示：「グループへの本番が16:00です
+ *               僕の確認は前日の05:00とかで一先ず設定してください
+ *               lineからも、通知時間簡単に変えられるようにしてください」
+ *     ★みんなへ（当日）…… 17:00 → **16:00**
+ *     ★確認用（前日）…… 16:00 → **05:00**
+ *     ★決め打ちをやめて、「設定」タブから変えられるようにしました。
+ *       ・イベントをグループへ送る時刻
+ *       ・イベントの確認用を送る時刻（前日）
+ *       空なら、上の決め打ちを使います。
+ *       おかしな値なら、黙って決め打ちに戻します（止まりません）。
+ *     ★LINEからも変えられます（🕓）。ボタンを押すだけで、字は打ちません。
+ *       書き込む先は「設定」タブです。読むところと同じ1か所にします。
+ *     ★ただし LINEの合図が届くのは「公開のやり直し」のあとです。
+ *       それまでは「設定」タブから変えてください（いますぐ効きます）。
+ *
  *   ・💴 金額・客層を、イベントの案内から外した（ご指摘）
  *     ★ご指摘：「イベントのアーティストが全く一緒であれば良いですが
  *               そうでないなら、会場だけ見ても アーティストが違って、
@@ -850,7 +866,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V059ver";
+const VN_VERSION = "V060ver";
 
 /**
  * 見にいく先の一覧。
@@ -1008,10 +1024,152 @@ const VN_MIN_PEOPLE = 100;
  *   本番（当日17:00）との前後は、これまでどおりです。
  *   確認用のほうが先に出て、手直しできる時間は むしろ長くなります。
  */
-const VN_TEST_HOUR = 16;        // 前日の 16:00（確認用・まーく様だけ）
+/*
+ * ★時刻は「設定」タブから変えられます（まーく様のご指示・2026/10/15）。
+ *
+ *   設定タブに、この2つを足してください（空なら下の決め打ちを使います）。
+ *     「イベントをグループへ送る時刻」      … 例 16:00
+ *     「イベントの確認用を送る時刻（前日）」… 例 05:00
+ *
+ *   ★スプシから変えるぶんには、公開のやり直しは要りません。
+ *     入れた瞬間から効きます。
+ */
+const VN_TEST_HOUR = 5;         // 前日の 05:00（確認用・まーく様だけ）
 const VN_TEST_MIN  = 0;
-const VN_SEND_HOUR = 17;        // 当日の 17:00（本番・グループ）
+const VN_SEND_HOUR = 16;        // 当日の 16:00（本番・グループ）
 const VN_SEND_MIN  = 0;
+
+/** 設定タブの「16:00」「5:30」などを {h, m} にする。読めなければ null */
+function vnParseHm_(text) {
+  const t = String(text == null ? "" : text).trim()
+    .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/[：]/g, ":");
+  let m = t.match(/^(\d{1,2})\s*[:時]\s*(\d{1,2})?/);
+  if (!m) {
+    m = t.match(/^(\d{1,2})$/);          // 「16」だけでも受ける
+    if (!m) return null;
+    const h0 = parseInt(m[1], 10);
+    if (isNaN(h0) || h0 < 0 || h0 > 23) return null;
+    return { h: h0, m: 0 };
+  }
+  const h = parseInt(m[1], 10);
+  const mi = m[2] ? parseInt(m[2], 10) : 0;
+  if (isNaN(h) || h < 0 || h > 23) return null;
+  if (isNaN(mi) || mi < 0 || mi > 59) return null;
+  return { h: h, m: mi };
+}
+
+/** 設定タブから時刻を読む。空・おかしな値なら、決め打ちのほうを使う */
+function vnHmFromCfg_(label, defH, defM) {
+  try {
+    if (typeof cfg_ === "function") {
+      const r = vnParseHm_(cfg_(label));
+      if (r) return r;
+    }
+  } catch (e) {}
+  return { h: defH, m: defM };
+}
+
+/** グループへ送る時刻 */
+function vnSendHm_() {
+  return vnHmFromCfg_("イベントをグループへ送る時刻", VN_SEND_HOUR, VN_SEND_MIN);
+}
+/** 確認用（前日・まーく様だけ）を送る時刻 */
+function vnTestHm_() {
+  return vnHmFromCfg_("イベントの確認用を送る時刻（前日）", VN_TEST_HOUR, VN_TEST_MIN);
+}
+/* ================================================================
+ *  🕓 通知の時刻を、LINEから変える
+ *
+ *  ★まーく様のご指示：「lineからも、通知時間簡単に変えられるように」
+ *
+ *  ★この置き場の決まりどおり、**絵文字ひとつ**で呼べます（🕓）。
+ *    そのあとは ボタンを押すだけです。字は打ちません。
+ *
+ *  ★大事な注意：この合図が届くのは「公開のやり直し」が通ってからです。
+ *    いまは版が200で満杯なので、LINEの受け口は古いコードのまま動きます。
+ *    それまでは「設定」タブの2行を書き換えてください。
+ *    そちらは **いますぐ効きます**（公開のやり直しは要りません）。
+ * ================================================================ */
+
+/** いまの時刻を、2行で見せる */
+function vnTimeNow_() {
+  return "・みんなへ　：" + vnHmText_(vnSendHm_()) + "（当日）\n" +
+         "・確認用　　：" + vnHmText_(vnTestHm_()) + "（前日・まーく様だけ）";
+}
+
+/** 選べる時刻（走りながら押せるよう、よく使うものだけ） */
+const VN_TIME_CHOICES = [
+  { h: 5,  m: 0 }, { h: 6,  m: 0 }, { h: 7,  m: 0 },
+  { h: 12, m: 0 }, { h: 14, m: 0 }, { h: 15, m: 0 },
+  { h: 16, m: 0 }, { h: 17, m: 0 }, { h: 18, m: 0 }
+];
+
+/** 「このボタンを押すと、この時刻になる」の列を作る */
+function vnTimeQuick_(which) {
+  const items = [];
+  VN_TIME_CHOICES.forEach(function (c) {
+    const t = c.h + ":" + ("0" + c.m).slice(-2);
+    items.push({ type: "action", action: {
+      type: "postback",
+      label: t,
+      data: "vn=time&k=" + which + "&h=" + c.h + "&m=" + c.m,
+      displayText: (which === "test" ? "確認用を " : "みんなへを ") + t + " にする"
+    } });
+  });
+  return { items: items.slice(0, 13) };
+}
+
+/**
+ * 「🕓」… 通知の時刻を見る・変える（まーく様だけ）。
+ *
+ * ★「🕓」だけなら いまの時刻と、変えるボタンを出します。
+ * ★「🕓確認」なら 確認用のほうのボタンを出します。
+ */
+function vnHandleTime_(ev) {
+  const raw = String((ev && ev.message && ev.message.text) || "").trim();
+  const t = raw.replace(/[\s\u3000\uFE0F]/g, "");
+  if (!/^(🕓|🕐|⌚|時刻|通知時刻|とおちこく|じこく)(確認|かくにん|本番|ほんばん|みんな)?$/.test(t)) {
+    return false;
+  }
+  const uid = (ev && ev.source && ev.source.userId) || "";
+  const me = vnTestTarget_();
+  if (!me || uid !== me) return false;            // まーく様以外は、黙って見送る
+  const reply = (ev && ev.replyToken) || "";
+  const which = /(確認|かくにん)/.test(t) ? "test" : "send";
+  const name = (which === "test") ? "確認用（前日・まーく様だけ）" : "みんなへ（当日）";
+  const body = "🕓 いまの時刻\n" + vnTimeNow_() + "\n\n" +
+               "▼ " + name + " を 何時にしますか\n" +
+               "　下のボタンから選んでください\n" +
+               "　（もう片方は「🕓確認」「🕓みんな」）";
+  /*
+   * ★ボタン（選ぶ列）を付けるには、文だけを送る係では足りません。
+   *   付けられないときでも、文だけは必ず返します。
+   *   無反応だけは、絶対に作らないためです。
+   */
+  let sent = false;
+  try {
+    if (typeof lineReplyMsgs_ === "function") {
+      lineReplyMsgs_(reply, [{ type: "text", text: body,
+                               quickReply: vnTimeQuick_(which) }]);
+      sent = true;
+    }
+  } catch (e) { sent = false; }
+  if (!sent) {
+    try {
+      if (typeof lineReply_ === "function") {
+        lineReply_(reply, body + "\n\n（ボタンを出せませんでした。" +
+                          "「設定」タブからも変えられます）");
+      }
+    } catch (e) {}
+  }
+  return true;
+}
+
+/** 「16:00」の形にして見せる */
+function vnHmText_(x) {
+  return x.h + ":" + ("0" + x.m).slice(-2);
+}
 /** 送る時刻をどれだけ過ぎたら、その日はもうあきらめるか（分） */
 const VN_SEND_WINDOW = 45;
 
@@ -3198,9 +3356,9 @@ function vnLedgerRules_() {
      "人数が書いてあるときだけ効きます。書いていないものは、消さずに残します"],
     ["人数が書いていないとき", "会場の大きさで見る",
      "3,000人以上の会場は残します。ホテルの宴会も残します。分からないものは消しません"],
-    ["確認用を送る時刻", VN_TEST_HOUR + ":" + ("0" + VN_TEST_MIN).slice(-2) + "（まーく様だけ）",
+    ["確認用を送る時刻", vnHmText_(vnTestHm_()) + "（前日・まーく様だけ）",
      "番号つきで届きます。「❶削除」「❶修正：〜」で手直しできます"],
-    ["グループへ送る時刻", VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2),
+    ["グループへ送る時刻", vnHmText_(vnSendHm_()),
      "確認用を送っていない日は、グループには絶対に送りません"],
     ["お知らせ（iPhoneの「リマインダー」アプリとは別）", "終了予定の " + vnLeadMin_() + " 分前",
      "設定タブ「イベントのお知らせは何分前」で変えられます（1〜300）"],
@@ -5887,12 +6045,14 @@ function vnAimTick_(nowIn) {
   const cands = [];
   // 本番（17:00）… きょうのぶんの確認用が済んでいて、まだ出していないとき
   if (pr.getProperty(tKey) && !pr.getProperty(key)) {
-    cands.push(base + (VN_SEND_HOUR * 60 + VN_SEND_MIN) * 60000);
+    const sh = vnSendHm_();
+    cands.push(base + (sh.h * 60 + sh.m) * 60000);
   }
   // 確認用（16:00）… あすのぶんを、まだ送っていないとき
   const tomo = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   if (!pr.getProperty(vnSentKey_(tomo) + "_T")) {
-    cands.push(base + (VN_TEST_HOUR * 60 + VN_TEST_MIN) * 60000);
+    const th = vnTestHm_();
+    cands.push(base + (th.h * 60 + th.m) * 60000);
   }
   let target = 0;
   cands.forEach(function (t) { if (!target || t < target) target = t; });
@@ -6010,6 +6170,37 @@ function vnHandlePostback_(ev) {
    *   だから、日付を調べるより前に、ここで受ける。
    * ★返事は、押した本人の個人LINEへ。グループには何も流さない
    */
+  /*
+   * 🕓 通知の時刻を変える（まーく様だけ）。
+   *
+   * ★ボタンを押すだけで変わります。字は打ちません（走りながら押すため）。
+   * ★書き込む先は「設定」タブです。読むところと同じ1か所にします。
+   *   2か所に持つと、どちらが効いているのか分からなくなります。
+   */
+  if (q.vn === "time") {
+    const me = vnTestTarget_();
+    const uid = (ev.source && ev.source.userId) || "";
+    if (!me || uid !== me) return true;              // まーく様以外は、黙って見送る
+    const which = String(q.k || "");
+    const hh = parseInt(q.h, 10), mm = parseInt(q.m || "0", 10);
+    if (isNaN(hh) || hh < 0 || hh > 23 || isNaN(mm) || mm < 0 || mm > 59) {
+      say("🕓 その時刻は入れられませんでした。");
+      return true;
+    }
+    const label = (which === "test")
+      ? "イベントの確認用を送る時刻（前日）"
+      : "イベントをグループへ送る時刻";
+    const val = ("0" + hh).slice(-2) + ":" + ("0" + mm).slice(-2);
+    let ok = false;
+    try { ok = (typeof cfgSet_ === "function") ? cfgSet_(label, val) : false; } catch (e) { ok = false; }
+    if (!ok) {
+      say("🕓 変えられませんでした。\n「設定」タブに\n「" + label + "」\nの行があるか見てください。");
+      return true;
+    }
+    say("🕓 変えました\n" + vnTimeNow_());
+    return true;
+  }
+
   if (q.vn === "off") {
     const uid = (ev.source && ev.source.userId) || "";
     const key = decodeURIComponent(String(q.k || ""));
@@ -6816,7 +7007,8 @@ function venueDailyJob() {
     const pr = PropertiesService.getScriptProperties();
 
     /* --- ① 当日 17:00 … 前の日に確認した中身を、グループへ --- */
-    const from = VN_SEND_HOUR * 60 + VN_SEND_MIN;
+    const sh = vnSendHm_();
+    const from = sh.h * 60 + sh.m;
     const key = vnSentKey_(now);
     const tKey = key + "_T";          // その日ぶんの確認用（前の日の16:00に送ってある）
 
@@ -6833,7 +7025,8 @@ function venueDailyJob() {
 
     if (!okToSend) {
       /* --- ② 前日 16:00 … あすのぶんの確認用を、まーく様だけへ --- */
-      const tFrom = VN_TEST_HOUR * 60 + VN_TEST_MIN;
+      const th = vnTestHm_();
+      const tFrom = th.h * 60 + th.m;
       if (mins >= tFrom) {
         const tomo = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         const tKey2 = vnSentKey_(tomo) + "_T";
@@ -6954,9 +7147,10 @@ function vnAutoStatusText_() {
   const L = [];
   const on = vnAutoOn_();
   L.push(on ? "✅ 自動発信：入っています" : "⏸ 自動発信：切ってあります");
-  L.push("送る時刻：毎日 " + VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2) +
-         "（実際に届くのは " + VN_SEND_HOUR + ":" + ("0" + VN_SEND_MIN).slice(-2) +
-         "〜" + (VN_SEND_HOUR + 1) + ":00 ごろ）");
+  const shv = vnSendHm_();
+  L.push("送る時刻：毎日 " + vnHmText_(shv) +
+         "（実際に届くのは " + vnHmText_(shv) +
+         "〜" + (shv.h + 1) + ":00 ごろ）");
   L.push("その日に出すものが1件も無ければ、1通も送りません");
 
   let has = false;
