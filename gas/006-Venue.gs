@@ -2,9 +2,26 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V068ver  （2026/10/09）  ★★★
+ *  ★★★  V069ver  （2026/10/09）  ★★★
  *
- *  [V068ver]
+ *  [V069ver]
+ *   ・📞 問い合わせ先（主催・招聘）を出すようにした（ご指示）
+ *     ★ご指示：「各イベントの問い合わせ先(サウンドクリエーター、夢番地、
+ *               ビーイング、キョードー、ソーゴー、etc)なども抜けて」
+ *     ★終演の時刻や、規制退場のあるなしを確かめたいとき、聞く先です。
+ *       会場に電話しても、公演のことは分かりません。
+ *     ★関西でよく見かける20社を表にしました（VN_PROMOTERS）。
+ *       英語の書き方でも拾います（SOUND CREATOR／KYODO OSAKA など）。
+ *       見かけない会社があれば、この表に足してください。
+ *     ★「お問い合わせ」「主催」のそばにあるものを先に選びます。
+ *       本文のどこかに社名が出ただけのものより、確かだからです。
+ *     ★**書いていなければ、何も出しません。**
+ *       会場ごとに決め打ちにはしません。公演ごとに主催はちがいます。
+ *       外れたものを出せば、ちがう会社に電話をかけさせることになります。
+ *     ★ページから持つ文字を 120字 → 400字 に増やしました。
+ *       120字では、問い合わせ先まで届きませんでした。
+ *   ・🕓 グループへの発信を 16:00 → 16:30 にした（ご指示）
+ *
  *   ・📅 何日中の何日目か・最終日かを出すようにした（ご指示）
  *     ★ご指示：「各イベントが続く場合、何日中の何日目、最終日なのか
  *               どうかというのも抜けてますし」
@@ -979,7 +996,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V068ver";
+const VN_VERSION = "V069ver";
 
 /**
  * 見にいく先の一覧。
@@ -1298,8 +1315,8 @@ const VN_MIN_PEOPLE = 100;
  */
 const VN_TEST_HOUR = 5;         // 前日の 05:00（確認用・まーく様だけ）
 const VN_TEST_MIN  = 0;
-const VN_SEND_HOUR = 16;        // 当日の 16:00（本番・グループ）
-const VN_SEND_MIN  = 0;
+const VN_SEND_HOUR = 16;        // 当日の 16:30（本番・グループ）
+const VN_SEND_MIN  = 30;
 
 /** 設定タブの「16:00」「5:30」などを {h, m} にする。読めなければ null */
 function vnParseHm_(text) {
@@ -1760,6 +1777,90 @@ function vnPlaceStats_(names, fromHour, toHour, daySet, base) {
     }
   });
   return out;
+}
+
+/* ================================================================
+ *  📞 問い合わせ先（主催・招聘）を出す
+ *
+ *  ★まーく様のご指示です。
+ *    「各イベントの問い合わせ先(サウンドクリエーター、夢番地、
+ *      ビーイング、キョードー、ソーゴー、etc)なども抜けて」
+ *
+ *  ★なぜ要るか。
+ *    終演の時刻や、規制退場のあるなしを確かめたいとき、
+ *    聞く先はここです。会場に電話しても、公演のことは分かりません。
+ *
+ *  ★どこから取るか。
+ *    ページに書いてある名前を、そのまま拾います。
+ *    **書いていなければ、何も出しません。**
+ *    会場ごとに「ここはだいたい〇〇」と決め打ちにはしません。
+ *    公演ごとに主催はちがいますし、外れたものを出せば、
+ *    ちがう会社に電話をかけさせることになります。
+ * ================================================================ */
+
+/*
+ * 関西の公演で よく見かける主催・招聘元。
+ * ★書き方のゆれ（英字・全角・「（株）」付き）も拾えるようにしてあります。
+ * ★ここに無い会社は出ません。見かけたら、この表に足してください。
+ */
+const VN_PROMOTERS = [
+  { name: "サウンドクリエーター", re: /サウンドクリエーター|SOUND\s*CREATOR/i },
+  { name: "夢番地",               re: /夢番地|YUMEBANCHI/i },
+  { name: "キョードー大阪",       re: /キョードー大阪|KYODO\s*OSAKA/i },
+  { name: "キョードーインフォメーション", re: /キョードーインフォメーション/ },
+  { name: "ソーゴー大阪",         re: /ソーゴー大阪|SOGO\s*OSAKA/i },
+  { name: "ビーイング",           re: /ビーイング|(?:^|[^A-Za-z])Being(?![A-Za-z])/ },
+  { name: "GREENS",               re: /GREENS|グリーンズ/i },
+  { name: "ウドー音楽事務所",     re: /ウドー音楽事務所|UDO\s*ARTISTS/i },
+  { name: "H.I.P.",               re: /H\.?I\.?P\.?(?![A-Za-z])/ },
+  { name: "SMASH",                re: /(?:^|[^A-Za-z])SMASH(?![A-Za-z])|スマッシュ/ },
+  { name: "クリエイティブマン",   re: /クリエイティブマン|CREATIVEMAN/i },
+  { name: "サンライズプロモーション大阪", re: /サンライズプロモーション/ },
+  { name: "キョードーファクトリー", re: /キョードーファクトリー/ },
+  { name: "清水音泉",             re: /清水音泉/ },
+  { name: "キューブ",             re: /（株）キューブ|\(株\)キューブ|CUBE\s*Inc/i },
+  { name: "メディアプルポ",       re: /メディアプルポ/ },
+  { name: "FM802",                re: /FM\s*802|FM802/i },
+  { name: "毎日放送",             re: /毎日放送|MBS(?![A-Za-z])/ },
+  { name: "朝日放送",             re: /朝日放送|ABC\s*テレビ/ },
+  { name: "関西テレビ",           re: /関西テレビ|カンテレ/ }
+];
+
+/**
+ * 文の中から、主催・問い合わせ先を1つ見つける。無ければ ""。
+ *
+ * ★2つ以上 見つかったら、**いちばん先に書いてあるもの**を使います。
+ *   ふつう、先に書いてあるほうが主催です。
+ * ★「お問い合わせ」「主催」「企画制作」の近くにあるものを優先します。
+ */
+function vnPromoter_(text) {
+  const t = String(text == null ? "" : text);
+  if (!t) return "";
+  let best = "", bestAt = -1, bestNear = false;
+  for (let i = 0; i < VN_PROMOTERS.length; i++) {
+    const p = VN_PROMOTERS[i];
+    const m = t.match(p.re);
+    if (!m) continue;
+    const at = t.indexOf(m[0]);
+    if (at < 0) continue;
+    /*
+     * ★「お問い合わせ：〇〇」のように、見出しのすぐ近くにあるものを
+     *   先に選びます。本文のどこかに社名が出ただけのものより、
+     *   こちらのほうが確かだからです。
+     */
+    const around = t.slice(Math.max(0, at - 24), at);
+    const near = /(問合せ|問い合わせ|お問合せ|主催|企画|制作|招聘|TEL|電話)/.test(around);
+    if (bestAt < 0 || (near && !bestNear) || (near === bestNear && at < bestAt)) {
+      best = p.name; bestAt = at; bestNear = near;
+    }
+  }
+  return best;
+}
+
+/** カードに出す1行。無ければ "" */
+function vnPromoterLine_(ev) {
+  const who = vnPromoter_(String((ev && ev.raw) || "") + " " + String((ev && ev.title) || ""));
+  return who ? "📞問い合わせ：" + who : "";
 }
 
 /* ================================================================
@@ -2347,6 +2448,20 @@ function vnCard_(ev, idx, day, noBells, budget) {
       rows.push({ "type": "text", "text": run, "size": "xs", "margin": "xs",
                   "color": last ? "#c62828" : "#6a1b9a",
                   "weight": last ? "bold" : "regular" });
+    }
+  } catch (e) {}
+
+  /*
+   * ★問い合わせ先（まーく様のご指示）。
+   *   終演の時刻や、規制退場のあるなしを確かめたいとき、聞く先はここです。
+   *   会場に電話しても、公演のことは分かりません。
+   *   ページに書いてあるときだけ出します。決め打ちにはしません。
+   */
+  try {
+    const who = vnPromoterLine_(ev);
+    if (who) {
+      rows.push({ "type": "text", "text": who, "size": "xxs", "margin": "xs",
+                  "color": "#5f6368", "wrap": true });
     }
   } catch (e) {}
 
@@ -4268,7 +4383,7 @@ function vnScrapeDeep_(src, day, html) {
       title: links[i].text.slice(0, 60) || "（名前を読み取れませんでした）",
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: links[i].url,
-      raw: text.slice(0, 120)
+      raw: text.slice(0, 400)
     });
   }
   return out;
@@ -4458,7 +4573,7 @@ function vnScrapeOne_(src, day, htmlIn) {
       title: vnTitleOf_(block) || "（名前を読み取れませんでした）",
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
-      raw: text.slice(0, 120)
+      raw: text.slice(0, 400)
     });
   });
 

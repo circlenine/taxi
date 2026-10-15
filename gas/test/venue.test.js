@@ -416,7 +416,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:00にグループ');
+console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:30にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -479,13 +479,13 @@ console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:00
   eq(props['VNSENT_20260916'], undefined, '　 グループへ送った印も残らない');
   delete props['VNSENT_20260917_T'];       // あすのぶんの印は、次の確かめのために戻す
 
-  at(16, 0);
+  at(16, 30);
   // グループの送り先が分かっている状態にする
   const keepG = vm.runInContext('vnGroupTarget_', ctx);
   vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★当日の16:00 に、グループへ1通');
+  eq(pushed.length, 1, '★当日の16:30 に、グループへ1通');
   eq(pushed[0].to, 'Cgroup', '  宛先はグループ');
   delete props['VNSENT_20260916'];
   // もとに戻す（次のテストは「送り先が分からない」状態から始めるため）
@@ -509,7 +509,7 @@ console.log('\n■ 確認用を送っていない日は、グループへ絶対�
    */
   props.VN_AUTO = '1';
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   const keepG2 = vm.runInContext('vnGroupTarget_', ctx);
@@ -542,8 +542,8 @@ console.log('\n■ 送り先が分からなければ、グループには絶対�
 {
   props.VN_AUTO = '1';
   const RealDate = Date;
-  // ★グループへ出すのは 当日の16:00
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 1); };
+  // ★グループへ出すのは 当日の16:30
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
 
@@ -1734,12 +1734,12 @@ console.log('\n■ 見られていなくても、当日17:00には最新のま�
     { venue: '大阪城ホール', kind: 'event', icon: '🎤', title: 'ライブ', start: '18:00', end: '21:00', url: '' }
   ]);
   const RealDate = Date;
-  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 1); };
+  const D = function (...a) { return a.length ? new RealDate(...a) : new RealDate(2026, 8, 16, 16, 31); };
   D.prototype = RealDate.prototype; D.now = RealDate.now;
   ctx.Date = D;
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★【はい】が押されていなくても、当日16:00には送る');
+  eq(pushed.length, 1, '★【はい】が押されていなくても、当日16:30には送る');
   eq(pushed[0].to, 'Cgroup', '  グループあて');
   ctx.Date = RealDate;
   delete props['VNSENT_20260916'];
@@ -1801,7 +1801,7 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   has(flat, '04:00（翌日）', '  終わりの時刻も');
   has(flat, '100人', '  人数の下限も');
   has(flat, '5:00', '  確認用の時刻も（前日05:00）');
-  has(flat, '16:00', '  グループへ送る時刻も（当日16:00）');
+  has(flat, '16:30', '  グループへ送る時刻も（当日16:30）');
   has(flat, '5 分前', '  リマインダーの何分前かも');
   has(flat, '大阪城ホール', '  見に行くページの名前も');
   has(flat, '万博記念公園', '  外しているところも、はっきり書く');
@@ -2536,6 +2536,62 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
+console.log('\n■ 📞 問い合わせ先（主催・招聘）');
+/*
+ * ★まーく様のご指示です。
+ *   「各イベントの問い合わせ先(サウンドクリエーター、夢番地、
+ *     ビーイング、キョードー、ソーゴー、etc)なども抜けて」
+ *
+ * ★終演の時刻や、規制退場のあるなしを確かめたいとき、聞く先はここです。
+ *   会場に電話しても、公演のことは分かりません。
+ *
+ * ★ページに書いてあるときだけ出します。
+ *   会場ごとに「ここはだいたい〇〇」と決め打ちにはしません。
+ *   外れたものを出せば、ちがう会社に電話をかけさせることになります。
+ */
+{
+  const WHO = ctx.vnPromoter_;
+  const LINE2 = ctx.vnPromoterLine_;
+
+  // ① まーく様が挙げられた会社
+  eq(WHO('お問い合わせ：サウンドクリエーター'), 'サウンドクリエーター', '★サウンドクリエーター');
+  eq(WHO('主催：夢番地'), '夢番地', '★夢番地');
+  eq(WHO('お問合せ：キョードー大阪'), 'キョードー大阪', '★キョードー大阪');
+  eq(WHO('問い合わせ ソーゴー大阪'), 'ソーゴー大阪', '★ソーゴー大阪');
+  eq(WHO('企画制作：ビーイング'), 'ビーイング', '★ビーイング');
+  eq(WHO('お問い合わせ：GREENS'), 'GREENS', '　GREENS');
+  eq(WHO('招聘：ウドー音楽事務所'), 'ウドー音楽事務所', '　ウドー音楽事務所');
+  eq(WHO('お問い合わせ：清水音泉'), '清水音泉', '　清水音泉');
+  eq(WHO('主催：サンライズプロモーション大阪'), 'サンライズプロモーション大阪',
+     '　サンライズプロモーション大阪');
+
+  // ② 英語の書き方でも拾う
+  eq(WHO('INFO：SOUND CREATOR'), 'サウンドクリエーター', '　英語でも拾う（SOUND CREATOR）');
+  eq(WHO('お問い合わせ：KYODO OSAKA'), 'キョードー大阪', '　KYODO OSAKA');
+
+  // ③ ★「お問い合わせ」のそばにあるほうを選ぶ
+  eq(WHO('共催：FM802　お問い合わせ：夢番地'), '夢番地',
+     '★★見出しのそばにあるほうを選ぶ（共催より問い合わせ先）');
+
+  // ④ ★出してはいけないもの
+  eq(WHO(''), '', '　 何も書いていなければ、出さない');
+  eq(WHO('大阪城ホール 18:00開演'), '', '★★知らない会社なら、出さない（当てずっぽうをしない）');
+  eq(WHO(null), '', '　 渡されなくても落ちない');
+  eq(LINE2({ raw: '' }), '', '　 行も出さない');
+  eq(LINE2({}), '', '　 raw が無くても落ちない');
+
+  // ⑤ 行の形
+  eq(LINE2({ raw: 'お問い合わせ：夢番地' }), '📞問い合わせ：夢番地', '★行の形');
+
+  // ⑥ 絵（カード）に出ているか
+  const src7 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  eq(src7.indexOf('const who = vnPromoterLine_(ev);') !== -1, true,
+     '★★カードに出している');
+  // ★拾える文字数を増やしてあるか（120文字では、問い合わせ先まで届かない）
+  eq(src7.indexOf('raw: text.slice(0, 400)') !== -1, true,
+     '★★ページの文字を400字ぶん持つ（120字では問い合わせ先まで届かない）');
+}
+
 console.log('\n■ 📅 何日中の何日目か・最終日か');
 /*
  * ★まーく様のご指示です。
@@ -2627,8 +2683,8 @@ console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
      '　 人数の下限は 100人まで（小さい催しも落とさない）');
 
   // ③ グループへは 16:00、確認用は前日 05:00
-  eq(JSON.stringify(ctx.vnSendHm_()), JSON.stringify({ h: 16, m: 0 }),
-     '★③グループへの発信は 16:00', JSON.stringify(ctx.vnSendHm_()));
+  eq(JSON.stringify(ctx.vnSendHm_()), JSON.stringify({ h: 16, m: 30 }),
+     '★③グループへの発信は 16:30', JSON.stringify(ctx.vnSendHm_()));
   eq(JSON.stringify(ctx.vnTestHm_()), JSON.stringify({ h: 5, m: 0 }),
      '★③確認用は 前日05:00', JSON.stringify(ctx.vnTestHm_()));
 
@@ -2668,7 +2724,7 @@ console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
   const rules = fs.readFileSync(path.join(__dirname, '..', '..', 'CLAUDE.md'), 'utf8');
   eq(rules.indexOf('イベント通知の決まり') !== -1, true,
      '★★CLAUDE.md に、この4つが書いてある');
-  ['大阪タクシーA地区', '16:00', '17:30', 'ぜんぶ対象'].forEach(function (w) {
+  ['大阪タクシーA地区', '16:30', '17:30', 'ぜんぶ対象'].forEach(function (w) {
     eq(rules.indexOf(w) !== -1, true, '　 決まりに「' + w + '」が入っている');
   });
 }
@@ -2735,8 +2791,8 @@ console.log('\n■ 🕓 通知の時刻を、あとから変えられる');
   const SEND = ctx.vnSendHm_, TEST = ctx.vnTestHm_, PARSE = ctx.vnParseHm_;
 
   // ① 何も設定していなければ、決め打ちを使う
-  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 0 }),
-     '★ふだんは みんなへ 16:00', JSON.stringify(SEND()));
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }),
+     '★ふだんは みんなへ 16:30', JSON.stringify(SEND()));
   eq(JSON.stringify(TEST()), JSON.stringify({ h: 5, m: 0 }),
      '★ふだんは 確認用 前日05:00', JSON.stringify(TEST()));
 
@@ -2752,10 +2808,10 @@ console.log('\n■ 🕓 通知の時刻を、あとから変えられる');
 
   // ③ おかしな値なら、決め打ちに戻す（黙って止まらない）
   cfgVals['イベントをグループへ送る時刻'] = 'あいうえお';
-  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 0 }),
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }),
      '★★おかしな値なら、決め打ちに戻す（止まらない）');
   cfgVals['イベントをグループへ送る時刻'] = '99:99';
-  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 0 }), '　 ありえない時刻も');
+  eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }), '　 ありえない時刻も');
   ctx.cfg_ = realCfg;
 
   // ④ 時刻の読み取り
@@ -2795,7 +2851,7 @@ console.log('\n■ 🕓 通知の時刻を、あとから変えられる');
   ctx.vnTestTarget_ = realTT;
 }
 
-console.log('\n■ 05:00（確認用）と 16:00（本番）も、時刻ぴったりに動かす');
+console.log('\n■ 05:00（確認用）と 16:30（本番）も、時刻ぴったりに動かす');
 {
   /*
    * ★ふだんの見張りは15分おき。そのままだと確認用は 16:30〜16:45 の
@@ -2822,17 +2878,17 @@ console.log('\n■ 05:00（確認用）と 16:00（本番）も、時刻ぴっ�
   eq(ctx.vnAimTick_(day(10, 0)), false, '★まだ先のときは、立てない');
   eq(aims().length, 0, '  見張りを増やさない（持ち時間を使い切らないため）');
 
-  // ③ 15:50 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(16:00)を狙う
+  // ③ 16:20 … きょうのぶんの確認用は済み（前の日に送ってある）。本番(16:30)を狙う
   triggers.length = 0;
   props[keyOf() + '_T'] = '1';
   props['VNSENT_20260918_T'] = '1';          // あすのぶんの確認用も済ませておく
-  eq(ctx.vnAimTick_(day(15, 50)), true, '★確認用が済んだら、次は当日16:00を狙う');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝16:00ぴったり）に動く');
+  eq(ctx.vnAimTick_(day(16, 20)), true, '★確認用が済んだら、次は当日16:30を狙う');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '  10分後（＝16:30ぴったり）に動く');
 
   // ④ きょうのぶんが両方とも済んでいたら、もう立てない
   triggers.length = 0;
   props[keyOf()] = '1';
-  eq(ctx.vnAimTick_(day(15, 50)), false, '★両方とも済んでいたら、立てない');
+  eq(ctx.vnAimTick_(day(16, 20)), false, '★両方とも済んでいたら、立てない');
   eq(aims().length, 0, '  むだに動かさない');
   delete props['VNSENT_20260918_T'];
 
