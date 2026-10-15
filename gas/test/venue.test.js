@@ -2520,6 +2520,60 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
   delete props['VN_HEAL_YMD'];
 }
 
+console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
+/*
+ * ★まーく様から、はっきり言い渡されたものです。
+ *
+ *   「とにかく大阪圏内で、夜勤タクシーに関係する催し事
+ *     (タクシー需要がありそうなイベント)は全て対象です
+ *     16:00発信で
+ *     17:00放出スタートで間に合いそうなもののみ、対象です
+ *     大阪タクシーA地区のみの部分です
+ *     ↑に伝えた条件は、必ず守ってください」
+ *
+ * ★4つを、ここで1か所にまとめて見張ります。
+ *   どれか1つでも崩れたら、ここで落ちます。
+ *   先のことは分かりませんが、この4つだけは動かしません。
+ */
+{
+  const V3 = JSON.parse(vm.runInContext('JSON.stringify(VN_VENUES)', ctx));
+  const S3 = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx));
+
+  // ① 大阪タクシーA地区のものだけ
+  const outside = S3.filter(x => !ctx.vnInAreaA_((V3[x.name] || {}).city));
+  eq(outside.length, 0,
+     '★①大阪A地区だけ' + (outside.length ? '（外：' + outside.map(x => x.name).join('・') + '）' : ''));
+
+  // ② 夜勤タクシーに関係する催しは、ぜんぶ対象（種類でしぼらない）
+  const kinds = {};
+  S3.forEach(x => { const t = (V3[x.name] || {}).type || '?'; kinds[t] = (kinds[t] || 0) + 1; });
+  const kindList = Object.keys(kinds);
+  eq(kindList.length >= 5, true,
+     '★②催しの種類をしぼらない（' + kindList.join('・') + '）');
+  eq(S3.length >= 20, true, '★②会場は減らさない（いま ' + S3.length + 'か所）');
+  eq(vm.runInContext('VN_MIN_PEOPLE', ctx) <= 100, true,
+     '　 人数の下限は 100人まで（小さい催しも落とさない）');
+
+  // ③ グループへは 16:00、確認用は前日 05:00
+  eq(JSON.stringify(ctx.vnSendHm_()), JSON.stringify({ h: 16, m: 0 }),
+     '★③グループへの発信は 16:00', JSON.stringify(ctx.vnSendHm_()));
+  eq(JSON.stringify(ctx.vnTestHm_()), JSON.stringify({ h: 5, m: 0 }),
+     '★③確認用は 前日05:00', JSON.stringify(ctx.vnTestHm_()));
+
+  // ④ 17:00に出て間に合うものだけ
+  eq(ctx.vnFromHour_(), 17.5, '★④17:30より後に終わるものだけ', String(ctx.vnFromHour_()));
+  eq(ctx.vnInTimeRange_({ end: '17:30' }), true, '　 17:30 は 間に合う');
+  eq(ctx.vnInTimeRange_({ end: '17:29' }), false, '　 17:29 は 間に合わない');
+
+  // ★この4つが、決まりとして書き残してあること
+  const rules = fs.readFileSync(path.join(__dirname, '..', '..', 'CLAUDE.md'), 'utf8');
+  eq(rules.indexOf('イベント通知の決まり') !== -1, true,
+     '★★CLAUDE.md に、この4つが書いてある');
+  ['大阪タクシーA地区', '16:00', '17:30', 'ぜんぶ対象'].forEach(function (w) {
+    eq(rules.indexOf(w) !== -1, true, '　 決まりに「' + w + '」が入っている');
+  });
+}
+
 console.log('\n■ ⏱ 17:00に出て間に合うものだけを出す');
 /*
  * ★まーく様のご指示（2026/10/15）。
