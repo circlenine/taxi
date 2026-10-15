@@ -1489,7 +1489,12 @@ console.log('\n■ 読み取り先');
   const urls = ctx.VN_SOURCES ? ctx.VN_SOURCES.map(x => x.url) : vm.runInContext('VN_SOURCES.map(function(x){return x.url;})', ctx);
   const names = vm.runInContext('VN_SOURCES.map(function(x){return x.name;})', ctx);
   eq(urls.indexOf('https://spocale.com/places/31') !== -1, true, '長居はスポカレを見る');
-  eq(urls.indexOf('https://suitacityfootballstadium.jp/schedule/') !== -1, true, 'パナスタは公式を見る');
+  /*
+   * ★パナスタ（吹田市）は、見にいく先から外しました（ご指示・2026/10/15）。
+   *   大阪市内ではないので、着くころには終わっています。
+   */
+  eq(urls.indexOf('https://suitacityfootballstadium.jp/schedule/') === -1, true,
+     '★パナスタは見にいかない（吹田市・大阪市外）');
   eq(names.indexOf('万博記念公園'), -1, '万博記念公園は、いったん読みに行かない');
   eq(vm.runInContext('!!VN_VENUES["万博記念公園"]', ctx), true, '  ただし会場の情報そのものは消していない（戻せる）');
   eq(vm.runInContext('!!VN_VENUES["フェスティバルホール"]', ctx), true, 'フェスティバルホールを足した');
@@ -2075,6 +2080,31 @@ console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使�
   // 読み先が、どれも空でない・http で始まる
   SRC2.forEach(function (x) {
     eq(/^https?:\/\//.test(x.url || ''), true, '　「' + x.name + '」の読み先が ちゃんとある');
+  });
+
+  /*
+   * ★★大阪市内の会場だけにする（まーく様のご指示・2026/10/15）。
+   *   「これらは全て、大阪市内からすぐに向かえる会場でしょうか
+   *     大阪以外の会場がもしあった場合は除外しておいて下さい」
+   *
+   *   市外の会場は、着くころには終わっています。
+   *   出しても使えないばかりか、向かった人の時間をうばいます。
+   *
+   *   ★これから会場を足すときも、ここで止まります。
+   *     市外のものを足したら、その場で落ちます。
+   */
+  SRC2.forEach(function (x) {
+    const v = V2[x.name] || {};
+    eq(!!v.city, true, '　「' + x.name + '」に どこの市か 書いてある');
+    eq(String(v.city || '').indexOf('大阪市') === 0, true,
+       '★★「' + x.name + '」は 大阪市内（' + (v.city || '不明') + '）');
+  });
+
+  // ★市外だと分かっているところは、見にいく先に入っていない
+  ['パナソニックスタジアム', '万博記念公園'].forEach(function (n) {
+    eq(names2.indexOf(n) === -1, true,
+       '★★「' + n + '」は見にいかない（' + ((V2[n] || {}).city || '市外') + '）');
+    eq(!!V2[n], true, '　 ただし会場の情報は消していない（戻せる）');
   });
 }
 
