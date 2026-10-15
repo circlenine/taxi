@@ -15,7 +15,7 @@ STEPS = [
      title="{bc}のベルトを自分に向けて、{tank}に通す"),
    dict(id="2-3", key=["c06"], frames=["c06","07"], gif="s1-3",
      title="{tank}の頭を、{bc}のふちにそろえる",
-     ng=dict(img="ng07", text="高すぎ・低すぎはダメ！"),
+     ng=dict(img="ng07", text="ふちにそろえれば、ちょうどいい高さ！"),
      pinkx=["ベルトで固定後、持ち上げたとき、{tank}が動かないかチェック！"]),
   ]),
  dict(id="3", title="“タンク”と“銀色金具”を合体！",
