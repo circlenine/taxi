@@ -2070,6 +2070,99 @@ console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使�
   });
 }
 
+console.log('\n■ 🩺 読み先が「黙って死んでいないか」の見張り');
+/*
+ * ★今回の事故の本体は、ここです。
+ *   フェスティバルホールの読み先は 404 になっていました。
+ *   ワントゥワンも 大阪城音楽堂も、ずっと0件でした。
+ *   それでも通知は毎日ふつうに出ていたので、
+ *   まーく様からは「動いているように」見えていました。
+ *   何か月も だれも気づけません。黙って死ぬのが いちばん たちが悪い。
+ *
+ * ★だから「最後に1件でも読めた日」を控えて、古くなったら知らせます。
+ */
+{
+  const DK = ctx.vnAliveDayKey_;
+  const MARK = ctx.vnAliveMark_;
+  const DEAD = ctx.vnDeadList_;
+  const NOTE = ctx.vnDeadNote_;
+  const today = new Date(2026, 9, 15);           // 2026/10/15
+  const ago = n => {
+    const d = new Date(today.getTime() - n * 86400000);
+    return DK(d);
+  };
+
+  // ① どこも生きていれば、1文字も増えない
+  props['VN_ALIVE'] = JSON.stringify({});
+  props['VN_SEEN'] = JSON.stringify({});
+  const names = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx))
+                    .map(x => x.name);
+  const allAlive = {}; names.forEach(n => { allAlive[n] = ago(0); });
+  props['VN_ALIVE'] = JSON.stringify(allAlive);
+  props['VN_SEEN'] = JSON.stringify(allAlive);
+  eq(DEAD(today).length, 0, '★どこも生きていれば、1件も挙がらない');
+  eq(NOTE(today), '', '★★ふだんは1文字も増えない（決まり：ふだんは1通も出さない）');
+
+  // ② 6日 読めていないだけでは、まだ騒がない
+  const a2 = {}; names.forEach(n => { a2[n] = ago(0); });
+  a2['BIGCAT'] = ago(6);
+  props['VN_ALIVE'] = JSON.stringify(a2);
+  eq(DEAD(today).length, 0, '★6日なら、まだ騒がない（その日に何も無いことはある）');
+
+  // ③ 7日 読めていなければ、死んだとみなす
+  const a3 = {}; names.forEach(n => { a3[n] = ago(0); });
+  a3['BIGCAT'] = ago(7);
+  props['VN_ALIVE'] = JSON.stringify(a3);
+  const d3 = DEAD(today);
+  eq(d3.length, 1, '★★7日 読めていなければ、挙げる');
+  eq(d3[0].name, 'BIGCAT', '　 会場の名前が出る');
+  eq(d3[0].days, 7, '　 何日ぶんかも出る');
+  eq(NOTE(today).indexOf('BIGCAT') !== -1, true, '★知らせの文に会場名が入る');
+  eq(NOTE(today).indexOf('クロちゃんに') !== -1, true, '　 どうすればよいかも書く');
+  /*
+   * ★見出しの1行目も、必ず見ます。
+   *   会場名だけが入っていても、何のことか分かりません。
+   *   （わざと見出しを消してみたら、ここが無いと素通りしました）
+   */
+  eq(NOTE(today).split('\n')[0], '⚠️ 読めていない会場があります',
+     '★★1行目に「読めていない会場があります」と出る');
+  eq(NOTE(today).split('\n').length >= 3, true, '　 見出し・会場・どうするか の3行以上');
+
+  // ④ ★★一度も読めたことが無い会場（フェスティバルホールの 404 がこれ）
+  const a4 = {}; const s4 = {};
+  names.forEach(n => { a4[n] = ago(0); s4[n] = ago(0); });
+  delete a4['フェスティバルホール'];              // 一度も読めていない
+  s4['フェスティバルホール'] = ago(30);           // 30日前から見にいってはいる
+  props['VN_ALIVE'] = JSON.stringify(a4);
+  props['VN_SEEN'] = JSON.stringify(s4);
+  const d4 = DEAD(today);
+  eq(d4.length, 1, '★★一度も読めたことが無い会場も、挙げる（今回の404がこれ）');
+  eq(d4[0].ever, false, '　 一度も読めていない、と分かる');
+  eq(NOTE(today).indexOf('一度も読めていません') !== -1, true, '　 文にもそう出る');
+
+  // ⑤ 見にいきはじめたばかりの会場で、いきなり騒がない
+  const s5 = {}; names.forEach(n => { s5[n] = ago(0); });
+  props['VN_ALIVE'] = JSON.stringify({});
+  props['VN_SEEN'] = JSON.stringify(s5);
+  eq(DEAD(today).length, 0, '★足したばかりの会場では、いきなり騒がない');
+
+  // ⑥ 控えが壊れていても落ちない
+  props['VN_ALIVE'] = '{こわれた';
+  props['VN_SEEN'] = '{こわれた';
+  eq(Array.isArray(DEAD(today)), true, '　 控えが壊れていても落ちない');
+
+  // ⑦ 読めたら控える／読めなくても見にいった印は残す
+  props['VN_ALIVE'] = JSON.stringify({});
+  props['VN_SEEN'] = JSON.stringify({});
+  MARK('BIGCAT', 3);
+  eq(!!JSON.parse(props['VN_ALIVE'])['BIGCAT'], true, '★1件でも読めたら、その日を控える');
+  eq(!!JSON.parse(props['VN_SEEN'])['BIGCAT'], true, '　 見にいった印も残る');
+  props['VN_ALIVE'] = JSON.stringify({});
+  MARK('BIGCAT', 0);
+  eq(JSON.parse(props['VN_ALIVE'])['BIGCAT'], undefined,
+     '★★0件のときは「読めた」にしない（ここを緩めると、また黙って死ぬ）');
+}
+
 console.log('\n■ 同じ公演が2つならばないようにする');
 {
   /*

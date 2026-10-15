@@ -2,9 +2,28 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V055ver  （2026/10/09）  ★★★
+ *  ★★★  V056ver  （2026/10/09）  ★★★
  *
- *  [V055ver]
+ *  [V056ver]
+ *   ・🩺 読み先が「黙って死んでいないか」の見張りを足した（ご指示）
+ *     ★今回の事故の本体は、ここでした。
+ *       読み先が404になっても、0件が続いても、通知は毎日ふつうに
+ *       出ていました。まーく様からは「動いているように」見えます。
+ *       何か月も だれも気づけません。黙って死ぬのが いちばん重い。
+ *     ★会場ごとに「最後に1件でも読めた日」を控えます。
+ *       7日 読めていなければ、前日18:00の確認用（まーく様だけ）に
+ *       1行 足します。新しいお知らせは増やしません。
+ *       どこも生きていれば、1文字も増えません。
+ *     ★一度も読めたことが無い会場も挙げます（今回の404がこれ）。
+ *     ★「その日 0件」では騒ぎません。何も無い日はふつうにあるためです。
+ *     ★「読取」の画面にも、いちばん上に出します。
+ *   ・⚠️ 名前の重なりを、すんでのところで止めました
+ *     ★日づけの係に vnDayKey_ と名づけたところ、同じ名前が
+ *       この中に すでにありました（その日の催しの控えを引く鍵）。
+ *       あとに書いたほうだけが生き残るので、イベントのボタンが
+ *       まるごと引き当てられなくなるところでした。
+ *       テストで気づけたので、vnAliveDayKey_ に分けてあります。
+ *
  *   ・🎪 夜のライブ会場を足した（ご指摘：通知が使い物になっていない）
  *     ★ご指摘：「LINEへのイベント通知が全く機能せず、使い物になってない」
  *             「友人がChatGPTに聞いたら、あっという間に拾い上げてくれた」
@@ -779,7 +798,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V055ver";
+const VN_VERSION = "V056ver";
 
 /**
  * 見にいく先の一覧。
@@ -3713,13 +3732,154 @@ function vnScrapeOne_(src, day, htmlIn) {
   return out;
 }
 
+/* ================================================================
+ *  🩺 読み先が「黙って死んでいないか」の見張り
+ *
+ *  ★まーく様のご指摘から作りました。
+ *    「LINEへのイベント通知が全く機能せず、使い物になってない」
+ *
+ *  ★いちばん たちが悪かったのは、壊れても**黙っていた**ことです。
+ *    フェスティバルホールの読み先は 404 になっていました。
+ *    ワントゥワンも、大阪城音楽堂も、ずっと0件でした。
+ *    それでも通知は毎日ふつうに出ていたので、
+ *    まーく様からは「ちゃんと動いているように」見えていました。
+ *    何か月も、だれも気づけません。これが今回の本体です。
+ *
+ *  ★作り：会場ごとに「最後に1件でも読めた日」を控えます。
+ *    それが何日も古いままなら、その会場は死んでいます。
+ *    知らせは、前日18:00の確認用（まーく様だけ）に1行 足すだけです。
+ *    新しいお知らせは増やしません（ふだんは1通も出さない決まり）。
+ * ================================================================ */
+
+/** 会場ごとの「最後に1件でも読めた日」 */
+const VN_ALIVE_KEY = "VN_ALIVE";
+/** 会場ごとの「はじめて見にいった日」（1件も読めたことが無い会場のため） */
+const VN_SEEN_KEY  = "VN_SEEN";
+/** 何日 1件も読めなければ「死んでいる」とみなすか */
+const VN_DEAD_DAYS = 7;
+
+/*
+ * 「2026-10-15」の形にする。
+ *
+ * ★名前に vnAlive を付けてあります。
+ *   はじめ vnDayKey_ という名前で書いたところ、
+ *   **同じ名前の関数が、この下（4018行あたり）にもう1つありました**。
+ *   そちらは「その日の催しの控え」を出し入れする鍵を作る係です。
+ *   同じ名前を2つ作ると、あとに書いたほうだけが生き残り、
+ *   イベントのボタン（📱個人LINEへ・⏰アラーム）が
+ *   まるごと引き当てられなくなります。
+ *   テストで気づけました。名前を分けてあります。
+ */
+function vnAliveDayKey_(d) {
+  const x = (d && typeof d.getTime === "function") ? d : new Date();
+  return x.getFullYear() + "-" + ("0" + (x.getMonth() + 1)).slice(-2) +
+         "-" + ("0" + x.getDate()).slice(-2);
+}
+
+/** 控えを読む（壊れていても落ちない） */
+function vnAliveRead_(key) {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(key);
+    if (!raw) return {};
+    const o = JSON.parse(raw);
+    return (o && typeof o === "object") ? o : {};
+  } catch (e) { return {}; }
+}
+
+/** 控えを書く */
+function vnAliveWrite_(key, obj) {
+  try {
+    PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(obj));
+  } catch (e) {}
+}
+
+/**
+ * 「この会場を見にいった／読めた」を控える。
+ *
+ * ★控えるのは「いま走っている日」です。
+ *   読もうとしている日（あすのぶん等）ではありません。
+ *   何日 音沙汰が無いかを数えたいので、こちらでないと合いません。
+ */
+function vnAliveMark_(name, got) {
+  const today = vnAliveDayKey_(new Date());
+  const seen = vnAliveRead_(VN_SEEN_KEY);
+  if (!seen[name]) { seen[name] = today; vnAliveWrite_(VN_SEEN_KEY, seen); }
+  if (got > 0) {
+    const alive = vnAliveRead_(VN_ALIVE_KEY);
+    if (alive[name] !== today) { alive[name] = today; vnAliveWrite_(VN_ALIVE_KEY, alive); }
+  }
+}
+
+/** 2つの日づけが、何日はなれているか */
+function vnDaysBetween_(aKey, bKey) {
+  try {
+    const a = Date.parse(String(aKey) + "T00:00:00+09:00");
+    const b = Date.parse(String(bKey) + "T00:00:00+09:00");
+    if (isNaN(a) || isNaN(b)) return 0;
+    return Math.max(0, Math.round((b - a) / 86400000));
+  } catch (e) { return 0; }
+}
+
+/**
+ * 何日も1件も読めていない会場をならべる。
+ *
+ * ★「きのう0件だった」では死んだと言いません。
+ *   その日に本当に何も無いことは、ふつうにあります。
+ *   何日も続いて はじめて、読み先が壊れたとみなします。
+ */
+function vnDeadList_(now) {
+  const today = vnAliveDayKey_(now || new Date());
+  const alive = vnAliveRead_(VN_ALIVE_KEY);
+  const seen = vnAliveRead_(VN_SEEN_KEY);
+  const out = [];
+  VN_SOURCES.forEach(function (src) {
+    const last = alive[src.name];
+    if (last) {
+      const d = vnDaysBetween_(last, today);
+      if (d >= VN_DEAD_DAYS) out.push({ name: src.name, days: d, ever: true });
+      return;
+    }
+    // 一度も読めたことが無い会場
+    const first = seen[src.name];
+    if (!first) return;                       // まだ見にいってもいない
+    const d = vnDaysBetween_(first, today);
+    if (d >= VN_DEAD_DAYS) out.push({ name: src.name, days: d, ever: false });
+  });
+  out.sort(function (a, b) { return b.days - a.days; });
+  return out;
+}
+
+/**
+ * 確認用のおしらせに足す1行（死んでいる会場があるときだけ）。
+ * 無ければ空を返す ＝ ふだんは1文字も増えません。
+ */
+function vnDeadNote_(now) {
+  const dead = vnDeadList_(now);
+  if (!dead.length) return "";
+  const L = ["⚠️ 読めていない会場があります"];
+  dead.slice(0, 6).forEach(function (x) {
+    L.push("・" + x.name + "　" +
+           (x.ever ? x.days + "日 1件も読めていません"
+                   : "一度も読めていません（" + x.days + "日）"));
+  });
+  if (dead.length > 6) L.push("・ほか " + (dead.length - 6) + "か所");
+  L.push("・ホームページの作りが変わったのかもしれません");
+  L.push("・クロちゃんに、この行をそのまま伝えてください");
+  return L.join("\n");
+}
+
 /** 全部のサイトから、その日のぶんを読む（vnTodayEvents_ がここを拾う） */
 function vnScrapeAll_(day) {
   const out = [];
   VN_SOURCES.forEach(function (src) {
+    let got = 0;
     try {
-      vnScrapeOne_(src, day).events.forEach(function (e) { out.push(e); });
+      const evs = vnScrapeOne_(src, day).events;
+      got = evs.length;
+      evs.forEach(function (e) { out.push(e); });
     } catch (e) { if (typeof logErr_ === "function") logErr_("vnScrape:" + src.name, e); }
+    // ★読めても読めなくても、必ず控えます（黙って死ぬのを止めるため）
+    try { vnAliveMark_(src.name, got); } catch (e) {}
   });
   return out;
 }
@@ -3731,6 +3891,11 @@ function vnScrapeAll_(day) {
 function vnReadStatus_(day) {
   const d = day || new Date();
   const L = ["🔎 " + vnDayLabel_(d) + " の読み取り状況", ""];
+  // ★何日も読めていない会場があれば、いちばん上に出す（見落とさないように）
+  try {
+    const dead = vnDeadNote_(new Date());
+    if (dead) { L.push(dead); L.push(""); }
+  } catch (e) {}
   let total = 0;
 
   VN_SOURCES.forEach(function (src) {
@@ -6219,6 +6384,18 @@ function vnSendTest_(d, list) {
   try {
     const b = msgs[0] && msgs[0].contents;
     if (b && b.body && b.body.contents) b.body.contents.push(vnTestAskBox_(d));
+  } catch (e) {}
+  /*
+   * ★読み先が黙って死んでいたら、ここで1行 足します。
+   *
+   *   新しいお知らせは作りません。確認用の便に相乗りします。
+   *   ふだん（どこも生きているとき）は、1文字も増えません。
+   *   ★LINEは1回に5通までなので、あふれるときは足しません
+   *     （肝心のイベントが落ちては、元も子もないため）。
+   */
+  try {
+    const dead = vnDeadNote_(new Date());
+    if (dead && msgs.length < 5) msgs.push({ type: "text", text: dead });
   } catch (e) {}
   lrPush_(to, msgs);
   return true;
