@@ -2015,6 +2015,61 @@ console.log('\n■ 見にいく先に、大阪城音楽堂とフェスティバ�
   eq(!!V['フェスティバルホール'], true, 'フェスティバルホールも、これまでどおり');
 }
 
+console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使い物になっていない）');
+/*
+ * ★まーく様のご指摘です。
+ *   「LINEへのイベント通知が全く機能せず、使い物になってない状態です」
+ *   「友人がChatGPTに聞いたら、あっという間に直近データを拾い上げてくれた」
+ *
+ * ★調べたら、そのとおりでした。
+ *   ご友人の画面に出ていた8会場のうち、こちらに入っていたのは
+ *   大阪城ホールと フェスティバルホールの2つだけ。
+ *   しかもフェスティバルホールの読み先は 404（ページが無い）でした。
+ *   タクシーがいちばん当てにする夜のライブ会場が、まるごと抜けていました。
+ *
+ * ★ここで止めておけば、次に誰かが会場を消しても気づけます。
+ */
+{
+  const SRC2 = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx));
+  const V2 = JSON.parse(vm.runInContext('JSON.stringify(VN_VENUES)', ctx));
+  const names2 = SRC2.map(x => x.name);
+  const url2 = n => (SRC2.filter(x => x.name === n)[0] || {}).url || '';
+
+  // ★ご友人の画面に出ていた会場
+  ['Zepp Namba', 'Zepp Osaka Bayside', 'BIGCAT', 'グランキューブ大阪',
+   '大阪城ホール', 'フェスティバルホール'].forEach(function (n) {
+    eq(names2.indexOf(n) !== -1, true, '★「' + n + '」を見にいく');
+  });
+  // ★そのほかに足した、夜に人が出る会場
+  ['GORILLA HALL OSAKA', 'サンケイホールブリーゼ', '梅田芸術劇場',
+   '新歌舞伎座'].forEach(function (n) {
+    eq(names2.indexOf(n) !== -1, true, '　「' + n + '」も見にいく');
+  });
+
+  // ★死んでいた読み先に、戻さない
+  eq(url2('フェスティバルホール').indexOf('/schedule/') === -1, true,
+     '★★フェスティバルホールを、404 だった /schedule/ に戻さない');
+
+  /*
+   * ★★いちばん大事なところ。
+   *   見にいく先に「会場のこと（入る人数・近くの乗り場）」が無いと、
+   *   読めても黙って落ちます。1つでも抜けていたら、ここで止めます。
+   */
+  SRC2.forEach(function (x) {
+    eq(!!V2[x.name], true, '★★「' + x.name + '」の会場情報（人数・乗り場）がある');
+  });
+  // 近くの乗り場が空のままになっていないか（バラシの会場だけは空でよい）
+  SRC2.forEach(function (x) {
+    const v = V2[x.name] || {};
+    const ok = (x.kind === 'barasi') || (v.near && v.near.length > 0);
+    eq(ok, true, '　「' + x.name + '」に 近くの乗り場がある');
+  });
+  // 読み先が、どれも空でない・http で始まる
+  SRC2.forEach(function (x) {
+    eq(/^https?:\/\//.test(x.url || ''), true, '　「' + x.name + '」の読み先が ちゃんとある');
+  });
+}
+
 console.log('\n■ 同じ公演が2つならばないようにする');
 {
   /*
