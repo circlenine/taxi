@@ -20,6 +20,9 @@ body = h[h.index("<body>"):]
 body = re.sub(r"<script.*?</script>|<svg.*?</svg>|<style.*?</style>", "", body, flags=re.S)
 t = re.sub(r"&[a-z#0-9]+;", "", re.sub(r"<[^>]+>", "\n", body))
 for p in PROPER: t = t.replace(p, "")
+# 左上の「更新日時：2026/10/15(木)」は言葉ではない。曜日の1字（木・火など）が「き」「か」とぶつかって、
+# 木曜・火曜にだけ落ちていた（10/15 見つけた）。日付ごと取りのぞいてから調べる。
+t = re.sub(r"更新日時：\d{4}/\d{2}/\d{2}\([月火水木金土日]\)", "", t)
 tk = Tokenizer(); by = defaultdict(lambda: defaultdict(int))
 for line in t.split("\n"):
     line = line.strip()

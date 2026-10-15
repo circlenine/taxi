@@ -320,7 +320,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t"><span class="emj">🫧</span> Safe Dive for a Good smile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜</p><div class="cv-f"><span class="cv-no">1</span><span class="cv-e">器材準備編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e">器材<span class="g">準備</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -825,7 +825,30 @@ CSS += """
 .edtag .ver{font-weight:700;color:var(--muted);margin-left:1mm;letter-spacing:.02em}
 .edtag b{display:inline-flex;align-items:center;justify-content:center;min-width:3.6mm;height:3.6mm;padding:0 .8mm;background:var(--navy);color:#fff;border-radius:1mm;font-size:7pt}
 """
-FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
+
+CSS += """
+/* ── 表紙のデザイン（10/15 ご指示：案A「スクリプト」）──────────────────────
+   題は丸みのある手書きの筆記体（Pacifico）。「Girlie」だけピンクにして目立たせる。
+   副題と「〇〇編」は、ページ全体と同じシャープな形にする（10/15 ご指摘：丸い形は違和感）。
+   色は準備編の紺・水色で書く（洗浄編は、作るときに茶・オレンジへ自動で置きかわる） */
+#p1 .cv-t{font-family:"Pacifico",cursive!important;font-weight:400!important;color:#16466b!important;line-height:1.35!important;
+ letter-spacing:.01em!important;text-shadow:0 .06em 0 #d4ecfa}   /* ぼかしの影は PDF で画像になるので使わない。ずらした影だけ */
+#p1 .cv-t .g{color:#e0507f}
+#p1 .cv-t .emj{text-shadow:none}
+/* 副題・〇〇編は案F2「解星デコール」（10/15 決定）。
+   はね・はらいに少し飾りのある明朝体で、題の筆記体と同じく線に表情があり、「Girlie」の雰囲気に合う。
+   形はページ全体と同じくとがったまま（角の丸み0）。数字は線のわく、名前の下にうすい線。
+   ピンクは、副題の「SDGs」と、名前の「準備」「洗浄」だけ（10/15 ご指示） */
+#p1 .cv-sd{font-family:"Kaisei Decol",serif!important;font-weight:500!important;color:#1c6ea4!important;letter-spacing:.08em!important}
+#p1 .cv-sd .g,.cover .cv-e .g{color:#e0507f}
+/* 数字はわくのまん中より、気持ち上に置く（10/15 ご指示）。字の形の都合で、そのままだと約1mm下に下がって見えるため。
+   上のすき間：下のすき間 ＝ 約45：55（目で見てまん中に見える位置）。numcheck で毎回測る */
+.cover .cv-no .cvn{display:block;transform:translateY(-1.35mm)}   /* 名前は cvn（.nn は本文の札で使っているので使わない） */
+.cover .cv-f{gap:3mm!important;align-items:center!important}
+.cover .cv-no{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:#fff!important;color:#16466b!important;border-radius:0!important;box-shadow:inset 0 0 0 1.2mm #16466b}
+.cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
+"""
+FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
 
@@ -886,7 +909,8 @@ function hangKome(){document.querySelectorAll('.page small,.page .rn,.page p,.pa
 function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;const W=c.getBoundingClientRect().width;
  const ed=parseFloat(getComputedStyle(c.querySelector('.cv-e')).fontSize);
  ['.cv-t','.cv-sd'].forEach(sel=>{const e=c.querySelector(sel);if(!e)return;e.style.whiteSpace='nowrap';e.style.display='inline-block';e.style.maxWidth='none';e.style.width='max-content';
-  let lo=8,hi=ed;for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
+  let lo=8,hi=(sel==='.cv-t'?400:ed);   /* 題はページ幅いっぱい（10/15 ご指示）。副題は〇〇編の大きさまで */
+  for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
   e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
 document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
 open(os.path.join(B, "a4.html"), "w").write(

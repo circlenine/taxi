@@ -7,7 +7,7 @@ import re
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
 sys.path.insert(0, os.path.dirname(__file__))
-from content_s import STEPS, TERMS, POINTS, QUIZ   # 器材清掃編（10/13）
+from content_s import STEPS, TERMS, POINTS, QUIZ   # 器材洗浄編（10/13）
 from focus_s import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -266,7 +266,7 @@ SUBPG = {}   # 手順の番号 → その手順があるページ
 import datetime as _dt
 _d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
 VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
-EDTAG = f'<span class="edtag"><b>2</b>器材清掃編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
+EDTAG = f'<span class="edtag"><b>2</b>器材洗浄編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
 def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
@@ -342,10 +342,10 @@ for sec in STEPS:
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
     # 手順が多くて文が長い工程（工程2）だけ、2ページに分ける（1項目は多くても2ページ）
     subs = sec["subs"]
-    groups = [subs]   # 清掃編は、どの工程も1ページに収まる
+    groups = [subs]   # 洗浄編は、どの工程も1ページに収まる
     for gi, g in enumerate(groups):
         t = sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>'
-        # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから清掃だけのやり方
+        # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから新規項目である洗浄のやり方
         t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！！</span>'}.get(sec.get("rel"), "")
         if sec["id"] in COLS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
@@ -364,8 +364,8 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">スキューバダイビング はじめての器材{page_fish(1)}</p><h1 class="cv-t"><span class="emj">🫧</span> Safe Dive for a Good smile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜</p><div class="cv-f"><span class="cv-no">2</span><span class="cv-e">器材清掃編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>清掃だけのやり方</p>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">2</span></span><span class="cv-e">器材<span class="g">洗浄</span>編</span></div></div>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>新規項目である洗浄のやり方</p>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
@@ -858,17 +858,17 @@ CSS += """
 .tools .bg>img{align-self:center!important}
 """
 CSS += """
-/* 清掃編の2ページ：大事な話とオーバーホールは、横いっぱいに1段ずつ（準備編の2ページの「写真＋表」の型は使わない） */
+/* 洗浄編の2ページ：大事な話とオーバーホールは、横いっぱいに1段ずつ（準備編の2ページの「写真＋表」の型は使わない） */
 #p2 .tools>.step.wide{display:flex!important;flex-direction:column}
 #p2 .tools>.step.wide>.notes{margin-top:2.4mm;align-self:stretch!important}
 /* 文の頭が道具の名前のときは、名前の前の小さな空きを取って、札の左はしと書き出しをそろえる */
 .notes .nx>.t:first-child,.notes .ns>.t:first-child{margin-left:0!important}
 #p2 .step>.notes>.nt:first-child{border-top:0!important}
 #p2 .srows{grid-template-columns:auto max-content minmax(0,1fr);column-gap:3mm}
-/* 清掃編のクイズは5問と短いので、クイズの見出しを下に寄せず、まとめのすぐ下に置く（大きな空きを作らない） */
+/* 洗浄編のクイズは5問と短いので、クイズの見出しを下に寄せず、まとめのすぐ下に置く（大きな空きを作らない） */
 #p10 .tcol .ph2{margin-top:6mm!important}
 #p10 .quiz.q1{grid-template-columns:minmax(0,1fr)!important;margin-top:2.4mm}
-/* 清掃編のクイズは6問（10/13 ご指示で1問追加）。1ページに収めるため、出どころの文とクイズの間・問いの上下の余白を少しつめる */
+/* 洗浄編のクイズは6問（10/13 ご指示で1問追加）。1ページに収めるため、出どころの文とクイズの間・問いの上下の余白を少しつめる */
 #p10 .tcol .ph2{margin-top:1.6mm!important}
 #p10 .quiz.q1{margin-top:1mm!important}
 #p10 .quiz .qh{margin-top:0!important}
@@ -896,7 +896,7 @@ CSS += """
 .ohrow .cap3{white-space:normal!important}
 .ohrow .notes .nt:first-child{border-top:0!important;padding-top:0!important}
 #p2 .tools>.step.wide>.trio+.notes{margin-top:2.4mm}
-/* memo：清掃編は黄色ではなく、白に近いあたたかい灰色（準備編の黄色の memo と見分けるため。10/13 ご指示） */
+/* memo：洗浄編は黄色ではなく、白に近いあたたかい灰色（準備編の黄色の memo と見分けるため。10/13 ご指示） */
 /* 10/13 ご指摘：白に近すぎて、memo だと分かりにくかった。主張しすぎず、書く場所だと分かる濃さにする */
 /* 10/14 ご指摘：ページ全体がオレンジなので、白に近いままでも黄みに見えた。
    準備編（水色のページに黄色の memo）と同じ考え方で、オレンジの反対の色＝ごくうすい水色に寄せた白にする。テープも水色 */
@@ -997,7 +997,30 @@ CSS += """
 #p1 .relnote .half{margin:0 1.6mm 0 0;vertical-align:0}
 #p1 .relnote .half.new{margin-left:2mm}
 """
-FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap">'
+
+CSS += """
+/* ── 表紙のデザイン（10/15 ご指示：案A「スクリプト」）──────────────────────
+   題は丸みのある手書きの筆記体（Pacifico）。「Girlie」だけピンクにして目立たせる。
+   副題と「〇〇編」は、ページ全体と同じシャープな形にする（10/15 ご指摘：丸い形は違和感）。
+   色は準備編の紺・水色で書く（洗浄編は、作るときに茶・オレンジへ自動で置きかわる） */
+#p1 .cv-t{font-family:"Pacifico",cursive!important;font-weight:400!important;color:#16466b!important;line-height:1.35!important;
+ letter-spacing:.01em!important;text-shadow:0 .06em 0 #d4ecfa}   /* ぼかしの影は PDF で画像になるので使わない。ずらした影だけ */
+#p1 .cv-t .g{color:#e0507f}
+#p1 .cv-t .emj{text-shadow:none}
+/* 副題・〇〇編は案F2「解星デコール」（10/15 決定）。
+   はね・はらいに少し飾りのある明朝体で、題の筆記体と同じく線に表情があり、「Girlie」の雰囲気に合う。
+   形はページ全体と同じくとがったまま（角の丸み0）。数字は線のわく、名前の下にうすい線。
+   ピンクは、副題の「SDGs」と、名前の「準備」「洗浄」だけ（10/15 ご指示） */
+#p1 .cv-sd{font-family:"Kaisei Decol",serif!important;font-weight:500!important;color:#1c6ea4!important;letter-spacing:.08em!important}
+#p1 .cv-sd .g,.cover .cv-e .g{color:#e0507f}
+/* 数字はわくのまん中より、気持ち上に置く（10/15 ご指示）。字の形の都合で、そのままだと約1mm下に下がって見えるため。
+   上のすき間：下のすき間 ＝ 約45：55（目で見てまん中に見える位置）。numcheck で毎回測る */
+.cover .cv-no .cvn{display:block;transform:translateY(-1.35mm)}   /* 名前は cvn（.nn は本文の札で使っているので使わない） */
+.cover .cv-f{gap:3mm!important;align-items:center!important}
+.cover .cv-no{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:#fff!important;color:#16466b!important;border-radius:0!important;box-shadow:inset 0 0 0 1.2mm #16466b}
+.cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
+"""
+FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
 
@@ -1037,7 +1060,7 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?up.getBoundingClientRect().top:r.top,b:r.bottom});return;}
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
- // 清掃編（10/13）：34mm あけると写真が 40mm より低くなるページは、memo を2行ぶん（20mm）にして、写真の大きさを優先する
+ // 洗浄編（10/13）：34mm あけると写真が 40mm より低くなるページは、memo を2行ぶん（20mm）にして、写真の大きさを優先する
  //  （赤い丸がスマホで見やすいように、写真を大きく。10/13 ご指示）
  // 2ページ（導入）は、写真を小さくすると表がはみ出すので、3の下のあき（25mm 以上）を memo にする（10/13）
  if(best.b-best.t<(pg.id==='p2'?0:MINC)){fit(pg,lim-RES);if(+pg.dataset.ph<40)fit(pg,lim-RES2);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
@@ -1059,10 +1082,11 @@ function hangKome(){document.querySelectorAll('.page small,.page .rn,.page p,.pa
 function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;const W=c.getBoundingClientRect().width;
  const ed=parseFloat(getComputedStyle(c.querySelector('.cv-e')).fontSize);
  ['.cv-t','.cv-sd'].forEach(sel=>{const e=c.querySelector(sel);if(!e)return;e.style.whiteSpace='nowrap';e.style.display='inline-block';e.style.maxWidth='none';e.style.width='max-content';
-  let lo=8,hi=ed;for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
+  let lo=8,hi=(sel==='.cv-t'?400:ed);   /* 題はページ幅いっぱい（10/15 ご指示）。副題は〇〇編の大きさまで */
+  for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
   e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
 document.fonts.ready.then(()=>{hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
-# ── 色：器材清掃編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
+# ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#c2571a", "#16466b": "#6b3410", "#d7eef9": "#ffe6d2", "#a9d8ef": "#f6c095", "#cfe5f2": "#f6d9c2",
           "#f1f8fc": "#fff6ef", "#c9e8f8": "#fddcc4", "%23eaf6fd": "%23fff1e6", "%23e3f3fb": "%23ffeede", "#bfe3f4": "#fcd8bd",
@@ -1070,8 +1094,8 @@ COLORS = {"#1c6ea4": "#c2571a", "#16466b": "#6b3410", "#d7eef9": "#ffe6d2", "#a9
 def recolor(h):
     for k, v in COLORS.items(): h = h.replace(k, v).replace(k.upper(), v)
     return h
-CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、清掃編の最後のページに読みかえる
+CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
-    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材清掃編</title>{FONTS}<style>{CSS}</style></head>'
+    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材洗浄編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{"".join(pages)}{FIT}</body></html>'))
 print("pages", len(pages))

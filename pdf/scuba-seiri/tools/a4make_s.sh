@@ -5,6 +5,11 @@ S=/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad
 export NODE_PATH=$(npm root -g)
 cd $S/build_s
 python3 $S/tools/a4s.py $S/build_s
+# 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
+python3 -I $S/tools/numcheck.py $S/build_s/num.png $(node $S/tools/numcheck.js $S/build_s/a4.html $S/build_s/num.png)
+# PDFは、まーく様の許可が出たときだけ作る（10/15 ご指摘：許可なくPDFを作った）。
+# 許可がないときは、ここで止める（見た目の確かめは、HTMLを画像にして見せる）。許可が出たら PDF_OK=1 をつけて動かす
+if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi
 mkdir -p img/s
 for f in $(grep -o 'img/s/[a-z0-9_]*\.jpg' a4.html | sort -u); do [ -f "$f" ] || cp img/c05.jpg "$f"; done
 node $S/tools/measure.js $S/build_s/a4.html a4sizes.json
@@ -39,6 +44,9 @@ mv $S/build_s/a4l.pdf $S/build_s/a4c.pdf
 python3 -I $S/tools/lnkcheck.py $S/build_s/a4c.pdf
 # 仕上がりのPDFを、ファイル名に「直した日（日本時間）」を入れて置く（10/8 ご指示：日付は必ず直した日に合わせる）
 D=$(TZ=Asia/Tokyo date +%y%m%d)
+# 「清掃」は使わない。2冊目は「洗浄編」で統一（10/15 ご指示）。HTMLに1つでも残っていたら止める
+if grep -q "清掃" $S/build_s/a4.html; then echo "NG 「清掃」が残っている（洗浄に統一する）"; grep -o ".\{0,10\}清掃.\{0,10\}" $S/build_s/a4.html | head -5; exit 1; fi
 rm -f $S/out/2_*_ｽｷｭｰﾊﾞ_器材清掃編.pdf
-cp $S/build_s/a4c.pdf "$S/out/2_${D}_ｽｷｭｰﾊﾞ_器材清掃編.pdf"
-echo "出力: 2_${D}_ｽｷｭｰﾊﾞ_器材清掃編.pdf"
+rm -f $S/out/2_*_ｽｷｭｰﾊﾞ_器材洗浄編.pdf
+cp $S/build_s/a4c.pdf "$S/out/2_${D}_ｽｷｭｰﾊﾞ_器材洗浄編.pdf"
+echo "出力: 2_${D}_ｽｷｭｰﾊﾞ_器材洗浄編.pdf"
