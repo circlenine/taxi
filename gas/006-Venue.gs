@@ -2,9 +2,22 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V063ver  （2026/10/09）  ★★★
+ *  ★★★  V064ver  （2026/10/09）  ★★★
  *
- *  [V063ver]
+ *  [V064ver]
+ *   ・⏱ 17:00に出て間に合うものだけを出すようにした（ご指示）
+ *     ★ご指示：「16:00発信で、17:00放出スタートで間に合いそうなもののみ」
+ *     ★17:00に車を出して、会場まで20〜40分。着くのは17:20〜17:40。
+ *       だから「終わりが **17:30** より後」のものを対象にします。
+ *     ★前は 18:00 で切っていました。
+ *       17:30〜18:00 に終わる催しを、まるごと落としていました。
+ *       17時に出れば、じゅうぶん間に合うものです。
+ *     ★ここも「設定」タブから変えられます。
+ *       ・イベントの対象にする時間帯（はじめ）… 既定 17:30
+ *       ・イベントの対象にする時間帯（おわり）… 既定 04:00
+ *       走ってみて合わなければ、まーく様だけで直せます。
+ *     ★おかしな値を入れても、黙って既定に戻します（止まりません）。
+ *
  *   ・🗺 大阪府内の会場を7か所 足した（ご指示）
  *     ★ご指示：「花園ラグビー場や、長居公園スタジアムや、インテックス、
  *               門真、その他、大阪圏内であれば残す、追加してください」
@@ -909,7 +922,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V063ver";
+const VN_VERSION = "V064ver";
 
 /**
  * 見にいく先の一覧。
@@ -1077,8 +1090,59 @@ const VN_VENUES = {
 };
 
 /** 対象にする時間帯（この中に「終わり」か「始まり」が入っていれば出す） */
-const VN_FROM_HOUR = 18;   // 18:00
-const VN_TO_HOUR   = 28;   // 翌04:00（24＋4）
+/*
+ * ★まーく様のご指示（2026/10/15）。
+ *   「16:00発信で、17:00放出スタートで間に合いそうなもののみ、対象です」
+ *
+ *   17:00に車を出して、会場まで20〜40分。
+ *   着くのは 17:20〜17:40 ごろです。
+ *   だから **終わりが 17:30 より後** のものを対象にします。
+ *   前は 18:00 で切っていたので、17:30〜18:00 に終わる催しを
+ *   まるごと落としていました。17時に出れば間に合うものです。
+ *
+ * ★ここも「設定」タブから変えられます（走ってみて合わなければ、すぐ直せます）。
+ *     「イベントの対象にする時間帯（はじめ）」… 例 17:30
+ *     「イベントの対象にする時間帯（おわり）」… 例 04:00
+ */
+const VN_FROM_HOUR = 17.5;   // 17:30
+const VN_TO_HOUR   = 28;     // 翌04:00（24＋4）
+
+/** 「17:30」「4:00」などを、24時間ごえの数（17.5／28）にする */
+function vnHourNum_(text, isEnd) {
+  const r = vnParseHm_(text);
+  if (!r) return null;
+  let h = r.h + r.m / 60;
+  /*
+   * ★終わりのほうは「翌日の朝」を指すことがあります。
+   *   04:00 と書かれたら 28（＝24＋4）として扱います。
+   *   はじめのほうは、夜の時刻をそのまま使います。
+   */
+  if (isEnd && h < 12) h += 24;
+  if (!isEnd && h < 12) h += 24;
+  return h;
+}
+
+/** 対象にする時間帯の はじめ（設定タブ優先） */
+function vnFromHour_() {
+  try {
+    if (typeof cfg_ === "function") {
+      const v = vnHourNum_(cfg_("イベントの対象にする時間帯（はじめ）"), false);
+      if (v !== null && v >= 12 && v <= 30) return v;
+    }
+  } catch (e) {}
+  return VN_FROM_HOUR;
+}
+
+/** 対象にする時間帯の おわり（設定タブ優先） */
+function vnToHour_() {
+  try {
+    if (typeof cfg_ === "function") {
+      const v = vnHourNum_(cfg_("イベントの対象にする時間帯（おわり）"), true);
+      if (v !== null && v >= 12 && v <= 34) return v;
+    }
+  } catch (e) {}
+  return VN_TO_HOUR;
+}
 
 /*
  * これ未満の見込み人数は出さない。
@@ -1409,7 +1473,7 @@ function vnInTimeRange_(ev) {
   const start = vnHourOf_(ev.start);
   if (end === null && start === null) return false;       // 時刻が無いものは出さない
   const h = (end !== null) ? end : start;
-  return h >= VN_FROM_HOUR && h <= VN_TO_HOUR;
+  return h >= vnFromHour_() && h <= vnToHour_();
 }
 
 /**
@@ -2365,7 +2429,7 @@ function vnSend_(text, where) {
 function vnSampleEvents_() {
   const mk = function (venue, kind, icon, title, start, end, people, url, guess, know, avoid) {
     const v = VN_VENUES[venue] || {};
-    const st = vnPlaceStats_(v.near, VN_FROM_HOUR, VN_TO_HOUR,
+    const st = vnPlaceStats_(v.near, vnFromHour_(), vnToHour_(),
                              vnEventDaySet_(venue), new Date());
     const line = vnStatsLine_(st);
     return { venue: venue, kind: kind, icon: icon, title: title, start: start, end: end,
@@ -3441,7 +3505,7 @@ function vnLedgerRules_() {
            (h >= 24 ? "（翌日）" : "");
   };
   const rows = [
-    ["対象の時間帯", hh(VN_FROM_HOUR) + " 〜 " + hh(VN_TO_HOUR),
+    ["対象の時間帯", hh(vnFromHour_()) + " 〜 " + hh(vnToHour_()),
      "終わりの時刻が この中に入っていれば出します。終わりが分からないときだけ、始まりで見ます"],
     ["時刻が読めないもの", "出しません",
      "いちばん大事な関所です。「時間不明」で出すと、何も無い会場へ向かってしまうため"],
@@ -3493,7 +3557,7 @@ function vnLedgerJudge_(e) {
   if (!vnHasTime_(e)) return { ok: false, why: "時刻が読み取れていない" };
   if (!vnInTimeRange_(e)) {
     const h = vnHourOf_(e.end) !== null ? vnHourOf_(e.end) : vnHourOf_(e.start);
-    return { ok: false, why: "時間帯の外（" + (h < VN_FROM_HOUR ? "早すぎる" : "遅すぎる") + "）" };
+    return { ok: false, why: "時間帯の外（" + (h < vnFromHour_() ? "早すぎる" : "遅すぎる") + "）" };
   }
   if (!vnBigEnough_(e)) return { ok: false, why: "見込み人数が " + VN_MIN_PEOPLE + "人 未満" };
   return { ok: true, why: "" };
@@ -6610,7 +6674,7 @@ function menuVenueDiscord() {
 /** イベント1件に、実績・推定・助言を足す */
 function vnDecorate_(e) {
   const v = VN_VENUES[e.venue] || {};
-  const st = vnPlaceStats_(v.near, VN_FROM_HOUR, VN_TO_HOUR,
+  const st = vnPlaceStats_(v.near, vnFromHour_(), vnToHour_(),
                            vnEventDaySet_(e.venue), new Date());
   const c = {};
   for (const k in e) c[k] = e[k];
