@@ -238,6 +238,26 @@
 - どちらもスキル編とは**別の資料**。細かいスキルの中身・ドライスーツの種類は、サンライズの担当インストラクターに確認中。
   届いたら作り始める。動画は、ドライブのフォルダの「次の資料用」のもの。
 
+## 文の確かめ（スキル編・10/15 調べた結果）
+| 文 | 確かめた出どころ |
+|---|---|
+| 耳抜き：鼻をつまんでやさしく。つばを飲む・あごを動かすも | https://blog.padi.com/ear-equalization-and-ear-care-for-scuba-divers/ ・ https://dan.org/?p=3562 |
+| 潜る前に1回、潜りはじめから早めにこまめに。痛くなる前に | 同上 |
+| 水面のすぐ下がいちばん圧が変わる | https://dan.org/health-medicine/health-resource/smart-guides/beat-the-squeeze-equalize-like-a-pro/how-your-ears-respond-to-pressure/ |
+| 抜けないときは止まって少し上がる。無理に吹かない。だめなら終える | https://blog.padi.com/the-golden-rules-of-scuba-diving/ ・ https://dan.org/health-medicine/health-resource/dive-medical-reference-books/ears-diving/ears-equalization/ |
+| かぜのときは潜らない | https://blog.padi.com/the-golden-rules-of-scuba-diving/ |
+| 呼吸で細かく、BCDで調整。深くなるとスーツ・BCDの空気がつぶれる | https://blog.padi.com/tips-buoyancy-control/ |
+| 水平の姿勢・むだに蹴らない・砂を巻き上げない | 同上 ・ https://www.divessi.com/en/blog/finning-techniques-for-divers-1335 |
+| フィンピボット・フィンキックのやり方 | 公式の手順は見つからず（指導者向けの記事のみ）→ 講習で習った形を優先と添える |
+| BCD排気：ホースをのばして上に | https://dtmag.com/?p=15543（雑誌） |
+| レギュレーターリカバリー：泡を出し続け、右に傾いて腕を回す | https://blog.padi.com/how-to-recover-your-regulator-when-diving/ |
+| レギュレータークリア：短く吐く／舌でふさいでパージ／最初はゆっくり吸う | 雑誌・ショップの記事のみ（公式の文は見つからず） |
+| マスククリア：上を押さえ、上を向き、鼻から長く吐く／脱着の手順 | https://blog.padi.com/master-underwater-mask-removal/ |
+| オクトパス：合図→受け取る→パージ→右腕をつかみ合う→OK→浮上 | https://blog.padi.com/how-to-give-an-alternate-air-source-to-your-dive-buddy/ |
+| 残圧をこまめに見る | https://blog.padi.com/the-golden-rules-of-scuba-diving/ |
+| 緊急スイミングアセント：アーと吐き続け・上を見て・片手は上・もう片手はインフレーター | https://pros-blog.padi.com/?p=97580 ・ https://scubadiverlife.com/training-tips-safely-conduct-cesa/ （浮上の速さは出どころで数字がちがう → 書かない） |
+| 息をぜったいに止めない（いちばん大事な決まり） | https://blog.padi.com/how-do-you-breathe-while-scuba-diving/ ・ https://dan.org/alert-diver/article/lung-expansion-injuries/ |
+
 ## 写真の出どころ → 貼るリンク（10/15。使った写真のぶんだけ貼る）
 | 写真の印 | 元の動画 | リンク |
 |---|---|---|
