@@ -2,9 +2,23 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V067ver  （2026/10/09）  ★★★
+ *  ★★★  V068ver  （2026/10/09）  ★★★
  *
- *  [V067ver]
+ *  [V068ver]
+ *   ・📅 何日中の何日目か・最終日かを出すようにした（ご指示）
+ *     ★ご指示：「各イベントが続く場合、何日中の何日目、最終日なのか
+ *               どうかというのも抜けてますし」
+ *     ★最終日は打ち上げが増え、遠くまで行く車も出ます。
+ *       初日と最終日では、待つ場所も時間も変わります。
+ *       最終日だけは赤く・太く出します。
+ *     ★ページに書いてある期間から取ります（「10/14〜10/16」など）。
+ *       書き方がちがっても読みます（10月14日〜16日／10.14-10.16／全角）。
+ *       年をまたぐもの（12/30〜1/3）も数えまちがえません。
+ *     ★**書いていなければ、何も出しません。**
+ *       前後の日から推し量ることもできますが、それは「たぶん」です。
+ *       外れたときに言いわけができません。
+ *     ★1日だけのもの・1年のような長すぎるものは、期間とみなしません。
+ *
  *   ・🗺 A地区の表を、地図のとおりに直した（ご指示）
  *     ★まーく様から 大阪府の交通圏の地図をいただきました。
  *       緑色＝大阪市域交通圏＝大阪A地区。**この11市だけ**です。
@@ -965,7 +979,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V067ver";
+const VN_VERSION = "V068ver";
 
 /**
  * 見にいく先の一覧。
@@ -1748,6 +1762,119 @@ function vnPlaceStats_(names, fromHour, toHour, daySet, base) {
   return out;
 }
 
+/* ================================================================
+ *  📅 何日中の何日目か・最終日か
+ *
+ *  ★まーく様のご指示です。
+ *    「各イベントが続く場合、何日中の何日目、最終日なのかどうか
+ *      というのも抜けてますし」
+ *
+ *  ★なぜ大事か。
+ *    最終日は、打ち上げが増えます。遠くまで行く車も出ます。
+ *    初日と最終日では、待つ場所も、待つ時間も変わります。
+ *    「今日が何日目か」は、走る人の判断を変える数字です。
+ *
+ *  ★どこから取るか。
+ *    ページに書いてある期間の表記（「10/14〜10/16」など）から取ります。
+ *    会場のホームページには、たいてい そのまま書いてあります。
+ *    **書いていなければ、何も出しません。**
+ *    前後の日を調べて推し量ることもできますが、
+ *    それは「たぶん」でしかなく、外れたときに言いわけができません。
+ * ================================================================ */
+
+/** 期間の表記を見つけて {from, to}（どちらも Date）にする。無ければ null */
+function vnRangeFrom_(text, base) {
+  const t = String(text == null ? "" : text)
+    .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+  const b = (base && typeof base.getTime === "function") ? base : new Date();
+
+  /*
+   * ★年が書いていないことが ほとんどです。
+   *   そのときは「いまの年」とみなします。
+   *   12月→1月のように年をまたぐときだけ、終わりの年を1つ進めます。
+   */
+  const mk = function (y, m, d) { return new Date(y, m - 1, d); };
+
+  // ① 10/14〜10/16 ／ 10/14-10/16 ／ 2026/10/14〜2026/10/16
+  let m = t.match(/(?:(\d{4})[\/.-])?(\d{1,2})[\/.](\d{1,2})\s*[〜～~\-–—]\s*(?:(\d{4})[\/.-])?(?:(\d{1,2})[\/.])?(\d{1,2})(?![\/.:\d])/);
+  if (m) {
+    const y1 = m[1] ? Number(m[1]) : b.getFullYear();
+    const m1 = Number(m[2]), d1 = Number(m[3]);
+    const m2 = m[5] ? Number(m[5]) : m1;
+    const d2 = Number(m[6]);
+    let y2 = m[4] ? Number(m[4]) : y1;
+    if (!m[4] && m2 < m1) y2 = y1 + 1;              // 12/30〜1/3 のような年またぎ
+    const from = mk(y1, m1, d1), to = mk(y2, m2, d2);
+    if (vnRangeOk_(from, to)) return { from: from, to: to };
+  }
+
+  // ② 10月14日〜10月16日 ／ 10月14日〜16日
+  m = t.match(/(\d{1,2})月\s*(\d{1,2})日?\s*[〜～~\-–—]\s*(?:(\d{1,2})月\s*)?(\d{1,2})日?/);
+  if (m) {
+    const m1 = Number(m[1]), d1 = Number(m[2]);
+    const m2 = m[3] ? Number(m[3]) : m1;
+    const d2 = Number(m[4]);
+    const y1 = b.getFullYear();
+    const y2 = (m2 < m1) ? y1 + 1 : y1;
+    const from = mk(y1, m1, d1), to = mk(y2, m2, d2);
+    if (vnRangeOk_(from, to)) return { from: from, to: to };
+  }
+  return null;
+}
+
+/**
+ * 読み取った期間が、まともかどうか。
+ * ★ここで止めないと、関係のない数字の並びを期間と見なして、
+ *   「300日中の5日目」のような、ばかげたものを出してしまいます。
+ */
+function vnRangeOk_(from, to) {
+  try {
+    if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return false;
+    const days = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+    return days >= 2 && days <= 60;        // 1日だけ／長すぎるものは、期間とみなさない
+  } catch (e) { return false; }
+}
+
+/*
+ * その日が、期間の何日目か（1から数える）。外なら 0。
+ *
+ * ★名前に Run を付けてあります。
+ *   はじめ vnDayNo_ と名づけたら、同じ名前がすでにありました。
+ *   同じ名前を2つ作ると、あとに書いたほうだけが生き残ります。
+ *   テストで気づけました。
+ */
+function vnRunDayNo_(range, day) {
+  try {
+    if (!range || !day) return 0;
+    const d = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const n = Math.round((d.getTime() - range.from.getTime()) / 86400000) + 1;
+    const all = Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1;
+    if (n < 1 || n > all) return 0;
+    return n;
+  } catch (e) { return 0; }
+}
+
+/**
+ * 「3日中の2日目」「3日中の最終日」の形にする。出せなければ ""。
+ *
+ * ★最終日だけは、はっきり分かるようにします。
+ *   打ち上げが増え、遠くまで行く車も出るからです。
+ */
+function vnRunText_(ev, day) {
+  try {
+    const src = String((ev && ev.raw) || "") + " " + String((ev && ev.title) || "");
+    const r = vnRangeFrom_(src, day);
+    if (!r) return "";
+    const n = vnRunDayNo_(r, day);
+    if (!n) return "";
+    const all = Math.round((r.to.getTime() - r.from.getTime()) / 86400000) + 1;
+    if (all < 2) return "";
+    if (n === all) return "📅 " + all + "日中の最終日";
+    if (n === 1) return "📅 " + all + "日中の初日";
+    return "📅 " + all + "日中の" + n + "日目";
+  } catch (e) { return ""; }
+}
+
 /**
  * 集めた記録を、読める1〜2行にする。出せるものが無ければ ""。
  *
@@ -2206,6 +2333,22 @@ function vnCard_(ev, idx, day, noBells, budget) {
                                "color": "#333333" });
     rows.push({ "type": "text", "size": "xs", "wrap": true, "margin": "xs", "contents": sp });
   }
+
+  /*
+   * ★何日中の何日目か（まーく様のご指示）。
+   *   最終日は打ち上げが増え、遠くまで行く車も出ます。
+   *   初日と最終日では、待つ場所も時間も変わります。
+   *   ページに期間が書いてあるときだけ出します。推し量りません。
+   */
+  try {
+    const run = vnRunText_(ev, day);
+    if (run) {
+      const last = run.indexOf("最終日") !== -1;
+      rows.push({ "type": "text", "text": run, "size": "xs", "margin": "xs",
+                  "color": last ? "#c62828" : "#6a1b9a",
+                  "weight": last ? "bold" : "regular" });
+    }
+  } catch (e) {}
 
   /*
    * ★写真から読み取ったもの（ホテルの宴会・会場の月間表）なのに、
