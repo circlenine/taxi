@@ -294,6 +294,19 @@
 | 緊急スイミングアセント：アーと吐き続け・上を見て・片手は上・もう片手はインフレーター | https://pros-blog.padi.com/?p=97580 ・ https://scubadiverlife.com/training-tips-safely-conduct-cesa/ （浮上の速さは出どころで数字がちがう → 書かない） |
 | 息をぜったいに止めない（いちばん大事な決まり） | https://blog.padi.com/how-do-you-breathe-while-scuba-diving/ ・ https://dan.org/alert-diver/article/lung-expansion-injuries/ |
 
+## 2回目の下調べ（10/15：公式が見つかっていなかった点）
+- 呼び名は PADI Japan に合わせる：圧平衡（耳抜き）／バックアップ空気源（オクトパス）／緊急スイミングアセント／マスククリア／
+  レギュレーター・リカバリー／中性浮力・ホバリング。「代替空気源」は使わない。「フィンピボット」はお店の呼び方（PADI Japan は使っていない）。
+- フィンピボットの「吸うと浮き、吐くと沈む」、フィンキックの「ひざを少し曲げて大きくゆっくり」は、よく教えられるコツ（公式の文は無し）
+  → 「講習で習った形を優先」と添える。フィンキックは「足の付け根から・自転車こぎにしない」が SSI で確かめられた。
+- レギュレーター・リカバリーは、PADI の動画では腕を回す方法だけ → 手でたどる方法は書かない。
+- BCD排気：PADI の「5つの安全に浮上する手順」に「排気ホースを上に」がある（https://blog.padi.com/jp/scuba-diving-refresher-checklist/）。
+- 合図：地域・団体・人でちがう（DAN https://dan.org/alert-diver/article/whats-that-you-say/）→ 潜る前に合わせる、と添える。
+  親指を上は「浮上」（https://www.divessi.com/blog/basic-hand-signals-every-diver-needs-to-know-8837.html）。
+  「ゆっくり吸って」「しっかり吐いて」は標準ではない → ※でお店の合図と示す。PADI の新しい「調子が悪い」合図あり
+  （https://blog.padi.com/jp/the-new-hand-signal-do-you-know-them-yet/）。写真が無いので、今回は入れない。
+- 講習の日数・本数は資料に書かない（PADI は海洋実習4本を「ふつう2日以上」としている。あいちゃんの講習の組み方は不明のため）。
+
 ## 写真の出どころ → 貼るリンク（10/15。使った写真のぶんだけ貼る）
 | 写真の印 | 元の動画 | リンク |
 |---|---|---|
