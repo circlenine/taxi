@@ -13,12 +13,11 @@ python3 -I $S/tools/numcheck.py $S/build/num.png $(node $S/tools/numcheck.js $S/
 node $S/tools/p1fit.js $S/build/a4.html
 # PDFは、まーく様の許可が出たときだけ作る（10/15 ご指摘：許可なくPDFを作った）。
 # 許可がないときは、ここで止める（見た目の確かめは、HTMLを画像にして見せる）。許可が出たら PDF_OK=1 をつけて動かす
-if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi
+# 10/16：写真の切り出しと、HTMLを見る点検は、PDFを作らないときも動かす（画像で見ていただく前に、崩れに気づくため）
 mkdir -p img/s
 for f in $(grep -o 'img/s/[a-z0-9_]*\.jpg' a4.html | sort -u); do [ -f "$f" ] || cp img/c05.jpg "$f"; done
 node $S/tools/measure.js $S/build/a4.html a4sizes.json
 python3 -I $S/tools/focus.py a4sizes.json img/s
-node $S/tools/print2.js $S/build/a4.html $S/build/a4.pdf
 SIDE=14 node $S/tools/mcheck.js $S/build/a4.html
 python3 -I $S/tools/toccheck2.py $S/build/a4.html
 node $S/tools/wrapcheck.js $S/build/a4.html
@@ -31,6 +30,8 @@ python3 $S/tools/yomicheck.py $S/build/a4.html
 python3 -I $S/tools/chipcheck.py $S/build/a4.html
 node $S/tools/palette.js $S/build/a4.html
 node $S/tools/borders.js $S/build/a4.html
+if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi
+node $S/tools/print2.js $S/build/a4.html $S/build/a4.pdf
 node $S/tools/chkpos.js $S/build/a4.html $S/build/a4chk.json
 python3 -I $S/tools/addchk.py $S/build/a4.pdf $S/build/a4chk.json $S/build/a4c.pdf
 node $S/tools/memopos.js $S/build/a4.html $S/build/a4memo.json
