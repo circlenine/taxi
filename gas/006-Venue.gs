@@ -2,7 +2,22 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V071ver  （2026/10/16）  ★★★
+ *  ★★★  V072ver  （2026/10/16）  ★★★
+ *
+ *  [V072ver]
+ *   ・📣 スプシにも [21]「さっきの絵をグループへ送る」を足した
+ *     ★なぜ要るのか
+ *       LINEの受け口は「最後に公開できた古いコード」で動きます。
+ *       版が200で満杯のあいだ、公開のやり直しは失敗したままなので、
+ *       絵に付けたボタンを押しても、古いコードはその合図を知らず、
+ *       何も起きません。「LINEのボタンを押してください」と案内しても
+ *       届かないままになります（前に「❗」で同じことをしました）。
+ *     ★スプシのボタンは、いまのコードで動きます。だから両方に置きます。
+ *       作り直しが済めば、絵のボタンのほうも効くようになります。
+ *     ★ここも2回押しです。1回目は「何を送るか」が出るだけ。
+ *       3分以内にもう一度チェックで、はじめてグループへ出ます。
+ *     ★控えが2つあるときは、新しいほうを送ります。
+ *     ★送ったら控えを消すので、2回は流れません。
  *
  *  [V071ver]
  *   ・📣 届いた絵を、そのままグループへ共有できるボタンを足した（ご指示）
@@ -1033,7 +1048,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V071ver";
+const VN_VERSION = "V072ver";
 
 /**
  * 見にいく先の一覧。
@@ -1531,6 +1546,112 @@ function vnShareButton_(msg) {
     if (!Array.isArray(b.footer.contents)) b.footer.contents = [];
     b.footer.contents.push(btn);
     return msg;
+  } catch (e) { return msg; }
+}
+
+/**
+ * 控えのうち、いちばん新しいものの合言葉を返す。無ければ ""
+ *
+ * ★スプシのボタンから「さっきの絵」を送るために要ります。
+ *   合言葉は「VNSHARE_＋作った時刻（36進）」なので、
+ *   いちばん大きいものが いちばん新しい ものになります。
+ */
+function vnShareNewest_() {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    const all = pr.getProperties();
+    let best = "", bestMs = 0;
+    Object.keys(all).forEach(function (k) {
+      if (k.indexOf("VNSHARE_") !== 0 || k.slice(-2) !== "_n") return;
+      const stamp = k.slice("VNSHARE_".length, -2);
+      const ms = parseInt(stamp, 36);
+      if (!ms || ms <= bestMs) return;
+      bestMs = ms; best = "VNSHARE_" + stamp;
+    });
+    return best;
+  } catch (e) { return ""; }
+}
+
+/** 控えた絵から、見出しの字だけを取り出す（何を送るのかを見せるため） */
+function vnShareTitle_(msg) {
+  try {
+    const alt = (msg && msg.altText) || "";
+    if (alt) return String(alt).slice(0, 40);
+    const s = JSON.stringify(msg || {});
+    const m = s.match(/"text":"([^"]{1,40})"/);
+    return m ? m[1] : "（見出しが分かりません）";
+  } catch (e) { return "（見出しが分かりません）"; }
+}
+
+/**
+ * [21] さっきの絵をグループへ送る（そうさボタンから）。
+ *
+ * ★なぜ、LINEのボタンだけでなく ここにも置くのか
+ *   LINEの受け口は「最後に公開できた古いコード」で動きます。
+ *   版が200で満杯のあいだ、公開のやり直しは失敗したままなので、
+ *   LINEの絵に付いたボタンを押しても、古いコードは
+ *   その合図を知らず、何も起きません。
+ *   スプシのボタンは、いまのコードで動きます。だから ここに置きます。
+ *   （作り直しが済めば、LINEのボタンのほうも効くようになります）
+ *
+ * ★ここも2回押しです。グループに出ていくものなので、わざと2回にします。
+ */
+function panelShareGo() {
+  const key = vnShareNewest_();
+  if (!key) {
+    return "📣 送れる絵がありません。\n" +
+           "クロちゃんから「まとめの絵」が届いたあとに押してください。\n" +
+           "（届いてから3日をすぎた絵は、消えています）";
+  }
+  const msg = vnShareLoad_(key);
+  if (!msg) {
+    return "📣 送れる絵がありません（控えが読めませんでした）。";
+  }
+  const title = vnShareTitle_(msg);
+  const to = vnGroupTarget_();
+  if (!to) {
+    return "📣 グループの送り先が分かりません。\n" +
+           "グループLINEに何か1つ投稿すると、そこを覚えます。";
+  }
+
+  const c = CacheService.getScriptCache();
+  if (c.get("VN_SHARE_STEP") === key) {
+    c.remove("VN_SHARE_STEP");
+    if (typeof lrPush_ !== "function") return "📣 送るしくみが入っていません。";
+    /*
+     * ★先に控えを消します。
+     *   送るところでしくじっても、二度押しで2回流れるよりましです。
+     */
+    vnShareDrop_(key);
+    try {
+      lrPush_(to, [vnShareStrip_(msg)]);
+      return "📣 グループへ送りました。\n・" + title;
+    } catch (e) {
+      return "📣 送れませんでした：" + ((e && e.message) || e);
+    }
+  }
+
+  c.put("VN_SHARE_STEP", key, 180);
+  return "📣 これをグループへ送ります。\n・" + title + "\n\n──────\n" +
+         "▶ 送るには、3分以内にもう一度チェックしてください。\n" +
+         "（1回押しただけでは出ません。グループに出ていくものなので、" +
+         "わざと2回にしています）";
+}
+
+/**
+ * グループへ出す形に直す（「グループへ送る」ボタンを外す）。
+ * ★みんなの画面に そのボタンが出ていては、おかしいためです。
+ */
+function vnShareStrip_(msg) {
+  try {
+    const clean = JSON.parse(JSON.stringify(msg));
+    const bb = clean && clean.contents;
+    if (bb && bb.footer && Array.isArray(bb.footer.contents)) {
+      bb.footer.contents = bb.footer.contents.filter(function (x) {
+        return JSON.stringify(x).indexOf("vn=flexgo") === -1;
+      });
+    }
+    return clean;
   } catch (e) { return msg; }
 }
 
@@ -6982,16 +7103,7 @@ function vnHandlePostback_(ev) {
        * ★グループへ出すときは、ボタンを外します。
        *   みんなの画面に「グループへ送る」が出ていては、おかしいためです。
        */
-      const clean = JSON.parse(JSON.stringify(msg));
-      try {
-        const bb = clean && clean.contents;
-        if (bb && bb.footer && Array.isArray(bb.footer.contents)) {
-          bb.footer.contents = bb.footer.contents.filter(function (x) {
-            return JSON.stringify(x).indexOf("vn=flexgo") === -1;
-          });
-        }
-      } catch (e2) {}
-      lrPush_(to, [clean]);
+      lrPush_(to, [vnShareStrip_(msg)]);
       say("📣 グループへ送りました。");
     } catch (e) {
       say("📣 送れませんでした：" + ((e && e.message) || e));

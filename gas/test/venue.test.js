@@ -3588,5 +3588,82 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
   ctx.vnGroupTarget_ = realGT;
 }
 
+console.log('\n■ 📣 [21] さっきの絵をグループへ送る（スプシのボタン）');
+{
+  /*
+   * ★なぜ、LINEのボタンだけでは足りないのか
+   *   LINEの受け口は「最後に公開できた古いコード」で動きます。
+   *   版が200で満杯のあいだ、公開のやり直しは失敗したままなので、
+   *   絵に付いたボタンを押しても、古いコードはその合図を知りません。
+   *   スプシのボタンは、いまのコードで動きます。だから両方に置きます。
+   */
+  const GO = ctx.panelShareGo;
+  const realGT2 = vm.runInContext('vnGroupTarget_', ctx);
+  vm.runInContext('function vnGroupTarget_(){ return "Cgroup"; }', ctx);
+  const sent2 = [];
+  ctx.__sent2 = sent2;
+  vm.runInContext('function lrPush_(to, msgs){ __sent2.push({ to: to, msgs: msgs }); }', ctx);
+
+  // 控えを ぜんぶ片づけてから始める
+  Object.keys(props).forEach(k => { if (k.indexOf('VNSHARE_') === 0) delete props[k]; });
+  Object.keys(cache).forEach(k => { if (k.indexOf('VN_SHARE_STEP') === 0) delete cache[k]; });
+
+  // ① 送れる絵が無いとき … はっきりそう言う（黙って終わらない）
+  has(GO(), '送れる絵がありません', '★絵が無ければ、そう言う');
+  eq(sent2.length, 0, '　 どこにも出さない');
+
+  // ② 絵があるとき … 1回目は「何を送るか」が出るだけ
+  const msg2 = { type: 'flex', altText: '10/16（金）夜の流れ',
+    contents: { type: 'bubble', body: { type: 'box', layout: 'vertical',
+      contents: [{ type: 'text', text: '19:00〜21:00　京セラドーム' }] } } };
+  const withBtn2 = ctx.vnShareButton_(msg2);
+  const k2 = decodeURIComponent(JSON.stringify(withBtn2).match(/vn=flexgo&k=([A-Za-z0-9_%]+)/)[1]);
+
+  sent2.length = 0;
+  const first = GO();
+  has(first, '10/16（金）夜の流れ', '★1回目は、何を送るのかが出る');
+  has(first, 'もう一度', '　 「もう一度」と出る');
+  eq(sent2.length, 0, '★★1回押しただけでは、グループへ出ない');
+
+  // ③ 2回目で、はじめて出る
+  const second = GO();
+  eq(sent2.length, 1, '★2回目で、グループへ出る');
+  eq(sent2[0].to, 'Cgroup', '　 出る先はグループ');
+  has(JSON.stringify(sent2[0].msgs), '京セラドーム', '　 見たとおりの絵が出る');
+  eq(JSON.stringify(sent2[0].msgs).indexOf('vn=flexgo') === -1, true,
+     '★★グループに出すときは「グループへ送る」ボタンを外す');
+  has(second, '送りました', '　 送ったと出る');
+
+  // ④ 3回目は、もう送れない（二度流れない）
+  sent2.length = 0;
+  has(GO(), '送れる絵がありません', '★★送ったあとは、もう送れない');
+  eq(sent2.length, 0, '　 2回は流れない');
+  eq(ctx.vnShareLoad_(k2), null, '　 控えも残っていない');
+
+  // ⑤ 控えが2つあるときは、新しいほうを送る
+  Object.keys(cache).forEach(k => { if (k.indexOf('VN_SHARE_STEP') === 0) delete cache[k]; });
+  const oldKey = 'VNSHARE_' + (Date.now() - 3600000).toString(36);
+  props[oldKey + '_0'] = JSON.stringify({ type: 'flex', altText: 'ふるいほう',
+    contents: { type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } } });
+  props[oldKey + '_n'] = '1';
+  const newKey = ctx.vnShareSave_({ type: 'flex', altText: 'あたらしいほう',
+    contents: { type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } } });
+  eq(ctx.vnShareNewest_(), newKey, '★★控えが2つあれば、新しいほうを選ぶ');
+  has(GO(), 'あたらしいほう', '　 送るのも、新しいほう');
+  ctx.vnShareDrop_(newKey); ctx.vnShareDrop_(oldKey);
+  Object.keys(cache).forEach(k => { if (k.indexOf('VN_SHARE_STEP') === 0) delete cache[k]; });
+
+  // ⑥ グループの送り先が分からないときは、1回目で止める
+  const k6 = ctx.vnShareSave_(msg2);
+  vm.runInContext('function vnGroupTarget_(){ return ""; }', ctx);
+  sent2.length = 0;
+  has(GO(), 'グループの送り先が分かりません', '★送り先が無ければ、そう言う');
+  eq(sent2.length, 0, '　 どこにも出さない');
+  eq(ctx.vnShareLoad_(k6) !== null, true, '　 控えは残す（送り先が決まれば送れる）');
+  ctx.vnShareDrop_(k6);
+
+  ctx.vnGroupTarget_ = realGT2;
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
