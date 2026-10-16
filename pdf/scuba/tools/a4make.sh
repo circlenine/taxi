@@ -4,6 +4,8 @@ set -eo pipefail
 S=/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad
 export NODE_PATH=$(npm root -g)
 cd $S/build
+# 不安にさせる言い回しが無いか（10/15 ご指示・全資料共通）
+python3 -I $S/tools/phrasecheck.py $S/tools/content.py
 python3 $S/tools/a4.py $S/build
 # 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
 python3 -I $S/tools/numcheck.py $S/build/num.png $(node $S/tools/numcheck.js $S/build/a4.html $S/build/num.png)

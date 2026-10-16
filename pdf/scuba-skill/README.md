@@ -166,6 +166,12 @@
 ## p2「リラックス」の作り方（10/15 まーく様）
 - ダイビングでのリラックスの大切さをまとめた記事を、片っ端から読んで、あいちゃん用に分かりやすくまとめる。
 - 出どころは DAN・PADI・医学の記事を中心に。確かめた文だけを使う（DESIGN.md の決まり）。
+- **寄りそいを入れる**（10/15 まーく様）：初心者は、どうしても緊張してしまうもの。それは当たり前、から始める。
+- **事前にすべきこと**と、**ダイビング中にあせったとき**を、いろいろなケースで入念に考える（息苦しい・マスクに水・耳が抜けない・
+  レギュレーターが外れた・空気が少ない・バディとはぐれた・急に浮く／沈む・寒い／気持ち悪い・こわくなった など）。
+  ケースごとの対処も、1つずつ公式で確かめてから書く。
+- 形の案：p2「緊張して当たり前。だからリラックスの準備」（寄りそい・なぜ大事・潜る前）、
+  p3「こんなとき、どうする？」（ケースごとの札。写真か絵＋1〜2行。くわしいページへの案内つき）。
 
 ## 動画の受け取り方（10/15〜）
 
@@ -238,10 +244,120 @@
 - どちらもスキル編とは**別の資料**。細かいスキルの中身・ドライスーツの種類は、サンライズの担当インストラクターに確認中。
   届いたら作り始める。動画は、ドライブのフォルダの「次の資料用」のもの。
 
+## p2 の出どころ（10/15 記事を読んで確かめた）
+| 文 | 出どころ |
+|---|---|
+| あわてることは事故の大きなきっかけ | Morgan 1995（PubMed 8614760）・Morgan 2004（PubMed 15162252）・Walton 2018（PubMed 30428239） |
+| 急な浮上がいちばん危ないことの1つ | DAN の 947件の死亡の研究（PubMed 19175195）：急な浮上が多く、肺の空気の病気につながる |
+| 落ち着くと空気が長持ち・中性浮力がとりやすい | https://blog.padi.com/how-do-you-breathe-while-scuba-diving/ ・ https://blog.padi.com/the-golden-rules-of-scuba-diving/ |
+| あわてる→息が速く浅く→息苦しい→急に上がりたくなる | https://dan.org/alert-diver/article/your-lungs-and-diving/ ・ https://blog.padi.com/how-to-breathe-properly-by-blowing-bubbles-underwater/ ・ https://www.divessi.com/ja/blog/preventing-dive-panic-1092 |
+| 止まる→ゆっくり全部吐く→深く吸うをくり返す→だめなら終える | https://blog.padi.com/jp/diving-accident-trends-and-tips-to-prevent/ ・ https://dan.org/alert-diver/article/public-safety-announcement-preventing-panic/ |
+| 息をぜったいに止めない | https://blog.padi.com/the-golden-rules-of-scuba-diving/ ・ https://dan.org/alert-diver/article/lung-expansion-injuries/ |
+| 不安は伝える・無理しない・体調が悪い日は潜らない | DAN の PSA（上と同じ）・PADI の決まり（上と同じ） |
+- 書かないこと：事故の何割がパニック、などの数字（出どころが又聞き）／「リラックスすると耳抜きが楽」（出どころ無し）／「速い呼吸で酸素が足りなくなる」（DAN は二酸化炭素と言っている）。
+- 「止まる・息・考える・動く」の合言葉は、公式の言い方としては確かめられなかった → 合言葉としては出さない。
+
+## 初心者がつまずきやすい点（10/15 下調べ。10ページ目のチェックに使う）
+強さ：公＝指導団体／医＝DAN など医学／統＝海上保安庁の数字（PADI Japan 経由）／雑＝雑誌
+| つまずき | どうする | 出どころ |
+|---|---|---|
+| 水面・エントリー／エキジットでの事故が多い（統） | 水面に出たら、すぐBCDをふくらませる。グループからはなれない | https://blog.padi.com/jp/diving-accident-trends-and-tips-to-prevent/ |
+| 体調が悪いのに潜る・がまんする（統・医） | 体調が悪い日は潜らない。息が苦しいと感じたら、合図してバディとゆっくり上がる | 同上・https://dan.org/?p=1546 |
+| 潜ったあとに飛行機・山道（高いところ）へ（医・公） | 飛行機は1本なら12時間以上、何本もなら18時間以上あける。山越えの道も高いところに入る | https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/ ・ https://blog.padi.com/7-things-you-should-never-do-immediately-after-diving/ ・ https://www.divessi.com/ja/blog/things-to-avoid-after-scubadiving-1269 |
+| 上手な人に合わせて無理をする（公・医） | 自分のペースで。速いときは合図で伝える | https://blog.padi.com/5-common-mistakes-new-scuba-divers-make/ |
+| バルブが全開になっていない（医） | 全開にして、吸いながら残圧計の針が下がらないか見る | https://dan.org/alert-diver/article/tank-valves-and-out-of-air-emergencies/ |
+| バディ・ガイドとはぐれる（公） | その場で1分さがして、見つからなければ浮上して水面で合流 | PADI Japan の事故の記事（上と同じ） |
+| 寒さ（公・医） | 合うスーツで。ふるえが止まらないときは合図して上がる | 同上・https://dan.org/alert-diver/article/womens-health-in-diving/ |
+| 重りの付けすぎ（公） | 速く沈み、空気を多く使う。重りはインストラクターさんと合わせる | https://blog.padi.com/diving-overweighted/ |
+| ほか：写真は慣れてから／しばらく潜らないときは講習をおさらい／お酒と水分・潜ったあとの熱いお風呂／船酔いの薬は陸で試してから／かぜ薬で耳の逆のつまり／サンゴや生き物にさわらない／コンタクトはソフトで、マスクに水を入れるときは目を閉じる | | 下調べの記録（PADI・DAN） |
+- 生理の日：「潜ってはいけない」「サメが寄ってくる」はどちらも根拠なし（DAN）。その日の体調で決める。→ 入れるなら、この形で。
+- 書かないこと：DAN の事故の％（又聞き）、ウエイトを水面で捨てるかどうか（意見が分かれる → インストラクターの教え方に従う）。
+- 「バルブを半回転戻す」は、DAN の事故例でも混乱のもとと書かれている → 準備編の見直しで、まーく様に確認する。
+
+## 文の確かめ（スキル編・10/15 調べた結果）
+| 文 | 確かめた出どころ |
+|---|---|
+| 耳抜き：鼻をつまんでやさしく。つばを飲む・あごを動かすも | https://blog.padi.com/ear-equalization-and-ear-care-for-scuba-divers/ ・ https://dan.org/?p=3562 |
+| 潜る前に1回、潜りはじめから早めにこまめに。痛くなる前に | 同上 |
+| 水面のすぐ下がいちばん圧が変わる | https://dan.org/health-medicine/health-resource/smart-guides/beat-the-squeeze-equalize-like-a-pro/how-your-ears-respond-to-pressure/ |
+| 抜けないときは止まって少し上がる。無理に吹かない。だめなら終える | https://blog.padi.com/the-golden-rules-of-scuba-diving/ ・ https://dan.org/health-medicine/health-resource/dive-medical-reference-books/ears-diving/ears-equalization/ |
+| かぜのときは潜らない | https://blog.padi.com/the-golden-rules-of-scuba-diving/ |
+| 呼吸で細かく、BCDで調整。深くなるとスーツ・BCDの空気がつぶれる | https://blog.padi.com/tips-buoyancy-control/ |
+| 水平の姿勢・むだに蹴らない・砂を巻き上げない | 同上 ・ https://www.divessi.com/en/blog/finning-techniques-for-divers-1335 |
+| フィンピボット・フィンキックのやり方 | 公式の手順は見つからず（指導者向けの記事のみ）→ 講習で習った形を優先と添える |
+| BCD排気：ホースをのばして上に | https://dtmag.com/?p=15543（雑誌） |
+| レギュレーターリカバリー：泡を出し続け、右に傾いて腕を回す | https://blog.padi.com/how-to-recover-your-regulator-when-diving/ |
+| レギュレータークリア：短く吐く／舌でふさいでパージ／最初はゆっくり吸う | 雑誌・ショップの記事のみ（公式の文は見つからず） |
+| マスククリア：上を押さえ、上を向き、鼻から長く吐く／脱着の手順 | https://blog.padi.com/master-underwater-mask-removal/ |
+| オクトパス：合図→受け取る→パージ→右腕をつかみ合う→OK→浮上 | https://blog.padi.com/how-to-give-an-alternate-air-source-to-your-dive-buddy/ |
+| 残圧をこまめに見る | https://blog.padi.com/the-golden-rules-of-scuba-diving/ |
+| 緊急スイミングアセント：アーと吐き続け・上を見て・片手は上・もう片手はインフレーター | https://pros-blog.padi.com/?p=97580 ・ https://scubadiverlife.com/training-tips-safely-conduct-cesa/ （浮上の速さは出どころで数字がちがう → 書かない） |
+| 息をぜったいに止めない（いちばん大事な決まり） | https://blog.padi.com/how-do-you-breathe-while-scuba-diving/ ・ https://dan.org/alert-diver/article/lung-expansion-injuries/ |
+
+## 2回目の下調べ（10/15：公式が見つかっていなかった点）
+- 呼び名は PADI Japan に合わせる：圧平衡（耳抜き）／バックアップ空気源（オクトパス）／緊急スイミングアセント／マスククリア／
+  レギュレーター・リカバリー／中性浮力・ホバリング。「代替空気源」は使わない。「フィンピボット」はお店の呼び方（PADI Japan は使っていない）。
+- フィンピボットの「吸うと浮き、吐くと沈む」、フィンキックの「ひざを少し曲げて大きくゆっくり」は、よく教えられるコツ（公式の文は無し）
+  → 「講習で習った形を優先」と添える。フィンキックは「足の付け根から・自転車こぎにしない」が SSI で確かめられた。
+- レギュレーター・リカバリーは、PADI の動画では腕を回す方法だけ。**ただしサンライズの講習は「手でたどる」方法 → こちらを優先**（10/15 まーく様）。
+  見つけ方は参考の1つ。手に当たったら落ち着いてつかみ、くわえて、パージボタンで水を出して呼吸。呼吸の確保が最優先。
+- BCD排気：PADI の「5つの安全に浮上する手順」に「排気ホースを上に」がある（https://blog.padi.com/jp/scuba-diving-refresher-checklist/）。
+- 合図：地域・団体・人でちがう（DAN https://dan.org/alert-diver/article/whats-that-you-say/）→ 潜る前に合わせる、と添える。
+  親指を上は「浮上」（https://www.divessi.com/blog/basic-hand-signals-every-diver-needs-to-know-8837.html）。
+  「ゆっくり吸って」「しっかり吐いて」は標準ではない → ※でお店の合図と示す。PADI の新しい「調子が悪い」合図あり
+  （https://blog.padi.com/jp/the-new-hand-signal-do-you-know-them-yet/）。写真が無いので、今回は入れない。
+- 講習の日数・本数は資料に書かない（PADI は海洋実習4本を「ふつう2日以上」としている。あいちゃんの講習の組み方は不明のため）。
+
+## 写真の出どころ → 貼るリンク（10/15。使った写真のぶんだけ貼る）
+| 写真の印 | 元の動画 | リンク |
+|---|---|---|
+| bs | ビューティフルシー「主なスキルの紹介（プール講習編）」 | https://youtu.be/2X4rf11ORN0 |
+| mimi | PADI Japan「How To｜圧平衡（耳抜き）」 | https://youtu.be/WvrP47_Smu0 |
+| mask | PADI Japan「How To｜マスククリア」 | https://youtu.be/Zpf8LSiQtko |
+| rr | PADI Japan「How To｜レギュレーター・リカバリー」 | https://youtu.be/5K8XyxfDplc |
+| octo | PADI Japan「How To｜バックアップ空気源の使い方」 | https://youtu.be/3MHCvlPVQew |
+| sig | エアー福岡「18. ハンドシグナル」 | https://youtu.be/pS-yk6gth-8 |
+| rc2 | 彦坂さん（Club DO）の再生リストの各動画。使う場面ごとに、再生リストの中の動画を突き合わせて貼る | 例：フィンピボット sKQf90mn-20／マスク脱着 nb-1Zn2dyOo／レギュクリア LgmvXnenvkY |
+| rc | サンズ（大阪 天王寺）の再生リストの各動画。場面の題（画面の字）と再生リストの題を突き合わせて貼る | 例：マスククリア xo6Dp8jm7Pw／浮力コントロール＆フィンピボット kYvgkoTBkNg（**使う前に必ず突き合わせる**） |
+
+## ページ数の決まり（10/15 まーく様）
+- **スキル編は、多くても10ページまで。** いちばん大事な、必ず伝えなければいけないことを優先してしぼる。
+- **1つのシリーズで、資料を何冊にも分けない（別紙は作らない）。** 多すぎると読む気がなくなるため。
+- **すでに準備編・洗浄編で18ページある。あいちゃんはアドバンス講習も控えている。**（10/15 まーく様）
+  → 負担を押しつけない。**読んで楽しい**ことを最優先に、10ページより少なくてよい。
+- 8ページの割りふり（案・10/15）
+  1 表紙／2 緊張して当たり前・リラックス（寄りそい・なぜ・潜る前・あせったら4つの順番）／
+  3 こんなとき、どうする？（ケース別の札：写真＋1〜2行）／4 耳抜き／5 中性浮力（呼吸とBCD・姿勢）／
+  6 思い出しカード（BCD排気・レギュレーター・マスク・エア切れ・緊急スイミングアセントを写真＋1行で）／
+  7 ハンドシグナル早見表／8 これだけは！（つまずきチェック）とクイズ
+
+## p3「こんなとき、どうする？」の出どころ（10/15 下調べ）
+| ケース | どうする | 出どころ（強さ） |
+|---|---|---|
+| 緊張するのは当たり前 | 自然なこと。不安はインストラクター・バディに遠慮なく伝える。自分のペースで | https://blog.padi.com/jp/how-to-get-over-a-fear-of-scuba-diving/ （公）・https://dan.org/safety-prevention/diver-safety/divers-blog/anyone-can-cancel-any-dive-at-any-time-for-any-reason/ （公） |
+| だれでも、いつでも、潜るのをやめてよい | 理由はいらない | 同上 DAN ・ https://blog.padi.com/?p=112858 （公） |
+| 前の日・当日 | よく眠る、お酒を控える、水分と食事、時間に余裕を。体調が悪い日は潜らない | https://blog.padi.com/how-to-overcome-scuba-diving-anxiety/ （公） |
+| 船酔いの薬 | 陸で前もって試す。お酒といっしょに使わない | https://dan.org/?p=32822 （公・医） |
+| 潜りはじめ | 足から、ロープにそってゆっくり。上を見て、早めに耳抜き | https://blog.padi.com/10-tips-for-equalizing-ears/ （公） |
+| 息が苦しい | 止まって、バディに知らせ、何かにつかまり、ゆっくり深く呼吸。おさまらなければ安全に上がる | https://dan.org/alert-diver/article/your-lungs-and-diving/ （公）・scuba.com（雑） |
+| マスクに水・外れた | レギュレーターで呼吸を続けて落ち着く。上を押さえ、上を見て、鼻から吐く | https://blog.padi.com/mastering-your-mask-skills/ ・ https://blog.padi.com/how-to-clear-your-mask/ （公） |
+| 耳が抜けない | 痛いまま進まない。少し上がってもう一度。だめなら、ゆっくり終える | DAN の耳抜き10のコツ（PADI 掲載）・PADI のやめどきの記事（公） |
+| レギュレーターが外れた | 息を止めず、小さな泡を出す。右に傾いて右腕を回して拾い、くわえてパージ | https://blog.padi.com/how-to-recover-your-regulator-when-diving/ （公） |
+| 空気が少ない・無い | 合図→バディのオクトパス→OK→ゆっくり浮上。その日はもう潜らない | DAN（検索の要約のみ）・PADI のオクトパスの記事（公） |
+| バディとはぐれた | **その場から動かず、上下もふくめて360度ぐるっと見わたす → 見つからなければ、その場で1分待つ（空気が少なければ待たずにゆっくり浮上）→ 浮上して、水面で落ち合う** | **サンライズの講習で習った形（10/15 まーく様）**。泳ぎ回ってさがさない。「1分さがす」は誤り（1分は、さがす時間ではなく、その場で待つ時間） |
+| 急に浮いていく | BCDの空気を抜き、息を吐く（止めない）。手足を広げて体を反らせ、速さを落とす | https://blog.padi.com/dive-accident-case-studies-rapid-ascents/ （公） |
+| 寒い | ふるえる前に、合図して上がる | PADI のやめどきの記事（公） |
+| 気持ち悪い・吐きそう | レギュレーターはくわえたまま（今のレギュレーターは大丈夫）。バディにつかまる。そのあと上がって、その日は終わり | https://blog.padi.com/vertigo-vomiting-diving/ （公） |
+| 目が回る・向きが分からない | 落ち着いて呼吸を続け、バディに合図。泡の上がる向き・ロープ・バディを見る | 同上（公） |
+| こわくなった | 止まって呼吸。強すぎるときは浅いほうへ、または終える | https://dan.org/alert-diver/article/public-safety-announcement-preventing-panic/ （公） |
+| 絡まった | あわてずに。バディに知らせる（くわしい対処は弱い出どころのみ） | https://dan.org/alert-diver/article/entangled-in-kelp/ （公） |
+| 潜ったあと | むずかしかったことをインストラクター・バディに話す。間をあけずにまた潜る | PADI Japan・PADI（公） |
+- 書かないこと：「水面の事故が何割」などの数字、沈みすぎるときの細かい対処（公式が見つからない）、SSI の「飛行機で着いたら24時間待つ」（決まりではない）。
+
 ## 長さの決まり（10/14 まーく様）
 
 - その資料を読むのに**10分かからない量**にまとめられるなら、本体に入れる。
-- 長くなりすぎるものは、**別紙**にする。
+- ~~長くなりすぎるものは、別紙にする。~~ → 10/15 取り消し：別紙は作らない。しぼって10ページに収める。
 
 ## 決まったこと（10/14）
 
@@ -297,3 +413,12 @@
 ## 気になる点（あとで確かめる）
 
 - 上の「疑ったところ」の書き方でよいか、構成の案を出すときに、まーく様に確かめる。
+
+## 5-3「さわって覚えよう」の出どころ（10/15 下調べ）
+
+- L字サインホース（インフレーターホース）＝BCDの左側：準備編 2-6 と同じ。器材の作りがそうなっている
+- {regu}＝右から来ることが多い：PADI のレギュレーターリカバリーで、右腕を回して探すのはこのため
+- オクトパスの位置：**団体の決まりは無い**（DAN Alert Diver「My Octopus Goes Where?」https://dan.org/alert-diver/article/my-octopus-goes-where/ ）。
+  胸の三角のあたりに留めることが多い、とされる。だから資料では決めつけず「左右どっち？」と問いかける
+- 残圧計の位置も、人・お店でちがう（ダイバーの掲示板で左右どちらの例もある。△）
+- 書き方：「講習・お店のセッティングに合わせよう」を添える
