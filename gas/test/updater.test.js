@@ -1045,7 +1045,7 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 20, 'いつも20個並ぶ（' + items.length + '個）');
+t(items.length === 21, 'いつも21個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
@@ -1053,7 +1053,7 @@ t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
   'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck,panelCleanDeploys,panelManual,' +
-  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape',
+  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape,panelShareGo',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -1214,7 +1214,9 @@ console.log('\n■ チェックのらんだけを自分だけが押せるよう�
 reset([['001-Code.gs', 'あたらしい']]);
 F('menuMakePanel')();
 t(panel._prot.length === 1, '保護がかかる');
-t(panel._prot[0]._a1 === 'B9:B50',
+// ★ボタンの数は増えていくので、数を書き写さない。
+//   「置いてある いちばん下の行まで」を、そのつど数えて見る
+t(panel._prot[0]._a1 === 'B' + F('panelTop_')(panel) + ':B' + F('panelLastRow_')(panel),
   'チェックのらん（B列）を、置いてある行のぶんだけ守る（入力らん3つも含む）');
 t(panel._prot[0]._editors.length === 0, 'ほかの編集者は外される（＝自分だけ）');
 t(panel._prot[0]._domain === false, '同じドメインの人もまとめて外す');
@@ -1358,7 +1360,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '16個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '17個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1492,7 +1494,9 @@ panel._cells['54,2'] = false;
 panel._cells['54,3'] = '[19] ぜんぶ読み直す';
 panel._cells['55,2'] = false;
 panel._cells['55,3'] = '[20] 結果らんの形を調べる';
-panel._cells['56,2'] = '結果';
+panel._cells['56,2'] = false;
+panel._cells['56,3'] = '[21] さっきの絵をグループへ送る';
+panel._cells['57,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1573,15 +1577,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 14, '[7]〜[20] が足りない');
+t(F('panelCheck_')(panel).missing.length === 15, '[7]〜[21] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 16, '16個足りない');
+t(miss.length === 17, '17個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 20, '20個になった');
+t(F('panelReadRows_')(panel).length === 21, '21個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -6654,6 +6658,68 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
     '★なおす係（fixAll）からも呼んでいる');
   t(code.indexOf('panelLampOnOpen_(SpreadsheetApp.getActiveSpreadsheet())') !== -1,
     '★★開いたとき（onOpen）からも呼んでいる');
+}
+
+console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ送る」');
+/*
+ * ★まーく様から、まとめを渡されて
+ *   「必要最低限の要点だけにまとめて、line flex messageで
+ *     僕のlineに送ってください」と言われたときのためのものです。
+ *
+ * ★送り先は **まーく様の個人LINEだけ**。
+ *   グループへは、おつかいからは絶対に出しません
+ *   （人の目を通していないものを、みんなに流さないため）。
+ */
+{
+  const MSG = F('updErrandFlexMsg_');
+  const bubble = { type: 'bubble', body: { type: 'box', layout: 'vertical',
+                   contents: [{ type: 'text', text: 'てすと' }] } };
+
+  const m1 = MSG({ flex: bubble, alt: '10/16 夜の狙い目' });
+  t(!!m1 && m1.type === 'flex', '★絵の形になる');
+  t(m1.altText === '10/16 夜の狙い目', '　 一覧に出る文も入る');
+  t(m1.contents === bubble, '　 中身は、そのまま渡す');
+
+  t(MSG({}) === null, '★絵が無ければ null（むりに送らない）');
+  t(MSG({ flex: 'ただの文字' }) === null, '★★形になっていなければ null');
+  t(MSG(null) === null, '　 渡されなくても落ちない');
+
+  const okList = vm.runInContext('JSON.stringify(Object.keys(UPD_ERRAND_OK))', ctx);
+  t(okList.indexOf('flex-note') !== -1, '★おつかいの一覧に入っている');
+
+  const src8 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  /*
+   * ★見るところ（flex-note の分かれ道）を、はじめから おわりまで取る。
+   *   前は「はじめから900文字」で見ていたので、コメントを足したら
+   *   見たい行が窓からはみ出して、素通りしていた。
+   *   おわりは「次の分かれ道」までとする。
+   */
+  const at8 = src8.indexOf('task === "flex-note"');
+  t(at8 !== -1, '★flex-note の分かれ道がある');
+  const end8 = src8.indexOf('} catch (e) {', at8);
+  const part = src8.slice(at8, end8 === -1 ? at8 + 3000 : end8);
+  t(part.indexOf('task ===') === part.lastIndexOf('task ==='),
+    '　 見ているのは flex-note の分かれ道だけ');
+
+  t(part.indexOf('lrPush_(me,') !== -1, '★★送り先は me（まーく様の個人LINE）だけ');
+  t(part.indexOf('lrPush_(') === part.lastIndexOf('lrPush_('),
+    '★★送るところは1か所だけ（ほかへ出さない）');
+  t(part.indexOf('vnGroupTarget_') === -1, '★★★グループの送り先を、ここでは見ない');
+  t(part.replace(/\/\*[\s\S]*?\*\//g, '').indexOf('グループ') === -1,
+    '★★★コメントを抜いても「グループ」が出てこない（＝出さない）');
+
+  /*
+   * ★絵の下に「グループへ送る」ボタンを足しているか。
+   *   足していないと、まーく様が手で打ち直すことになる（ご指示のとおりでない）。
+   */
+  t(/fx2\s*=\s*vnShareButton_\(/.test(part),
+    '★★絵の下に「グループへ送る」ボタンを足して、それを送っている');
+  t(/lrPush_\(me,\s*\[fx2\]\)/.test(part),
+    '★★★送るのは、ボタンを足したほう（足して捨てていない）');
+  t(part.indexOf('typeof vnShareButton_ === "function"') !== -1,
+    '★ボタンの係が入っていなくても、絵はそのまま届く（止まらない）');
+  t(part.indexOf('j.share === false') !== -1,
+    '★メモに share:false と書けば、ボタンを足さない');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

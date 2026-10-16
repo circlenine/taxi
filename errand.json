@@ -1,6 +1,493 @@
 {
-  "id": "2026-09-21-001",
-  "do": ["venue-ledger", "event-test"],
-  "day": "あす",
-  "note": "① いま何が読み取れているかの台帳（会場ごとの件数つき・まーく専用スプシ） ② あすのイベント確認用。どちらもまーくさんの個人LINEだけに届きます。"
+  "id": "2026-10-16-flex-4",
+  "do": "flex-note",
+  "alt": "10/16（金）夜の流れ",
+  "flex": {
+    "type": "bubble",
+    "size": "giga",
+    "header": {
+      "type": "box",
+      "layout": "vertical",
+      "backgroundColor": "#1b2430",
+      "paddingAll": "14px",
+      "contents": [
+        {
+          "type": "text",
+          "text": "10/16（金）夜の流れ",
+          "color": "#ffffff",
+          "weight": "bold",
+          "size": "lg",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "大阪A地区 ／ 17:00 出発",
+          "color": "#9fb3c8",
+          "size": "xs",
+          "margin": "xs",
+          "wrap": true
+        }
+      ]
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "paddingAll": "14px",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "margin": "none",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "17:00〜",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "21:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                }
+              ],
+              "flex": 4
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "🏥 日本薬局学会（前夜）",
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "グランキューブ大阪／数千人・あすから",
+                  "size": "xs",
+                  "color": "#5f6368",
+                  "wrap": true,
+                  "margin": "none"
+                },
+                {
+                  "type": "text",
+                  "text": "新大阪・ホテル→中之島。会食で北新地・梅田へ",
+                  "size": "xs",
+                  "color": "#333333",
+                  "wrap": true,
+                  "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "🔗 公式で確認",
+                  "size": "xxs",
+                  "color": "#1a73e8",
+                  "margin": "xs",
+                  "action": {
+                    "type": "uri",
+                    "label": "確認",
+                    "uri": "https://www.gco.co.jp/event/"
+                  },
+                  "wrap": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "separator",
+          "margin": "lg",
+          "color": "#e8eaed"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "margin": "lg",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "18:30〜",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "21:30",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                }
+              ],
+              "flex": 4
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "🎤 Novelbright",
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "大阪城ホール／開演18:30・終演21:00〜21:30",
+                  "size": "xs",
+                  "color": "#5f6368",
+                  "wrap": true,
+                  "margin": "none"
+                },
+                {
+                  "type": "text",
+                  "text": "終演後 城見・キタ・ミナミへ",
+                  "size": "xs",
+                  "color": "#333333",
+                  "wrap": true,
+                  "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "🔗 公式で確認",
+                  "size": "xxs",
+                  "color": "#1a73e8",
+                  "margin": "xs",
+                  "action": {
+                    "type": "uri",
+                    "label": "確認",
+                    "uri": "https://www.osaka-johall.com/event/"
+                  },
+                  "wrap": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "separator",
+          "margin": "lg",
+          "color": "#e8eaed"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "margin": "lg",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "21:00〜",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "22:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                }
+              ],
+              "flex": 4
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "🎢 USJ ホラーナイト",
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "ユニバーサルシティ／閉園",
+                  "size": "xs",
+                  "color": "#5f6368",
+                  "wrap": true,
+                  "margin": "none"
+                },
+                {
+                  "type": "text",
+                  "text": "パーク周辺・ホテル 今週最大級",
+                  "size": "xs",
+                  "color": "#333333",
+                  "wrap": true,
+                  "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "🔗 公式で確認",
+                  "size": "xxs",
+                  "color": "#1a73e8",
+                  "margin": "xs",
+                  "action": {
+                    "type": "uri",
+                    "label": "確認",
+                    "uri": "https://www.usj.co.jp/web/ja/jp"
+                  },
+                  "wrap": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "separator",
+          "margin": "lg",
+          "color": "#e8eaed"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "margin": "lg",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "21:00〜",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "23:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                }
+              ],
+              "flex": 4
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "💰 西天満 老松通り",
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#b00020",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "高級割烹の接待終わり",
+                  "size": "xs",
+                  "color": "#5f6368",
+                  "wrap": true,
+                  "margin": "none"
+                },
+                {
+                  "type": "text",
+                  "text": "23時閉店・一発勝負。芦屋・西宮・北摂へ万収",
+                  "size": "xs",
+                  "color": "#333333",
+                  "wrap": true,
+                  "margin": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "separator",
+          "margin": "lg",
+          "color": "#e8eaed"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "margin": "lg",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "21:00〜",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "23:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                }
+              ],
+              "flex": 4
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "💰 本町・淀屋橋",
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#b00020",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "伏見町の路地／金曜の会食・残業終わり",
+                  "size": "xs",
+                  "color": "#5f6368",
+                  "wrap": true,
+                  "margin": "none"
+                },
+                {
+                  "type": "text",
+                  "text": "幹部クラス。チケット・法人カード客",
+                  "size": "xs",
+                  "color": "#333333",
+                  "wrap": true,
+                  "margin": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "separator",
+          "margin": "lg",
+          "color": "#e8eaed"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "margin": "lg",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "22:30〜",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "23:45",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
+                }
+              ],
+              "flex": 4
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "💰 新大阪駅 3階",
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#b00020",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "東京からの最終新幹線",
+                  "size": "xs",
+                  "color": "#5f6368",
+                  "wrap": true,
+                  "margin": "none"
+                },
+                {
+                  "type": "text",
+                  "text": "西宮・芦屋・千里中央・箕面・奈良。1万円超え連発",
+                  "size": "xs",
+                  "color": "#333333",
+                  "wrap": true,
+                  "margin": "xs"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "paddingAll": "10px",
+      "backgroundColor": "#f6f7f9",
+      "contents": [
+        {
+          "type": "text",
+          "text": "今日も安全運転でいってらっしゃい",
+          "size": "xxs",
+          "color": "#5f6368",
+          "align": "center",
+          "wrap": true
+        }
+      ]
+    }
+  },
+  "note": "時間順の1日の流れ。時間の表記は HH:MM〜HH:MM で統一。リンクは生きていることを確かめたものだけ。"
 }
