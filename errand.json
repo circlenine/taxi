@@ -1,5 +1,5 @@
 {
-  "id": "2026-10-16-flex-11",
+  "id": "2026-10-16-flex-12",
   "do": "flex-note",
   "from": "だいちゃん",
   "said": [
@@ -7,12 +7,12 @@
     "新大阪・ホテル→中之島。会食で北新地・梅田へ",
     "大阪城ホール／開演18:30・終演21:00〜21:30",
     "終演後 城見・キタ・ミナミへ",
-    "ユニバーサルシティ／閉園",
-    "パーク周辺・ホテル 今週最大級",
     "高級割烹の接待終わり",
     "23時閉店・一発勝負。芦屋・西宮・北摂へ万収",
     "伏見町の路地／金曜の会食・残業終わり",
     "幹部クラス。チケット・法人カード客",
+    "ユニバーサルシティ／閉園",
+    "パーク周辺・ホテル 今週最大級",
     "東京からの最終新幹線",
     "西宮・芦屋・千里中央・箕面・奈良。1万円超え連発"
   ],
@@ -536,117 +536,6 @@
                 "contents": [
                   {
                     "type": "text",
-                    "text": "20:45〜",
-                    "wrap": true,
-                    "size": "sm",
-                    "weight": "bold",
-                    "color": "#5f6368"
-                  },
-                  {
-                    "type": "text",
-                    "text": "22:15",
-                    "wrap": true,
-                    "size": "sm",
-                    "weight": "bold",
-                    "color": "#5f6368"
-                  },
-                  {
-                    "type": "text",
-                    "text": "目安",
-                    "wrap": true,
-                    "size": "xxs",
-                    "color": "#5f6368"
-                  }
-                ]
-              },
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 11,
-                "contents": [
-                  {
-                    "type": "text",
-                    "text": "🎢 ユニバーサルシティ｜USJ ホラーナイト",
-                    "wrap": true,
-                    "weight": "bold",
-                    "size": "sm",
-                    "color": "#1b2430"
-                  },
-                  {
-                    "type": "text",
-                    "text": "・ユニバーサルシティ／閉園",
-                    "wrap": true,
-                    "size": "xs",
-                    "color": "#333333",
-                    "margin": "xs"
-                  },
-                  {
-                    "type": "text",
-                    "text": "・パーク周辺・ホテル 今週最大級",
-                    "wrap": true,
-                    "size": "xs",
-                    "color": "#333333",
-                    "margin": "xs"
-                  },
-                  {
-                    "type": "text",
-                    "text": "※閉園時刻 未確認。確かめてから動いてください",
-                    "wrap": true,
-                    "size": "xs",
-                    "weight": "bold",
-                    "color": "#b00020",
-                    "margin": "xs"
-                  },
-                  {
-                    "type": "text",
-                    "text": "公式:今日の閉園時刻は、確かめられませんでした",
-                    "wrap": true,
-                    "size": "xxs",
-                    "color": "#5f6368",
-                    "margin": "xs"
-                  },
-                  {
-                    "type": "text",
-                    "text": "閉園の15分前に着ける。公式アプリで閉園時刻を見てから",
-                    "wrap": true,
-                    "size": "xs",
-                    "color": "#333333",
-                    "margin": "xs"
-                  },
-                  {
-                    "type": "text",
-                    "text": "🔗 公式で確認",
-                    "wrap": true,
-                    "size": "xxs",
-                    "color": "#1a73e8",
-                    "margin": "xs",
-                    "action": {
-                      "type": "uri",
-                      "label": "確認",
-                      "uri": "https://www.usj.co.jp/web/ja/jp/park-guide/schedule/park-hour2"
-                    }
-                  }
-                ]
-              }
-            ],
-            "margin": "none"
-          },
-          {
-            "type": "separator",
-            "margin": "lg"
-          },
-          {
-            "type": "box",
-            "layout": "horizontal",
-            "spacing": "sm",
-            "contents": [
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 4,
-                "contents": [
-                  {
-                    "type": "text",
                     "text": "21:00〜",
                     "wrap": true,
                     "size": "sm",
@@ -695,7 +584,7 @@
                 ]
               }
             ],
-            "margin": "lg"
+            "margin": "none"
           },
           {
             "type": "separator",
@@ -832,6 +721,101 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  }
+                ]
+              }
+            ],
+            "margin": "lg"
+          },
+          {
+            "type": "separator",
+            "margin": "lg"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "spacing": "sm",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 4,
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "21:45〜",
+                    "wrap": true,
+                    "size": "sm",
+                    "weight": "bold",
+                    "color": "#1b2430"
+                  },
+                  {
+                    "type": "text",
+                    "text": "23:00",
+                    "wrap": true,
+                    "size": "sm",
+                    "weight": "bold",
+                    "color": "#1b2430"
+                  }
+                ]
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 11,
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "🎢 ユニバーサルシティ｜USJ ホラーナイト",
+                    "wrap": true,
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#1b2430"
+                  },
+                  {
+                    "type": "text",
+                    "text": "・ユニバーサルシティ／閉園",
+                    "wrap": true,
+                    "size": "xs",
+                    "color": "#333333",
+                    "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "・パーク周辺・ホテル 今週最大級",
+                    "wrap": true,
+                    "size": "xs",
+                    "color": "#333333",
+                    "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "公式:今日の営業は 08:00〜22:00（USJ公式）。ゾンビは閉園まで",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#5f6368",
+                    "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "21:45着け。22:00 閉園。ユニバーサルシティ駅・ホテル・此花区",
+                    "wrap": true,
+                    "size": "xs",
+                    "color": "#333333",
+                    "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "🔗 公式で確認",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "確認",
+                      "uri": "https://www.usj.co.jp/web/ja/jp/park-guide/schedule/park-hour2"
+                    }
                   }
                 ]
               }
@@ -992,7 +976,7 @@
           },
           {
             "type": "text",
-            "text": "・USJ の閉園＝確かめられず／着け時刻＝終演の15分前(見当)",
+            "text": "・USJ の閉園22:00＝USJ公式／着け時刻＝終演の15分前(見当)",
             "wrap": true,
             "size": "xxs",
             "color": "#5f6368"
