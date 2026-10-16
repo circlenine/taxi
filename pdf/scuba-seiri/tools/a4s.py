@@ -1,4 +1,3 @@
-import re
 # A4のPDF（10/7 ご指示「A4にして」。スマホ版の作りを、A4の1ページに収める）
 # もとはスマホで読むためのPDF（10/7 ご指示「スマホで見る。各項目は1ページ、多くても2ページ」）
 # ・紙の幅を、スマホの画面に近い 110mm にする（A4のまま縮めると、字が小さくて読めないため）
@@ -7,7 +6,7 @@ import re
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
 sys.path.insert(0, os.path.dirname(__file__))
-from content_s import STEPS, TERMS, POINTS, QUIZ, SUMMARY   # 器材洗浄編（10/13）
+from content_s import STEPS, TERMS, POINTS, QUIZ, KEYPOINTS   # 器材洗浄編（10/13）
 from focus_s import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -280,6 +279,7 @@ def page(head_no, head_title, inner, toc=True):
 
 # 1ページ目は表紙＋もくじ（あとで差しこむ）
 pages.append(None)
+pages.append(None)   # 2ページ目＝もくじと使い方（10/16：1ページ目は「覚えるポイント」だけにするため、もくじを2ページへ移した）
 
 # 道具
 RX0, RY0, RX1, RY1 = 265, 88, 1045, 500   # 写真 reg2.jpg の範囲（動画の画面での位置）
@@ -364,18 +364,18 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-# 1ページ目の「まとめ」（10/16 まーく様：フェルミ漫画大学のまとめのように、先に「これだけ覚えればOK」を出す）
-# 意図：ページを開いて最初に目に入る場所に、覚えることを4つだけ置く。全部読まなくても、ここだけで要点がそろう。
-#   A＝ホワイトボード（手書きに近い字・灰色のふち）：参考にいただいた形に近い「黒板のまとめ」の気分で、先生に教わる感じを出す
-#   B＝この資料の色のカード（ほかのページと同じ字）：資料全体と見た目をそろえ、いちばん読みやすさを優先する
-SUMV = __import__("os").environ.get("SUMV", "A")
-SUMBOX = (f'<div class="sumb sum{SUMV}"><p class="sumh"><span>まとめ</span><small>これだけ覚えれば、OK！</small></p>'
-          + "".join(f'<p class="sumi"><span class="sumn">{i}</span><span>{T(x)}</span></p>' for i, x in enumerate(SUMMARY, 1))
-          + '<span class="sumq">まとめ<br>だな！</span></div>')
+# 1ページ目「今回覚えるべきポイント」（10/16 まーく様）
+# 1ページ目は、表紙とこれだけ。「今回は、これを覚えるんだな！」という心構えにする。もくじと使い方は2ページへ。
+# 形は、準備編の手順の札（番号の札＋題）と、補足の行（札＋文）をそのまま使う。新しい形は作らない（デザイン揺れを出さない）
+KP = ('<h2 class="toch">今回覚えるべきポイント<span class="tocn">まずは、この4つだけ！くわしいやり方は、3ページから</span></h2><div class="kps">'
+      + "".join(f'<section class="step kp"><h3 class="sh3"><span class="sn">{i}</span><span>{T(a)}</span></h3><div class="notes"><div class="nt kx"><span class="nk">なぜ？</span><span class="nx">{T(b)}</span></div></div></section>' for i, (a, b) in enumerate(KEYPOINTS, 1))
+      + '</div>')
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">2</span></span><span class="cv-e">器材<span class="g">洗浄</span>編</span></div></div>
-{SUMBOX}<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>新規項目である洗浄のやり方</p>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
-<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
+{KP}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>
+<div class="page tocpg" id="p2">{EDTAG}<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>新規項目である洗浄のやり方</p>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">3〜__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>2 / __TOTAL__</span></div></div>"""
+pages[1] = ""   # 2ページ目は、上の pages[0] の中に続けて書いた
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 pages = [re.sub(r"__PG_([0-9A-Z-]+)__", lambda m: str(SUBPG[m.group(1)]), x) for x in pages]
 
@@ -1029,29 +1029,23 @@ CSS += """
 .cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
 """
 CSS += """
-/* 1ページ目の「まとめ」（10/16） */
-#p1 .sumb{position:relative;flex:none;padding:2.4mm 20mm 2.4mm 4.5mm}
-#p1 .sumh{margin:0 0 1.6mm;display:flex;align-items:baseline;gap:3mm}
-#p1 .sumh span{font-size:15pt;font-weight:900}
-#p1 .sumh small{font-size:11pt;font-weight:900;color:#e0507f}
-#p1 .sumi{margin:0;display:flex;gap:2.4mm;align-items:baseline;font-size:12pt;font-weight:700;line-height:1.55}
-#p1 .sumi+.sumi{margin-top:1mm}
-#p1 .sumn{flex:none;width:5.6mm;height:5.6mm;display:inline-grid;place-items:center;font-size:10pt;font-weight:900;color:#fff;background:var(--navy);transform:translateY(-.4mm)}
-#p1 .sumq{position:absolute;right:3.5mm;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:11pt;font-weight:900;padding:3mm 1.6mm;background:#fff;border:1.2px solid var(--ink);line-height:1.3}
-/* A：ホワイトボード */
-#p1 .sumA{background:#fff;border:2.2mm solid #d9dde2;box-shadow:inset 0 0 0 .4mm #b9bfc6, 0 .6mm 0 #aab0b7}
-#p1 .sumA,#p1 .sumA .sumq{font-family:"Klee One",sans-serif;letter-spacing:0}
-#p1 .sumA .sumi,#p1 .sumA .sumh span{font-weight:600}
-#p1 .sumA .sumn{background:none;color:var(--navy);border:.5mm solid var(--navy)}
-/* B：資料の色のカード */
-#p1 .sumB{background:var(--pale);border-left:2mm solid var(--navy)}
-#p1 .sumB .sumq{border-color:var(--navy);color:var(--navy)}
-/* まとめを入れたぶん、すき間を少しつめる（もくじの行は 8mm 以上を守る） */
-#p1{gap:2.6mm!important}
-#p1 .howto{line-height:1.45!important;padding:2mm 3mm!important}
-#p1 .howto .hw{margin-top:.4em!important}
+/* 1ページ目「今回覚えるべきポイント」（10/16）：手順の札・補足の行と同じ形。4つを、ページの下まで同じ間かくで並べる */
+#p1 .kps{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+#p1 .kp{border-top:1px solid var(--line);padding:3mm 0}
+#p1 .kp:last-child{border-bottom:1px solid var(--line)}
+#p1 .kp:first-child{border-top:0}   /* 見出しの下の線と二重にしない */
+#p1 .kp .sh3{font-size:15pt!important}
+#p1 .kp .notes{margin-top:2.4mm}
+/* 題と「なぜ？」は1つのまとまり。あいだに線を引かず、線はポイントとポイントの境目だけにする */
+#p1 .kp .notes .nt{border-top:0!important;padding-top:0!important}
+#p1 .kp .nx{font-size:12pt!important;font-weight:700!important;line-height:1.7!important}
+/* 2ページ目（もくじ・使い方）も、1ページ目と同じすき間で並べる */
+.tocpg{gap:4mm!important}
+/* 1ページ目のポイントの見出しは、もくじの見出しと同じ形（#p1 .toch の決まりは2ページへ移したので、ここで同じものを書く） */
+#p1>.toch{display:flex;align-items:baseline;justify-content:space-between;gap:3mm}
+#p1>.toch .tocn{font-size:10.5pt!important;font-weight:700;color:var(--muted)}
 """
-FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Klee+One:wght@600&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
+FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
 
@@ -1125,7 +1119,15 @@ COLORS = {"#1c6ea4": "#c2571a", "#16466b": "#6b3410", "#d7eef9": "#ffe6d2", "#a9
 def recolor(h):
     for k, v in COLORS.items(): h = h.replace(k, v).replace(k.upper(), v)
     return h
-CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
+
+# 10/16 もくじを2ページへ移したので、3ページ目からが手順のページ。
+# CSS・JS の「#p2」「#p10」などは、もとのページ番号で書いてあるので、ここで1つずつ後ろへずらす（#p1 の表紙はそのまま）。
+# もくじ・使い方の決まり（もとは #p1 に書いていた）は、2ページ（#p2）へ移す。
+def shift_ids(s):
+    s = re.sub(r"#p(\d+)\b", lambda m: m.group(0) if m.group(1) == "1" else f"#p{int(m.group(1)) + 1}", s)
+    return re.sub(r"#p1( ?\.(?:toc|tc|toch|howto|relnote)\b)", r"#p2\1", s)
+CSS = shift_ids(CSS.replace("#p10", "#pLAST")).replace("#pLAST", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
+FIT = shift_ids(FIT)   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材洗浄編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{"".join(pages)}{FIT}</body></html>'))
