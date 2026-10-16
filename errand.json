@@ -1,5 +1,5 @@
 {
-  "id": "2026-10-16-flex-14",
+  "id": "2026-10-16-flex-15",
   "do": "flex-note",
   "from": "だいちゃん",
   "titleWord": "だいちゃん情報合算版",
@@ -72,14 +72,6 @@
               {
                 "type": "text",
                 "text": "催しの開演時刻ではありません。灰色は目安。",
-                "wrap": true,
-                "size": "xxs",
-                "color": "#8a4b00",
-                "margin": "xs"
-              },
-              {
-                "type": "text",
-                "text": "🚖 の台数は 人数の1/10。あくまで目安です。",
                 "wrap": true,
                 "size": "xxs",
                 "color": "#8a4b00",
@@ -233,15 +225,6 @@
                     "weight": "bold",
                     "size": "sm",
                     "color": "#1b2430"
-                  },
-                  {
-                    "type": "text",
-                    "text": "🚖 目安 約20台ぶん（200名の1/10）",
-                    "wrap": true,
-                    "size": "xs",
-                    "weight": "bold",
-                    "color": "#0b6b3a",
-                    "margin": "xs"
                   },
                   {
                     "type": "text",
@@ -455,15 +438,6 @@
                     "wrap": true,
                     "size": "xs",
                     "color": "#333333",
-                    "margin": "xs"
-                  },
-                  {
-                    "type": "text",
-                    "text": "🚖 目安 約1,600台ぶん（16,000席の1/10）",
-                    "wrap": true,
-                    "size": "xs",
-                    "weight": "bold",
-                    "color": "#0b6b3a",
                     "margin": "xs"
                   },
                   {
@@ -969,13 +943,6 @@
           {
             "type": "text",
             "text": "・「・」の行＝だいちゃんの共有、そのまま",
-            "wrap": true,
-            "size": "xxs",
-            "color": "#5f6368"
-          },
-          {
-            "type": "text",
-            "text": "・🚖 の台数＝人数の1/10（目安。実際の台数は分かりません）",
             "wrap": true,
             "size": "xxs",
             "color": "#5f6368"
