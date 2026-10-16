@@ -6656,5 +6656,40 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
     '★★開いたとき（onOpen）からも呼んでいる');
 }
 
+console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ送る」');
+/*
+ * ★まーく様から、まとめを渡されて
+ *   「必要最低限の要点だけにまとめて、line flex messageで
+ *     僕のlineに送ってください」と言われたときのためのものです。
+ *
+ * ★送り先は **まーく様の個人LINEだけ**。
+ *   グループへは、おつかいからは絶対に出しません
+ *   （人の目を通していないものを、みんなに流さないため）。
+ */
+{
+  const MSG = F('updErrandFlexMsg_');
+  const bubble = { type: 'bubble', body: { type: 'box', layout: 'vertical',
+                   contents: [{ type: 'text', text: 'てすと' }] } };
+
+  const m1 = MSG({ flex: bubble, alt: '10/16 夜の狙い目' });
+  t(!!m1 && m1.type === 'flex', '★絵の形になる');
+  t(m1.altText === '10/16 夜の狙い目', '　 一覧に出る文も入る');
+  t(m1.contents === bubble, '　 中身は、そのまま渡す');
+
+  t(MSG({}) === null, '★絵が無ければ null（むりに送らない）');
+  t(MSG({ flex: 'ただの文字' }) === null, '★★形になっていなければ null');
+  t(MSG(null) === null, '　 渡されなくても落ちない');
+
+  const okList = vm.runInContext('JSON.stringify(Object.keys(UPD_ERRAND_OK))', ctx);
+  t(okList.indexOf('flex-note') !== -1, '★おつかいの一覧に入っている');
+
+  const src8 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const part = src8.slice(src8.indexOf('task === "flex-note"'),
+                          src8.indexOf('task === "flex-note"') + 900);
+  t(part.indexOf('lrPush_(me,') !== -1, '★★送り先は me（まーく様の個人LINE）だけ');
+  t(part.indexOf('vnGroupTarget_') === -1 && part.indexOf('グループ') < part.indexOf('絶対に出しません') + 200,
+    '★★★グループへは出さない');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
