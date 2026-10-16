@@ -1,6 +1,180 @@
 {
-  "id": "2026-09-21-001",
-  "do": ["venue-ledger", "event-test"],
-  "day": "あす",
-  "note": "① いま何が読み取れているかの台帳（会場ごとの件数つき・まーく専用スプシ） ② あすのイベント確認用。どちらもまーくさんの個人LINEだけに届きます。"
+  "id": "2026-10-16-flex-1",
+  "do": "flex-note",
+  "alt": "10/16（金）夜の狙い目",
+  "flex": {
+    "type": "bubble",
+    "size": "mega",
+    "header": {
+      "type": "box",
+      "layout": "vertical",
+      "backgroundColor": "#1b2430",
+      "paddingAll": "12px",
+      "contents": [
+        {
+          "type": "text",
+          "text": "10/16（金）夜の狙い目",
+          "color": "#ffffff",
+          "weight": "bold",
+          "size": "md"
+        },
+        {
+          "type": "text",
+          "text": "大阪A地区／17:00出発",
+          "color": "#9fb3c8",
+          "size": "xxs",
+          "margin": "xs"
+        }
+      ]
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "md",
+      "paddingAll": "12px",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "xs",
+          "contents": [
+            {
+              "type": "text",
+              "text": "🎤 大阪城ホール",
+              "weight": "bold",
+              "size": "sm",
+              "color": "#1b2430"
+            },
+            {
+              "type": "text",
+              "text": "Novelbright 18:30開演",
+              "size": "xs",
+              "color": "#333333"
+            },
+            {
+              "type": "text",
+              "text": "終演 21:00〜21:30 → 城見・キタ・ミナミ",
+              "size": "xs",
+              "color": "#5f6368",
+              "wrap": true
+            }
+          ]
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "xs",
+          "contents": [
+            {
+              "type": "text",
+              "text": "🏥 グランキューブ（今夜の本命）",
+              "weight": "bold",
+              "size": "sm",
+              "color": "#1b2430"
+            },
+            {
+              "type": "text",
+              "text": "日本薬局学会 あすから・数千人",
+              "size": "xs",
+              "color": "#333333"
+            },
+            {
+              "type": "text",
+              "text": "17〜21時 新大阪・ホテル→中之島、北新地・梅田へ会食",
+              "size": "xs",
+              "color": "#5f6368",
+              "wrap": true
+            }
+          ]
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "xs",
+          "contents": [
+            {
+              "type": "text",
+              "text": "💰 高単価 21:00〜23:00",
+              "weight": "bold",
+              "size": "sm",
+              "color": "#b00020"
+            },
+            {
+              "type": "text",
+              "text": "・西天満 老松通り（23時閉店・一発勝負）",
+              "size": "xs",
+              "color": "#333333",
+              "wrap": true
+            },
+            {
+              "type": "text",
+              "text": "・本町／淀屋橋 伏見町の路地",
+              "size": "xs",
+              "color": "#333333",
+              "wrap": true
+            },
+            {
+              "type": "text",
+              "text": "・新大阪3階 22:30〜23:45（最終新幹線）",
+              "size": "xs",
+              "color": "#333333",
+              "wrap": true
+            },
+            {
+              "type": "text",
+              "text": "芦屋・西宮・北摂・千里・箕面・奈良＝万収",
+              "size": "xxs",
+              "color": "#5f6368",
+              "wrap": true,
+              "margin": "xs"
+            }
+          ]
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "xs",
+          "contents": [
+            {
+              "type": "text",
+              "text": "🎢 USJ ホラーナイト",
+              "weight": "bold",
+              "size": "sm",
+              "color": "#1b2430"
+            },
+            {
+              "type": "text",
+              "text": "21:00〜22:00 閉園 今週最大級",
+              "size": "xs",
+              "color": "#333333"
+            }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "paddingAll": "10px",
+      "contents": [
+        {
+          "type": "text",
+          "text": "今日も安全運転でいってらっしゃい",
+          "size": "xxs",
+          "color": "#5f6368",
+          "align": "center"
+        }
+      ]
+    }
+  },
+  "note": "まーく様に渡されたまとめを、要点だけにしたもの。個人LINEだけに届きます。"
 }
