@@ -2,7 +2,28 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V070ver  （2026/10/09）  ★★★
+ *  ★★★  V071ver  （2026/10/16）  ★★★
+ *
+ *  [V071ver]
+ *   ・📣 届いた絵を、そのままグループへ共有できるボタンを足した（ご指示）
+ *     ★まーく様のご指示：
+ *       「僕はグールだのグループにも共有できるボタンか何かも
+ *         設置してください」
+ *     ★2段階にしました（グループへの本番は、必ず人の目を通すため）。
+ *         ①まーく様の個人LINEに、絵が届く（ここで中身を見る）
+ *         ②よければ、絵の下の「📣 グループへ送る」を押す
+ *            → そこではじめて、グループへ出ます
+ *       押されるまでは、グループへ1文字も出ません。
+ *     ★押されたときは、**見たものと同じ絵**を出します。
+ *       作り直すと、見たものと ちがうものが出かねないので、
+ *       絵そのものを控えておいて、それを出します。
+ *     ★グループへ出すときは「グループへ送る」ボタンを外します。
+ *       みんなの画面にそのボタンが出ていては、おかしいためです。
+ *     ★一度送ったら、控えを消します。二度押しでも2回流れません。
+ *     ★押されなかった控えは、3日で ひとりでに消えます
+ *       （手で片づける作業を、増やさないため）。
+ *     ★押せるのは まーく様だけです。ほかの人が押しても、
+ *       黙って見送ります（返事も出しません）。
  *
  *  [V070ver]
  *   ・🏨 ホテルの予定表が届いていないことに、気づけるようにした
@@ -1012,7 +1033,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V070ver";
+const VN_VERSION = "V071ver";
 
 /**
  * 見にいく先の一覧。
@@ -1386,6 +1407,132 @@ function vnTestHm_() {
  *    それまでは「設定」タブの2行を書き換えてください。
  *    そちらは **いますぐ効きます**（公開のやり直しは要りません）。
  * ================================================================ */
+
+/* ================================================================
+ *  📣 見てから、グループへ送る（2段階）
+ *
+ *  ★まーく様のご指示です。
+ *    「flexmessageのチェックが問題なく終わったら
+ *      僕はグールだのグループにも共有できるボタンか何かも
+ *      設置してください」
+ *
+ *  ★この置き場の決まりでもあります。
+ *    「グループLINEへの本番送信は、必ず2段階で確かめる」
+ *      ①まーく様の個人LINEに、絵が届く（ここで中身を見る）
+ *      ②よければ、絵の下のボタンを押す → グループへ出る
+ *    人の目を通していないものは、グループへ流れません。
+ *
+ *  ★絵そのものを控えておきます。
+ *    押されたときに、**同じ絵**をそのまま出すためです。
+ *    作り直すと、見たものと ちがうものが出かねません。
+ *
+ *  ★控えは1つ 2,000文字ずつに割ります。
+ *    Apps Script の控えは1つ9KBまでで、日本語は1文字3バイトです。
+ *    まるごと入れると、長い絵で あふれます。
+ * ================================================================ */
+
+const VN_SHARE_CHUNK = 2000;     // 控え1つぶんの文字数
+const VN_SHARE_MAX   = 6;        // 何個まで割ってよいか（＝12,000文字まで）
+
+/** 絵を控えて、合言葉（鍵）を返す。大きすぎれば "" */
+function vnShareSave_(msg) {
+  try {
+    const s = JSON.stringify(msg);
+    const n = Math.ceil(s.length / VN_SHARE_CHUNK);
+    if (!n || n > VN_SHARE_MAX) return "";
+    vnShareSweep_();                        // 先に、古い控えを片づける
+    const pr = PropertiesService.getScriptProperties();
+    const key = "VNSHARE_" + Date.now().toString(36);
+    for (let i = 0; i < n; i++) {
+      pr.setProperty(key + "_" + i, s.substr(i * VN_SHARE_CHUNK, VN_SHARE_CHUNK));
+    }
+    pr.setProperty(key + "_n", String(n));
+    return key;
+  } catch (e) { return ""; }
+}
+
+/* 控えの古いものを片づける日数（これより古い控えは捨てる） */
+const VN_SHARE_KEEP_DAYS = 3;
+
+/**
+ * 古い控えを片づける。
+ *
+ * ★押されなかった控えは、そのままだと ずっと残ります。
+ *   Apps Script の控えは置ける数に限りがあるので、
+ *   3日より古いものは、黙って捨てます。
+ * ★人の手が要らないように、控えるたびに ここを通します。
+ */
+function vnShareSweep_() {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    const all = pr.getProperties();
+    const limit = Date.now() - VN_SHARE_KEEP_DAYS * 24 * 3600 * 1000;
+    Object.keys(all).forEach(function (k) {
+      if (k.indexOf("VNSHARE_") !== 0) return;
+      if (k.slice(-2) !== "_n") return;                 // 代表の札だけを見る
+      const stamp = k.slice("VNSHARE_".length, -2);     // 作った時刻（36進）
+      const ms = parseInt(stamp, 36);
+      if (!ms || ms >= limit) return;                   // 読めない・新しいものは残す
+      vnShareDrop_("VNSHARE_" + stamp);
+    });
+  } catch (e) {}
+}
+
+/** 控えた絵を読み出す。無ければ null */
+function vnShareLoad_(key) {
+  try {
+    if (!key) return null;
+    const pr = PropertiesService.getScriptProperties();
+    const n = Number(pr.getProperty(key + "_n") || 0);
+    if (!n) return null;
+    let s = "";
+    for (let i = 0; i < n; i++) s += String(pr.getProperty(key + "_" + i) || "");
+    return JSON.parse(s);
+  } catch (e) { return null; }
+}
+
+/**
+ * 控えを消す。
+ * ★送ったあとに必ず消します。二度押しで、同じものが2回
+ *   グループへ流れるのを止めるためです。
+ */
+function vnShareDrop_(key) {
+  try {
+    if (!key) return;
+    const pr = PropertiesService.getScriptProperties();
+    const n = Number(pr.getProperty(key + "_n") || 0);
+    for (let i = 0; i < n; i++) pr.deleteProperty(key + "_" + i);
+    pr.deleteProperty(key + "_n");
+  } catch (e) {}
+}
+
+/**
+ * 絵の下に「グループへ送る」ボタンを足す。
+ * 足せなければ、絵をそのまま返します（ボタンが無くても、絵は届く）。
+ */
+function vnShareButton_(msg) {
+  try {
+    const key = vnShareSave_(msg);
+    if (!key) return msg;
+    const b = msg && msg.contents;
+    if (!b || b.type !== "bubble") return msg;
+    const btn = {
+      "type": "box", "layout": "vertical", "spacing": "sm", "margin": "md",
+      "contents": [
+        { "type": "button", "style": "primary", "height": "sm", "color": "#1b2430",
+          "action": { "type": "postback", "label": "📣 グループへ送る",
+                      "data": "vn=flexgo&k=" + encodeURIComponent(key),
+                      "displayText": "グループへ送る" } },
+        { "type": "text", "text": "押すと、この絵がそのままグループへ出ます",
+          "size": "xxs", "color": "#5f6368", "align": "center", "wrap": true }
+      ]
+    };
+    if (!b.footer) b.footer = { "type": "box", "layout": "vertical", "contents": [] };
+    if (!Array.isArray(b.footer.contents)) b.footer.contents = [];
+    b.footer.contents.push(btn);
+    return msg;
+  } catch (e) { return msg; }
+}
 
 /** いまの時刻を、2行で見せる */
 function vnTimeNow_() {
@@ -6804,6 +6951,54 @@ function vnHandlePostback_(ev) {
    * ★書き込む先は「設定」タブです。読むところと同じ1か所にします。
    *   2か所に持つと、どちらが効いているのか分からなくなります。
    */
+  /*
+   * 📣 グループへ送る（まーく様だけ）。
+   *   ★ここが2段階の2つめです。
+   *     まーく様が絵を見て、よければ押す。押されてはじめて出ます。
+   */
+  if (q.vn === "flexgo") {
+    const me0 = vnTestTarget_();
+    const uid0 = (ev.source && ev.source.userId) || "";
+    if (!me0 || uid0 !== me0) return true;        // まーく様以外は、黙って見送る
+    const key = decodeURIComponent(String(q.k || ""));
+    const msg = vnShareLoad_(key);
+    if (!msg) {
+      say("📣 この絵は、もう送ったか、古くなっています。");
+      return true;
+    }
+    const to = vnGroupTarget_();
+    if (!to) {
+      say("📣 グループの送り先が分かりません。\nグループLINEに何か1つ投稿すると覚えます。");
+      return true;
+    }
+    /*
+     * ★先に控えを消します。
+     *   送るところでしくじっても、二度押しで2回流れるよりましです。
+     */
+    vnShareDrop_(key);
+    try {
+      if (typeof lrPush_ !== "function") { say("📣 送るしくみが入っていません。"); return true; }
+      /*
+       * ★グループへ出すときは、ボタンを外します。
+       *   みんなの画面に「グループへ送る」が出ていては、おかしいためです。
+       */
+      const clean = JSON.parse(JSON.stringify(msg));
+      try {
+        const bb = clean && clean.contents;
+        if (bb && bb.footer && Array.isArray(bb.footer.contents)) {
+          bb.footer.contents = bb.footer.contents.filter(function (x) {
+            return JSON.stringify(x).indexOf("vn=flexgo") === -1;
+          });
+        }
+      } catch (e2) {}
+      lrPush_(to, [clean]);
+      say("📣 グループへ送りました。");
+    } catch (e) {
+      say("📣 送れませんでした：" + ((e && e.message) || e));
+    }
+    return true;
+  }
+
   if (q.vn === "time") {
     const me = vnTestTarget_();
     const uid = (ev.source && ev.source.userId) || "";

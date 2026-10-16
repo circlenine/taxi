@@ -6684,11 +6684,38 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
   t(okList.indexOf('flex-note') !== -1, '★おつかいの一覧に入っている');
 
   const src8 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
-  const part = src8.slice(src8.indexOf('task === "flex-note"'),
-                          src8.indexOf('task === "flex-note"') + 900);
+  /*
+   * ★見るところ（flex-note の分かれ道）を、はじめから おわりまで取る。
+   *   前は「はじめから900文字」で見ていたので、コメントを足したら
+   *   見たい行が窓からはみ出して、素通りしていた。
+   *   おわりは「次の分かれ道」までとする。
+   */
+  const at8 = src8.indexOf('task === "flex-note"');
+  t(at8 !== -1, '★flex-note の分かれ道がある');
+  const end8 = src8.indexOf('} catch (e) {', at8);
+  const part = src8.slice(at8, end8 === -1 ? at8 + 3000 : end8);
+  t(part.indexOf('task ===') === part.lastIndexOf('task ==='),
+    '　 見ているのは flex-note の分かれ道だけ');
+
   t(part.indexOf('lrPush_(me,') !== -1, '★★送り先は me（まーく様の個人LINE）だけ');
-  t(part.indexOf('vnGroupTarget_') === -1 && part.indexOf('グループ') < part.indexOf('絶対に出しません') + 200,
-    '★★★グループへは出さない');
+  t(part.indexOf('lrPush_(') === part.lastIndexOf('lrPush_('),
+    '★★送るところは1か所だけ（ほかへ出さない）');
+  t(part.indexOf('vnGroupTarget_') === -1, '★★★グループの送り先を、ここでは見ない');
+  t(part.replace(/\/\*[\s\S]*?\*\//g, '').indexOf('グループ') === -1,
+    '★★★コメントを抜いても「グループ」が出てこない（＝出さない）');
+
+  /*
+   * ★絵の下に「グループへ送る」ボタンを足しているか。
+   *   足していないと、まーく様が手で打ち直すことになる（ご指示のとおりでない）。
+   */
+  t(/fx2\s*=\s*vnShareButton_\(/.test(part),
+    '★★絵の下に「グループへ送る」ボタンを足して、それを送っている');
+  t(/lrPush_\(me,\s*\[fx2\]\)/.test(part),
+    '★★★送るのは、ボタンを足したほう（足して捨てていない）');
+  t(part.indexOf('typeof vnShareButton_ === "function"') !== -1,
+    '★ボタンの係が入っていなくても、絵はそのまま届く（止まらない）');
+  t(part.indexOf('j.share === false') !== -1,
+    '★メモに share:false と書けば、ボタンを足さない');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
