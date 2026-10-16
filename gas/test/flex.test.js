@@ -252,6 +252,43 @@ if (taxiLines.length) {
   t(allText.indexOf('あくまで目安') !== -1, '★★「あくまで目安」と書いてある');
 }
 
+console.log('\n■ 📍 地図のリンク');
+/*
+ * ★まーく様のご指示（2026/10/16）：
+ *   「それと可能なら、各自Googleマップリンクも付けてください」
+ *   まーく様が、つけ待ちの場所まで選んでくださったものです。
+ *   どれがどの行のものかを取り違えると、走る先が変わります。
+ */
+{
+  const mapRows = rows.filter(function (r) {
+    return textsOf(r.contents[1]).some(x => x.indexOf('📍 地図：') === 0);
+  });
+  t(mapRows.length === rows.length,
+    '★★★どの行にも地図が付いている（' + mapRows.length + '/' + rows.length + '）');
+
+  rows.forEach(function (r) {
+    const ts = textsOf(r.contents[1]);
+    const name = ts[0] || '';
+    const mp = ts.filter(x => x.indexOf('📍 地図：') === 0);
+    t(mp.length === 1, '　 ' + name.slice(0, 18) + '：地図はちょうど1つ');
+    /*
+     * ★押したときに開くアドレスが、ちゃんと入っていること。
+     *   字だけで、押せないものになっていては意味がない。
+     */
+    const node = [];
+    (function w(x) {
+      if (Array.isArray(x)) return x.forEach(w);
+      if (x && typeof x === 'object') {
+        if (x.type === 'text' && String(x.text).indexOf('📍 地図：') === 0) node.push(x);
+        Object.keys(x).forEach(k => w(x[k]));
+      }
+    })(r);
+    const a = node[0] && node[0].action;
+    t(!!a && a.type === 'uri' && /^https:\/\/maps\.app\.goo\.gl\//.test(a.uri || ''),
+      '　 　押すと地図が開く（' + ((a && a.uri) || 'アドレスなし') + '）');
+  });
+}
+
 console.log('\n■ LINEの決まりに収まること');
 pages.forEach(function (pg, i) {
   const len = JSON.stringify(pg).length;

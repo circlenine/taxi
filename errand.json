@@ -1,5 +1,5 @@
 {
-  "id": "2026-10-16-flex-15",
+  "id": "2026-10-16-flex-16",
   "do": "flex-note",
   "from": "だいちゃん",
   "titleWord": "だいちゃん情報合算版",
@@ -175,6 +175,19 @@
                       "label": "確認",
                       "uri": "https://secure.ps-japan.org/forum2026/about.html"
                     }
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：グランキューブ大阪（つけ待ち例）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/GVcyoz2s39KZNfZ1A?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -241,6 +254,19 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：リーガロイヤルホテル大阪",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/WitvSrxHJYXTyPk37?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -307,6 +333,19 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：なんば広場（なんばマルイ）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/iQiYDhauJvHU4hQ1A?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -373,6 +412,19 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：フェスティバルホール（つけ待ち例）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/Ppk6MkJYa5wSYDnw7?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -467,6 +519,19 @@
                       "type": "uri",
                       "label": "確認",
                       "uri": "https://www.osaka-johall.com/event/"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：大阪城ホール（コナン像前）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/8kT2haUUrCiQ7y9P9?g_st=ic"
                     }
                   }
                 ]
@@ -581,6 +646,19 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：西天満 老松通り",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/eKCf8H5ADPSvbncy9?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -656,6 +734,19 @@
                     "weight": "bold",
                     "color": "#b00020",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：伏見町の路地",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/eKCf8H5ADPSvbncy9?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -722,6 +813,19 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：中之島公園（中央公会堂側）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/XuzLhUVgQddzDLnk8?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -817,6 +921,19 @@
                       "label": "確認",
                       "uri": "https://www.usj.co.jp/web/ja/jp/park-guide/schedule/park-hour2"
                     }
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：USJタクシー乗り場（交通広場前）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/3up5j24T6MQPAZa48?g_st=ic"
+                    }
                   }
                 ]
               }
@@ -883,6 +1000,19 @@
                     "size": "xs",
                     "color": "#333333",
                     "margin": "xs"
+                  },
+                  {
+                    "type": "text",
+                    "text": "📍 地図：新大阪駅（3階 新幹線口）",
+                    "wrap": true,
+                    "size": "xxs",
+                    "color": "#1a73e8",
+                    "margin": "xs",
+                    "action": {
+                      "type": "uri",
+                      "label": "地図",
+                      "uri": "https://maps.app.goo.gl/j8Qm7tqFUf3Zy8YCA?g_st=ic"
+                    }
                   }
                 ]
               }
