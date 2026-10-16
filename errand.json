@@ -1,5 +1,5 @@
 {
-  "id": "2026-10-16-flex-7",
+  "id": "2026-10-16-flex-8",
   "do": "flex-note",
   "from": "だいちゃん",
   "said": [
@@ -597,16 +597,108 @@
     "footer": {
       "type": "box",
       "layout": "vertical",
-      "paddingAll": "10px",
+      "paddingAll": "12px",
       "backgroundColor": "#f7f8fa",
       "contents": [
+        {
+          "type": "text",
+          "text": "⚠ 時間は あくまで目安です",
+          "wrap": true,
+          "size": "xs",
+          "weight": "bold",
+          "color": "#b00020"
+        },
+        {
+          "type": "text",
+          "text": "AIの読み取りです。",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368",
+          "margin": "xs"
+        },
+        {
+          "type": "text",
+          "text": "読み違いや予定の変更があります。(前後・延長・中止)",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "text",
+          "text": "動く前に必ず公式ページでご確認を。",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "separator",
+          "margin": "md",
+          "color": "#e0e0e0"
+        },
+        {
+          "type": "text",
+          "text": "【根拠】",
+          "wrap": true,
+          "size": "xxs",
+          "weight": "bold",
+          "color": "#5f6368",
+          "margin": "md"
+        },
+        {
+          "type": "text",
+          "text": "・「・」の行 … だいちゃんの共有、そのまま",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "text",
+          "text": "・大阪城ホール … 公式「開場17:30・開演18:30」／終演の記載なし",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "text",
+          "text": "・日本薬局学会 … 公式「会期 10/17(土)・18(日)」",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "text",
+          "text": "・USJ … 今日の閉園時刻は、公式で確かめられず",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "text",
+          "text": "・着ける時刻 … 終演の15分前（こちらの見当）",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "text",
+          "text": "・西天満／本町・淀屋橋／新大阪駅 … だいちゃんの土地勘（裏は取れません）",
+          "wrap": true,
+          "size": "xxs",
+          "color": "#5f6368"
+        },
+        {
+          "type": "separator",
+          "margin": "md",
+          "color": "#e0e0e0"
+        },
         {
           "type": "text",
           "text": "今日も安全運転でいってらっしゃい",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368",
-          "align": "center"
+          "align": "center",
+          "margin": "md"
         }
       ]
     }
