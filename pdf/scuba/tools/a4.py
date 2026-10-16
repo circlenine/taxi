@@ -6,7 +6,7 @@
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
 sys.path.insert(0, os.path.dirname(__file__))
-from content import STEPS, TERMS, POINTS, QUIZ
+from content import STEPS, TERMS, POINTS, QUIZ, SUMMARY
 from focus import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -320,8 +320,16 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
+# 1ページ目の「まとめ」（10/16 まーく様：フェルミ漫画大学のまとめのように、先に「これだけ覚えればOK」を出す）
+# 意図：ページを開いて最初に目に入る場所に、覚えることを4つだけ置く。全部読まなくても、ここだけで要点がそろう。
+#   A＝ホワイトボード（手書きに近い字・灰色のふち）：参考にいただいた形に近い「黒板のまとめ」の気分で、先生に教わる感じを出す
+#   B＝この資料の色のカード（ほかのページと同じ字）：資料全体と見た目をそろえ、いちばん読みやすさを優先する
+SUMV = __import__("os").environ.get("SUMV", "A")
+SUMBOX = (f'<div class="sumb sum{SUMV}"><p class="sumh"><span>まとめ</span><small>これだけ覚えれば、OK！</small></p>'
+          + "".join(f'<p class="sumi"><span class="sumn">{i}</span><span>{T(x)}</span></p>' for i, x in enumerate(SUMMARY, 1))
+          + '<span class="sumq">まとめ<br>だな！</span></div>')
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e">器材<span class="g">準備</span>編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
+{SUMBOX}<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜10ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">10ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
@@ -848,7 +856,30 @@ CSS += """
 .cover .cv-no{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:#fff!important;color:#16466b!important;border-radius:0!important;box-shadow:inset 0 0 0 1.2mm #16466b}
 .cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
 """
-FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
+CSS += """
+/* 1ページ目の「まとめ」（10/16） */
+#p1 .sumb{position:relative;flex:none;padding:2.4mm 20mm 2.4mm 4.5mm}
+#p1 .sumh{margin:0 0 1.6mm;display:flex;align-items:baseline;gap:3mm}
+#p1 .sumh span{font-size:15pt;font-weight:900}
+#p1 .sumh small{font-size:11pt;font-weight:900;color:#e0507f}
+#p1 .sumi{margin:0;display:flex;gap:2.4mm;align-items:baseline;font-size:12pt;font-weight:700;line-height:1.55}
+#p1 .sumi+.sumi{margin-top:1mm}
+#p1 .sumn{flex:none;width:5.6mm;height:5.6mm;display:inline-grid;place-items:center;font-size:10pt;font-weight:900;color:#fff;background:var(--navy);transform:translateY(-.4mm)}
+#p1 .sumq{position:absolute;right:3.5mm;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:11pt;font-weight:900;padding:3mm 1.6mm;background:#fff;border:1.2px solid var(--ink);line-height:1.3}
+/* A：ホワイトボード */
+#p1 .sumA{background:#fff;border:2.2mm solid #d9dde2;box-shadow:inset 0 0 0 .4mm #b9bfc6, 0 .6mm 0 #aab0b7}
+#p1 .sumA,#p1 .sumA .sumq{font-family:"Klee One",sans-serif;letter-spacing:0}
+#p1 .sumA .sumi,#p1 .sumA .sumh span{font-weight:600}
+#p1 .sumA .sumn{background:none;color:var(--navy);border:.5mm solid var(--navy)}
+/* B：資料の色のカード */
+#p1 .sumB{background:var(--pale);border-left:2mm solid var(--navy)}
+#p1 .sumB .sumq{border-color:var(--navy);color:var(--navy)}
+/* まとめを入れたぶん、すき間を少しつめる（もくじの行は 8mm 以上を守る） */
+#p1{gap:2.6mm!important}
+#p1 .howto{line-height:1.45!important;padding:2mm 3mm!important}
+#p1 .howto .hw{margin-top:.4em!important}
+"""
+FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Klee+One:wght@600&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
 

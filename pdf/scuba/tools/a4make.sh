@@ -9,6 +9,8 @@ python3 -I $S/tools/phrasecheck.py $S/tools/content.py
 python3 $S/tools/a4.py $S/build
 # 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
 python3 -I $S/tools/numcheck.py $S/build/num.png $(node $S/tools/numcheck.js $S/build/a4.html $S/build/num.png)
+# 1ページ目（まとめ＋もくじ）がページからはみ出していないか（10/16）
+node $S/tools/p1fit.js $S/build/a4.html
 # PDFは、まーく様の許可が出たときだけ作る（10/15 ご指摘：許可なくPDFを作った）。
 # 許可がないときは、ここで止める（見た目の確かめは、HTMLを画像にして見せる）。許可が出たら PDF_OK=1 をつけて動かす
 if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi
