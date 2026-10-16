@@ -1,10 +1,10 @@
 {
-  "id": "2026-10-16-flex-3",
+  "id": "2026-10-16-flex-4",
   "do": "flex-note",
   "alt": "10/16（金）夜の流れ",
   "flex": {
     "type": "bubble",
-    "size": "mega",
+    "size": "giga",
     "header": {
       "type": "box",
       "layout": "vertical",
@@ -16,14 +16,16 @@
           "text": "10/16（金）夜の流れ",
           "color": "#ffffff",
           "weight": "bold",
-          "size": "lg"
+          "size": "lg",
+          "wrap": true
         },
         {
           "type": "text",
           "text": "大阪A地区 ／ 17:00 出発",
           "color": "#9fb3c8",
           "size": "xs",
-          "margin": "xs"
+          "margin": "xs",
+          "wrap": true
         }
       ]
     },
@@ -41,21 +43,30 @@
             {
               "type": "box",
               "layout": "vertical",
-              "width": "82px",
               "contents": [
                 {
                   "type": "text",
-                  "text": "17:00〜21:00",
+                  "text": "17:00〜",
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#1b2430"
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "21:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
                 }
-              ]
+              ],
+              "flex": 4
             },
             {
               "type": "box",
               "layout": "vertical",
-              "flex": 1,
+              "flex": 11,
               "contents": [
                 {
                   "type": "text",
@@ -91,7 +102,8 @@
                     "type": "uri",
                     "label": "確認",
                     "uri": "https://www.gco.co.jp/event/"
-                  }
+                  },
+                  "wrap": true
                 }
               ]
             }
@@ -111,21 +123,30 @@
             {
               "type": "box",
               "layout": "vertical",
-              "width": "82px",
               "contents": [
                 {
                   "type": "text",
-                  "text": "18:30〜21:30",
+                  "text": "18:30〜",
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#1b2430"
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "21:30",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
                 }
-              ]
+              ],
+              "flex": 4
             },
             {
               "type": "box",
               "layout": "vertical",
-              "flex": 1,
+              "flex": 11,
               "contents": [
                 {
                   "type": "text",
@@ -161,7 +182,8 @@
                     "type": "uri",
                     "label": "確認",
                     "uri": "https://www.osaka-johall.com/event/"
-                  }
+                  },
+                  "wrap": true
                 }
               ]
             }
@@ -181,21 +203,30 @@
             {
               "type": "box",
               "layout": "vertical",
-              "width": "82px",
               "contents": [
                 {
                   "type": "text",
-                  "text": "21:00〜22:00",
+                  "text": "21:00〜",
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#1b2430"
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "22:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
                 }
-              ]
+              ],
+              "flex": 4
             },
             {
               "type": "box",
               "layout": "vertical",
-              "flex": 1,
+              "flex": 11,
               "contents": [
                 {
                   "type": "text",
@@ -231,7 +262,8 @@
                     "type": "uri",
                     "label": "確認",
                     "uri": "https://www.usj.co.jp/web/ja/jp"
-                  }
+                  },
+                  "wrap": true
                 }
               ]
             }
@@ -251,21 +283,30 @@
             {
               "type": "box",
               "layout": "vertical",
-              "width": "82px",
               "contents": [
                 {
                   "type": "text",
-                  "text": "21:00〜23:00",
+                  "text": "21:00〜",
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#b00020"
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "23:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
                 }
-              ]
+              ],
+              "flex": 4
             },
             {
               "type": "box",
               "layout": "vertical",
-              "flex": 1,
+              "flex": 11,
               "contents": [
                 {
                   "type": "text",
@@ -309,21 +350,30 @@
             {
               "type": "box",
               "layout": "vertical",
-              "width": "82px",
               "contents": [
                 {
                   "type": "text",
-                  "text": "21:00〜23:00",
+                  "text": "21:00〜",
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#b00020"
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "23:00",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
                 }
-              ]
+              ],
+              "flex": 4
             },
             {
               "type": "box",
               "layout": "vertical",
-              "flex": 1,
+              "flex": 11,
               "contents": [
                 {
                   "type": "text",
@@ -367,21 +417,30 @@
             {
               "type": "box",
               "layout": "vertical",
-              "width": "82px",
               "contents": [
                 {
                   "type": "text",
-                  "text": "22:30〜23:45",
+                  "text": "22:30〜",
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#b00020"
+                  "color": "#1b2430",
+                  "wrap": true
+                },
+                {
+                  "type": "text",
+                  "text": "23:45",
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430",
+                  "wrap": true
                 }
-              ]
+              ],
+              "flex": 4
             },
             {
               "type": "box",
               "layout": "vertical",
-              "flex": 1,
+              "flex": 11,
               "contents": [
                 {
                   "type": "text",
@@ -424,7 +483,8 @@
           "text": "今日も安全運転でいってらっしゃい",
           "size": "xxs",
           "color": "#5f6368",
-          "align": "center"
+          "align": "center",
+          "wrap": true
         }
       ]
     }
