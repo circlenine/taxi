@@ -86,6 +86,25 @@ rows.forEach(function (r, i) {
   t(left.flex < right.flex, '　 中身のほうを広くとっている');
 });
 
+console.log('\n■ だれが教えてくれた情報かが、題に出ること');
+/*
+ * ★まーく様のご指示（2026/10/16）：
+ *   「だいちゃんが共有してくれてるので、1番上のタイトルには
+ *     だいちゃん版 と付け加えてください」
+ * ★教えてくれた人の名前は、メモの from に書きます。
+ *   書いてあれば、題に「〇〇版」が入っていることを見ます。
+ *   人からいただいた情報を、こちらの手柄のように出さないためです。
+ */
+const title = (((flex.header || {}).contents || [])[0] || {}).text || '';
+if (j.from) {
+  t(title.indexOf(j.from + '版') !== -1,
+    '★★題に「' + j.from + '版」が入っている（' + title + '）');
+  t(String(j.alt || '').indexOf(j.from + '版') !== -1,
+    '　 一覧に出る文にも入っている');
+} else {
+  console.log('（教えてくれた人の控えが無いので、ここは見ません）');
+}
+
 console.log('\n■ LINEの決まりに収まること');
 const len = JSON.stringify(flex).length;
 t(len < 10000, '★1枚で 10,000文字まで（いま ' + len + '文字）');
