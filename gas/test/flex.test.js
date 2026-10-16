@@ -60,30 +60,90 @@ t(noWrap.length === 0,
 console.log('\n■ 横いっぱいに出ること（横スクロールはしない）');
 t(flex.size === 'giga', '★横はいちばん広い形（giga）');
 
-console.log('\n■ 時間は2行で出すこと');
+console.log('\n■ 時間は〈クルマを着ける時刻〉であること（いちばん大事）');
 /*
- * ★「17:00〜21:00」を1行に入れると、細い画面で切れます。
- *   「17:00〜」と「21:00」の2行に分ければ、どの機種でも入ります。
- *   まーく様のご指示：「00:00〜／00:00 にもできるように」
+ * ★2026/10/16、まーく様に言われたことです。
+ *   「大阪城ホールは終演予定時間に行かなければタクシー需要ないのに
+ *     開始時間に向かってどうするんですか」
+ *
+ *   開演18:30・終演21:00〜21:30 の公演に「18:30〜」と書いて出しました。
+ *   18:30 は客が入っていく時刻です。乗務員が行くべきなのは、
+ *   客が出てくる時刻です。まるで逆のことを案内していました。
+ *   これは見た目の不具合ではなく、資料の中身そのものの誤りです。
+ *   1日の売上がまるで変わります。
+ *
+ * ★だから、ここでは「形」ではなく「中身」を見ます。
+ *   本文に「開演HH:MM」と書いてあるのに、その時刻が
+ *   左の時間欄に出ていたら、また同じ誤りです。落とします。
  */
 const rows = (flex.body && flex.body.contents || [])
   .filter(x => x.type === 'box' && x.layout === 'horizontal');
 t(rows.length > 0, '時間の行がある（' + rows.length + '件）');
 
-rows.forEach(function (r, i) {
+const textsOf = b => {
+  const out = [];
+  (function w(x) {
+    if (Array.isArray(x)) return x.forEach(w);
+    if (x && typeof x === 'object') {
+      if (x.type === 'text') out.push(String(x.text || ''));
+      Object.keys(x).forEach(k => w(x[k]));
+    }
+  })(b);
+  return out;
+};
+
+rows.forEach(function (r) {
   const left = r.contents[0], right = r.contents[1];
-  const texts = (left.contents || []).filter(x => x.type === 'text');
-  const name = (((right.contents || [])[0] || {}).text || '（名前なし）').slice(0, 14);
-  t(texts.length === 2, '★' + name + '：時間が2行になっている');
-  t(/〜$/.test(texts[0].text || ''), '　 1行目が「〜」で終わる（' + texts[0].text + '）');
-  t((texts[0].text || '').length <= 7 && (texts[1] ? texts[1].text.length : 0) <= 7,
-    '　 1行ぶんが短い（切れない長さ）');
-  /*
-   * ★左右は割合で分ける。
-   *   左（時間）が広すぎると、右（中身）がやせて読みにくくなります。
-   */
+  const lt = textsOf(left), rt = textsOf(right);
+  const name = (rt[0] || '（名前なし）').slice(0, 14);
+
+  // ★★ここが本体。開演時刻を、着け時刻のところに出していないか
+  const opens = (rt.join(' ').match(/開演\s*(\d{1,2}:\d{2})/g) || [])
+    .map(x => x.replace(/^開演\s*/, ''));
+  const leftJoined = lt.join(' ');
+  opens.forEach(function (hm) {
+    t(leftJoined.indexOf(hm) === -1,
+      '★★★' + name + '：開演（' + hm + '）を 着ける時刻にしていない');
+  });
+
+  // 時間欄は2〜3行（3行目は「目安」などの札）。1行だと時刻が切れる
+  t(lt.length >= 2 && lt.length <= 3, '★' + name + '：時間は2〜3行');
+  lt.forEach(x => t(x.length <= 7, '　 「' + x + '」が短い（切れない長さ）'));
+
+  // 左右は割合で分ける。中身のほうを広くとる
   t(left.flex > 0 && right.flex > 0, '　 左右を割合で分けている');
   t(left.flex < right.flex, '　 中身のほうを広くとっている');
+
+  // ★何を根拠にした時刻なのかが、かならず書いてあること
+  t(rt.length >= 3, '　 根拠と動きが書いてある');
+});
+
+/*
+ * ★読む人が「開演時刻だ」と取り違えないよう、絵の中に断り書きを置く。
+ *   注釈は読まれない、が決まりだが、これは注釈ではなく見出しに近い。
+ *   いちばん上に、色を変えて置く。
+ */
+const allText = textsOf(flex).join(' ');
+t(allText.indexOf('着ける時刻') !== -1,
+  '★★絵の中に「着ける時刻」と断ってある（取り違えを防ぐ）');
+t(allText.indexOf('開演時刻ではありません') !== -1,
+  '★★「開演時刻ではありません」と書いてある');
+
+console.log('\n■ あやしい時刻を、言い切っていないこと');
+/*
+ * ★終演や閉園が公式に出ていないものは、言い切らない。
+ *   言い切れば、それを信じて動いた人が空振りします。
+ *   「未発表」「未確認」と書いたうえで、灰色（目安）にする。
+ */
+rows.forEach(function (r) {
+  const rt = textsOf(r.contents[1]).join(' ');
+  const lt = textsOf(r.contents[0]);
+  const name = (textsOf(r.contents[1])[0] || '').slice(0, 14);
+  const unsure = /未発表|未確認|確かめられ|出ていません/.test(rt);
+  if (unsure) {
+    t(lt.indexOf('目安') !== -1,
+      '★★' + name + '：確かでない時刻には「目安」と出している');
+  }
 });
 
 console.log('\n■ だれが教えてくれた情報かが、題に出ること');
