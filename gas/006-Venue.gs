@@ -2,7 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V075ver  （2026/10/16）  ★★★
+ *  ★★★  V076ver  （2026/10/16）  ★★★
+ *
+ *  [V076ver]
+ *   ・📣 絵が2枚でも、まとめてグループへ送れるようにした
+ *     ★中身が増えると、1枚（10,000文字）に入りきりません。
+ *       2枚に分けたとき、控えを「並びごと」1つだけ作り、
+ *       ボタンは いちばん最後の絵に付けます。
+ *       押せば、2枚ともそのままグループへ出ます。
  *
  *  [V075ver]
  *   ・📣 絵が大きいときは、ボタンだけ別の吹き出しに回すようにした
@@ -1086,7 +1093,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V075ver";
+const VN_VERSION = "V076ver";
 
 /**
  * 見にいく先の一覧。
@@ -1491,7 +1498,8 @@ function vnTestHm_() {
 const VN_SHARE_BTN_LEN = 420;
 
 const VN_SHARE_CHUNK = 2000;     // 控え1つぶんの文字数
-const VN_SHARE_MAX   = 6;        // 何個まで割ってよいか（＝12,000文字まで）
+const VN_SHARE_MAX   = 12;       // 何個まで割ってよいか（＝24,000文字まで）
+                                 // ★絵を2枚まとめて控えることがあるので、多めに取る
 
 /** 絵を控えて、合言葉（鍵）を返す。大きすぎれば "" */
 function vnShareSave_(msg) {
@@ -1630,33 +1638,43 @@ function vnShareBtnBox_(key) {
  *   こうすれば、どんなに中身が増えても、押せる形が必ず残ります。
  * ★控えは1つだけ作ります（2つ作ると、どちらが送られるか分からなくなる）。
  */
-function vnShareMsgs_(msg) {
+function vnShareMsgs_(msgIn) {
   try {
-    if (!msg) return [msg];
-    const key = vnShareSave_(msg);
-    if (!key) return [msg];                       // 控えられないほど大きい
-    const b = msg.contents;
-    if (!b || b.type !== "bubble") return [msg];
+    /*
+     * ★絵が1枚のことも、2枚のこともあります。
+     *   中身が増えると、1枚（10,000文字）には入りきらないためです。
+     *   どちらでも同じように扱えるよう、ここで並びに直します。
+     */
+    const list = Array.isArray(msgIn) ? msgIn.slice() : [msgIn];
+    if (!list.length || !list[0]) return list;
+
+    // ★控えは、並びごと1つだけ作ります。
+    //   押されたときに、見たのと同じ枚数・同じ順で出すためです
+    const key = vnShareSave_(list);
+    if (!key) return list;                        // 控えられないほど大きい
 
     const btn = vnShareBtnBox_(key);
-    const now = JSON.stringify(msg).length;
+    const last = list[list.length - 1];
+    const b = last && last.contents;
     const add = JSON.stringify(btn).length + 40;  // 入れものの分も見ておく
 
-    if (now + add <= VN_FLEX_LIMIT) {
+    if (b && b.type === "bubble" &&
+        JSON.stringify(last).length + add <= VN_FLEX_LIMIT) {
       if (!b.footer) b.footer = { "type": "box", "layout": "vertical", "contents": [] };
       if (!Array.isArray(b.footer.contents)) b.footer.contents = [];
       b.footer.contents.push(btn);
-      return [msg];
+      return list;
     }
 
-    // 入らないので、ボタンだけ 小さな吹き出しにして2通目に回す
-    return [msg, {
+    // 入らないので、ボタンだけ 小さな吹き出しにして いちばん下に足す
+    list.push({
       "type": "flex", "altText": "グループへ送りますか",
       "contents": { "type": "bubble", "size": "micro",
         "body": { "type": "box", "layout": "vertical", "paddingAll": "10px",
                   "contents": [vnShareBtnBox_(key)] } }
-    }];
-  } catch (e) { return [msg]; }
+    });
+    return list;
+  } catch (e) { return Array.isArray(msgIn) ? msgIn : [msgIn]; }
 }
 
 /**
@@ -1683,8 +1701,10 @@ function vnShareNewest_() {
 }
 
 /** 控えた絵から、見出しの字だけを取り出す（何を送るのかを見せるため） */
-function vnShareTitle_(msg) {
+function vnShareTitle_(msgIn) {
   try {
+    // ★控えが「絵の並び」のことがあるので、1枚目から取る
+    const msg = Array.isArray(msgIn) ? msgIn[0] : msgIn;
     const alt = (msg && msg.altText) || "";
     if (alt) return String(alt).slice(0, 40);
     const s = JSON.stringify(msg || {});
@@ -1734,7 +1754,9 @@ function panelShareGo() {
      */
     vnShareDrop_(key);
     try {
-      lrPush_(to, [vnShareStrip_(msg)]);
+      // ★控えが「絵の並び」のことがあるので、どちらでも送れるようにする
+      const arr = Array.isArray(msg) ? msg : [msg];
+      lrPush_(to, arr.map(function (x) { return vnShareStrip_(x); }));
       return "📣 グループへ送りました。\n・" + title;
     } catch (e) {
       return "📣 送れませんでした：" + ((e && e.message) || e);
@@ -7310,7 +7332,9 @@ function vnHandlePostback_(ev) {
        * ★グループへ出すときは、ボタンを外します。
        *   みんなの画面に「グループへ送る」が出ていては、おかしいためです。
        */
-      lrPush_(to, [vnShareStrip_(msg)]);
+      // ★控えが「絵の並び」のことがあるので、どちらでも送れるようにする
+      const arr2 = Array.isArray(msg) ? msg : [msg];
+      lrPush_(to, arr2.map(function (x) { return vnShareStrip_(x); }));
       say("📣 グループへ送りました。");
     } catch (e) {
       say("📣 送れませんでした：" + ((e && e.message) || e));

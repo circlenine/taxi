@@ -29,12 +29,19 @@ if (j.do !== 'flex-note' || !j.flex) {
   process.exit(0);
 }
 
-const flex = j.flex;
+/*
+ * ★絵は1枚のことも、2枚のこともあります。
+ *   中身が増えると1枚（10,000文字）に入りきらないためです。
+ *   どちらでも同じように見られるよう、ここで並びに直します。
+ */
+const pages = Array.isArray(j.flex) ? j.flex : [j.flex];
+const flex = pages[0];
+const lastPage = pages[pages.length - 1];
 const all = [];
 (function walk(x) {
   if (Array.isArray(x)) return x.forEach(walk);
   if (x && typeof x === 'object') { all.push(x); Object.keys(x).forEach(k => walk(x[k])); }
-})(flex);
+})(pages);
 
 console.log('\n■ 細い画面でも、字が切れないこと');
 
@@ -58,7 +65,9 @@ t(noWrap.length === 0,
   '★★折り返さない字が無い（' + noWrap.map(x => String(x.text).slice(0, 12)).join('／') + '）');
 
 console.log('\n■ 横いっぱいに出ること（横スクロールはしない）');
-t(flex.size === 'giga', '★横はいちばん広い形（giga）');
+pages.forEach(function (pg, i) {
+  t(pg.size === 'giga', '★' + (i + 1) + '枚目も 横はいちばん広い形（giga）');
+});
 
 console.log('\n■ 時間は〈クルマを着ける時刻〉であること（いちばん大事）');
 /*
@@ -76,8 +85,11 @@ console.log('\n■ 時間は〈クルマを着ける時刻〉であること（�
  *   本文に「開演HH:MM」と書いてあるのに、その時刻が
  *   左の時間欄に出ていたら、また同じ誤りです。落とします。
  */
-const rows = (flex.body && flex.body.contents || [])
-  .filter(x => x.type === 'box' && x.layout === 'horizontal');
+let rows = [];
+pages.forEach(function (pg) {
+  rows = rows.concat(((pg.body && pg.body.contents) || [])
+    .filter(x => x.type === 'box' && x.layout === 'horizontal'));
+});
 t(rows.length > 0, '時間の行がある（' + rows.length + '件）');
 
 const textsOf = b => {
@@ -123,7 +135,7 @@ rows.forEach(function (r) {
  *   注釈は読まれない、が決まりだが、これは注釈ではなく見出しに近い。
  *   いちばん上に、色を変えて置く。
  */
-const allText = textsOf(flex).join(' ');
+const allText = textsOf(pages).join(' ');
 t(allText.indexOf('着ける時刻') !== -1,
   '★★絵の中に「着ける時刻」と断ってある（取り違えを防ぐ）');
 t(allText.indexOf('開演時刻ではありません') !== -1,
@@ -161,7 +173,7 @@ console.log('\n■ 教えてもらった文を、1つも消していないこと
  *   絵の中に1つ残らず入っているかを、ここで見ます。
  */
 if (Array.isArray(j.said) && j.said.length) {
-  const whole = textsOf(flex).join('\n');
+  const whole = textsOf(pages).join('\n');
   let lost = 0;
   j.said.forEach(function (line) {
     const ok = whole.indexOf(line) !== -1;
@@ -203,7 +215,8 @@ console.log('\n■ 注意書きと根拠が、下に入っていること');
  * ★言い回しは、毎日のお知らせ（VN_NOTE_LINES）と同じにします。
  *   2つの言い方があると、読む人が別のものだと思ってしまいます。
  */
-const foot = textsOf(flex.footer || {}).join('\n');
+// ★注意書きと根拠は、いちばん最後の絵の下に出す
+const foot = textsOf(lastPage.footer || {}).join('\n');
 t(foot.indexOf('目安') !== -1, '★★下に「時間は あくまで目安」と書いてある');
 t(foot.indexOf('AIの読み取り') !== -1, '★★下に「AIの読み取りです」と書いてある');
 t(foot.indexOf('前後・延長・中止') !== -1, '　 変更がありうることも書いてある');
@@ -216,8 +229,11 @@ t(kyo.indexOf('だいちゃん') !== -1, '　 だいちゃんの共有だと分�
 t(kyo.indexOf('裏は取れません') !== -1, '　 裏の取れないものは、そう書いてある');
 
 console.log('\n■ LINEの決まりに収まること');
-const len = JSON.stringify(flex).length;
-t(len < 10000, '★1枚で 10,000文字まで（いま ' + len + '文字）');
+pages.forEach(function (pg, i) {
+  const len = JSON.stringify(pg).length;
+  t(len < 10000,
+    '★' + (i + 1) + '枚目は 10,000文字まで（いま ' + len + '文字）');
+});
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

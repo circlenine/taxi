@@ -3490,7 +3490,7 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
 
   // ③ 大きすぎるものは、控えない（あふれて こわれるより、ボタンを出さない）
   const huge = bubble();
-  huge.contents.body.contents[0].text = 'あ'.repeat(20000);
+  huge.contents.body.contents[0].text = 'あ'.repeat(40000);
   eq(ctx.vnShareSave_(huge), '', '★★大きすぎる絵は、控えない（ボタンを出さないだけ）');
 
   // ④ 消したら、もう読めない（＝二度押しで2回流れない）
@@ -3533,6 +3533,7 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
    */
   const big2 = bubble();
   big2.contents.body.contents[0].text = 'あ'.repeat(9700);
+  Object.keys(props).forEach(k => { if (k.indexOf('VNSHARE_') === 0) delete props[k]; });
   const outs = ctx.vnShareMsgs_(big2);
   eq(outs.length, 2, '★★大きい絵のときは、2通に分ける');
   eq(JSON.stringify(outs[0]).length <= 10000, true,
@@ -3556,6 +3557,29 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
   eq(one.length, 1, '★小さい絵は、1通のまま');
   has(JSON.stringify(one[0]), 'vn=flexgo', '　 絵の下にボタンが付く');
   ctx.vnShareDrop_(ctx.vnShareNewest_());
+
+  /*
+   * ★絵が2枚のときも、押せる形が1つだけ出ること。
+   *   中身が増えると1枚に入りきらないので、2枚に分けます。
+   *   そのとき控えは1つ（並びごと）。押せば2枚とも出ます。
+   */
+  const two = [bubble(), bubble()];
+  two[1].altText = '2まいめ';
+  two[1].contents.body.contents[0].text = '22:30〜23:45　新大阪駅3階';
+  Object.keys(props).forEach(k => { if (k.indexOf('VNSHARE_') === 0) delete props[k]; });
+  const outs2 = ctx.vnShareMsgs_(two);
+  eq(outs2.length, 2, '★2枚のときは、2通のまま（ボタンは絵の中に入る）');
+  eq(JSON.stringify(outs2[0]).indexOf('vn=flexgo') === -1, true,
+     '　 1枚目にはボタンを付けない');
+  has(JSON.stringify(outs2[1]), 'vn=flexgo', '★★ボタンは いちばん最後の絵に付く');
+  const keys2 = Object.keys(props).filter(k => k.indexOf('VNSHARE_') === 0 && k.slice(-2) === '_n');
+  eq(keys2.length, 1, '★★控えは1つだけ（2枚でも）');
+  const kk = decodeURIComponent(JSON.stringify(outs2[1]).match(/vn=flexgo&k=([A-Za-z0-9_%]+)/)[1]);
+  const back = ctx.vnShareLoad_(kk);
+  eq(Array.isArray(back) && back.length === 2, true,
+     '★★★押せば、2枚とも出る（並びのまま控えている）');
+  has(JSON.stringify(back), '新大阪駅3階', '　 2枚目の中身も残っている');
+  ctx.vnShareDrop_(kk);
 
   // ⑥ 絵でないものを渡されても、こわさない
   eq(ctx.vnShareButton_(null), null, '　 絵が無ければ、そのまま返す（落ちない）');

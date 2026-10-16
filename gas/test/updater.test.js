@@ -6684,6 +6684,22 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
   t(MSG({ flex: 'ただの文字' }) === null, '★★形になっていなければ null');
   t(MSG(null) === null, '　 渡されなくても落ちない');
 
+  /*
+   * ★絵が2枚のとき（中身が増えて1枚に入りきらないとき）。
+   *   メモの flex を [1枚目, 2枚目] と並びで書けば、2通に分けて出す。
+   */
+  const LIST = F('updErrandFlexList_');
+  const two = LIST({ flex: [bubble, bubble], alt: '10/16 夜の流れ' });
+  t(two.length === 2, '★★2枚のときは、2通ぶん返す');
+  t(two[0].altText.indexOf('1/2') !== -1, '　 一覧の文に（1/2）が入る');
+  t(two[1].altText.indexOf('2/2') !== -1, '　 （2/2）も入る');
+  const one = LIST({ flex: bubble, alt: 'ひとまい' });
+  t(one.length === 1, '★1枚のときは、これまでどおり1通');
+  t(one[0].altText === 'ひとまい', '　 一覧の文は そのまま');
+  t(LIST({}).length === 0, '　 絵が無ければ 0件');
+  const mixed = LIST({ flex: [bubble, 'ごみ', null], alt: 'ためし' });
+  t(mixed.length === 1, '★★形になっていないものは、混ぜない');
+
   const okList = vm.runInContext('JSON.stringify(Object.keys(UPD_ERRAND_OK))', ctx);
   t(okList.indexOf('flex-note') !== -1, '★おつかいの一覧に入っている');
 
@@ -6712,6 +6728,14 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
    * ★絵の下に「グループへ送る」ボタンを足しているか。
    *   足していないと、まーく様が手で打ち直すことになる（ご指示のとおりでない）。
    */
+  /*
+   * ★絵が2枚のとき、1枚目しか送らないと 後半がまるごと消えます。
+   *   「2枚ぶんを送っているか」を、ここで見ます。
+   */
+  t(/const pics\s*=\s*fxs\.length\s*\?\s*fxs\s*:/.test(part),
+    '★★★2枚のときは、2枚ぶんとも送る');
+  t(/vnShareMsgs_\(pics\)/.test(part),
+    '★★ボタンも、2枚ぶんをまとめて扱う');
   t(/out2\s*=\s*vnShareMsgs_\(/.test(part),
     '★★「グループへ送る」ボタンを足して、それを送っている');
   t(/lrPush_\(me,\s*out2\)/.test(part),
