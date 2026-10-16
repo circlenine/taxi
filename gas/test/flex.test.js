@@ -230,6 +230,28 @@ t((kyo.match(/・/g) || []).length >= 4,
 t(kyo.indexOf('だいちゃん') !== -1, '　 だいちゃんの共有だと分かる');
 t(kyo.indexOf('裏は取れません') !== -1, '　 裏の取れないものは、そう書いてある');
 
+console.log('\n■ 🚖 台数の目安（人数の1/10）');
+/*
+ * ★まーく様のご指示（2026/10/16）：
+ *   「客層の見当は、人数の10分の1で、あくまで目安として出して」
+ *   つけ待ち台数から何分で乗せられるかは、台数が読めないので省きました。
+ */
+const taxiLines = textsOf(pages).filter(x => x.indexOf('🚖 目安') === 0);
+if (taxiLines.length) {
+  taxiLines.forEach(function (x) {
+    const m = x.match(/約([\d,]+)台ぶん（([\d,]+)[^0-9]*の1\/10）/);
+    t(!!m, '★「' + x + '」の形が読める');
+    if (m) {
+      const got = Number(m[1].replace(/,/g, ''));
+      const base = Number(m[2].replace(/,/g, ''));
+      t(got === Math.round(base / 10),
+        '★★★人数の1/10になっている（' + base + ' → ' + got + '）');
+    }
+  });
+  t(allText.indexOf('人数の1/10') !== -1, '★★「人数の1/10」と断ってある');
+  t(allText.indexOf('あくまで目安') !== -1, '★★「あくまで目安」と書いてある');
+}
+
 console.log('\n■ LINEの決まりに収まること');
 pages.forEach(function (pg, i) {
   const len = JSON.stringify(pg).length;
