@@ -195,10 +195,12 @@ console.log('\n■ だれが教えてくれた情報かが、題に出ること'
  *   人からいただいた情報を、こちらの手柄のように出さないためです。
  */
 const title = (((flex.header || {}).contents || [])[0] || {}).text || '';
-if (j.from) {
-  t(title.indexOf(j.from + '版') !== -1,
-    '★★題に「' + j.from + '版」が入っている（' + title + '）');
-  t(String(j.alt || '').indexOf(j.from + '版') !== -1,
+// ★題に入れる言葉は、メモの titleWord で決められる（無ければ from + 「版」）
+const want = (j && j.titleWord) || (j.from ? j.from + '版' : '');
+if (want) {
+  t(title.indexOf(want) !== -1,
+    '★★題に「' + want + '」が入っている（' + title + '）');
+  t(String(j.alt || '').indexOf(want) !== -1,
     '　 一覧に出る文にも入っている');
 } else {
   console.log('（教えてくれた人の控えが無いので、ここは見ません）');
