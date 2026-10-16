@@ -2,7 +2,52 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V072ver  （2026/10/16）  ★★★
+ *  ★★★  V076ver  （2026/10/16）  ★★★
+ *
+ *  [V076ver]
+ *   ・📣 絵が2枚でも、まとめてグループへ送れるようにした
+ *     ★中身が増えると、1枚（10,000文字）に入りきりません。
+ *       2枚に分けたとき、控えを「並びごと」1つだけ作り、
+ *       ボタンは いちばん最後の絵に付けます。
+ *       押せば、2枚ともそのままグループへ出ます。
+ *
+ *  [V075ver]
+ *   ・📣 絵が大きいときは、ボタンだけ別の吹き出しに回すようにした
+ *     ★絵の中にボタンを入れると、LINEの上限（10,000文字）を
+ *       超えることがあります。超えると、ボタンどころか
+ *       **絵そのものが1文字も届きません**。
+ *     ★そこで、入らないときは 絵はそのまま出して、
+ *       ボタンだけ 小さな別の吹き出しにして すぐ下に出します。
+ *       中身がどれだけ増えても、押せる形が必ず残ります。
+ *     ★控えは1つだけ作ります（2つあると、どちらが送られるか
+ *       分からなくなるため）。
+ *
+ *  [V074ver]
+ *   ・⚠ 注意書きに「時間は目安」を足した（ご指示）
+ *     ★まーく様のご指示：
+ *       「時間はあくまで目安、というのもしっかり注意書きとして、
+ *         下側にいつものように書いてください」
+ *     ★そのまま足すと注意書きが3行に増え、そのぶん本文が
+ *       押し出されます。言うことは減らさず、言い回しを縮めて
+ *       2行のままにしました。
+ *
+ *  [V073ver]
+ *   ・🚕 「何時にクルマを着けるか」を、いちばん上に出すようにした
+ *     ★まーく様に言われたことです。
+ *       「大阪城ホールは終演予定時間に行かなければタクシー需要ないのに
+ *         開始時間に向かってどうするんですか」
+ *       「1日の売上がまるで変わる可能性があるのですよ」
+ *     ★前は、見出しに「18:30 開演〜21:00 終演」を赤い太字で出していました。
+ *       いちばん先に目に入るのが開演時刻なので、
+ *       「18:30に向かう」と読めます。開演は客が入っていく時刻で、
+ *       乗務員が行くべきなのは客が出てくる時刻です。まるで逆でした。
+ *     ★直したこと
+ *       ・見出しから、催しの時刻を外した
+ *       ・そのすぐ下に「🚕 20:45 に着ける（終演 21:00 の15分前）」を出す
+ *       ・開演・終演は、その下に小さく「（催し …）」として残す
+ *       ・終演が はっきり分かっているときだけ、時刻を言い切る。
+ *         分からなければ時刻を1つも書かず「終演は未発表」と書く
+ *       ・長くて詰めるときも、着ける時刻だけは最後まで残す
  *
  *  [V072ver]
  *   ・📣 スプシにも [21]「さっきの絵をグループへ送る」を足した
@@ -1048,7 +1093,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V072ver";
+const VN_VERSION = "V076ver";
 
 /**
  * 見にいく先の一覧。
@@ -1446,8 +1491,15 @@ function vnTestHm_() {
  *    まるごと入れると、長い絵で あふれます。
  * ================================================================ */
 
+/*
+ * ★「グループへ送る」ボタンを足すと、絵が何文字ふえるか。
+ *   多めに見ておきます。足りないより、余らせるほうが安全です。
+ */
+const VN_SHARE_BTN_LEN = 420;
+
 const VN_SHARE_CHUNK = 2000;     // 控え1つぶんの文字数
-const VN_SHARE_MAX   = 6;        // 何個まで割ってよいか（＝12,000文字まで）
+const VN_SHARE_MAX   = 12;       // 何個まで割ってよいか（＝24,000文字まで）
+                                 // ★絵を2枚まとめて控えることがあるので、多めに取る
 
 /** 絵を控えて、合言葉（鍵）を返す。大きすぎれば "" */
 function vnShareSave_(msg) {
@@ -1525,12 +1577,23 @@ function vnShareDrop_(key) {
  * 絵の下に「グループへ送る」ボタンを足す。
  * 足せなければ、絵をそのまま返します（ボタンが無くても、絵は届く）。
  */
+const VN_FLEX_LIMIT = 10000;     // LINEの決まり（絵1枚ぶんの文字数）
+
 function vnShareButton_(msg) {
   try {
     const key = vnShareSave_(msg);
     if (!key) return msg;
     const b = msg && msg.contents;
     if (!b || b.type !== "bubble") return msg;
+    /*
+     * ★ボタンを足すと、絵が LINEの上限（10,000文字）を超えることがあります。
+     *   超えると、ボタンどころか **絵そのものが1文字も届きません**。
+     *   それでは本末転倒なので、そのときはボタンを足しません。
+     * ★控えは残してあるので、記録用スプシ「説明」タブの
+     *   [21] さっきの絵をグループへ送る から、そのまま送れます。
+     */
+    const now = JSON.stringify(msg).length;
+    if (now + VN_SHARE_BTN_LEN > VN_FLEX_LIMIT) return msg;
     const btn = {
       "type": "box", "layout": "vertical", "spacing": "sm", "margin": "md",
       "contents": [
@@ -1547,6 +1610,71 @@ function vnShareButton_(msg) {
     b.footer.contents.push(btn);
     return msg;
   } catch (e) { return msg; }
+}
+
+/** 「グループへ送る」ボタンの中身を作る（絵の下でも、別の吹き出しでも同じもの） */
+function vnShareBtnBox_(key) {
+  return {
+    "type": "box", "layout": "vertical", "spacing": "sm", "margin": "md",
+    "contents": [
+      { "type": "button", "style": "primary", "height": "sm", "color": "#1b2430",
+        "action": { "type": "postback", "label": "📣 グループへ送る",
+                    "data": "vn=flexgo&k=" + encodeURIComponent(key),
+                    "displayText": "グループへ送る" } },
+      { "type": "text", "text": "押すと、この絵がそのままグループへ出ます",
+        "size": "xxs", "color": "#5f6368", "align": "center", "wrap": true }
+    ]
+  };
+}
+
+/**
+ * 絵と「グループへ送る」ボタンを、送れる形にして返す。
+ *
+ * ★絵が小さければ、ボタンを絵の下に入れます（1通で済む）。
+ * ★絵が大きいと、ボタンを入れた時点で LINEの上限（10,000文字）を
+ *   超えて、**絵そのものが1文字も届かなくなります**。
+ *   そのときは、絵はそのまま出して、ボタンだけ
+ *   **小さな別の吹き出し**にして、すぐ下に出します。
+ *   こうすれば、どんなに中身が増えても、押せる形が必ず残ります。
+ * ★控えは1つだけ作ります（2つ作ると、どちらが送られるか分からなくなる）。
+ */
+function vnShareMsgs_(msgIn) {
+  try {
+    /*
+     * ★絵が1枚のことも、2枚のこともあります。
+     *   中身が増えると、1枚（10,000文字）には入りきらないためです。
+     *   どちらでも同じように扱えるよう、ここで並びに直します。
+     */
+    const list = Array.isArray(msgIn) ? msgIn.slice() : [msgIn];
+    if (!list.length || !list[0]) return list;
+
+    // ★控えは、並びごと1つだけ作ります。
+    //   押されたときに、見たのと同じ枚数・同じ順で出すためです
+    const key = vnShareSave_(list);
+    if (!key) return list;                        // 控えられないほど大きい
+
+    const btn = vnShareBtnBox_(key);
+    const last = list[list.length - 1];
+    const b = last && last.contents;
+    const add = JSON.stringify(btn).length + 40;  // 入れものの分も見ておく
+
+    if (b && b.type === "bubble" &&
+        JSON.stringify(last).length + add <= VN_FLEX_LIMIT) {
+      if (!b.footer) b.footer = { "type": "box", "layout": "vertical", "contents": [] };
+      if (!Array.isArray(b.footer.contents)) b.footer.contents = [];
+      b.footer.contents.push(btn);
+      return list;
+    }
+
+    // 入らないので、ボタンだけ 小さな吹き出しにして いちばん下に足す
+    list.push({
+      "type": "flex", "altText": "グループへ送りますか",
+      "contents": { "type": "bubble", "size": "micro",
+        "body": { "type": "box", "layout": "vertical", "paddingAll": "10px",
+                  "contents": [vnShareBtnBox_(key)] } }
+    });
+    return list;
+  } catch (e) { return Array.isArray(msgIn) ? msgIn : [msgIn]; }
 }
 
 /**
@@ -1573,8 +1701,10 @@ function vnShareNewest_() {
 }
 
 /** 控えた絵から、見出しの字だけを取り出す（何を送るのかを見せるため） */
-function vnShareTitle_(msg) {
+function vnShareTitle_(msgIn) {
   try {
+    // ★控えが「絵の並び」のことがあるので、1枚目から取る
+    const msg = Array.isArray(msgIn) ? msgIn[0] : msgIn;
     const alt = (msg && msg.altText) || "";
     if (alt) return String(alt).slice(0, 40);
     const s = JSON.stringify(msg || {});
@@ -1624,7 +1754,9 @@ function panelShareGo() {
      */
     vnShareDrop_(key);
     try {
-      lrPush_(to, [vnShareStrip_(msg)]);
+      // ★控えが「絵の並び」のことがあるので、どちらでも送れるようにする
+      const arr = Array.isArray(msg) ? msg : [msg];
+      lrPush_(to, arr.map(function (x) { return vnShareStrip_(x); }));
       return "📣 グループへ送りました。\n・" + title;
     } catch (e) {
       return "📣 送れませんでした：" + ((e && e.message) || e);
@@ -1653,6 +1785,56 @@ function vnShareStrip_(msg) {
     }
     return clean;
   } catch (e) { return msg; }
+}
+
+/* ================================================================
+ *  🚕 何時に、クルマを着けるか
+ *
+ *  ★2026/10/16、まーく様に言われたことです。
+ *    「大阪城ホールは終演予定時間に行かなければタクシー需要ないのに
+ *      開始時間に向かってどうするんですか」
+ *
+ *    開演の時刻だけを出していました。開演は、客が入っていく時刻です。
+ *    乗務員が行くべきなのは、客が出てくる時刻です。まるで逆でした。
+ *    1日の売上がまるで変わります。
+ *
+ *  ★だから、催しの時刻をそのまま出すのをやめ、
+ *    「何時に着ければよいか」を、いちばん上に出します。
+ *
+ *  ★終演の15分前に着く、を目安にします。
+ *    早すぎると待ち時間が無駄になり、遅いと列の後ろになります。
+ * ================================================================ */
+
+const VN_ARRIVE_MIN = 15;        // 終演の何分前に着けるか
+
+/** 「21:00」から15分引いて「20:45」を作る */
+function vnHmMinus_(hm, min) {
+  try {
+    const m = String(hm).match(/(\d{1,2}):(\d{2})/);
+    if (!m) return "";
+    let t = Number(m[1]) * 60 + Number(m[2]) - (Number(min) || 0);
+    while (t < 0) t += 24 * 60;                      // 日またぎでも ずれない
+    const h = Math.floor(t / 60) % 24, mm = t % 60;
+    return ("0" + h).slice(-2) + ":" + ("0" + mm).slice(-2);
+  } catch (e) { return ""; }
+}
+
+/**
+ * 「何時に着けるか」の1行を作る。
+ *
+ * ★終演が **はっきり分かっているときだけ**、時刻を言い切ります。
+ *   分からないのに時刻を書けば、それを信じて動いた人が空振りします。
+ *   分からないときは「終演の15分前」とだけ書き、時刻は出しません。
+ */
+function vnArriveText_(ev) {
+  try {
+    const end = (ev && ev.end && ev.endSure) ? ev.end : "";
+    if (end) {
+      const at = vnHmMinus_(end, VN_ARRIVE_MIN);
+      if (at) return "🚕 " + at + " に着ける（終演 " + end + " の15分前）";
+    }
+    return "🚕 終演の15分前に着ける（終演は未発表。公式で確かめて）";
+  } catch (e) { return ""; }
 }
 
 /** いまの時刻を、2行で見せる */
@@ -1755,8 +1937,11 @@ const VN_SEND_WINDOW = 45;
 const VN_NOTE_LINES = [
   // ★短い言い方に直しました（ご指示）。
   //   同じことを言うのに行数を使うと、そのぶん本文が押し出されます
-  "AIの読み取りです。",
-  "読み違いや予定の変更があります。",
+  // ★「時間は目安」も、ここに入れます（ご指示・2026/10/16）。
+  //   足しただけだと3行に増え、そのぶん本文が押し出されます。
+  //   言うことは減らさずに、言い回しを縮めて2行のままにしました
+  "AIの読み取り。時間は目安。",
+  "読み違い・予定変更あり。",
   "(前後・延長・中止)",
   "動く前に必ず公式ページでご確認を。"
 ];
@@ -2681,10 +2866,37 @@ function vnCard_(ev, idx, day, noBells, budget) {
   head1.push({ "type": "span", "text": (ev.icon || "📍") + " " + ev.venue,
                "weight": "bold", "color": VN_COLOR_TEXT,
                "decoration": ev.url ? "underline" : "none" });
-  if (when) head1.push({ "type": "span", "text": "　" + when, "weight": "bold", "color": "#b71c1c" });
+  /*
+   * ★見出しには、催しの時刻（開演・終演）を入れません。
+   *   前は「18:30 開演〜21:00 終演」を赤い太字で見出しに入れていました。
+   *   いちばん先に目に入るのが開演時刻になり、
+   *   「18:30に向かう」と読めてしまいます。まるで逆のことを
+   *   案内していました（まーく様のご指摘・2026/10/16）。
+   *   見出しのすぐ下に「何時に着けるか」を出し、
+   *   催しの時刻は、その下に小さく置きます。
+   */
   const headRow = { "type": "text", "size": "sm", "wrap": true, "contents": head1 };
   if (ev.url) headRow.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
   rows.push(headRow);
+  /*
+   * ★見出しのすぐ下に「何時に着けるか」を出す。
+   *   催しの時刻（開演・終演）は、そのあとの行に書いてある。
+   *   乗務員がいちばん先に知りたいのは「何時に行けばよいか」なので、
+   *   いちばん上に、赤い太字で置く。
+   */
+  const arrive = vnArriveText_(ev);
+  if (arrive) {
+    rows.push({ "type": "text", "text": arrive, "size": "sm", "weight": "bold",
+                "color": "#b00020", "wrap": true, "margin": "xs" });
+  }
+  /*
+   * ★催しの時刻は、着ける時刻の「下」に、小さく置く。
+   *   消しはしません。何を根拠にした時刻なのかが分からなくなるためです。
+   */
+  if (when && !ev.whenHide) {
+    rows.push({ "type": "text", "text": "（催し " + when + "）", "size": "xxs",
+                "color": VN_COLOR_HEAD, "wrap": true });
+  }
   // ★見出しのすぐ下に置く。
   //   前は枠のいちばん下に「この枠を押すと〇〇の公式ページが開きます」と
   //   書いていたが、下にボタンが並んでいるので、どれの話か紛らわしかった。
@@ -2940,6 +3152,23 @@ function vnFitMessages_(day, events, note, reserve) {
   // ① 客層の行（実績・推定）と話題を落とす。
   //    「禁止」だけは、トラブルに直結するので最後まで残す
   evs = copy(evs, ["stats", "guess", "know"]);
+  msgs = vnBuildMessages_(day, evs, note, bells);
+  if (size(msgs[0]) <= LIMIT) return msgs;
+
+  /*
+   * ①' 催しの時刻（開演・終演）の行を落とす。
+   *
+   *   ★「何時に着けるか」は、どんなに詰めても必ず残します。
+   *     乗務員がいちばん先に知りたいのは、そこだからです。
+   *     開演・終演は、その根拠として添えているだけなので、
+   *     場所が足りないときは、こちらを先に落とします。
+   */
+  evs = evs.map(function (e) {
+    const c = {};
+    for (const k in e) c[k] = e[k];
+    c.whenHide = 1;
+    return c;
+  });
   msgs = vnBuildMessages_(day, evs, note, bells);
   if (size(msgs[0]) <= LIMIT) return msgs;
 
@@ -7103,7 +7332,9 @@ function vnHandlePostback_(ev) {
        * ★グループへ出すときは、ボタンを外します。
        *   みんなの画面に「グループへ送る」が出ていては、おかしいためです。
        */
-      lrPush_(to, [vnShareStrip_(msg)]);
+      // ★控えが「絵の並び」のことがあるので、どちらでも送れるようにする
+      const arr2 = Array.isArray(msg) ? msg : [msg];
+      lrPush_(to, arr2.map(function (x) { return vnShareStrip_(x); }));
       say("📣 グループへ送りました。");
     } catch (e) {
       say("📣 送れませんでした：" + ((e && e.message) || e));

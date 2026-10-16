@@ -694,6 +694,12 @@ console.log('\n■ 催しを落とす前に、まずボタンのほうを消す'
   eq(ctx.lrBytes_(cut) <= 9500, true, '上限は必ず守る（' + ctx.lrBytes_(cut) + 'バイト）');
   eq(cut.indexOf('vn=me'), -1, '  入りきらないときは、まずボタンを消す');
   eq(cut.indexOf('省きました'), -1, '  そのおかげで、催しは1件も落ちていない');
+  /*
+   * ★どんなに詰めても「何時に着けるか」だけは残すこと。
+   *   乗務員がいちばん先に知りたいのは そこなので、
+   *   ここが消えたら、知らせる意味がほとんど無くなります。
+   */
+  has(cut, '🚕', '★★★どんなに詰めても「何時に着けるか」は残す');
   ['京セラドーム', '大阪城ホール', 'ワントゥワン', 'リーガロイヤルホテル'].forEach(function (v) {
     has(cut, v, '  ' + v + ' が残っている');
   });
@@ -947,6 +953,15 @@ console.log('\n■ 注意書きと、言葉づかい');
 {
   const d = vm.runInContext('VN_DISCLAIMER', ctx).join('\n');
   has(d, '(前後・延長・中止)', '★かっこは半角の ()');
+  /*
+   * ★まーく様のご指示（2026/10/16）：
+   *   「時間はあくまで目安、というのもしっかり注意書きとして、
+   *     下側にいつものように書いてください」
+   *   毎日のお知らせと、だいちゃん版の絵で、同じことを書きます。
+   */
+  has(d, '時間は目安', '★★「時間は目安」と書いてある（ご指示）');
+  has(d, 'AIの読み取り', '★★「AIの読み取り」と書いてある');
+  has(d, '公式ページでご確認', '★★「公式ページでご確認を」と書いてある');
   eq(d.indexOf('（前後'), -1, '  全角のかっこは、もう使わない');
   d.split('\n').forEach(function (x) {
     if (ctx.width_ && ctx.width_(x) > 22) { console.log('  NG  注意書きの行が長い：' + x); }
@@ -3475,7 +3490,7 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
 
   // ③ 大きすぎるものは、控えない（あふれて こわれるより、ボタンを出さない）
   const huge = bubble();
-  huge.contents.body.contents[0].text = 'あ'.repeat(20000);
+  huge.contents.body.contents[0].text = 'あ'.repeat(40000);
   eq(ctx.vnShareSave_(huge), '', '★★大きすぎる絵は、控えない（ボタンを出さないだけ）');
 
   // ④ 消したら、もう読めない（＝二度押しで2回流れない）
@@ -3490,6 +3505,81 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
   has(sBtn, 'グループへ送る', '　 何のボタンかが、字で分かる');
   has(sBtn, '京セラドーム', '　 もとの絵は、そのまま残る');
   eq(withBtn.contents.footer.contents.length >= 1, true, '　 下の段に入る');
+
+  /*
+   * ★大きい絵には、ボタンを足さない。
+   *   足すと LINEの上限（10,000文字）を超え、
+   *   ボタンどころか **絵そのものが1文字も届かなくなる** ため。
+   *   控えは残すので、スプシの [21] からは送れる。
+   */
+  const near = bubble();
+  near.contents.body.contents[0].text = 'あ'.repeat(9700);
+  const beforeLen = JSON.stringify(near).length;
+  eq(beforeLen > 9600 && beforeLen < 10000, true,
+     '　 （ためし）上限ぎりぎりの絵を作った（' + beforeLen + '文字）');
+  const got = ctx.vnShareButton_(near);
+  eq(JSON.stringify(got).indexOf('vn=flexgo') === -1, true,
+     '★★★上限ぎりぎりの絵には、ボタンを足さない');
+  eq(JSON.stringify(got).length <= 10000, true,
+     '★★絵そのものは、上限を超えない（届く）');
+  eq(ctx.vnShareNewest_() !== '', true,
+     '★控えは残す（スプシの [21] からは送れる）');
+  ctx.vnShareDrop_(ctx.vnShareNewest_());
+
+  /*
+   * ★大きい絵でも、押せる形が必ず残ること。
+   *   絵の中にボタンを入れると上限を超えるときは、
+   *   ボタンだけ 小さな別の吹き出しにして2通目に回す。
+   */
+  const big2 = bubble();
+  big2.contents.body.contents[0].text = 'あ'.repeat(9700);
+  Object.keys(props).forEach(k => { if (k.indexOf('VNSHARE_') === 0) delete props[k]; });
+  const outs = ctx.vnShareMsgs_(big2);
+  eq(outs.length, 2, '★★大きい絵のときは、2通に分ける');
+  eq(JSON.stringify(outs[0]).length <= 10000, true,
+     '★★★1通目（絵）は、上限を超えない（ちゃんと届く）');
+  eq(JSON.stringify(outs[0]).indexOf('vn=flexgo') === -1, true,
+     '　 1通目にボタンは入れない');
+  has(JSON.stringify(outs[1]), 'vn=flexgo', '★★2通目に、押せるボタンが出る');
+  eq(JSON.stringify(outs[1]).length < 600, true,
+     '　 2通目は小さい（' + JSON.stringify(outs[1]).length + '文字）');
+
+  // ★控えは1つだけ。2つ作ると、どちらが送られるか分からなくなる
+  const keys = Object.keys(props).filter(k => k.indexOf('VNSHARE_') === 0 && k.slice(-2) === '_n');
+  eq(keys.length, 1, '★★控えは1つだけ（2通に分けても）');
+  // 2通目のボタンを押せば、ちゃんと送れること
+  const k2 = decodeURIComponent(JSON.stringify(outs[1]).match(/vn=flexgo&k=([A-Za-z0-9_%]+)/)[1]);
+  eq(ctx.vnShareLoad_(k2) !== null, true, '　 その合言葉で、絵を取り出せる');
+  ctx.vnShareDrop_(k2);
+
+  // 小さい絵のときは、これまでどおり1通で、絵の下にボタンが付く
+  const one = ctx.vnShareMsgs_(bubble());
+  eq(one.length, 1, '★小さい絵は、1通のまま');
+  has(JSON.stringify(one[0]), 'vn=flexgo', '　 絵の下にボタンが付く');
+  ctx.vnShareDrop_(ctx.vnShareNewest_());
+
+  /*
+   * ★絵が2枚のときも、押せる形が1つだけ出ること。
+   *   中身が増えると1枚に入りきらないので、2枚に分けます。
+   *   そのとき控えは1つ（並びごと）。押せば2枚とも出ます。
+   */
+  const two = [bubble(), bubble()];
+  two[1].altText = '2まいめ';
+  two[1].contents.body.contents[0].text = '22:30〜23:45　新大阪駅3階';
+  Object.keys(props).forEach(k => { if (k.indexOf('VNSHARE_') === 0) delete props[k]; });
+  const outs2 = ctx.vnShareMsgs_(two);
+  eq(outs2.length, 2, '★2枚のときは、2通のまま（ボタンは絵の中に入る）');
+  eq(JSON.stringify(outs2[0]).indexOf('vn=flexgo') === -1, true,
+     '　 1枚目にはボタンを付けない');
+  has(JSON.stringify(outs2[1]), 'vn=flexgo', '★★ボタンは いちばん最後の絵に付く');
+  const keys2 = Object.keys(props).filter(k => k.indexOf('VNSHARE_') === 0 && k.slice(-2) === '_n');
+  eq(keys2.length, 1, '★★控えは1つだけ（2枚でも）');
+  const kk = decodeURIComponent(JSON.stringify(outs2[1]).match(/vn=flexgo&k=([A-Za-z0-9_%]+)/)[1]);
+  const back = ctx.vnShareLoad_(kk);
+  eq(Array.isArray(back) && back.length === 2, true,
+     '★★★押せば、2枚とも出る（並びのまま控えている）');
+  has(JSON.stringify(back), '新大阪駅3階', '　 2枚目の中身も残っている');
+  ctx.vnShareDrop_(kk);
 
   // ⑥ 絵でないものを渡されても、こわさない
   eq(ctx.vnShareButton_(null), null, '　 絵が無ければ、そのまま返す（落ちない）');
@@ -3663,6 +3753,67 @@ console.log('\n■ 📣 [21] さっきの絵をグループへ送る（スプシ
   ctx.vnShareDrop_(k6);
 
   ctx.vnGroupTarget_ = realGT2;
+}
+
+console.log('\n■ 🚕 何時に、クルマを着けるか（いちばん大事）');
+{
+  /*
+   * ★2026/10/16、まーく様に言われたことです。
+   *   「大阪城ホールは終演予定時間に行かなければタクシー需要ないのに
+   *     開始時間に向かってどうするんですか」
+   *     「1日の売上がまるで変わる可能性があるのですよ」
+   *
+   *   開演の時刻だけを出していました。開演は客が入っていく時刻で、
+   *   乗務員が行くべきなのは客が出てくる時刻です。まるで逆でした。
+   */
+  const MINUS = ctx.vnHmMinus_;
+  eq(MINUS('21:00', 15), '20:45', '★終演21:00 → 20:45に着ける');
+  eq(MINUS('21:30', 15), '21:15', '　 21:30 → 21:15');
+  eq(MINUS('00:05', 15), '23:50', '★★日をまたいでも、ずれない');
+  eq(MINUS('', 15), '', '　 時刻が無ければ、何も返さない');
+  eq(MINUS('なし', 15), '', '　 読めないものも、何も返さない');
+
+  const ARR = ctx.vnArriveText_;
+
+  // ① 終演がはっきりしているとき … 時刻を言い切る
+  const a1 = ARR({ start: '18:30', end: '21:00', endSure: true });
+  has(a1, '20:45', '★★終演が分かれば、着ける時刻を出す');
+  has(a1, '終演 21:00', '　 何を根拠にした時刻かも出す');
+  eq(a1.indexOf('18:30') === -1, true,
+     '★★★開演（18:30）を 着ける時刻にしない');
+
+  // ② 終演が分からないとき … 時刻を言い切らない
+  const a2 = ARR({ start: '18:30', end: '', endSure: false });
+  has(a2, '終演の15分前', '★終演が分からなければ、時刻は出さない');
+  has(a2, '未発表', '　 分かっていないことを、はっきり書く');
+  eq(/\d{1,2}:\d{2}/.test(a2), false,
+     '★★★あやしい時刻を、1つも書かない');
+
+  // ③ 終演が「あるように見えるが確かでない」とき … ②と同じ扱い
+  const a3 = ARR({ start: '18:30', end: '21:00', endSure: false });
+  eq(a3.indexOf('20:45') === -1, true,
+     '★★確かでない終演からは、着ける時刻を作らない');
+  has(a3, '未発表', '　 分かっていないと書く');
+
+  // ④ 何を渡されても落ちない
+  eq(typeof ARR(null), 'string', '　 渡されなくても落ちない');
+  eq(typeof ARR({}), 'string', '　 空でも落ちない');
+
+  // ⑤ 絵（カード）のいちばん上に出ていること
+  const ev = { venue: '大阪城ホール', icon: '🎤', start: '18:30',
+               end: '21:00', endSure: true, title: 'ためし公演',
+               url: 'https://www.osaka-johall.com/event/' };
+  const day = new Date(2026, 9, 16);
+  const card = JSON.stringify(ctx.vnCard_(ev, 0, day, true, { left: 4 }));
+  has(card, '🚕', '★★カードに「何時に着けるか」が出る');
+  has(card, '20:45', '　 着ける時刻も出る');
+  /*
+   * ★「着ける時刻」は、催しの時刻より前（上）に出ていること。
+   *   下にあると、先に目に入るのが開演時刻になり、
+   *   また同じ取り違えが起きます。
+   */
+  eq(card.indexOf('🚕') < card.indexOf('開演'), true,
+     '★★★催しの時刻より上に出ている（先に目に入る）');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');

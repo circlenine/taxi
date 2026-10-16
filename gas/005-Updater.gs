@@ -2,7 +2,17 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U138ver  （2026/10/16）  ★★★
+ *  ★★★  U140ver  （2026/10/16）  ★★★
+ *
+ *  [U140ver]
+ *   ・📮 おつかいの絵を、2枚に分けて出せるようにした
+ *     ★メモの flex を [1枚目, 2枚目] と並びで書けば、2通に分けます。
+ *       1枚だけのときは、これまでどおり1通です。
+ *
+ *  [U139ver]
+ *   ・📣 絵が大きいときは、ボタンだけ2通目に回すようにした
+ *     ★入れた時点で LINEの上限を超えると、絵ごと届かなくなります。
+ *       そのときだけ、小さな吹き出しをもう1つ出します。
  *
  *  [U138ver]
  *   ・📣 そうさタブに [21]「さっきの絵をグループへ送る」を足した
@@ -1524,7 +1534,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U138ver";
+const UPD_VERSION = "U140ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9545,9 +9555,37 @@ function updErrandFlexMsg_(j) {
   try {
     const body = (j && j.flex) || null;
     if (!body || typeof body !== "object") return null;
+    // ★並びで渡されたときは、1枚目だけを返す（前からの呼び方を壊さないため）
+    const one = Array.isArray(body) ? body[0] : body;
+    if (!one || typeof one !== "object") return null;
     const alt = String((j && j.alt) || "お知らせ").slice(0, 380);
-    return { type: "flex", altText: alt, contents: body };
+    return { type: "flex", altText: alt, contents: one };
   } catch (e) { return null; }
+}
+
+/**
+ * おつかいメモの絵を、**並び**で受け取る。
+ *
+ * ★中身が増えると、1枚（10,000文字）に入りきりません。
+ *   そのときは メモの flex を [1枚目, 2枚目] と並びで書けば、
+ *   そのまま2通に分けて出します。
+ * ★1枚だけのときは、これまでどおり1通です。
+ */
+function updErrandFlexList_(j) {
+  try {
+    const body = (j && j.flex) || null;
+    if (!body || typeof body !== "object") return [];
+    const arr = Array.isArray(body) ? body : [body];
+    const alts = (j && Array.isArray(j.alts)) ? j.alts : [];
+    const base = String((j && j.alt) || "お知らせ").slice(0, 380);
+    const out = [];
+    arr.forEach(function (b, i) {
+      if (!b || typeof b !== "object") return;
+      const alt = String(alts[i] || (arr.length > 1 ? base + "（" + (i + 1) + "/" + arr.length + "）" : base)).slice(0, 380);
+      out.push({ type: "flex", altText: alt, contents: b });
+    });
+    return out;
+  } catch (e) { return []; }
 }
 
 /* ================================================================
@@ -9820,7 +9858,9 @@ function updErrandTick_() {
        *     グループへは、おつかいからは絶対に出しません
        *     （人の目を通していないものを、みんなに流さないため）。
        */
-      const fx = updErrandFlexMsg_(j);
+      const fxs = (typeof updErrandFlexList_ === "function")
+                  ? updErrandFlexList_(j) : [];
+      const fx = fxs.length ? fxs[0] : updErrandFlexMsg_(j);
       if (!fx) {
         out = "お知らせの絵が読めませんでした（メモの flex のところ）。";
       } else if (!me || typeof lrPush_ !== "function") {
@@ -9835,15 +9875,25 @@ function updErrandTick_() {
          * ★ボタンを足す係が入っていなくても、絵はそのまま届きます
          *   （片方が古くても、止まらないようにするため）。
          */
-        let fx2 = fx;
+        /*
+         * ★絵が大きいと、ボタンを絵の中に入れた時点で
+         *   LINEの上限を超えて、絵そのものが届かなくなります。
+         *   そのときは、ボタンだけ小さな別の吹き出しにして、
+         *   すぐ下に出します（vnShareMsgs_ が決めます）。
+         */
+        const pics = fxs.length ? fxs : [fx];
+        let out2 = pics;
         try {
           if (j && j.share === false) {
-            fx2 = fx;
+            out2 = pics;
+          } else if (typeof vnShareMsgs_ === "function") {
+            out2 = vnShareMsgs_(pics) || pics;
           } else if (typeof vnShareButton_ === "function") {
-            fx2 = vnShareButton_(fx) || fx;
+            out2 = pics.slice(0, pics.length - 1)
+                       .concat([vnShareButton_(pics[pics.length - 1]) || pics[pics.length - 1]]);
           }
-        } catch (e3) { fx2 = fx; }
-        lrPush_(me, [fx2]);
+        } catch (e3) { out2 = pics; }
+        lrPush_(me, out2);
         /*
          * ★絵を送ったあとに「おつかい おわりました」をもう1通 出すと、
          *   せっかくの絵が すぐ上へ流れます。ここでは黙ります。
