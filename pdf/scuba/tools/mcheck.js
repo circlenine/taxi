@@ -74,7 +74,7 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
   if(d.size>1)out.push('札の書き出しの位置がばらばら '+[...d].join('mm, ')+'mm');}
  // memo：表紙にはなし。ほかのページは1つだけ。工程のページは、ページの下はしまで届く位置（10/8 ご指示）
  document.querySelectorAll('.page').forEach((pg,i)=>{const ms=pg.querySelectorAll(':scope>.memo');const P=pg.getBoundingClientRect(),lim=P.bottom-parseFloat(getComputedStyle(pg).paddingBottom);
-  if(pg.id==='p1'){if(ms.length)out.push('p1 表紙に memo がある');return;}
+  if(pg.id==='p1'||pg.querySelector('.kps')){if(ms.length)out.push(pg.id+' 表紙・ポイントのページに memo がある');return;}
   if(ms.length!==1){out.push('p'+(i+1)+' memo の数が '+ms.length);return;}
   const r=ms[0].getBoundingClientRect();if(pg.querySelector('.grid2 .photos')&&Math.abs(r.bottom-lim)>1)out.push('p'+(i+1)+' memo がページの下はしに届いていない（まん中に浮いている）');
   if(ms[0].querySelectorAll('.ml').length<3)out.push('p'+(i+1)+' memo が小さすぎ（'+ms[0].querySelectorAll('.ml').length+'行）');});
