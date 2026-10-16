@@ -1,5 +1,5 @@
 {
-  "id": "2026-10-16-flex-8",
+  "id": "2026-10-16-flex-10",
   "do": "flex-note",
   "from": "だいちゃん",
   "said": [
@@ -54,7 +54,6 @@
           "layout": "vertical",
           "backgroundColor": "#fff4e5",
           "paddingAll": "8px",
-          "cornerRadius": "4px",
           "contents": [
             {
               "type": "text",
@@ -74,7 +73,7 @@
             },
             {
               "type": "text",
-              "text": "・の行は だいちゃんの文そのまま。【公式】はこちらで裏を取った分。",
+              "text": "・の行は だいちゃんの文そのまま。",
               "wrap": true,
               "size": "xxs",
               "color": "#8a4b00",
@@ -84,8 +83,7 @@
         },
         {
           "type": "separator",
-          "margin": "lg",
-          "color": "#e8eaed"
+          "margin": "lg"
         },
         {
           "type": "box",
@@ -107,7 +105,7 @@
                 },
                 {
                   "type": "text",
-                  "text": "21:00",
+                  "text": "20:00",
                   "wrap": true,
                   "size": "sm",
                   "weight": "bold",
@@ -129,7 +127,7 @@
               "contents": [
                 {
                   "type": "text",
-                  "text": "🏥 グランキューブ大阪｜日本薬局学会（前夜）",
+                  "text": "🏥 新大阪駅｜日本薬局学会の前日入り",
                   "wrap": true,
                   "weight": "bold",
                   "size": "sm",
@@ -153,7 +151,7 @@
                 },
                 {
                   "type": "text",
-                  "text": "【公式】第20回 日本薬局学会学術総会は、会期があす10/17〜18。今日は会場での催しは出ていません",
+                  "text": "公式:第20回 日本薬局学会学術総会は、会期があす10/17〜18。今日は会場での催しは出ていません",
                   "wrap": true,
                   "size": "xxs",
                   "color": "#5f6368",
@@ -161,7 +159,7 @@
                 },
                 {
                   "type": "text",
-                  "text": "狙いは会場ではなく、新大阪・伊丹 → 中之島・淀屋橋のホテル",
+                  "text": "狙いは会場でなく、新大阪・伊丹 → 中之島のホテル",
                   "wrap": true,
                   "size": "xs",
                   "color": "#333333",
@@ -187,8 +185,7 @@
         },
         {
           "type": "separator",
-          "margin": "lg",
-          "color": "#e8eaed"
+          "margin": "lg"
         },
         {
           "type": "box",
@@ -206,7 +203,73 @@
                   "wrap": true,
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#5f6368"
+                  "color": "#1b2430"
+                },
+                {
+                  "type": "text",
+                  "text": "21:15",
+                  "wrap": true,
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "🎃 なんば広場｜CHIMNEY TOWN HALLOWEEN",
+                  "wrap": true,
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#1b2430"
+                },
+                {
+                  "type": "text",
+                  "text": "公式:10/15(木)〜18(日)・12:00〜21:00（上司からの共有）",
+                  "wrap": true,
+                  "size": "xxs",
+                  "color": "#5f6368",
+                  "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "21:00 終了。仮装の客が なんば・心斎橋へ流れる",
+                  "wrap": true,
+                  "size": "xs",
+                  "color": "#333333",
+                  "margin": "xs"
+                }
+              ]
+            }
+          ],
+          "margin": "lg"
+        },
+        {
+          "type": "separator",
+          "margin": "lg"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 4,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "20:45〜",
+                  "wrap": true,
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430"
                 },
                 {
                   "type": "text",
@@ -214,14 +277,7 @@
                   "wrap": true,
                   "size": "sm",
                   "weight": "bold",
-                  "color": "#5f6368"
-                },
-                {
-                  "type": "text",
-                  "text": "目安",
-                  "wrap": true,
-                  "size": "xxs",
-                  "color": "#5f6368"
+                  "color": "#1b2430"
                 }
               ]
             },
@@ -256,7 +312,7 @@
                 },
                 {
                   "type": "text",
-                  "text": "【公式】開場17:30・開演18:30（大阪城ホール公式）。終演は公式に出ていません。16,000席",
+                  "text": "公式:終演21:00（職場の表）。開場17:30・開演18:30（大阪城ホール公式）。16,000席",
                   "wrap": true,
                   "size": "xxs",
                   "color": "#5f6368",
@@ -264,7 +320,7 @@
                 },
                 {
                   "type": "text",
-                  "text": "終演21:00なら 20:45着け。京橋へ歩く客も多いので森ノ宮側へ",
+                  "text": "京橋へ歩く客も多いので森ノ宮側へ。大阪城SINFONIA(10/15〜25)も同じエリア",
                   "wrap": true,
                   "size": "xs",
                   "color": "#333333",
@@ -290,8 +346,7 @@
         },
         {
           "type": "separator",
-          "margin": "lg",
-          "color": "#e8eaed"
+          "margin": "lg"
         },
         {
           "type": "box",
@@ -359,7 +414,16 @@
                 },
                 {
                   "type": "text",
-                  "text": "【公式】今日の閉園時刻は、公式で確かめられませんでした",
+                  "text": "※閉園時刻 未確認。確かめてから動いてください",
+                  "wrap": true,
+                  "size": "xs",
+                  "weight": "bold",
+                  "color": "#b00020",
+                  "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "公式:今日の閉園時刻は、確かめられませんでした",
                   "wrap": true,
                   "size": "xxs",
                   "color": "#5f6368",
@@ -383,7 +447,7 @@
                   "action": {
                     "type": "uri",
                     "label": "確認",
-                    "uri": "https://www.usj.co.jp/parkguide/schedule/"
+                    "uri": "https://www.usj.co.jp/web/ja/jp/park-guide/schedule/park-hour2"
                   }
                 }
               ]
@@ -393,8 +457,7 @@
         },
         {
           "type": "separator",
-          "margin": "lg",
-          "color": "#e8eaed"
+          "margin": "lg"
         },
         {
           "type": "box",
@@ -460,8 +523,7 @@
         },
         {
           "type": "separator",
-          "margin": "lg",
-          "color": "#e8eaed"
+          "margin": "lg"
         },
         {
           "type": "box",
@@ -519,6 +581,15 @@
                   "size": "xs",
                   "color": "#333333",
                   "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "※堺筋 高麗橋1丁目の客待ちは、取締りあり",
+                  "wrap": true,
+                  "size": "xs",
+                  "weight": "bold",
+                  "color": "#b00020",
+                  "margin": "xs"
                 }
               ]
             }
@@ -527,8 +598,73 @@
         },
         {
           "type": "separator",
-          "margin": "lg",
-          "color": "#e8eaed"
+          "margin": "lg"
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "spacing": "sm",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 4,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "21:45〜",
+                  "wrap": true,
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430"
+                },
+                {
+                  "type": "text",
+                  "text": "22:30",
+                  "wrap": true,
+                  "size": "sm",
+                  "weight": "bold",
+                  "color": "#1b2430"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "flex": 11,
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "✨ 中之島公園｜中之島アートライツ2026",
+                  "wrap": true,
+                  "weight": "bold",
+                  "size": "sm",
+                  "color": "#1b2430"
+                },
+                {
+                  "type": "text",
+                  "text": "公式:10/16(金)〜25(日)・18:00〜22:00・入場無料（上司からの共有）",
+                  "wrap": true,
+                  "size": "xxs",
+                  "color": "#5f6368",
+                  "margin": "xs"
+                },
+                {
+                  "type": "text",
+                  "text": "22:00 終了。今日が初日。淀屋橋・北浜・梅田へ。雨・強風なら中止",
+                  "wrap": true,
+                  "size": "xs",
+                  "color": "#333333",
+                  "margin": "xs"
+                }
+              ]
+            }
+          ],
+          "margin": "lg"
+        },
+        {
+          "type": "separator",
+          "margin": "lg"
         },
         {
           "type": "box",
@@ -632,8 +768,7 @@
         },
         {
           "type": "separator",
-          "margin": "md",
-          "color": "#e0e0e0"
+          "margin": "md"
         },
         {
           "type": "text",
@@ -646,50 +781,49 @@
         },
         {
           "type": "text",
-          "text": "・「・」の行 … だいちゃんの共有、そのまま",
+          "text": "・「・」の行＝だいちゃんの共有、そのまま",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368"
         },
         {
           "type": "text",
-          "text": "・大阪城ホール … 公式「開場17:30・開演18:30」／終演の記載なし",
+          "text": "・なんば／中之島／大阪城／堺筋の取締り＝上司からの共有",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368"
         },
         {
           "type": "text",
-          "text": "・日本薬局学会 … 公式「会期 10/17(土)・18(日)」",
+          "text": "・学会の会期・大阪城ホールの開場開演＝公式ページ",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368"
         },
         {
           "type": "text",
-          "text": "・USJ … 今日の閉園時刻は、公式で確かめられず",
+          "text": "・Novelbright の終演21:00＝職場の表",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368"
         },
         {
           "type": "text",
-          "text": "・着ける時刻 … 終演の15分前（こちらの見当）",
+          "text": "・USJ の閉園＝確かめられず／着け時刻＝終演の15分前(見当)",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368"
         },
         {
           "type": "text",
-          "text": "・西天満／本町・淀屋橋／新大阪駅 … だいちゃんの土地勘（裏は取れません）",
+          "text": "・西天満／本町／新大阪駅＝だいちゃんの土地勘(裏は取れません)",
           "wrap": true,
           "size": "xxs",
           "color": "#5f6368"
         },
         {
           "type": "separator",
-          "margin": "md",
-          "color": "#e0e0e0"
+          "margin": "md"
         },
         {
           "type": "text",

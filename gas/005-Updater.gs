@@ -2,7 +2,12 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U138ver  （2026/10/16）  ★★★
+ *  ★★★  U139ver  （2026/10/16）  ★★★
+ *
+ *  [U139ver]
+ *   ・📣 絵が大きいときは、ボタンだけ2通目に回すようにした
+ *     ★入れた時点で LINEの上限を超えると、絵ごと届かなくなります。
+ *       そのときだけ、小さな吹き出しをもう1つ出します。
  *
  *  [U138ver]
  *   ・📣 そうさタブに [21]「さっきの絵をグループへ送る」を足した
@@ -1524,7 +1529,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U138ver";
+const UPD_VERSION = "U139ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9835,15 +9840,23 @@ function updErrandTick_() {
          * ★ボタンを足す係が入っていなくても、絵はそのまま届きます
          *   （片方が古くても、止まらないようにするため）。
          */
-        let fx2 = fx;
+        /*
+         * ★絵が大きいと、ボタンを絵の中に入れた時点で
+         *   LINEの上限を超えて、絵そのものが届かなくなります。
+         *   そのときは、ボタンだけ小さな別の吹き出しにして、
+         *   すぐ下に出します（vnShareMsgs_ が決めます）。
+         */
+        let out2 = [fx];
         try {
           if (j && j.share === false) {
-            fx2 = fx;
+            out2 = [fx];
+          } else if (typeof vnShareMsgs_ === "function") {
+            out2 = vnShareMsgs_(fx) || [fx];
           } else if (typeof vnShareButton_ === "function") {
-            fx2 = vnShareButton_(fx) || fx;
+            out2 = [vnShareButton_(fx) || fx];
           }
-        } catch (e3) { fx2 = fx; }
-        lrPush_(me, [fx2]);
+        } catch (e3) { out2 = [fx]; }
+        lrPush_(me, out2);
         /*
          * ★絵を送ったあとに「おつかい おわりました」をもう1通 出すと、
          *   せっかくの絵が すぐ上へ流れます。ここでは黙ります。

@@ -2,7 +2,18 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V074ver  （2026/10/16）  ★★★
+ *  ★★★  V075ver  （2026/10/16）  ★★★
+ *
+ *  [V075ver]
+ *   ・📣 絵が大きいときは、ボタンだけ別の吹き出しに回すようにした
+ *     ★絵の中にボタンを入れると、LINEの上限（10,000文字）を
+ *       超えることがあります。超えると、ボタンどころか
+ *       **絵そのものが1文字も届きません**。
+ *     ★そこで、入らないときは 絵はそのまま出して、
+ *       ボタンだけ 小さな別の吹き出しにして すぐ下に出します。
+ *       中身がどれだけ増えても、押せる形が必ず残ります。
+ *     ★控えは1つだけ作ります（2つあると、どちらが送られるか
+ *       分からなくなるため）。
  *
  *  [V074ver]
  *   ・⚠ 注意書きに「時間は目安」を足した（ご指示）
@@ -1075,7 +1086,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V074ver";
+const VN_VERSION = "V075ver";
 
 /**
  * 見にいく先の一覧。
@@ -1473,6 +1484,12 @@ function vnTestHm_() {
  *    まるごと入れると、長い絵で あふれます。
  * ================================================================ */
 
+/*
+ * ★「グループへ送る」ボタンを足すと、絵が何文字ふえるか。
+ *   多めに見ておきます。足りないより、余らせるほうが安全です。
+ */
+const VN_SHARE_BTN_LEN = 420;
+
 const VN_SHARE_CHUNK = 2000;     // 控え1つぶんの文字数
 const VN_SHARE_MAX   = 6;        // 何個まで割ってよいか（＝12,000文字まで）
 
@@ -1552,12 +1569,23 @@ function vnShareDrop_(key) {
  * 絵の下に「グループへ送る」ボタンを足す。
  * 足せなければ、絵をそのまま返します（ボタンが無くても、絵は届く）。
  */
+const VN_FLEX_LIMIT = 10000;     // LINEの決まり（絵1枚ぶんの文字数）
+
 function vnShareButton_(msg) {
   try {
     const key = vnShareSave_(msg);
     if (!key) return msg;
     const b = msg && msg.contents;
     if (!b || b.type !== "bubble") return msg;
+    /*
+     * ★ボタンを足すと、絵が LINEの上限（10,000文字）を超えることがあります。
+     *   超えると、ボタンどころか **絵そのものが1文字も届きません**。
+     *   それでは本末転倒なので、そのときはボタンを足しません。
+     * ★控えは残してあるので、記録用スプシ「説明」タブの
+     *   [21] さっきの絵をグループへ送る から、そのまま送れます。
+     */
+    const now = JSON.stringify(msg).length;
+    if (now + VN_SHARE_BTN_LEN > VN_FLEX_LIMIT) return msg;
     const btn = {
       "type": "box", "layout": "vertical", "spacing": "sm", "margin": "md",
       "contents": [
@@ -1574,6 +1602,61 @@ function vnShareButton_(msg) {
     b.footer.contents.push(btn);
     return msg;
   } catch (e) { return msg; }
+}
+
+/** 「グループへ送る」ボタンの中身を作る（絵の下でも、別の吹き出しでも同じもの） */
+function vnShareBtnBox_(key) {
+  return {
+    "type": "box", "layout": "vertical", "spacing": "sm", "margin": "md",
+    "contents": [
+      { "type": "button", "style": "primary", "height": "sm", "color": "#1b2430",
+        "action": { "type": "postback", "label": "📣 グループへ送る",
+                    "data": "vn=flexgo&k=" + encodeURIComponent(key),
+                    "displayText": "グループへ送る" } },
+      { "type": "text", "text": "押すと、この絵がそのままグループへ出ます",
+        "size": "xxs", "color": "#5f6368", "align": "center", "wrap": true }
+    ]
+  };
+}
+
+/**
+ * 絵と「グループへ送る」ボタンを、送れる形にして返す。
+ *
+ * ★絵が小さければ、ボタンを絵の下に入れます（1通で済む）。
+ * ★絵が大きいと、ボタンを入れた時点で LINEの上限（10,000文字）を
+ *   超えて、**絵そのものが1文字も届かなくなります**。
+ *   そのときは、絵はそのまま出して、ボタンだけ
+ *   **小さな別の吹き出し**にして、すぐ下に出します。
+ *   こうすれば、どんなに中身が増えても、押せる形が必ず残ります。
+ * ★控えは1つだけ作ります（2つ作ると、どちらが送られるか分からなくなる）。
+ */
+function vnShareMsgs_(msg) {
+  try {
+    if (!msg) return [msg];
+    const key = vnShareSave_(msg);
+    if (!key) return [msg];                       // 控えられないほど大きい
+    const b = msg.contents;
+    if (!b || b.type !== "bubble") return [msg];
+
+    const btn = vnShareBtnBox_(key);
+    const now = JSON.stringify(msg).length;
+    const add = JSON.stringify(btn).length + 40;  // 入れものの分も見ておく
+
+    if (now + add <= VN_FLEX_LIMIT) {
+      if (!b.footer) b.footer = { "type": "box", "layout": "vertical", "contents": [] };
+      if (!Array.isArray(b.footer.contents)) b.footer.contents = [];
+      b.footer.contents.push(btn);
+      return [msg];
+    }
+
+    // 入らないので、ボタンだけ 小さな吹き出しにして2通目に回す
+    return [msg, {
+      "type": "flex", "altText": "グループへ送りますか",
+      "contents": { "type": "bubble", "size": "micro",
+        "body": { "type": "box", "layout": "vertical", "paddingAll": "10px",
+                  "contents": [vnShareBtnBox_(key)] } }
+    }];
+  } catch (e) { return [msg]; }
 }
 
 /**

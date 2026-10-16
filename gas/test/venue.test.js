@@ -3506,6 +3506,57 @@ console.log('\n■ 📣 グループへ共有するボタン（2段階の2つめ
   has(sBtn, '京セラドーム', '　 もとの絵は、そのまま残る');
   eq(withBtn.contents.footer.contents.length >= 1, true, '　 下の段に入る');
 
+  /*
+   * ★大きい絵には、ボタンを足さない。
+   *   足すと LINEの上限（10,000文字）を超え、
+   *   ボタンどころか **絵そのものが1文字も届かなくなる** ため。
+   *   控えは残すので、スプシの [21] からは送れる。
+   */
+  const near = bubble();
+  near.contents.body.contents[0].text = 'あ'.repeat(9700);
+  const beforeLen = JSON.stringify(near).length;
+  eq(beforeLen > 9600 && beforeLen < 10000, true,
+     '　 （ためし）上限ぎりぎりの絵を作った（' + beforeLen + '文字）');
+  const got = ctx.vnShareButton_(near);
+  eq(JSON.stringify(got).indexOf('vn=flexgo') === -1, true,
+     '★★★上限ぎりぎりの絵には、ボタンを足さない');
+  eq(JSON.stringify(got).length <= 10000, true,
+     '★★絵そのものは、上限を超えない（届く）');
+  eq(ctx.vnShareNewest_() !== '', true,
+     '★控えは残す（スプシの [21] からは送れる）');
+  ctx.vnShareDrop_(ctx.vnShareNewest_());
+
+  /*
+   * ★大きい絵でも、押せる形が必ず残ること。
+   *   絵の中にボタンを入れると上限を超えるときは、
+   *   ボタンだけ 小さな別の吹き出しにして2通目に回す。
+   */
+  const big2 = bubble();
+  big2.contents.body.contents[0].text = 'あ'.repeat(9700);
+  const outs = ctx.vnShareMsgs_(big2);
+  eq(outs.length, 2, '★★大きい絵のときは、2通に分ける');
+  eq(JSON.stringify(outs[0]).length <= 10000, true,
+     '★★★1通目（絵）は、上限を超えない（ちゃんと届く）');
+  eq(JSON.stringify(outs[0]).indexOf('vn=flexgo') === -1, true,
+     '　 1通目にボタンは入れない');
+  has(JSON.stringify(outs[1]), 'vn=flexgo', '★★2通目に、押せるボタンが出る');
+  eq(JSON.stringify(outs[1]).length < 600, true,
+     '　 2通目は小さい（' + JSON.stringify(outs[1]).length + '文字）');
+
+  // ★控えは1つだけ。2つ作ると、どちらが送られるか分からなくなる
+  const keys = Object.keys(props).filter(k => k.indexOf('VNSHARE_') === 0 && k.slice(-2) === '_n');
+  eq(keys.length, 1, '★★控えは1つだけ（2通に分けても）');
+  // 2通目のボタンを押せば、ちゃんと送れること
+  const k2 = decodeURIComponent(JSON.stringify(outs[1]).match(/vn=flexgo&k=([A-Za-z0-9_%]+)/)[1]);
+  eq(ctx.vnShareLoad_(k2) !== null, true, '　 その合言葉で、絵を取り出せる');
+  ctx.vnShareDrop_(k2);
+
+  // 小さい絵のときは、これまでどおり1通で、絵の下にボタンが付く
+  const one = ctx.vnShareMsgs_(bubble());
+  eq(one.length, 1, '★小さい絵は、1通のまま');
+  has(JSON.stringify(one[0]), 'vn=flexgo', '　 絵の下にボタンが付く');
+  ctx.vnShareDrop_(ctx.vnShareNewest_());
+
   // ⑥ 絵でないものを渡されても、こわさない
   eq(ctx.vnShareButton_(null), null, '　 絵が無ければ、そのまま返す（落ちない）');
   const txt = { type: 'text', text: 'ただの字' };

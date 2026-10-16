@@ -6712,10 +6712,12 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
    * ★絵の下に「グループへ送る」ボタンを足しているか。
    *   足していないと、まーく様が手で打ち直すことになる（ご指示のとおりでない）。
    */
-  t(/fx2\s*=\s*vnShareButton_\(/.test(part),
-    '★★絵の下に「グループへ送る」ボタンを足して、それを送っている');
-  t(/lrPush_\(me,\s*\[fx2\]\)/.test(part),
+  t(/out2\s*=\s*vnShareMsgs_\(/.test(part),
+    '★★「グループへ送る」ボタンを足して、それを送っている');
+  t(/lrPush_\(me,\s*out2\)/.test(part),
     '★★★送るのは、ボタンを足したほう（足して捨てていない）');
+  t(part.indexOf('vnShareButton_') !== -1,
+    '★古いやり方しか入っていないときも、ボタンは付く（止まらない）');
   t(part.indexOf('typeof vnShareButton_ === "function"') !== -1,
     '★ボタンの係が入っていなくても、絵はそのまま届く（止まらない）');
   t(part.indexOf('j.share === false') !== -1,
