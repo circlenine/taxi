@@ -257,7 +257,12 @@ def page(head_no, head_title, inner, toc=True):
 
 # 1ページ目は表紙＋もくじ（あとで差しこむ）
 pages.append(None)
-pages.append(None)   # 2ページ目＝もくじと使い方（10/16：1ページ目は「覚えるポイント」だけにするため、もくじを2ページへ移した）
+# 2ページ目「今回覚えるべきポイント」（10/16 まーく様：もくじは1ページ目のまま、ポイントは2ページ目から）
+# 「今回は、これを覚えるんだな！」という、読む前の心構えのページ。情報はポイント4つと「なぜ？」だけにする（memo も置かない）
+# 形は、準備編の手順の札（番号の札＋題）と補足の行（札＋文）をそのまま使う。新しい形は作らない（デザイン揺れを出さない）
+page("要点", "今回覚えるべきポイント", '<p class="kpl">まずは、この4つだけ！くわしいやり方は、次のページから見ていこう</p><div class="kps">'
+     + "".join(f'<section class="step kp"><h3 class="sh3"><span class="sn">{i}</span><span>{T(a)}</span></h3><div class="notes"><div class="nt kx"><span class="nk">なぜ？</span><span class="nx">{T(b)}</span></div></div></section>' for i, (a, b) in enumerate(KEYPOINTS, 1))
+     + '</div>')
 
 # 道具
 RX0, RY0, RX1, RY1 = 265, 88, 1045, 500   # 写真 reg2.jpg の範囲（動画の画面での位置）
@@ -321,18 +326,10 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-# 1ページ目「今回覚えるべきポイント」（10/16 まーく様）
-# 1ページ目は、表紙とこれだけ。「今回は、これを覚えるんだな！」という心構えにする。もくじと使い方は2ページへ。
-# 形は、準備編の手順の札（番号の札＋題）と、補足の行（札＋文）をそのまま使う。新しい形は作らない（デザイン揺れを出さない）
-KP = ('<h2 class="toch">今回覚えるべきポイント<span class="tocn">まずは、この4つだけ！くわしいやり方は、3ページから</span></h2><div class="kps">'
-      + "".join(f'<section class="step kp"><h3 class="sh3"><span class="sn">{i}</span><span>{T(a)}</span></h3><div class="notes"><div class="nt kx"><span class="nk">なぜ？</span><span class="nx">{T(b)}</span></div></div></section>' for i, (a, b) in enumerate(KEYPOINTS, 1))
-      + '</div>')
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e">器材<span class="g">準備</span>編</span></div></div>
-{KP}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>
-<div class="page tocpg" id="p2">{EDTAG}<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">3ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">3〜{len(pages)}ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">{len(pages)}ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
-<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>2 / __TOTAL__</span></div></div>"""
-pages[1] = ""   # 2ページ目は、上の pages[0] の中に続けて書いた
+<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
 # ── 参考2（TRAVEL PLAN）に合わせた仕上げ（10/7 ご指摘「本当に参考にしたのか」）──
@@ -858,21 +855,16 @@ CSS += """
 .cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
 """
 CSS += """
-/* 1ページ目「今回覚えるべきポイント」（10/16）：手順の札・補足の行と同じ形。4つを、ページの下まで同じ間かくで並べる */
-#p1 .kps{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
-#p1 .kp{border-top:1px solid var(--line);padding:3mm 0}
-#p1 .kp:last-child{border-bottom:1px solid var(--line)}
-#p1 .kp:first-child{border-top:0}   /* 見出しの下の線と二重にしない */
-#p1 .kp .sh3{font-size:15pt!important}
-#p1 .kp .notes{margin-top:2.4mm}
+/* 2ページ目「今回覚えるべきポイント」（10/16）：手順の札・補足の行と同じ形。4つを、ページの下まで同じ間かくで並べる */
+.kpl{margin:0;font-size:12pt;font-weight:900;color:#e0507f}
+.kps{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+.kp{border-top:1px solid var(--line);padding:3mm 0}
+.kp:last-child{border-bottom:1px solid var(--line)}
+.kp .sh3{font-size:15pt!important}
+.kp .notes{margin-top:2.4mm}
 /* 題と「なぜ？」は1つのまとまり。あいだに線を引かず、線はポイントとポイントの境目だけにする */
-#p1 .kp .notes .nt{border-top:0!important;padding-top:0!important}
-#p1 .kp .nx{font-size:12pt!important;font-weight:700!important;line-height:1.7!important}
-/* 2ページ目（もくじ・使い方）も、1ページ目と同じすき間で並べる */
-.tocpg{gap:4mm!important}
-/* 1ページ目のポイントの見出しは、もくじの見出しと同じ形（#p1 .toch の決まりは2ページへ移したので、ここで同じものを書く） */
-#p1>.toch{display:flex;align-items:baseline;justify-content:space-between;gap:3mm}
-#p1>.toch .tocn{font-size:10.5pt!important;font-weight:700;color:var(--muted)}
+.kp .notes .nt{border-top:0!important;padding-top:0!important}
+.kp .nx{font-size:12pt!important;font-weight:700!important;line-height:1.7!important}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
@@ -939,12 +931,11 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
   for(let i=0;i<20;i++){const m=(lo+hi)/2;e.style.setProperty('font-size',m+'px','important');const rg=document.createRange();rg.selectNodeContents(e);if(rg.getBoundingClientRect().width<=W-2)lo=m;else hi=m;}
   e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
 document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
-# 10/16 もくじを2ページへ移したので、3ページ目からが手順のページ。
+# 10/16 2ページ目に「今回覚えるべきポイント」を入れたので、3ページ目からが手順のページ。
 # CSS・JS の「#p2」「#p10」などは、もとのページ番号で書いてあるので、ここで1つずつ後ろへずらす（#p1 の表紙はそのまま）。
-# もくじ・使い方の決まり（もとは #p1 に書いていた）は、2ページ（#p2）へ移す。
 def shift_ids(s):
     s = re.sub(r"#p(\d+)\b", lambda m: m.group(0) if m.group(1) == "1" else f"#p{int(m.group(1)) + 1}", s)
-    return re.sub(r"#p1( ?\.(?:toc|tc|toch|howto|relnote)\b)", r"#p2\1", s)
+    return s
 CSS, FIT = shift_ids(CSS), shift_ids(FIT)
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材準備編</title>{FONTS}<style>{CSS}</style></head>'
