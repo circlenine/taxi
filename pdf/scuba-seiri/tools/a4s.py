@@ -377,7 +377,7 @@ def mjump(sid):
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
 mt = "".join(
     f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3>{im(k, 1.6)}'
-    + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span class="mtid">{sid}</span><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
+    + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
 page("まとめ", "この1枚で、すぐ見返せる！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}</div>')
@@ -1055,7 +1055,8 @@ CSS += """
 .mtn{flex:none;width:6.4mm;height:6.4mm;display:grid;place-items:center;font-size:10.5pt;font-weight:900;color:#fff;background:var(--navy)}
 .mtc>img{grid-column:1;grid-row:2/4;width:34mm;display:block;border-radius:2mm;object-fit:cover}
 .mts{grid-column:2;grid-row:2;list-style:none;margin:0;padding:0;font-size:9.2pt;font-weight:700;line-height:1.45;color:var(--ink)}
-.mts li{display:grid;grid-template-columns:7.5mm minmax(0,1fr);align-items:baseline}
+.mts li{padding-left:1em;text-indent:-1em}
+.mts li::before{content:"・"}   /* 10/19：番号は枠の1〜8だけにする（手順番号と2つあると迷う）。手順番号は「くわしくは」に残す */
 .mts li+li{margin-top:.8mm}
 .mtid{font-size:8.5pt;font-weight:900;color:var(--muted)}
 .mts li.mtb{color:var(--p-ink-red)}
