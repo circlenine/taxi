@@ -894,6 +894,22 @@ CSS += """
 .jump b{margin:0 .6mm}
 .mtc .jump{grid-column:2;grid-row:3;text-align:left;margin-top:0;align-self:end;font-size:8.5pt!important;line-height:1.5!important;white-space:nowrap}
 """
+# 10/19 行間・字間の見直し（まーく様：「行間が少し空いていて気持ち悪い。プロのチラシや本と見比べて」）
+#   いままで：説明の文はほぼ全部 行間1.6・字間は詰めなし（「、」「。」が全角ぶん空く）
+#   プロのめやす：本の本文（長く読む文）は 1.5〜1.8倍。チラシ・図解の短い文（1〜3行）は 1.3〜1.5倍。見出しは 1.2〜1.35倍。
+#     見出しと短い文は「プロポーショナル詰め（palt）」で、句読点やカナのすき間を詰めるのがふつう。
+#   この資料の文は、ほとんどが1〜3行の短い文 → チラシ・図解のめやすに合わせる。
+#   TYPO=old で前のまま（比べる用）
+if __import__("os").environ.get("TYPO", "new") != "old":
+    CSS += """
+/* 字間：見出し・札・説明文は、句読点とカナのすき間を詰める（palt） */
+.page,.page *{font-feature-settings:"palt"!important}
+.cover .cv-t,.cover .cv-sd,.cover .cv-e,.cover .cvn,.tp,.tp *{font-feature-settings:normal!important}
+/* 行間：短い説明文は 1.45、写真の名前・小さな字は 1.35、題（手順の題）は 1.3 */
+.notes,.notes *,.nmr,.nmr *,.bg,.bg *,.sasuke,.sasuke *,.pts,.pts *,.qz,.qz *,.ref,.ref *{line-height:1.45!important}
+.sh3,.sh3 *{line-height:1.3!important}
+.cap3,.cap3 *,.page small,.ns small{line-height:1.35!important}
+"""
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}

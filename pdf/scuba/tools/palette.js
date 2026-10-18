@@ -21,6 +21,7 @@ const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAl
  const v=cs.borderTopLeftRadius;if(v==='0px')return;const mm=parseFloat(v)/MM;if(v.includes('%')||parseFloat(v)>=Math.min(r.width,r.height)/2-0.5){out[(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' 丸']=1;return;}
  if(Math.abs(mm-1)>.05&&Math.abs(mm-2)>.05&&parseFloat(v)<Math.min(r.width,r.height)/2-0.5){const k=(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' '+mm.toFixed(2)+'mm';out[k]=1;}});return Object.keys(out);});
 console.log(rad.length?'NG 決めていない角の丸み … '+rad.join(' / '):'角の丸み OK（1mm・2mm だけ。丸い形なし）');
+['#7b4fb0','#4b2a73','#ece1f7','#cdb5ea','#e2d4f2','#f8f3fd','#e6d8f6','#dcc9f1','#e9ddf7','#d6c2f0','#faf6fe'].forEach(c=>OK[c]='スキル編の紫');
 OK['#e0507f']='表紙のピンク（題の S・D・G・s の頭文字と、副題の SDGs だけ。10/15 ご指示）';
 // 洗浄編のオレンジ（a4s.py の COLORS と同じ）
 ['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='洗浄編のオレンジ');
