@@ -316,12 +316,12 @@ quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span 
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
-# 意図：手順のページの写真を、そのまま縮めて「流れ」に並べる。写真＋ひとこと＋コツ1つだけ。
+# 意図（10/16 作り直し：前の形は手順を省きすぎて、このページだけでは完結しなかった）：
+#   写真8枚と、手順を全部（短い言い方で）。このページだけで、全部の流れを見返せる。
 #   ・写真を見れば、どの場面かがすぐ思い出せる（文を読まなくても、絵で復習できる）
-#   ・番号は、やる順番（左から右へ、次の段へ）。3列×3段で、写真は上・文は下（文の列を広くとり、変なところで改行させない）
-#   ・9つめの枠は、はげましのひとこと（10/15 まーく様：やる気が上がる言葉を積極的に）
+#   ・番号は、やる順番（左から右へ、次の段へ）。2列×4段。枠＝見出し（上）・写真（左）・手順の一覧（右）
 #   ・写真は横長（1.6）にそろえる。どの写真も、見せたい部分（赤い丸など）が切れない形（focus の aspect_range で確かめた。10/16）
-#   ・コツは、手順のページに書いてあるものだけ（新しい話・まだ決まっていない数字は入れない）
+#   ・手順の言い方は、手順のページの題を短くしたものだけ（新しい話・まだ決まっていない数字は入れない）
 #   ・「くわしくは〇ページ」で、そのページへ飛べる
 # 形は、洗浄編2ページの「とくに気をつける3つ」と同じ（写真＋名前＋くわしくは）。新しい形は作らない
 def pg_of(sid):   # 手順の番号 → その手順があるページ（ページを作り終えたあとで調べる）
@@ -331,10 +331,12 @@ def pg_of(sid):   # 手順の番号 → その手順があるページ（ペー�
 def mjump(sid):
     n = pg_of(sid)
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
-mt = "".join(f'<figure class="ph3 mtc"><span class="mtn">{i}</span>{im(k, 1.6)}<span class="cap3"><b class="ct">{T(t)}</b>'
-             f'<span class="mtt{" mtb" if big else ""}">{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(tip)}</span></span>{mjump(sid)}</figure>'
-             for i, (k, t, tip, sid, big) in enumerate(MATOME, 1)) + '<div class="mtend"><span>ここまでできたら、<br>もうバッチリ！</span></div>'
-page("まとめ", "写真で、1枚ふり返り！", f'<p class="mtl">番号の順に、写真を見ながら思い出してみよう。<span class="lp mtk">大事</span>は、とくに大事なところ！</p><div class="mtg">{mt}</div>')
+mt = "".join(
+    f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3>{im(k, 1.6)}'
+    + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span class="mtid">{sid}</span><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
+    + mjump(steps[0][0]) + '</section>'
+    for i, (k, h, steps) in enumerate(MATOME, 1))
+page("まとめ", "この1枚で、すぐ見返せる！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}</div>')
 
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
@@ -871,23 +873,25 @@ CSS += """
 .cover .cv-e{font-family:"Kaisei Decol",serif!important;font-weight:700!important;background:none!important;color:#16466b!important;border-radius:0!important;padding:0!important;letter-spacing:.14em!important;box-shadow:inset 0 -1.4mm 0 #d4ecfa}
 """
 CSS += """
-/* まとめのページ（10/16）：写真を4列×2段の「流れ」に並べる。洗浄編2ページの写真＋名前＋くわしくは と同じ形 */
+/* まとめのページ（10/16 作り直し）：このページだけで全部の手順が分かるように。写真8枚＋手順を全部（短く）。2列×4段
+   1つの枠＝番号と見出し（上）、写真（左）、手順の一覧（右）、くわしくは（右下） */
 .mtl{margin:0;font-size:11pt;font-weight:700;color:var(--ink)}
-.mtk{display:inline-block;font-size:9pt;font-weight:900;padding:0 1.4mm;border-radius:1mm;margin:0 1mm 0 0;line-height:1.6}
-.mtl .mtk{margin:0 .6mm}
-.mtg{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:auto;align-content:space-evenly;gap:4mm 4mm;margin-top:3mm}
-.mtc.ph3{position:relative;margin:0!important;display:flex!important;flex-direction:column;gap:1.4mm}
-.mtc img{display:block;width:100%;height:auto;object-fit:cover;border-radius:2mm}
-.mtc .mtn{position:absolute;left:1.6mm;top:1.6mm;z-index:1;min-width:6.4mm;height:6.4mm;display:grid;place-items:center;font-size:11pt;font-weight:900;color:#fff;background:var(--navy);box-shadow:0 0 0 .5mm #fff}
-.mtc .cap3{white-space:normal!important;text-align:left!important;font-size:10pt!important;line-height:1.55!important;margin-top:0}
-.mtc .cap3 .ct{display:block;font-size:10.5pt}
-.mtc .mtt{display:block;margin-top:1mm;font-size:9.5pt;font-weight:700;color:var(--muted)}
-.mtc .mtt.mtb{color:var(--p-ink-red)}
-/* 「くわしくは 2-3（3ページ）」：洗浄編と同じ形（写真の名前のすぐ下に、リンクと同じ色の字で） */
+.mtk{display:inline-block;font-size:8.5pt;font-weight:900;padding:0 1.2mm;border-radius:1mm;margin:0 1mm 0 0;line-height:1.6}
+.mtl .mtk{margin:0 .6mm 0 1.6mm}
+.mtg{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto;align-content:space-evenly;gap:2.4mm 6mm;margin-top:2mm}
+.mtc{display:grid;grid-template-columns:34mm minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:3mm;row-gap:1.6mm;border-top:1px solid var(--line);padding-top:2.4mm}
+.mth{grid-column:1/3;margin:0;display:flex;align-items:center;gap:2mm;font-size:11pt;font-weight:900;color:var(--navy);line-height:1.4}
+.mtn{flex:none;width:6.4mm;height:6.4mm;display:grid;place-items:center;font-size:10.5pt;font-weight:900;color:#fff;background:var(--navy)}
+.mtc>img{grid-column:1;grid-row:2/4;width:34mm;display:block;border-radius:2mm;object-fit:cover}
+.mts{grid-column:2;grid-row:2;list-style:none;margin:0;padding:0;font-size:9.2pt;font-weight:700;line-height:1.45;color:var(--ink)}
+.mts li{display:grid;grid-template-columns:7.5mm minmax(0,1fr);align-items:baseline}
+.mts li+li{margin-top:.8mm}
+.mtid{font-size:8.5pt;font-weight:900;color:var(--muted)}
+.mts li.mtb{color:var(--p-ink-red)}
+/* 「くわしくは 2-3（3ページ）」：洗浄編と同じ形・同じ色（リンクの青） */
 .jump{display:block;text-align:center;font-size:9pt;line-height:1.6;font-weight:700;color:#1c6ea4;text-decoration:underline;margin-top:.8mm}
 .jump b{margin:0 .6mm}
-.mtc .jump{text-align:left;margin-top:0}
-.mtend{display:grid;place-items:center;border:1px dashed var(--line);border-radius:2mm;text-align:center;font-size:13pt;font-weight:900;color:var(--navy);line-height:1.7;padding:4mm}
+.mtc .jump{grid-column:2;grid-row:3;text-align:left;margin-top:0;align-self:end;font-size:8.5pt!important;line-height:1.5!important;white-space:nowrap}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
 FIT = r'''<script>
