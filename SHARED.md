@@ -257,6 +257,26 @@
 
 ---
 
+## つけ待ち場所の地図（まーく様が選んでくださったもの）
+
+**★まーく様が、実際のつけ待ち場所まで選んでくださいました。**
+勝手に別の場所に差し替えない。消さない。
+
+| 場所 | 地図 |
+|---|---|
+| 大阪城ホール（コナン像前） | https://maps.app.goo.gl/8kT2haUUrCiQ7y9P9?g_st=ic |
+| USJ タクシー乗り場（交通広場前） | https://maps.app.goo.gl/3up5j24T6MQPAZa48?g_st=ic |
+| リーガロイヤルホテル大阪 | https://maps.app.goo.gl/WitvSrxHJYXTyPk37?g_st=ic |
+| なんば広場（なんばマルイ） | https://maps.app.goo.gl/iQiYDhauJvHU4hQ1A?g_st=ic |
+| フェスティバルホール（つけ待ち例の1つ） | https://maps.app.goo.gl/Ppk6MkJYa5wSYDnw7?g_st=ic |
+| 西天満 老松通り | https://maps.app.goo.gl/eKCf8H5ADPSvbncy9?g_st=ic |
+| 伏見町の路地 | https://maps.app.goo.gl/eKCf8H5ADPSvbncy9?g_st=ic |
+| 中之島公園（中央公会堂側） | https://maps.app.goo.gl/XuzLhUVgQddzDLnk8?g_st=ic |
+| 新大阪駅（3階 新幹線口） | https://maps.app.goo.gl/j8Qm7tqFUf3Zy8YCA?g_st=ic |
+| グランキューブ大阪（つけ待ち例の1つ） | https://maps.app.goo.gl/GVcyoz2s39KZNfZ1A?g_st=ic |
+
+※西天満 老松通りと伏見町の路地は、同じアドレスをいただいています。
+
 ## 使うときの決まり
 
 - ここは **控え** です。そのままイベント通知に流さない。
