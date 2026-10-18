@@ -7,7 +7,7 @@
 import sys, os, re
 sys.path.insert(0, os.path.dirname(__file__))
 from content import TERMS
-from content_k import INTRO, STEPS, SIGNALS, SIGNAL_NOTES, POINTS, QUIZ   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
+from content_k import INTRO, STEPS, SIGNALS, SIGNAL_NOTES, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
 from focus_k import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -258,7 +258,7 @@ def jump(sid):
     lab = "次のページ" if sid == "OH" else f"<b>{sid}</b>"
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
-    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
+    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{"" if KEYS.get(s["id"], s["key"]) else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
             f'{withjump(photos(s), s.get("jump"))}{notes(s)}</section>')
 def withjump(ph, sid):
     # 飛ぶ行は、写真の名前のすぐ下（写真のかたまりの中）に入れる。手順の「題・写真・札」の3段の形をくずさないため
@@ -276,7 +276,13 @@ EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span>
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
 _s3 = next(x for x in STEPS if x["id"] == "3"); _s4 = next(x for x in STEPS if x["id"] == "4")
 STEPS = [dict(_s3, title="“中性浮力” {bc}と呼吸で合わせ、体は水平に", subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
-TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()   # スキル編は、洗浄編の特別な形を使わない
+TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
+KEYS = {"3-2": []}   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
+# 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
+def q2(sid):
+    if sid not in QUIZ2: return ""
+    q, a = QUIZ2[sid]
+    return f'<div class="quiz q2"><div class="qz"><span class="q"><span class="q2h">2択クイズ</span><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div></div>'
 pages, TOC = [], []
 def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
@@ -293,7 +299,7 @@ pages.append(None)
 
 # 2ページ：いちばん大事なのは“リラックス”（10/15 まーく様）。ほかのページと同じ「題・写真・札」の形
 COLS = set()
-page("その1", INTRO["title"], '<div class="grid2">' + "".join(stepbox(x) for x in INTRO["subs"]) + "</div>")
+page("その1", INTRO["title"], q2("1") + '<div class="grid2">' + "".join(stepbox(x) for x in INTRO["subs"]) + "</div>")
 
 COLS = {"3", "5", "7"}   # スキル編：手順が多い・文が長いページは、左右の列をそれぞれ上から詰める
 for sec in STEPS:
@@ -308,12 +314,12 @@ for sec in STEPS:
         if sec["id"] in COLS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
             # 中性浮力のページは、左に①（3-1〜3-3）、右に②（4-1・4-2）を置く（2つの話を、列で分けて見せる）
-            L, Rr = ([x for x in g if x["id"].startswith("3-")], [x for x in g if x["id"].startswith("4-")]) if sec["id"] == "3" else (g[0::2], g[1::2])
+            L, Rr = ([x for x in g if x["id"].startswith("3-")], [x for x in g if x["id"].startswith("4-")]) if sec["id"] == "3x" else (g[0::2], g[1::2])
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in L) + '</div><div class="col">' + "".join(stepbox(x) for x in Rr) + "</div></div>"
         else:
             body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
-        page(f"その{sec['id']}", t, body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
+        page(f"その{sec['id']}", t, q2(sec["id"]) + body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
 # まとめ
 pts = "".join(f'<p class="pth">{h}</p>' + "".join(f'<p class="bl"><span class="bm">・</span><span>{T(l)}</span></p>' for l in ls) for h, ls in POINTS)
@@ -1043,6 +1049,9 @@ CSS += """
 #p2 .srows.one .sd2,.page .srows.one .sd2{white-space:normal!important;text-align:left!important}
 .sgg{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:2mm!important}
 .sgc .cap3{font-size:8pt!important}
+.page .quiz.q2{grid-template-columns:minmax(0,1fr)!important}
+.q2 .qz{border-color:var(--sea2)!important;background:var(--pale)!important}
+.q2 .q2h{display:inline-block;font-size:8.5pt;font-weight:900;color:#fff;background:var(--navy);padding:0 1.4mm;margin-right:1.6mm;line-height:1.6}
 .sgnote>.sh3+.notes{margin-top:0!important}
 .sgnote{padding-top:0!important}
 .mts{font-size:8.6pt!important;line-height:1.4!important}
@@ -1058,7 +1067,7 @@ CSS += """
 #   プロのめやす：本の本文（長く読む文）は 1.5〜1.8倍。チラシ・図解の短い文（1〜3行）は 1.3〜1.5倍。見出しは 1.2〜1.35倍。
 #     見出しと短い文は「プロポーショナル詰め（palt）」で、句読点やカナのすき間を詰めるのがふつう。
 #   この資料の文は、ほとんどが1〜3行の短い文 → チラシ・図解のめやすに合わせる。
-#   TYPO=old で前のまま（比べる用）
+#   10/19 まーく様：「行間の案はプロデザインに合わせる形で」→ 3冊ともこの形に決定。TYPO=old で前のまま（比べる用）
 if __import__("os").environ.get("TYPO", "new") != "old":
     CSS += """
 /* 字間：見出し・札・説明文は、句読点とカナのすき間を詰める（palt） */
