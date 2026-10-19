@@ -4,7 +4,7 @@
 #   ・動作の写真（前▶後）のあいだに矢印
 # まーく様のご指示「前のデータはすぐに戻せるように」：NEWDESIGN=0 で、前の形（題は線の見出し、写真と説明は別々）に戻る
 import os
-ON = os.environ.get("NEWDESIGN", "1") != "0"
+ON = os.environ.get("NEWDESIGN", "0") == "1"   # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」→ ふだんは前の形。NEWDESIGN=1 で新しい形
 # 10/19 まーく様：色の見出しつきカードの形（CARD）は「やはり前の形に戻して」→ ふだんは使わない。NDCARD=1 で見られる
 CARD = os.environ.get("NDCARD", "0") == "1"
 
@@ -26,7 +26,7 @@ def header(no, head_no, head_title_html, lg, old_html):
 
 def css(no):
     if not ON:
-        return ""
+        return FINE_OLD   # 前の形でも、10/20 のご指摘（ピンク地が見づらい・まとめの写真が小さい）は直したまま
     m, line, bg, dash, dot = COL[no]
     return (CARD_CSS.format(line=line, bg=bg) if CARD else "") + FINE + f"""
 /* 題の帯（10/19 リベ大の題の形）。角は丸めない（左右いっぱいなので、下の角が欠けて見える） */
@@ -100,3 +100,5 @@ FINE = """
 .mtc{grid-template-columns:44mm minmax(0,1fr)!important}
 .mtc>img{width:44mm!important;height:auto!important;aspect-ratio:1.33!important}
 """
+
+FINE_OLD = FINE.replace(".step .nt{padding:2.2mm .4mm!important}", "").replace(".step .nt.kpk,.notes .nt.kpk", ".notes .nt.kpk")

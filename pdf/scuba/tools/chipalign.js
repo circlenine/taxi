@@ -15,11 +15,11 @@ for(const e of els){if(await e.evaluate(n=>!!n.closest('.ph.band')))continue;   
  const D=(i,c)=>Math.abs(data[i]-c[0])+Math.abs(data[i+1]-c[1])+Math.abs(data[i+2]-c[2]);
  const bi=(Math.floor(h*.5)*w+3)*4;const bg=[data[bi],data[bi+1],data[bi+2]];   // 地の色は、左のふち近く・高さのまん中からとる（上のふちは角の丸みでにじむ）
  let x0=w,x1=-1,y0=h,y1=-1;
- // 角の丸みの外（まわりの地の色）を字と見まちがえないよう、左右の幅は「上下のまん中の帯」だけで、上下の高さは「左右のまん中の帯」だけで測る
+ // 要素の箱は、小数の位置のぶん1pxほど大きく写ることがあるので、ふち3pxは見ない。角の丸みの外（まわりの地の色）を字と見まちがえないよう、左右の幅は「上下のまん中の帯」だけで、上下の高さは「左右のまん中の帯」だけで測る
  const isInk=(x,y)=>{const i=(y*w+x)*4;return D(i,bg)>200&&D(i,fc)<160;};
  const R=Math.min(Math.ceil(1.2*96/25.4*3),Math.floor(h/3),Math.floor(w/4));
- for(let y=R;y<h-R;y++)for(let x=0;x<w;x++)if(isInk(x,y)){if(x<x0)x0=x;if(x>x1)x1=x;}
- for(let y=0;y<h;y++)for(let x=R;x<w-R;x++)if(isInk(x,y)){if(y<y0)y0=y;if(y>y1)y1=y;}
+ for(let y=R;y<h-R;y++)for(let x=3;x<w-3;x++)if(isInk(x,y)){if(x<x0)x0=x;if(x>x1)x1=x;}
+ for(let y=3;y<h-3;y++)for(let x=R;x<w-R;x++)if(isInk(x,y)){if(y<y0)y0=y;if(y>y1)y1=y;}
  if(x1<0)continue;
  const mL=x0,mR=w-1-x1,mT=y0,mB=h-1-y1;
  const offy=((y0+y1)/2-h/2)/h, offx=((x0+x1)/2-w/2)/w;

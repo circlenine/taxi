@@ -9,6 +9,14 @@ import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import TERMS
 from content_k import INTRO, STEPS, SIGNALS, SIGNAL_NOTES, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
+# 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
+#   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
+if not _nd.ON:
+    _OLDT = {"1": "いちばん大事なのは“リラックス”じゃ！", "2": "“耳抜き”のやり方3選", "5": "{bc}排気と{regu}",
+             "6": "マスククリアとマスク脱着", "7": "空気は、バディと分け合える", "8": "浮上と、潜った後の過ごし方"}
+    INTRO["title"] = _OLDT["1"]
+    for _x in STEPS:
+        if _x["id"] in _OLDT: _x["title"] = _OLDT[_x["id"]]
 from focus_k import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -276,7 +284,7 @@ VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"  
 EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
 _s3 = next(x for x in STEPS if x["id"] == "3"); _s4 = next(x for x in STEPS if x["id"] == "4")
-STEPS = [dict(_s3, title="“中性浮力”を身につけよう！", subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
+STEPS = [dict(_s3, title=("“中性浮力”を身につけよう！" if _nd.ON else "“中性浮力” {bc}と呼吸で合わせ、体は水平に"), subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
 TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
 # 写真のない手順があったら、組み立てを止める（10/19 まーく様「画像は必ずつけてください。文章だけだと読む気が失せます」）
 _nophoto = [x["id"] for x in INTRO["subs"] + [y for sec in STEPS for y in sec["subs"]] if not x.get("key")]
@@ -378,8 +386,8 @@ mt = "".join(
     for i, (k, h, steps) in enumerate(MATOME, 1))
 sg = "".join(f'<figure class="ph3 sgc">{im(k, 1.0)}<span class="cap3">{T(name)}</span></figure>' for k, name in SIGNALS)
 sgn = '<div class="notes">' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES) + '</div>'
-page("合図", "ハンドシグナルを覚えよう！", f'<div class="sgg">{sg}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><p class="src">写真：エアー福岡「18. ハンドシグナル」の画面から。<a href="https://youtu.be/pS-yk6gth-8"><span class="tapm scr">*</span>https://youtu.be/pS-yk6gth-8</a></p>')
-page("まとめ", "この1枚で、すぐ見返そう！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}</div><p class="src">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p>')
+page("合図", ("ハンドシグナルを覚えよう！" if _nd.ON else "ハンドシグナル早見表とクイズ"), f'<div class="sgg">{sg}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><p class="src">写真：エアー福岡「18. ハンドシグナル」の画面から。<a href="https://youtu.be/pS-yk6gth-8"><span class="tapm scr">*</span>https://youtu.be/pS-yk6gth-8</a></p>')
+page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "この1枚で、すぐ見返せる！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}</div><p class="src">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
