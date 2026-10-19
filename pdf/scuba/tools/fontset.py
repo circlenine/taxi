@@ -60,7 +60,9 @@ def css(no="3"):
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）
         #   字のファイルはリポジトリの pdf/fonts/ に置いた（まーく様にいただいたもの）
         h = '"LanobePOP","Noto Sans JP",sans-serif'
-        body = ('html,body,.page,.page *:not(.emj){font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif!important}\n' if BODY == "maru" else "")
+        if os.environ.get("HEADFONT") == "mochiy":   # 比べる用（10/19：前に見せた Mochiy Pop P One の版）
+            h = '"Mochiy Pop P One","Noto Sans JP",sans-serif'
+        body = ('html,body,.page,.page *:not(.emj){font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif!important}\n.page .cover .cv-no .cvn{font-family:inherit!important}\n' if BODY == "maru" else "")
         # 題の字に合わせて、表紙の数字の位置を合わせ直す（numcheck.py で測った）
         cover = cover.replace("translate(" + _NX.get(no, ".24mm") + ",-1.2mm)", "translate(" + _NXL.get(no, ".04mm") + ",-.3mm)")
         return CHIP + cover + body + LANOBE + f"""
