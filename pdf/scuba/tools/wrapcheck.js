@@ -1,4 +1,5 @@
 // 改行の検査（10/7 ご指摘「中途半端なところで改行しない」）
+// 10/20：見出しを「名前」と「説明」の2段に分けたときは、別々のかたまりとして調べる（段の切れ目は、わざと分けた所なので）
 // 文のかたまりごとに、1行ずつの字を取り出して調べる：
 //  ・最後の行が3文字以下（「う！」だけが次の行に落ちる、など）
 //  ・行の頭が「、。！？）」」など、行の頭に来てはいけない字
@@ -7,7 +8,7 @@ const { chromium } = require('playwright');
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});const p=await b.newPage();
 await p.emulateMedia({media:'print'});await p.goto('file://'+src,{waitUntil:'networkidle'});await p.evaluate(()=>document.fonts.ready);await p.waitForFunction(()=>window.__laid===true);
 const r=await p.evaluate(()=>{const out=[];window.__dump=[];
- const blocks=[...document.querySelectorAll('.page p,.page h2,.page h3>span:last-child,.nx,.ns,.sd2,.ds,.tt,.q,.cap3,.say,.of,.tocn')];
+ const blocks=[...document.querySelectorAll('.page p,.page h2,.page h3>span:last-child:not(:has(.hm)),.page h3 .hm,.page h3 .hs,.nx,.ns,.sd2,.ds,.tt,.q,.cap3,.say,.of,.tocn')];
  blocks.forEach(bl=>{if(bl.closest('svg'))return;const lines=[];let cur=null,top=null;
   const w=document.createTreeWalker(bl,NodeFilter.SHOW_TEXT);let n;
   while(n=w.nextNode()){if(n.parentElement.closest('.half'))continue;if(n.parentElement.closest('.t,.nk,.sn,.fs,.nn,.nn2,.sp2')&&n.parentElement!==bl){/* 札はひとかたまり */const r=n.parentElement.getBoundingClientRect();if(top===null||r.top>top+r.height*.5){cur=[];lines.push(cur);top=r.top;}cur.push(...n.textContent.trim());continue;}

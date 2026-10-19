@@ -98,9 +98,50 @@ def body_css():
 .page .notes .t,.page .sasuke .t,.page .bg .t,.page .mts .t,.page .nmr .ds .t,.page .qz .t{{font-family:{f},"Kaisei Decol",serif!important;font-weight:{w}!important}}
 """
 
+# 10/20 まーく様「、。の隙間を詰められるフォントに」「各見出しも、もうちょっと見やすく」
+#   題の字（解星デコール）は、配られている字のファイルに「、。を詰める仕組み」が入っていない（確かめた）。
+#   字を変えずに詰めるため、題の字で書かれた「、。（）「」・：」だけ、字の空いている側を狭める。
+#   見出しは「①バルサルバ法：鼻を…」のように「：」があれば、名前（1行目・大きく）と説明（2行目から・少し小さく）に分ける。
+#   見出しの折り返しは、言葉の切れ目で折る（「鼻を／つまんで」のような切れ方をさせない）。
+def punct_js():
+    if MODE != "kaisei":
+        return ""
+    return """<script>(function(){
+document.querySelectorAll('h3.sh3>span:last-child').forEach(function(s){
+ /* 「：」は、色つきの言葉などがまざった見出しでも探す（子の字のかたまりの中から、最初の「：」を見つけて、そこで2つに分ける） */
+ var k=[].slice.call(s.childNodes),at=-1;for(var j=0;j<k.length;j++)if(k[j].nodeType===3&&k[j].textContent.indexOf('：')>0||k[j].nodeType===3&&j>0&&k[j].textContent.indexOf('：')>=0){at=j;break;}
+ if(at<0)return;var t=k[at].textContent,i=t.indexOf('：');
+ var m=document.createElement('b');m.className='hm';var n=document.createElement('span');n.className='hs';
+ k.slice(0,at).forEach(function(x){m.appendChild(x);});m.appendChild(document.createTextNode(t.slice(0,i)));
+ n.appendChild(document.createTextNode(t.slice(i+1)));k.slice(at+1).forEach(function(x){n.appendChild(x);});
+ s.textContent='';s.appendChild(m);s.appendChild(n);});
+var R=/[、。，．）」』〕】]/,L=/[（「『〔【]/,C=/[・：]/;
+document.querySelectorAll('.page').forEach(function(pg){
+ var w=document.createTreeWalker(pg,NodeFilter.SHOW_TEXT),ns=[],n;while(n=w.nextNode())if(/[、。，．（）「」『』〔〕【】・：]/.test(n.textContent))ns.push(n);
+ ns.forEach(function(t){var e=t.parentElement;if(e.closest('.cover,.cv-sd,.emj,.sn,.nk,.lp,.lx,.mtk,.half,.fs,.edtag'))return;
+  if(getComputedStyle(e).fontFamily.replace(/"/g,'').indexOf('Kaisei Decol')!==0)return;
+  var f=document.createDocumentFragment();t.textContent.split(/([、。，．（）「」『』〔〕【】・：])/).forEach(function(x){if(!x)return;
+   if(R.test(x)||L.test(x)||C.test(x)){var k=document.createElement('span');k.className=R.test(x)?'pqr':L.test(x)?'pql':'pqc';k.textContent=x;f.appendChild(k);}else f.appendChild(document.createTextNode(x));});
+  t.parentNode.replaceChild(f,t);});});
+})();</script>"""
+
+PUNCT_CSS = """
+/* 「、。」などの空いている側を狭める（punct_js が印を付ける） */
+/* 見出しの「字のあいだを詰める」決まりに負けないよう、強く書く（.pqr を重ねて強さを上げている） */
+.page .pqr.pqr.pqr{letter-spacing:-.42em!important}
+.page .pql.pql.pql{margin-left:-.42em!important}
+.page .pqc.pqc.pqc{margin-left:-.2em!important;letter-spacing:-.2em!important}
+/* 見出し：名前と説明を分ける。言葉の切れ目で折り返す */
+.page h3.sh3>span:last-child,.page h2{word-break:auto-phrase}
+/* 題の字は、かなの左右が広めに空く字。見出しだけ、字と字のあいだを少しだけ詰める */
+.page h3.sh3>span:last-child,.page h3.sh3>span:last-child *,.page h2>span:not(.half):not(.emj){letter-spacing:-.04em!important}
+.page h3.sh3 .hm{display:block;font-size:1.06em}
+.page h3.sh3 .hs{display:block;font-size:.84em;margin-top:.6mm;color:#1f2a37!important;line-height:1.4!important}
+"""
+
 def css(no="3"):
     if MODE == "kaisei":
-        return CHIP + KAISEI + body_css()
+        return CHIP + KAISEI + body_css() + PUNCT_CSS
     cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "libe":
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）

@@ -985,5 +985,5 @@ document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRi
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 最後のページ（もとは10ページ）の決まりを、いまの最後のページに読みかえる（10/16 まとめのページを足したため）
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>準備編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{"".join(pages)}{FIT}</body></html>')
+    f'<body>{"".join(pages)}{_fs.punct_js()}{FIT}</body></html>')
 print("pages", len(pages))

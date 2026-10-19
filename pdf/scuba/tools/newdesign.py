@@ -125,8 +125,8 @@ def chips(no):
 .page .lp,.page .kpk .nk,.page .mtk{{background:#b4234a!important;color:#fff!important}}   /* 大事＝いちばん目立つ濃い赤 */
 .page .half.rel.new{{background:#b4234a!important}}
 .kpk::before{{background:#b4234a!important}}
-.notes .kx{{position:relative;padding-left:2.6mm!important}}
-.notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:.6mm;background:{line}}}   /* 補足：うすい左縦線（大事より細く・うすく） */
+.notes .kx{{position:relative;padding-left:3.2mm!important}}   /* 字の始まりを大事の欄とそろえる */
+.notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:1.2mm;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */
 /* 10/20 まーく様「クイズは、質問文にも、答えと同じ幅で背景色を」→ 質問＝濃い地に白い字、答え＝うすい地。左右の幅はそろえる */
 .page .qz .q{{background:{m};color:#fff!important;padding:1mm 2mm;border-radius:1mm;display:block;box-sizing:border-box;font-size:10pt;line-height:1.45!important}}   /* flex にすると、字と札がばらばらの箱になって崩れる（10/20 洗浄編で確かめた）ので block */
 .page .qz{{row-gap:.6mm!important}}

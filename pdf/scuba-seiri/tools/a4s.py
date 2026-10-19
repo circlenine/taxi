@@ -1163,5 +1163,5 @@ def recolor(h):
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>洗浄編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{"".join(pages)}{FIT}</body></html>'))
+    f'<body>{"".join(pages)}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))
