@@ -33,6 +33,9 @@ python3 -I $S/tools/jumpcheck.py $S/build_k/a4.html
 node $S/tools/relcheck.js $S/build_k/a4.html
 node $S/tools/palette.js $S/build_k/a4.html
 node $S/tools/borders.js $S/build_k/a4.html
+# 10/19 まーく様：2択クイズは入れない／読む順はZ字（列ごとに上から詰めない）。紛れこんだら止める
+if grep -q "2択クイズ" a4.html; then echo "止めます：2択クイズが入っています"; exit 1; fi
+if grep -q "grid2 cols" a4.html; then echo "止めます：列ごとに上から詰めるページがあります（読む順はZ字）"; exit 1; fi
 if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi
 node $S/tools/print2.js $S/build_k/a4.html $S/build_k/a4.pdf
 node $S/tools/chkpos.js $S/build_k/a4.html $S/build_k/a4chk.json

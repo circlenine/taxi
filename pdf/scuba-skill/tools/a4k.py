@@ -281,9 +281,16 @@ TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
 _nophoto = [x["id"] for x in INTRO["subs"] + [y for sec in STEPS for y in sec["subs"]] if not x.get("key")]
 if _nophoto:
     sys.exit("止めます：写真のない手順があります → " + "、".join(_nophoto) + "（content_k.py の key に写真を入れてください）")
+# 題に「ふり返り」「NEW」を書かない（10/19 まーく様：右の札と重なる。もくじでも二重になる）
+_dup = [sec["id"] for sec in STEPS if re.match(r"\s*(ふり返り|NEW)", sec["title"])]
+if _dup:
+    sys.exit("止めます：題に「ふり返り」などが入っています（右の札と重なる）→ その" + "、その".join(_dup))
 KEYS = {}   # どの手順にも写真を付ける（10/19 まーく様「画像は必ずつけてください」）  #   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
 # 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
 def q2(sid):
+    # 10/19 まーく様：「2択クイズは全て抜いて」。何も学ぶ前のページの頭に問いがあると「？」となる（読む順に合わない）
+    return ""
+def _q2_old(sid):
     if sid not in QUIZ2: return ""
     q, a = QUIZ2[sid]
     return f'<div class="quiz q2"><div class="qz"><span class="q"><span class="q2h">2択クイズ</span><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div></div>'
@@ -305,7 +312,7 @@ pages.append(None)
 COLS = set()
 page("その1", INTRO["title"], q2("1") + '<div class="grid2">' + "".join(stepbox(x) for x in INTRO["subs"]) + "</div>")
 
-COLS = {"3", "5", "7"}   # スキル編：手順が多い・文が長いページは、左右の列をそれぞれ上から詰める
+COLS = set()   # 10/19 まーく様：読む順は Z字（左上→右上→左下→右下）。列ごとに上から詰める形はやめた。入りきらないときは文を削る
 for sec in STEPS:
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
     # 手順が多くて文が長い工程（工程2）だけ、2ページに分ける（1項目は多くても2ページ）
