@@ -5,6 +5,7 @@
 # ・どのページも、まったく同じ型：見出し → 手順（番号と題 → 写真 → 補足）の順に、1列で並べる
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
+import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import TERMS
 from content_k import INTRO, STEPS, SIGNALS, SIGNAL_NOTES, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
@@ -312,7 +313,8 @@ def page(head_no, head_title, inner, toc=True):
     # 10/19 まーく様：題はリベ大の「5つの力を身につけよう！」のように、色の帯に「〜しよう！」の形で
     #   帯の左に番号の丸、上に小さく「スキル編　その1」、下に大きく題。補足・大事の説明と魚は、帯の下の右に置く
     num = head_no[2:] if head_no.startswith("その") else head_no
-    h = (f'<div class="ph band"><span class="bno{" bw" if len(num) > 1 else ""}">{num}</span><div class="btx"><small>スキル編　{head_no}{lg}</small><h2>{T(head_title)}</h2></div></div>') if head_no else ""   # 帯の下に段を作るとページからあふれるので、補足・大事の説明は帯の中の上の段に
+    h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
+    h = _nd.header("3", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
     pages.append(f'<div class="page" id="p{n}">{EDTAG}{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
@@ -1102,37 +1104,9 @@ if __import__("os").environ.get("TYPO", "new") != "old":
 .cap3,.cap3 *,.page small,.ns small{line-height:1.35!important}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
-CSS += """
-/* 題の帯（10/19 リベ大の題の形） */
-.ph.band{display:flex!important;align-items:center;gap:3.4mm;background:#4b2a73;color:#fff;margin:0 0 1.6mm!important;padding:3mm 4mm!important;border:0!important}
-.ph.band .bno{flex:none;width:12mm;height:12mm;border-radius:1mm;background:#fff;color:#4b2a73;display:grid;place-items:center;font-size:17pt;font-weight:900;line-height:1}
-.ph.band .bno.bw{font-size:11pt}
-.ph.band .btx small{display:block;font-size:9pt;font-weight:700;opacity:.92;letter-spacing:.04em;line-height:1.3}
-.ph.band h2{color:#fff!important;margin:0!important;font-size:19pt!important;line-height:1.3!important}
-.ph.band h2 *{color:#fff!important}
-.ph.band h2 .half{color:inherit}
-.ph.band .btx{flex:1}
-.ph.band .btx small{display:flex!important;align-items:center}
-.ph.band .legend.hl{margin-left:auto!important;position:static!important;color:#fff!important;font-size:8pt!important;gap:1.2mm}
-.ph.band{margin-bottom:3mm!important}
-/* 写真と説明を、細い線の1つの箱でつなぐ（10/19 まーく様：薄い枠でつながっているのが見やすい。シャープ寄り＝線で表す） */
-.step>.photos,.step>.notes{border:1px solid #dcc9f1;background:#fff}
-.step>.photos{border-bottom:0;padding:1.6mm 1.6mm 1.2mm;margin-bottom:-2.4mm}
-.step>.notes{border-top:0;padding:0 2.4mm 1.2mm;background:#faf6fe}
-.step>.photos+.notes{box-shadow:inset 0 1px 0 #dcc9f1}
-/* 説明の1行ずつ：頭に小さな四角の印、行どうしは点線で区切る */
-.step .nt{border-top:1px dashed #e2d4f2!important;padding:1.8mm .4mm!important}
-.step .nt:first-child{border-top:0!important}
-.step .nt .nx,.step .nt .ns{position:relative}
-.step .nt .ns:not(:has(.srows)){padding-left:3.2mm;margin-top:1.2mm}
-.step .nt .ns:has(.srows){margin-top:1.2mm}
-.step .nt .ns:not(:has(.srows))::before{content:"";position:absolute;left:.4mm;top:.62em;width:1.6mm;height:1.6mm;background:#cdb5ea}
-.step .cap3{color:#4b2a73;font-size:8.5pt}
 
-/* やる前 → やった後：2枚の写真のあいだに矢印（10/19） */
-.photos .ph3+.ph3{position:relative}
-.photos .ph3+.ph3::before{content:"▶";position:absolute;left:-3.4mm;top:38%;z-index:2;width:5.4mm;height:5.4mm;display:grid;place-items:center;background:#4b2a73;color:#fff;font-size:8pt;line-height:1;border-radius:1mm;box-shadow:0 0 0 .6mm #fff}
-"""
+import newdesign as _nd
+CSS += _nd.css("3")
 import fontset as _fs
 FONTS = _fs.links(FONTS)
 CSS += _fs.css("3")
@@ -1172,7 +1146,7 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
  const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;
  const n=Math.floor(inner/(8.5*MM));for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
- const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?up.getBoundingClientRect().top:r.top,b:r.bottom});return;}
+ const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:r.bottom});return;}
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
  // 洗浄編（10/13）：34mm あけると写真が 40mm より低くなるページは、memo を2行ぶん（20mm）にして、写真の大きさを優先する

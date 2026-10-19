@@ -60,3 +60,14 @@ rm -f $S/out/3_*_ｽｷｭｰﾊﾞ_スキル編_old.pdf
 rm -f $S/out/3_*_ｽｷｭｰﾊﾞ_スキル編.pdf
 cp $S/build_k/a4c.pdf "$S/out/3_${D}_ｽｷｭｰﾊﾞ_スキル編.pdf"
 echo "出力: 3_${D}_ｽｷｭｰﾊﾞ_スキル編.pdf"
+# 10/19 新しい形：2ページ目を、作り直した「その1」（libe/p2c.html）に差しかえる。NEWDESIGN=0 なら差しかえない
+if [ "${NEWDESIGN:-1}" != "0" ] && [ -f $S/libe/p2c.html ]; then
+  node $S/tools/topdf.js $S/libe/p2c.html $S/libe/p2c.pdf
+  python3 - "$S/out/3_${D}_ｽｷｭｰﾊﾞ_スキル編.pdf" "$S/libe/p2c.pdf" <<'PY'
+import sys
+from pypdf import PdfReader, PdfWriter
+main, p2 = sys.argv[1], sys.argv[2]
+w = PdfWriter(clone_from=PdfReader(main)); w.insert_page(PdfReader(p2).pages[0], 1); w.remove_page(2); w.write(main)
+print("2ページ目を、作り直した「その1」に差しかえ")
+PY
+fi

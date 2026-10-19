@@ -9,7 +9,7 @@
 # FONTSET=kaku … 全部 Noto Sans JP（角ゴシック）。表紙の題も同じ字にする（比べる用）
 # FONTSET=old  … いままでのまま
 import os
-MODE = os.environ.get("FONTSET", "libe")   # 10/19 まーく様：案1・案2とも不可。表紙の題の筆記体は「きれいで、ダイビングに合っている」→ 前の字に戻した
+MODE = os.environ.get("FONTSET", "old" if os.environ.get("NEWDESIGN", "1") == "0" else "libe")   # NEWDESIGN=0 なら、字の形も前のまま   # 10/19 まーく様：案1・案2とも不可。表紙の題の筆記体は「きれいで、ダイビングに合っている」→ 前の字に戻した
 _FAM = {"maru": '"Zen Maru Gothic"', "kaku": '"Noto Sans JP"', "mix": '"Noto Sans JP"'}
 _HEAD = {"maru": '"Zen Maru Gothic"', "kaku": '"Noto Sans JP"', "mix": '"Zen Maru Gothic"'}
 

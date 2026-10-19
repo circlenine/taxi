@@ -5,6 +5,7 @@
 # ・どのページも、まったく同じ型：見出し → 手順（番号と題 → 写真 → 補足）の順に、1列で並べる
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
+import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import STEPS, TERMS, POINTS, QUIZ, MATOME
 from focus import F as _F, aspect_range as _ar
@@ -251,6 +252,7 @@ def page(head_no, head_title, inner, toc=True):
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
     lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>とくに大事な話</span>' if (head_no == "器材" or head_no.startswith("工程")) else ""
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
+    h = _nd.header("1", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
     pages.append(f'<div class="page" id="p{n}">{EDTAG}{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
@@ -911,6 +913,8 @@ if __import__("os").environ.get("TYPO", "new") != "old":
 .cap3,.cap3 *,.page small,.ns small{line-height:1.35!important}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
+import newdesign as _nd
+CSS += _nd.css("1")
 import fontset as _fs
 FONTS = _fs.links(FONTS)
 CSS += _fs.css("1")
@@ -948,7 +952,7 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
  const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;
  const n=Math.floor(inner/(8.5*MM));for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
- const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?up.getBoundingClientRect().top:r.top,b:r.bottom});return;}
+ const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:r.bottom});return;}
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
  if(best.b-best.t<MINC){fit(pg,lim-RES);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}

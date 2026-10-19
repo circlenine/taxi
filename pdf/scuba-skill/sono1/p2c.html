@@ -1,0 +1,121 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>見本 その1（3回目）</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&family=Mochiy+Pop+One&family=Noto+Sans+JP:wght@500;700;900&family=Noto+Color+Emoji&display=swap">
+<style>
+/* 10/19 その1 3回目。まーく様のご指示：
+   ・大前提「自分のペースを守る」と、その理由
+   ・いつもと違うサインに気づく／耳が抜けないときはすぐ伝える／離れていたら止まって待つ／止まれているかを底と水面で確かめる
+   ・いきなりはできないので、リラックスしているときにイメージトレーニング
+   ・ここにあるのは初心者に起きやすいことのまとめ。ほかに気になることは、事前にインストラクターさんに相談
+   ・札は「理由」「対策」（同じ字数）。札の字は、となりの文の1行目のまん中にそろえる
+   ・上の帯は角を丸めない（左右いっぱいなので、下の角が欠けて見える）
+   ・コップの絵には「コップに例えてみよう！」をそえる（何の絵か分からないままにしない）
+   出どころ：Totty 水中パニック(pcnoTiMgp5I)・熱烈先生(CkhOk9KYVHE/aES1ndyvCXY)・パパラギ先生(UOWYYw_6R-c/ZE8B_kOCD2U)・大人のダイビング倶楽部(C2DpfolYgmU) */
+@page{size:A4;margin:0}
+:root{--ink:#2b2340;--pu:#4b2a73;--pink:#e0507f;--line:#dcc9f1;
+ --c1:#2f9e7a;--c1b:#e3f5ee;--c2:#d9466f;--c2b:#fde6ec;--c3:#c98a00;--c3b:#fff3cf;--c4:#2f78c4;--c4b:#e1eefb;
+ --body:"Noto Sans JP"}
+html.mpop{--body:"Mochiy Pop One"}
+html,body{margin:0;background:#fff;color:var(--ink);font-family:var(--body),"Noto Sans JP",sans-serif;font-weight:700}
+html:not(.mpop) body{font-feature-settings:"palt"}
+.page{width:210mm;height:297mm;box-sizing:border-box;padding:0 10mm 7mm;position:relative;overflow:hidden;background:#fbf8ff}
+.pop{font-family:"Mochiy Pop P One","Noto Sans JP",sans-serif;font-weight:400}
+.band{margin:0 -10mm;background:var(--pu);color:#fff;padding:3.4mm 10mm 3.8mm;display:flex;align-items:center;gap:4mm}
+.band .no{flex:none;width:12mm;height:12mm;background:#fff;color:var(--pu);display:grid;place-items:center;font-size:17pt;border-radius:1mm}
+.band small{display:block;font-size:9.5pt;opacity:.9;font-family:"Noto Sans JP"}
+.band b{display:block;font-size:20pt;line-height:1.25}
+/* 大前提 */
+.base{margin:3mm 0 2.6mm;display:grid;grid-template-columns:1fr 66mm;gap:3.4mm;align-items:stretch}
+.base .l{background:#fff;border:1px solid var(--line);padding:3mm 3.6mm}
+.base .k{display:inline-block;background:var(--pink);color:#fff;font-size:9pt;padding:1mm 2.2mm .9mm;line-height:1;margin-bottom:1.6mm}
+.base h1{margin:0 0 2mm;font-size:18pt;line-height:1.35}
+.base h1 em{font-style:normal;color:var(--pink)}
+.cup{background:#fff;border:1px solid var(--line);padding:2.2mm 2.6mm;display:flex;flex-direction:column}
+.cup .ct{font-size:11pt;color:var(--pu);margin-bottom:1mm}
+.cup svg{width:100%;height:auto;display:block}
+.cup .cc{font-size:8.8pt;line-height:1.45;margin-top:1mm}
+/* 札＋文の行。札は、文の1行目の高さに合わせて、まん中に置く */
+.row{display:grid;grid-template-columns:auto 1fr;column-gap:2mm;align-items:baseline;font-size:10pt;line-height:1.5}
+.row+.row{margin-top:1.4mm}
+/* 札は、となりの文と「字の下の線（ベースライン）」をそろえる。上下の余白は同じにするので、札の字と文の字のまん中がそろう */
+.tag{display:inline-block;font-size:8.6pt;line-height:1;padding:1mm 1.6mm;font-family:"Noto Sans JP";font-weight:900}
+.tag.why{background:#ece1f7;color:#4b2a73}
+.tag.do{background:var(--c,#4b2a73);color:#fff}
+/* カード：写真と説明を細い線の1つの箱でつなぐ */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:3.4mm}
+.card{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+.card .hd{background:var(--cb);display:flex;align-items:center;gap:2.2mm;padding:2mm 3mm;border-bottom:1px solid var(--line)}
+.card .n{flex:none;width:7.6mm;height:7.6mm;background:var(--c);color:#fff;display:grid;place-items:center;font-size:12pt;border-radius:1mm}
+.card h2{margin:0;font-size:12.5pt;line-height:1.3;color:var(--c)}
+.card img{display:block;width:100%;aspect-ratio:2.8;object-fit:cover}
+.card .bd{padding:2.2mm 3mm 2.6mm;background:#faf6fe;border-top:1px solid var(--line);flex:1}
+.sig{display:flex;flex-wrap:wrap;gap:1.2mm;margin-bottom:1.6mm}
+.sig span{background:var(--cb);color:var(--c);padding:.7mm 2mm;font-size:9.2pt;line-height:1.3}
+.k1{--c:var(--c1);--cb:var(--c1b)}.k2{--c:var(--c2);--cb:var(--c2b)}.k3{--c:var(--c3);--cb:var(--c3b)}.k4{--c:var(--c4);--cb:var(--c4b)}
+.end{margin-top:3.2mm;background:var(--pink);color:#fff;padding:2.6mm 4.4mm;display:flex;align-items:center;gap:3mm}
+.end .hand{font-family:"Noto Color Emoji";font-size:18pt;line-height:1}
+.end b{display:block;font-size:13.5pt;line-height:1.35}
+.end small{display:block;font-size:9.4pt;margin-top:.6mm;line-height:1.45}
+.note{margin-top:2.4mm;border:1px solid var(--line);background:#fff;padding:2mm 3mm;font-size:9.4pt;line-height:1.5;display:grid;grid-template-columns:auto 1fr;column-gap:2mm;align-items:baseline}
+.note .tag{background:#4b2a73;color:#fff}
+.foot{position:absolute;left:10mm;right:10mm;bottom:3.6mm;font-size:8pt;color:#8a809c;display:flex;justify-content:space-between;font-family:"Noto Sans JP"}
+</style></head><body>
+<section class="page" id="p2">
+ <div class="band"><span class="no pop">1</span><div><small>スキル編　その1</small><b class="pop">“リラックス”を身につけよう！</b></div></div>
+
+ <div class="base">
+  <div class="l"><span class="k">大前提</span>
+   <h1 class="pop">いつでも<em>自分のペース</em>で潜ろう</h1>
+   <div class="row"><span class="tag why">理由</span><span>人に合わせて急ぐと、息が上がって、<br>小さな「気になる」がどんどんたまるから</span></div>
+   <div class="row"><span class="tag do" style="--c:#e0507f">対策</span><span>ゆっくりで大丈夫。遅れそうなら合図して、<br>待ってもらおう</span></div>
+  </div>
+  <div class="cup"><span class="ct pop">コップに例えてみよう！</span>
+   <svg viewBox="0 0 284 150" aria-hidden="true">
+    <g font-family="Noto Sans JP" font-weight="700" font-size="11.5">
+     <g fill="#5a4a7a">
+      <rect x="4" y="6" width="90" height="20" fill="#f0ecf7"/><text x="49" y="20" text-anchor="middle">マスクの水</text>
+      <rect x="4" y="31" width="90" height="20" fill="#f0ecf7"/><text x="49" y="45" text-anchor="middle">くもり</text>
+      <rect x="4" y="56" width="90" height="20" fill="#f0ecf7"/><text x="49" y="70" text-anchor="middle">寒い</text>
+      <rect x="4" y="81" width="90" height="20" fill="#f0ecf7"/><text x="49" y="95" text-anchor="middle">急いでる</text>
+     </g>
+     <g transform="translate(24 -12)">
+      <path d="M74 50 Q92 50 98 64" fill="none" stroke="#b9a8d6" stroke-width="2.4"/><path d="M95 58 l4 7 l3 -8 z" fill="#b9a8d6"/>
+      <path d="M100 42 L112 150 L178 150 L190 42" fill="#fff" stroke="#4b2a73" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M107 104 L112 148 L178 148 L183 104 Z" fill="#cfe9f7"/>
+      <text x="145" y="132" text-anchor="middle" fill="#2f78c4" font-size="11">まだ余裕</text>
+      <path d="M194 92 Q214 92 222 112" fill="none" stroke="#2f9e7a" stroke-width="2.4"/><path d="M218 106 l5 7 l2 -9 z" fill="#2f9e7a"/>
+      <text x="230" y="70" text-anchor="middle" fill="#2f9e7a">こまめに</text>
+      <text x="230" y="84" text-anchor="middle" fill="#2f9e7a">手放す</text>
+     </g>
+    </g>
+   </svg>
+   <div class="cc">「気になる」＝コップにたまる水。<br>あふれる前に、こまめに手放せばOK</div>
+  </div>
+ </div>
+
+ <div class="grid">
+  <div class="card k1"><div class="hd"><span class="n pop">1</span><h2 class="pop">「いつもと違う」に気づく</h2></div>
+   <img src="img/sig31.jpg" alt="">
+   <div class="bd"><div class="sig"><span>ドキドキする</span><span>息が速い</span><span>寒くないのにふるえる</span><span>足が勝手に動く</span></div>
+    <div class="row"><span class="tag do">対策</span><span>1つでも気づいたら、止まって、<br>ゆっくり長く吐く</span></div>
+    <div class="row"><span class="tag why">理由</span><span>体が落ち着くと、心もあとから落ち着くから</span></div></div></div>
+
+  <div class="card k2"><div class="hd"><span class="n pop">2</span><h2 class="pop">耳が抜けない…は、すぐ伝える</h2></div>
+   <img src="img/sig36.jpg" alt="">
+   <div class="bd"><div class="row"><span class="tag do">対策</span><span>耳を指さす合図で伝えて、止まる。<br>少し上がって、もう一度やさしく</span></div>
+    <div class="row"><span class="tag why">理由</span><span>がまんして進むと、痛みとあせりが<br>いっしょに大きくなるから</span></div></div></div>
+
+  <div class="card k3"><div class="hd"><span class="n pop">3</span><h2 class="pop">はなれていたら、止まって待つ</h2></div>
+   <img src="img/rc688.jpg" alt="">
+   <div class="bd"><div class="row"><span class="tag do">対策</span><span>止まれるなら、その場で止まる。<br>インストラクターさんがふり返るまで待とう</span></div>
+    <div class="row"><span class="tag why">理由</span><span>追いかけると息が上がるから。<br>止まっていれば、気づいて来てくれるよ</span></div></div></div>
+
+  <div class="card k4"><div class="hd"><span class="n pop">4</span><h2 class="pop">止まれているか、底と水面で確かめる</h2></div>
+   <img src="img/rc664.jpg" alt="">
+   <div class="bd"><div class="row"><span class="tag do">対策</span><span>底が近づいていない？＝沈んでいない<br>水面が近づいていない？＝浮いていない</span></div>
+    <div class="row"><span class="tag why">理由</span><span>止まっているつもりでも、<br>少しずつ動いていることがあるから</span></div></div></div>
+ </div>
+
+ <div class="end"><span class="hand">👉</span><div><b class="pop">いきなりは、だれでもできない。だから練習！</b><small>リラックスしているときに「こうなったら、こうする」を<br>頭の中で1回ずつ思いうかべておこう（イメージトレーニング）</small></div></div>
+ <div class="note"><span class="tag">メモ</span><span>ここにあるのは、初心者によくある「気になる」のまとめ。<br>ほかにも気になることがあれば、潜る前にインストラクターさんに相談しよう。<br>口に出すだけでも、ぐっと軽くなるよ</span></div>
+ <div class="foot"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>2 / 10</span></div>
+</section></body></html>
