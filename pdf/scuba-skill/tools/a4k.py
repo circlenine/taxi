@@ -275,7 +275,7 @@ VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"  
 EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
 _s3 = next(x for x in STEPS if x["id"] == "3"); _s4 = next(x for x in STEPS if x["id"] == "4")
-STEPS = [dict(_s3, title="“中性浮力” {bc}と呼吸で合わせ、体は水平に", subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
+STEPS = [dict(_s3, title="“中性浮力”を身につけよう！", subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
 TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
 # 写真のない手順があったら、組み立てを止める（10/19 まーく様「画像は必ずつけてください。文章だけだと読む気が失せます」）
 _nophoto = [x["id"] for x in INTRO["subs"] + [y for sec in STEPS for y in sec["subs"]] if not x.get("key")]
@@ -285,6 +285,15 @@ if _nophoto:
 _dup = [sec["id"] for sec in STEPS if re.match(r"\s*(ふり返り|NEW)", sec["title"])]
 if _dup:
     sys.exit("止めます：題に「ふり返り」などが入っています（右の札と重なる）→ その" + "、その".join(_dup))
+# 動作の写真は「やる前 → やった後」の2枚で見せる（10/19 まーく様：1枚だけでは、何をどう変えるのか分からない）
+CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi8"): "やった後：鼻をつまんで息を送る",
+       ("3-1", "rc664"): "やる前：沈んでいる", ("3-1", "rc685"): "やった後：吸うと、ふわっと浮く",
+       ("4-1", "rc742"): "やる前：足が下がっている", ("4-1", "rc757"): "やった後：水平",
+       ("5-1", "bs12"): "やる前：水平のまま", ("5-1", "rc922"): "やった後：体を立てて、ホースを上に",
+       ("5-2", "rr19"): "外れたとき", ("5-2", "rr48"): "くわえ直したところ",
+       ("6-1", "mask13"): "やる前：マスクに水", ("6-1", "mask41"): "やった後：水が抜けた",
+       ("6-2", "rc2_420"): "外したところ", ("6-2", "rc2_450"): "つけたところ",
+       ("7-2", "octo8"): "エア切れの合図", ("7-2", "octo23"): "受け取って、くわえる"}
 KEYS = {}   # どの手順にも写真を付ける（10/19 まーく様「画像は必ずつけてください」）  #   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
 # 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
 def q2(sid):
@@ -300,7 +309,10 @@ def page(head_no, head_title, inner, toc=True):
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
     lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>とくに大事な話</span>' if (head_no in ("器材", "大事") or head_no.startswith("工程") or head_no.startswith("その")) else ""
-    h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
+    # 10/19 まーく様：題はリベ大の「5つの力を身につけよう！」のように、色の帯に「〜しよう！」の形で
+    #   帯の左に番号の丸、上に小さく「スキル編　その1」、下に大きく題。補足・大事の説明と魚は、帯の下の右に置く
+    num = head_no[2:] if head_no.startswith("その") else head_no
+    h = (f'<div class="ph band"><span class="bno{" bw" if len(num) > 1 else ""}">{num}</span><div class="btx"><small>スキル編　{head_no}{lg}</small><h2>{T(head_title)}</h2></div></div>') if head_no else ""   # 帯の下に段を作るとページからあふれるので、補足・大事の説明は帯の中の上の段に
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
     pages.append(f'<div class="page" id="p{n}">{EDTAG}{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
@@ -364,8 +376,8 @@ mt = "".join(
     for i, (k, h, steps) in enumerate(MATOME, 1))
 sg = "".join(f'<figure class="ph3 sgc">{im(k, 1.0)}<span class="cap3">{T(name)}</span></figure>' for k, name in SIGNALS)
 sgn = '<div class="notes">' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES) + '</div>'
-page("合図", "ハンドシグナル早見表とクイズ", f'<div class="sgg">{sg}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><p class="src">写真：エアー福岡「18. ハンドシグナル」の画面から。<a href="https://youtu.be/pS-yk6gth-8"><span class="tapm scr">*</span>https://youtu.be/pS-yk6gth-8</a></p>')
-page("まとめ", "この1枚で、すぐ見返せる！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}</div><p class="src">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p>')
+page("合図", "ハンドシグナルを覚えよう！", f'<div class="sgg">{sg}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><p class="src">写真：エアー福岡「18. ハンドシグナル」の画面から。<a href="https://youtu.be/pS-yk6gth-8"><span class="tapm scr">*</span>https://youtu.be/pS-yk6gth-8</a></p>')
+page("まとめ", "この1枚で、すぐ見返そう！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}</div><p class="src">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1090,9 +1102,26 @@ if __import__("os").environ.get("TYPO", "new") != "old":
 .cap3,.cap3 *,.page small,.ns small{line-height:1.35!important}
 """
 FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Pacifico&family=Kaisei+Decol:wght@500;700&display=swap">'   # Pacifico は表紙の題、Kaisei Decol は副題と〇〇編（10/15）
+CSS += """
+/* 題の帯（10/19 リベ大の題の形） */
+.ph.band{display:flex!important;align-items:center;gap:3.4mm;background:#4b2a73;color:#fff;margin:0 0 1.6mm!important;padding:3mm 4mm!important;border:0!important}
+.ph.band .bno{flex:none;width:12mm;height:12mm;border-radius:1mm;background:#fff;color:#4b2a73;display:grid;place-items:center;font-size:17pt;font-weight:900;line-height:1}
+.ph.band .bno.bw{font-size:11pt}
+.ph.band .btx small{display:block;font-size:9pt;font-weight:700;opacity:.92;letter-spacing:.04em;line-height:1.3}
+.ph.band h2{color:#fff!important;margin:0!important;font-size:19pt!important;line-height:1.3!important}
+.ph.band h2 *{color:#fff!important}
+.ph.band h2 .half{color:inherit}
+.ph.band .btx{flex:1}
+.ph.band .btx small{display:flex!important;align-items:center}
+.ph.band .legend.hl{margin-left:auto!important;position:static!important;color:#fff!important;font-size:8pt!important;gap:1.2mm}
+.ph.band{margin-bottom:3mm!important}
+/* やる前 → やった後：2枚の写真のあいだに矢印（10/19） */
+.photos .ph3+.ph3{position:relative}
+.photos .ph3+.ph3::before{content:"▶";position:absolute;left:-3.4mm;top:38%;z-index:2;width:5.4mm;height:5.4mm;display:grid;place-items:center;background:#4b2a73;color:#fff;font-size:8pt;line-height:1;border-radius:1mm;box-shadow:0 0 0 .6mm #fff}
+"""
 import fontset as _fs
 FONTS = _fs.links(FONTS)
-CSS += _fs.css()
+CSS += _fs.css("3")
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
 

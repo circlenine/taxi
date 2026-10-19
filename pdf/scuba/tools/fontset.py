@@ -28,11 +28,24 @@ CHIP = """
 .mtk,.nk,.lx,.lp,.half.rel{line-height:1!important;padding-top:.55mm!important;padding-bottom:.45mm!important;vertical-align:.08em}
 """
 
-def css():
+# 表紙の副題・「〇〇編」・数字は、中の題と同じゴシック体（10/19 まーく様：違和感は「表紙の題（明朝）と、中の題（ゴシック）」）
+# 英語の題（筆記体 Pacifico）は「きれいで、ダイビングに合っている」ので残す
+COVER = """
+#p1 .cv-sd,#p1 .cv-sd *{font-family:"Noto Sans JP",sans-serif!important;font-weight:700!important;letter-spacing:.02em!important}
+.cover .cv-no,.cover .cv-e,.cover .cv-e *{font-family:"Noto Sans JP",sans-serif!important;font-weight:900!important;letter-spacing:.04em!important}
+.cover .cv-no{letter-spacing:0!important}
+.cover .cv-no .cvn{transform:translate(.24mm,-1.2mm)!important}   /* 字の形が変わったので、数字が枠の「左右まん中・上下は気持ち上」に来るよう位置を合わせ直した（numcheck.py） */
+"""
+
+# 数字ごとに、字の左右のすき間がちがうので、横の位置を数字ごとに合わせる（numcheck.py で測った）
+_NX = {"1": "-.09mm", "2": ".24mm", "3": ".24mm"}
+
+def css(no="3"):
+    cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "old":
-        return CHIP
+        return CHIP + cover
     f, h = _FAM[MODE], _HEAD[MODE]
-    return CHIP + f"""
+    return CHIP + cover + f"""
 /* 字の形を1家族にそろえる（fontset.py） */
 html,body,.page,.page *:not(.emj){{font-family:{f},"Noto Sans JP",sans-serif!important}}
 /* 表紙：題・副題・数字・〇〇編も、中と同じ家族。差は太さと大きさだけでつける */
