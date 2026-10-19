@@ -387,7 +387,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">2</span></span><span class="cv-e">器材<span class="g">洗浄</span>編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">2</span></span><span class="cv-e"><span class="g">洗浄</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>新規項目である洗浄のやり方</p>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -1158,6 +1158,6 @@ def recolor(h):
 
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
-    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材洗浄編</title>{FONTS}<style>{CSS}</style></head>'
+    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>洗浄編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{"".join(pages)}{FIT}</body></html>'))
 print("pages", len(pages))

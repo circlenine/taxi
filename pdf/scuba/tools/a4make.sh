@@ -50,6 +50,7 @@ mv $S/build/a4l.pdf $S/build/a4c.pdf
 python3 -I $S/tools/lnkcheck.py $S/build/a4c.pdf
 # 仕上がりのPDFを、ファイル名に「直した日（日本時間）」を入れて置く（10/8 ご指示：日付は必ず直した日に合わせる）
 D=$(TZ=Asia/Tokyo date +%y%m%d)
-rm -f $S/out/1_*_ｽｷｭｰﾊﾞ_器材準備編.pdf
-cp $S/build/a4c.pdf "$S/out/1_${D}_ｽｷｭｰﾊﾞ_器材準備編.pdf"
-echo "出力: 1_${D}_ｽｷｭｰﾊﾞ_器材準備編.pdf"
+rm -f $S/out/1_*_ｽｷｭｰﾊﾞ_器材準備編.pdf   # 10/19 名前から「器材」を外した（古い名前のPDFを残さない）
+rm -f $S/out/1_*_ｽｷｭｰﾊﾞ_準備編.pdf
+cp $S/build/a4c.pdf "$S/out/1_${D}_ｽｷｭｰﾊﾞ_準備編.pdf"
+echo "出力: 1_${D}_ｽｷｭｰﾊﾞ_準備編.pdf"

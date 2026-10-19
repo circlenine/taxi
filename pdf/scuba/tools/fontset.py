@@ -47,7 +47,7 @@ COVER = """
 
 # 数字ごとに、字の左右のすき間がちがうので、横の位置を数字ごとに合わせる（numcheck.py で測った）
 _NX = {"1": "-.09mm", "2": ".24mm", "3": ".24mm"}
-_NXL = {"1": ".7mm", "2": ".04mm", "3": ".04mm"}   # 題の字が ラノベPOP v2 のとき
+_NXL = {"1": ".7mm" if os.environ.get("HEADFONT", "mochiy") == "lanobe" else ".7mm", "2": ".04mm", "3": ".04mm"}   # 題の字が ラノベPOP v2 のとき
 
 _FONTFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "fonts", "LightNovelPOPv2.otf")
 if not os.path.exists(_FONTFILE):
@@ -60,11 +60,11 @@ def css(no="3"):
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）
         #   字のファイルはリポジトリの pdf/fonts/ に置いた（まーく様にいただいたもの）
         h = '"LanobePOP","Noto Sans JP",sans-serif'
-        if os.environ.get("HEADFONT") == "mochiy":   # 比べる用（10/19：前に見せた Mochiy Pop P One の版）
+        if os.environ.get("HEADFONT", "mochiy") == "mochiy":   # 10/19 まーく様「やはり、Mochiy Popで良いです」→ 題はこちらが標準（ラノベPOPは HEADFONT=lanobe で比べる用）   # 比べる用（10/19：前に見せた Mochiy Pop P One の版）
             h = '"Mochiy Pop P One","Noto Sans JP",sans-serif'
         body = ('html,body,.page,.page *:not(.emj){font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif!important}\n.page .cover .cv-no .cvn{font-family:inherit!important}\n' if BODY == "maru" else "")
         # 題の字に合わせて、表紙の数字の位置を合わせ直す（numcheck.py で測った）
-        cover = cover.replace("translate(" + _NX.get(no, ".24mm") + ",-1.2mm)", "translate(" + _NXL.get(no, ".04mm") + ",-.3mm)")
+        cover = cover.replace("translate(" + _NX.get(no, ".24mm") + ",-1.2mm)", "translate(" + _NXL.get(no, ".04mm") + "," + ("-.3mm" if os.environ.get("HEADFONT", "mochiy") == "lanobe" else "-1.45mm") + ")")
         return CHIP + cover + body + LANOBE + f"""
 /* 題は、リベ大の題の字（ラノベPOP v2）。この字は太さが1つなので、太さの指定は外す */
 .half.rel,.lp,.lx,.mtk,.nk,.sn{{font-family:"Noto Sans JP",sans-serif!important}}   /* 札は、どこに置いても同じ見た目（題の字を受けつがない） */

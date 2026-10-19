@@ -5,7 +5,7 @@ const { PNG } = require('pngjs');
 (async()=>{const src=process.argv[2];const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const p=await b.newPage({deviceScaleFactor:3});await p.emulateMedia({media:'print'});await p.goto('file://'+src,{waitUntil:'networkidle'});
 try{await p.waitForFunction(()=>window.__laid===true,{timeout:20000});}catch(e){}
-const sel='.lp,.lx,.mtk,.half.rel,.nk,.q2h';const els=await p.$$(sel);let bad=0,seen={};
+const sel='.lp,.lx,.mtk,.half.rel,.nk,.q2h,.tag';const els=await p.$$(sel);let bad=0,seen={};
 for(const e of els){if(await e.evaluate(n=>!!n.closest('.ph.band')))continue;   // 帯の中の札は、地が濃く測りまちがえるので外す（目で確かめる）
  const box=await e.boundingBox();if(!box||box.height<4)continue;
  const txt=(await e.innerText()).trim();const pg=await e.evaluate(n=>n.closest('.page')?.id||'');

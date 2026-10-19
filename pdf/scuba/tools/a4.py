@@ -344,7 +344,7 @@ page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e">器材<span class="g">準備</span>編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e"><span class="g">準備</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜{len(pages) - 2}・{len(pages)}ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">{len(pages)}ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -980,6 +980,6 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
 document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 最後のページ（もとは10ページ）の決まりを、いまの最後のページに読みかえる（10/16 まとめのページを足したため）
 open(os.path.join(B, "a4.html"), "w").write(
-    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>器材準備編</title>{FONTS}<style>{CSS}</style></head>'
+    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>準備編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{"".join(pages)}{FIT}</body></html>')
 print("pages", len(pages))
