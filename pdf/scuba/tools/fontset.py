@@ -22,6 +22,8 @@ BODY = os.environ.get("BODYFONT", "kaku")   # 丸ゴシックの本文は字の�
 def links(old):
     if MODE == "libe":
         return old.replace('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&family=Zen+Maru+Gothic:wght@500;700;900&', 1)
+    if MODE == "kaisei" and BODYMIN != "decol":
+        return old.replace('&display=swap', '&' + _BMLINK[BODYMIN] + '&display=swap', 1)
     if MODE in ("old", "kaisei"):
         return old   # 前の読みこみ（解星デコール 500・700 と Pacifico）をそのまま使う
     return ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900'
@@ -74,9 +76,31 @@ html,body,.page,.page *:not(.emj){font-family:"Kaisei Decol","Noto Sans JP",seri
 .notes,.notes .ns,.notes .ns *:not(b):not(.nh),.sasuke,.sasuke p,.pts,.ref,.mts,.mts li,.cap3,.src,.qz .q,.qz .a{font-weight:500}
 """
 
+# 10/20 まーく様「本文が細くて見づらい。題の字とバランスを考えた字に」→ 本文だけ別の字（BODYMIN で比べる）
+#   題（解星デコール）と同じ「明朝の仲間」で、線が太いものから選ぶ
+BODYMIN = os.environ.get("BODYMIN", "biz")
+_BM = {"decol": ('"Kaisei Decol"', 500), "opti": ('"Kaisei Opti"', 700), "shippori": ('"Shippori Mincho B1"', 700),
+       "biz": ('"BIZ UDPMincho"', 700), "zenold": ('"Zen Old Mincho"', 700),
+       "zen900": ('"Zen Old Mincho"', 900), "ship800": ('"Shippori Mincho B1"', 800)}
+_BMLINK = {"opti": "family=Kaisei+Opti:wght@500;700", "shippori": "family=Shippori+Mincho+B1:wght@600;700;800",
+           "biz": "family=BIZ+UDPMincho:wght@400;700", "zenold": "family=Zen+Old+Mincho:wght@600;700;900", "decol": "",
+           "zen900": "family=Zen+Old+Mincho:wght@600;700;900", "ship800": "family=Shippori+Mincho+B1:wght@600;700;800"}
+
+def body_css():
+    if BODYMIN == "decol":
+        return ""
+    f, w = _BM[BODYMIN]
+    return f"""
+/* 本文の字（題は解星デコールのまま）。頭に .page を付けるのは、全体に解星デコールを当てている決まり（.page *）より強くするため */
+.page .notes,.page .notes *:not(.nk):not(.nn2),.page .sasuke,.page .sasuke *:not(.fs),.page .pts,.page .pts *,.page .ref,.page .ref *,.page .mts,.page .mts *:not(.mtk),.page .cap3,.page .cap3 *,.page .src,.page .src *,.page .qz .q,.page .qz .q *,.page .qz .a,.page .qz .a *,.page .mtl,.page .nmr,.page .nmr *:not(.nn),.page .bg,.page .bg *,.page .toc .tt,.page .toc .tt *:not(.half),.page .relnote,.page .relnote *:not(.half),.page .ns,.page .nx,.page .sd2,.page .howto,.page .howto *{{font-family:{f},"Kaisei Decol",serif!important}}
+.page .notes .ns,.page .notes .ns *:not(b):not(.nh):not(.nk),.page .notes .nx,.page .sasuke p,.page .mts li,.page .cap3,.page .qz .a,.page .nmr,.page .bg p{{font-weight:{w}!important}}
+/* 10/20 色つきの言葉（■タンク など）も本文と同じ字に。文の途中で字が変わると、つぎはぎに見えるため */
+.page .notes .t,.page .sasuke .t,.page .bg .t,.page .mts .t,.page .nmr .ds .t,.page .qz .t{{font-family:{f},"Kaisei Decol",serif!important;font-weight:{w}!important}}
+"""
+
 def css(no="3"):
     if MODE == "kaisei":
-        return CHIP + KAISEI
+        return CHIP + KAISEI + body_css()
     cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "libe":
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）
