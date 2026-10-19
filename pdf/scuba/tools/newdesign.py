@@ -52,4 +52,28 @@ def css(no):
 /* やる前 → やった後：2枚の写真のあいだに矢印 */
 .photos .ph3+.ph3{{position:relative}}
 .photos .ph3+.ph3::before{{content:"▶";position:absolute;left:-3.4mm;top:38%;z-index:2;width:5.4mm;height:5.4mm;display:grid;place-items:center;background:{m};color:#fff;font-size:8pt;line-height:1;border-radius:1mm;box-shadow:0 0 0 .6mm #fff}}
+
+/* ── 10/19 まーく様「スキル編の2ページのような形に、ほかも合わせて」 ──
+   ・中のページは、しま模様と白い台紙をやめ、うすい地の1枚にする（2ページと同じ）
+   ・題の帯は、ページの左右いっぱい・いちばん上に置く。左上の小さな札は帯の中に入っているので消す
+   ・手順は「色の見出しつきのカード」。見出しの地の色・番号の色は、カードごとに 緑→ピンク→黄→青 の順 */
+.page:not(#p1){{background:#fbf8ff!important}}
+.page:not(#p1)::before{{display:none!important}}
+.page:not(#p1)>.edtag{{display:none!important}}
+.page:not(#p1)>.ph.band{{margin:-15mm -14mm 4mm!important;padding:3.4mm 14mm 3.8mm!important}}
+.step{{--cc:#2f9e7a;--cb:#e3f5ee;border:1px solid {line}!important;background:#fff;gap:0!important;padding:0!important;border-radius:0!important}}
+.step:nth-of-type(4n+2){{--cc:#d9466f;--cb:#fde6ec}}
+.step:nth-of-type(4n+3){{--cc:#c98a00;--cb:#fff3cf}}
+.step:nth-of-type(4n+4){{--cc:#2f78c4;--cb:#e1eefb}}
+.step>.sh3{{background:var(--cb);padding:2.2mm 3mm!important;border-bottom:1px solid {line};color:var(--cc)!important;margin:0!important}}
+.step>.sh3 .sn{{background:var(--cc)!important;color:#fff!important;border-radius:1mm}}
+.step>.photos{{border:0!important;padding:0!important;margin:0!important;gap:1px!important;background:{line}}}
+.step>.photos img{{border-radius:0!important}}
+.step>.notes{{border:0!important;border-top:1px solid {line}!important;padding:1.4mm 3mm 2mm!important;background:{bg}!important;box-shadow:none!important;flex:1}}
+.step>.photos+.notes{{box-shadow:none!important}}
+.step .cap3{{background:#fff;padding:.6mm 0}}
+/* 写真でも説明でもない中身（表・SASUKEの例え など）は、カードのふちに付かないよう内側に余白（すき間をそろえるため、margin ではなく padding で） */
+.step>*:not(.sh3):not(.photos):not(.notes):not(.regrow):not(.trio){{margin:0!important;padding:2.4mm 3mm!important;box-sizing:border-box}}
+.step>.regrow,.step>.trio,#p2 .step>.trio{{margin:0!important}}
+#p2 .tools>.step.wide>.regrow>*{{margin-top:0!important}}   /* 写真の並び（レギュの図・3枚並び）は、写真と同じくカードのふちいっぱい */
 """

@@ -23,6 +23,7 @@ const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAl
 console.log(rad.length?'NG 決めていない角の丸み … '+rad.join(' / '):'角の丸み OK（1mm・2mm だけ。丸い形なし）');
 ['#7b4fb0','#4b2a73','#ece1f7','#cdb5ea','#e2d4f2','#f8f3fd','#e6d8f6','#dcc9f1','#e9ddf7','#d6c2f0','#faf6fe'].forEach(c=>OK[c]='スキル編の紫');
 OK['#e0507f']='表紙のピンク（題の S・D・G・s の頭文字と、副題の SDGs だけ。10/15 ご指示）';
+['#2f9e7a','#e3f5ee','#d9466f','#fde6ec','#c98a00','#fff3cf','#2f78c4','#e1eefb','#fbf8ff'].forEach(c=>OK[c]='カードの色（10/19 スキル編2ページと同じ。緑・ピンク・黄・青）');
 // 洗浄編のオレンジ（a4s.py の COLORS と同じ）
 ['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='洗浄編のオレンジ');
 const bad=Object.entries(r).filter(([k])=>!OK[k]);
