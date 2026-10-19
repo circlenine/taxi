@@ -19,11 +19,20 @@ def links(old):
     return ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900'
             '&family=Noto+Sans+JP:wght@500;700;900&display=swap">')
 
+# 札（大事・補足・NEW!! など）の字を、箱のまん中に置く（10/19 まーく様：「大事のタグの背景も、字とズレてます」）
+#   ずれの原因1：箇条書きの「字下げ（text-indent）」が札の中にまで効いて、字が箱から左にはみ出していた
+#   ずれの原因2：行の高さで上下を決めていたため、字の形しだいで下に寄っていた → 行の高さを1にして、上下の余白を同じにする
+CHIP = """
+.lp,.lx,.mtk,.half.rel,.nk{text-indent:0!important}
+.t{text-indent:0!important}   /* 器材名の色の四角も、同じ「字下げ」で左へずれて、札に食いこんでいた（準備編・洗浄編まとめ） */
+.mtk,.nk,.lx,.lp,.half.rel{line-height:1!important;padding-top:.55mm!important;padding-bottom:.45mm!important;vertical-align:.08em}
+"""
+
 def css():
     if MODE == "old":
-        return ""
+        return CHIP
     f, h = _FAM[MODE], _HEAD[MODE]
-    return f"""
+    return CHIP + f"""
 /* 字の形を1家族にそろえる（fontset.py） */
 html,body,.page,.page *:not(.emj){{font-family:{f},"Noto Sans JP",sans-serif!important}}
 /* 表紙：題・副題・数字・〇〇編も、中と同じ家族。差は太さと大きさだけでつける */

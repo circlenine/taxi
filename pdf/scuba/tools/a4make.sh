@@ -32,6 +32,7 @@ python3 $S/tools/yomicheck.py $S/build/a4.html
 python3 -I $S/tools/chipcheck.py $S/build/a4.html
 node $S/tools/palette.js $S/build/a4.html
 node $S/tools/borders.js $S/build/a4.html
+node $S/tools/chipalign.js $S/build/a4.html   # 札の字が箱のまん中にあるか（10/19）
 if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待ち）。HTMLだけ作りました: $PWD/a4.html"; exit 0; fi
 node $S/tools/print2.js $S/build/a4.html $S/build/a4.pdf
 node $S/tools/chkpos.js $S/build/a4.html $S/build/a4chk.json
