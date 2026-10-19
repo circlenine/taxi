@@ -1115,6 +1115,20 @@ CSS += """
 .ph.band .btx small{display:flex!important;align-items:center}
 .ph.band .legend.hl{margin-left:auto!important;position:static!important;color:#fff!important;font-size:8pt!important;gap:1.2mm}
 .ph.band{margin-bottom:3mm!important}
+/* 写真と説明を、細い線の1つの箱でつなぐ（10/19 まーく様：薄い枠でつながっているのが見やすい。シャープ寄り＝線で表す） */
+.step>.photos,.step>.notes{border:1px solid #dcc9f1;background:#fff}
+.step>.photos{border-bottom:0;padding:1.6mm 1.6mm 1.2mm;margin-bottom:-2.4mm}
+.step>.notes{border-top:0;padding:0 2.4mm 1.2mm;background:#faf6fe}
+.step>.photos+.notes{box-shadow:inset 0 1px 0 #dcc9f1}
+/* 説明の1行ずつ：頭に小さな四角の印、行どうしは点線で区切る */
+.step .nt{border-top:1px dashed #e2d4f2!important;padding:1.8mm .4mm!important}
+.step .nt:first-child{border-top:0!important}
+.step .nt .nx,.step .nt .ns{position:relative}
+.step .nt .ns:not(:has(.srows)){padding-left:3.2mm;margin-top:1.2mm}
+.step .nt .ns:has(.srows){margin-top:1.2mm}
+.step .nt .ns:not(:has(.srows))::before{content:"";position:absolute;left:.4mm;top:.62em;width:1.6mm;height:1.6mm;background:#cdb5ea}
+.step .cap3{color:#4b2a73;font-size:8.5pt}
+
 /* やる前 → やった後：2枚の写真のあいだに矢印（10/19） */
 .photos .ph3+.ph3{position:relative}
 .photos .ph3+.ph3::before{content:"▶";position:absolute;left:-3.4mm;top:38%;z-index:2;width:5.4mm;height:5.4mm;display:grid;place-items:center;background:#4b2a73;color:#fff;font-size:8pt;line-height:1;border-radius:1mm;box-shadow:0 0 0 .6mm #fff}
