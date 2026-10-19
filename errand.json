@@ -1,5 +1,5 @@
 {
-  "id": "2026-10-16-flex-16",
+  "id": "2026-10-16-flex-18",
   "do": "flex-note",
   "from": "だいちゃん",
   "titleWord": "だいちゃん情報合算版",
@@ -157,7 +157,7 @@
                   },
                   {
                     "type": "text",
-                    "text": "今日の会場に催しは無し。新大阪・伊丹 → 中之島のホテルへ",
+                    "text": "会場（グランキューブ・中之島）に今日 人はいません。拾うのは新大阪駅",
                     "wrap": true,
                     "size": "xs",
                     "color": "#333333",
@@ -178,7 +178,7 @@
                   },
                   {
                     "type": "text",
-                    "text": "📍 地図：グランキューブ大阪（つけ待ち例）",
+                    "text": "📍 地図：新大阪駅（3階 新幹線口）",
                     "wrap": true,
                     "size": "xxs",
                     "color": "#1a73e8",
@@ -186,7 +186,7 @@
                     "action": {
                       "type": "uri",
                       "label": "地図",
-                      "uri": "https://maps.app.goo.gl/GVcyoz2s39KZNfZ1A?g_st=ic"
+                      "uri": "https://maps.app.goo.gl/j8Qm7tqFUf3Zy8YCA?g_st=ic"
                     }
                   }
                 ]
@@ -871,7 +871,7 @@
                 "contents": [
                   {
                     "type": "text",
-                    "text": "🎢 ユニバーサルシティ｜USJ ホラーナイト",
+                    "text": "🎢 USJタクシー乗り場｜ホラーナイト",
                     "wrap": true,
                     "weight": "bold",
                     "size": "sm",

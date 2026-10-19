@@ -396,7 +396,13 @@ console.log('\n■ 自動発信は、はじめから「入」');
    */
   delete props.VN_AUTO;
   vm.runInContext('function cfg_(){ return ""; }', ctx);
-  eq(ctx.vnAutoOn_(), true, '★何も決めていなければ、送る');
+  /*
+   * ★まーく様のご指示（2026/10/19）：
+   *   「イベント通知設定は現段階(明日以降)は一先ず外してください」
+   *   何も決めていないときは「送らない」に変えました。
+   *   うっかり流れるより、黙っているほうが安全だからです。
+   */
+  eq(ctx.vnAutoOn_(), false, '★★何も決めていなければ、送らない（ご指示）');
 
   // 設定タブで はっきり「いいえ」にすれば、止まる
   vm.runInContext('function cfg_(k){ return k === "イベント情報を自動で送る" ? "いいえ" : ""; }', ctx);
