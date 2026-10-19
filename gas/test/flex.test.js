@@ -85,11 +85,15 @@ console.log('\n■ 時間は〈クルマを着ける時刻〉であること（�
  *   本文に「開演HH:MM」と書いてあるのに、その時刻が
  *   左の時間欄に出ていたら、また同じ誤りです。落とします。
  */
-let rows = [];
-pages.forEach(function (pg) {
-  rows = rows.concat(((pg.body && pg.body.contents) || [])
-    .filter(x => x.type === 'box' && x.layout === 'horizontal'));
-});
+const rowsOf = pg => ((pg.body && pg.body.contents) || [])
+  .filter(x => x.type === 'box' && x.layout === 'horizontal');
+/*
+ * ★1枚目は「要点」、2枚目は「詳しい版」です（FLEX.md）。
+ *   見るところが違うので、分けて持ちます。
+ */
+const rows1 = rowsOf(pages[0]);
+const rows2 = pages.length > 1 ? rowsOf(lastPage) : [];
+let rows = rows1.concat(rows2);
 t(rows.length > 0, '時間の行がある（' + rows.length + '件）');
 
 const textsOf = b => {
@@ -126,8 +130,8 @@ rows.forEach(function (r) {
   t(left.flex > 0 && right.flex > 0, '　 左右を割合で分けている');
   t(left.flex < right.flex, '　 中身のほうを広くとっている');
 
-  // ★何を根拠にした時刻なのかが、かならず書いてあること
-  t(rt.length >= 3, '　 根拠と動きが書いてある');
+  // ★中身がある（名前だけの行を作らない）
+  t(rt.length >= 2, '　 名前だけの行になっていない');
 });
 
 /*
@@ -140,6 +144,28 @@ t(allText.indexOf('着ける時刻') !== -1,
   '★★絵の中に「着ける時刻」と断ってある（取り違えを防ぐ）');
 t(allText.indexOf('開演時刻ではありません') !== -1,
   '★★「開演時刻ではありません」と書いてある');
+
+console.log('\n■ 1枚目は「要点」―― 1件3行まで');
+/*
+ * ★まーく様のご指示（2026/10/19）：
+ *   「なるべく情報量多すぎてぐちゃぐちゃにならないように
+ *     重要事項の要点だけを、パッと見て分かるようにしたいです」
+ *
+ *   1枚目は、場所｜何があるか／ひとこと／地図 の3行。
+ *   （気をつけることがある行だけ、注意の1行を足して4行まで）
+ *   開演・終演・根拠・公式リンクは、2枚目へ回します。
+ */
+rows1.forEach(function (r) {
+  const rt = textsOf(r.contents[1]);
+  const name = (rt[0] || '').slice(0, 18);
+  t(rt.length <= 4, '★' + name + '：1件3行まで（いま ' + rt.length + '行）');
+  t(!rt.some(x => x.indexOf('公式:') === 0), '　 根拠は2枚目へ回している');
+  t(!rt.some(x => x.indexOf('🔗') === 0), '　 公式リンクも2枚目へ');
+});
+if (pages.length > 1) {
+  t(rows2.length === rows1.length,
+    '★★2枚目にも 同じ件数の詳しい版がある（' + rows2.length + '/' + rows1.length + '）');
+}
 
 console.log('\n■ あやしい時刻を、言い切っていないこと');
 /*
@@ -260,13 +286,18 @@ console.log('\n■ 📍 地図のリンク');
  *   どれがどの行のものかを取り違えると、走る先が変わります。
  */
 {
-  const mapRows = rows.filter(function (r) {
+  /*
+   * ★地図は「1枚目（要点）」に付けます。
+   *   走りながら見るのは1枚目だけなので、そこに無ければ意味がない。
+   *   2枚目（詳しい版）には、同じ地図を重ねて出しません。
+   */
+  const mapRows = rows1.filter(function (r) {
     return textsOf(r.contents[1]).some(x => x.indexOf('📍 地図：') === 0);
   });
-  t(mapRows.length === rows.length,
-    '★★★どの行にも地図が付いている（' + mapRows.length + '/' + rows.length + '）');
+  t(mapRows.length === rows1.length,
+    '★★★1枚目は どの行にも地図が付いている（' + mapRows.length + '/' + rows1.length + '）');
 
-  rows.forEach(function (r) {
+  rows1.forEach(function (r) {
     const ts = textsOf(r.contents[1]);
     const name = ts[0] || '';
     const mp = ts.filter(x => x.indexOf('📍 地図：') === 0);
@@ -294,12 +325,32 @@ console.log('\n■ 📍 地図のリンク');
      *   見出しに「｜」より前の場所名があるときは、
      *   その言葉が 地図のラベルにも入っていること。
      */
-    const head = String(name).split('｜')[0].replace(/^[^\u3040-\u30ff\u4e00-\u9fffA-Za-z0-9]+/, '').trim();
+    const strip = x => String(x).replace(/[\s　（）()・｜|]/g, '');
+    const head = strip(String(name).split('｜')[0]
+                       .replace(/^[^\u3040-\u30ff\u4e00-\u9fffA-Za-z0-9]+/, ''));
     const label = mp[0].replace('📍 地図：', '');
-    if (head && name.indexOf('｜') !== -1) {
-      t(label.indexOf(head) !== -1,
-        '★★★見出しの場所と、地図の場所が合っている（' + head + ' / ' + label + '）');
-    }
+    const labelHead = strip(label.split('（')[0]);
+    /*
+     * ★見出しと地図が、まるで別の場所になっていないこと。
+     *   次のどれかに当てはまれば、合っていると見ます。
+     *     ①地図のラベルに、見出しの場所名が入っている
+     *     ②見出しに、地図の場所名（括弧の前）が入っている
+     *     ③その件の文のどこかに、地図の場所名が出てくる
+     *       （例：本町・淀屋橋の行に「伏見町の路地」と書いてある）
+     *   ①②③のどれでもなければ、取り違えを疑います。
+     */
+    /*
+     * ★見るのは「この行に書いてある字」だけ。
+     *   2枚目まで見ると、だいちゃんの文に出てくる会場名で
+     *   素通りしてしまいます（グランキューブの取り違えが通った）。
+     */
+    const whole = strip(textsOf(r.contents[1])
+      .filter(x => String(x).indexOf('📍') !== 0)      // 地図の行そのものは数えない
+      .join(''));
+    const ok = strip(label).indexOf(head) !== -1 ||
+               (labelHead && head.indexOf(labelHead) !== -1) ||
+               (labelHead && whole.indexOf(labelHead) !== -1);
+    t(ok, '★★★見出しの場所と、地図の場所が合っている（' + name.slice(0, 16) + ' / ' + label + '）');
   });
 }
 
