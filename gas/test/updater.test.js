@@ -6703,6 +6703,22 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
   const okList = vm.runInContext('JSON.stringify(Object.keys(UPD_ERRAND_OK))', ctx);
   t(okList.indexOf('flex-note') !== -1, '★おつかいの一覧に入っている');
 
+  /*
+   * ★イベントの自動発信を、こちらから切れること（ご指示・2026/10/19）。
+   *   LINEのボタンは版が満杯のあいだ効かないので、
+   *   確実に切れる道が1つ要ります。
+   */
+  t(okList.indexOf('event-off') !== -1, '★★「自動発信を切る」おつかいがある');
+  t(okList.indexOf('event-on') !== -1, '　 入れ直すほうもある');
+  const src9 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const at9 = src9.indexOf('task === "event-off"');
+  t(at9 !== -1, '★その分かれ道がある');
+  const part9 = src9.slice(at9, at9 + 900);
+  t(/vnAutoSet_\(on\)/.test(part9), '★★ちゃんと切り替えている');
+  t(part9.indexOf('typeof vnAutoSet_ !== "function"') !== -1,
+    '★係が入っていなくても落ちない');
+  t(part9.indexOf('[12]') !== -1, '　 入れ直し方も知らせる');
+
   const src8 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
   /*
    * ★見るところ（flex-note の分かれ道）を、はじめから おわりまで取る。

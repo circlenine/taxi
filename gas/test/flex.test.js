@@ -286,6 +286,20 @@ console.log('\n■ 📍 地図のリンク');
     const a = node[0] && node[0].action;
     t(!!a && a.type === 'uri' && /^https:\/\/maps\.app\.goo\.gl\//.test(a.uri || ''),
       '　 　押すと地図が開く（' + ((a && a.uri) || 'アドレスなし') + '）');
+    /*
+     * ★見出しの場所と、地図の場所が食い違っていないこと。
+     *   まーく様のご指摘（2026/10/16）：
+     *   「グランキューブと新大阪駅って全然違うじゃないですか
+     *     別々の場所なら一纏めにせず、しっかり切り離してください」
+     *   見出しに「｜」より前の場所名があるときは、
+     *   その言葉が 地図のラベルにも入っていること。
+     */
+    const head = String(name).split('｜')[0].replace(/^[^\u3040-\u30ff\u4e00-\u9fffA-Za-z0-9]+/, '').trim();
+    const label = mp[0].replace('📍 地図：', '');
+    if (head && name.indexOf('｜') !== -1) {
+      t(label.indexOf(head) !== -1,
+        '★★★見出しの場所と、地図の場所が合っている（' + head + ' / ' + label + '）');
+    }
   });
 }
 
