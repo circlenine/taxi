@@ -521,3 +521,9 @@
 
 ## 25. 本文の字は角ゴシック（10/19 まーく様：「右で進めてください」）
 - 題＝Mochiy Pop P One、本文＝角ゴシック（Noto Sans JP）。本文に丸い字（Mochiy Pop One）は使わない（つぶれて見づらい）。
+
+## 26. 元に戻すとき（10/19 まーく様「過去の状態は残したまま、すぐ元に戻せる形で」）
+- 新しい形にする前の道具：コミット `87129ca`（作業場所に印 `before-newdesign-1019` を付けた）。
+  `git checkout 87129ca -- pdf/scuba pdf/scuba-seiri pdf/scuba-skill` で、その時点の道具に戻せる。
+- 前のPDF（器材準備編・器材洗浄編 10/15、スキル編 10/19朝）は、作業用フォルダの `out/旧_1019まで/` に残した。
+- 字の形だけ戻すなら `FONTSET=old`。題の字をラノベPOPにするなら `HEADFONT=lanobe`。

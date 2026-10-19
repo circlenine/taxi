@@ -55,7 +55,6 @@ D=$(TZ=Asia/Tokyo date +%y%m%d)
 # 「清掃」は使わない。2冊目は「洗浄編」で統一（10/15 ご指示）。HTMLに1つでも残っていたら止める
 if grep -q "清掃" $S/build_s/a4.html; then echo "NG 「清掃」が残っている（洗浄に統一する）"; grep -o ".\{0,10\}清掃.\{0,10\}" $S/build_s/a4.html | head -5; exit 1; fi
 rm -f $S/out/2_*_ｽｷｭｰﾊﾞ_器材清掃編.pdf
-rm -f $S/out/2_*_ｽｷｭｰﾊﾞ_洗浄編.pdf   # 10/19 名前から「器材」を外した（古い名前のPDFを残さない）
-rm -f $S/out/2_*_ｽｷｭｰﾊﾞ_器材洗浄編.pdf
+rm -f $S/out/2_*_ｽｷｭｰﾊﾞ_洗浄編.pdf
 cp $S/build_s/a4c.pdf "$S/out/2_${D}_ｽｷｭｰﾊﾞ_洗浄編.pdf"
 echo "出力: 2_${D}_ｽｷｭｰﾊﾞ_洗浄編.pdf"
