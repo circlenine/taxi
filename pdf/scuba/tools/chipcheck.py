@@ -12,7 +12,7 @@ for pat in [r'<div class="ph[^"]*">.*?</h2></div>',        # ページの見出�
             r'<div class="reg">.*?(?=<div class="names">)',     # 2ページ目の写真の名札
             r'<(?:span|p) class="rn2">.*?</(?:span|p)>',                   # 「レギュ」と呼ぶことも（呼び名そのものの説明）
             r'<div class="logo">.*?</div></div>',            # 表紙のロゴ
-            r'<p class="src">.*?</p>', r'<a class="ref".*?</a>',
+            r'<p class="src[^"]*">.*?</p>', r'<a class="ref".*?</a>',
             r'<p class="of">.*?</p>',                         # 正式名称の行
             r'<div class="b3h">.*?</div>',                    # 道具2の見出し（札そのもの）
             r'<div class="pno">.*?</div>']:

@@ -9,7 +9,7 @@
 # FONTSET=kaku … 全部 Noto Sans JP（角ゴシック）。表紙の題も同じ字にする（比べる用）
 # FONTSET=old  … いままでのまま
 import os
-MODE = os.environ.get("FONTSET", "old" if os.environ.get("NEWDESIGN", "0") != "1" else "libe")   # NEWDESIGN=0 なら、字の形も前のまま   # 10/19 まーく様：案1・案2とも不可。表紙の題の筆記体は「きれいで、ダイビングに合っている」→ 前の字に戻した
+MODE = os.environ.get("FONTSET", "kaisei" if os.environ.get("NEWDESIGN", "0") != "1" else "libe")   # 10/20 まーく様：ふだんは「最初に決めた字（解星デコール）」で、題も本文もそろえる   # NEWDESIGN=0 なら、字の形も前のまま   # 10/19 まーく様：案1・案2とも不可。表紙の題の筆記体は「きれいで、ダイビングに合っている」→ 前の字に戻した
 _FAM = {"maru": '"Zen Maru Gothic"', "kaku": '"Noto Sans JP"', "mix": '"Noto Sans JP"'}
 _HEAD = {"maru": '"Zen Maru Gothic"', "kaku": '"Noto Sans JP"', "mix": '"Zen Maru Gothic"'}
 
@@ -22,8 +22,8 @@ BODY = os.environ.get("BODYFONT", "kaku")   # 丸ゴシックの本文は字の�
 def links(old):
     if MODE == "libe":
         return old.replace('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&family=Zen+Maru+Gothic:wght@500;700;900&', 1)
-    if MODE == "old":
-        return old
+    if MODE in ("old", "kaisei"):
+        return old   # 前の読みこみ（解星デコール 500・700 と Pacifico）をそのまま使う
     return ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900'
             '&family=Noto+Sans+JP:wght@500;700;900&display=swap">')
 
@@ -57,7 +57,26 @@ if not os.path.exists(_FONTFILE):
     _FONTFILE = "/home/user/taxi/pdf/fonts/LightNovelPOPv2.otf"
 LANOBE = '@font-face{font-family:"LanobePOP";src:url("file://' + os.path.abspath(_FONTFILE) + '") format("opentype");font-display:block}\n'
 
+# FONTSET=kaisei … 10/20 まーく様「各資料で、最初に決めたフォントに直っていない」「本文はタイトルに合わせた、ゴシック以外のフォントに」
+#   最初に決めた字＝表紙の副題・〇〇編の「解星デコール」（はね・はらいに飾りのある明朝体。10/15 案F2）。
+#   中の題も本文も、この字にそろえる（表紙の明朝と中のゴシックが違和感、の元を断つ）。表紙の英語の題は筆記体（Pacifico）のまま。
+#   題は太字（700）、本文は中太（500）で差をつける。札の字も同じ字。
+KAISEI = """
+/* 札の字を、解星デコールの字の形に合わせて、上下左右のまん中に（2枚撮りの確認で測って合わせた。10/20） */
+.mtk,.lx,.lp{padding-top:.45mm!important;padding-bottom:.55mm!important}
+.notes .nk{padding-top:.38mm!important;padding-bottom:.62mm!important}
+.notes .kpk .nk{padding-top:.3mm!important;padding-bottom:.7mm!important}
+.half.rel{padding-top:.4mm!important;padding-bottom:.6mm!important;padding-left:1.78mm!important;padding-right:1.42mm!important}
+.half.rel.new{padding-left:1.92mm!important;padding-right:1.28mm!important}
+html,body,.page,.page *:not(.emj){font-family:"Kaisei Decol","Noto Sans JP",serif!important}
+#p1 .cv-t,#p1 .cv-t *:not(.emj){font-family:"Pacifico",cursive!important}
+.page h2,.page h2 *,.page h3,.page h3 *,.page b,.page strong,.toch,.tt,.tt *{font-weight:700!important}
+.notes,.notes .ns,.notes .ns *:not(b):not(.nh),.sasuke,.sasuke p,.pts,.ref,.mts,.mts li,.cap3,.src,.qz .q,.qz .a{font-weight:500}
+"""
+
 def css(no="3"):
+    if MODE == "kaisei":
+        return CHIP + KAISEI
     cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "libe":
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）

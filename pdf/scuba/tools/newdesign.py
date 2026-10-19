@@ -26,7 +26,7 @@ def header(no, head_no, head_title_html, lg, old_html):
 
 def css(no):
     if not ON:
-        return FINE_OLD   # 前の形でも、10/20 のご指摘（ピンク地が見づらい・まとめの写真が小さい）は直したまま
+        return FINE_OLD + chips(no)   # 前の形でも、10/20 のご指摘（ピンク地が見づらい・まとめの写真が小さい）は直したまま
     m, line, bg, dash, dot = COL[no]
     return (CARD_CSS.format(line=line, bg=bg) if CARD else "") + FINE + f"""
 /* 題の帯（10/19 リベ大の題の形）。角は丸めない（左右いっぱいなので、下の角が欠けて見える） */
@@ -97,8 +97,39 @@ FINE = """
 .step .nt.kpk,.notes .nt.kpk{padding:2mm 2.4mm 2mm 3.2mm!important}   /* 大事の欄は、左の太線と札がくっつかないよう、左を広くあける */
 .step .nt .nx{font-weight:900}
 .step .nt .ns{font-size:.94em}
-.mtc{grid-template-columns:44mm minmax(0,1fr)!important}
-.mtc>img{width:44mm!important;height:auto!important;aspect-ratio:1.33!important}
+/* 10/20 まーく様「1ページまとめは、画像をもっと大きく、文章は画像の下に（他と統一）」
+   → 3列にして、どのまとめも「見出し → 大きな写真（列の幅いっぱい） → 文 → くわしくは」の縦の並びにする */
+.mtg{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3mm 4mm!important;align-content:start!important}
+.mtc{display:flex!important;flex-direction:column;gap:1.4mm!important;padding-top:2mm!important}
+.mtc>img{width:100%!important;height:auto!important;aspect-ratio:2.2!important;object-fit:cover;order:1}
+.mtc>.mts li+li{margin-top:.3mm!important}
+.mtc>.mts{line-height:1.38!important}
+.page:has(.mtg) .mtl{font-size:9.5pt!important}
+.page:has(.mtg) .ph h2{font-size:20pt!important}
+.mtg>.mtsrc{grid-column:span 2;align-self:end;margin:0!important}   /* 写真の出どころは、まとめの空いたマスに入れる（スキル編） */
+.page:has(.mtg) .ph h2{white-space:nowrap}   /* まとめの題は1行に（2行だと写真の場所が足りない） */
+.mtc>.mth{order:0;font-size:10pt!important}
+.mtc>.mts{order:2}
+.mtc>.jump{order:3;margin-top:auto!important;white-space:normal!important}
 """
 
 FINE_OLD = FINE.replace(".step .nt{padding:2.2mm .4mm!important}", "").replace(".step .nt.kpk,.notes .nt.kpk", ".notes .nt.kpk")
+
+# 10/20 まーく様「枠文字は全て白文字で統一。枠の地は白が見やすい濃い色に。ただし大事がいちばん目立つ色に」
+#   「補足も、大事よりは目立たない形で、うすい左縦線を」
+def chips(no):
+    m, line, bg, dash, dot = COL[no]
+    return f"""
+.page .sn,.page .tl,.page .no,.page .nk,.page .kx .nk,.page .lx,.page .lp,.page .mtk,.page .half.rel,.page .nn,.page .nn2,.page .qh,.page .mk,.page .fs,.page .play{{background:{m}!important;color:#fff!important;box-shadow:none!important}}
+.sn *,.tl *,.no *,.half.rel *{{color:#fff!important}}
+.page .lp,.page .kpk .nk,.page .mtk{{background:#b4234a!important;color:#fff!important}}   /* 大事＝いちばん目立つ濃い赤 */
+.page .half.rel.new{{background:#b4234a!important}}
+.kpk::before{{background:#b4234a!important}}
+.notes .kx{{position:relative;padding-left:2.6mm!important}}
+.notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:.6mm;background:{line}}}   /* 補足：うすい左縦線（大事より細く・うすく） */
+/* 10/20 まーく様「クイズは、質問文にも、答えと同じ幅で背景色を」→ 質問＝濃い地に白い字、答え＝うすい地。左右の幅はそろえる */
+.page .qz .q{{background:{m};color:#fff!important;padding:1mm 2mm;border-radius:1mm;display:block;box-sizing:border-box;font-size:10pt;line-height:1.45!important}}   /* flex にすると、字と札がばらばらの箱になって崩れる（10/20 洗浄編で確かめた）ので block */
+.page .qz{{row-gap:.6mm!important}}
+.page .qz .q *{{color:#fff!important}}
+.page .qz .a{{padding-left:2mm;box-sizing:border-box}}
+"""
