@@ -54,3 +54,14 @@
 - https://youtu.be/BxI9PpgsezQ https://youtu.be/Sxmtj_vZPNc https://youtu.be/ITHbu8p7N8Q https://youtu.be/1Aa02C3kvFk
 - https://youtu.be/FkYDxRr5558 https://youtu.be/Cm7H-uYyGXI https://youtu.be/xSRftekpirM https://youtu.be/gDhYOr3OuMY
 - https://youtu.be/ZUx16WOGBWU https://youtu.be/AeaJ59QlfOc https://youtu.be/zlHosescU2c https://youtu.be/T43jwPcO5q0
+
+## 10/19 資料の作り方（図解）—— まーく様にいただいたもの
+- https://youtu.be/CxA_Ko7zShw （世界で一番やさしい資料作りの教科書・要約）
+- https://youtube.com/playlist?list=PLW9xRy22MDKo （せかチャン 共通テスト情報I やさしい講座）
+- https://youtu.be/Qfn49-nP6lY （マコなり社長：見やすい・伝わる資料の7つのコツ）
+- https://youtu.be/TNlMd7PyDYo （しごおもTV：一瞬で伝わる図解の作り方）
+- https://diamond.jp/articles/-/360209 （前田鎌利『プレゼン資料の図解化大全』）
+- https://www.lifehacker.jp/article/239089zukai-memo-method-02/ （吉澤準特『図解作成の基本』）
+- https://fbicenter.co.jp/blog/20240523_figure-point （図解デザイン9つ）
+- https://liginc.co.jp/575236 （LIG：伝わる図解の作り方）
+- 画像3枚（図解デザインの例・飲食店の売上・サービス利用の流れ）
