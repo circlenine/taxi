@@ -14,7 +14,7 @@ _FAM = {"maru": '"Zen Maru Gothic"', "kaku": '"Noto Sans JP"', "mix": '"Noto San
 _HEAD = {"maru": '"Zen Maru Gothic"', "kaku": '"Noto Sans JP"', "mix": '"Zen Maru Gothic"'}
 
 # FONTSET=libe … 10/19 まーく様：「リベ大の“5つの力を身につけよう！”のフォントに」
-#   見比べていちばん近かったのは Mochiy Pop P One（太い・丸い・字の間が詰まった字。P＝字の幅がそれぞれちがう版）
+#   10/19：最初は Mochiy Pop P One を選んだが、まちがい。リベ大の題の字は「ラノベPOP v2」（まーく様にいただいた）
 #   題（帯の題・手順の題・表紙の副題と〇〇編・もくじ・まとめの見出し）にだけ使う。この字は太さが1つしかなく、
 #   長い文には向かないため。本文は BODY（環境変数 BODYFONT：maru＝丸ゴシック／kaku＝角ゴシック）
 BODY = os.environ.get("BODYFONT", "kaku")   # 丸ゴシックの本文は字のすき間が空いて間のびした（10/19 見比べ）→ 本文は角ゴシック
@@ -47,17 +47,24 @@ COVER = """
 
 # 数字ごとに、字の左右のすき間がちがうので、横の位置を数字ごとに合わせる（numcheck.py で測った）
 _NX = {"1": "-.09mm", "2": ".24mm", "3": ".24mm"}
-_NXL = {"1": ".7mm", "2": ".04mm", "3": ".04mm"}   # 題の字が Mochiy Pop P One のとき
+_NXL = {"1": ".7mm", "2": ".04mm", "3": ".04mm"}   # 題の字が ラノベPOP v2 のとき
+
+_FONTFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "fonts", "LightNovelPOPv2.otf")
+if not os.path.exists(_FONTFILE):
+    _FONTFILE = "/home/user/taxi/pdf/fonts/LightNovelPOPv2.otf"
+LANOBE = '@font-face{font-family:"LanobePOP";src:url("file://' + os.path.abspath(_FONTFILE) + '") format("opentype");font-display:block}\n'
 
 def css(no="3"):
     cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "libe":
-        h = '"Mochiy Pop P One","Noto Sans JP",sans-serif'
+        # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）
+        #   字のファイルはリポジトリの pdf/fonts/ に置いた（まーく様にいただいたもの）
+        h = '"LanobePOP","Noto Sans JP",sans-serif'
         body = ('html,body,.page,.page *:not(.emj){font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif!important}\n' if BODY == "maru" else "")
         # 題の字に合わせて、表紙の数字の位置を合わせ直す（numcheck.py で測った）
-        cover = cover.replace("translate(" + _NX.get(no, ".24mm") + ",-1.2mm)", "translate(" + _NXL.get(no, ".04mm") + ",-1.45mm)")
-        return CHIP + cover + body + f"""
-/* 題は、リベ大の題の字（Mochiy Pop P One）。この字は太さが1つなので、太さの指定は外す */
+        cover = cover.replace("translate(" + _NX.get(no, ".24mm") + ",-1.2mm)", "translate(" + _NXL.get(no, ".04mm") + ",-.3mm)")
+        return CHIP + cover + body + LANOBE + f"""
+/* 題は、リベ大の題の字（ラノベPOP v2）。この字は太さが1つなので、太さの指定は外す */
 .half.rel,.lp,.lx,.mtk,.nk,.sn{{font-family:"Noto Sans JP",sans-serif!important}}   /* 札は、どこに置いても同じ見た目（題の字を受けつがない） */
 .page h2:not(.emj),.page h2 *:not(.emj):not(.half),.page h3.sh3 :not(.sn):not(.emj),.page h3.mth,.page h3.mth *:not(.emj),.page .tt:not(.emj),.page .tt *:not(.emj):not(.half),.page .toch,
 #p1 .cv-sd,#p1 .cv-sd *,.cover .cv-no,.cover .cv-e,.cover .cv-e *{{font-family:{h}!important;font-weight:400!important;letter-spacing:0!important}}
