@@ -65,3 +65,10 @@
 - https://fbicenter.co.jp/blog/20240523_figure-point （図解デザイン9つ）
 - https://liginc.co.jp/575236 （LIG：伝わる図解の作り方）
 - 画像3枚（図解デザインの例・飲食店の売上・サービス利用の流れ）
+
+## 10/19 あわてない（パニック予防）—— まーく様にいただいたもの
+- https://youtu.be/NojfvytyNBA （大人のダイビング倶楽部：呼吸と神経のしくみ）
+- https://youtu.be/CkhOk9KYVHE （熱烈先生：恐怖感・不安を和らげる方法）
+- https://youtu.be/C2DpfolYgmU （大人のダイビング倶楽部：パニックにならない方法）
+- https://youtu.be/UOWYYw_6R-c （パパラギ先生：初心者がつまずきがちな事5選）
+- https://youtu.be/pcnoTiMgp5I （Totty：水中パニックのしくみと予防法）
