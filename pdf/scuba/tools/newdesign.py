@@ -5,6 +5,8 @@
 # まーく様のご指示「前のデータはすぐに戻せるように」：NEWDESIGN=0 で、前の形（題は線の見出し、写真と説明は別々）に戻る
 import os
 ON = os.environ.get("NEWDESIGN", "1") != "0"
+# 10/19 まーく様：色の見出しつきカードの形（CARD）は「やはり前の形に戻して」→ ふだんは使わない。NDCARD=1 で見られる
+CARD = os.environ.get("NDCARD", "0") == "1"
 
 # 冊ごとの色：帯の色／箱の線／説明の地／点線／印の四角
 COL = {
@@ -26,7 +28,7 @@ def css(no):
     if not ON:
         return ""
     m, line, bg, dash, dot = COL[no]
-    return f"""
+    return (CARD_CSS.format(line=line, bg=bg) if CARD else "") + FINE + f"""
 /* 題の帯（10/19 リベ大の題の形）。角は丸めない（左右いっぱいなので、下の角が欠けて見える） */
 .ph.band{{display:flex!important;align-items:center;gap:3.4mm;background:{m};color:#fff;margin:0 0 3mm!important;padding:3mm 4mm!important;border:0!important}}
 .ph.band .bno{{flex:none;width:12mm;height:12mm;border-radius:1mm;background:#fff;color:{m};display:grid;place-items:center;font-size:17pt;font-weight:900;line-height:1}}
@@ -52,7 +54,9 @@ def css(no):
 /* やる前 → やった後：2枚の写真のあいだに矢印 */
 .photos .ph3+.ph3{{position:relative}}
 .photos .ph3+.ph3::before{{content:"▶";position:absolute;left:-3.4mm;top:38%;z-index:2;width:5.4mm;height:5.4mm;display:grid;place-items:center;background:{m};color:#fff;font-size:8pt;line-height:1;border-radius:1mm;box-shadow:0 0 0 .6mm #fff}}
+"""
 
+CARD_CSS = """
 /* ── 10/19 まーく様「スキル編の2ページのような形に、ほかも合わせて」 ──
    ・中のページは、しま模様と白い台紙をやめ、うすい地の1枚にする（2ページと同じ）
    ・題の帯は、ページの左右いっぱい・いちばん上に置く。左上の小さな札は帯の中に入っているので消す
@@ -76,4 +80,23 @@ def css(no):
 .step>*:not(.sh3):not(.photos):not(.notes):not(.regrow):not(.trio){{margin:0!important;padding:2.4mm 3mm!important;box-sizing:border-box}}
 .step>.regrow,.step>.trio,#p2 .step>.trio{{margin:0!important}}
 #p2 .tools>.step.wide>.regrow>*{{margin-top:0!important}}   /* 写真の並び（レギュの図・3枚並び）は、写真と同じくカードのふちいっぱい */
+"""
+
+# 10/19 まーく様「ピンク背景部分が見辛い」「一つひとつの見やすさを徹底」
+#   ・大事の欄：ピンクのぬりつぶしをやめ、白地＋左のピンクの太線。見出しだけ赤、説明は黒い字（ぬりの上の赤い字は読みにくいため）
+#   ・説明の行：行どうしのすき間を少し広げ、2行目からの補足は少し小さく・うすく（見出しと説明の差をはっきり）
+#   ・1ページまとめ：写真を大きく（小さすぎて見えなかった）
+FINE = """
+.kpk{position:relative;background:#fff!important;border:0!important;border-radius:0!important;margin:1.2mm 0!important;padding:1.6mm 2.4mm 1.6mm 2.6mm!important}
+.notes .kpk{padding:1.6mm 2.4mm 1.6mm 2.6mm!important}
+.kpk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1.2mm;background:#e0507f}   /* 左の太線（線の太さの決まりは1pxなので、線ではなく細い帯で描く） */
+.kpk .nk{background:#e0507f!important;color:#fff!important}
+.kpk .nx,.kpk .nx b,.kpk .nh{color:#b4234a!important}
+.kpk .ns,.kpk .ns *:not(.t):not(.nn2){color:#1f2a37!important}
+.step .nt{padding:2.2mm .4mm!important}
+.step .nt.kpk,.notes .nt.kpk{padding:2mm 2.4mm 2mm 3.2mm!important}   /* 大事の欄は、左の太線と札がくっつかないよう、左を広くあける */
+.step .nt .nx{font-weight:900}
+.step .nt .ns{font-size:.94em}
+.mtc{grid-template-columns:44mm minmax(0,1fr)!important}
+.mtc>img{width:44mm!important;height:auto!important;aspect-ratio:1.33!important}
 """
