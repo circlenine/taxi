@@ -1,0 +1,42 @@
+# 表記ゆれの検査（読みでまとめる方式。10/8 ご指摘「本当に全部の表記ゆれを見ているのか」）
+# 文を言葉に分け（janome）、同じ読みなのに書き方がちがう言葉を全部さがす。
+# 前もって決めた言葉の組み合わせだけを調べる方法では、「器材／機材」を見落とした。
+# この方法なら、組み合わせを知らなくても見つかる。
+# 下の OK は、読みが同じでも別の言葉なので問題ないもの（例：「か」と「可」）。新しく出たら、目で見て判断して足す。
+import re, sys
+from collections import defaultdict
+from janome.tokenizer import Tokenizer
+OK = {
+ "カ": {"か", "可"}, "タ": {"た", "他"}, "テ": {"て", "手"}, "デ": {"で", "出"},
+ "ナッ": {"なっ", "鳴っ"}, "ヒク": {"引く", "低"}, "ヨウ": {"よう", "用"},
+ "ツケ": {"付け", "着け"},
+ "イキ": {"息", "行き"}, "キ": {"き", "着", "気", "来", "器"}, "ヘン": {"編", "変"},   # 気をつける／来ていない、器材準備編／変な文 は別の言葉
+ "カイ": {"会", "回", "買い"}, "スウ": {"吸う", "数"},
+ "ハイ": {"肺", "吐い"}, "イレ": {"いれ", "入れ"}, "ミセ": {"店", "見せ"}, "メ": {"め", "目"}, "マイ": {"枚", "舞い"}, "ハナシ": {"話", "話し", "離し"},   # 10/19 スキル編：肺と「吐いて」、1枚と「砂が舞い」、「動画にない話」と「話しておく」は別の言葉   # 息と「行きわたる」、委員会と「回す」は別の言葉
+}
+# 書き方を変えてはいけない固有の名前（動画の題名など）。ここに入っている文字列は、調べる前に取りのぞく
+PROPER = ["ダイビング機材セッティング"]   # 動画の正式な題名なので「機材」のまま
+h = open(sys.argv[1]).read()
+body = h[h.index("<body>"):]
+body = re.sub(r"<script.*?</script>|<svg.*?</svg>|<style.*?</style>", "", body, flags=re.S)
+t = re.sub(r"&[a-z#0-9]+;", "", re.sub(r"<[^>]+>", "\n", body))
+for p in PROPER: t = t.replace(p, "")
+# 左上の「更新日時：2026/10/15(木)」は言葉ではない。曜日の1字（木・火など）が「き」「か」とぶつかって、
+# 木曜・火曜にだけ落ちていた（10/15 見つけた）。日付ごと取りのぞいてから調べる。
+t = re.sub(r"更新日時：\d{4}/\d{2}/\d{2}\([月火水木金土日]\)", "", t)
+tk = Tokenizer(); by = defaultdict(lambda: defaultdict(int))
+for line in t.split("\n"):
+    line = line.strip()
+    if not line: continue
+    pos = 0
+    for x in tk.tokenize(line):
+        a = pos; pos += len(x.surface)
+        if x.part_of_speech.startswith("記号"): continue
+        r = x.reading if x.reading != "*" else x.surface
+        # 「水につける（浸ける）」は「付ける」と別の言葉。前に「水に」「バケツに」がある「つけ」は、別に数える（10/13）
+        if x.surface == "つけ" and re.search(r"(水|バケツ)に[^。！]{0,4}$", line[:a]): r = "ツケ（浸）"
+        by[r][x.surface] += 1
+bad = [f"NG 表記ゆれ（読み {r}）… " + "／".join(f"{k}×{v}" for k, v in d.items())
+       for r, d in sorted(by.items()) if len(d) > 1 and not set(d) <= OK.get(r, set())]
+print("\n".join(bad) if bad else f"表記ゆれ（読みでまとめる検査）OK（{len(by)}語）")
+sys.exit(1 if bad else 0)

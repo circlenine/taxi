@@ -18,7 +18,9 @@ mkdir -p img/s
 for f in $(grep -o 'img/s/[a-z0-9_]*\.jpg' a4.html | sort -u); do [ -f "$f" ] || cp img/c05.jpg "$f"; done
 node $S/tools/measure.js $S/build_s/a4.html a4sizes.json
 python3 -I $S/tools/focus_s.py a4sizes.json img/s
-SIDE=14 node $S/tools/mcheck.js $S/build_s/a4.html
+SIDE=14 node $S/tools/mcheck.js $S/build_s/a4.html | tee $S/mcheck_last.txt
+# はみ出しガード（10/19）：どのページでも、中身がページの下からはみ出していたら止める（PDFを作らせない）
+if grep -q "ページの下にはみ出し" $S/mcheck_last.txt; then echo "NG ページからはみ出している（上を見て直す）"; exit 1; fi
 python3 -I $S/tools/toccheck2.py $S/build_s/a4.html
 WRAPDUMP=$S/build_s/wrap.json node $S/tools/wrapcheck.js $S/build_s/a4.html
 node $S/tools/gapcheck.js $S/build_s/a4.html
