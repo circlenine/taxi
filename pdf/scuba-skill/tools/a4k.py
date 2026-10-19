@@ -277,7 +277,11 @@ EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span>
 _s3 = next(x for x in STEPS if x["id"] == "3"); _s4 = next(x for x in STEPS if x["id"] == "4")
 STEPS = [dict(_s3, title="“中性浮力” {bc}と呼吸で合わせ、体は水平に", subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
 TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
-KEYS = {"3-2": []}   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
+# 写真のない手順があったら、組み立てを止める（10/19 まーく様「画像は必ずつけてください。文章だけだと読む気が失せます」）
+_nophoto = [x["id"] for x in INTRO["subs"] + [y for sec in STEPS for y in sec["subs"]] if not x.get("key")]
+if _nophoto:
+    sys.exit("止めます：写真のない手順があります → " + "、".join(_nophoto) + "（content_k.py の key に写真を入れてください）")
+KEYS = {}   # どの手順にも写真を付ける（10/19 まーく様「画像は必ずつけてください」）  #   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
 # 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
 def q2(sid):
     if sid not in QUIZ2: return ""
@@ -313,8 +317,8 @@ for sec in STEPS:
         t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！！</span>'}.get(sec.get("rel"), "")
         if sec["id"] in COLS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
-            # 中性浮力のページは、左に①（3-1〜3-3）、右に②（4-1・4-2）を置く（2つの話を、列で分けて見せる）
-            L, Rr = ([x for x in g if x["id"].startswith("3-")], [x for x in g if x["id"].startswith("4-")]) if sec["id"] == "3" else (g[0::2], g[1::2])
+            # 中性浮力のページは、左に3-1・3-2、右に3-3〜4-2を置く（どの手順にも写真を付けたので、列の長さをそろえる）
+            L, Rr = (g[:2], g[2:]) if sec["id"] == "3" else (g[0::2], g[1::2])   # 写真が5枚になったので、左に2つ・右に3つ（読む順はそのまま）
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in L) + '</div><div class="col">' + "".join(stepbox(x) for x in Rr) + "</div></div>"
         else:
             body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
@@ -1104,7 +1108,7 @@ function vis(el){let m=-1e9;const w=document.createTreeWalker(el,NodeFilter.SHOW
   if(c.tagName==='IMG'||c.tagName==='svg'||parseFloat(s.borderBottomWidth)>0||(s.backgroundColor!=='rgba(0, 0, 0, 0)'&&c!==el))m=Math.max(m,r.bottom);});return m;}
 function frame(pg){const P=pg.getBoundingClientRect(),cs=getComputedStyle(pg);return {P,L:P.left+parseFloat(cs.paddingLeft),R:P.right-parseFloat(cs.paddingRight),lim:P.bottom-parseFloat(cs.paddingBottom)};}
 function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *')].map(c=>c.getBoundingClientRect().bottom))-1;
- let lo=(pg.id==='p4'?30:30),hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
+ let lo=(pg.id==='p4'?26:30),hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
  g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
