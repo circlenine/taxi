@@ -33,7 +33,10 @@ def links(old):
 CHIP = """
 .lp,.lx,.mtk,.half.rel,.nk{text-indent:0!important}
 .t{text-indent:0!important}   /* 器材名の色の四角も、同じ「字下げ」で左へずれて、札に食いこんでいた（準備編・洗浄編まとめ） */
+/* 10/20 上下の余白は、字が下に寄って見えないよう、上をせまく・下を広く（2枚撮りの確認で、上下のまん中にそろうことを確かめた） */
 .mtk,.nk,.lx,.lp,.half.rel{line-height:1!important;padding-top:.55mm!important;padding-bottom:.45mm!important;vertical-align:.08em}
+.notes .nk{padding-top:.28mm!important;padding-bottom:.72mm!important}
+.half.rel{padding-top:.3mm!important;padding-bottom:.7mm!important}   /* 題の右の札（NEW!!・ふり返り）も、字が下に寄って見えるので上をせまく */   /* 説明の欄の札（行の頭に置く block の札）だけ、字が下に寄るので上をせまく */
 """
 
 # 表紙の副題・「〇〇編」・数字は、中の題と同じゴシック体（10/19 まーく様：違和感は「表紙の題（明朝）と、中の題（ゴシック）」）
