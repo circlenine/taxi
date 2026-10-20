@@ -2,12 +2,16 @@
 # ページに出る字だけを調べる。見つかったら止める
 import re, sys, html
 h = open(sys.argv[1]).read()
-h = re.sub(r'<rt>.*?</rt>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
+h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 h = re.sub(r'<script.*?</script>|<style.*?</style>', '', h, flags=re.S)
 t = html.unescape(re.sub(r'<[^>]+>', '', h))
 ng = []
 for m in re.finditer(r'.{0,10}[！？!?]{2,}', t):
     ng.append('「！」「？」が続いている：' + m.group(0))
+for m in re.finditer(r'.{0,10}1分(探|さが)', t):
+    ng.append('「1分探す」は使わない（10/20 まーく様）：' + m.group(0))
+for m in re.finditer(r'.{0,10}止ま[るっれりら]', t):
+    ng.append('「止まる」は使わず「停まる」（10/20 まーく様）：' + m.group(0))
 for m in re.finditer(r'.{0,10}(じゃ[！!。]|ぞい|おめぇ|貴様|なんだな|だぞ)', t):
     ng.append('〜だよ の書き方になっていない：' + m.group(0))
 if ng:

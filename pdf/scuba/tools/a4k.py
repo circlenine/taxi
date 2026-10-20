@@ -337,8 +337,8 @@ COLS = set()
 import intro_k as _ix
 _ixp = _ix.pages(T, jump)
 for _gi, _inner in enumerate(_ixp):
-    _t = INTRO["title"] + f'<span class="half">{"前半" if _gi == 0 else "後半"}</span>'
-    for x in (_ix.MATOME_SUBS[:2] if _gi == 0 else _ix.MATOME_SUBS[2:]): SUBPG[x["id"]] = len(pages) + 1
+    _t = INTRO["title"]
+    for x in _ix.MATOME_SUBS: SUBPG[x["id"]] = len(pages) + 1
     page("その1", _t, _inner)
 COLS = set()   # 10/19 まーく様：読む順は Z字（左上→右上→左下→右下）。列ごとに上から詰める形はやめた。入りきらないときは文を削る
 for sec in STEPS:
@@ -409,16 +409,17 @@ for _n, _fs in SIG_MOVE:
     _d = _diff(_fs[0][0], _fs[1][0])
     if _d < 6: raise SystemExit(f"NG 合図「{_n}」：2枚がほとんど同じ写真（ちがい {_d:.1f}）。形がちがうコマを選ぶ")
 sm = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
-             + f'<figure class="sqf">{im(fs[0][0], 1.42)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
-             + f'<figure class="sqf">{im(fs[1][0], 1.42)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
+             + f'<figure class="sqf">{im(fs[0][0], 1.55)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
+             + f'<figure class="sqf">{im(fs[1][0], 1.55)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
 ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</span></p>{im(k, 1.27)}<figcaption>{T(desc)}</figcaption></figure>' for name, k, desc in SIG_STILL)
 sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
 # 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
 SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
 SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛ぶ
-page("合図", "ハンドシグナル（動きのある合図）", f'{SIGREF}<p class="mtl sql">①をしてから、②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg">{sm}</div>')
-page("合図2", "形で伝える合図と、ふり返りクイズ", f'<div class="sqg4">{ss}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn2}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><div class="memo-slot" data-fill="1"></div>')
-page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "この1枚で、すぐ見返せる！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p></div>')
+# 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
+ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
+page("合図", "ハンドシグナル", f'{SIGREF}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqg3">{sm}{ss3}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
+page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "見返し用の集約1ページ！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<section class="mtq"><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ</small></h3><div class="quiz">{quiz}</div></section><p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から</p></div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1139,6 +1140,8 @@ CSS += """
 .sgnote>.sh3+.notes{margin-top:0!important}
 .sgnote{padding-top:0!important}
 .mts{font-size:8.6pt!important;line-height:1.4!important}
+.page .mtg .mts{font-size:8.2pt!important;line-height:1.32!important}
+.page .mtg{row-gap:2.4mm!important}
 .mtc{grid-template-columns:28mm minmax(0,1fr)!important}
 .mtc>img{width:28mm!important}
 .page .quiz{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 3mm}
@@ -1156,10 +1159,33 @@ CSS += """
 .sqa{font-style:normal;text-align:center;color:var(--navy);font-size:9pt;line-height:1;align-self:center;margin-top:-4mm}
 .sqf,.sqs{margin:0}
 .sqs img{width:100%;aspect-ratio:1.27;object-fit:cover;border-radius:1mm;display:block}
-.sqf img{width:100%;aspect-ratio:1.42;object-fit:cover;border-radius:1mm;display:block}
+.sqf img{width:100%;aspect-ratio:1.55;object-fit:cover;border-radius:1mm;display:block}
 .sqf figcaption,.sqs figcaption{font-size:9pt;line-height:1.35;margin-top:.8mm}
 .sqg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3mm;margin-bottom:3mm}
 .sqs{border-top:1px solid var(--line);padding-top:1.6mm}
+/* 10/20 合図を1ページに：3列。動きのある合図は2枠ぶん、形の合図は1枠 */
+.sqg.sqg3{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:2mm 3.4mm!important}
+.sqg3>.sqc{grid-column:span 2}
+.sqg3>.sqc.sq1{grid-column:span 1}
+.sqg3 .sqf figcaption{font-size:8.2pt!important}
+.sqg3 .sqn{font-size:10pt!important}
+.sgn3{margin-top:2mm}
+.sqg3 .sqh{margin-bottom:.8mm!important}
+.sqg3 .sqc{padding-top:1.2mm!important}
+.sqg3 figcaption{line-height:1.3!important;margin-top:.5mm!important}
+/* まとめ：クイズを入れるので、写真を少し横長に */
+.page .mtg .mtc>img{aspect-ratio:3.4!important}
+.page .mtg>.mtsrc{font-size:7.6pt!important;line-height:1.4!important}
+.page .mtl{margin-bottom:1.6mm!important}
+.mtq .qz{padding:.6mm 0!important}
+.mtq .qz .q{padding:1.8mm 1.6mm .6mm!important;line-height:1.35!important}   /* 上は、ルビ（は）のぶん少しあける */
+.mtq .qz .a{line-height:1.35!important}
+/* まとめのクイズ：あいた2マスに置く。写真の出どころは下の段いっぱい */
+.page .mtg>.mtq{grid-column:span 2}
+.page .mtg>.mtsrc{grid-column:1/-1!important}
+.mtq .quiz{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:1mm 3mm!important}
+.mtq .qz .q,.mtq .qz .a{font-size:8.6pt!important}
+.mtq .ph2{font-size:11pt!important;margin-bottom:1.4mm!important}
 /* 10/20 その1は手順が10あるので、まとめの枠を2列ぶんにして、一覧も2段に並べる */
 .page .mtg>.mtw{grid-column:span 2!important}
 .page .mtw .mts{columns:2;column-gap:5mm}

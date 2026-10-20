@@ -4,7 +4,7 @@
 # ページを足したり減らしたりすると番号がずれるので、毎回調べる
 import re, sys
 h = open(sys.argv[1], encoding="utf-8").read()
-h = re.sub(r'<rt>.*?</rt>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
+h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 pages = dict(re.findall(r'<div class="page" id="p(\d+)">(.*?)(?=<div class="page" id="p\d+">|</body>)', h, flags=re.S))
 bad, n = [], 0
 for href, body in re.findall(r'<a class="jump" href="#p([^"]*)">(.*?)</a>', h, flags=re.S):

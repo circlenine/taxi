@@ -485,7 +485,8 @@ def aspect_range(key):
     fw, fh = (fx1 - fx0) * (1 + 2 * PAD), (fy1 - fy0) * (1 + 2 * PAD)
     return fw / (ay1 - ay0), (ax1 - ax0) / fh
 
-def box_for(allowed, focus, aspect, pad=PAD):
+PAIRK = {"nghi", "nglo"}   # 重ねて比べる写真（1-3 の高すぎ・低すぎ）
+def box_for(allowed, focus, aspect, pad=PAD, zoom=True):
     """focusを少し余白つきで含み、縦横比がaspectで、allowedからはみ出さない、いちばん小さい枠"""
     ax0, ay0, ax1, ay1 = allowed
     fx0, fy0, fx1, fy1 = focus
@@ -502,7 +503,7 @@ def box_for(allowed, focus, aspect, pad=PAD):
     #   寄っても、写したいもの（余白なし）が全部入るときだけ寄る。入らないときは、いままでどおり（あとで知らせる）
     hw, hh = min(cx - ax0, ax1 - cx), min(cy - ay0, ay1 - cy)
     sc = min(1.0, 2 * hw / w, 2 * hh / h)
-    if sc < 1.0 and w * sc + 0.5 >= fw and h * sc + 0.5 >= fh:
+    if zoom and sc < 1.0 and w * sc + 0.5 >= fw and h * sc + 0.5 >= fh:
         w, h = w * sc, h * sc
     x0 = min(max(cx - w / 2, ax0), ax1 - w)
     y0 = min(max(cy - h / 2, ay0), ay1 - h)
@@ -536,7 +537,7 @@ if __name__ == "__main__":
             x0, y0, x1, y1, ok = box_for(allowed, focus, a_fit)
             if a_fit < w / h - 0.01: pad_to = w / h
         else:
-            x0, y0, x1, y1, ok = box_for(allowed, focus, w / h)
+            x0, y0, x1, y1, ok = box_for(allowed, focus, w / h, zoom=key not in PAIRK)   # 比べる2枚は、同じ切り方のまま（寄せると2枚がずれる）
         if not ok: warn.append(f"{slot}: 見せたい部分が枠に入りきらない")
         if len(OFFC) > _n0: print(f"  まん中からずれ {slot}（{key}）：左右 {OFFC[-1][1]}%・上下 {OFFC[-1][2]}%（画面のはしに当たって、まん中に置けない）")
         src = load(frame)

@@ -3,16 +3,19 @@
 #   ・ほかに、ふだんの会話であまり見ない漢字・読みまちがえやすい漢字
 #   ページに出る字だけに付ける（図の中・タグの中・題の名前などには付けない）
 import re
-WORDS = {"塊": "かたまり", "脱着": "だっちゃく", "装着": "そうちゃく", "鼻炎": "びえん", "品薄": "しなうす", "峠": "とうげ",
-         "紐": "ひも", "隙間": "すきま", "緩み": "ゆるみ", "彦坂": "ひこさか", "留め": "と"}
+# 10/20 まーく様「このレベルは普通に読めるのでルビは不要。呼くにだけ、呼（は）くと」→ ルビは「呼（は）く」だけ
+WORDS = {}
 _W = sorted(WORDS, key=len, reverse=True)
-_RX = re.compile("呼(?=[くいきけかこっ])|" + "|".join(map(re.escape, _W)))
+_RX = re.compile("呼(?=[くいきけかこっ])")
 def _rb(m):
     w = m.group(0)
-    if w == "呼": return "<ruby>呼<rt>は</rt></ruby>"
+    # <ruby> は、ルビのぶん行の高さがふえて、その行だけ上下がずれる（まーく様「上位置が、他の文とズレないように」）。
+    #   → 字の上に、行の高さを使わずに重ねる（.rb の中の .rt を、字の真上に置く）
+    if w == "呼": return '<span class="rb">呼<span class="rt">は</span></span>'
+
     if w == "留め": return "<ruby>留<rt>と</rt></ruby>め"
     return f"<ruby>{w}<rt>{WORDS[w]}</rt></ruby>"
-SKIP = ("svg", "script", "style", "title", "ruby", "head")
+SKIP = ("svg", "script", "style", "title", "head")
 def apply(html):
     out, depth = [], {k: 0 for k in SKIP}
     for part in re.split(r"(<[^>]+>)", html):
@@ -27,10 +30,10 @@ def apply(html):
             out.append(_RX.sub(_rb, part))
     html = "".join(out)
     # もくじの行（a.tc）だけはルビを外す（もくじは字が詰まっていて、ルビの幅で字の間が広がってしまう。ページの題には付いている）
-    return re.sub(r'(<a class="tc".*?</a>)', lambda m: re.sub(r'<ruby>(.*?)<rt>.*?</rt></ruby>', r'\1', m.group(1)), html, flags=re.S)
+    return re.sub(r'(<a class="tc".*?</a>)', lambda m: re.sub(r'<span class="rb">(.*?)<span class="rt">.*?</span></span>', r'\1', m.group(1)), html, flags=re.S)
 
 CSS = """
 /* ルビ：字の上に小さく。行の間がひろがりすぎないよう、ルビの行の高さは詰める */
-.page ruby{ruby-position:over}
-.page rt{font-size:.5em;line-height:1;font-weight:700;letter-spacing:-.04em;white-space:nowrap}
+.page .rb{position:relative}
+.page .rb>.rt{position:absolute;left:50%;bottom:100%;transform:translate(-50%,.18em);font-size:.48em;line-height:1;font-weight:700;letter-spacing:0;white-space:nowrap;pointer-events:none}
 """

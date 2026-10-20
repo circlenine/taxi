@@ -419,7 +419,7 @@ SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛
 # 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 page("合図", "ハンドシグナル", f'{SIGREF}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqg3">{sm}{ss3}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
-page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "この1枚で、すぐ見返せる！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<section class="mtq"><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ</small></h3><div class="quiz">{quiz}</div></section><p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から</p></div>')
+page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "見返し用の集約1ページ！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<section class="mtq"><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ</small></h3><div class="quiz">{quiz}</div></section><p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から</p></div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1178,7 +1178,7 @@ CSS += """
 .page .mtg>.mtsrc{font-size:7.6pt!important;line-height:1.4!important}
 .page .mtl{margin-bottom:1.6mm!important}
 .mtq .qz{padding:.6mm 0!important}
-.mtq .qz .q{padding:.6mm 1.6mm!important;line-height:1.35!important}
+.mtq .qz .q{padding:1.8mm 1.6mm .6mm!important;line-height:1.35!important}   /* 上は、ルビ（は）のぶん少しあける */
 .mtq .qz .a{line-height:1.35!important}
 /* まとめのクイズ：あいた2マスに置く。写真の出どころは下の段いっぱい */
 .page .mtg>.mtq{grid-column:span 2}

@@ -20,9 +20,10 @@
 
 # まとめのページ（13ページ）に出す、その1の一覧（短い言い方）。写真は、ゆっくり呼吸している顔（リラックス）
 MATOME_SUBS = [
-    dict(id="1-1", key=["rr18"], title="あわてる前に「止める」：止まる→呼く→考える→伝える", pink=True),
-    dict(id="1-2", key=["rr18"], title="「気になる」は、こまめに手放す"),
-    dict(id="1-3", key=["rr18"], title="はぐれたら：1分探して、水面で会う", pink=True),
+    dict(id="1-1", key=["rr18"], title="潜る前に、決めておく"),
+    dict(id="1-2", key=["rr18"], title="あわてないように「ふり返る」", pink=True),
+    dict(id="1-3", key=["rr18"], title="「気になる」は、こまめに手放す"),
+    dict(id="1-4", key=["rr18"], title="はぐれたら：見回して、ゆっくり浮上", pink=True),
 ]
 
 NV = "#4b2a73"   # スキル編の色（図の線）
@@ -33,6 +34,19 @@ def _ic(name):
     g = {
      # 止まる：一時停止の記号（2本の縦の棒）
      "stop": f'<rect x="15" y="12" width="9" height="26" rx="2" fill="{NV}"/><rect x="31" y="12" width="9" height="26" rx="2" fill="{NV}"/>',
+     # 停まる：手のひらを前に出す（止まっての合図と同じ形）
+     "halt": f'<path d="M16 44 V20 a3 3 0 0 1 6 0 V8 a3 3 0 0 1 6 0 V20 V6 a3 3 0 0 1 6 0 V20 V9 a3 3 0 0 1 6 0 V30 C40 39 35 44 28 44 Z" fill="none" stroke="{NV}" stroke-width="3" stroke-linejoin="round"/>',
+     # 空気が吸えない：口と、×
+     "air": f'<circle cx="22" cy="25" r="16" fill="none" stroke="{NV}" stroke-width="3"/><path d="M15 30 h14" stroke="{NV}" stroke-width="3" stroke-linecap="round"/>'
+            f'<path d="M40 10 l10 10 M50 10 l-10 10" stroke="#b4234a" stroke-width="3" stroke-linecap="round"/>',
+     # 任せる：2人の頭と、つないだ手
+     "trust": f'<circle cx="16" cy="14" r="7" fill="none" stroke="{NV}" stroke-width="3"/><circle cx="40" cy="14" r="7" fill="none" stroke="{NV}" stroke-width="3"/>'
+              f'<path d="M8 44 C8 30 24 28 28 36 C32 28 48 30 48 44" fill="none" stroke="{BL}" stroke-width="3" stroke-linecap="round"/>',
+     # 360度見回す：ぐるっと回る矢印と目
+     "around": f'<path d="M46 25 A18 18 0 1 1 38 10" fill="none" stroke="{BL}" stroke-width="3" stroke-linecap="round"/><path d="M34 4 l6 6 l-7 4" fill="none" stroke="{BL}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
+               f'<path d="M16 25 Q28 15 40 25 Q28 35 16 25 Z" fill="none" stroke="{NV}" stroke-width="2.6"/><circle cx="28" cy="25" r="4" fill="{NV}"/>',
+     # 上と下：上下の矢印
+     "updown": f'<path d="M28 4 V44 M20 12 L28 4 L36 12 M20 36 L28 44 L36 36" fill="none" stroke="{NV}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
      # 吐く：横顔の口から、泡が上へ
      "out": f'<circle cx="22" cy="26" r="17" fill="none" stroke="{NV}" stroke-width="3"/><circle cx="16" cy="22" r="2.2" fill="{NV}"/><circle cx="28" cy="22" r="2.2" fill="{NV}"/>'
             f'<ellipse cx="22" cy="33" rx="3" ry="2.4" fill="none" stroke="{NV}" stroke-width="2.4"/>'
@@ -78,40 +92,49 @@ def pages(T, jump):
     _jp = lambda c: (f'<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a>' if c == "SIG" else jump(c))
     pk = lambda head, line: (f'<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{head}</b></span>'
                              f'<div class="ns">{line}</div></div></div>')
-    # 10/20 まーく様「ページは10ページにとどめて」→ その1は1ページ。中身は消さずに、表と図にまとめる
-    chain = ('<div class="ixch">'
-             '<span class="ixc">「気になる」が<br>たまる</span><i class="ixa">▶</i>'
-             '<span class="ixc">息が浅く・<br>速くなる</span><i class="ixa">▶</i>'
-             '<span class="ixc ixw">「空気が足りない」<br>気がする</span><i class="ixa">▶</i>'
-             '<span class="ixc">急いで<br>上がりたくなる</span></div>'
-             '<p class="ixnote"><b>空気は、ちゃんとあるよ。</b>浅い息で呼き残しが出て、二酸化炭素がたまり、苦しく感じるだけ。だから、まず<b>長く呼く</b></p>')
-    acts = [("stop", "止まる", "岩・ロープ・バディにつかまる"),
-            ("out", "呼く", "ゆっくり長く、全部呼く。吸うのはその後"),
-            ("think", "考える", "気になることを1つ見つける"),
-            ("tell", "伝える", "合図で、すぐ知らせる")]
+    # 10/20 作り直し（まーく様のご指摘）
+    #   ・順番は、やる順：潜る前に決める → あわてそうなとき → 気になることの対処 → はぐれたら
+    #   ・「止める」と「息を止めない」がややこしい → 呼吸の話（息を止めない・長く呼く などのよくある助言）は、この資料では書かない
+    #     （呼吸のリズムは、あいちゃんがもう掴んでいる。かえって混乱する）
+    #   ・「気づいたら」の4つは、どんなときでもできる順に：
+    #       伝える（停まれなくても・考えられなくても、合図はできる）→ 停まる（停まれないときは、つかまる）
+    #       → 空気が吸えないとき（エアがないの合図 → バディの予備の空気）→ 考えなくていい（任せる）
+    #   ・はぐれたら：360度ぐるっと見回す → 上と下も → 見つからなければ、ゆっくり浮上 → 水面で会う（「1分探す」は使わない）
+    #   ・「止まる」は使わず「停まる」
+    before = [("体調", "寝不足・鼻づまりは、耳が抜けにくい"),
+              ("苦手なこと", "先に言うと、気にかけてもらえる"),
+              ("合図", "お店で少しちがう。形を合わせる"),
+              ("はぐれたとき", "1-4 の流れで良いか確かめる")]
+    chain = ('<div class="ixch ixch3">'
+             '<span class="ixc">「気になる」がたまる</span><i class="ixa">▶</i>'
+             '<span class="ixc">ドキドキ・あせる</span><i class="ixa">▶</i>'
+             '<span class="ixc ixw">急いで上がりたくなる</span></div>')
+    acts = [("tell", "伝える", "合図で、すぐ知らせる。どんなときでもできる"),
+            ("halt", "停まる", "停まれないときは、岩やバディにつかまる"),
+            ("air", "空気が吸えない", "「エアがない」の合図で、バディの空気をもらう"),
+            ("trust", "考えなくていい", "つかまったら、後は任せてOK")]
     act = '<div class="ixact">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(acts, 1)) + '</div>'
-    flow = [("look", "見回す", "上と下も。泡を探す"),
-            ("clock", "1分探す", "いなければ、次へ"),
-            ("up", "ゆっくり浮上", "泡より遅い速さで"),
+    flow = [("around", "見回す", "停まって、360度ぐるっと"),
+            ("updown", "上と下も", "泡も探す"),
+            ("up", "ゆっくり浮上", "それでもいなければ"),
             ("meet", "水面で会う", "水面でバディを待つ")]
     rows = [("マスクに水", "マスクの上を押さえて、鼻から呼く", "6-1"),
-            ("耳が抜けない", "合図して少し上がり、もう一度。だめなら中止", "2-1"),
-            ("浮く・沈む", "呼くと沈み、吸うと浮く", "3-1"),
-            ("沈めない", "足をピタッと止めて、長く呼く", ""),
-            ("{regu}が外れた", "くわえ直し、まず呼いてから吸う", "5-2"),
-            ("のどがかわく", "みそ汁をすする口で吸う", ""),
+            ("耳が抜けない", '<span class="nw">合図して、少し上がってもう一度</span><br><span class="nw">抜けなければ、そのダイブは中止</span>', "2-1"),
+            ("浮く・沈む", "{bc}で、少しずつ合わせる", "3-1"),
+            ("{regu}が外れた", "くわえ直して、まず呼いてから吸う", "5-2"),
             ("遅れる・寒い", "がまんせず、合図で伝える", "SIG")]
-    p1 = (sec("1-1", "あわてる前に「止める」",
-              '<p class="ixlead">あわてるのは、とつぜんではないよ。少しずつ進むから、途中で止めれば大丈夫</p>' + chain
-              + '<p class="ixh">気づいたら、この4つ<small>（潜る前に、頭の中で1回練習しておこう）</small></p>' + act
-              + pk("急いで水面へ上がらない・息を止めない", "上がると肺の空気がふくらむから。ゆっくり上がって、息はいつも続けよう"))
-          + sec("1-2", "「気になる」は、こまめに手放す",
+    p1 = (sec("1-1", "潜る前に、決めておく",
+              '<div class="ixtell ixtell4">' + "".join(f'<div class="ixt"><b><span class="ixn">{i}</span>{h}</b><span>{d}</span></div>' for i, (h, d) in enumerate(before, 1)) + '</div>')
+          + sec("1-2", "あわてないように「ふり返る」",
+              '<p class="ixlead">あわてるのは、とつぜんではないよ。少しずつ進むから、途中で気づけば大丈夫</p>' + chain
+              + '<p class="ixh">気づいたら、この順で</p>' + act
+              + pk("急いで水面へ上がらない", "急に上がると、体に負担がかかるから。インストラクターさんと、いっしょにゆっくり上がろう"))
+          + sec("1-3", "「気になる」は、こまめに手放す",
                 '<div class="ixcupw"><div class="ixtb">' + "".join(f'<span class="ixq">{T(a)}</span><span class="ixd">{T(b)}</span><span class="ixj">{_jp(c) if c else ""}</span>' for a, b, c in rows) + '</div>'
                 + '<div class="ixcupc"><p class="ixh">コップに例えてみよう！</p>' + CUP + '<p class="ixs">「気になる」は、コップにたまる水。1つずつ、すぐに手放せば、いつも余裕のまま</p></div></div>')
-          + sec("1-3", "はぐれたら、1分探して水面で会う",
+          + sec("1-4", "はぐれたら、見回して、ゆっくり浮上",
                 '<div class="ixact ixflow">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(flow, 1)) + '</div>'
-                + pk("1人で、もう一度潜って探さない", "ボートやお店の人にすぐ知らせよう。決まりはお店で少しちがうので、潜る前に確かめてね")
-                + '<p class="ixs ixpre"><b>潜る前に伝えておこう：</b>体調（寝不足・鼻づまりは耳が抜けにくい）と、苦手なこと</p>'))
+                + pk("1人で、もう一度潜って探さない", "水面でも見つからなければ、ボートやお店の人にすぐ知らせよう")))
     return [p1]
 
 CSS = """
@@ -119,6 +142,11 @@ CSS = """
 .page .step.ix>.sh3+*{margin-top:0!important}   /* 題の下のすき間は、ほかの手順と同じ 2.4mm（ほかの決まりで二重にあいていた） */
 .ix .ixlead{margin:0 0 1.4mm;font-size:10pt;line-height:1.5}
 .ixch{display:grid;grid-template-columns:1fr 4mm 1fr 4mm 1.25fr 4mm 1fr;align-items:center}
+.ixch.ixch3{grid-template-columns:1fr 4mm 1fr 4mm 1fr}
+.ixch3 .ixc{padding:.9mm 1mm!important}
+.ixtell4{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm!important}
+.ixtell4 .ixt{padding:1.4mm 1.6mm}
+.ixtell4 .ixt>span:last-child{font-size:8.6pt}
 .ixc{background:var(--pale);border-radius:1mm;padding:1.2mm 1mm;text-align:center;font-size:9.8pt;line-height:1.35}
 .ixc.ixw{background:#ffe3ea;color:#b4234a}
 .ixa{font-style:normal;text-align:center;color:var(--navy);font-size:9pt}

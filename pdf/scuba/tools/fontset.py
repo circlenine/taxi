@@ -121,7 +121,8 @@ def punct_js():
      その字体の漢字どうしのすき間と同じにそろえる（目で見たすき間をそろえる＝オプティカルカーニング） */
 /* 表紙の「〇〇編」は、字の間を空ける決まり（.08em）をやめ、すき間を形でそろえる */
 document.head.insertAdjacentHTML('beforeend','<style>#p1 .cover .cv-e,#p1 .cover .cv-e *{letter-spacing:.02em!important}</style>');
-window.__kernSel='#p1 .cv-e,.page h2:not(.toch),.page h3.sh3>span:last-child,.page .tt,.page .mth>span:last-child,.page .sqn,.page .ixh,.page .ixk b,.page h3.ph2';
+window.__kernSel='#p1 .cv-e,.page h2:not(.toch),.page h3.sh3>span:last-child,.page .tt,.page .mth>span:last-child,.page .sqn,.page .ixh,.page .ixk b,.page h3.ph2'
+ +',.page .notes,.page .ixtb,.page .ixk>span,.page .ixt,.page .ixs,.page .ixlead,.page .ixc,.page .mts,.page .mtl,.page .sasuke,.page .bg,.page .nmr,.page .qz,.page .cap3,.page .ref,.page .sqf figcaption,.page .howto,.page .relnote,.page .src,.page .jump,.page .legend';   /* 10/20 まーく様「本文中のカーニングも徹底」→ 本文も */
 document.fonts.ready.then(function(){var cv=document.createElement('canvas').getContext('2d'),memo={};
  var CJK=/[\u3041-\u3096\u30a1-\u30fa\u30fc\u4e00-\u9fff]/;
  /* 字の形を 100px で描き、行ごとに「左のはし」「右のはし」を測る（ふちの箱ではなく、見た目の形） */
@@ -137,7 +138,7 @@ document.fonts.ready.then(function(){var cv=document.createElement('canvas').get
  document.querySelectorAll(window.__kernSel).forEach(function(el){
   var w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),ns=[],n;while(n=w.nextNode())ns.push(n);
   var spans=[];
-  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.pqr,.pql,.pqc,svg,.kc'))return;var pd=getComputedStyle(p).display;if(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0)return;   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない */
+  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.rt,.pqr,.pql,.pqc,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2,.t'))return;var pd=getComputedStyle(p).display;if(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0)return;   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない */
    if(!CJK.test(t.textContent))return;var f=document.createDocumentFragment();
    Array.from(t.textContent).forEach(function(ch){if(CJK.test(ch)){var s=document.createElement('span');s.className='kc';s.textContent=ch;f.appendChild(s);spans.push(s);}else f.appendChild(document.createTextNode(ch));});
    t.parentNode.replaceChild(f,t);});

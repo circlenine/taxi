@@ -11,7 +11,7 @@ const r=await p.evaluate(()=>{const out=[];window.__dump=[];
  const blocks=[...document.querySelectorAll('.page p,.page h2,.page h3>span:last-child:not(:has(.hm)),.page h3 .hm,.page h3 .hs,.nx,.ns,.sd2,.ds,.tt,.q,.cap3,.say,.of,.tocn')];
  blocks.forEach(bl=>{if(bl.closest('svg'))return;const lines=[];let cur=null,top=null;
   const w=document.createTreeWalker(bl,NodeFilter.SHOW_TEXT);let n;
-  while(n=w.nextNode()){if(n.parentElement.closest('.half,rt'))continue;   /* ルビ（rt）は行の字に数えない */if(n.parentElement.closest('.t,.nk,.sn,.fs,.nn,.nn2,.sp2')&&n.parentElement!==bl){/* 札はひとかたまり */const r=n.parentElement.getBoundingClientRect();if(top===null||r.top>top+r.height*.5){cur=[];lines.push(cur);top=r.top;}cur.push(...n.textContent.trim());continue;}
+  while(n=w.nextNode()){if(n.parentElement.closest('.half,rt,.rt'))continue;   /* ルビ（rt）は行の字に数えない */if(n.parentElement.closest('.t,.nk,.sn,.fs,.nn,.nn2,.sp2')&&n.parentElement!==bl){/* 札はひとかたまり */const r=n.parentElement.getBoundingClientRect();if(top===null||r.top>top+r.height*.5){cur=[];lines.push(cur);top=r.top;}cur.push(...n.textContent.trim());continue;}
    for(let i=0;i<n.length;i++){const ch=n.textContent[i];if(!ch.trim())continue;const rg=document.createRange();rg.setStart(n,i);rg.setEnd(n,i+1);const q=rg.getClientRects()[0];if(!q)continue;
     if(top===null||q.top>top+q.height*.5){cur=[];lines.push(cur);top=q.top;}cur.push(ch);}}
   if(lines.length<2)return;const txt=lines.map(l=>l.join(''));const pg=bl.closest('.page').id.slice(1);window.__dump.push([pg,txt]);

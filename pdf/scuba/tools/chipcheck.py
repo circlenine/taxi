@@ -4,7 +4,7 @@
 # 10/7 に、2-3の「銀色金具」だけ札になっていないのを見逃してご指摘を受けたので、毎回調べる
 import re, sys
 h = open(sys.argv[1]).read()
-h = re.sub(r'<rt>.*?</rt>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
+h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 h = re.sub(r'<style.*?</style>|<script.*?</script>|<svg.*?</svg>', '', h, flags=re.S)
 # 札にしなくてよい場所を消す
 for pat in [r'<div class="ph[^"]*">.*?</h2></div>',        # ページの見出し
