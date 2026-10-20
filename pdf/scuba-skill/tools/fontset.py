@@ -114,7 +114,18 @@ def body_css():
 def punct_js():
     if MODE != "kaisei":
         return ""
-    return """<script>(function(){
+    return """<script>
+/* 10/20 しおり（矢印）の札：字の形（インク）が、札の四角い部分のまん中に来るように、字を少しずらす。
+   字の箱のまん中と、実際に描かれる字のまん中は、字の形でずれる（「1」は細い、など）。canvas で字の形の左右のはしを測って直す */
+document.fonts.ready.then(function(){var cv=document.createElement('canvas').getContext('2d');
+ document.querySelectorAll('.page .no,.page .tl,.page .sn,.page .qh').forEach(function(e){if(e.querySelector('.ci'))return;
+  var t=e.textContent.trim();if(!t)return;var c=getComputedStyle(e);var fs=parseFloat(c.fontSize);cv.font=c.fontWeight+' '+(fs*10)+'px '+c.fontFamily;   /* 10倍の大きさで測って、細かいずれまで拾う */
+  if('letterSpacing' in cv)cv.letterSpacing=c.letterSpacing;var m=cv.measureText(t);
+  var ls=parseFloat(c.letterSpacing)||0;var adv=m.width;var inkC=(m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2;
+  var off=(inkC-adv/2)/10;   /* 字の形のまん中が、字の箱のまん中より右なら＋ */
+  var s=document.createElement('span');s.className='ci';s.style.cssText='position:relative;left:'+(-off).toFixed(2)+'px;letter-spacing:inherit';
+  while(e.firstChild)s.appendChild(e.firstChild);e.appendChild(s);});});
+(function(){
 document.querySelectorAll('h3.sh3>span:last-child').forEach(function(s){
  /* 「：」は、色つきの言葉などがまざった見出しでも探す（子の字のかたまりの中から、最初の「：」を見つけて、そこで2つに分ける） */
  var k=[].slice.call(s.childNodes),at=-1;for(var j=0;j<k.length;j++)if(k[j].nodeType===3&&k[j].textContent.indexOf('：')>0||k[j].nodeType===3&&j>0&&k[j].textContent.indexOf('：')>=0){at=j;break;}

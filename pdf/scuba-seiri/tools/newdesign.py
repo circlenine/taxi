@@ -124,6 +124,13 @@ def chips(no):
 .sn *,.tl *,.no *,.half.rel *{{color:#fff!important}}
 .page .lp,.page .kpk .nk,.page .mtk{{background:#b4234a!important;color:#fff!important}}   /* 大事＝いちばん目立つ濃い赤 */
 .page .half.rel.new{{background:#b4234a!important}}
+/* 10/20 まーく様「しおりの札は右があくので、左も同じくらいあけてバランスを」
+   → 字は「札の四角い部分（矢印の先を除いた所）」のまん中に置く。右の余白＝左の余白＋矢印の先（1.8mm）。arrowcheck.js で、画面の字の左右の余白を測る */
+html body .page .no,html body .page .tl,html body .page .sn,html body .page .qh{{display:inline-flex!important;align-items:center;justify-content:center;box-sizing:border-box;letter-spacing:0!important}}   /* 字間を空けると、最後の字の後ろにも空きができて、字が左に寄る */
+html body .page .no{{padding-left:1.6mm!important;padding-right:3.4mm!important}}
+html body .page .tl{{padding-left:0!important;padding-right:1.8mm!important}}
+html body .page .sn{{padding-left:2.4mm!important;padding-right:4.2mm!important}}
+html body .page .qh{{padding-left:3mm!important;padding-right:4.8mm!important}}
 /* 10/20 まーく様「もくじの右の札と、大事・補足の札が同じ形で見分けがつかない。形を変えて、種類をはっきり分けて」
    札の形の決まり（種類ごとに1つの形）：
    ・番号（1-1・①など）……………… 濃い地に白い字（矢印の形）
