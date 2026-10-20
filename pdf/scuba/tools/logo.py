@@ -179,34 +179,23 @@ def svg(v, m, uid="lg"):
         GL = [(198, 170, .95), (208, 120, .85), (218, 80, .7), (228, 44, .5)]   # サブタイトル（上はし y≈236）に重ならない所まで
         glint = "".join(f'<rect x="{600 - w / 2 + dx:.0f}" y="{y}" width="{w}" height="{h}" rx="{h / 2}" fill="#ffd9a0" opacity="{o}"/>'
                         for (y, w, o), dx, h in zip(GL, (-6, 8, -4, 5), (5, 4.5, 4, 3.5)))
-        # 10/20 まーく様「赤いカーブは何？となる。波の線に合わせて、偶然、笑顔のカーブに見えるように」
-        #   → 別の線を描かずに、波そのものの形を変える。smile の字の真下だけ、波がにっこり口の形にくぼむ
-        #   （両はしが少し上がり、まん中が下がる）。手前の波と奥の波が同じだけくぼむので、帯がそのまま笑った口になる
-        #   smile の字の左右のはし（画面で測った：907〜1086）のまん中に、左右対称
-        SM0, SM1 = 907, 1086
-        SMC, SMH = (SM0 + SM1) / 2, (SM1 - SM0) * 0.5
+        # 10/20 まーく様「smile の下が変なくぼみで恐怖。波のゆらぎを調整して smile の下にくるように。太陽の光で少し赤みを帯びた感じに。自然に」
+        #   → 波の形は、ふつうのゆれだけ（くぼみは作らない）。ゆれの長さを決めて、谷の1つがちょうど smile の真下に来るようにする
+        #   → その谷のあたりの水面だけ、夕日の光が映ったように、うすく赤みを帯びさせる（まわりへ自然に消えていく）
+        #   smile の字の左右のはし（画面で測った：907〜1086）のまん中に、谷のいちばん下
         import math as _m
-        def dip(x):
-            u = (x - SMC) / SMH
-            if abs(u) >= 1.35: return 0.0
-            core = 30 * max(0.0, 1 - u * u) ** 1.1          # まん中が下がる
-            cheek = -10 * _m.exp(-((abs(u) - 1.08) / 0.24) ** 2)   # 両はしが少し上がる（口角）
-            fade = 1 if abs(u) < 1.2 else (1.35 - abs(u)) / 0.15
-            return (core + cheek) * fade
-        def wave(base, amp, per, ph, k=1.0):
-            # 点は smile のまん中から左右に同じ間かくで取る（左右でずれないように）
-            xs = sorted({SMC + 4 * k for k in range(-320, 321) if -20 <= SMC + 4 * k <= 1220})
-            pts = []
-            for x in xs:
-                w = amp * _m.sin(2 * _m.pi * (x - ph) / per)
-                # 笑顔の所は、波のゆれを止めて口の形だけにする（そこから外へ、なめらかに元のゆれへ戻す）
-                u = abs(x - SMC) / SMH
-                t = min(1.0, max(0.0, (u - 1.0) / 0.5)); calm = t * t * (3 - 2 * t)
-                pts.append(f"{x:.1f} {base + w * calm + k * dip(x):.1f}")
-            return "M" + " L".join(pts) + " V300 H-20 Z"
-        # 波のゆれも、smile のまん中で左右対称になるよう、そこが波の谷（いちばん下）に来る位置からゆらす
-        W1 = wave(184, 9, 220, SMC - 220 / 4)
-        W2 = wave(206, 8, 240, SMC - 240 / 4, 1.4)   # 奥の波は少し深くくぼませて、うすい青の帯を「くちびる」の三日月形にする
+        SM0, SM1 = 907, 1086
+        SMC = (SM0 + SM1) / 2
+        PER1 = (SM1 - SM0) * 2      # 谷の幅（ゆれの半分）＝ smile の字の幅
+        def wave(base, amp, per, top=False, x0=-20, x1=1220):
+            ph = SMC - per / 4      # smile のまん中が、谷のいちばん下（sin＝1）
+            xs = sorted({SMC + 4 * k for k in range(-320, 321) if x0 <= SMC + 4 * k <= x1})
+            d = "M" + " L".join(f"{x:.1f} {base + amp * _m.sin(2 * _m.pi * (x - ph) / per):.1f}" for x in xs)
+            return d if top else d + " V300 H-20 Z"
+        W1 = wave(182, 13, PER1)
+        W2 = wave(208, 8, PER1 * 1.25)
+        # 夕日の光：smile の下の谷の水面のふちだけ、うすく赤く光る（谷の両はしの山まで、なめらかに消える）
+        RIM = wave(185, 13, PER1, True, SM0 - 60, SM1 + 60)
         T = (("S", "afe "), ("D", "ive "), ("", "for a "), ("G", "irlie "), ("s", "mile"))
         def line(x, y, fill_main, fill_ini, extra=""):
             sp = "".join((f'<tspan fill="{fill_ini}">{a}</tspan>' if a else "") + f'<tspan fill="{fill_main}">{b}</tspan>' for a, b in T)
@@ -222,7 +211,9 @@ def svg(v, m, uid="lg"):
 <g mask="url(#{uid}cut)" clip-path="url(#{uid}up)"><circle cx="600" cy="150" r="128" fill="url(#{uid}sun)"/></g>
 <clipPath id="{uid}sea"><rect x="40" y="150" width="1120" height="134" rx="10"/></clipPath>
 <g clip-path="url(#{uid}sea)">
+<linearGradient id="{uid}glow" gradientUnits="userSpaceOnUse" x1="{SM0 - 60}" y1="0" x2="{SM1 + 60}" y2="0"><stop offset="0" stop-color="#ff9e8a" stop-opacity="0"/><stop offset=".5" stop-color="#ff9e8a" stop-opacity=".9"/><stop offset="1" stop-color="#ff9e8a" stop-opacity="0"/></linearGradient>
 <path class="smilewave" d="{W1}" fill="#7cc7e8"/>
+<path d="{RIM}" fill="none" stroke="url(#{uid}glow)" stroke-width="6" stroke-linecap="round"/>   <!-- 夕日の光が水面のふちに映った、うすい赤み -->
 <path d="{W2}" fill="#2f78c4"/>
 {glint}</g>
 {line(605, 156, NAVY, NAVY, f'stroke="{NAVY}" stroke-width="13" stroke-linejoin="round"')}
