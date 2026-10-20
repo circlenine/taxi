@@ -7,7 +7,7 @@
 #   C「旗」   … ダイバーの旗（赤地に白のななめ線＝「いま人が潜っています」の印）を左に置いた紋章
 # 切り替え：LOGO=A／B／C／D（標準は D。LOGO=0 で、いままでの筆記体の題）
 import os, math
-LOGO = os.environ.get("LOGO", "D")   # 10/20 作り直した D を標準に（いままでの筆記体の題に戻すときは LOGO=0）
+LOGO = os.environ.get("LOGO", "E")   # 10/20 作り直した D を標準に（いままでの筆記体の題に戻すときは LOGO=0）
 if LOGO == "0": LOGO = ""
 LINK = "family=Lilita+One&family=Fredoka:wght@600;700"
 PINK, AQUA, RED = "#e0507f", "#a8d3ea", "#c8372d"
@@ -80,6 +80,32 @@ def svg(v, m, uid="lg"):
 <g fill="#fff" stroke="#2f78c4" stroke-width="3"><circle cx="918" cy="200" r="5"/><circle cx="928" cy="170" r="7"/><circle cx="932" cy="138" r="5"/></g>
 <g fill="#fff" stroke="{PINK}" stroke-width="3"><circle cx="930" cy="98" r="5"/></g>
 <g transform="translate(944 56)"><circle r="21" fill="#fff" stroke="{PINK}" stroke-width="4"/><circle cx="-7" cy="-4" r="2.8" fill="{PINK}"/><circle cx="7" cy="-4" r="2.8" fill="{PINK}"/><path d="M-9 5 Q0 14 9 5" fill="none" stroke="{PINK}" stroke-width="3.2" stroke-linecap="round"/></g></svg>'''
+    if v == "E":
+        # 10/20 作り直し（まーく様「ロゴとしての完成度が最悪。素人レベルなら意味がない」）
+        # 形：海辺の看板・サーフブランドで定番の「ステッカー型」。題の字に白いふちと、ずらした影をつけ、1つのかたまりにする
+        #   ・後ろの夕日（あたたかさ）は、下のほうを横すじで切って、海に沈む形に
+        #   ・夕日の下は、重なった波（海）
+        #   ・題は2行とも同じ字・同じ大きさ（Safe Dive だけを大きくしない）
+        #   ・Smile の下の飾り線は、両はしが上がった「笑った口」＝笑顔
+        #   ・泡は D の右から上がる
+        NAVY, CORAL, SUN1, SUN2, SEA1, SEA2 = "#173a63", "#e0507f", "#ffd27a", "#ff9a8b", "#7cc7e8", "#2f78c4"
+        stripes = "".join(f'<rect x="300" y="{y}" width="400" height="{h}" fill="#000"/>' for y, h in [(138, 5), (152, 7), (167, 9)])
+        def ttl(y, txt, fill):
+            return (f'<text class="lf-p" x="504" y="{y + 6}" text-anchor="middle" font-family="Pacifico" font-size="76" fill="{NAVY}" stroke="{NAVY}" stroke-width="12" stroke-linejoin="round">{txt}</text>'
+                    f'<text class="lf-p" x="500" y="{y}" text-anchor="middle" font-family="Pacifico" font-size="76" fill="{fill}" stroke="#fff" stroke-width="12" stroke-linejoin="round" paint-order="stroke">{txt}</text>')
+        return f'''<svg class="logo" viewBox="140 2 720 244" role="img" aria-label="Safe Dive for a Girlie Smile"><defs>
+<linearGradient id="{uid}sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{SUN1}"/><stop offset="1" stop-color="{SUN2}"/></linearGradient>
+<mask id="{uid}cut"><rect x="0" y="0" width="1000" height="260" fill="#fff"/>{stripes}</mask>
+<clipPath id="{uid}up"><rect x="0" y="0" width="1000" height="182"/></clipPath></defs>
+<g mask="url(#{uid}cut)" clip-path="url(#{uid}up)"><circle cx="500" cy="150" r="120" fill="url(#{uid}sun)"/></g>
+<path d="M170 176 Q214 160 258 176 T346 176 T434 176 T522 176 T610 176 T698 176 T786 176 L830 176 L830 214 Q830 226 818 226 L182 226 Q170 226 170 214 Z" fill="#cdebf8"/>
+<path d="M170 196 Q222 180 274 196 T378 196 T482 196 T586 196 T690 196 T794 196 L830 196 L830 214 Q830 226 818 226 L182 226 Q170 226 170 214 Z" fill="{SEA1}"/>   <!-- 波はうすい青2段。題の青い字が沈まないように -->
+<path d="M200 186 Q240 174 280 186 M520 184 Q560 172 600 184" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+{ttl(104, "Safe Dive", CORAL)}
+{ttl(196, "for a Girlie Smile", SEA2)}
+<path d="M590 214 Q662 246 740 212" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+<path d="M590 214 Q662 246 740 212" fill="none" stroke="{CORAL}" stroke-width="6" stroke-linecap="round"/>
+<g fill="#fff" stroke="{SEA2}" stroke-width="3.5"><circle cx="652" cy="58" r="7"/><circle cx="672" cy="34" r="10"/><circle cx="694" cy="13" r="5.5"/></g></svg>'''
     return ""
 
 def apply(html, m):
@@ -87,12 +113,14 @@ def apply(html, m):
     if not LOGO:
         return html
     import re
-    return re.sub(r'<h1 class="cv-t">.*?</h1>', '<h1 class="cv-t cv-logo">' + svg(LOGO, m) + '</h1>', html, count=1, flags=re.S)
+    return re.sub(r'<h1 class="cv-t">.*?</h1>', '<h1 class="cv-t cv-logo lg' + LOGO + '">' + svg(LOGO, m) + '</h1>', html, count=1, flags=re.S)
 
 CSS = """
 /* ロゴの絵：ページの左右いっぱい。字の決まり（解星デコール）を受けつがないよう、絵の中の字は絵の側で決める */
 #p1 h1.cv-logo{display:block;margin:1mm 0 0!important;line-height:0!important;white-space:normal!important}
 #p1 h1.cv-logo svg{display:block;width:100%;height:auto}
+#p1 h1.cv-logo.lgE text.lf-p.lf-p{letter-spacing:0!important;font-feature-settings:normal!important}   /* 筆記体はつながった字。字間を空けると、つながりが切れて重なる */
+#p1 h1.cv-logo.lgE svg{width:auto;height:37mm;margin:0 auto}   /* ステッカー型は横幅いっぱいにせず、高さを決めてまん中に（もくじまで1ページに収める） */
 /* 表紙の題の決まり（筆記体・影）が絵の中の字にまで効かないよう、強く書く */
 #p1 h1.cv-logo,#p1 h1.cv-logo *{text-shadow:none!important}
 #p1 h1.cv-logo .sp10.sp10{letter-spacing:10px!important}#p1 h1.cv-logo .sp7.sp7{letter-spacing:7px!important}#p1 h1.cv-logo .sp4.sp4,#p1 h1.cv-logo .sp4.sp4 *{letter-spacing:4px!important}
