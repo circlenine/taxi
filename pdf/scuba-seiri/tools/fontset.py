@@ -166,8 +166,7 @@ PUNCT_CSS = """
 #   html body を頭に付けて、ほかの決まり（札・番号・見出しの字）より強くしている
 TITLE_ONLY = """
 html body .page *:not(.emj):not(.cover):not(.cover *){font-family:{F},"Noto Sans JP",sans-serif!important;font-weight:{W}!important}
-/* 題の決まりは、上の「ほかは全部」の決まりより強くする必要がある（:not を重ねて強さを上げている） */
-html body .page h2:not(.toch):not(.cover):not(.cover *):not(.zz),html body .page h2:not(.toch):not(.cover *):not(.zz) *:not(.half):not(.emj):not(.zz){font-family:"Kaisei Decol","Noto Sans JP",serif!important;font-weight:700!important}
+/* 10/20 まーく様「先頭の各見出しも、タイトルのフォントではなく別のフォントに」→ 題の字（解星デコール）は表紙の題だけ。ページの見出しも本文の字にする */
 /* 札の字を、この字の形に合わせて上下のまん中に（chipalign で測って合わせた。解星デコールより字が上に寄る形なので、上をあける） */
 html body .page .mtk,html body .page .lx,html body .page .lp{padding-top:.75mm!important;padding-bottom:.25mm!important}
 html body .page .notes .nk{padding-top:.62mm!important;padding-bottom:.38mm!important}

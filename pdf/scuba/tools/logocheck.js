@@ -1,12 +1,26 @@
-// ロゴの「にっこりカーブ」が smile の字のまん中に、左右対称にあるか（10/20 まーく様「少し左にずれてる。徹底して」）
+// ロゴの点検（10/20）
+//  ・にっこり（波のくぼみ）が smile の字のまん中に、左右対称にあるか
+//  ・ロゴの海の帯の左右が、表紙の本文の幅（番号の箱の左はし〜右はし）とそろっているか
+//  ・サブタイトルでピンクなのが「笑顔」「安全」だけか
 const { chromium } = require('playwright');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const p=await b.newPage();await p.goto('file://'+process.argv[2],{waitUntil:'networkidle'});await p.evaluate(()=>document.fonts.ready);
-const r=await p.evaluate(()=>{const svg=document.querySelector('#p1 .cv-logo svg')||document.querySelector('svg.logo');if(!svg)return null;
- const t=svg.querySelectorAll('text.lf-p')[1];if(!t)return null;const n=t.textContent.length;const a=t.getExtentOfChar(n-5),z=t.getExtentOfChar(n-1);
- const c=(a.x+z.x+z.width)/2;const pth=[...svg.querySelectorAll('path')].find(x=>/ Q/.test(x.getAttribute('d')||'')&&x.getAttribute('stroke')==='#e0507f');if(!pth)return {c,miss:1};
- const bb=pth.getBBox();const d=pth.getAttribute('d').match(/-?[\d.]+/g).map(Number);return {c,pc:bb.x+bb.width/2,y0:d[1],y1:d[5],word:t.textContent.slice(-5)};});
-if(!r){console.log('ロゴの点検：この形にはにっこりカーブがない');await b.close();return;}
-const ng=r.miss||Math.abs(r.pc-r.c)>3||Math.abs(r.y0-r.y1)>.5;
-console.log((ng?'NG ':'')+'にっこりカーブ：字「'+r.word+'」のまん中 '+r.c.toFixed(1)+'／カーブのまん中 '+(r.pc||0).toFixed(1)+'／左右のはしの高さ '+r.y0+'・'+r.y1);
-await b.close();process.exit(ng?1:0);})();
+try{await p.waitForFunction(()=>window.__laid===true,{timeout:20000});}catch(e){}
+const r=await p.evaluate(()=>{const svg=document.querySelector('#p1 .cv-logo svg');if(!svg)return null;
+ const t=svg.querySelectorAll('text.lf-p')[1];const n=t.textContent.length;const a=t.getExtentOfChar(n-5),z=t.getExtentOfChar(n-1);const c=(a.x+z.x+z.width)/2;
+ const w=svg.querySelector('path.smilewave');const L=w.getTotalLength();let best={y:-1,x:0};const pts=[];
+ for(let i=0;i<L;i+=1){const q=w.getPointAtLength(i);if(q.y>290)continue;pts.push(q);if(q.x>c-200&&q.x<c+200&&q.y>best.y)best={x:q.x,y:q.y};}
+ const yAt=x=>{let m=null,d=1e9;for(const q of pts){if(Math.abs(q.x-x)<d){d=Math.abs(q.x-x);m=q.y;}}return m;};
+ const sym=Math.abs(yAt(c-60)-yAt(c+60));
+ const rr=svg.getBoundingClientRect(),cv=document.querySelector('#p1 .cover').getBoundingClientRect();
+ const box=document.querySelector('#p1 .cv-no');const bx=box?box.getBoundingClientRect():cv;
+ const pink=[...svg.querySelectorAll('text.lf-k tspan')].map(e=>e.textContent);
+ return {c,tx:best.x,ty:best.y,sym,dl:rr.left-bx.left,dr:rr.right-cv.right,pink};});
+if(!r){console.log('ロゴの点検：この形は対象外');await b.close();return;}
+const ng=[];
+if(Math.abs(r.tx-r.c)>4)ng.push('にっこりのいちばん下 '+r.tx.toFixed(1)+' が smile のまん中 '+r.c.toFixed(1)+' からずれ');
+if(r.sym>1.5)ng.push('にっこりが左右対称でない（差 '+r.sym.toFixed(1)+'）');
+if(Math.abs(r.dl)>1||Math.abs(r.dr)>1)ng.push('ロゴの左右が本文の幅とずれ（左 '+r.dl.toFixed(1)+'px・右 '+r.dr.toFixed(1)+'px）');
+if(r.pink.join('/')!=='笑顔/安全')ng.push('サブタイトルの色つきが「笑顔・安全」でない：'+r.pink.join('/'));
+console.log(ng.length?'NG ロゴ：'+ng.join('／'):'ロゴ OK（にっこりは smile のまん中・左右対称／幅は本文と同じ／色つきは 笑顔・安全）');
+await b.close();process.exit(ng.length?1:0);})();

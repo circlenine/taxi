@@ -179,17 +179,41 @@ def svg(v, m, uid="lg"):
         GL = [(198, 170, .95), (208, 120, .85), (218, 80, .7), (228, 44, .5)]   # サブタイトル（上はし y≈236）に重ならない所まで
         glint = "".join(f'<rect x="{600 - w / 2 + dx:.0f}" y="{y}" width="{w}" height="{h}" rx="{h / 2}" fill="#ffd9a0" opacity="{o}"/>'
                         for (y, w, o), dx, h in zip(GL, (-6, 8, -4, 5), (5, 4.5, 4, 3.5)))
-        # smile の下の、にっこりカーブ：smile の字の左右のはし（画面で測った：907〜1086）のまん中に、左右対称に置く
+        # 10/20 まーく様「赤いカーブは何？となる。波の線に合わせて、偶然、笑顔のカーブに見えるように」
+        #   → 別の線を描かずに、波そのものの形を変える。smile の字の真下だけ、波がにっこり口の形にくぼむ
+        #   （両はしが少し上がり、まん中が下がる）。手前の波と奥の波が同じだけくぼむので、帯がそのまま笑った口になる
+        #   smile の字の左右のはし（画面で測った：907〜1086）のまん中に、左右対称
         SM0, SM1 = 907, 1086
-        smc, smw = (SM0 + SM1) / 2, (SM1 - SM0) * 0.86
-        sm = f"M{smc - smw / 2:.1f} 182 Q{smc:.1f} 212 {smc + smw / 2:.1f} 182"
+        SMC, SMH = (SM0 + SM1) / 2, (SM1 - SM0) * 0.5
+        import math as _m
+        def dip(x):
+            u = (x - SMC) / SMH
+            if abs(u) >= 1.35: return 0.0
+            core = 30 * max(0.0, 1 - u * u) ** 1.1          # まん中が下がる
+            cheek = -10 * _m.exp(-((abs(u) - 1.08) / 0.24) ** 2)   # 両はしが少し上がる（口角）
+            fade = 1 if abs(u) < 1.2 else (1.35 - abs(u)) / 0.15
+            return (core + cheek) * fade
+        def wave(base, amp, per, ph, k=1.0):
+            # 点は smile のまん中から左右に同じ間かくで取る（左右でずれないように）
+            xs = sorted({SMC + 4 * k for k in range(-320, 321) if -20 <= SMC + 4 * k <= 1220})
+            pts = []
+            for x in xs:
+                w = amp * _m.sin(2 * _m.pi * (x - ph) / per)
+                # 笑顔の所は、波のゆれを止めて口の形だけにする（そこから外へ、なめらかに元のゆれへ戻す）
+                u = abs(x - SMC) / SMH
+                t = min(1.0, max(0.0, (u - 1.0) / 0.5)); calm = t * t * (3 - 2 * t)
+                pts.append(f"{x:.1f} {base + w * calm + k * dip(x):.1f}")
+            return "M" + " L".join(pts) + " V300 H-20 Z"
+        # 波のゆれも、smile のまん中で左右対称になるよう、そこが波の谷（いちばん下）に来る位置からゆらす
+        W1 = wave(184, 9, 220, SMC - 220 / 4)
+        W2 = wave(206, 8, 240, SMC - 240 / 4, 1.4)   # 奥の波は少し深くくぼませて、うすい青の帯を「くちびる」の三日月形にする
         T = (("S", "afe "), ("D", "ive "), ("", "for a "), ("G", "irlie "), ("s", "mile"))
         def line(x, y, fill_main, fill_ini, extra=""):
             sp = "".join((f'<tspan fill="{fill_ini}">{a}</tspan>' if a else "") + f'<tspan fill="{fill_main}">{b}</tspan>' for a, b in T)
             return f'<text class="lf-p" x="{x}" y="{y}" text-anchor="middle" font-family="Pacifico" font-size="84" {extra}>{sp}</text>'
         sub = ('<text class="lf-k" x="600" y="262" text-anchor="middle" font-family="Kaisei Decol" font-weight="700" font-size="30" fill="#fff">'
-               '〜あなたの笑顔のための、安全なダイビング（略して<tspan fill="#ffb3c8">SDGs</tspan>）〜</text>')
-        return f'''<svg class="logo" viewBox="20 0 1160 284" role="img" aria-label="Safe Dive for a Girlie Smile 〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜"><defs>
+               '〜あなたの<tspan fill="#ffb3c8">笑顔</tspan>のための、<tspan fill="#ffb3c8">安全</tspan>なダイビング（略してSDGs）〜</text>')   # 10/20 ピンクは「笑顔」「安全」（SDGs ではない）)
+        return f'''<svg class="logo" viewBox="40 0 1120 284" role="img" aria-label="Safe Dive for a Girlie Smile 〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜"><defs>
 <linearGradient id="{uid}sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff9a8b"/></linearGradient>
 <linearGradient id="{uid}bl" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#5aa9e6"/><stop offset="1" stop-color="#1d4f8f"/></linearGradient>
 <linearGradient id="{uid}pk" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#ff8fb0"/><stop offset="1" stop-color="#c8336a"/></linearGradient>
@@ -198,13 +222,11 @@ def svg(v, m, uid="lg"):
 <g mask="url(#{uid}cut)" clip-path="url(#{uid}up)"><circle cx="600" cy="150" r="128" fill="url(#{uid}sun)"/></g>
 <clipPath id="{uid}sea"><rect x="40" y="150" width="1120" height="134" rx="10"/></clipPath>
 <g clip-path="url(#{uid}sea)">
-<path d="M0 184 Q55 164 110 184 T220 184 T330 184 T440 184 T550 184 T660 184 T770 184 T880 184 T990 184 T1100 184 T1210 184 V300 H0 Z" fill="#7cc7e8"/>
-<path d="M0 206 Q60 188 120 206 T240 206 T360 206 T480 206 T600 206 T720 206 T840 206 T960 206 T1080 206 T1200 206 V300 H0 Z" fill="#2f78c4"/>
+<path class="smilewave" d="{W1}" fill="#7cc7e8"/>
+<path d="{W2}" fill="#2f78c4"/>
 {glint}</g>
 {line(605, 156, NAVY, NAVY, f'stroke="{NAVY}" stroke-width="13" stroke-linejoin="round"')}
 {line(600, 150, f"url(#{uid}bl)", f"url(#{uid}pk)", 'stroke="#fff" stroke-width="12" stroke-linejoin="round" paint-order="stroke"')}
-<path d="{sm}" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
-<path d="{sm}" fill="none" stroke="#e0507f" stroke-width="6" stroke-linecap="round"/>   <!-- smile の下の、笑った口の線 -->
 <g fill="#fff" stroke="#2f78c4" stroke-width="3.5"><circle cx="1110" cy="96" r="7"/><circle cx="1128" cy="66" r="10"/><circle cx="1148" cy="38" r="6"/></g>
 {sub}</svg>'''
     return ""
@@ -224,6 +246,7 @@ CSS = """
 #p1 h1.cv-logo svg{display:block;width:100%;height:auto}
 #p1 h1.cv-logo text.lf-k.lf-k,#p1 h1.cv-logo text.lf-k.lf-k tspan{font-family:"Kaisei Decol",serif!important;font-weight:700!important;letter-spacing:.02em!important}
 #p1 h1.cv-logo text.lf-p.lf-p,#p1 h1.cv-logo text.lf-f.lf-f{letter-spacing:0!important;font-feature-settings:normal!important}   /* 筆記体はつながった字。字間を空けると、つながりが切れて重なる */
+#p1 h1.cv-logo.lgI svg{width:100%!important;height:auto!important;margin:0!important}   /* 10/20 海の帯の左右＝表紙の本文の幅（番号の箱の左はし〜右の線のはし） */
 #p1 h1.cv-logo.lgE svg,#p1 h1.cv-logo.lgF svg,#p1 h1.cv-logo.lgG svg,#p1 h1.cv-logo.lgH svg{width:auto;height:37mm;margin:0 auto}   /* ステッカー型は横幅いっぱいにせず、高さを決めてまん中に（もくじまで1ページに収める） */
 /* 表紙の題の決まり（筆記体・影）が絵の中の字にまで効かないよう、強く書く */
 #p1 h1.cv-logo,#p1 h1.cv-logo *{text-shadow:none!important}
