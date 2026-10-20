@@ -81,10 +81,15 @@ html,body,.page,.page *:not(.emj){font-family:"Kaisei Decol","Noto Sans JP",seri
 BODYMIN = os.environ.get("BODYMIN", "biz")
 _BM = {"decol": ('"Kaisei Decol"', 500), "opti": ('"Kaisei Opti"', 700), "shippori": ('"Shippori Mincho B1"', 700),
        "biz": ('"BIZ UDPMincho"', 700), "zenold": ('"Zen Old Mincho"', 700),
-       "zen900": ('"Zen Old Mincho"', 900), "ship800": ('"Shippori Mincho B1"', 800)}
+       "zen900": ('"Zen Old Mincho"', 900), "ship800": ('"Shippori Mincho B1"', 800),
+       # 10/20 まーく様「もう少し丸みのある字で、つぶれず・薄くなく・遠目からもはっきり」→ 丸みのある候補
+       "kiwi": ('"Kiwi Maru"', 500), "zas": ('"Zen Antique Soft"', 400), "haru": ('"Kaisei HarunoUmi"', 700),
+       "zmaru": ('"Zen Maru Gothic"', 700), "mplus": ('"M PLUS Rounded 1c"', 700)}
 _BMLINK = {"opti": "family=Kaisei+Opti:wght@500;700", "shippori": "family=Shippori+Mincho+B1:wght@600;700;800",
            "biz": "family=BIZ+UDPMincho:wght@400;700", "zenold": "family=Zen+Old+Mincho:wght@600;700;900", "decol": "",
-           "zen900": "family=Zen+Old+Mincho:wght@600;700;900", "ship800": "family=Shippori+Mincho+B1:wght@600;700;800"}
+           "zen900": "family=Zen+Old+Mincho:wght@600;700;900", "ship800": "family=Shippori+Mincho+B1:wght@600;700;800",
+           "kiwi": "family=Kiwi+Maru:wght@500", "zas": "family=Zen+Antique+Soft", "haru": "family=Kaisei+HarunoUmi:wght@700",
+           "zmaru": "family=Zen+Maru+Gothic:wght@700", "mplus": "family=M+PLUS+Rounded+1c:wght@700"}
 
 def body_css():
     if BODYMIN == "decol":
@@ -119,7 +124,7 @@ var R=/[、。，．）」』〕】]/,L=/[（「『〔【]/,C=/[・：]/;
 document.querySelectorAll('.page').forEach(function(pg){
  var w=document.createTreeWalker(pg,NodeFilter.SHOW_TEXT),ns=[],n;while(n=w.nextNode())if(/[、。，．（）「」『』〔〕【】・：]/.test(n.textContent))ns.push(n);
  ns.forEach(function(t){var e=t.parentElement;if(e.closest('.cover,.cv-sd,.emj,.sn,.nk,.lp,.lx,.mtk,.half,.fs,.edtag'))return;
-  if(getComputedStyle(e).fontFamily.replace(/"/g,'').indexOf('Kaisei Decol')!==0)return;
+  var ff=getComputedStyle(e).fontFamily.replace(/"/g,'');if(ff.indexOf('BIZ UDPMincho')===0||!/^(Kaisei|Kiwi|Zen|M PLUS|Shippori)/.test(ff))return;   /* BIZ UD明朝は最初から詰まっているので触らない */
   var f=document.createDocumentFragment();t.textContent.split(/([、。，．（）「」『』〔〕【】・：])/).forEach(function(x){if(!x)return;
    if(R.test(x)||L.test(x)||C.test(x)){var k=document.createElement('span');k.className=R.test(x)?'pqr':L.test(x)?'pql':'pqc';k.textContent=x;f.appendChild(k);}else f.appendChild(document.createTextNode(x));});
   t.parentNode.replaceChild(f,t);});});
