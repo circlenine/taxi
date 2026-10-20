@@ -13,5 +13,12 @@ const bad=await p.evaluate((want)=>{const out=[];
    const f=getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g,'').trim();
    if(f!==want)out.push((e.closest('.page')||{}).id+' '+f+' 「'+n.textContent.trim().slice(0,16)+'」');}}
  return out;},want);
+// 10/20 題（ページの題・表紙）のほかは、どこも本文の字か（見出し・札・番号・もくじ・写真の名前も）
+const bad2=await p.evaluate((want)=>{const out=[];const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;
+ while(n=w.nextNode()){if(!n.textContent.trim())continue;const e=n.parentElement;if(!e.closest('.page')||e.closest('.emj,svg,.cover,script,style'))continue;
+  const h2=e.closest('h2');if(h2&&!h2.classList.contains('toch')&&!e.closest('.half')){const f2=getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g,'').trim();if(f2!=='Kaisei Decol')out.push((e.closest('.page')||{}).id+' 題が題の字でない '+f2+'「'+n.textContent.trim().slice(0,12)+'」');continue;}
+  const f=getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g,'').trim();if(f!==want)out.push((e.closest('.page')||{}).id+' '+f+' .'+e.className+'「'+n.textContent.trim().slice(0,12)+'」');}
+ return out;},want);
+if(want!=='Kaisei Decol'&&bad2.length){console.log('NG 題のほかに、本文と違う字がある（'+bad2.length+'か所）');[...new Set(bad2)].slice(0,12).forEach(x=>console.log('  '+x));process.exit(1);}
 if(bad.length){console.log('NG 本文の中で字がまざっている（'+bad.length+'か所）');bad.slice(0,15).forEach(x=>console.log('  '+x));process.exit(1);}
 console.log('本文の字 OK（ぜんぶ '+want+'）');await b.close();})();

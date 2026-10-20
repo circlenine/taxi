@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
 const p=await b.newPage();await p.goto('file://'+process.argv[2],{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
 const r=await p.evaluate(async()=>{
  const stem=(font,ch)=>{const c=document.createElement('canvas');c.width=400;c.height=400;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,400,400);x.fillStyle='#000';x.font=font.replace(/[\d.]+px/,'200px');x.textBaseline='middle';x.fillText(ch,100,200);
-  const d=x.getImageData(0,0,400,400).data;let best=0;for(const y of [170,185,200,215,230]){let run=0;for(let i=0;i<400;i++){const v=d[(y*400+i)*4];if(v<128){run++;}else{if(run>0&&(best===0||run<best))best=run;run=0;}}}return best/200;};
+  const d=x.getImageData(0,0,400,400).data;const rows=[];for(const y of [170,185,200,215,230]){let run=0,mx=0;for(let i=0;i<400;i++){const v=d[(y*400+i)*4];if(v<128){run++;if(run>mx)mx=run;}else run=0;}if(mx>0)rows.push(mx);}rows.sort((a,b)=>a-b);return rows.length?rows[Math.floor(rows.length/2)]/200:0;};   // 10/20 各行のいちばん長い黒＝縦線の太さ。行ごとの真ん中の値を使う（小さなにじみを線と数えない）
  const combos={};const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;
  while(n=w.nextNode()){const m=n.textContent.match(/[A-Za-z0-9０-９/%：:()（）!?！？&＆・\-]/g);if(!m)continue;const e=n.parentElement;if(e.closest('svg,.emj,script,style'))continue;
   const c=getComputedStyle(e);if(c.display==='none'||c.visibility==='hidden')continue;const fam=c.fontFamily.split(',')[0].replace(/"/g,'').trim();

@@ -5,9 +5,10 @@
 #              ※ #1c6ea4 は、冊ごとの色に置きかえられてしまう色なので使わない（#2f78c4 を使う）
 #   B「深さ」 … 字の下のほうを横のすじで切る（水の中に沈んでいく感じ）。下に筆記体の小さな題
 #   C「旗」   … ダイバーの旗（赤地に白のななめ線＝「いま人が潜っています」の印）を左に置いた紋章
-# 切り替え：LOGO=A／B／C（何もつけなければ、いままでの題のまま）
+# 切り替え：LOGO=A／B／C／D（標準は D。LOGO=0 で、いままでの筆記体の題）
 import os, math
-LOGO = os.environ.get("LOGO", "")
+LOGO = os.environ.get("LOGO", "D")   # 10/20 作り直した D を標準に（いままでの筆記体の題に戻すときは LOGO=0）
+if LOGO == "0": LOGO = ""
 LINK = "family=Lilita+One&family=Fredoka:wght@600;700"
 PINK, AQUA, RED = "#e0507f", "#a8d3ea", "#c8372d"
 
@@ -54,6 +55,31 @@ def svg(v, m, uid="lg"):
 <text x="262" y="205" class="lf-f sp7" font-family="Fredoka" font-weight="600" font-size="40" fill="{m}" letter-spacing="7">for a <tspan fill="{PINK}">G</tspan>irlie <tspan fill="{PINK}">s</tspan>mile</text>
 <path d="{_wave(224, 5, 24, 262, 730)}" fill="none" stroke="{AQUA}" stroke-width="4"/>
 <g fill="#fff" stroke="{m}" stroke-width="3"><circle cx="760" cy="74" r="10"/><circle cx="782" cy="46" r="6.5"/><circle cx="798" cy="24" r="4"/></g></svg>'''
+    if v == "D":
+        # 10/20 作り直し（まーく様「Safe Dive だけ大きくしない。Safe Dive for a Girlie Smile 全体が題」「ダイビングを楽しく。笑顔・あたたかみ」）
+        # しかけの意味：
+        #   ・2つの段は、同じ字・同じ大きさ・同じ太さ。題はひとつながり（Safe Dive だけを目立たせない）
+        #   ・水面の線が「笑った口」の形（両はしが上がる弧＋口の角）。海そのものが笑っている＝楽しいダイビング
+        #   ・上の段は、水の上のあたたかい日の光の色（ピンク）。下の段は、水の中（青）。
+        #     「安全に潜った（Safe Dive）先に、笑顔（Girlie Smile）がある」
+        #   ・泡は、水の中から水面へ上がっていき、いちばん上の泡が、にっこり顔＝あなたの笑顔
+        # ※ 水の色は、冊ごとの色に置きかえられない色（#d3ebf9・#9fcfe8・#2f78c4）にしてある。#d4ecfa などは洗浄編で桃色、スキル編で藤色に変わってしまう
+        smile = "M110 118 Q500 192 890 118"
+        return f'''<svg class="logo" viewBox="0 26 1000 206" role="img" aria-label="Safe Dive for a Girlie Smile"><defs>
+<linearGradient id="{uid}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef7fa0"/><stop offset="1" stop-color="{PINK}"/></linearGradient>
+<linearGradient id="{uid}d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f78c4"/><stop offset="1" stop-color="#103f66"/></linearGradient>
+<linearGradient id="{uid}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3ebf9"/><stop offset=".7" stop-color="#d3ebf9" stop-opacity=".55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<linearGradient id="{uid}h" x1="0" y1="0" x2="1" y2="0"><stop offset=".08" stop-color="#000"/><stop offset=".22" stop-color="#fff"/><stop offset=".78" stop-color="#fff"/><stop offset=".92" stop-color="#000"/></linearGradient></defs>
+<mask id="{uid}m"><rect x="0" y="0" width="1000" height="260" fill="url(#{uid}h)"/></mask>
+<path d="{smile} L890 236 L110 236 Z" fill="url(#{uid}w)" mask="url(#{uid}m)"/>
+<path d="M190 140 Q500 204 810 140" fill="none" stroke="#9fcfe8" stroke-width="3" stroke-linecap="round"/>   <!-- 水面の下の、うすいさざ波 -->
+<path d="{smile}" fill="none" stroke="#2f78c4" stroke-width="5" stroke-linecap="round"/>
+<path d="M92 102 Q98 120 116 119 M908 102 Q902 120 884 119" fill="none" stroke="#2f78c4" stroke-width="5" stroke-linecap="round"/>
+<text class="lf-f lf7" x="500" y="96" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="88" fill="url(#{uid}s)">Safe Dive</text>
+<text class="lf-f lf7" x="500" y="222" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="88" fill="url(#{uid}d)">for a Girlie Smile</text>
+<g fill="#fff" stroke="#2f78c4" stroke-width="3"><circle cx="918" cy="200" r="5"/><circle cx="928" cy="170" r="7"/><circle cx="932" cy="138" r="5"/></g>
+<g fill="#fff" stroke="{PINK}" stroke-width="3"><circle cx="930" cy="98" r="5"/></g>
+<g transform="translate(944 56)"><circle r="21" fill="#fff" stroke="{PINK}" stroke-width="4"/><circle cx="-7" cy="-4" r="2.8" fill="{PINK}"/><circle cx="7" cy="-4" r="2.8" fill="{PINK}"/><path d="M-9 5 Q0 14 9 5" fill="none" stroke="{PINK}" stroke-width="3.2" stroke-linecap="round"/></g></svg>'''
     return ""
 
 def apply(html, m):
@@ -72,5 +98,6 @@ CSS = """
 #p1 h1.cv-logo .sp10.sp10{letter-spacing:10px!important}#p1 h1.cv-logo .sp7.sp7{letter-spacing:7px!important}#p1 h1.cv-logo .sp4.sp4,#p1 h1.cv-logo .sp4.sp4 *{letter-spacing:4px!important}
 #p1 h1.cv-logo .lf-l,#p1 h1.cv-logo .lf-l *{font-family:"Lilita One",sans-serif!important;font-weight:400!important}
 #p1 h1.cv-logo .lf-f,#p1 h1.cv-logo .lf-f *{font-family:"Fredoka",sans-serif!important;font-weight:600!important}
+#p1 h1.cv-logo .lf-f.lf7{font-weight:700!important}
 #p1 h1.cv-logo .lf-p,#p1 h1.cv-logo .lf-p *{font-family:"Pacifico",cursive!important;font-weight:400!important}
 """

@@ -78,18 +78,18 @@ html,body,.page,.page *:not(.emj){font-family:"Kaisei Decol","Noto Sans JP",seri
 
 # 10/20 まーく様「本文が細くて見づらい。題の字とバランスを考えた字に」→ 本文だけ別の字（BODYMIN で比べる）
 #   題（解星デコール）と同じ「明朝の仲間」で、線が太いものから選ぶ
-BODYMIN = os.environ.get("BODYMIN", "biz")
+BODYMIN = os.environ.get("BODYMIN", "mplus")   # 10/20 まーく様「一旦、M PLUS Rounded 1c 800 で進めて」
 _BM = {"decol": ('"Kaisei Decol"', 500), "opti": ('"Kaisei Opti"', 700), "shippori": ('"Shippori Mincho B1"', 700),
        "biz": ('"BIZ UDPMincho"', 700), "zenold": ('"Zen Old Mincho"', 700),
        "zen900": ('"Zen Old Mincho"', 900), "ship800": ('"Shippori Mincho B1"', 800),
        # 10/20 まーく様「もう少し丸みのある字で、つぶれず・薄くなく・遠目からもはっきり」→ 丸みのある候補
        "kiwi": ('"Kiwi Maru"', 500), "zas": ('"Zen Antique Soft"', 400), "haru": ('"Kaisei HarunoUmi"', 700),
-       "zmaru": ('"Zen Maru Gothic"', 900), "mplus": ('"M PLUS Rounded 1c"', 700)}
+       "zmaru": ('"Zen Maru Gothic"', 900), "mplus": ('"M PLUS Rounded 1c"', 800)}
 _BMLINK = {"opti": "family=Kaisei+Opti:wght@500;700", "shippori": "family=Shippori+Mincho+B1:wght@600;700;800",
            "biz": "family=BIZ+UDPMincho:wght@400;700", "zenold": "family=Zen+Old+Mincho:wght@600;700;900", "decol": "",
            "zen900": "family=Zen+Old+Mincho:wght@600;700;900", "ship800": "family=Shippori+Mincho+B1:wght@600;700;800",
            "kiwi": "family=Kiwi+Maru:wght@500", "zas": "family=Zen+Antique+Soft", "haru": "family=Kaisei+HarunoUmi:wght@700",
-           "zmaru": "family=Zen+Maru+Gothic:wght@700;900", "mplus": "family=M+PLUS+Rounded+1c:wght@700"}
+           "zmaru": "family=Zen+Maru+Gothic:wght@700;900", "mplus": "family=M+PLUS+Rounded+1c:wght@800"}
 
 def body_css():
     if BODYMIN == "decol":
@@ -161,9 +161,28 @@ PUNCT_CSS = """
 .page h3.sh3 .hs{display:block;font-size:.84em;margin-top:.6mm;color:#1f2a37!important;line-height:1.4!important}
 """
 
+# 10/20 まーく様「タイトルのフォントは、あくまでタイトルにだけ。見出し・本文・ほかは、もっと見やすい字で徹底」
+#   題の字（解星デコール）を使うのは、ページの題（h2）と表紙だけ。ほかの字は、ぜんぶ本文の字・同じ太さ。
+#   html body を頭に付けて、ほかの決まり（札・番号・見出しの字）より強くしている
+TITLE_ONLY = """
+html body .page *:not(.emj):not(.cover):not(.cover *){font-family:{F},"Noto Sans JP",sans-serif!important;font-weight:{W}!important}
+/* 題の決まりは、上の「ほかは全部」の決まりより強くする必要がある（:not を重ねて強さを上げている） */
+html body .page h2:not(.toch):not(.cover):not(.cover *):not(.zz),html body .page h2:not(.toch):not(.cover *):not(.zz) *:not(.half):not(.emj):not(.zz){font-family:"Kaisei Decol","Noto Sans JP",serif!important;font-weight:700!important}
+/* 札の字を、この字の形に合わせて上下のまん中に（chipalign で測って合わせた。解星デコールより字が上に寄る形なので、上をあける） */
+html body .page .mtk,html body .page .lx,html body .page .lp{padding-top:.75mm!important;padding-bottom:.25mm!important}
+html body .page .notes .nk{padding-top:.62mm!important;padding-bottom:.38mm!important}
+html body .page .notes .kpk .nk{padding-top:.66mm!important;padding-bottom:.34mm!important}
+html body .page .half.rel{padding-top:.5mm!important;padding-bottom:.5mm!important}
+html body .page .half.rel.new{padding-top:.72mm!important;padding-bottom:.28mm!important}
+"""
+
 def css(no="3"):
     if MODE == "kaisei":
-        return CHIP + KAISEI + body_css() + PUNCT_CSS
+        f, w = _BM.get(BODYMIN, ('"Kaisei Decol"', 700))
+        out = CHIP + KAISEI + body_css() + PUNCT_CSS.replace('"BIZ UDPMincho"', f)
+        if BODYMIN != "decol":
+            out += TITLE_ONLY.replace("{F}", f).replace("{W}", str(w))
+        return out
     cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "libe":
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）

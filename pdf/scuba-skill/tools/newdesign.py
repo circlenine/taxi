@@ -89,7 +89,7 @@ CARD_CSS = """
 FINE = """
 .kpk{position:relative;background:#fff!important;border:0!important;border-radius:0!important;margin:1.2mm 0!important;padding:1.6mm 2.4mm 1.6mm 2.6mm!important}
 .notes .kpk{padding:1.6mm 2.4mm 1.6mm 2.6mm!important}
-.kpk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1.2mm;background:#e0507f}   /* 左の太線（線の太さの決まりは1pxなので、線ではなく細い帯で描く） */
+.kpk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#e0507f}   /* 10/20 太さは「点の数」で決める（4px）。1.2mm だと、置く場所によって画面で4点にも5点にも丸められ、左の列と右の列で太さが変わっていた */   /* 左の太線（線の太さの決まりは1pxなので、線ではなく細い帯で描く） */
 .kpk .nk{background:#e0507f!important;color:#fff!important}
 .kpk .nx,.kpk .nx b,.kpk .nh{color:#b4234a!important}
 .kpk .ns,.kpk .ns *:not(.t):not(.nn2){color:#1f2a37!important}
@@ -142,7 +142,7 @@ def chips(no):
  font-weight:700!important;text-decoration:underline;text-decoration-thickness:.12em;text-underline-offset:.24em;text-decoration-color:{line};text-decoration-skip-ink:none}}
 .kpk::before{{background:#b4234a!important}}
 .notes .kx{{position:relative;padding-left:3.2mm!important}}   /* 字の始まりを大事の欄とそろえる */
-.notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:1.2mm;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */
+.notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:4px;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */
 /* 10/20 まーく様「クイズは、質問文にも、答えと同じ幅で背景色を」→ 質問＝濃い地に白い字、答え＝うすい地。左右の幅はそろえる */
 .page .qz .q{{background:{m};color:#fff!important;padding:1mm 2mm;border-radius:1mm;display:block;box-sizing:border-box;font-size:10pt;line-height:1.45!important}}   /* flex にすると、字と札がばらばらの箱になって崩れる（10/20 洗浄編で確かめた）ので block */
 .page .qz{{row-gap:.6mm!important}}
