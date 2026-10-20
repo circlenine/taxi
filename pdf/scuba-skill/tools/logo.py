@@ -7,7 +7,7 @@
 #   C「旗」   … ダイバーの旗（赤地に白のななめ線＝「いま人が潜っています」の印）を左に置いた紋章
 # 切り替え：LOGO=A／B／C／D（標準は D。LOGO=0 で、いままでの筆記体の題）
 import os, math
-LOGO = os.environ.get("LOGO", "E")   # 10/20 作り直した D を標準に（いままでの筆記体の題に戻すときは LOGO=0）
+LOGO = os.environ.get("LOGO", "I")   # 10/20 作り直した D を標準に（いままでの筆記体の題に戻すときは LOGO=0）
 if LOGO == "0": LOGO = ""
 LINK = "family=Lilita+One&family=Fredoka:wght@600;700"
 PINK, AQUA, RED = "#e0507f", "#a8d3ea", "#c8372d"
@@ -158,6 +158,37 @@ def svg(v, m, uid="lg"):
 <path d="M40 186 C200 140 330 214 500 178 S800 140 960 178" fill="none" stroke="#7cc7e8" stroke-width="7" stroke-linecap="round"/>
 <text class="lf-p" font-family="Pacifico" font-size="70" fill="url(#{uid}g)" stroke="#fff" stroke-width="10" stroke-linejoin="round" paint-order="stroke"><textPath href="#{uid}w" startOffset="50%" text-anchor="middle">Safe Dive for a Girlie Smile</textPath></text>
 {bub([(958, 92, 7), (972, 64, 10), (962, 34, 6)])}</svg>'''
+    if v == "I":
+        # 10/20 まーく様「案1で進める。左右の空白が気になるので1行に」「色を変えるのは S・D・G・s の頭文字だけ（略して SDGs との関係）」
+        #   「題とサブタイトルも、つながったロゴに」「題の色は、後ろの太陽に合わせて、上が明るく下が暗く（光の加減）」「海は鮮やかなほう」
+        #   ・題は1行の筆記体。白いふち＋紺のずらした影（ステッカー型）
+        #   ・頭文字 S D G s はピンク、ほかは青。どちらも上が明るく、下へ濃くなる（太陽の光が上から当たる）
+        #   ・サブタイトルは、題のすぐ下の波（海）の帯の上に白い字で入れて、1つのロゴにする。SDGs は頭文字と同じピンク
+        NAVY = "#173a63"
+        T = (("S", "afe "), ("D", "ive "), ("", "for a "), ("G", "irlie "), ("s", "mile"))
+        def line(x, y, fill_main, fill_ini, extra=""):
+            sp = "".join((f'<tspan fill="{fill_ini}">{a}</tspan>' if a else "") + f'<tspan fill="{fill_main}">{b}</tspan>' for a, b in T)
+            return f'<text class="lf-p" x="{x}" y="{y}" text-anchor="middle" font-family="Pacifico" font-size="84" {extra}>{sp}</text>'
+        sub = ('<text class="lf-k" x="600" y="262" text-anchor="middle" font-family="Kaisei Decol" font-weight="700" font-size="30" fill="#fff">'
+               '〜あなたの笑顔のための、安全なダイビング（略して<tspan fill="#ffb3c8">SDGs</tspan>）〜</text>')
+        return f'''<svg class="logo" viewBox="20 0 1160 284" role="img" aria-label="Safe Dive for a Girlie Smile 〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜"><defs>
+<linearGradient id="{uid}sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff9a8b"/></linearGradient>
+<linearGradient id="{uid}bl" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#5aa9e6"/><stop offset="1" stop-color="#1d4f8f"/></linearGradient>
+<linearGradient id="{uid}pk" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#ff8fb0"/><stop offset="1" stop-color="#c8336a"/></linearGradient>
+<mask id="{uid}cut"><rect x="0" y="0" width="1200" height="300" fill="#fff"/><rect x="400" y="136" width="400" height="6" fill="#000"/><rect x="400" y="152" width="400" height="8" fill="#000"/><rect x="400" y="170" width="400" height="10" fill="#000"/></mask>
+<clipPath id="{uid}up"><rect x="0" y="0" width="1200" height="190"/></clipPath></defs>
+<g mask="url(#{uid}cut)" clip-path="url(#{uid}up)"><circle cx="600" cy="150" r="128" fill="url(#{uid}sun)"/></g>
+<clipPath id="{uid}sea"><rect x="40" y="150" width="1120" height="134" rx="10"/></clipPath>
+<g clip-path="url(#{uid}sea)">
+<path d="M0 184 Q55 164 110 184 T220 184 T330 184 T440 184 T550 184 T660 184 T770 184 T880 184 T990 184 T1100 184 T1210 184 V300 H0 Z" fill="#7cc7e8"/>
+<path d="M0 206 Q60 188 120 206 T240 206 T360 206 T480 206 T600 206 T720 206 T840 206 T960 206 T1080 206 T1200 206 V300 H0 Z" fill="#2f78c4"/>
+<path d="M70 194 Q110 180 150 194 M680 192 Q720 178 760 192" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".8"/></g>
+{line(605, 156, NAVY, NAVY, f'stroke="{NAVY}" stroke-width="13" stroke-linejoin="round"')}
+{line(600, 150, f"url(#{uid}bl)", f"url(#{uid}pk)", 'stroke="#fff" stroke-width="12" stroke-linejoin="round" paint-order="stroke"')}
+<path d="M912 188 Q1000 214 1092 186" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+<path d="M912 188 Q1000 214 1092 186" fill="none" stroke="#e0507f" stroke-width="6" stroke-linecap="round"/>   <!-- smile の下の、笑った口の線 -->
+<g fill="#fff" stroke="#2f78c4" stroke-width="3.5"><circle cx="1110" cy="96" r="7"/><circle cx="1128" cy="66" r="10"/><circle cx="1148" cy="38" r="6"/></g>
+{sub}</svg>'''
     return ""
 
 def apply(html, m):
@@ -165,12 +196,15 @@ def apply(html, m):
     if not LOGO:
         return html
     import re
+    if LOGO == "I":
+        html = re.sub(r'<p class="cv-sd">.*?</p>', '', html, count=1, flags=re.S)   # サブタイトルはロゴの中に入れたので、別の行は消す
     return re.sub(r'<h1 class="cv-t">.*?</h1>', '<h1 class="cv-t cv-logo lg' + LOGO + '">' + svg(LOGO, m) + '</h1>', html, count=1, flags=re.S)
 
 CSS = """
 /* ロゴの絵：ページの左右いっぱい。字の決まり（解星デコール）を受けつがないよう、絵の中の字は絵の側で決める */
 #p1 h1.cv-logo{display:block;margin:1mm 0 0!important;line-height:0!important;white-space:normal!important}
 #p1 h1.cv-logo svg{display:block;width:100%;height:auto}
+#p1 h1.cv-logo text.lf-k.lf-k,#p1 h1.cv-logo text.lf-k.lf-k tspan{font-family:"Kaisei Decol",serif!important;font-weight:700!important;letter-spacing:.02em!important}
 #p1 h1.cv-logo text.lf-p.lf-p,#p1 h1.cv-logo text.lf-f.lf-f{letter-spacing:0!important;font-feature-settings:normal!important}   /* 筆記体はつながった字。字間を空けると、つながりが切れて重なる */
 #p1 h1.cv-logo.lgE svg,#p1 h1.cv-logo.lgF svg,#p1 h1.cv-logo.lgG svg,#p1 h1.cv-logo.lgH svg{width:auto;height:37mm;margin:0 auto}   /* ステッカー型は横幅いっぱいにせず、高さを決めてまん中に（もくじまで1ページに収める） */
 /* 表紙の題の決まり（筆記体・影）が絵の中の字にまで効かないよう、強く書く */
