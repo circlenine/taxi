@@ -933,10 +933,12 @@ FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=N
 import newdesign as _nd
 CSS += _nd.css("1")
 import fontset as _fs
-import logo as _lg   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
+import logo as _lg
+import ruby as _rb   # 10/20 ルビ   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
 CSS += _lg.CSS
+CSS += _rb.CSS
 CSS += _fs.css("1")
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
@@ -1005,5 +1007,5 @@ document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRi
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 最後のページ（もとは10ページ）の決まりを、いまの最後のページに読みかえる（10/16 まとめのページを足したため）
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>準備編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_lg.apply("".join(pages), _nd.COL["1"][0])}{_fs.punct_js()}{FIT}</body></html>')
+    f'<body>{_rb.apply(_lg.apply("".join(pages), _nd.COL["1"][0]))}{_fs.punct_js()}{FIT}</body></html>')
 print("pages", len(pages))

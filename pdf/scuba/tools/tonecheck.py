@@ -2,6 +2,7 @@
 # ページに出る字だけを調べる。見つかったら止める
 import re, sys, html
 h = open(sys.argv[1]).read()
+h = re.sub(r'<rt>.*?</rt>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 h = re.sub(r'<script.*?</script>|<style.*?</style>', '', h, flags=re.S)
 t = html.unescape(re.sub(r'<[^>]+>', '', h))
 ng = []

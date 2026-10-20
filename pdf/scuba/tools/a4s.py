@@ -1086,10 +1086,12 @@ FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=N
 import newdesign as _nd
 CSS += _nd.css("2")
 import fontset as _fs
-import logo as _lg   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
+import logo as _lg
+import ruby as _rb   # 10/20 ルビ   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
 CSS += _lg.CSS
+CSS += _rb.CSS
 CSS += _fs.css("2")
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}
@@ -1168,5 +1170,5 @@ def recolor(h):
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>洗浄編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_lg.apply("".join(pages), _nd.COL["2"][0])}{_fs.punct_js()}{FIT}</body></html>'))
+    f'<body>{_rb.apply(_lg.apply("".join(pages), _nd.COL["2"][0]))}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))

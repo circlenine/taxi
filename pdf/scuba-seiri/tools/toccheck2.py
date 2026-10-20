@@ -1,6 +1,7 @@
 # もくじに、全部のページ（表紙をのぞく）が載っているか。見出しとも同じか
 import re, sys
 h = open(sys.argv[1]).read()
+h = re.sub(r'<rt>.*?</rt>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 ids = re.findall(r'<div class="page" id="p(\d+)">', h)
 toc = re.findall(r'<a class="tc" href="#p(\d+)">', h)
 miss = [p for p in ids[1:] if p not in toc]

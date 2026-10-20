@@ -17,6 +17,7 @@ OK = {
 # 書き方を変えてはいけない固有の名前（動画の題名など）。ここに入っている文字列は、調べる前に取りのぞく
 PROPER = ["ダイビング機材セッティング"]   # 動画の正式な題名なので「機材」のまま
 h = open(sys.argv[1]).read()
+h = re.sub(r'<rt>.*?</rt>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 body = h[h.index("<body>"):]
 body = re.sub(r"<script.*?</script>|<svg.*?</svg>|<style.*?</style>", "", body, flags=re.S)
 t = re.sub(r"&[a-z#0-9]+;", "", re.sub(r"<[^>]+>", "\n", body))
