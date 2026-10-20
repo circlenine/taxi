@@ -8,7 +8,7 @@ import sys, os, re
 import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import TERMS
-from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
+from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, SIGNAL_AIR, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
@@ -400,11 +400,13 @@ for _n, _fs in SIG_MOVE:
     _d = _diff(_fs[0][0], _fs[1][0])
     if _d < 6: raise SystemExit(f"NG 合図「{_n}」：2枚がほとんど同じ写真（ちがい {_d:.1f}）。形がちがうコマを選ぶ")
 sm = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
-             + f'<figure class="sqf">{im(fs[0][0], 1.27)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
-             + f'<figure class="sqf">{im(fs[1][0], 1.27)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
+             + f'<figure class="sqf">{im(fs[0][0], 1.42)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
+             + f'<figure class="sqf">{im(fs[1][0], 1.42)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
 ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</span></p>{im(k, 1.27)}<figcaption>{T(desc)}</figcaption></figure>' for name, k, desc in SIG_STILL)
-sgn2 = '<div class="notes">' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
-page("合図", "ハンドシグナル（動きのある合図）", f'<p class="mtl sql">①をしてから、②をするよ。※は、お店で使われることがある合図</p><div class="sqg">{sm}</div>{SIGSRC}')
+sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
+# 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
+SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
+page("合図", "ハンドシグナル（動きのある合図）", f'{SIGREF}<p class="mtl sql">①をしてから、②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg">{sm}</div>')
 page("合図2", "形で伝える合図と、ふり返りクイズ", f'<div class="sqg4">{ss}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn2}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><div class="memo-slot" data-fill="1"></div>')
 page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "この1枚で、すぐ見返せる！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p></div>')
 
@@ -1127,18 +1129,21 @@ CSS += """
 .sgg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3mm 3mm}
 .sgc img{width:100%;aspect-ratio:1/1;object-fit:cover}
 /* 10/20 ハンドシグナル：写真の上には何も重ねない。説明は写真の下 */
-.sql{margin:0 0 2mm!important}
-.sqg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3mm 5mm}
+.sql{margin:1.6mm 0 1.6mm!important}
+.sigref{margin-top:2mm}
+.sqg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2.2mm 5mm}
 .sqc{border-top:1px solid var(--line);padding-top:1.6mm}
 .sqh{margin:0 0 1.2mm;line-height:1.3}
 .sqn{font-size:11.5pt;color:var(--navy)}
 .sqr{display:grid;grid-template-columns:minmax(0,1fr) 3.6mm minmax(0,1fr);align-items:start}
 .sqa{font-style:normal;text-align:center;color:var(--navy);font-size:9pt;line-height:1;align-self:center;margin-top:-4mm}
 .sqf,.sqs{margin:0}
-.sqf img,.sqs img{width:100%;aspect-ratio:1.27;object-fit:cover;border-radius:1mm;display:block}
+.sqs img{width:100%;aspect-ratio:1.27;object-fit:cover;border-radius:1mm;display:block}
+.sqf img{width:100%;aspect-ratio:1.42;object-fit:cover;border-radius:1mm;display:block}
 .sqf figcaption,.sqs figcaption{font-size:9pt;line-height:1.35;margin-top:.8mm}
 .sqg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3mm;margin-bottom:3mm}
 .sqs{border-top:1px solid var(--line);padding-top:1.6mm}
+.memo-slot[data-fill]{height:0!important;min-height:0!important;flex:none!important}   /* ページの下までを memo にする印。印そのものは高さを持たない */
 """
 # 10/19 行間・字間の見直し（まーく様：「行間が少し空いていて気持ち悪い。プロのチラシや本と見比べて」）
 #   いままで：説明の文はほぼ全部 行間1.6・字間は詰めなし（「、」「。」が全角ぶん空く）

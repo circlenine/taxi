@@ -138,6 +138,8 @@ def chips(no):
 .page .half.rel.new{{color:#b4234a!important;box-shadow:inset 0 0 0 1px #b4234a!important}}
 /* 10/20 まーく様「参考動画の部分は、全面に背景色を入れた方が、リンクがあると伝わりやすい。ただし、うるさくない色で」
    → 表紙の「このPDFの使い方」と同じ、いちばんうすい地の色（冊ごとの色）。線はやめて、地の色だけで1つのまとまりに見せる */
+/* 10/20 まーく様「動画リンクは必ず背景をつけて分かりやすく、統一」→ 本文の中の YouTube のリンクにも、うすい地の色の札 */
+.page a[href*="youtu"]:not(.ref){{background:var(--pale)!important;border-radius:1mm;padding:.2mm 1.2mm;text-decoration:underline}}
 .page .ref{{background:var(--pale)!important;border:0!important;border-radius:2mm!important;padding:2.4mm 3mm!important}}
 /* 10/20 まーく様「枠背景は番号などに統一。本文中の枠背景はごちゃごちゃする」
    → 本文の中の言葉（ファーストステージ など）は、枠をやめて「色つきの太字＋下線」で目立たせる */
