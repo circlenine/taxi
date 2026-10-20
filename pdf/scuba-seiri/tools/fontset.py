@@ -171,6 +171,7 @@ html body .page *:not(.emj):not(.cover):not(.cover *){font-family:{F},"Noto Sans
 html body .page .mtk,html body .page .lx,html body .page .lp{padding-top:.75mm!important;padding-bottom:.25mm!important}
 html body .page .notes .nk{padding-top:.62mm!important;padding-bottom:.38mm!important}
 html body .page .notes .kpk .nk{padding-top:.66mm!important;padding-bottom:.34mm!important}
+html body .page .half{letter-spacing:0!important}   /* 札は、どこに置いても同じ字間（見出しの字間を受けつがない） */
 html body .page .half.rel{padding-top:.5mm!important;padding-bottom:.5mm!important}
 html body .page .half.rel.new{padding-top:.72mm!important;padding-bottom:.28mm!important}
 """

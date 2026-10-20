@@ -332,7 +332,14 @@ pages.append(None)
 
 # 2ページ：いちばん大事なのは“リラックス”（10/15 まーく様）。ほかのページと同じ「題・写真・札」の形
 COLS = set()
-page("その1", INTRO["title"], q2("1") + '<div class="grid2">' + "".join(stepbox(x) for x in INTRO["subs"]) + "</div>")
+# 10/20 その1は3ページ（content_k.py の pages で分ける。1ページに写真つきの手順は4つまで）
+_byid = {x["id"]: x for x in INTRO["subs"]}
+_ig = [[_byid[i] for i in g] for g in INTRO.get("pages", [[x["id"] for x in INTRO["subs"]]])]
+if sorted(sum(([x["id"] for x in g] for g in _ig), [])) != sorted(_byid): sys.exit("止めます：その1のページ分けに、入っていない手順・二重の手順がある")
+for _gi, _g in enumerate(_ig):
+    _t = INTRO["title"] + (f'<span class="half">{(["前半", "後半"] if len(_ig) == 2 else ["前半", "中盤", "後半"])[_gi]}</span>' if len(_ig) > 1 else "")
+    for x in _g: SUBPG[x["id"]] = len(pages) + 1
+    page("その1", _t, (q2("1") if _gi == 0 else "") + '<div class="grid2">' + "".join(stepbox(x) for x in _g) + "</div>")
 
 COLS = set()   # 10/19 まーく様：読む順は Z字（左上→右上→左下→右下）。列ごとに上から詰める形はやめた。入りきらないときは文を削る
 for sec in STEPS:
@@ -380,7 +387,7 @@ def mjump(sid):
     n = pg_of(sid)
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
 mt = "".join(
-    f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3>{im(k, 1.6)}'
+    f'<section class="mtc{" mtw" if len(steps) > 6 else ""}"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3>{im(k, 1.6)}'
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
@@ -713,6 +720,11 @@ CSS += """
 #p1 .cover{gap:1.4mm!important}
 #p1 .toc{flex:1;display:flex!important;flex-direction:column}
 #p1 .tc{flex:1;padding:0!important;min-height:0}
+/* 10/20 その1を3ページにして、もくじが13行になった。表紙に収めるため、もくじの行と使い方の欄を少しだけ詰める */
+#p1 .tc .tt,#p1 .tc .tt *:not(.half):not(.half *){font-size:11.5pt!important;line-height:1.3!important}
+#p1 .tp,#p1 .tp *{font-size:13pt!important}
+#p1 .tc{min-height:7.4mm!important}
+#p1 .howto{padding:1.8mm 3mm!important;line-height:1.45!important}
 """
 CSS += """
 /* 補足の行は、白（補足）もピンク（大事）も同じ形にそろえる：
@@ -1143,6 +1155,12 @@ CSS += """
 .sqf figcaption,.sqs figcaption{font-size:9pt;line-height:1.35;margin-top:.8mm}
 .sqg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3mm;margin-bottom:3mm}
 .sqs{border-top:1px solid var(--line);padding-top:1.6mm}
+/* 10/20 その1は手順が10あるので、まとめの枠を2列ぶんにして、一覧も2段に並べる */
+.page .mtg>.mtw{grid-column:span 2!important}
+.page .mtw .mts{columns:2;column-gap:5mm}
+.page .mtw .mts li{break-inside:avoid}
+.page .mtw img{aspect-ratio:4.6!important}
+.page .mtg:has(.mtw)>.mtsrc{grid-column:span 1!important}
 .memo-slot[data-fill]{height:0!important;min-height:0!important;flex:none!important}   /* ページの下までを memo にする印。印そのものは高さを持たない */
 """
 # 10/19 行間・字間の見直し（まーく様：「行間が少し空いていて気持ち悪い。プロのチラシや本と見比べて」）
