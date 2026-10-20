@@ -35,6 +35,7 @@ node $S/tools/relcheck.js $S/build_s/a4.html
 node $S/tools/palette.js $S/build_s/a4.html
 node $S/tools/borders.js $S/build_s/a4.html
 node $S/tools/chipalign.js $S/build_s/a4.html   # 札の字が箱のまん中にあるか（10/19）
+node $S/tools/kerncheck.js $S/build_s/a4.html   # 題・見出しの字のすき間（10/20）
 node $S/tools/arrowcheck.js $S/build_s/a4.html   # しおりの札の字が、左右同じ余白か（10/20）
 node $S/tools/logocheck.js $S/build_s/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
 node $S/tools/barcheck.js $S/build_s/a4.html   # 左の線の太さが、左右の列・どのページでも同じか（10/20）

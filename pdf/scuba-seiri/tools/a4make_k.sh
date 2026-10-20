@@ -7,6 +7,8 @@ cd $S/build_k
 # 不安にさせる言い回しが無いか（10/15 ご指示・全資料共通）
 python3 -I $S/tools/phrasecheck.py $S/tools/content_k.py
 python3 $S/tools/a4k.py $S/build_k
+# 10/20 まーく様「ページは10ページにとどめて」：10ページを超えたら止める
+n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_k/a4.html | wc -l); if [ "$n" -gt 10 ]; then echo "NG 10ページを超えた（$n ページ）"; exit 1; fi
 # 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
 python3 -I $S/tools/numcheck.py $S/build_k/num.png $(node $S/tools/numcheck.js $S/build_k/a4.html $S/build_k/num.png)
 # 1ページ目（まとめ＋もくじ）がページからはみ出していないか（10/16）
@@ -34,6 +36,7 @@ node $S/tools/relcheck.js $S/build_k/a4.html
 node $S/tools/palette.js $S/build_k/a4.html
 node $S/tools/borders.js $S/build_k/a4.html
 node $S/tools/chipalign.js $S/build_k/a4.html   # 札の字が箱のまん中にあるか（10/19）
+node $S/tools/kerncheck.js $S/build_k/a4.html   # 題・見出しの字のすき間（10/20）
 node $S/tools/arrowcheck.js $S/build_k/a4.html   # しおりの札の字が、左右同じ余白か（10/20）
 node $S/tools/logocheck.js $S/build_k/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
 node $S/tools/sigover.js $S/build_k/a4.html   # 合図の写真の上に字が重なっていないか（10/20）

@@ -115,6 +115,43 @@ def punct_js():
     if MODE != "kaisei":
         return ""
     return """<script>
+/* 10/20 まーく様「カーニングは全て徹底してるのか。スキルの間隔が空いている」
+   いま使っている字（解星デコール・M PLUS Rounded 1c）は、かなを詰めるしくみ（palt）を持っていない（確かめた）。
+   → 題・見出し・札の字は、1字ずつ実際の字の形の左右のはしを測って、字と字のすき間（形どうしの間）を、
+     その字体の漢字どうしのすき間と同じにそろえる（目で見たすき間をそろえる＝オプティカルカーニング） */
+/* 表紙の「〇〇編」は、字の間を空ける決まり（.08em）をやめ、すき間を形でそろえる */
+document.head.insertAdjacentHTML('beforeend','<style>#p1 .cover .cv-e,#p1 .cover .cv-e *{letter-spacing:.02em!important}</style>');
+window.__kernSel='#p1 .cv-e,.page h2:not(.toch),.page h3.sh3>span:last-child,.page .tt,.page .mth>span:last-child,.page .sqn,.page .ixh,.page .ixk b,.page h3.ph2';
+document.fonts.ready.then(function(){var cv=document.createElement('canvas').getContext('2d'),memo={};
+ var CJK=/[\u3041-\u3096\u30a1-\u30fa\u30fc\u4e00-\u9fff]/;
+ /* 字の形を 100px で描き、行ごとに「左のはし」「右のはし」を測る（ふちの箱ではなく、見た目の形） */
+ var C=document.createElement('canvas');C.width=200;C.height=160;var X=C.getContext('2d',{willReadFrequently:true});
+ function prof(font,ch){var k=font+'|'+ch;if(memo[k])return memo[k];X.clearRect(0,0,200,160);X.font=font;X.textBaseline='alphabetic';X.fillStyle='#000';X.fillText(ch,40,120);
+  var w=X.measureText(ch).width,d=X.getImageData(0,0,200,160).data,L=[],R=[];
+  for(var y=0;y<160;y+=2){var l=-1,r=-1;for(var x=0;x<200;x++){if(d[(y*200+x)*4+3]>90){if(l<0)l=x;r=x;}}L.push(l<0?null:l-40);R.push(r<0?null:40+w-r);}
+  return memo[k]={L:L,R:R,w:w};}
+ /* 2つの字のすき間：行ごとのすき間の「いちばん狭い所」と「平均」のまん中（目に見えるすき間に近い） */
+ function gap(A,B){var g=[];for(var i=0;i<A.R.length;i++){if(A.R[i]!=null&&B.L[i]!=null)g.push(A.R[i]+B.L[i]);}
+  if(!g.length){var ra=Math.min.apply(null,A.R.filter(function(v){return v!=null})),lb=Math.min.apply(null,B.L.filter(function(v){return v!=null}));return {v:ra+lb,mn:ra+lb};}
+  var mn=Math.min.apply(null,g),mean=g.reduce(function(s,v){return s+v},0)/g.length;return {v:mn*.7+mean*.3,mn:mn};}
+ document.querySelectorAll(window.__kernSel).forEach(function(el){
+  var w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),ns=[],n;while(n=w.nextNode())ns.push(n);
+  var spans=[];
+  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.pqr,.pql,.pqc,svg,.kc'))return;var pd=getComputedStyle(p).display;if(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0)return;   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない */
+   if(!CJK.test(t.textContent))return;var f=document.createDocumentFragment();
+   Array.from(t.textContent).forEach(function(ch){if(CJK.test(ch)){var s=document.createElement('span');s.className='kc';s.textContent=ch;f.appendChild(s);spans.push(s);}else f.appendChild(document.createTextNode(ch));});
+   t.parentNode.replaceChild(f,t);});
+  for(var i=0;i<spans.length-1;i++){var a=spans[i],b=spans[i+1];
+   /* となりの字と、間に別の字や改行がはさまっていないときだけ */
+   var r=document.createRange();r.setStartAfter(a);r.setEndBefore(b);if(r.toString().length)continue;
+   var ca=getComputedStyle(a),cb=getComputedStyle(b);var fa=ca.fontWeight+' 100px '+ca.fontFamily,fb=cb.fontWeight+' 100px '+cb.fontFamily;
+   var fs=parseFloat(ca.fontSize);var A=prof(fa,a.textContent),B=prof(fb,b.textContent);
+   var target=(gap(prof(fa,'国'),prof(fa,'国')).v+gap(prof(fa,'編'),prof(fa,'語')).v)/2;   /* 字面いっぱいの漢字どうしのすき間（100px のとき） */
+   var G=gap(A,B);var d=(target-G.v)*.75;   /* 見た目のすき間を target に近づける（かなは詰める。広げはしない） */
+   if(G.mn+d<9)d=9-G.mn;   /* いちばん近い所でも、字の大きさの9％はあける（字どうしがくっつかない） */
+   var adj=d/100*fs;
+   if(adj<-.2)a.style.marginRight=adj.toFixed(2)+'px';}
+ });});
 /* 10/20 しおり（矢印）の札：字の形（インク）が、札の四角い部分のまん中に来るように、字を少しずらす。
    字の箱のまん中と、実際に描かれる字のまん中は、字の形でずれる（「1」は細い、など）。canvas で字の形の左右のはしを測って直す */
 document.fonts.ready.then(function(){var cv=document.createElement('canvas').getContext('2d');
