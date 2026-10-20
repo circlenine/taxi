@@ -287,6 +287,7 @@ _s3 = next(x for x in STEPS if x["id"] == "3"); _s4 = next(x for x in STEPS if x
 STEPS = [dict(_s3, title=("“中性浮力”を身につけよう！" if _nd.ON else "“中性浮力” {bc}と呼吸で合わせ、体は水平に"), subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
 TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
 # 写真のない手順があったら、組み立てを止める（10/19 まーく様「画像は必ずつけてください。文章だけだと読む気が失せます」）
+INTRO["subs"] = __import__("intro_k").MATOME_SUBS   # その1は図のページ。まとめには、この短い一覧を出す
 _nophoto = [x["id"] for x in INTRO["subs"] + [y for sec in STEPS for y in sec["subs"]] if not x.get("key")]
 if _nophoto:
     sys.exit("止めます：写真のない手順があります → " + "、".join(_nophoto) + "（content_k.py の key に写真を入れてください）")
@@ -332,15 +333,13 @@ pages.append(None)
 
 # 2ページ：いちばん大事なのは“リラックス”（10/15 まーく様）。ほかのページと同じ「題・写真・札」の形
 COLS = set()
-# 10/20 その1は3ページ（content_k.py の pages で分ける。1ページに写真つきの手順は4つまで）
-_byid = {x["id"]: x for x in INTRO["subs"]}
-_ig = [[_byid[i] for i in g] for g in INTRO.get("pages", [[x["id"] for x in INTRO["subs"]]])]
-if sorted(sum(([x["id"] for x in g] for g in _ig), [])) != sorted(_byid): sys.exit("止めます：その1のページ分けに、入っていない手順・二重の手順がある")
-for _gi, _g in enumerate(_ig):
-    _t = INTRO["title"] + (f'<span class="half">{(["前半", "後半"] if len(_ig) == 2 else ["前半", "中盤", "後半"])[_gi]}</span>' if len(_ig) > 1 else "")
-    for x in _g: SUBPG[x["id"]] = len(pages) + 1
-    page("その1", _t, (q2("1") if _gi == 0 else "") + '<div class="grid2">' + "".join(stepbox(x) for x in _g) + "</div>")
-
+# 10/20 その1は作り直し（intro_k.py）：2ページ。写真ではなく、意味のある図と表
+import intro_k as _ix
+_ixp = _ix.pages(T, jump)
+for _gi, _inner in enumerate(_ixp):
+    _t = INTRO["title"] + f'<span class="half">{"前半" if _gi == 0 else "後半"}</span>'
+    for x in (_ix.MATOME_SUBS[:2] if _gi == 0 else _ix.MATOME_SUBS[2:]): SUBPG[x["id"]] = len(pages) + 1
+    page("その1", _t, _inner)
 COLS = set()   # 10/19 まーく様：読む順は Z字（左上→右上→左下→右下）。列ごとに上から詰める形はやめた。入りきらないときは文を削る
 for sec in STEPS:
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
@@ -416,6 +415,7 @@ ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</s
 sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
 # 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
 SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
+SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛ぶ
 page("合図", "ハンドシグナル（動きのある合図）", f'{SIGREF}<p class="mtl sql">①をしてから、②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg">{sm}</div>')
 page("合図2", "形で伝える合図と、ふり返りクイズ", f'<div class="sqg4">{ss}</div><section class="step wide nophoto sgnote"><h3 class="sh3"><span class="sn">合図</span><span>潜る前に、合わせておこう</span></h3>{sgn2}</section><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><div class="memo-slot" data-fill="1"></div>')
 page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "この1枚で、すぐ見返せる！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から。※仮の形：Club DO・サンズの動画のリンクは、どの動画かを突き合わせてから貼る</p></div>')
@@ -1193,6 +1193,7 @@ import logo as _lg   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のと�
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
 CSS += _lg.CSS
+CSS += __import__('intro_k').CSS
 CSS += _fs.css("3")
 FIT = r'''<script>
 function markRight(){document.querySelectorAll('.grid2').forEach(g=>{const c=g.getBoundingClientRect();const mid=(c.left+c.right)/2;g.querySelectorAll(':scope>.step:not(.wide)').forEach(st=>{if(st.getBoundingClientRect().left>mid)st.classList.add('rc');});});}

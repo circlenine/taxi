@@ -14,7 +14,7 @@ for href, body in re.findall(r'<a class="jump" href="#p([^"]*)">(.*?)</a>', h, f
     sid, pg = m.group(1), m.group(2)
     if pg != href: bad.append(f"{txt}：書いてあるのは{pg}ページ、飛ぶ先は{href}ページ"); continue
     tgt = pages.get(href, "")
-    ok = ("器材の健康診断" in tgt) if sid == "次のページ" else (f'<span class="sn">{sid}</span>' in tgt)
+    ok = ("器材の健康診断" in tgt) if sid == "次のページ" else (f'<span class="sn">{sid}</span>' in tgt or f'<span class="no">{sid}</span>' in tgt)   # 合図のページは、ページの札（no）で見る
     if not ok: bad.append(f"{txt}：{href}ページに {sid} がない")
 print("\n".join("NG 飛ぶ行 " + b for b in bad) if bad else f"飛ぶ行 OK（{n}個、ページ番号と飛ぶ先が合っている）")
 sys.exit(1 if bad else 0)
