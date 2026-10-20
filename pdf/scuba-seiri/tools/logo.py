@@ -165,6 +165,19 @@ def svg(v, m, uid="lg"):
         #   ・頭文字 S D G s はピンク、ほかは青。どちらも上が明るく、下へ濃くなる（太陽の光が上から当たる）
         #   ・サブタイトルは、題のすぐ下の波（海）の帯の上に白い字で入れて、1つのロゴにする。SDGs は頭文字と同じピンク
         NAVY = "#173a63"
+        # 波の白い光の線：手前の波（濃い青）の山の形に、ぴったり沿わせる（目で置かずに、波と同じ式から点を出す）
+        #   手前の波は 120 ごとに山と谷。山のまん中は x = 60 + 240k、高さ y = 206 - 36·t(1-t)。光は山の上を 7 下げて、t=0.16〜0.84 の間だけ
+        def crest(x0):
+            pts = []
+            for i in range(13):
+                t = 0.16 + 0.68 * i / 12
+                pts.append(f"{x0 + 120 * t:.1f} {206 - 36 * t * (1 - t) + 7:.1f}")
+            return "M" + " L".join(pts)
+        hl = " ".join(crest(x0) for x0 in (240, 720))     # 山のまん中 x=300・780（題の字のかげにならない山）
+        # smile の下の、にっこりカーブ：smile の字の左右のはし（画面で測った：907〜1086）のまん中に、左右対称に置く
+        SM0, SM1 = 907, 1086
+        smc, smw = (SM0 + SM1) / 2, (SM1 - SM0) * 0.86
+        sm = f"M{smc - smw / 2:.1f} 182 Q{smc:.1f} 212 {smc + smw / 2:.1f} 182"
         T = (("S", "afe "), ("D", "ive "), ("", "for a "), ("G", "irlie "), ("s", "mile"))
         def line(x, y, fill_main, fill_ini, extra=""):
             sp = "".join((f'<tspan fill="{fill_ini}">{a}</tspan>' if a else "") + f'<tspan fill="{fill_main}">{b}</tspan>' for a, b in T)
@@ -182,11 +195,11 @@ def svg(v, m, uid="lg"):
 <g clip-path="url(#{uid}sea)">
 <path d="M0 184 Q55 164 110 184 T220 184 T330 184 T440 184 T550 184 T660 184 T770 184 T880 184 T990 184 T1100 184 T1210 184 V300 H0 Z" fill="#7cc7e8"/>
 <path d="M0 206 Q60 188 120 206 T240 206 T360 206 T480 206 T600 206 T720 206 T840 206 T960 206 T1080 206 T1200 206 V300 H0 Z" fill="#2f78c4"/>
-<path d="M70 194 Q110 180 150 194 M680 192 Q720 178 760 192" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".8"/></g>
+<path d="{hl}" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/></g>
 {line(605, 156, NAVY, NAVY, f'stroke="{NAVY}" stroke-width="13" stroke-linejoin="round"')}
 {line(600, 150, f"url(#{uid}bl)", f"url(#{uid}pk)", 'stroke="#fff" stroke-width="12" stroke-linejoin="round" paint-order="stroke"')}
-<path d="M912 188 Q1000 214 1092 186" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
-<path d="M912 188 Q1000 214 1092 186" fill="none" stroke="#e0507f" stroke-width="6" stroke-linecap="round"/>   <!-- smile の下の、笑った口の線 -->
+<path d="{sm}" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+<path d="{sm}" fill="none" stroke="#e0507f" stroke-width="6" stroke-linecap="round"/>   <!-- smile の下の、笑った口の線 -->
 <g fill="#fff" stroke="#2f78c4" stroke-width="3.5"><circle cx="1110" cy="96" r="7"/><circle cx="1128" cy="66" r="10"/><circle cx="1148" cy="38" r="6"/></g>
 {sub}</svg>'''
     return ""

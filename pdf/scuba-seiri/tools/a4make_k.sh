@@ -34,6 +34,8 @@ node $S/tools/relcheck.js $S/build_k/a4.html
 node $S/tools/palette.js $S/build_k/a4.html
 node $S/tools/borders.js $S/build_k/a4.html
 node $S/tools/chipalign.js $S/build_k/a4.html   # 札の字が箱のまん中にあるか（10/19）
+node $S/tools/logocheck.js $S/build_k/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
+node $S/tools/sigover.js $S/build_k/a4.html   # 合図の写真の上に字が重なっていないか（10/20）
 node $S/tools/barcheck.js $S/build_k/a4.html   # 左の線の太さが、左右の列・どのページでも同じか（10/20）
 node $S/tools/latincheck.js $S/build_k/a4.html   # 英数字・記号が細くないか（10/20）
 python3 -I $S/tools/tonecheck.py $S/build_k/a4.html   # 言い回し（じゃ！・！の連続）が無いか（10/20）
