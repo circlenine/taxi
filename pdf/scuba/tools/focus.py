@@ -240,9 +240,20 @@ def box_for(allowed, focus, aspect, pad=PAD):
     if w > ax1 - ax0: w = ax1 - ax0; h = w / aspect
     if h > ay1 - ay0: h = ay1 - ay0; w = h * aspect
     cx, cy = (fx0 + fx1) / 2, (fy0 + fy1) / 2
+    # 10/20 まーく様「器材が上に寄っていて、中央にきていない」→ 写したいものは、写真のまん中に置く。
+    #   画面のはしに当たってまん中に置けないときは、同じ形のまま少し寄って（小さく切って）まん中に置く。
+    #   寄っても、写したいもの（余白なし）が全部入るときだけ寄る。入らないときは、いままでどおり（あとで知らせる）
+    hw, hh = min(cx - ax0, ax1 - cx), min(cy - ay0, ay1 - cy)
+    sc = min(1.0, 2 * hw / w, 2 * hh / h)
+    if sc < 1.0 and w * sc + 0.5 >= fw and h * sc + 0.5 >= fh:
+        w, h = w * sc, h * sc
     x0 = min(max(cx - w / 2, ax0), ax1 - w)
     y0 = min(max(cy - h / 2, ay0), ay1 - h)
+    # 10/20 写したいものが、写真のまん中から ずれていないか（画面のはしに当たって、まん中に置けないとき）。あとでまとめて知らせる
+    _dx, _dy = (x0 + w / 2 - cx) / w, (y0 + h / 2 - cy) / h
+    if abs(_dx) > .04 or abs(_dy) > .04: OFFC.append((focus, round(_dx * 100), round(_dy * 100)))
     return x0, y0, x0 + w, y0 + h, (w + 0.5 >= fw and h + 0.5 >= fh)
+OFFC = []
 
 if __name__ == "__main__":
     # 使い方: python3 focus.py <sizes.json> <出力ディレクトリ>
@@ -255,7 +266,7 @@ if __name__ == "__main__":
         frame, allowed, focus = F[key]
         rot = key in ROT
         if rot: w, h = h, w
-        pad_to = None
+        pad_to = None; _n0 = len(OFFC)
         if key in PAD_OK:
             # 切り抜ける幅の上限までで切り、足りないぶんは、あとで左右をうめる
             fh = (focus[3] - focus[1]) * (1 + 2 * PAD)
@@ -265,6 +276,7 @@ if __name__ == "__main__":
         else:
             x0, y0, x1, y1, ok = box_for(allowed, focus, w / h)
         if not ok: warn.append(f"{slot}: 見せたい部分が枠に入りきらない")
+        if len(OFFC) > _n0: print(f"  まん中からずれ {slot}（{key}）：左右 {OFFC[-1][1]}%・上下 {OFFC[-1][2]}%（画面のはしに当たって、まん中に置けない）")
         src = load(frame)
         sx, sy = src.size[0] / 1280, src.size[1] / 720
         im = src.crop((round(x0 * sx), round(y0 * sy), round(x1 * sx), round(y1 * sy)))

@@ -261,10 +261,25 @@ def page(head_no, head_title, inner, toc=True):
 pages.append(None)
 
 # 道具
-RX0, RY0, RX1, RY1 = 265, 88, 1045, 500   # 写真 reg2.jpg の範囲（動画の画面での位置）
+# 10/20 まーく様「レギュレーターの器材が上に寄っていて、中央にきていない。番号を上にすれば調整できる」
+#   器材の範囲（動画の画面での位置。写真に目盛りを重ねて測った）：左340・上98・右919・下442 → まん中は (629.5, 270)
+#   写真は、この器材がまん中に来るように切る。下の番号（4・5）を上へ寄せて、写真の下のあきを無くした
+EQ = (340, 98, 919, 442)
+RX0, RY0, RX1, RY1 = 236, 62, 1023, 478   # 写真 reg2.jpg の範囲（動画の画面での位置）。器材のまん中と写真のまん中が同じ
 MK = [(668, 140), (372, 165), (885, 262), (852, 334), (800, 412)]
 # 名札は、器材に重ならない位置（器材の上ではなく、まわりの地面の上）に置き、白い線で器材とつなぐ
-LB = [(807, 126, "silver", "銀色金具"), (300, 264, "regu", "レギュ"), (1004, 310, "octo", "オクト"), (972, 393, "kachi", "カチカチホース"), (963, 468, "gauge", "残圧計")]
+LB = [(807, 126, "silver", "銀色金具"), (300, 264, "regu", "レギュ"), (990, 300, "octo", "オクト"), (972, 378, "kachi", "カチカチホース"), (960, 448, "gauge", "残圧計")]
+# 関所：器材が写真のまん中にあるか（上下・左右とも、写真の幅・高さの2%以内）。番号の札が写真からはみ出さないか（札の半分＝約26の余白）
+_cx, _cy = (EQ[0] + EQ[2]) / 2, (EQ[1] + EQ[3]) / 2
+if abs(_cx - (RX0 + RX1) / 2) > (RX1 - RX0) * .02 or abs(_cy - (RY0 + RY1) / 2) > (RY1 - RY0) * .02:
+    raise SystemExit(f"NG 1-1の写真：器材が写真のまん中にない（器材のまん中 {_cx:.0f},{_cy:.0f}／写真のまん中 {(RX0+RX1)/2:.0f},{(RY0+RY1)/2:.0f}）")
+for _x, _y, _k, _n in LB:
+    if not (RX0 + 26 <= _x <= RX1 - 26 and RY0 + 26 <= _y <= RY1 - 26):
+        raise SystemExit(f"NG 1-1の写真：番号の札（{_n}）が写真のはしからはみ出す位置にある（{_x},{_y}）")
+# 写真は、元の大きい写真（reg.jpg：動画の画面の 195,62〜1085,515）から、作るたびに切り出す（手で切った写真を残さない）
+from PIL import Image as _Im
+_src = _Im.open(os.path.join(B, "img", "reg.jpg")); _k = _src.size[0] / 890
+_src.crop((round((RX0 - 195) * _k), round((RY0 - 62) * _k), round((RX1 - 195) * _k), round((RY1 - 62) * _k))).save(os.path.join(B, "img", "reg2.jpg"), quality=90)
 W_, H_ = RX1 - RX0, RY1 - RY0
 lines = "".join(f'<line x1="{x-RX0}" y1="{y-RY0}" x2="{cx-RX0}" y2="{cy-RY0}" stroke="#fff" stroke-width="3"/><rect x="{x-RX0-9}" y="{y-RY0-9}" width="18" height="18" rx="3" fill="none" stroke="#fff" stroke-width="3"/>' for (x, y), (cx, cy, _, _) in zip(MK, LB))
 marks = f'<svg viewBox="0 0 {W_} {H_}" preserveAspectRatio="none">{lines}</svg>' + "".join(
@@ -278,7 +293,7 @@ names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class
 page("器材", "まずは“ダイビング器材”", f"""
 <div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
-<div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:780/412">{marks}</div>
+<div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:{RX1 - RX0}/{RY1 - RY0}">{marks}</div>
 <div class="names">{names_html}</div></div></section>
 <section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！</p>
  <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？　あぁーっと！吸えたぁー！</p>
