@@ -34,6 +34,8 @@ node $S/tools/relcheck.js $S/build_k/a4.html
 node $S/tools/palette.js $S/build_k/a4.html
 node $S/tools/borders.js $S/build_k/a4.html
 node $S/tools/chipalign.js $S/build_k/a4.html   # 札の字が箱のまん中にあるか（10/19）
+node $S/tools/latincheck.js $S/build_k/a4.html   # 英数字・記号が細くないか（10/20）
+python3 -I $S/tools/tonecheck.py $S/build_k/a4.html   # 言い回し（じゃ！・！の連続）が無いか（10/20）
 node $S/tools/fontmix.js $S/build_k/a4.html "$(python3 -c 'import sys;sys.path.insert(0,"'$S'/tools");import fontset as f;print(f._BM[f.BODYMIN][0].strip(chr(34)) if f.MODE=="kaisei" else "")')"   # 本文の中で字がまざっていないか（10/20）
 # 10/19 まーく様：2択クイズは入れない／読む順はZ字（列ごとに上から詰めない）。紛れこんだら止める
 if grep -q "2択クイズ" a4.html; then echo "止めます：2択クイズが入っています"; exit 1; fi

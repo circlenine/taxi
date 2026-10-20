@@ -97,7 +97,7 @@ STEPS = [
              ("4", "肩", "<span class=\"nw\">あまり紐を</span><span class=\"nw\">ウラァイヤハァ！と</span><span class=\"nw\">引いて締める</span>"),
              ("5", "最後", "<span class=\"nw\">パジャマパーティーダンスで、</span>ズレないか確認<small>（ダンスでなくても可）</small>")])),
   ]),
- dict(id="7", title="貴様は“相棒”に相応しいか！“バディ”チェック！",
+ dict(id="7", title="おたがいの準備はOK？“バディ”チェックだよ",
   gif="s6",
   subs=[
    dict(id="7-1", key=["c37"], frames=["c37"], title="{regu}が使えるか"),

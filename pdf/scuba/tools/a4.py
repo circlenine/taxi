@@ -275,13 +275,13 @@ names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"
          ("{gauge}", "空気の残りを確認するゲージ", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
 names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
-page("器材", "まずは“ダイビング器材”じゃ！", f"""
+page("器材", "まずは“ダイビング器材”だよ", f"""
 <div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:780/412">{marks}</div>
 <div class="names">{names_html}</div></div></section>
-<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？！　おぉー！！クリア！！</p>
- <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？！　あぁーっと！！吸えたぁー！！</p>
+<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！</p>
+ <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？　あぁーっと！吸えたぁー！</p>
  <div class="sum"><p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p>
   <div class="row2"><p><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースがつなぐのはこの2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
   <div class="row2"><p><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div></div></div>

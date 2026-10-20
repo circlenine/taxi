@@ -84,12 +84,12 @@ _BM = {"decol": ('"Kaisei Decol"', 500), "opti": ('"Kaisei Opti"', 700), "shippo
        "zen900": ('"Zen Old Mincho"', 900), "ship800": ('"Shippori Mincho B1"', 800),
        # 10/20 まーく様「もう少し丸みのある字で、つぶれず・薄くなく・遠目からもはっきり」→ 丸みのある候補
        "kiwi": ('"Kiwi Maru"', 500), "zas": ('"Zen Antique Soft"', 400), "haru": ('"Kaisei HarunoUmi"', 700),
-       "zmaru": ('"Zen Maru Gothic"', 700), "mplus": ('"M PLUS Rounded 1c"', 700)}
+       "zmaru": ('"Zen Maru Gothic"', 900), "mplus": ('"M PLUS Rounded 1c"', 700)}
 _BMLINK = {"opti": "family=Kaisei+Opti:wght@500;700", "shippori": "family=Shippori+Mincho+B1:wght@600;700;800",
            "biz": "family=BIZ+UDPMincho:wght@400;700", "zenold": "family=Zen+Old+Mincho:wght@600;700;900", "decol": "",
            "zen900": "family=Zen+Old+Mincho:wght@600;700;900", "ship800": "family=Shippori+Mincho+B1:wght@600;700;800",
            "kiwi": "family=Kiwi+Maru:wght@500", "zas": "family=Zen+Antique+Soft", "haru": "family=Kaisei+HarunoUmi:wght@700",
-           "zmaru": "family=Zen+Maru+Gothic:wght@700", "mplus": "family=M+PLUS+Rounded+1c:wght@700"}
+           "zmaru": "family=Zen+Maru+Gothic:wght@700;900", "mplus": "family=M+PLUS+Rounded+1c:wght@700"}
 
 def body_css():
     if BODYMIN == "decol":
@@ -98,8 +98,11 @@ def body_css():
     return f"""
 /* 本文の字（題は解星デコールのまま）。頭に .page を付けるのは、全体に解星デコールを当てている決まり（.page *）より強くするため */
 .page .notes,.page .notes *:not(.nk):not(.nn2),.page .sasuke,.page .sasuke *:not(.fs),.page .pts,.page .pts *,.page .ref,.page .ref *,.page .mts,.page .mts *:not(.mtk),.page .cap3,.page .cap3 *,.page .src,.page .src *,.page .qz .q,.page .qz .q *,.page .qz .a,.page .qz .a *,.page .mtl,.page .nmr,.page .nmr *:not(.nn),.page .bg,.page .bg *,.page .toc .tt,.page .toc .tt *:not(.half),.page .relnote,.page .relnote *:not(.half),.page .ns,.page .nx,.page .sd2,.page .howto,.page .howto *{{font-family:{f},"Kaisei Decol",serif!important}}
+/* 10/20 本文の字は、どこでも同じ太さ（細い500が、出どころ・動画の説明・「・」に残っていた） */
+.page .notes,.page .notes *:not(.nk):not(.nn2),.page .sasuke,.page .sasuke *:not(.fs),.page .pts,.page .pts *,.page .ref,.page .ref *,.page .mts,.page .mts *:not(.mtk),.page .cap3,.page .cap3 *,.page .src,.page .src *,.page .qz .q,.page .qz .q *,.page .qz .a,.page .qz .a *,.page .mtl,.page .nmr,.page .nmr *:not(.nn),.page .bg,.page .bg *,.page .toc .tt,.page .toc .tt *:not(.half),.page .relnote,.page .relnote *:not(.half),.page .ns,.page .nx,.page .sd2,.page .howto,.page .howto *{{font-weight:{w}!important}}
 .page .notes .ns,.page .notes .ns *:not(b):not(.nh):not(.nk),.page .notes .nx,.page .sasuke p,.page .mts li,.page .cap3,.page .qz .a,.page .nmr,.page .bg p{{font-weight:{w}!important}}
 /* 10/20 色つきの言葉（■タンク など）も本文と同じ字に。文の途中で字が変わると、つぎはぎに見えるため */
+.page .qz .q.q,.page .qz .q.q *{{font-weight:{w}!important}}   /* クイズの問いも本文と同じ太さ（字によって900のものがある） */
 .page .notes .t,.page .sasuke .t,.page .bg .t,.page .mts .t,.page .nmr .ds .t,.page .qz .t{{font-family:{f},"Kaisei Decol",serif!important;font-weight:{w}!important}}
 """
 
@@ -141,6 +144,15 @@ PUNCT_CSS = """
 /* 題の字は、かなの左右が広めに空く字。見出しだけ、字と字のあいだを少しだけ詰める */
 .page h3.sh3>span:last-child,.page h3.sh3>span:last-child *,.page h2>span:not(.half):not(.emj){letter-spacing:-.04em!important}
 .page h3.sh3 .hm{display:block;font-size:1.06em}
+/* 10/20 まーく様「各見出しの下も、左右いっぱい（上の線と同じ幅）に下線を引いて、区切りが分かるように」 */
+.page .step>h3.sh3{border-bottom:1px solid var(--line);padding-bottom:1.2mm!important}
+/* 見出しのすぐ下の欄に上の線があると、線が二重になる。下線があるので、すぐ下の欄の上の線は消す */
+.page .step>h3.sh3+*,.page .step>h3.sh3+.notes>.nt:first-child,.page .step>h3.sh3+*>:first-child{border-top:0!important}
+/* 10/20 まーく様「英数字・記号も細くないか」→ 測って細かったものを太くする（latincheck.js で毎回測る）
+   ・クイズの問い（白い字）と、表紙の副題が細かった */
+.page .qz .q,.page .qz .q *{font-weight:700!important}
+#p1 .cv-sd,#p1 .cv-sd *{font-weight:700!important}
+.page h2:not(.toch){border-bottom:1px solid var(--line);padding-bottom:1.2mm!important}
 .page h3.sh3 .hs{display:block;font-size:.84em;margin-top:.6mm;color:#1f2a37!important;line-height:1.4!important}
 """
 

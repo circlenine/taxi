@@ -320,14 +320,14 @@ P2_TRIO = [("s10", "{silver}のキャップの水気を飛ばしたら、すぐ�
            ("s25", "{regu}と{octo}を洗うときは、真ん中のボタンを押さない", "5-1"),
            ("s28", "{silver}の外側やホース類は、キャップを締めたまま洗う", "5-3")]
 trio = "".join(f'<figure class="ph3">{im(k, 1.0)}<span class="cap3">{T(t)}</span>{jl(j)}</figure>' for k, t, j in P2_TRIO)
-page("大事", "先に“取扱注意”なものを伝えるぞい！", f"""
+page("大事", "先に“取扱注意”なものを伝えるよ", f"""
 <div class="grid2">
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-1</span><span>{T("{bc}")}と{T("{silver}のホース類")}は、洗い方がちがう！</span></h3>
 <div class="photos two">
 <figure class="ph3">{im("bc", 1.0)}<span class="cap3"><b class="ct">{T("{bc}")}</b><br>L字サインホースの口が<b>開いてる</b><br>→ 海水が“入ってる”<br><b class="cr">だから“中”も洗う</b></span></figure>
 <figure class="ph3">{im("s15", 1.0)}<span class="cap3"><b class="ct">{T("{silver}のホース類")}</b><br>隙間を<b>締める</b><br>→ 海水が“入らない”<br><b class="cr">だから“外”だけ洗う</b></span></figure>
 </div>
-<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{T("{silver}のホース類")}の中は、乾いたままキープ！</b></span><div class="ns">中に海水を入れなければ、器材が長持ち。下の3つを押さえておけば、大丈夫！<br>細かくは、次のページ以降で紹介するぞい！</div></div></div></section>
+<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{T("{silver}のホース類")}の中は、乾いたままキープ！</b></span><div class="ns">中に海水を入れなければ、器材が長持ち。下の3つを押さえておけば、大丈夫！<br>細かくは、次のページ以降で紹介するよ</div></div></div></section>
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-2</span><span>とくに気をつける3つ</span></h3><div class="trio">{trio}</div></section>
 <section class="step wide w2 nophoto"><h3 class="sh3"><span class="sn">1-3</span><span>万が一、水が入ったり、故障したら</span></h3>
 <div class="oh2"><div class="ohl"><div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>レンタルの人</b></span><div class="ns">そのまま使わずに、すぐお店に伝えよう</div></div></div><div class="memo-slot"></div></div>
@@ -347,7 +347,7 @@ for sec in STEPS:
     for gi, g in enumerate(groups):
         t = sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>'
         # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから新規項目である洗浄のやり方
-        t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！！</span>'}.get(sec.get("rel"), "")
+        t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！</span>'}.get(sec.get("rel"), "")
         if sec["id"] in COLS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in g[0::2]) + '</div><div class="col">' + "".join(stepbox(x) for x in g[1::2]) + "</div></div>"
@@ -390,7 +390,7 @@ TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">2</span></span><span class="cv-e"><span class="g">洗浄</span>編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！！</span>新規項目である洗浄のやり方</p>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！</span>新規項目である洗浄のやり方</p>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
@@ -940,10 +940,10 @@ CSS += """
 .edtag b{display:inline-flex;align-items:center;justify-content:center;min-width:3.6mm;height:3.6mm;padding:0 .8mm;background:var(--navy);color:#fff;border-radius:1mm;font-size:7pt}
 """
 CSS += """
-/* 準備とのちがいの札：「ふり返り」（つけたときの逆）はうすいオレンジ、「NEW！！」（ここから新しい）は大事と同じピンク（10/13 ご指示で札の字を変更）（ここから先は初めて見るやり方だと、目で分かるように） */
+/* 準備とのちがいの札：「ふり返り」（つけたときの逆）はうすいオレンジ、「NEW！」（ここから新しい）は大事と同じピンク（10/13 ご指示で札の字を変更）（ここから先は初めて見るやり方だと、目で分かるように） */
 .half.rel{background:var(--p-blue)!important;color:var(--navy)!important}
 .half.rel.new{background:var(--p-pink2)!important;color:var(--p-ink-red)!important}
-/* 「ふり返り」「NEW！！」の札は、見出し・もくじ・表紙の説明の行の、どこでも同じ見た目にする（10/13 ご指摘：表紙の説明の行だけ字がつまっていなかった）
+/* 「ふり返り」「NEW！」の札は、見出し・もくじ・表紙の説明の行の、どこでも同じ見た目にする（10/13 ご指摘：表紙の説明の行だけ字がつまっていなかった）
    字のつめ方・大きさ・余白・字の間を、ここで全部そろえる（relcheck.js で検査） */
 .half.rel{font-feature-settings:"palt"!important;font-size:9pt!important;font-weight:900!important;padding:0 1.6mm!important;letter-spacing:0!important}
 /* 2ページを手順と同じ2列の形にした（10/13）。上の段（参考動画／memo）は中身の高さだけにして、残りを写真に回す */

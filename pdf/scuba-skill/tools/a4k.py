@@ -12,7 +12,7 @@ from content_k import INTRO, STEPS, SIGNALS, SIGNAL_NOTES, POINTS, QUIZ, QUIZ2  
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
-    _OLDT = {"1": "いちばん大事なのは“リラックス”じゃ！", "2": "“耳抜き”のやり方3選", "5": "{bc}排気と{regu}",
+    _OLDT = {"1": "いちばん大事なのは“リラックス”だよ", "2": "“耳抜き”のやり方3選", "5": "{bc}排気と{regu}",
              "6": "マスククリアとマスク脱着", "7": "空気は、バディと分け合える", "8": "浮上と、潜った後の過ごし方"}
     INTRO["title"] = _OLDT["1"]
     for _x in STEPS:
@@ -343,7 +343,7 @@ for sec in STEPS:
     for gi, g in enumerate(groups):
         t = sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>'
         # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから講習の後に、知っておくと楽になること
-        t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！！</span>'}.get(sec.get("rel"), "")
+        t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！</span>'}.get(sec.get("rel"), "")
         if sec["id"] in COLS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
             # 中性浮力のページは、左に3-1・3-2、右に3-3〜4-2を置く（どの手順にも写真を付けたので、列の長さをそろえる）
@@ -394,7 +394,7 @@ TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん
 TOC_TT = {"最後に": "その他・クイズ"}
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{T(TOC_TT.get(lb, tt))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習でやったことの、おさらい　<span class="half rel new">NEW！！</span>講習の後に、知っておくと楽になること</p>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習でやったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 # 中性浮力のページ（3と4を1ページにまとめた）は、写真を少し低くしてよい（10ページ以内に収めるため。仮の形）
@@ -541,7 +541,7 @@ CSS += """
 .pts{background:none!important;padding:0!important;font-size:12pt}
 .quiz{display:grid!important;grid-template-columns:1fr 1fr;column-gap:7mm;row-gap:0!important}
 .quiz .qh{grid-column:1/-1;justify-self:start;margin-top:2mm}
-.qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.6mm 0!important;font-size:11pt}
+.qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.2mm 0!important;font-size:11pt}   /* 10/20 見出しに下線を足した分、クイズの行を少し詰めて1ページに収める */
 """
 
 # ── 道具の名前の前の四角（10/7 ご指示）：ここだけは、はっきりした色で見分ける ──
@@ -946,10 +946,10 @@ CSS += """
 .edtag b{display:inline-flex;align-items:center;justify-content:center;min-width:3.6mm;height:3.6mm;padding:0 .8mm;background:var(--navy);color:#fff;border-radius:1mm;font-size:7pt}
 """
 CSS += """
-/* 準備とのちがいの札：「ふり返り」（つけたときの逆）はうすいオレンジ、「NEW！！」（ここから新しい）は大事と同じピンク（10/13 ご指示で札の字を変更）（ここから先は初めて見るやり方だと、目で分かるように） */
+/* 準備とのちがいの札：「ふり返り」（つけたときの逆）はうすいオレンジ、「NEW！」（ここから新しい）は大事と同じピンク（10/13 ご指示で札の字を変更）（ここから先は初めて見るやり方だと、目で分かるように） */
 .half.rel{background:var(--p-blue)!important;color:var(--navy)!important}
 .half.rel.new{background:var(--p-pink2)!important;color:var(--p-ink-red)!important}
-/* 「ふり返り」「NEW！！」の札は、見出し・もくじ・表紙の説明の行の、どこでも同じ見た目にする（10/13 ご指摘：表紙の説明の行だけ字がつまっていなかった）
+/* 「ふり返り」「NEW！」の札は、見出し・もくじ・表紙の説明の行の、どこでも同じ見た目にする（10/13 ご指摘：表紙の説明の行だけ字がつまっていなかった）
    字のつめ方・大きさ・余白・字の間を、ここで全部そろえる（relcheck.js で検査） */
 .half.rel{font-feature-settings:"palt"!important;font-size:9pt!important;font-weight:900!important;padding:0 1.6mm!important;letter-spacing:0!important}
 /* 2ページを手順と同じ2列の形にした（10/13）。上の段（参考動画／memo）は中身の高さだけにして、残りを写真に回す */
