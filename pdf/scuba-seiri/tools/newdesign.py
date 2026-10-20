@@ -124,10 +124,22 @@ def chips(no):
 .sn *,.tl *,.no *,.half.rel *{{color:#fff!important}}
 .page .lp,.page .kpk .nk,.page .mtk{{background:#b4234a!important;color:#fff!important}}   /* 大事＝いちばん目立つ濃い赤 */
 .page .half.rel.new{{background:#b4234a!important}}
+/* 10/20 まーく様「もくじの右の札と、大事・補足の札が同じ形で見分けがつかない。形を変えて、種類をはっきり分けて」
+   札の形の決まり（種類ごとに1つの形）：
+   ・番号（1-1・①など）……………… 濃い地に白い字（矢印の形）
+   ・補足／大事（欄の札）………………… 濃い地に白い字（四角）
+   ・題の横の札（前半・後半・ふり返り・NEW）… 白地に、色の線と色の字（中を塗らない） */
+/* 番号の札は、どこでも同じ矢印の形（もくじの「その1」・ページ左上の「その2」も、手順の「2-1」と同じ）。
+   補足／大事（四角）と形で見分けられるようにする。矢印の先の分だけ右をあけて、字を見た目のまん中に置く */
+.page .tl,.page .no{{border-radius:0!important;box-sizing:border-box;padding-right:2.2mm!important;padding-left:.6mm!important;
+ clip-path:polygon(0 0,calc(100% - 1.8mm) 0,100% 50%,calc(100% - 1.8mm) 100%,0 100%)!important}}
+.page .half,.page .half.rel,.page .half.rel.new{{background:#fff!important;color:{m}!important;box-shadow:inset 0 0 0 1px {m}!important}}
+.page .half *,.page .half.rel *{{color:inherit!important}}
+.page .half.rel.new{{color:#b4234a!important;box-shadow:inset 0 0 0 1px #b4234a!important}}
 /* 10/20 まーく様「枠背景は番号などに統一。本文中の枠背景はごちゃごちゃする」
    → 本文の中の言葉（ファーストステージ など）は、枠をやめて「色つきの太字＋下線」で目立たせる */
 .page .sasuke .fs,.page .fs{{display:inline!important;background:none!important;color:{m}!important;padding:0!important;border-radius:0!important;box-shadow:none!important;
- font-weight:900!important;text-decoration:underline;text-decoration-thickness:.12em;text-underline-offset:.24em;text-decoration-color:{line};text-decoration-skip-ink:none}}
+ font-weight:700!important;text-decoration:underline;text-decoration-thickness:.12em;text-underline-offset:.24em;text-decoration-color:{line};text-decoration-skip-ink:none}}
 .kpk::before{{background:#b4234a!important}}
 .notes .kx{{position:relative;padding-left:3.2mm!important}}   /* 字の始まりを大事の欄とそろえる */
 .notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:1.2mm;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */

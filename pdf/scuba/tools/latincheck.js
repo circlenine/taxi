@@ -14,5 +14,9 @@ const r=await p.evaluate(async()=>{
   const k=fam+'|'+c.fontWeight;(combos[k]=combos[k]||{fam,wt:c.fontWeight,eg:[],pg:(e.closest('.page')||{}).id,small:false});if(parseFloat(c.fontSize)<30)combos[k].small=true;if(combos[k].eg.length<3)combos[k].eg.push(n.textContent.trim().slice(0,14));}
  const body=getComputedStyle(document.querySelector('.notes .ns')||document.body);const ref=stem(body.fontWeight+' 200px "'+body.fontFamily.split(',')[0].replace(/"/g,'')+'"','十');
  return {ref,rows:Object.values(combos).map(o=>({...o,l:stem(o.wt+' 200px "'+o.fam+'"','l'),one:stem(o.wt+' 200px "'+o.fam+'"','1')}))};});
-let bad=0;for(const o of r.rows){const s=Math.min(o.l||9,o.one||9);const ok=s>=0.11||!o.small;if(!ok)bad++;console.log((ok?'  ':'NG ')+o.fam+' '+o.wt+'  縦線 '+(s*100).toFixed(1)+'%（11%以上でOK）  例：'+o.eg.join(' / '));}
-console.log(bad?'NG 細い英数字・記号がある（'+bad+'種類）':'英数字・記号の太さ OK');await b.close();process.exit(bad?1:0);})();
+const faux=await p.evaluate(()=>{const av={};document.fonts.forEach(f=>{const fam=f.family.replace(/"/g,'');(av[fam]=av[fam]||[]).push(...String(f.weight).split(' ').map(Number))});
+ const o={};const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){if(!n.textContent.trim())continue;const e=n.parentElement;if(e.closest('svg,script,style,.emj'))continue;const c=getComputedStyle(e);const fam=c.fontFamily.split(',')[0].replace(/"/g,'').trim();if(!av[fam])continue;const mx=Math.max(...av[fam]);if(+c.fontWeight>mx){const k=fam+' '+c.fontWeight+'（いちばん太いのは'+mx+'）';o[k]=o[k]||(e.className+'「'+n.textContent.trim().slice(0,8)+'」');}}return o;});
+// にせの太字（字に無い太さを頼むと、機械が線を太らせて字がつぶれる）があれば止める
+let bad=0;for(const [k,v] of Object.entries(faux)){bad++;console.log('NG にせの太字 '+k+' 例：'+v);}
+for(const o of r.rows){const s=Math.min(o.l||9,o.one||9);const ok=s>=0.11||!o.small;if(!ok)bad++;console.log((ok?'  ':'NG ')+o.fam+' '+o.wt+'  縦線 '+(s*100).toFixed(1)+'%（11%以上でOK）  例：'+o.eg.join(' / '));}
+console.log(bad?'NG 細い字・にせの太字がある（'+bad+'種類）':'英数字・記号の太さ OK');await b.close();process.exit(bad?1:0);})();

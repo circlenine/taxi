@@ -134,6 +134,11 @@ document.querySelectorAll('.page').forEach(function(pg){
 })();</script>"""
 
 PUNCT_CSS = """
+/* 10/20 まーく様「見出しの字・番号の数字を、しっかり太く（つぶれて見えない形に）」
+   ・題の字（解星デコール）は700がいちばん太い。900を頼むと、機械が線を太らせた「にせの太字」になり、字がつぶれる → 700にそろえる
+   ・番号の数字は、数字の形がはっきりした BIZ UD明朝の太字にする（線が太く、6・8・9 の中がつぶれない） */
+.page .edtag,.page .edtag *,.page .tp,.page .tp *,.page .half,.page .lx,.page .lp,.page .nk,.page .tapm,.page .mh,.page .qh,.page .mtk,.page .toc *,.page .sn,.page .nn,.page .nn2{font-weight:700!important}
+.page .sn,.page .sn *,.page .nn,.page .nn2,.page .tp,.page .tp *,.page .no{font-family:"BIZ UDPMincho","Kaisei Decol",serif!important;font-weight:700!important}
 /* 「、。」などの空いている側を狭める（punct_js が印を付ける） */
 /* 見出しの「字のあいだを詰める」決まりに負けないよう、強く書く（.pqr を重ねて強さを上げている） */
 .page .pqr.pqr.pqr{letter-spacing:-.42em!important}
