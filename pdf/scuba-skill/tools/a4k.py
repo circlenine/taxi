@@ -402,6 +402,9 @@ def _diff(a, b):
     A = _Im.open(f"/tmp/claude-0/kf/{a}.jpg").convert("L").crop((420, 150, 1260, 810)).resize((84, 66))
     Bq = _Im.open(f"/tmp/claude-0/kf/{b}.jpg").convert("L").crop((420, 150, 1260, 810)).resize((84, 66))
     return _St.Stat(_Ch.difference(A, Bq)).mean[0]
+# 関所：合図の説明に「前」「手前」を使わない（向きが分かりにくい。10/20 まーく様）。向きは「自分のほう」「相手のほう」
+_amb = [f"{_n}：{_c}" for _n, _fs in SIG_MOVE for _k, _c in _fs if "前" in _c] + [f"{_n}：{_c}" for _n, _k, _c in SIG_STILL if "前" in _c]
+if _amb: raise SystemExit("NG 合図の説明に「前」「手前」がある（自分のほう／相手のほう で書く）→ " + "、".join(_amb))
 for _n, _fs in SIG_MOVE:
     if len(_fs) != 2: raise SystemExit(f"NG 合図「{_n}」：動きのある合図は2枚（何をして→どうする）")
     _d = _diff(_fs[0][0], _fs[1][0])
