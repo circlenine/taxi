@@ -120,10 +120,14 @@ FINE_OLD = FINE.replace(".step .nt{padding:2.2mm .4mm!important}", "").replace("
 def chips(no):
     m, line, bg, dash, dot = COL[no]
     return f"""
-.page .sn,.page .tl,.page .no,.page .nk,.page .kx .nk,.page .lx,.page .lp,.page .mtk,.page .half.rel,.page .nn,.page .nn2,.page .qh,.page .mk,.page .fs,.page .play{{background:{m}!important;color:#fff!important;box-shadow:none!important}}
+.page .sn,.page .tl,.page .no,.page .nk,.page .kx .nk,.page .lx,.page .lp,.page .mtk,.page .half.rel,.page .nn,.page .nn2,.page .qh,.page .mk,.page .play{{background:{m}!important;color:#fff!important;box-shadow:none!important}}
 .sn *,.tl *,.no *,.half.rel *{{color:#fff!important}}
 .page .lp,.page .kpk .nk,.page .mtk{{background:#b4234a!important;color:#fff!important}}   /* 大事＝いちばん目立つ濃い赤 */
 .page .half.rel.new{{background:#b4234a!important}}
+/* 10/20 まーく様「枠背景は番号などに統一。本文中の枠背景はごちゃごちゃする」
+   → 本文の中の言葉（ファーストステージ など）は、枠をやめて「色つきの太字＋下線」で目立たせる */
+.page .sasuke .fs,.page .fs{{display:inline!important;background:none!important;color:{m}!important;padding:0!important;border-radius:0!important;box-shadow:none!important;
+ font-weight:900!important;text-decoration:underline;text-decoration-thickness:.12em;text-underline-offset:.24em;text-decoration-color:{line};text-decoration-skip-ink:none}}
 .kpk::before{{background:#b4234a!important}}
 .notes .kx{{position:relative;padding-left:3.2mm!important}}   /* 字の始まりを大事の欄とそろえる */
 .notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:1.2mm;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */

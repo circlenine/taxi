@@ -7,7 +7,7 @@ try{await p.waitForFunction(()=>window.__laid===true,{timeout:20000});}catch(e){
 const want=process.argv[3];if(!want){console.log('本文の字の点検は、この形では行いません');await b.close();return;}
 const bad=await p.evaluate((want)=>{const out=[];
  const roots=document.querySelectorAll('.notes,.sasuke,.bg,.mts,.qz,.nmr .ds,.howto,.relnote,.pts');
- const chip='.nk,.fs,.mtk,.lx,.lp,.half,.nn,.nn2,.qh,.mk,.sn,.no,.tl,.play';
+ const chip='.nk,.mtk,.lx,.lp,.half,.nn,.nn2,.qh,.mk,.sn,.no,.tl,.play';
  for(const r of roots){const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT);let n;
   while(n=w.nextNode()){if(!n.textContent.trim())continue;const e=n.parentElement;if(e.closest(chip)||e.closest('.emj'))continue;
    const f=getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g,'').trim();
