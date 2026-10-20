@@ -22,7 +22,7 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
    if(Math.max(...B)-Math.min(...B)>1)out.push('となりの手順と写真の下がずれ '+r.map(x=>x.querySelector('.sn').textContent).join('/'));
    r.forEach(x=>{const a=[...x.querySelectorAll('.photos img')].map(i=>i.getBoundingClientRect());const b=Math.round(Math.max(...a.map(q=>q.bottom)));a.forEach(q=>{});});});});
  // 表紙の題：ページ（本文）の幅いっぱいに広がっているか（10/15 ご指示：題をページ幅に合わせる）
- {const c=document.querySelector('#p1 .cover'),t=c&&c.querySelector('.cv-t:not(.lgE)');if(t){   /* 10/20 ステッカー型のロゴ（lgE）は、高さを決めてまん中に置く形なので、幅いっぱいの決まりから外す */const rg=document.createRange();rg.selectNodeContents(t);
+ {const c=document.querySelector('#p1 .cover'),t=c&&c.querySelector('.cv-t:not(.cv-logo)');if(t){   /* 10/20 ステッカー型のロゴ（lgE）は、高さを決めてまん中に置く形なので、幅いっぱいの決まりから外す */const rg=document.createRange();rg.selectNodeContents(t);
   const w=rg.getBoundingClientRect().width,W=c.getBoundingClientRect().width;if(w<W*0.97)out.push('表紙の題がページ幅に届いていない '+Math.round(w/W*100)+'%');}}
  // 本文の行の間隔：どこも字の大きさの1.6倍か（10/7 ご指摘）
  {const bad={};document.querySelectorAll('.notes *,.nmr *,.bg *,.sasuke *,.pts *,.qz *').forEach(e=>{const cs=getComputedStyle(e);if(!e.textContent.trim()||cs.display==='none')return;

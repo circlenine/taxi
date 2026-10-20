@@ -106,6 +106,58 @@ def svg(v, m, uid="lg"):
 <path d="M590 214 Q662 246 740 212" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
 <path d="M590 214 Q662 246 740 212" fill="none" stroke="{CORAL}" stroke-width="6" stroke-linecap="round"/>
 <g fill="#fff" stroke="{SEA2}" stroke-width="3.5"><circle cx="652" cy="58" r="7"/><circle cx="672" cy="34" r="10"/><circle cx="694" cy="13" r="5.5"/></g></svg>'''
+    # ── 10/20 まーく様「根本から見直して、いくつかのパターンを」── 考え方のちがう形を並べて選んでいただく
+    NV, PK, SEA, SKY, SKIN = "#173a63", "#e0507f", "#2f78c4", "#cdebf8", "#ffe1cc"
+    def face(cx, cy, r):
+        # にっこり顔のダイバー：顔の円＋マスク（2つの窓と鼻の部分）＋笑った口＋シュノーケル
+        k = r / 60
+        def P(d): return d
+        return (f'<g transform="translate({cx} {cy}) scale({k})">'
+                f'<path d="M50 -10 Q66 -10 66 -30 V-78" fill="none" stroke="{NV}" stroke-width="13" stroke-linecap="round"/>'
+                f'<path d="M50 -10 Q66 -10 66 -30 V-78" fill="none" stroke="{PK}" stroke-width="7" stroke-linecap="round"/>'
+                f'<circle r="60" fill="{SKIN}" stroke="{NV}" stroke-width="5"/>'
+                f'<path d="M-62 -10 H62" stroke="{NV}" stroke-width="9" stroke-linecap="round"/>'
+                f'<path d="M-46 -14 Q-46 -32 -28 -32 H28 Q46 -32 46 -14 V2 Q46 18 30 18 H12 Q6 18 4 10 Q0 4 -4 10 Q-6 18 -12 18 H-30 Q-46 18 -46 2 Z" fill="{PK}" stroke="{NV}" stroke-width="5" stroke-linejoin="round"/>'
+                f'<path d="M-38 -12 Q-38 -24 -26 -24 H-6 Q0 -24 0 -18 V-4 Q0 8 -12 10 H-26 Q-38 10 -38 0 Z M38 -12 Q38 -24 26 -24 H6 Q0 -24 0 -18 V-4 Q0 8 12 10 H26 Q38 10 38 0 Z" fill="{SKY}"/>'
+                f'<path d="M-30 -16 L-20 -16 M10 -16 L20 -16" stroke="#fff" stroke-width="4" stroke-linecap="round"/>'
+                f'<circle cx="-20" cy="-3" r="5" fill="{NV}"/><circle cx="20" cy="-3" r="5" fill="{NV}"/>'
+                f'<path d="M-22 32 Q0 50 22 32" fill="none" stroke="{NV}" stroke-width="6" stroke-linecap="round"/>'
+                f'<circle cx="-36" cy="30" r="7" fill="#ffb3c4"/><circle cx="36" cy="30" r="7" fill="#ffb3c4"/></g>')
+    def bub(pts, col=SEA):
+        return '<g fill="#fff" stroke="' + col + '" stroke-width="3.5">' + "".join(f'<circle cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in pts) + '</g>'
+    if v == "F":
+        # エンブレム型（ダイビングショップのワッペンの形）：まわりの輪に題、まん中ににっこり顔のダイバー
+        return f'''<svg class="logo" viewBox="0 0 300 300" role="img" aria-label="Safe Dive for a Girlie Smile"><defs>
+<path id="{uid}t" d="M42 150 A108 108 0 0 1 258 150"/><path id="{uid}b" d="M36 150 A114 114 0 0 0 264 150"/>
+<clipPath id="{uid}c"><circle cx="150" cy="150" r="86"/></clipPath></defs>
+<circle cx="150" cy="150" r="140" fill="{NV}"/><circle cx="150" cy="150" r="132" fill="none" stroke="#fff" stroke-width="2"/>
+<circle cx="150" cy="150" r="90" fill="#fff"/>
+<g clip-path="url(#{uid}c)"><rect x="60" y="60" width="180" height="180" fill="{SKY}"/>
+<path d="M60 196 Q82 184 105 196 T150 196 T195 196 T240 196 V240 H60 Z" fill="#7cc7e8"/><path d="M60 214 Q82 202 105 214 T150 214 T195 214 T240 214 V240 H60 Z" fill="{SEA}"/></g>
+<circle cx="150" cy="150" r="88" fill="none" stroke="{PK}" stroke-width="5"/>
+{face(146, 156, 40)}
+{bub([(200, 128, 4.5), (208, 110, 6), (200, 92, 3.5)])}
+<text class="lf-f lf7" font-family="Fredoka" font-weight="700" font-size="36" fill="#fff" letter-spacing="3"><textPath href="#{uid}t" startOffset="50%" text-anchor="middle">SAFE DIVE</textPath></text>
+<text class="lf-f lf7" font-family="Fredoka" font-weight="700" font-size="22" fill="#fff" letter-spacing="2"><textPath href="#{uid}b" startOffset="50%" text-anchor="middle">FOR A GIRLIE SMILE</textPath></text>
+<g fill="{PK}"><circle cx="24" cy="150" r="5"/><circle cx="276" cy="150" r="5"/></g></svg>'''
+    if v == "G":
+        # マーク＋文字型（会社のロゴの定番）：左ににっこり顔のダイバーのマーク、右に題を2行（同じ字・同じ太さ）
+        return f'''<svg class="logo" viewBox="0 0 760 240" role="img" aria-label="Safe Dive for a Girlie Smile">
+<circle cx="120" cy="124" r="100" fill="{SKY}"/><path d="M28 160 Q60 146 92 160 T156 160 T214 158 A100 100 0 0 1 28 160 Z" fill="#7cc7e8"/>
+{face(120, 118, 58)}
+{bub([(214, 70, 6), (228, 46, 9), (220, 20, 5)])}
+<text class="lf-f lf7" x="252" y="112" font-family="Fredoka" font-weight="700" font-size="84" fill="{PK}">Safe Dive</text>
+<text class="lf-f lf7" x="254" y="186" font-family="Fredoka" font-weight="700" font-size="54" fill="{NV}">for a Girlie Smile</text>
+<path d="M256 206 Q330 222 404 206 T552 206 T700 206" fill="none" stroke="{SEA}" stroke-width="5" stroke-linecap="round"/></svg>'''
+    if v == "H":
+        # 波に乗る1行型：題をまるごと1行の筆記体にして、波の形に沿わせる。下に波の線、はしから泡
+        return f'''<svg class="logo" viewBox="0 0 1000 220" role="img" aria-label="Safe Dive for a Girlie Smile"><defs>
+<path id="{uid}w" d="M40 130 C200 70 330 170 500 120 S800 70 960 120"/>
+<linearGradient id="{uid}g" x1="0" x2="1"><stop offset="0" stop-color="{PK}"/><stop offset=".5" stop-color="#b65fb0"/><stop offset="1" stop-color="{SEA}"/></linearGradient></defs>
+<path d="M40 170 C200 120 330 200 500 160 S800 120 960 160" fill="none" stroke="{SKY}" stroke-width="16" stroke-linecap="round"/>
+<path d="M40 186 C200 140 330 214 500 178 S800 140 960 178" fill="none" stroke="#7cc7e8" stroke-width="7" stroke-linecap="round"/>
+<text class="lf-p" font-family="Pacifico" font-size="70" fill="url(#{uid}g)" stroke="#fff" stroke-width="10" stroke-linejoin="round" paint-order="stroke"><textPath href="#{uid}w" startOffset="50%" text-anchor="middle">Safe Dive for a Girlie Smile</textPath></text>
+{bub([(958, 92, 7), (972, 64, 10), (962, 34, 6)])}</svg>'''
     return ""
 
 def apply(html, m):
@@ -119,8 +171,8 @@ CSS = """
 /* ロゴの絵：ページの左右いっぱい。字の決まり（解星デコール）を受けつがないよう、絵の中の字は絵の側で決める */
 #p1 h1.cv-logo{display:block;margin:1mm 0 0!important;line-height:0!important;white-space:normal!important}
 #p1 h1.cv-logo svg{display:block;width:100%;height:auto}
-#p1 h1.cv-logo.lgE text.lf-p.lf-p{letter-spacing:0!important;font-feature-settings:normal!important}   /* 筆記体はつながった字。字間を空けると、つながりが切れて重なる */
-#p1 h1.cv-logo.lgE svg{width:auto;height:37mm;margin:0 auto}   /* ステッカー型は横幅いっぱいにせず、高さを決めてまん中に（もくじまで1ページに収める） */
+#p1 h1.cv-logo text.lf-p.lf-p,#p1 h1.cv-logo text.lf-f.lf-f{letter-spacing:0!important;font-feature-settings:normal!important}   /* 筆記体はつながった字。字間を空けると、つながりが切れて重なる */
+#p1 h1.cv-logo.lgE svg,#p1 h1.cv-logo.lgF svg,#p1 h1.cv-logo.lgG svg,#p1 h1.cv-logo.lgH svg{width:auto;height:37mm;margin:0 auto}   /* ステッカー型は横幅いっぱいにせず、高さを決めてまん中に（もくじまで1ページに収める） */
 /* 表紙の題の決まり（筆記体・影）が絵の中の字にまで効かないよう、強く書く */
 #p1 h1.cv-logo,#p1 h1.cv-logo *{text-shadow:none!important}
 #p1 h1.cv-logo .sp10.sp10{letter-spacing:10px!important}#p1 h1.cv-logo .sp7.sp7{letter-spacing:7px!important}#p1 h1.cv-logo .sp4.sp4,#p1 h1.cv-logo .sp4.sp4 *{letter-spacing:4px!important}
