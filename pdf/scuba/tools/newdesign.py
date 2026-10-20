@@ -110,6 +110,7 @@ FINE = """
 .page:has(.mtg) .ph h2{white-space:nowrap}   /* まとめの題は1行に（2行だと写真の場所が足りない） */
 .mtc>.mth{order:0;font-size:10pt!important}
 .mtc>.mts{order:2}
+.mtc>.mth{min-height:2.8em!important;align-items:center!important}   /* 10/20 まーく様「1行と2行での画像のズレ」：題が1行でも2行ぶんの高さを取り、同じ段の写真の上の端をそろえる（photoalign.js で点検） */
 .mtc>.jump{order:3;margin-top:auto!important;white-space:normal!important}
 """
 
@@ -155,6 +156,8 @@ html body .page .qh{{padding-left:3mm!important;padding-right:4.8mm!important}}
 .kpk::before{{background:#b4234a!important}}
 .notes .kx{{position:relative;padding-left:3.2mm!important}}   /* 字の始まりを大事の欄とそろえる */
 .notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:4px;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */
+.mtc>.mts{{position:relative;padding-left:3.2mm!important}}   /* 10/20 まーく様「本文には左線を入れて」（まとめの札の文） */
+.mtc>.mts::before{{content:"";position:absolute;left:0;top:.6mm;bottom:.6mm;width:4px;background:{line}}}   /* 補足の左線と同じ太さ・同じ色 */
 /* 10/20 まーく様「クイズは、質問文にも、答えと同じ幅で背景色を」→ 質問＝濃い地に白い字、答え＝うすい地。左右の幅はそろえる */
 .page .qz .q{{background:{m};color:#fff!important;padding:1mm 2mm;border-radius:1mm;display:block;box-sizing:border-box;font-size:10pt;line-height:1.45!important}}   /* flex にすると、字と札がばらばらの箱になって崩れる（10/20 洗浄編で確かめた）ので block */
 .page .qz{{row-gap:.6mm!important}}

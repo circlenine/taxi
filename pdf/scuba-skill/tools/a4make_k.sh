@@ -42,6 +42,7 @@ node $S/tools/arrowcheck.js $S/build_k/a4.html   # しおりの札の字が、�
 node $S/tools/logocheck.js $S/build_k/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
 node $S/tools/sigover.js $S/build_k/a4.html   # 合図の写真の上に字が重なっていないか（10/20）
 node $S/tools/barcheck.js $S/build_k/a4.html   # 左の線の太さが、左右の列・どのページでも同じか（10/20）
+node $S/tools/photoalign.js $S/build_k/a4.html   # まとめの写真が、題の行数でずれていないか（10/20）
 node $S/tools/latincheck.js $S/build_k/a4.html   # 英数字・記号が細くないか（10/20）
 python3 -I $S/tools/tonecheck.py $S/build_k/a4.html   # 言い回し（じゃ！・！の連続）が無いか（10/20）
 node $S/tools/fontmix.js $S/build_k/a4.html "$(python3 -c 'import sys;sys.path.insert(0,"'$S'/tools");import fontset as f;print(f._BM[f.BODYMIN][0].strip(chr(34)) if f.MODE=="kaisei" else "")')"   # 本文の中で字がまざっていないか（10/20）

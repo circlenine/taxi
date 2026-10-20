@@ -7,7 +7,7 @@ const { PNG } = require('pngjs');
 let bad=0;
 for(const sc of [1,2,3]){
  const p=await b.newPage({deviceScaleFactor:sc});await p.goto('file://'+src,{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
- const boxes=await p.evaluate(()=>[...document.querySelectorAll('.page .nt.kpk,.page .notes .kx')].map(e=>{const r=e.getBoundingClientRect();const pg=e.closest('.page');const P=pg.getBoundingClientRect();
+ const boxes=await p.evaluate(()=>[...document.querySelectorAll('.page .nt.kpk,.page .notes .kx,.page .mtc>.mts')].map(e=>{const r=e.getBoundingClientRect();const pg=e.closest('.page');const P=pg.getBoundingClientRect();
    return {pg:pg.id,kind:e.classList.contains('kpk')?'大事':'補足',x:r.left+window.scrollX,y:r.top+window.scrollY+r.height/2,side:(r.left-P.left)<P.width/2?'左':'右'}}));
  const buf=await p.screenshot({fullPage:true});const png=PNG.sync.read(buf);
  const res={};
