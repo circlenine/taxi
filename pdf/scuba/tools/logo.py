@@ -173,7 +173,12 @@ def svg(v, m, uid="lg"):
                 t = 0.16 + 0.68 * i / 12
                 pts.append(f"{x0 + 120 * t:.1f} {206 - 36 * t * (1 - t) + 7:.1f}")
             return "M" + " L".join(pts)
-        hl = " ".join(crest(x0) for x0 in (240, 720))     # 山のまん中 x=300・780（題の字のかげにならない山）
+        # 10/20 まーく様「同じ形の白い線がならぶと、ただの記号に見える」→ 白い線はやめて、
+        #   太陽の光が海に映る「光の道」にする（夕日の真下の水面に、長さのちがう光のすじが、下へいくほど短く・うすくなる）
+        #   太陽（x=600）の真下にだけ置く。長さ・高さ・濃さはすべてちがえる（同じ形を並べない）
+        GL = [(198, 170, .95), (208, 120, .85), (218, 80, .7), (228, 44, .5)]   # サブタイトル（上はし y≈236）に重ならない所まで
+        glint = "".join(f'<rect x="{600 - w / 2 + dx:.0f}" y="{y}" width="{w}" height="{h}" rx="{h / 2}" fill="#ffd9a0" opacity="{o}"/>'
+                        for (y, w, o), dx, h in zip(GL, (-6, 8, -4, 5), (5, 4.5, 4, 3.5)))
         # smile の下の、にっこりカーブ：smile の字の左右のはし（画面で測った：907〜1086）のまん中に、左右対称に置く
         SM0, SM1 = 907, 1086
         smc, smw = (SM0 + SM1) / 2, (SM1 - SM0) * 0.86
@@ -195,7 +200,7 @@ def svg(v, m, uid="lg"):
 <g clip-path="url(#{uid}sea)">
 <path d="M0 184 Q55 164 110 184 T220 184 T330 184 T440 184 T550 184 T660 184 T770 184 T880 184 T990 184 T1100 184 T1210 184 V300 H0 Z" fill="#7cc7e8"/>
 <path d="M0 206 Q60 188 120 206 T240 206 T360 206 T480 206 T600 206 T720 206 T840 206 T960 206 T1080 206 T1200 206 V300 H0 Z" fill="#2f78c4"/>
-<path d="{hl}" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/></g>
+{glint}</g>
 {line(605, 156, NAVY, NAVY, f'stroke="{NAVY}" stroke-width="13" stroke-linejoin="round"')}
 {line(600, 150, f"url(#{uid}bl)", f"url(#{uid}pk)", 'stroke="#fff" stroke-width="12" stroke-linejoin="round" paint-order="stroke"')}
 <path d="{sm}" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
