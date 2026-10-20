@@ -22,9 +22,7 @@
 MATOME_SUBS = [
     dict(id="1-1", key=["rr18"], title="あわてる前に「止める」：止まる→呼く→考える→伝える", pink=True),
     dict(id="1-2", key=["rr18"], title="「気になる」は、こまめに手放す"),
-    dict(id="1-3", key=["rr18"], title="潜る前に、3つ伝えておく"),
-    dict(id="1-4", key=["rr18"], title="はぐれたら：1分探して、水面で会う", pink=True),
-    dict(id="1-5", key=["rr18"], title="自分のペースで、体を楽に"),
+    dict(id="1-3", key=["rr18"], title="はぐれたら：1分探して、水面で会う", pink=True),
 ]
 
 NV = "#4b2a73"   # スキル編の色（図の線）
@@ -80,77 +78,69 @@ def pages(T, jump):
     _jp = lambda c: (f'<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a>' if c == "SIG" else jump(c))
     pk = lambda head, line: (f'<div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{head}</b></span>'
                              f'<div class="ns">{line}</div></div></div>')
-    # ── 1ページ目 ──
+    # 10/20 まーく様「ページは10ページにとどめて」→ その1は1ページ。中身は消さずに、表と図にまとめる
     chain = ('<div class="ixch">'
              '<span class="ixc">「気になる」が<br>たまる</span><i class="ixa">▶</i>'
              '<span class="ixc">息が浅く・<br>速くなる</span><i class="ixa">▶</i>'
              '<span class="ixc ixw">「空気が足りない」<br>気がする</span><i class="ixa">▶</i>'
              '<span class="ixc">急いで<br>上がりたくなる</span></div>'
-             '<p class="ixnote"><b>空気は、ちゃんとあるよ。</b>速く浅い息では呼き残しが出て、体に二酸化炭素がたまるので、苦しく感じるだけ。だから、まず<b>長く呼く</b></p>')
-    acts = [("stop", "止まる", "動くのをやめる。岩・ロープ・バディにつかまる"),
-            ("out", "呼く", "口から、ゆっくり長く、全部呼く。吸うのは、その後"),
-            ("think", "考える", "何が気になっているかを、1つだけ見つける"),
-            ("tell", "伝える", "合図でインストラクターさんに伝える")]
+             '<p class="ixnote"><b>空気は、ちゃんとあるよ。</b>浅い息で呼き残しが出て、二酸化炭素がたまり、苦しく感じるだけ。だから、まず<b>長く呼く</b></p>')
+    acts = [("stop", "止まる", "岩・ロープ・バディにつかまる"),
+            ("out", "呼く", "ゆっくり長く、全部呼く。吸うのはその後"),
+            ("think", "考える", "気になることを1つ見つける"),
+            ("tell", "伝える", "合図で、すぐ知らせる")]
     act = '<div class="ixact">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(acts, 1)) + '</div>'
+    flow = [("look", "見回す", "上と下も。泡を探す"),
+            ("clock", "1分探す", "いなければ、次へ"),
+            ("up", "ゆっくり浮上", "泡より遅い速さで"),
+            ("meet", "水面で会う", "水面でバディを待つ")]
+    rows = [("マスクに水", "マスクの上を押さえて、鼻から呼く", "6-1"),
+            ("耳が抜けない", "合図して少し上がり、もう一度。だめなら中止", "2-1"),
+            ("浮く・沈む", "呼くと沈み、吸うと浮く", "3-1"),
+            ("沈めない", "足をピタッと止めて、長く呼く", ""),
+            ("{regu}が外れた", "くわえ直し、まず呼いてから吸う", "5-2"),
+            ("のどがかわく", "みそ汁をすする口で吸う", ""),
+            ("遅れる・寒い", "がまんせず、合図で伝える", "SIG")]
     p1 = (sec("1-1", "あわてる前に「止める」",
-              '<p class="ixlead">あわてるのは、とつぜんではないよ。この順で少しずつ進むから、途中で止めれば大丈夫</p>' + chain
-              + '<p class="ixh">気づいたら、この4つ</p>' + act
-              + pk("急いで水面へ上がらない・息を止めない", "上がると、肺の中の空気がふくらむから。ゆっくり上がって、息はいつも続けよう"))
+              '<p class="ixlead">あわてるのは、とつぜんではないよ。少しずつ進むから、途中で止めれば大丈夫</p>' + chain
+              + '<p class="ixh">気づいたら、この4つ<small>（潜る前に、頭の中で1回練習しておこう）</small></p>' + act
+              + pk("急いで水面へ上がらない・息を止めない", "上がると肺の空気がふくらむから。ゆっくり上がって、息はいつも続けよう"))
           + sec("1-2", "「気になる」は、こまめに手放す",
-                '<div class="ixcupw"><div><p class="ixh">コップに例えてみよう！</p><p class="ixs">「気になる」は、コップにたまる水。1つずつ、すぐに手放せば、いつも余裕のまま</p></div>' + CUP + '</div>'
-                + '<div class="ixtb">'
-                + "".join(f'<span class="ixq">{T(a)}</span><span class="ixd">{T(b)}</span><span class="ixj">{_jp(c)}</span>' for a, b, c in [
-                    ("マスクに水が入る", "マスクの上を押さえて、鼻から呼く", "6-1"),
-                    ("耳が痛い・抜けない", "合図して、少し上がってもう一度。抜けなければ、そのダイブは中止", "2-1"),
-                    ("浮く・沈む", "呼くと沈み、吸うと浮く。底や壁を目印に確かめる", "3-1"),
-                    ("{regu}が口から外れた", "探してくわえ直し、まず呼いてから吸う", "5-2"),
-                    ("寒い・こわい・疲れた", "がまんしないで、合図で伝える", "SIG")]) + '</div>'))
-    # ── 2ページ目 ──
-    tell = [("体調", "寝不足・鼻づまり・かぜ気味は、耳が抜けにくくなる"),
-            ("苦手なこと", "「マスクの水が苦手」など。先に言っておくと、気にかけてもらえる"),
-            ("はぐれたときの決まり", "下の流れで良いか、合図と合わせて確かめる")]
-    flow = [("look", "止まって見回す", "上と下も。泡を探す"),
-            ("clock", "1分探す", "見つからなければ、次へ"),
-            ("up", "ゆっくり浮上", "自分の泡を追いこさない速さで"),
-            ("meet", "水面で会う", "水面で、バディを待つ")]
-    p2 = (sec("1-3", "潜る前に、3つ伝えておく",
-              '<div class="ixtell">' + "".join(f'<div class="ixt"><span class="ixn">{i}</span><b>{h}</b><span>{d}</span></div>' for i, (h, d) in enumerate(tell, 1)) + '</div>'
-              + '<p class="ixs">不安は、先に口に出すだけでも、ぐっと軽くなるよ</p>')
-          + sec("1-4", "はぐれたら：1分探して、水面で会う",
+                '<div class="ixcupw"><div class="ixtb">' + "".join(f'<span class="ixq">{T(a)}</span><span class="ixd">{T(b)}</span><span class="ixj">{_jp(c) if c else ""}</span>' for a, b, c in rows) + '</div>'
+                + '<div class="ixcupc"><p class="ixh">コップに例えてみよう！</p>' + CUP + '<p class="ixs">「気になる」は、コップにたまる水。1つずつ、すぐに手放せば、いつも余裕のまま</p></div></div>')
+          + sec("1-3", "はぐれたら、1分探して水面で会う",
                 '<div class="ixact ixflow">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(flow, 1)) + '</div>'
-                + pk("1人で、もう一度潜って探さない", "水面で待ち、見つからなければ、ボートやお店の人にすぐ知らせよう。決まりはお店で少しちがうことがあるので、潜る前の説明で必ず確かめてね"))
-          + sec("1-5", "自分のペースで、体を楽に",
-                '<div class="ixtb ixtb2">' + "".join(f'<span class="ixq">{a}</span><span class="ixd">{b}</span>' for a, b in [
-                    ("呼吸", "吸うより長く、ゆっくり呼く。空気が長持ちして、浮き沈みもおだやかになる"),
-                    ("足", "水面の近くでバタバタすると、沈めない。ピタッと止めると、すっと沈める"),
-                    ("ペース", "遅れそう・速いと感じたら、合図で伝えて、待ってもらおう"),
-                    ("のど", "かわいたら、みそ汁をすする口で、ゆっくり吸う"),
-                    ("練習", "潜る前に「止まる→呼く→考える→伝える」と「はぐれたら」を、頭の中で1回ずつ")]) + '</div>'))
-    return [p1, p2]
+                + pk("1人で、もう一度潜って探さない", "ボートやお店の人にすぐ知らせよう。決まりはお店で少しちがうので、潜る前に確かめてね")
+                + '<p class="ixs ixpre"><b>潜る前に伝えておこう：</b>体調（寝不足・鼻づまりは耳が抜けにくい）と、苦手なこと</p>'))
+    return [p1]
 
 CSS = """
 /* 10/20 その1（作り直し）：図と表で、ひと目で分かる形 */
 .page .step.ix>.sh3+*{margin-top:0!important}   /* 題の下のすき間は、ほかの手順と同じ 2.4mm（ほかの決まりで二重にあいていた） */
-.ix .ixlead{margin:0 0 2mm;font-size:10.5pt;line-height:1.5}
+.ix .ixlead{margin:0 0 1.4mm;font-size:10pt;line-height:1.5}
 .ixch{display:grid;grid-template-columns:1fr 4mm 1fr 4mm 1.25fr 4mm 1fr;align-items:center}
-.ixc{background:var(--pale);border-radius:1mm;padding:2mm 1mm;text-align:center;font-size:9.8pt;line-height:1.35}
+.ixc{background:var(--pale);border-radius:1mm;padding:1.2mm 1mm;text-align:center;font-size:9.8pt;line-height:1.35}
 .ixc.ixw{background:#ffe3ea;color:#b4234a}
 .ixa{font-style:normal;text-align:center;color:var(--navy);font-size:9pt}
-.ixnote{margin:1.6mm 0 0;font-size:9.6pt;line-height:1.5}
-.ixh{margin:2mm 0 1.2mm;font-size:11pt;color:var(--navy)}
-.ixact{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2.4mm}
-.ixk{border:1px solid var(--line);border-radius:2mm;padding:1.6mm 1.6mm 2mm;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative}
-.ixk .ixn{position:absolute;left:1.2mm;top:1.2mm}
-.ixi{width:14mm;height:12mm;display:block;margin:0 auto .6mm}
-.ixk b{font-size:11pt;color:var(--navy)}
-.ixk>span:last-child{font-size:9pt;line-height:1.4;margin-top:.6mm}
+.ixnote{margin:1.2mm 0 0;font-size:9.2pt;line-height:1.5}
+.ixh{margin:1.6mm 0 1mm;font-size:11pt;color:var(--navy)}
+.ixact{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm}
+.ixk{border:1px solid var(--line);border-radius:2mm;padding:1.4mm 1.4mm 1.4mm 2mm;display:grid;grid-template-columns:9mm minmax(0,1fr);column-gap:1.6mm;align-items:center;position:relative}
+.ixk .ixn{position:absolute;left:-1px;top:-1px;border-radius:2mm 0 1mm 0!important}
+.ixi{width:9mm;height:8mm;display:block;grid-row:1/3}
+.ixk b{font-size:10pt;color:var(--navy);line-height:1.25}
+.ixk>span:last-child{font-size:8.4pt;line-height:1.35}
 .ixn{display:inline-flex;align-items:center;justify-content:center;width:4.6mm;height:4.6mm;border-radius:1mm;background:var(--navy);color:#fff;font-size:8.5pt;line-height:1}
-.ix .notes{margin-top:2.4mm}
-.ixcupw{display:grid;grid-template-columns:minmax(0,1fr) 54mm;gap:3mm;align-items:center}
+.ix .notes{margin-top:1.6mm}
+.ixcupw{display:grid;grid-template-columns:minmax(0,1fr) 40mm;gap:3mm;align-items:start}
+.ixcupc .ixh{margin-top:0}
+.ixcupc .ixs{font-size:8.8pt;margin-top:1mm}
+.ixh small{font-size:8.8pt;color:var(--ink);margin-left:1mm}
+.ixpre{margin-top:1.6mm!important}
 .ixcup{width:100%;height:auto;display:block}
 .ixs{margin:0;font-size:9.8pt;line-height:1.5}
-.ixtb{display:grid;grid-template-columns:44mm minmax(0,1fr) auto;margin-top:2mm;border-top:1px solid var(--line)}
-.ixtb>span{padding:1.1mm 1.2mm;border-bottom:1px solid var(--line);font-size:9.6pt;line-height:1.45;display:flex;align-items:center}
+.ixtb{display:grid;grid-template-columns:34mm minmax(0,1fr) auto;margin-top:0;border-top:1px solid var(--line)}
+.ixtb>span{padding:.7mm 1.2mm;border-bottom:1px solid var(--line);font-size:9.2pt;line-height:1.4;display:block;align-self:stretch}   /* flex にすると、ルビや詰めの印で字がばらばらになる */
 .ixth{font-size:8.6pt!important;color:var(--muted);padding-top:1mm!important;padding-bottom:1mm!important}
 .ixq{color:var(--navy)}
 .ixj .jump{font-size:8.6pt;white-space:nowrap}

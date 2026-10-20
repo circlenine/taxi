@@ -25,10 +25,12 @@ def apply(html):
             out.append(part)
         else:
             out.append(_RX.sub(_rb, part))
-    return "".join(out)
+    html = "".join(out)
+    # もくじの行（a.tc）だけはルビを外す（もくじは字が詰まっていて、ルビの幅で字の間が広がってしまう。ページの題には付いている）
+    return re.sub(r'(<a class="tc".*?</a>)', lambda m: re.sub(r'<ruby>(.*?)<rt>.*?</rt></ruby>', r'\1', m.group(1)), html, flags=re.S)
 
 CSS = """
 /* ルビ：字の上に小さく。行の間がひろがりすぎないよう、ルビの行の高さは詰める */
 .page ruby{ruby-position:over}
-.page rt{font-size:.5em;line-height:1;font-weight:700;letter-spacing:0}
+.page rt{font-size:.5em;line-height:1;font-weight:700;letter-spacing:-.04em;white-space:nowrap}
 """
