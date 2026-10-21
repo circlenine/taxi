@@ -72,3 +72,18 @@
 - https://youtu.be/C2DpfolYgmU （大人のダイビング倶楽部：パニックにならない方法）
 - https://youtu.be/UOWYYw_6R-c （パパラギ先生：初心者がつまずきがちな事5選）
 - https://youtu.be/pcnoTiMgp5I （Totty：水中パニックのしくみと予防法）
+
+## 10/21 その1 を組み直すときに使った動画（まーく様にいただいたもの）
+- 10/19 の分（上）に加えて、次を読んだ（字幕から。行ごとの出どころは intro_k.py に書いた）
+- https://youtu.be/DdQ_FBW611U （熱烈先生：ダイビング中の呼吸ペース）
+- https://youtu.be/JV4Y5JFUl0Q （山田孝之さんの初ダイビング：小さな心配が重なる・生き物に気持ちを向ける）
+- https://youtu.be/_5WJG7QlgW0 （パパラギ先生：事故例から学ぶ）
+- https://youtu.be/yxGndu5whlk （パパラギ先生：パニックの対処法）
+- https://youtu.be/SCNIUKBHLLg （熱烈先生：パニックの対処方法）
+- https://youtu.be/goZLJAGXoQE （大人のダイビング倶楽部：バディがパニックになったら）
+- https://youtu.be/NWilL1G3rgM （タテキ：海が怖い本当の理由）
+- https://youtu.be/au4pS-a3Ins （タテキ：上達する3つのポイント）
+- https://youtu.be/fWYj7n5pbQk （SHIRO DIVE：パニックや不安感）
+- https://youtu.be/aES1ndyvCXY ・ https://youtu.be/WvxX4FgwIxo （熱烈先生）・ https://youtu.be/ZE8B_kOCD2U （パパラギ先生）・ https://youtu.be/z2yIbIVPUhU （英語：30秒の方法）
+- 中身が取れなかったもの：https://youtu.be/3DgFyHQhQao （字幕なし）・https://youtu.be/ltXMa80NvX4 （字幕が音楽だけ）
+- 入れなかったもの：呼吸のやり方（秒数・止める・長く吐く）＝まーく様の決まり／首を強く押すほぐし方・出どころのない数字
