@@ -437,7 +437,7 @@ SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 page("合図", "ハンドシグナル", f'{SIGREF}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqg3">{sm}{ss3}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
-page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "集約版！サッと1ページで見返そう！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div></div>')
+page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "集約版！サッと1ページで見返そう！"), f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span><br><span class="nw"><span class="lp mtk">大事</span>は、とくに大事なところ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div></div>{mt}</div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1192,12 +1192,14 @@ CSS += """
 .sqg3 .sqc{padding-top:1.2mm!important}
 .sqg3 figcaption{line-height:1.3!important;margin-top:.5mm!important}
 /* まとめ：クイズを入れるので、写真を少し横長に */
-.page .mtg .mtc>img{aspect-ratio:2.1!important}
+.page .mtg .mtc>img{aspect-ratio:1.8!important}
 /* 10/21 写真をタップすると、元の動画へ（写真を包むリンク）。写真の形は、包む前と同じ */
 .page .mtg .mtc>a.mtv{order:1;display:block;position:relative;line-height:0;background:none!important;padding:0!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:2mm}
-.page .mtg .mtc>a.mtv>img{width:100%!important;height:auto!important;aspect-ratio:2.1!important;object-fit:cover;display:block;border-radius:2mm}
+.page .mtg .mtc>a.mtv>img{width:100%!important;height:auto!important;aspect-ratio:1.8!important;object-fit:cover;display:block;border-radius:2mm}
 .page .mtg .mtc>a.mtv>.play{position:absolute;right:1.6mm;bottom:1.6mm;width:6mm;height:6mm;border-radius:1mm;background:rgba(255,255,255,.92);color:var(--navy);font-size:8pt;line-height:6mm;text-align:center;padding-left:.4mm;box-sizing:border-box}
-.page .mtg>.mthow{align-self:center!important;margin:0!important;display:flex;gap:2mm;align-items:center}
+.page .mtg>.mtfirst{align-self:stretch;display:flex;flex-direction:column;gap:3mm;padding-top:2mm}
+.page .mtfirst>.mtl{margin:0!important;font-size:10pt!important;line-height:1.6}
+.page .mtfirst>.mthow{align-self:stretch!important;margin:0!important;display:flex;gap:2mm;align-items:center}
 .page .mtg>.mthow b{display:block;font-size:9.4pt;line-height:1.45}
 .page .mtg>.mthow .rn{display:block;font-size:8.4pt}   /* 10/20 クイズを外した分、写真を大きく（まーく様「画像が小さくなるのは、極力やめて」） */
 .page .mtg>.mtsrc{font-size:7.6pt!important;line-height:1.4!important}
