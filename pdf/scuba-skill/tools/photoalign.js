@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 (async()=>{const src=process.argv[2];const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const p=await b.newPage();await p.goto('file://'+src,{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
 const rows=await p.evaluate(()=>{const out=[];for(const g of document.querySelectorAll('.page .mtg')){const m=new Map();
- for(const c of g.querySelectorAll(':scope>.mtc')){const img=c.querySelector(':scope>img');if(!img)continue;const k=Math.round(c.getBoundingClientRect().top);
+ for(const c of g.querySelectorAll(':scope>.mtc')){const img=c.querySelector(':scope>img,:scope>a>img');if(!img)continue;const k=Math.round(c.getBoundingClientRect().top);
   if(!m.has(k))m.set(k,[]);m.get(k).push({t:img.getBoundingClientRect().top,h:c.querySelector('.mth')?.innerText.replace(/\s+/g,'')||''});}
  for(const [k,a] of m)if(a.length>1)out.push({pg:g.closest('.page').id,a});}return out;});
 let bad=0;for(const r of rows){const ts=r.a.map(x=>x.t);const d=Math.max(...ts)-Math.min(...ts);
