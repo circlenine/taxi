@@ -1025,7 +1025,7 @@ CSS += '''
 /* 10/21 まーく様「1ページふり返りは全て、スキル編と同じく、画像をタップしたら動画が見られるように」「参考動画は右下ではなく、下側に行数を減らして」 */
 .page .mtg .mtc>a.mtv{order:1;display:block;position:relative;line-height:0;background:none!important;padding:0!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:2mm}
 .page .mtg .mtc>a.mtv>img{width:100%!important;height:auto!important;aspect-ratio:1.65!important;object-fit:cover;display:block;border-radius:2mm}
-.page .mtg .mtc>a.mtv>.play{position:absolute;right:1.6mm;bottom:1.6mm;width:6mm;height:6mm;border-radius:1mm;background:rgba(255,255,255,.92);color:var(--navy);font-size:8pt;line-height:6mm;text-align:center;padding-left:.4mm;box-sizing:border-box}
+.page .mtg .mtc>a.mtv>.play{position:absolute;right:1.6mm;bottom:1.6mm;width:6mm;height:6mm;border-radius:1mm;background:#fff;border:.3mm solid var(--line);box-sizing:border-box;color:var(--navy);font-size:8pt;line-height:6mm;text-align:center;padding-left:.4mm;box-sizing:border-box}
 .page .mtg>.mtfirst{align-self:stretch;display:flex;flex-direction:column;gap:3mm;padding-top:2mm;grid-column:auto/span 1!important}
 .page .mtfirst>.mtl{margin:0!important;font-size:9.2pt!important;line-height:1.6}
 .page .mtfirst>.mthow{align-self:stretch!important;margin:0!important;display:flex;gap:2mm;align-items:center;grid-column:auto!important}
