@@ -73,8 +73,8 @@ def _ic(name):
 
 # コップの図（10/19 の見本で、まーく様に良いと言っていただいた形）。「気になる」がたまっても、こまめに手放せば余裕のまま
 CUP = (f'<svg class="ixcup" viewBox="0 0 284 150" aria-hidden="true"><g font-family="M PLUS Rounded 1c" font-weight="800" font-size="11.5">'
-       '<g fill="#5a4a7a"><rect x="4" y="6" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="20" text-anchor="middle">マスクの水</text>'
-       '<rect x="4" y="31" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="45" text-anchor="middle">耳の痛み</text>'
+       '<g fill="#5a4a7a"><rect x="4" y="6" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="20" text-anchor="middle">耳の痛み</text>'
+       '<rect x="4" y="31" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="45" text-anchor="middle">マスクの水</text>'
        '<rect x="4" y="56" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="70" text-anchor="middle">寒い</text>'
        '<rect x="4" y="81" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="95" text-anchor="middle">急いでいる</text></g>'
        '<g transform="translate(24 -12)"><path d="M74 50 Q92 50 98 64" fill="none" stroke="#b9a8d6" stroke-width="2.4"/><path d="M95 58 l4 7 l3 -8 z" fill="#b9a8d6"/>'
@@ -131,10 +131,11 @@ def pages(T, jump):
             ("updown", "上と下も", "泡も探す"),
             ("up", "ゆっくり浮上", "それでもいなければ"),
             ("meet", "水面で会う", "水面でバディを待つ")]
-    rows = [("マスクに水", "マスクの上を押さえて、鼻から呼く", "6-1"),
-            ("耳が抜けない", '<span class="nw">合図して、少し上がってもう一度</span><br><span class="nw">抜けなければ、そのダイブは中止</span>', "2-1"),
+    # 10/21 まーく様「なんでページ順じゃないのか。振り返りやすいように」→ 行は、くわしいページの順（3→4→5→6→9）に並べる（pageorder.py で点検）
+    rows = [("耳が抜けない", '<span class="nw">合図して、少し上がってもう一度</span><br><span class="nw">抜けなければ、そのダイブは中止</span>', "2-1"),
             ("浮く・沈む", "{bc}で、少しずつ合わせる", "3-1"),
             ("{regu}が外れた", "くわえ直して、まず呼いてから吸う", "5-2"),
+            ("マスクに水", "マスクの上を押さえて、鼻から呼く", "6-1"),
             ("遅れる・寒い", "がまんせず、合図で伝える", "SIG"),
             # こわくなった：山田孝之さん JV4Y5JFUl0Q（7:24 生き物に気持ちを向けたら落ち着いた）・SHIRO DIVE（19:55）・タテキ NWilL1G3rgM（5:37 怖さは付き合うもの）
             ("こわくなった", "魚や景色に、気持ちを向ける", "")]

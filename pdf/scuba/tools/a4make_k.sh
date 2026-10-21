@@ -32,6 +32,7 @@ python3 -I $S/tools/termcheck.py $S/build_k/a4.html
 python3 $S/tools/yomicheck.py $S/build_k/a4.html
 python3 -I $S/tools/chipcheck.py $S/build_k/a4.html
 python3 -I $S/tools/jumpcheck.py $S/build_k/a4.html
+python3 -I $S/tools/pageorder.py $S/build_k/a4.html   # くわしくはのページが、表の中で順に並んでいるか（10/21）
 node $S/tools/relcheck.js $S/build_k/a4.html
 node $S/tools/palette.js $S/build_k/a4.html
 node $S/tools/borders.js $S/build_k/a4.html
