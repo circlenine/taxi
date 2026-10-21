@@ -32,7 +32,7 @@ def corners(im, ff, w_px, h_px):
         if c == "br": score *= 0.8   # 同じくらいなら右下（まーく様のご指定）
         res[c] = round(score, 3)
     # 10/21 まーく様「右下に ▶ を付けて。一瞬わからなくなった」→ どの写真も右下。右下に赤い丸・矢印（写真に描いた印）があるときだけ、ほかのすみへ
-    best = "br" if res["br"] < 1000 else min(ORDER, key=lambda c: res[c])
+    best = "br"   # 10/21 まーく様「▶ は基本、画像の右下で統一。色んな所にあるとややこしい」→ どの写真も右下
     return best, round(s, 2), res
 
 def focus_frac(focus, box, pad_to=None, imw=None, rot=False):
