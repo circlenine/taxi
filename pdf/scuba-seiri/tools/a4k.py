@@ -1248,6 +1248,17 @@ import newdesign as _nd
 CSS += _nd.css("3")
 import fontset as _fs
 import logo as _lg
+import photolink as _pl   # 10/21 どの写真も、タップすると関連の動画へ
+
+def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画（題名と投稿者を YouTube で確かめた）
+    if k.startswith("rc2_4"): return "nb-1Zn2dyOo"      # 彦坂さん（クラブドゥ）「マスク脱着」
+    if k == "rc914": return "PTvLJgwR_zo"               # サンズ「ウエイトベルトの脱着」（重りの外し方）
+    if k == "rc922": return "rfjKcQkeu7w"               # サンズ「緊急スキル浮上」（体を立てて排気）
+    if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return "kYvgkoTBkNg"   # サンズ「浮力コントロール & フィンピポット」（画面収録の 655〜760 秒）
+    for p, v in (("mimi", "WvrP47_Smu0"), ("mask", "Zpf8LSiQtko"), ("rr", "5K8XyxfDplc"), ("octo", "3MHCvlPVQew"), ("bs", "2X4rf11ORN0"),
+                 ("sig", "pS-yk6gth-8"), ("sg", "pS-yk6gth-8"), ("sa", "3oDlSquqUD4"), ("c", "twjEJS_0kms")):
+        if k.startswith(p): return v
+    return None
 import ruby as _rb   # 10/20 ルビ   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
@@ -1336,5 +1347,5 @@ def recolor(h):
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>スキル編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_rb.apply(_lg.apply("".join(pages), _nd.COL["3"][0]))}{_fs.punct_js()}{FIT}</body></html>'))
+    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["3"][0])), _vid_k)}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))

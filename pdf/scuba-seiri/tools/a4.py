@@ -937,6 +937,7 @@ import newdesign as _nd
 CSS += _nd.css("1")
 import fontset as _fs
 import logo as _lg
+import photolink as _pl   # 10/21 どの写真も、タップすると関連の動画へ（準備編の写真は、どれも「ダイビング機材セッティング」の画面から）
 import ruby as _rb   # 10/20 ルビ   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
@@ -1027,5 +1028,5 @@ CSS += '''
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 10/20「最後に」のページを外したので、そのページ用の決まりは、どこにも当てない（まとめのページに当たらないように）   # 最後のページ（もとは10ページ）の決まりを、いまの最後のページに読みかえる（10/16 まとめのページを足したため）
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>準備編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_rb.apply(_lg.apply("".join(pages), _nd.COL["1"][0]))}{_fs.punct_js()}{FIT}</body></html>')
+    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["1"][0])), lambda k: "twjEJS_0kms")}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>')
 print("pages", len(pages))

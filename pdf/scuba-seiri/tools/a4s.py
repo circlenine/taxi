@@ -1087,6 +1087,7 @@ import newdesign as _nd
 CSS += _nd.css("2")
 import fontset as _fs
 import logo as _lg
+import photolink as _pl   # 10/21 どの写真も、タップすると関連の動画へ（洗浄編の写真は、どれも「ダイビング 器材の片付け」の画面から）
 import ruby as _rb   # 10/20 ルビ   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
@@ -1182,5 +1183,5 @@ CSS += '''
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>洗浄編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_rb.apply(_lg.apply("".join(pages), _nd.COL["2"][0]))}{_fs.punct_js()}{FIT}</body></html>'))
+    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["2"][0])), lambda k: "Cg4JdxYFcoo")}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))
