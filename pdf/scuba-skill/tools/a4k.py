@@ -12,8 +12,8 @@ from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, 
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
-    _OLDT = {"1": "いちばん大事なのは“リラックス”", "2": "“耳抜き”のやり方3選", "5": "{bc}排気と{regu}",
-             "6": "マスククリアとマスク脱着", "7": "空気は、バディと分け合える", "8": "浮上と、潜った後の過ごし方"}
+    _OLDT = {"1": "いちばん大事なのは“リラックス”", "2": "“耳抜き”のやり方3選", "4": "{bc}排気と{regu}",
+             "5": "マスククリアとマスク脱着", "6": "空気は、バディと分け合える", "7": "浮上と、潜った後の過ごし方"}
     INTRO["title"] = _OLDT["1"]
     for _x in STEPS:
         if _x["id"] in _OLDT: _x["title"] = _OLDT[_x["id"]]
@@ -283,8 +283,8 @@ _d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
 VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
 EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
-_s3 = next(x for x in STEPS if x["id"] == "3"); _s4 = next(x for x in STEPS if x["id"] == "4")
-STEPS = [dict(_s3, title=("“中性浮力”を身につけよう！" if _nd.ON else "“中性浮力” {bc}と呼吸で合わせ、体は水平に"), subs=_s3["subs"] + _s4["subs"]) if x is _s3 else x for x in STEPS if x is not _s4]
+#   10/21 番号の飛びをなくすため、content_k.py で その4 を その3 の中（3-4・3-5）に入れた。ここでは題だけを決める
+STEPS = [dict(x, title=("“中性浮力”を身につけよう！" if _nd.ON else "“中性浮力” {bc}と呼吸で合わせ、体は水平に")) if x["id"] == "3" else x for x in STEPS]
 TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
 # 写真のない手順があったら、組み立てを止める（10/19 まーく様「画像は必ずつけてください。文章だけだと読む気が失せます」）
 INTRO["subs"] = __import__("intro_k").MATOME_SUBS   # その1は図のページ。まとめには、この短い一覧を出す
@@ -298,12 +298,12 @@ if _dup:
 # 動作の写真は「やる前 → やった後」の2枚で見せる（10/19 まーく様：1枚だけでは、何をどう変えるのか分からない）
 CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi8"): "やった後：鼻をつまんで息を送る",
        ("3-1", "rc664"): "やる前：沈んでいる", ("3-1", "rc685"): "やった後：吸うと、ふわっと浮く",
-       ("4-1", "rc742"): "やる前：足が下がっている", ("4-1", "rc757"): "やった後：水平",
-       ("5-1", "bs12"): "やる前：水平のまま", ("5-1", "rc922"): "やった後：体を立てて、ホースを上に",
-       ("5-2", "rr19"): "外れたとき", ("5-2", "rr48"): "くわえ直したところ",
-       ("6-1", "mask13"): "やる前：マスクに水", ("6-1", "mask41"): "やった後：水が抜けた",
-       ("6-2", "rc2_420"): "外したところ", ("6-2", "rc2_450"): "つけたところ",
-       ("7-2", "octo8"): "エア切れの合図", ("7-2", "octo23"): "受け取って、くわえる"}
+       ("3-4", "rc742"): "やる前：足が下がっている", ("3-4", "rc757"): "やった後：水平",
+       ("4-1", "bs12"): "やる前：水平のまま", ("4-1", "rc922"): "やった後：体を立てて、ホースを上に",
+       ("4-2", "rr19"): "外れたとき", ("4-2", "rr48"): "くわえ直したところ",
+       ("5-1", "mask13"): "やる前：マスクに水", ("5-1", "mask41"): "やった後：水が抜けた",
+       ("5-2", "rc2_420"): "外したところ", ("5-2", "rc2_450"): "付けたところ",
+       ("6-2", "octo8"): "エア切れの合図", ("6-2", "octo23"): "受け取って、くわえる"}
 KEYS = {}   # どの手順にも写真を付ける（10/19 まーく様「画像は必ずつけてください」）  #   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
 # 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
 def q2(sid):
@@ -381,7 +381,7 @@ MATOME = [(([k for s in sec["subs"] for k in s["key"]] or ["sig16"])[0], sec["ti
 # 10/21 まーく様「右下のリンクの列を見たら、見る気が失せる。写真をタップすると動画へ移動する形に」
 #   → まとめの写真は、タップするとその写真の元の動画（YouTube）へ飛ぶ。出どころは、写真の飛び先そのもの
 #   ・空気の札は、オクトパスを受け取る写真（PADI の動画）にかえる（飛んだ先で、その場面が見られるように）
-MT_PHOTO = {"7": "octo23"}
+MT_PHOTO = {"6": "octo23"}
 MTV = {"rr": "5K8XyxfDplc", "mimi": "WvrP47_Smu0", "mask": "Zpf8LSiQtko", "octo": "3MHCvlPVQew", "bs": "2X4rf11ORN0",
        "sig": "pS-yk6gth-8", "sg": "pS-yk6gth-8", "rc664": "kYvgkoTBkNg"}   # rc664 はサンズ「浮力コントロール & フィンピポット」（画面の字と再生リストの題で突き合わせた）
 def mtv(k):
@@ -431,7 +431,7 @@ sm = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</
 ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</span></p>{im(k, 1.27)}<figcaption>{T(desc)}</figcaption></figure>' for name, k, desc in SIG_STILL)
 sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
 # 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
-SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
+SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは、動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
 SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛ぶ
 # 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
@@ -446,8 +446,8 @@ TOC_TT = {"最後に": "その他・クイズ"}
 def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習でやったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span></div><p class="hw">YouTubeのリンク、memo<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習で習ったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span></div><p class="hw">YouTubeのリンク、memo<br>どれかをタップしてるときは、他の操作が、できないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 # 中性浮力のページ（3と4を1ページにまとめた）は、写真を少し低くしてよい（10ページ以内に収めるため。仮の形）
 #   （写真の高さの下限を、p4 だけ 20mm にする。下の FIT の fit() で見分ける）

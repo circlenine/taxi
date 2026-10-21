@@ -14,5 +14,17 @@ for cls in ("ixtb", "mtg"):
         ps = [int(x) for x in re.findall(r'（(\d+)ページ）', h[m.end():i])]
         if ps != sorted(ps):
             bad += 1; print(f"NG {cls} のページの並びが前後している：{ps}")
-print("NG くわしくはのページが、順に並んでいない" if bad else "くわしくはの並び OK（どの表も、ページの順）")
+# 10/21 まーく様「番号は正しい順番に」：もくじの「その〇」と、手順の番号（〇-〇）が、1から飛ばずに並んでいるか
+sono = [int(x) for x in re.findall(r'<span class="tl">その(\d+)</span>', h)]
+if sono and sono != list(range(1, len(sono) + 1)):
+    bad += 1; print(f"NG もくじの番号が飛んでいる：その{sono}")
+sn = re.findall(r'<span class="sn">(\d+)-(\d+)</span>', h)
+seen = {}
+for a_, b_ in sn:
+    a_, b_ = int(a_), int(b_)
+    if b_ != seen.get(a_, 0) + 1: bad += 1; print(f"NG 手順の番号が飛んでいる：{a_}-{b_}（前は {a_}-{seen.get(a_, 0)}）")
+    seen[a_] = b_
+if seen and sorted(seen) != list(range(1, max(seen) + 1)):
+    bad += 1; print(f"NG 手順の大きい番号が飛んでいる：{sorted(seen)}")
+print("NG くわしくはのページ・番号の並びがおかしい" if bad else "くわしくはの並び・番号 OK（どの表もページの順・番号は1から順に）")
 sys.exit(1 if bad else 0)
