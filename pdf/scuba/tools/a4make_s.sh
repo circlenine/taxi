@@ -4,7 +4,7 @@ set -eo pipefail
 S=/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad
 export NODE_PATH=$(npm root -g)
 # 10/21 点検の読みこみが、まれに「ページが読み直された」で止まる（中身の不具合ではない）。そのときだけ、3回まで読み直す
-node() { local i out rc; for i in 1 2 3; do out=$(command node "$@" 2>&1); rc=$?; if [ $rc -ne 0 ] && echo "$out" | grep -q "Execution context was destroyed"; then continue; fi; echo "$out"; return $rc; done; echo "$out"; return $rc; }
+node() { local i out rc; for i in 1 2 3; do out=$(command node "$@" 2>&1) && rc=0 || rc=$?; if [ $rc -ne 0 ] && echo "$out" | grep -q "Execution context was destroyed"; then continue; fi; echo "$out"; return $rc; done; echo "$out"; return $rc; }
 cd $S/build_s
 # 不安にさせる言い回しが無いか（10/15 ご指示・全資料共通）
 python3 -I $S/tools/phrasecheck.py $S/tools/content_s.py

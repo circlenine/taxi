@@ -9,5 +9,8 @@ const r=await p.evaluate(()=>{const o=[];let n=0;document.querySelectorAll('.pag
  if(a)k=a.querySelector('.phb');else{const m=im.closest('a.mtv');if(m)k=m.querySelector('.play');}
  if(!k){o.push((im.closest('.page')||{}).id+' '+im.dataset.k+' に ▶ が無い');return;}
  const q=k.getBoundingClientRect();if(q.left<R.left-.5||q.right>R.right+.5||q.top<R.top-.5||q.bottom>R.bottom+.5)o.push((im.closest('.page')||{}).id+' '+im.dataset.k+' の ▶ が写真からはみ出し');});return {o,n};});
-r.o.slice(0,8).forEach(x=>console.log('NG '+x));
+// 10/21 同じ欄の ▶ が同じ大きさか
+ const g=await p.evaluate(()=>{const m=new Map(),o=[];document.querySelectorAll('.page .phb').forEach(k=>{const key=k.closest('section,.step,.sqg,.mtg,.grid2')||k.closest('.page');const w=Math.round(k.getBoundingClientRect().width);if(!m.has(key))m.set(key,new Set());m.get(key).add(w);});m.forEach((v,k)=>{if(v.size>1)o.push((k.closest?k.closest('.page'):k).id+' の ▶ の大きさがそろっていない：'+[...v].join('/'));});return o;});
+ r.o.push(...g);
+ r.o.slice(0,8).forEach(x=>console.log('NG '+x));
 console.log(r.o.length?'NG ▶ の印 '+r.o.length+'か所':'▶ の印 OK（写真 '+r.n+' 枚すべて）');await b.close();process.exit(r.o.length?1:0);})();
