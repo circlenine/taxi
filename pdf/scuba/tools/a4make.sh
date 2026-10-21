@@ -40,6 +40,7 @@ node $S/tools/kerncheck.js $S/build/a4.html   # 題・見出しの字のすき�
 node $S/tools/arrowcheck.js $S/build/a4.html   # しおりの札の字が、左右同じ余白か（10/20）
 node $S/tools/logocheck.js $S/build/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
 node $S/tools/barcheck.js $S/build/a4.html   # 左の線の太さが、左右の列・どのページでも同じか（10/20）
+node $S/tools/photocover.js $S/build/a4.html   # 写真の上に、何もかぶっていないか（10/21 写真が全部隠れた）
 node $S/tools/photoalign.js $S/build/a4.html   # まとめの写真が、題の行数でずれていないか（10/20）
 node $S/tools/latincheck.js $S/build/a4.html   # 英数字・記号が細くないか（10/20）
 python3 -I $S/tools/tonecheck.py $S/build/a4.html   # 言い回し（じゃ！・！の連続）が無いか（10/20）
