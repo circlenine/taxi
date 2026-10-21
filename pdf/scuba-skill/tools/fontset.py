@@ -121,8 +121,7 @@ def punct_js():
      その字体の漢字どうしのすき間と同じにそろえる（目で見たすき間をそろえる＝オプティカルカーニング） */
 /* 表紙の「〇〇編」は、字の間を空ける決まり（.08em）をやめ、すき間を形でそろえる */
 document.head.insertAdjacentHTML('beforeend','<style>#p1 .cover .cv-e,#p1 .cover .cv-e *{letter-spacing:.02em!important}</style>');
-window.__kernSel='#p1 .cv-e,.page h2:not(.toch),.page h3.sh3>span:last-child,.page .tt,.page .mth>span:last-child,.page .sqn,.page .ixh,.page .ixk b,.page h3.ph2'
- +',.page .notes,.page .ixtb,.page .ixk>span,.page .ixt,.page .ixs,.page .ixlead,.page .ixc,.page .mts,.page .mtl,.page .sasuke,.page .bg,.page .nmr,.page .qz,.page .cap3,.page .ref,.page .sqf figcaption,.page .howto,.page .relnote,.page .src,.page .jump,.page .legend';   /* 10/20 まーく様「本文中のカーニングも徹底」→ 本文も */
+window.__kernSel='.kern-off-none';   /* 10/21 まーく様「カーニングは全文やめて。詰めすぎ・甘い所があり、めちゃくちゃ」→ 1字ずつ詰める処理は、どの字にもかけない（字のもとの間隔のまま） */
 document.fonts.ready.then(function(){var cv=document.createElement('canvas').getContext('2d'),memo={};
  var CJK=/[\u3041-\u3096\u30a1-\u30fa\u30fc\u4e00-\u9fff]/;
  /* 字の形を 100px で描き、行ごとに「左のはし」「右のはし」を測る（ふちの箱ではなく、見た目の形） */
@@ -138,9 +137,10 @@ document.fonts.ready.then(function(){var cv=document.createElement('canvas').get
  document.querySelectorAll(window.__kernSel).forEach(function(el){
   var w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),ns=[],n;while(n=w.nextNode())ns.push(n);
   var spans=[];
-  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.rt,.pqr,.pql,.pqc,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2'))return;var pd=getComputedStyle(p).display;if(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0)return;   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない。10/21 色つきの用語（.t「レギュ」など）も詰める（まーく様「レギュのカーニングが甘い」） */
+  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.rt,.pqr,.pql,.pqc,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2,.cv-logo,.edtag,#memop,.mh,textarea,input'))return;var pd=getComputedStyle(p).display;var box=(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0);   /* 字を並べる箱の中では、字のかたまりを1つの span に包んでから詰める（1字ずつが別の箱にならないように） */   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない。10/21 色つきの用語（.t「レギュ」など）も詰める（まーく様「レギュのカーニングが甘い」） */
    if(!CJK.test(t.textContent))return;var f=document.createDocumentFragment();
    Array.from(t.textContent).forEach(function(ch){if(CJK.test(ch)){var s=document.createElement('span');s.className='kc';s.textContent=ch;f.appendChild(s);spans.push(s);}else f.appendChild(document.createTextNode(ch));});
+   if(box){var w2=document.createElement('span');w2.className='kw';w2.appendChild(f);f=w2;}
    t.parentNode.replaceChild(f,t);});
   for(var i=0;i<spans.length-1;i++){var a=spans[i],b=spans[i+1];
    /* となりの字と、間に別の字や改行がはさまっていないときだけ */
@@ -148,10 +148,11 @@ document.fonts.ready.then(function(){var cv=document.createElement('canvas').get
    var ca=getComputedStyle(a),cb=getComputedStyle(b);var fa=ca.fontWeight+' 100px '+ca.fontFamily,fb=cb.fontWeight+' 100px '+cb.fontFamily;
    var fs=parseFloat(ca.fontSize);var A=prof(fa,a.textContent),B=prof(fb,b.textContent);
    var target=(gap(prof(fa,'国'),prof(fa,'国')).v+gap(prof(fa,'編'),prof(fa,'語')).v)/2;   /* 字面いっぱいの漢字どうしのすき間（100px のとき） */
-   var G=gap(A,B);var d=(target-G.v)*.75;   /* 見た目のすき間を target に近づける（かなは詰める。広げはしない） */
+   var G=gap(A,B);var d=(target-G.v)*1.0;   /* 10/21「甘い」→ 見た目のすき間を、字面いっぱいの漢字どうしと同じところまで詰める */   /* 見た目のすき間を target に近づける（かなは詰める。広げはしない） */
    if(G.mn+d<9)d=9-G.mn;   /* いちばん近い所でも、字の大きさの9％はあける（字どうしがくっつかない） */
+   if(d<-30)d=-30;   /* 10/21 のばし棒（ー）・小さい字（ゃ・っ）は、形が細いので詰めすぎになる。どの字も、字の大きさの30％より多くは詰めない */
    var adj=d/100*fs;
-   if(adj<-.2)a.style.marginRight=adj.toFixed(2)+'px';}
+   if(adj<-.2){var ls0=parseFloat(getComputedStyle(a).letterSpacing)||0;a.style.setProperty('letter-spacing',(ls0+adj).toFixed(2)+'px','important');a.dataset.kern=adj.toFixed(2);}   /* 10/21 字の間は letter-spacing で詰める（margin で詰めると、箱の中で幅の見積もりがずれて、短い見出しまで2行に折れた） */}
  });});
 /* 10/20 しおり（矢印）の札：字の形（インク）が、札の四角い部分のまん中に来るように、字を少しずらす。
    字の箱のまん中と、実際に描かれる字のまん中は、字の形でずれる（「1」は細い、など）。canvas で字の形の左右のはしを測って直す */
@@ -182,6 +183,10 @@ document.querySelectorAll('.page').forEach(function(pg){
   t.parentNode.replaceChild(f,t);});});
 })();</script>"""
 
+KERN_CSS = """
+/* 10/21 字の間を詰めるために入れた span（.kc・.kw）には、「〇〇の中の span」向けの決まり（札のすき間・枠など）をかけない */
+.page .kc,.page .kw{display:inline!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;border-radius:0!important;margin:0!important;position:static!important;text-indent:0!important;vertical-align:baseline!important;font:inherit!important;color:inherit!important}
+"""
 PUNCT_CSS = """
 /* 10/20 まーく様「見出しの字・番号の数字を、しっかり太く（つぶれて見えない形に）」
    ・題の字（解星デコール）は700がいちばん太い。900を頼むと、機械が線を太らせた「にせの太字」になり、字がつぶれる → 700にそろえる
@@ -231,7 +236,7 @@ def css(no="3"):
         out = CHIP + KAISEI + body_css() + PUNCT_CSS.replace('"BIZ UDPMincho"', f)
         if BODYMIN != "decol":
             out += TITLE_ONLY.replace("{F}", f).replace("{W}", str(w))
-        return out
+        return out + KERN_CSS
     cover = COVER.replace("translate(.24mm,", "translate(" + _NX.get(no, ".24mm") + ",")
     if MODE == "libe":
         # 10/19 まーく様：リベ大の題の字は「ラノベPOP v2」（フロップデザイン。M+フォントのライセンスで、自由に使える・PDFに入れてよい）

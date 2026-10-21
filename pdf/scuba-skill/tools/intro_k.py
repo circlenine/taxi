@@ -72,17 +72,17 @@ def _ic(name):
     return f'<svg class="ixi" viewBox="0 0 56 48" aria-hidden="true">{g}</svg>'
 
 # コップの図（10/19 の見本で、まーく様に良いと言っていただいた形）。「気になる」がたまっても、こまめに手放せば余裕のまま
-CUP = (f'<svg class="ixcup" viewBox="0 0 284 150" aria-hidden="true"><g font-family="M PLUS Rounded 1c" font-weight="800" font-size="11.5">'
-       '<g fill="#5a4a7a"><rect x="4" y="6" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="20" text-anchor="middle">耳の痛み</text>'
-       '<rect x="4" y="31" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="45" text-anchor="middle">マスクの水</text>'
-       '<rect x="4" y="56" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="70" text-anchor="middle">寒い</text>'
-       '<rect x="4" y="81" width="90" height="20" rx="3" fill="#f0ecf7"/><text x="49" y="95" text-anchor="middle">急いでいる</text></g>'
-       '<g transform="translate(24 -12)"><path d="M74 50 Q92 50 98 64" fill="none" stroke="#b9a8d6" stroke-width="2.4"/><path d="M95 58 l4 7 l3 -8 z" fill="#b9a8d6"/>'
-       f'<path d="M100 42 L112 150 L178 150 L190 42" fill="#fff" stroke="{NV}" stroke-width="3" stroke-linejoin="round"/>'
-       '<path d="M107 104 L112 148 L178 148 L183 104 Z" fill="#cfe9f7"/>'
-       '<text x="145" y="132" text-anchor="middle" fill="#2f78c4" font-size="11">まだ余裕</text>'
-       '<path d="M194 92 Q214 92 222 112" fill="none" stroke="#2f9e7a" stroke-width="2.4"/><path d="M218 106 l5 7 l2 -9 z" fill="#2f9e7a"/>'
-       '<text x="230" y="70" text-anchor="middle" fill="#2f9e7a">こまめに</text><text x="230" y="84" text-anchor="middle" fill="#2f9e7a">手放す</text></g></g></svg>')
+# 10/21 まーく様「コップ部分の文字、小さすぎ」→ 字を大きく（ページの上で約9.5pt。本文と同じくらい）。高さは前と同じくらいに収める
+CUP = (f'<svg class="ixcup" viewBox="0 0 300 116" aria-hidden="true"><g font-family="M PLUS Rounded 1c" font-weight="800" font-size="16">'
+       '<g fill="#5a4a7a">'
+       + "".join(f'<rect x="2" y="{y}" width="106" height="24" rx="4" fill="#f0ecf7"/><text x="55" y="{y + 17.5}" text-anchor="middle">{t}</text>'
+                 for y, t in ((4, "耳の痛み"), (32, "マスクの水"), (60, "寒い"), (88, "急いでいる")))
+       + '</g><path d="M110 46 Q126 46 132 60" fill="none" stroke="#b9a8d6" stroke-width="2.6"/><path d="M128 54 l5 8 l3 -9 z" fill="#b9a8d6"/>'
+       f'<path d="M136 8 L148 112 L208 112 L220 8" fill="#fff" stroke="{NV}" stroke-width="3" stroke-linejoin="round"/>'
+       '<path d="M142 66 L148 110 L208 110 L214 66 Z" fill="#cfe9f7"/>'
+       '<text x="178" y="95" text-anchor="middle" fill="#2f78c4" font-size="15">まだ余裕</text>'
+       '<path d="M224 54 Q244 54 252 74" fill="none" stroke="#2f9e7a" stroke-width="2.6"/><path d="M247 68 l6 8 l2 -10 z" fill="#2f9e7a"/>'
+       '<text x="266" y="28" text-anchor="middle" fill="#2f9e7a" font-size="15">こまめに</text><text x="266" y="46" text-anchor="middle" fill="#2f9e7a" font-size="15">手放す</text></g></svg>')
 
 def pages(T, jump):
     """その1の2ページぶんの中身（HTML）を返す"""
@@ -133,10 +133,10 @@ def pages(T, jump):
     #   気になることは？：パパラギ先生 UOWYYw_6R-c（5:52 耳が抜けていないのに OK を出さない）・Totty（24:05 早めに）
     #   浮き沈みしてない？：まーく様のご指示（10/20 底か水面を見て、近づいていないか確かめる）
     #   楽しめてる？：山田孝之さん JV4Y5JFUl0Q（7:24 生き物に気持ちを向けたら落ち着いた）・SHIRO DIVE（19:55）
-    acts = [("around", "近くにいる？", "<span class=\"nw\">インストラクターさんと</span><span class=\"nw\">同じ深さで、横に</span>"),
+    acts = [("around", "近くにいる？", "インストラクターさんと<span class=\"nw\">同じ深さで、すぐ横に</span>"),
             ("tell", "気になることは？", "耳・マスク・寒さは、<span class=\"nw\">小さいうちに合図</span>"),
-            ("updown", "浮き沈みしてない？", "底か水面を見て、<span class=\"nw\">確かめる</span>"),
-            ("trust", "楽しめてる？", "魚や景色が見られたら、<span class=\"nw\">リラックスのしるし</span>")]
+            ("updown", "浮き沈みは？", "底か水面を見て、<span class=\"nw\">確かめる</span>"),
+            ("trust", "楽しめてる？", "魚が見えたら、<span class=\"nw\">リラックスのしるし</span>")]
     act = '<div class="ixact">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(acts, 1)) + '</div>'
     flow = [("around", "見回す", "停まって、ぐるっと"),
             ("updown", "上と下も", "泡も探す"),
@@ -159,8 +159,8 @@ def pages(T, jump):
     #   前の「流れの矢印（小さな心配が重なる ▶ …）」とコップは、同じ理由を言っていたので、コップ1つにまとめて、いちばん上に置いた
     lead = ('<div class="ixlead2"><div class="ixlt">'
             '<p class="ixc1">リラックスしていれば、困ったときも、落ち着いて動ける</p>'
-            '<p class="ixwhy"><b>なぜ？</b>あせりは、小さな心配がコップの水のように、少しずつたまって生まれるから</p>'
-            '<p class="ixwhy"><b>その為</b>こまめに手放せば、いつも余裕のまま。やり方は、下の4つ</p></div>'
+            '<p class="ixwhy"><b>なぜ？</b><span>あせりは、小さな心配がコップの水のように、<span class="nw">たまって生まれるから</span></span></p>'
+            '<p class="ixwhy"><b>その為</b><span>こまめに手放せば、いつも余裕のまま。やり方は、下の4つ</span></p></div>'
             + CUP + '</div>')
     end = ('<div class="ixend"><b>いちばんのコツ</b><span>大丈夫なうちに、小さく伝える。それが、いちばんのお守り</span></div>')   # 10/21 あわてた最中の手順ではなく、大丈夫なうちにできる1つで締める
     p1 = (lead + sec("1-1", "潜る前に、決めておく",
@@ -175,19 +175,19 @@ def pages(T, jump):
                 '<div class="ixtb2c">' + "".join(f'<div class="ixit"><div class="ixr"><b>{T(a)}</b>{_jp(c) if c else ""}</div><div class="ixd">{T(b)}</div></div>' for a, b, c in rows) + '</div>')
           + sec("1-4", "はぐれたら、見回して、ゆっくり浮上",
                 '<div class="ixact ixflow">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(flow, 1)) + '</div>'
-                + pk("1人で、もう一度潜って探さない", "はぐれても、あなたのせいじゃない。水面でも見つからなければ、ボートやお店の人にすぐ知らせよう"))
+                + pk("1人で、もう一度潜って探さない", "はぐれても、あなたのせいじゃない。見つからなければ、お店の人にすぐ知らせよう"))
           + end)
     return [p1]
 
 CSS = """
 /* 10/21 いちばん上の「結論・理由」（題のすぐ下）と、いちばん下の「結論」 */
-.ixlead2{display:grid;grid-template-columns:minmax(0,1fr) 41mm;gap:4mm;align-items:center;background:var(--pale);border-radius:2mm;padding:.4mm 3.4mm;margin:0}
+.ixlead2{display:grid;grid-template-columns:minmax(0,1fr) 52mm;gap:4mm;align-items:center;background:var(--pale);border-radius:2mm;padding:.4mm 3.4mm;margin:0}
 .page .step.ix .notes{margin-top:1.2mm!important}
 .page .step.ix>.ixh{margin-top:0!important}
 .ixlead2 .ixcup{width:100%}
-.ixc1{margin:0 0 1.4mm;font-size:13pt;line-height:1.4;color:var(--navy);font-weight:900}
-.ixwhy{margin:.6mm 0 0;font-size:9.6pt;line-height:1.5}
-.ixwhy b{display:inline-block;width:3.3em;color:var(--navy);margin-right:1mm}   /* 10/21「なぜ？」「その為」の札を同じ幅にして、文の始まりをそろえる */
+.ixc1{margin:0 0 1mm;font-size:11.6pt;white-space:nowrap;line-height:1.4;color:var(--navy);font-weight:900}
+.ixwhy{margin:.4mm 0 0;font-size:9pt;line-height:1.45;display:grid;grid-template-columns:3.6em minmax(0,1fr)}
+.ixwhy b{color:var(--navy)}   /* 10/21「なぜ？」「その為」の札を同じ幅にして、文の始まりをそろえる */
 .ixend{display:flex;gap:3mm;align-items:center;background:var(--pale);border-radius:2mm;padding:1.1mm 3.4mm;margin-top:.6mm!important;font-size:10.4pt;line-height:1.45}
 .ixend b{color:var(--navy);white-space:nowrap}
 .ixtb2c{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:6mm;border-top:1px solid var(--line)}
@@ -211,11 +211,11 @@ CSS = """
 .ixnote{margin:1.2mm 0 0;font-size:9.2pt;line-height:1.5}
 .ixh{margin:1.6mm 0 1mm;font-size:11pt;color:var(--navy)}
 .ixact{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm}
-.ixk{border:1px solid var(--line);border-radius:2mm;padding:1.4mm 1.4mm 1.4mm 2mm;display:grid;grid-template-columns:9mm minmax(0,1fr);column-gap:1.6mm;align-items:center;position:relative}
+.ixk{border:1px solid var(--line);border-radius:2mm;padding:1.4mm 1.2mm 1.4mm 1.6mm;display:grid;grid-template-columns:7mm minmax(0,1fr);column-gap:1.2mm;align-items:center;position:relative}
 .ixk .ixn{position:absolute;left:-1px;top:-1px;border-radius:2mm 0 1mm 0!important}
-.ixi{width:9mm;height:8mm;display:block;grid-row:1/3}
+.ixi{width:7mm;height:7mm;display:block;grid-row:1/3}
 .ixk b{font-size:10pt;color:var(--navy);line-height:1.25}
-.ixk>span:last-child{font-size:8.4pt;line-height:1.35}
+.ixk>span:last-child{font-size:8.2pt;line-height:1.35}
 .ixn{display:inline-flex;align-items:center;justify-content:center;width:4.6mm;height:4.6mm;border-radius:1mm;background:var(--navy);color:#fff;font-size:8.5pt;line-height:1}
 .ix .notes{margin-top:1.6mm}
 .ixcupw{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5mm;align-items:stretch}   /* 10/20 まーく様「ここのスペースいらない」：表は中身の幅だけにして、空いた幅はコップの絵に回す */
