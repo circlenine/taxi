@@ -138,7 +138,7 @@ document.fonts.ready.then(function(){var cv=document.createElement('canvas').get
  document.querySelectorAll(window.__kernSel).forEach(function(el){
   var w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),ns=[],n;while(n=w.nextNode())ns.push(n);
   var spans=[];
-  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.rt,.pqr,.pql,.pqc,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2,.t'))return;var pd=getComputedStyle(p).display;if(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0)return;   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない */
+  ns.forEach(function(t){var p=t.parentElement;if(p.closest('.half,.emj,rt,.rt,.pqr,.pql,.pqc,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2'))return;var pd=getComputedStyle(p).display;if(pd.indexOf('flex')>=0||pd.indexOf('grid')>=0)return;   /* 字を並べる箱の中では、1字ずつが別の箱になってしまうので触らない。10/21 色つきの用語（.t「レギュ」など）も詰める（まーく様「レギュのカーニングが甘い」） */
    if(!CJK.test(t.textContent))return;var f=document.createDocumentFragment();
    Array.from(t.textContent).forEach(function(ch){if(CJK.test(ch)){var s=document.createElement('span');s.className='kc';s.textContent=ch;f.appendChild(s);spans.push(s);}else f.appendChild(document.createTextNode(ch));});
    t.parentNode.replaceChild(f,t);});

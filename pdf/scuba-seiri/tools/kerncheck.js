@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 const p=await b.newPage();await p.goto('file://'+process.argv[2],{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
 const r=await p.evaluate(()=>{const CJK=/[ぁ-ゖァ-ヺー一-鿿]{2}/;let n=0,miss=[],touch=0;
  document.querySelectorAll(window.__kernSel).forEach(el=>{const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let t;
-  while(t=w.nextNode()){const pe=t.parentElement;if(pe.closest('#memop,.half,.emj,rt,.rt,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2,.t'))continue;const d=getComputedStyle(pe).display;if(d.includes('flex')||d.includes('grid'))continue;
+  while(t=w.nextNode()){const pe=t.parentElement;if(pe.closest('#memop,.half,.emj,rt,.rt,svg,.kc,.nk,.lp,.lx,.mtk,.sn,.no,.tl,.qh,.fs,.nn,.nn2'))continue;   /* 10/21 色つきの用語（.t）も点検する */const d=getComputedStyle(pe).display;if(d.includes('flex')||d.includes('grid'))continue;
    if(CJK.test(t.textContent))miss.push((el.closest('.page')||{}).id+'「'+t.textContent.slice(0,10)+'」');}
   el.querySelectorAll('.kc').forEach(k=>{n++;const m=parseFloat(k.style.marginRight||0),fs=parseFloat(getComputedStyle(k).fontSize);if(m<-fs*.45)touch++;});});
  return {n,miss,touch};});
