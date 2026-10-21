@@ -106,10 +106,10 @@ def pages(T, jump):
     #   体調：パパラギ先生 事故例 _5WJG7QlgW0（4:19 顔色が悪い日は、やめる勇気）
     #   心配なこと：熱烈先生 aES1ndyvCXY（6:36 不安を1つか2つ言っておく）・SHIRO DIVE fWYj7n5pbQk（18:27 言うのは迷惑じゃない）・パパラギ先生 UOWYYw_6R-c
     #   頭で1回なぞる：熱烈先生 aES1ndyvCXY（3:25）・WvxX4FgwIxo・英語 z2yIbIVPUhU（0:56）／まーく様「リラックスできている時にイメージトレーニング」
-    before = [("体調", "具合が悪い日は、やめていい。鼻づまりの日も"),
-              ("心配なこと", "先に1つずつ言う。<span class=\"nw\">言うのは迷惑じゃない</span>"),
-              ("合図", "お店で少しちがう。<span class=\"nw\">形を合わせる</span>"),
-              ("頭で1回なぞる", "落ち着いているときに、<span class=\"nw\">流れを思い浮かべる</span>")]
+    before = [("体調", "具合が悪い日は、やめていい"),
+              ("心配なこと", "先に言う。迷惑じゃない"),
+              ("合図", "お店と、形を合わせる"),
+              ("頭で1回なぞる", "流れを思い浮かべる")]
     chain = ('<div class="ixch ixch3">'
              '<span class="ixc">小さな心配が重なる</span><i class="ixa">▶</i>'
              '<span class="ixc">ドキドキ・まわりが見えにくい</span><i class="ixa">▶</i>'
@@ -122,39 +122,70 @@ def pages(T, jump):
     #           底か水面を見て確かめる：まーく様のご指示（10/20）
     #   つかまる：大人のダイビング倶楽部 C2DpfolYgmU（1:13）・goZLJAGXoQE（2:24）・パパラギ先生 ZE8B_kOCD2U（7:16）
     #   （前の「考えなくていい」は、パパラギ先生の「止まる→思い出す→動く」と反対に読めるので、「つかまったら任せる」に入れた）
-    acts = [("tell", "伝える", "合図で、すぐ知らせる。どんなときでもできる"),
-            ("halt", "停まる", "フィンも止めて待つ。<span class=\"nw\">底か水面を見て</span><span class=\"nw\">確かめる</span>"),
-            ("trust", "つかまる", "岩やバディに。<span class=\"nw\">つかまったら、</span><span class=\"nw\">後は任せてOK</span>"),
-            ("air", "空気が吸えない", "「エアがない」の合図で、<span class=\"nw\">バディの空気をもらう</span>")]
+    acts = [("tell", "伝える", "合図で、すぐ知らせる"),
+            ("halt", "停まる", "フィンも止めて、<span class=\"nw\">底か水面で確かめる</span>"),
+            ("trust", "つかまる", "岩やバディに。<span class=\"nw\">後は任せてOK</span>"),
+            ("air", "エアがない", "合図して、<span class=\"nw\">バディの空気をもらう</span>")]
     act = '<div class="ixact">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(acts, 1)) + '</div>'
-    flow = [("around", "見回す", "停まって、360度ぐるっと"),
+    flow = [("around", "見回す", "停まって、ぐるっと"),
             ("updown", "上と下も", "泡も探す"),
             ("up", "ゆっくり浮上", "それでもいなければ"),
             ("meet", "水面で会う", "水面でバディを待つ")]
     # 10/21 まーく様「なんでページ順じゃないのか。振り返りやすいように」→ 行は、くわしいページの順（3→4→5→6→9）に並べる（pageorder.py で点検）
-    rows = [("耳が抜けない", '<span class="nw">合図して、少し上がってもう一度</span><br><span class="nw">抜けなければ、そのダイブは中止</span>', "2-1"),
+    rows = [("耳が抜けない", '合図して、少し上がってもう一度。<span class="nw">抜けなければ中止</span>', "2-1"),
             ("浮く・沈む", "{bc}で、少しずつ合わせる", "3-1"),
             ("{regu}が外れた", "くわえ直して、まず呼いてから吸う", "5-2"),
             ("マスクに水", "マスクの上を押さえて、鼻から呼く", "6-1"),
             ("遅れる・寒い", "がまんせず、合図で伝える", "SIG"),
             # こわくなった：山田孝之さん JV4Y5JFUl0Q（7:24 生き物に気持ちを向けたら落ち着いた）・SHIRO DIVE（19:55）・タテキ NWilL1G3rgM（5:37 怖さは付き合うもの）
             ("こわくなった", "魚や景色に、気持ちを向ける", "")]
-    p1 = (sec("1-1", "潜る前に、決めておく",
+    # 10/21 まーく様「表題は、大事なのはリラックスなのに、どうして？の導入が無く、手順しかない。結論→理由→具体例→結論の組み立てに」
+    #   組み立て（このページの決まり。直すときは、ここを崩さずに足す）
+    #     結論：リラックスしていれば、困ったときも落ち着いて動ける
+    #     理由：あせりは、とつぜん来るのではなく、小さな心配がコップの水のように少しずつたまって生まれる
+    #           （Totty pcnoTiMgp5I 9:38 不安は器にたまる水・山田孝之さん JV4Y5JFUl0Q 6:54 小さな心配が重なった・熱烈先生 SCNIUKBHLLg 0:44）
+    #     具体例：1-1 潜る前／1-2 あせりかけたら／1-3 気になったら／1-4 はぐれたら
+    #     結論：迷ったら「伝える → 停まる → つかまる」。あとは任せてOK（1-2 の順番を、1行でもう一度）
+    #   前の「流れの矢印（小さな心配が重なる ▶ …）」とコップは、同じ理由を言っていたので、コップ1つにまとめて、いちばん上に置いた
+    lead = ('<div class="ixlead2"><div class="ixlt">'
+            '<p class="ixc1">リラックスしていれば、困ったときも、落ち着いて動ける</p>'
+            '<p class="ixwhy"><b>なぜ？</b>あせりは、小さな心配がコップの水のように、少しずつたまって生まれるから</p>'
+            '<p class="ixwhy"><b>だから</b>こまめに手放せば、いつも余裕のまま。やり方は、下の4つ</p></div>'
+            + CUP + '</div>')
+    end = ('<div class="ixend"><b>迷ったら</b><span>伝える → 停まる → つかまる。後は、インストラクターさんに任せてOK</span></div>')
+    p1 = (lead + sec("1-1", "潜る前に、決めておく",
               '<div class="ixtell ixtell4">' + "".join(f'<div class="ixt"><b><span class="ixn">{i}</span>{h}</b><span>{d}</span></div>' for i, (h, d) in enumerate(before, 1)) + '</div>')
           + sec("1-2", "あわてないように「ふり返る」",
-              chain + sign
+              sign
               + '<p class="ixh">前ぶれ（マスクを何度もさわる・足を動かし続ける・寒くないのに震える）に気づいたら、この順で</p>' + act
               # パパラギ先生 _5WJG7QlgW0（10:38 船に上がるまで外さない・14:18 押さえたまま咳）・SHIRO DIVE（3:02 外したくなった）・yxGndu5whlk（ゆっくり浅いほうへ）
               + pk(T("{regu}は外さない。急いで上がらない"), T("外したくなっても、くわえたまま。むせたら、押さえて咳をしてOK")))
           + sec("1-3", "「気になる」は、こまめに手放す",
-                '<div class="ixcupw"><div class="ixtb">' + "".join(f'<span class="ixq">{T(a)}</span><span class="ixd">{T(b)}</span><span class="ixj">{_jp(c) if c else ""}</span>' for a, b, c in rows) + '</div>'
-                + '<div class="ixcupc"><p class="ixh">コップに例えてみよう！</p>' + CUP + '<p class="ixs">「気になる」は、コップにたまる水。1つずつ、すぐに手放せば、いつも余裕のまま</p></div></div>')
+                # 10/21 2列（左から右へ、ページの順）。1列だと、字と「くわしくは」の間が大きく空く（10/20 まーく様「ここのスペースいらない」）
+                '<div class="ixtb2c">' + "".join(f'<div class="ixit"><div class="ixr"><b>{T(a)}</b>{_jp(c) if c else ""}</div><div class="ixd">{T(b)}</div></div>' for a, b, c in rows) + '</div>')
           + sec("1-4", "はぐれたら、見回して、ゆっくり浮上",
                 '<div class="ixact ixflow">' + "".join(f'<div class="ixk"><span class="ixn">{i}</span>{_ic(k)}<b>{h}</b><span>{d}</span></div>' for i, (k, h, d) in enumerate(flow, 1)) + '</div>'
-                + pk("1人で、もう一度潜って探さない", "はぐれても、あなたのせいじゃない。水面でも見つからなければ、ボートやお店の人にすぐ知らせよう")))
+                + pk("1人で、もう一度潜って探さない", "はぐれても、あなたのせいじゃない。水面でも見つからなければ、ボートやお店の人にすぐ知らせよう"))
+          + end)
     return [p1]
 
 CSS = """
+/* 10/21 いちばん上の「結論・理由」（題のすぐ下）と、いちばん下の「結論」 */
+.ixlead2{display:grid;grid-template-columns:minmax(0,1fr) 41mm;gap:4mm;align-items:center;background:var(--pale);border-radius:2mm;padding:.4mm 3.4mm;margin:0}
+.page .step.ix .notes{margin-top:1.2mm!important}
+.page .step.ix>.ixh{margin-top:0!important}
+.ixlead2 .ixcup{width:100%}
+.ixc1{margin:0 0 1.4mm;font-size:13pt;line-height:1.4;color:var(--navy);font-weight:900}
+.ixwhy{margin:.6mm 0 0;font-size:9.6pt;line-height:1.5}
+.ixwhy b{display:inline-block;color:var(--navy);margin-right:2mm}
+.ixend{display:flex;gap:3mm;align-items:center;background:var(--pale);border-radius:2mm;padding:1.1mm 3.4mm;margin-top:.6mm!important;font-size:10.4pt;line-height:1.45}
+.ixend b{color:var(--navy);white-space:nowrap}
+.ixtb2c{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:6mm;border-top:1px solid var(--line)}
+.ixtb2c .ixit{border-bottom:1px solid var(--line);padding:.6mm 1.2mm .7mm}
+.ixtb2c .ixr{display:flex;justify-content:space-between;align-items:baseline;column-gap:2mm}
+.ixtb2c .ixr b{font-size:9.8pt;color:var(--navy)}
+.ixtb2c .ixr .jump{font-size:8.2pt!important;white-space:nowrap}
+.ixtb2c .ixd{font-size:9.4pt;line-height:1.4;margin-top:0}
 /* 10/20 その1（作り直し）：図と表で、ひと目で分かる形 */
 .page .step.ix>.sh3+*{margin-top:0!important}   /* 題の下のすき間は、ほかの手順と同じ 2.4mm（ほかの決まりで二重にあいていた） */
 .ix .ixlead{margin:0 0 1.4mm;font-size:10pt;line-height:1.5}

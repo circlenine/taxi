@@ -4,7 +4,7 @@ import re, sys
 h = open(sys.argv[1], encoding="utf-8").read()
 bad = 0
 for cls in ("ixtb", "mtg"):
-    for m in re.finditer(r'<div class="' + cls + r'">', h):
+    for m in re.finditer(r'<div class="' + cls + r'[^"]*">', h):   # 「ixtb2c」など、名前の続く形も見る
         # その箱の終わりまで（入れ子の div を数える）
         i, depth = m.end(), 1
         while depth:
