@@ -324,8 +324,8 @@ page("大事", "先に“取扱注意”なものを伝えるよ", f"""
 <div class="grid2">
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-1</span><span>{T("{bc}")}と{T("{silver}のホース類")}は、洗い方がちがう！</span></h3>
 <div class="photos two">
-<figure class="ph3">{im("bc", 1.0)}<span class="cap3"><b class="ct">{T("{bc}")}</b><br>L字サインホースの口が<b>開いてる</b><br>→ 海水が“入ってる”<br><b class="cr">だから“中”も洗う</b></span></figure>
-<figure class="ph3">{im("s15", 1.0)}<span class="cap3"><b class="ct">{T("{silver}のホース類")}</b><br>隙間を<b>締める</b><br>→ 海水が“入らない”<br><b class="cr">だから“外”だけ洗う</b></span></figure>
+<figure class="ph3">{im("bc", 1.0)}<span class="cap3"><b class="ct">{T("{bc}")}</b><br>L字サインホースの口が<b>開いてる</b><br>→ 海水が“入ってる”<br><b class="cr">その為、“中”も洗う</b></span></figure>
+<figure class="ph3">{im("s15", 1.0)}<span class="cap3"><b class="ct">{T("{silver}のホース類")}</b><br>隙間を<b>締める</b><br>→ 海水が“入らない”<br><b class="cr">その為、“外”だけ洗う</b></span></figure>
 </div>
 <div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{T("{silver}のホース類")}の中は、乾いたままキープ！</b></span><div class="ns">中に海水を入れなければ、器材が長持ち。下の3つを押さえておけば、大丈夫！<br>細かくは、次のページ以降で紹介するよ</div></div></div></section>
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-2</span><span>とくに気をつける3つ</span></h3><div class="trio">{trio}</div></section>

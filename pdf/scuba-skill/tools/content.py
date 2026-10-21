@@ -75,8 +75,8 @@ STEPS = [
               ]),
      # 10/19 見直し：大事の箱が長すぎた（11〜16行）。覚え方の「イメージ」は補足へ分けた（大事は短いほど目に入る）
      extra=["<b>イメージ</b>",
-            "<span class=\"nw\">人差し指 → 親指よりスマートだから</span><br><span class=\"nw\">（空気が）しぼむ</span>",
-            "<span class=\"nw\">親指 → 人差し指より幅があるから</span><br><span class=\"nw\">（空気が）ふくらむ</span>"]),
+            "<span class=\"nw\">人差し指 → 親指よりスマートなので</span><br><span class=\"nw\">（空気が）しぼむ</span>",
+            "<span class=\"nw\">親指 → 人差し指より幅があるので</span><br><span class=\"nw\">（空気が）ふくらむ</span>"]),
    dict(id="5-3", key=["c29"], frames=["c29"],
      title="{regu}で、息が吸えるか確かめる",),
    dict(id="5-4", key=["c30"], frames=["c30"],

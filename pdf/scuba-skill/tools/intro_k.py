@@ -160,7 +160,7 @@ def pages(T, jump):
     lead = ('<div class="ixlead2"><div class="ixlt">'
             '<p class="ixc1">リラックスしていれば、困ったときも、落ち着いて動ける</p>'
             '<p class="ixwhy"><b>なぜ？</b>あせりは、小さな心配がコップの水のように、少しずつたまって生まれるから</p>'
-            '<p class="ixwhy"><b>だから</b>こまめに手放せば、いつも余裕のまま。やり方は、下の4つ</p></div>'
+            '<p class="ixwhy"><b>その為</b>こまめに手放せば、いつも余裕のまま。やり方は、下の4つ</p></div>'
             + CUP + '</div>')
     end = ('<div class="ixend"><b>いちばんのコツ</b><span>大丈夫なうちに、小さく伝える。それが、いちばんのお守り</span></div>')   # 10/21 あわてた最中の手順ではなく、大丈夫なうちにできる1つで締める
     p1 = (lead + sec("1-1", "潜る前に、決めておく",
@@ -187,7 +187,7 @@ CSS = """
 .ixlead2 .ixcup{width:100%}
 .ixc1{margin:0 0 1.4mm;font-size:13pt;line-height:1.4;color:var(--navy);font-weight:900}
 .ixwhy{margin:.6mm 0 0;font-size:9.6pt;line-height:1.5}
-.ixwhy b{display:inline-block;color:var(--navy);margin-right:2mm}
+.ixwhy b{display:inline-block;width:3.3em;color:var(--navy);margin-right:1mm}   /* 10/21「なぜ？」「その為」の札を同じ幅にして、文の始まりをそろえる */
 .ixend{display:flex;gap:3mm;align-items:center;background:var(--pale);border-radius:2mm;padding:1.1mm 3.4mm;margin-top:.6mm!important;font-size:10.4pt;line-height:1.45}
 .ixend b{color:var(--navy);white-space:nowrap}
 .ixtb2c{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:6mm;border-top:1px solid var(--line)}
