@@ -11,7 +11,7 @@ def apply(html, vid_of):
         k = re.search(r'data-k="([^"]+)"', m.group(0))
         v = vid_of(k.group(1)) if k else None
         if not v: raise SystemExit(f"写真 {k.group(1) if k else '?'} の関連動画が決まっていない（photolink の対応表に足す）")
-        return m.group(0)[:-1] + f' data-v="https://youtu.be/{v}">'
+        return m.group(0)[:-1] + f' data-v="https://youtu.be/{v}">'   # v は「動画の番号」か「動画の番号?t=秒」（10/21 写真の場面から再生）
     html = re.sub(r'<img [^>]*>', lambda m: add(m) if 'data-k=' in m.group(0) else m.group(0), html)
     # 使い方の欄に、1行足す
     html = html.replace('<div class="hrows">', '<div class="hrows"><span class="hp">写真</span><span>どの写真も、タップすると関連の動画（YouTube）へ移動するよ</span>', 1)

@@ -13,6 +13,18 @@ from fish import head_fish, scene, page_fish
 
 B = sys.argv[1]
 
+
+# 10/21 まーく様「写真の場面の時刻から再生」：写真ごとの「動画の何秒か」
+#   まーく様のドライブの画面収録（ScreenRecording_10-07-2026：この動画を最初から最後まで流したもの）と、写真の元の画面を1コマずつ見比べて出した（1秒前から始める）
+#   strap・twist は、ホース類のねじれを見る場面（144秒あたり）
+SET_T = {'bc': 28, 'belt': 236, 'c04': 36, 'c05': 51, 'c06': 58, 'c09': 80, 'c10': 103, 'c11': 112, 'c13': 129, 'c14': 126, 'c15': 138, 'c19': 165, 'c21': 172, 'c22': 175, 'c24': 182, 'c26': 195, 'c27': 199, 'c29': 220, 'c30': 227, 'c33': 256, 'c35': 271, 'c37': 295, 'c38': 301, 'c39': 307, 'c40': 315, 'c41': 321, 'c44': 138, 'cap': 34, 'nghi': 63, 'nglo': 63, 'strap': 143, 'tank': 28, 'twist': 143}
+def _vid_set(k): return "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")
+
+# 洗浄編の写真のうち bc・c14・g0・infl・infl2・tv は「器材セッティング」の動画の画面（画面収録と見比べて分かった）→ その動画のその秒へ
+#   ほかの写真は「器材の片付け」の動画。こちらは画面収録が無いので、秒が分からない → 動画の最初から
+SET_T.update({'g0': 191, 'infl': 138, 'infl2': 138, 'tv': 182})
+def _vid_wash(k): return _vid_set(k) if k in SET_T else "Cg4JdxYFcoo"
+
 def T(s):
     s = re.sub(r"\{(\w+)\}", lambda m: f'<span class="t t-{m.group(1)}">{TERMS[m.group(1)]}</span>', s)
     return s.replace("“", '<span class="ql">“</span>').replace("”", '<span class="qr">”</span>')
@@ -378,7 +390,7 @@ def mjump(sid):
     n = pg_of(sid)
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
 mt = "".join(
-    f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="https://youtu.be/Cg4JdxYFcoo">{im(k, 1.6)}<span class="play">▶</span></a>'
+    f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="https://youtu.be/{_vid_wash(k)}">{im(k, 1.6)}<span class="play">▶</span></a>'
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
@@ -1183,5 +1195,5 @@ CSS += '''
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>洗浄編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["2"][0])), lambda k: "Cg4JdxYFcoo")}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>'))
+    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["2"][0])), _vid_wash)}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))

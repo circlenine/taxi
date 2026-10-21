@@ -385,11 +385,24 @@ MT_PHOTO = {"1": "c40", "2": "mimi73", "4": "rc922", "6": "sa58"}
 #   → 1：潜る前、ウエットスーツで、インストラクターさんに伝えている場面（準備編のバディチェック）
 #     6：バディと2人で、海の中を楽しんでいる場面（PADI Japan「Scuba Sarah」）
 #   どの札も「書いてあること」と「写真の場面」が合っているかを、ここで見直した（2 耳抜き・3 中性浮力・4 排気・5 マスク・7 合図は合っている）   # 10/21 まーく様「耳抜きは鼻をつまんでいる写真、BCD排気は排気している場面に」
+def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画と、その場面の秒（まーく様「写真の場面の時刻から再生」）
+    t = lambda v, sec: f"{v}?t={max(0, int(sec) - 1)}"
+    if k.startswith("rc2_4"): return t("nb-1Zn2dyOo", int(k[4:]) - 366)    # 彦坂さん「マスク脱着」：画面収録2の 366 秒から始まる
+    if k in ("rc914", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
+    if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return t("kYvgkoTBkNg", int(k[2:]) - 657)   # サンズ「浮力コントロール & フィンピポット」：画面収録の 657 秒から
+    if k.startswith("sg"): return t("pS-yk6gth-8", int(k[2:]) / 100)     # ハンドシグナル（印の数字は 1/100 秒）
+    if k.startswith("bs"): return t("2X4rf11ORN0", int(k[2:]) / 2)       # ビューティフルシー（取りこんだ動画は映像が2倍に伸びている）
+    for p, v in (("mimi", "WvrP47_Smu0"), ("mask", "Zpf8LSiQtko"), ("rr", "5K8XyxfDplc"), ("octo", "3MHCvlPVQew"), ("sig", "pS-yk6gth-8"), ("sa", "3oDlSquqUD4")):
+        if k.startswith(p):
+            n = int(re.sub(r"\D", "", k)); return t(v, n / 10 if p == "mimi" and n >= 70 else n)   # 印の数字＝秒（mimi73 だけは 7.3 秒）
+    if k == "c40": return "twjEJS_0kms?t=315"
+    return None
 MTV = {"rr": "5K8XyxfDplc", "mimi": "WvrP47_Smu0", "mask": "Zpf8LSiQtko", "octo": "3MHCvlPVQew", "bs": "2X4rf11ORN0",
        "sig": "pS-yk6gth-8", "sg": "pS-yk6gth-8", "rc664": "kYvgkoTBkNg",
        "rc922": "rfjKcQkeu7w",
        "c40": "twjEJS_0kms", "sa": "3oDlSquqUD4"}   # c40 は準備編の動画（OPEN EV）／sa は PADI Japan 公式「Scuba Sarah - Diving the 7 Continents（Japanese）」（題名と投稿者を YouTube で確かめた）   # rc922 はサンズ「緊急スキル浮上」（同じ人・同じ字幕の形。サムネイルと見比べた 10/21）   # rc664 はサンズ「浮力コントロール & フィンピポット」（画面の字と再生リストの題で突き合わせた）
 def mtv(k):
+    if _vid_k(k): return "https://youtu.be/" + _vid_k(k)   # 10/21 その場面の秒から
     for p in (k, re.sub(r"\d+$", "", k)):
         if p in MTV: return "https://youtu.be/" + MTV[p]
     raise SystemExit(f"まとめ：写真 {k} の元の動画が分からない（MTV に足す）")
@@ -1250,15 +1263,6 @@ import fontset as _fs
 import logo as _lg
 import photolink as _pl   # 10/21 どの写真も、タップすると関連の動画へ
 
-def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画（題名と投稿者を YouTube で確かめた）
-    if k.startswith("rc2_4"): return "nb-1Zn2dyOo"      # 彦坂さん（クラブドゥ）「マスク脱着」
-    if k == "rc914": return "PTvLJgwR_zo"               # サンズ「ウエイトベルトの脱着」（重りの外し方）
-    if k == "rc922": return "rfjKcQkeu7w"               # サンズ「緊急スキル浮上」（体を立てて排気）
-    if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return "kYvgkoTBkNg"   # サンズ「浮力コントロール & フィンピポット」（画面収録の 655〜760 秒）
-    for p, v in (("mimi", "WvrP47_Smu0"), ("mask", "Zpf8LSiQtko"), ("rr", "5K8XyxfDplc"), ("octo", "3MHCvlPVQew"), ("bs", "2X4rf11ORN0"),
-                 ("sig", "pS-yk6gth-8"), ("sg", "pS-yk6gth-8"), ("sa", "3oDlSquqUD4"), ("c", "twjEJS_0kms")):
-        if k.startswith(p): return v
-    return None
 import ruby as _rb   # 10/20 ルビ   # 10/20 表紙の題をロゴの絵に（LOGO=A/B/C のときだけ）
 FONTS = _fs.links(FONTS)
 if _lg.LOGO: FONTS = FONTS.replace('&display=swap', '&' + _lg.LINK + '&display=swap', 1)
