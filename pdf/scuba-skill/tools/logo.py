@@ -214,9 +214,11 @@ def svg(v, m, uid="lg"):
 <linearGradient id="{uid}sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff9a8b"/></linearGradient>
 <linearGradient id="{uid}bl" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="{P['t0']}"/><stop offset="1" stop-color="{P['t1']}"/></linearGradient>
 <linearGradient id="{uid}pk" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#ff8fb0"/><stop offset="1" stop-color="#c8336a"/></linearGradient>
-<mask id="{uid}cut"><rect x="0" y="0" width="1200" height="300" fill="#fff"/><rect x="400" y="136" width="400" height="6" fill="#000"/><rect x="400" y="152" width="400" height="8" fill="#000"/><rect x="400" y="170" width="400" height="10" fill="#000"/></mask>
-<clipPath id="{uid}up"><rect x="0" y="0" width="1200" height="190"/></clipPath></defs>
-<g mask="url(#{uid}cut)" clip-path="url(#{uid}up)"><circle cx="600" cy="150" r="128" fill="url(#{uid}sun)"/></g>
+<clipPath id="{uid}up"><rect x="0" y="0" width="1200" height="190"/></clipPath>
+<clipPath id="{uid}sunc"><circle cx="600" cy="150" r="128"/></clipPath></defs>
+<!-- 10/21 太陽の横じまは、マスク（PDFで画像になり、iPhoneで灰色の板になる）ではなく、白い帯を重ねて描く -->
+<g clip-path="url(#{uid}up)"><circle cx="600" cy="150" r="128" fill="url(#{uid}sun)"/>
+<g clip-path="url(#{uid}sunc)" fill="#fff"><rect x="400" y="136" width="400" height="6"/><rect x="400" y="152" width="400" height="8"/><rect x="400" y="170" width="400" height="10"/></g></g>
 <clipPath id="{uid}sea"><rect x="40" y="150" width="1120" height="134" rx="10"/></clipPath>
 <g clip-path="url(#{uid}sea)">
 <linearGradient id="{uid}glow" gradientUnits="userSpaceOnUse" x1="{SM0 - 60}" y1="0" x2="{SM1 + 60}" y2="0"><stop offset="0" stop-color="#ff9e8a" stop-opacity="0"/><stop offset=".5" stop-color="#ff9e8a" stop-opacity=".9"/><stop offset="1" stop-color="#ff9e8a" stop-opacity="0"/></linearGradient>
