@@ -355,8 +355,11 @@ mt = "".join(
     for i, (k, h, steps) in enumerate(MATOME, 1))
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ダイビング機材セッティング」</span><br><span class="nw">OPEN EV／沖縄県立沖縄水産高等学校・</span><br><span class="nw">沖縄県教育委員会</span></p></div>{mt}</div>')
 
-# 10/20 まーく様「必要情報（最優先事項）にできる限り絞って、最大でも10ページ」→「最後に（ふり返り・クイズ）」のページは外した。
-#   写真の出どころは、まとめのページの空いたマスへ移した（出どころは消さない）
+# 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
+#   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
+<div class="quiz">{quiz}</div>""")
+
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 # 10/20 まーく様「目次には、だよ、は抜いて」→ もくじの行だけ、題の終わりの「だよ」を外す（ページの題はそのまま）
@@ -364,7 +367,7 @@ def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e"><span class="g">準備</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2・__TOTAL__ページ</span><span>青い字のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp">2〜{len(pages) - 1}ページ</span><span>memo は、タップすると字が書けるよ</span></div><p class="hw">YouTubeのリンク、memo<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">2・{len(pages) - 1}ページ</span><span>青い字のリンク・まとめの写真をタップすると、YouTubeへ移動するよ</span><span class="hp">2〜{len(pages) - 2}・{len(pages)}ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">{len(pages)}ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
@@ -1005,6 +1008,11 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
   e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
 document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});addMemos();window.__laid=true})</script>'''
 CSS += '''
+/* 10/21 工程3：3-5 は横いっぱいの1段。左に題と写真、右に大事の箱（memo の場所に入る） */
+.page .grid2>.step.wide:has(>.notes){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:7mm}
+.page .grid2>.step.wide:has(>.notes)>.sh3{grid-column:1;grid-row:1}
+.page .grid2>.step.wide:has(>.notes)>.photos{grid-column:1;grid-row:2}
+.page .grid2>.step.wide:has(>.notes)>.notes{grid-column:2;grid-row:1/3;margin-top:0!important}
 /* 10/21 まーく様「1ページふり返りは全て、スキル編と同じく、画像をタップしたら動画が見られるように」「参考動画は右下ではなく、下側に行数を減らして」 */
 .page .mtg .mtc>a.mtv{order:1;display:block;position:relative;line-height:0;background:none!important;padding:0!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:2mm}
 .page .mtg .mtc>a.mtv>img{width:100%!important;height:auto!important;aspect-ratio:1.65!important;object-fit:cover;display:block;border-radius:2mm}
@@ -1016,7 +1024,7 @@ CSS += '''
 .page .mtfirst>.mthow .rn{display:block;font-size:8.4pt}
 .page .mtfirst>p.mtcred{margin:0!important;font-size:7.8pt!important;line-height:1.5!important;color:var(--muted)}   /* 10/21 まーく様「参考動画も、スキル編と同じく、いちばん初めの左上に」 */
 '''
-CSS = CSS.replace("#p10", "#p_saigo")   # 10/20「最後に」のページを外したので、そのページ用の決まりは、どこにも当てない（まとめのページに当たらないように）   # 最後のページ（もとは10ページ）の決まりを、いまの最後のページに読みかえる（10/16 まとめのページを足したため）
+CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 10/20「最後に」のページを外したので、そのページ用の決まりは、どこにも当てない（まとめのページに当たらないように）   # 最後のページ（もとは10ページ）の決まりを、いまの最後のページに読みかえる（10/16 まとめのページを足したため）
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>準備編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{_rb.apply(_lg.apply("".join(pages), _nd.COL["1"][0]))}{_fs.punct_js()}{FIT}</body></html>')
