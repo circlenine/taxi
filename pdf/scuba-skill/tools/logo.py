@@ -207,8 +207,9 @@ def svg(v, m, uid="lg"):
         def line(x, y, fill_main, fill_ini, extra=""):
             sp = "".join((f'<tspan fill="{fill_ini}">{a}</tspan>' if a else "") + f'<tspan fill="{fill_main}">{b}</tspan>' for a, b in T)
             return f'<text class="lf-p" x="{x}" y="{y}" text-anchor="middle" font-family="Pacifico" font-size="84" {extra}>{sp}</text>'
+        # 10/21 まーく様「安全と笑顔、黄色などにして、もっと視認性を良く」→ 明るい黄色（どの冊の帯の上でも、明るさの差3以上。logocheck.js で点検）
         sub = ('<text class="lf-k" x="600" y="262" text-anchor="middle" font-family="Kaisei Decol" font-weight="700" font-size="30" fill="#fff">'
-               '〜あなたの<tspan fill="#ffb3c8">笑顔</tspan>のための、<tspan fill="#ffb3c8">安全</tspan>なダイビング（略してSDGs）〜</text>')   # 10/20 ピンクは「笑顔」「安全」（SDGs ではない）)
+               '〜あなたの<tspan fill="#ffec40">笑顔</tspan>のための、<tspan fill="#ffec40">安全</tspan>なダイビング（略してSDGs）〜</text>')   # 10/20 ピンクは「笑顔」「安全」（SDGs ではない）)
         return f'''<svg class="logo" viewBox="40 0 1120 284" role="img" aria-label="Safe Dive for a Girlie Smile 〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜"><defs>
 <linearGradient id="{uid}sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff9a8b"/></linearGradient>
 <linearGradient id="{uid}bl" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="{P['t0']}"/><stop offset="1" stop-color="{P['t1']}"/></linearGradient>
