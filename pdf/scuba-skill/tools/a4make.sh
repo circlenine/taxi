@@ -3,6 +3,8 @@
 set -eo pipefail
 S=/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad
 export NODE_PATH=$(npm root -g)
+# 10/21 点検の読みこみが、まれに「ページが読み直された」で止まる（中身の不具合ではない）。そのときだけ、3回まで読み直す
+node() { local i out rc; for i in 1 2 3; do out=$(command node "$@" 2>&1); rc=$?; if [ $rc -ne 0 ] && echo "$out" | grep -q "Execution context was destroyed"; then continue; fi; echo "$out"; return $rc; done; echo "$out"; return $rc; }
 cd $S/build
 # 不安にさせる言い回しが無いか（10/15 ご指示・全資料共通）
 python3 -I $S/tools/phrasecheck.py $S/tools/content.py
@@ -20,6 +22,7 @@ mkdir -p img/s
 for f in $(grep -o 'img/s/[a-z0-9_]*\.jpg' a4.html | sort -u); do [ -f "$f" ] || cp img/c05.jpg "$f"; done
 node $S/tools/measure.js $S/build/a4.html a4sizes.json
 python3 -I $S/tools/focus.py a4sizes.json img/s
+python3 -I $S/tools/badgeset.py $S/build/a4.html img/s/badge.json   # ▶ の印を置くすみ（見せたい部分・赤い印にかからない所。10/21）
 SIDE=14 node $S/tools/mcheck.js $S/build/a4.html | tee $S/mcheck_last.txt
 # はみ出しガード（10/19）：どのページでも、中身がページの下からはみ出していたら止める（PDFを作らせない）
 if grep -q "ページの下にはみ出し" $S/mcheck_last.txt; then echo "NG ページからはみ出している（上を見て直す）"; exit 1; fi
@@ -40,6 +43,7 @@ node $S/tools/kerncheck.js $S/build/a4.html   # 題・見出しの字のすき�
 node $S/tools/arrowcheck.js $S/build/a4.html   # しおりの札の字が、左右同じ余白か（10/20）
 node $S/tools/logocheck.js $S/build/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
 node $S/tools/barcheck.js $S/build/a4.html   # 左の線の太さが、左右の列・どのページでも同じか（10/20）
+node $S/tools/badgecheck.js $S/build/a4.html   # ▶ の印が全部の写真にあり、写真の中に収まっているか（10/21）
 node $S/tools/photocover.js $S/build/a4.html   # 写真の上に、何もかぶっていないか（10/21 写真が全部隠れた）
 node $S/tools/photoalign.js $S/build/a4.html   # まとめの写真が、題の行数でずれていないか（10/20）
 node $S/tools/latincheck.js $S/build/a4.html   # 英数字・記号が細くないか（10/20）

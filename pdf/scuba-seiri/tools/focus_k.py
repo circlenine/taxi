@@ -536,6 +536,7 @@ if __name__ == "__main__":
         sys.exit(1)
     os.makedirs(out, exist_ok=True)
     warn = []
+    BADGE = {}
     ROT = {"belt"}  # 重りは横に長いので、90度回して縦長にする（左右のいらない部分を減らし、ベルト自体を大きく見せる。10/7 ご指示）
     for slot, (key, w, h) in sizes.items():
         frame, allowed, focus = F[key]
@@ -580,5 +581,10 @@ if __name__ == "__main__":
         im = im.resize((tw, round(tw * h / w)), Image.LANCZOS)
         if rot: im = im.rotate(90, expand=True)
         im = mark(im, key, (x0, y0, x1, y1), sx, sy, im.size[0] / w)
+        # 10/21 ▶ の印を置くすみ（見せたい部分・赤い印にかからない所）
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import badgepos as _bp
+        _ff = _bp.focus_frac(focus, (x0, y0, x1, y1), pad_to, None, rot) if not isinstance(focus, list) else [0, 0, 0, 0]
+        _c, _s, _ = _bp.corners(im, _ff, *( (h, w) if rot else (w, h) )); BADGE[slot] = f"{_c}:{_s}"
         im.save(os.path.join(out, f"{slot}.jpg"), quality=88)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); __import__("badgepos").save(out, BADGE)
     print("\n".join(warn) if warn else "all focus fit")
