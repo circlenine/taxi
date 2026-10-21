@@ -35,5 +35,7 @@ def apply(html):
 CSS = """
 /* ルビ：字の上に小さく。行の間がひろがりすぎないよう、ルビの行の高さは詰める */
 .page .rb{position:relative}
+/* 10/20 ルビのある文だけ、行の間を少し広げる（2行目の 呼 のルビが、上の行の字にくっついて見えたため。rubycheck.js で点検） */
+.page :is(h3.sh3 .hs,.notes .nt .nx,.srows .sd2,.ixtb .ixd):has(.rb){line-height:1.9!important}
 .page .rb>.rt{position:absolute;left:50%;bottom:100%;transform:translate(-50%,.18em);font-size:.48em;line-height:1;font-weight:700;letter-spacing:0;white-space:nowrap;pointer-events:none}
 """

@@ -164,7 +164,14 @@ def svg(v, m, uid="lg"):
         #   ・題は1行の筆記体。白いふち＋紺のずらした影（ステッカー型）
         #   ・頭文字 S D G s はピンク、ほかは青。どちらも上が明るく、下へ濃くなる（太陽の光が上から当たる）
         #   ・サブタイトルは、題のすぐ下の波（海）の帯の上に白い字で入れて、1つのロゴにする。SDGs は頭文字と同じピンク
-        NAVY = "#173a63"
+        # 10/20 まーく様「ロゴの全体の色合いは、各編のテイストに合わせて」→ 題の字・影・海・泡の色を、冊の色（青・オレンジ・紫）にする
+        #   頭文字 S D G s と「笑顔」「安全」のピンク、太陽、夕日の光は、どの冊も同じ（SDGs のしるしと、夕日の場面は変えない）
+        #   ※ 冊ごとに置きかえられる色（各冊の COLORS の左側）は使わない。置きかえられると、ねらった色にならない
+        PAL = {"#16466b": dict(t0="#5aa9e6", t1="#1d4f8f", nv="#173a63", s1="#7cc7e8", s2="#2f78c4"),   # 準備編（青）
+               "#6b3410": dict(t0="#f7a96a", t1="#b0521c", nv="#5a2c0e", s1="#f6b98c", s2="#c8622a"),   # 洗浄編（オレンジ）
+               "#4b2a73": dict(t0="#b08be6", t1="#5a2f96", nv="#3d2160", s1="#c3a8ec", s2="#7446b3")}   # スキル編（紫）
+        P = PAL.get(m, PAL["#16466b"])
+        NAVY = P["nv"]
         # 波の白い光の線：手前の波（濃い青）の山の形に、ぴったり沿わせる（目で置かずに、波と同じ式から点を出す）
         #   手前の波は 120 ごとに山と谷。山のまん中は x = 60 + 240k、高さ y = 206 - 36·t(1-t)。光は山の上を 7 下げて、t=0.16〜0.84 の間だけ
         def crest(x0):
@@ -204,7 +211,7 @@ def svg(v, m, uid="lg"):
                '〜あなたの<tspan fill="#ffb3c8">笑顔</tspan>のための、<tspan fill="#ffb3c8">安全</tspan>なダイビング（略してSDGs）〜</text>')   # 10/20 ピンクは「笑顔」「安全」（SDGs ではない）)
         return f'''<svg class="logo" viewBox="40 0 1120 284" role="img" aria-label="Safe Dive for a Girlie Smile 〜あなたの笑顔のための、安全なダイビング（略してSDGs）〜"><defs>
 <linearGradient id="{uid}sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff9a8b"/></linearGradient>
-<linearGradient id="{uid}bl" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#5aa9e6"/><stop offset="1" stop-color="#1d4f8f"/></linearGradient>
+<linearGradient id="{uid}bl" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="{P['t0']}"/><stop offset="1" stop-color="{P['t1']}"/></linearGradient>
 <linearGradient id="{uid}pk" gradientUnits="userSpaceOnUse" x1="0" y1="62" x2="0" y2="168"><stop offset="0" stop-color="#ff8fb0"/><stop offset="1" stop-color="#c8336a"/></linearGradient>
 <mask id="{uid}cut"><rect x="0" y="0" width="1200" height="300" fill="#fff"/><rect x="400" y="136" width="400" height="6" fill="#000"/><rect x="400" y="152" width="400" height="8" fill="#000"/><rect x="400" y="170" width="400" height="10" fill="#000"/></mask>
 <clipPath id="{uid}up"><rect x="0" y="0" width="1200" height="190"/></clipPath></defs>
@@ -212,13 +219,13 @@ def svg(v, m, uid="lg"):
 <clipPath id="{uid}sea"><rect x="40" y="150" width="1120" height="134" rx="10"/></clipPath>
 <g clip-path="url(#{uid}sea)">
 <linearGradient id="{uid}glow" gradientUnits="userSpaceOnUse" x1="{SM0 - 60}" y1="0" x2="{SM1 + 60}" y2="0"><stop offset="0" stop-color="#ff9e8a" stop-opacity="0"/><stop offset=".5" stop-color="#ff9e8a" stop-opacity=".9"/><stop offset="1" stop-color="#ff9e8a" stop-opacity="0"/></linearGradient>
-<path class="smilewave" d="{W1}" fill="#7cc7e8"/>
+<path class="smilewave" d="{W1}" fill="{P['s1']}"/>
 <path d="{RIM}" fill="none" stroke="url(#{uid}glow)" stroke-width="6" stroke-linecap="round"/>   <!-- 夕日の光が水面のふちに映った、うすい赤み -->
-<path d="{W2}" fill="#2f78c4"/>
+<path d="{W2}" fill="{P['s2']}"/>
 {glint}</g>
 {line(605, 156, NAVY, NAVY, f'stroke="{NAVY}" stroke-width="13" stroke-linejoin="round"')}
 {line(600, 150, f"url(#{uid}bl)", f"url(#{uid}pk)", 'stroke="#fff" stroke-width="12" stroke-linejoin="round" paint-order="stroke"')}
-<g fill="#fff" stroke="#2f78c4" stroke-width="3.5"><circle cx="1110" cy="96" r="7"/><circle cx="1128" cy="66" r="10"/><circle cx="1148" cy="38" r="6"/></g>
+<g fill="#fff" stroke="{P['s2']}" stroke-width="3.5"><circle cx="1110" cy="96" r="7"/><circle cx="1128" cy="66" r="10"/><circle cx="1148" cy="38" r="6"/></g>
 {sub}</svg>'''
     return ""
 

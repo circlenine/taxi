@@ -126,7 +126,7 @@ def pages(T, jump):
     p1 = (sec("1-1", "潜る前に、決めておく",
               '<div class="ixtell ixtell4">' + "".join(f'<div class="ixt"><b><span class="ixn">{i}</span>{h}</b><span>{d}</span></div>' for i, (h, d) in enumerate(before, 1)) + '</div>')
           + sec("1-2", "あわてないように「ふり返る」",
-              '<p class="ixlead">あわてるのは、とつぜんではないよ。少しずつ進むから、途中で気づけば大丈夫</p>' + chain
+              chain
               + '<p class="ixh">気づいたら、この順で</p>' + act
               + pk("急いで水面へ上がらない", "急に上がると、体に負担がかかるから。インストラクターさんと、いっしょにゆっくり上がろう"))
           + sec("1-3", "「気になる」は、こまめに手放す",
@@ -160,14 +160,15 @@ CSS = """
 .ixk>span:last-child{font-size:8.4pt;line-height:1.35}
 .ixn{display:inline-flex;align-items:center;justify-content:center;width:4.6mm;height:4.6mm;border-radius:1mm;background:var(--navy);color:#fff;font-size:8.5pt;line-height:1}
 .ix .notes{margin-top:1.6mm}
-.ixcupw{display:grid;grid-template-columns:minmax(0,1fr) 40mm;gap:3mm;align-items:start}
+.ixcupw{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5mm;align-items:stretch}   /* 10/20 まーく様「ここのスペースいらない」：表は中身の幅だけにして、空いた幅はコップの絵に回す */
+.ixcupc{display:flex;flex-direction:column;justify-content:space-between}   /* コップの欄は、表の上の端から下の端までにそろえる（1-3 の中で、つり合いを取る） */
 .ixcupc .ixh{margin-top:0}
 .ixcupc .ixs{font-size:8.8pt;margin-top:1mm}
 .ixh small{font-size:8.8pt;color:var(--ink);margin-left:1mm}
 .ixpre{margin-top:1.6mm!important}
 .ixcup{width:100%;height:auto;display:block}
 .ixs{margin:0;font-size:9.8pt;line-height:1.5}
-.ixtb{display:grid;grid-template-columns:34mm minmax(0,1fr) auto;margin-top:0;border-top:1px solid var(--line)}
+.ixtb{display:grid;grid-template-columns:max-content max-content max-content;margin-top:0;border-top:1px solid var(--line)}
 .ixtb>span{padding:.7mm 1.2mm;border-bottom:1px solid var(--line);font-size:9.2pt;line-height:1.4;display:block;align-self:stretch}   /* flex にすると、ルビや詰めの印で字がばらばらになる */
 .ixth{font-size:8.6pt!important;color:var(--muted);padding-top:1mm!important;padding-bottom:1mm!important}
 .ixq{color:var(--navy)}

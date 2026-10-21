@@ -12,7 +12,7 @@ from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, 
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
-    _OLDT = {"1": "いちばん大事なのは“リラックス”だよ", "2": "“耳抜き”のやり方3選", "5": "{bc}排気と{regu}",
+    _OLDT = {"1": "いちばん大事なのは“リラックス”", "2": "“耳抜き”のやり方3選", "5": "{bc}排気と{regu}",
              "6": "マスククリアとマスク脱着", "7": "空気は、バディと分け合える", "8": "浮上と、潜った後の過ごし方"}
     INTRO["title"] = _OLDT["1"]
     for _x in STEPS:
@@ -375,7 +375,7 @@ quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span 
 #   ・「くわしくは〇ページ」で、そのページへ飛べる
 # 形は、洗浄編2ページの「とくに気をつける3つ」と同じ（写真＋名前＋くわしくは）。新しい形は作らない
 def _short(x):
-    x = re.sub(r"<[^>]+>", "", x)
+    x = re.sub(r"<(?!/?span[ >])[^>]+>", "", x)   # 10/20 改行の切れ目（nw）は残す（「大きく／ゆっくり」と切れないように）
     return re.split(r"[：。]", x)[0]
 MATOME = [(([k for s in sec["subs"] for k in s["key"]] or ["sig16"])[0], sec["title"], [(s["id"], _short(s["title"]), bool(s.get("pink"))) for s in sec["subs"]]) for sec in [INTRO] + STEPS]
 def pg_of(sid):   # 手順の番号 → その手順があるページ（ページを作り終えたあとで調べる）
@@ -390,6 +390,12 @@ mt = "".join(
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
+# 10/20 まとめの最後の段に空きが出たので、合図のページの札を足す（まとめから、全部のページへ行けるように）
+#   中身は合図のページにあることだけ（新しい話は入れない）
+mt += (f'<section class="mtc"><h3 class="mth"><span class="mtn">{len(MATOME) + 1}</span><span>ハンドシグナル</span></h3>{im("sg5500", 1.6)}'
+       '<ol class="mts"><li><span>何かおかしい・エアがない・耳が抜けない</span></li><li><span>親指を上に向けるのは「浮上しよう」</span></li>'
+       '<li class="mtb"><span><span class="lp mtk">大事</span>「エアがない」の形を確かめる</span></li></ol>'
+       '<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a></section>')
 sg = "".join(f'<figure class="ph3 sgc">{im(k, 1.0)}<span class="cap3">{T(name)}</span></figure>' for k, name in SIGNALS)
 sgn = '<div class="notes">' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES) + '</div>'
 # 10/20 作り直し：ハンドシグナル。写真の上には何も重ねない（指を隠さない）。説明は写真の下
@@ -419,7 +425,8 @@ SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛
 # 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 page("合図", "ハンドシグナル", f'{SIGREF}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqg3">{sm}{ss3}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
-page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "見返し用の集約1ページ！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<section class="mtq"><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ</small></h3><div class="quiz">{quiz}</div></section><p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から</p></div>')
+# 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
+page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "集約版！サッと1ページで見返そう！"), f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<p class="src mtsrc">写真：PADI公式の動画（耳抜き<a href="https://youtu.be/WvrP47_Smu0"><span class="tapm scr">*</span>WvrP47_Smu0</a>・マスククリア<a href="https://youtu.be/Zpf8LSiQtko"><span class="tapm scr">*</span>Zpf8LSiQtko</a>・レギュが外れたら<a href="https://youtu.be/5K8XyxfDplc"><span class="tapm scr">*</span>5K8XyxfDplc</a>・バックアップ空気源<a href="https://youtu.be/3MHCvlPVQew"><span class="tapm scr">*</span>3MHCvlPVQew</a>）、ビューティフルシーのプール講習<a href="https://youtu.be/2X4rf11ORN0"><span class="tapm scr">*</span>2X4rf11ORN0</a>、Club DO（彦坂さん）・サンズの動画の画面から</p></div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -429,7 +436,7 @@ def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習でやったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__QUIZP__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span></div><p class="hw">YouTubeのリンク、memo<br>どれかをタップしてるときは、他の操作ができないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 # 中性浮力のページ（3と4を1ページにまとめた）は、写真を少し低くしてよい（10ページ以内に収めるため。仮の形）
 #   （写真の高さの下限を、p4 だけ 20mm にする。下の FIT の fit() で見分ける）
@@ -1174,7 +1181,7 @@ CSS += """
 .sqg3 .sqc{padding-top:1.2mm!important}
 .sqg3 figcaption{line-height:1.3!important;margin-top:.5mm!important}
 /* まとめ：クイズを入れるので、写真を少し横長に */
-.page .mtg .mtc>img{aspect-ratio:3.4!important}
+.page .mtg .mtc>img{aspect-ratio:2.1!important}   /* 10/20 クイズを外した分、写真を大きく（まーく様「画像が小さくなるのは、極力やめて」） */
 .page .mtg>.mtsrc{font-size:7.6pt!important;line-height:1.4!important}
 .page .mtl{margin-bottom:1.6mm!important}
 .mtq .qz{padding:.6mm 0!important}
@@ -1182,7 +1189,7 @@ CSS += """
 .mtq .qz .a{line-height:1.35!important}
 /* まとめのクイズ：あいた2マスに置く。写真の出どころは下の段いっぱい */
 .page .mtg>.mtq{grid-column:span 2}
-.page .mtg>.mtsrc{grid-column:1/-1!important}
+.page .mtg>.mtsrc{grid-column:auto/span 1!important;align-self:end}   /* 10/20 写真の出どころは、まとめの最後の空いたマスに（下の段を空けて、写真を大きく） */
 .mtq .quiz{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:1mm 3mm!important}
 .mtq .qz .q,.mtq .qz .a{font-size:8.6pt!important}
 .mtq .ph2{font-size:11pt!important;margin-bottom:1.4mm!important}
