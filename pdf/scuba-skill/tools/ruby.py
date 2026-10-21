@@ -6,12 +6,13 @@ import re
 # 10/20 まーく様「このレベルは普通に読めるのでルビは不要。呼くにだけ、呼（は）くと」→ ルビは「呼（は）く」だけ
 WORDS = {}
 _W = sorted(WORDS, key=len, reverse=True)
-_RX = re.compile("呼(?=[くいきけかこっ])")
+_RX = re.compile("呼([くいきけかこっ])")
 def _rb(m):
+    # 10/21 まーく様「これ最悪。呼（は）く、と表現する方がマシ」
+    #   → 字の上にのせるルビはやめて、かっこで「呼（は）く」と同じ行に書く。行の高さも字の位置も、ほかの行と同じになる
+    #   「呼（は）」と次の字（く・い・き…）の間で行が分かれないよう、ひとまとめにする
+    if m.group(0).startswith("呼"): return f'<span class="nw">呼（は）{m.group(1)}</span>'
     w = m.group(0)
-    # <ruby> は、ルビのぶん行の高さがふえて、その行だけ上下がずれる（まーく様「上位置が、他の文とズレないように」）。
-    #   → 字の上に、行の高さを使わずに重ねる（.rb の中の .rt を、字の真上に置く）
-    if w == "呼": return '<span class="rb">呼<span class="rt">は</span></span>'
 
     if w == "留め": return "<ruby>留<rt>と</rt></ruby>め"
     return f"<ruby>{w}<rt>{WORDS[w]}</rt></ruby>"
@@ -29,13 +30,6 @@ def apply(html):
         else:
             out.append(_RX.sub(_rb, part))
     html = "".join(out)
-    # もくじの行（a.tc）だけはルビを外す（もくじは字が詰まっていて、ルビの幅で字の間が広がってしまう。ページの題には付いている）
-    return re.sub(r'(<a class="tc".*?</a>)', lambda m: re.sub(r'<span class="rb">(.*?)<span class="rt">.*?</span></span>', r'\1', m.group(1)), html, flags=re.S)
+    return html
 
-CSS = """
-/* ルビ：字の上に小さく。行の間がひろがりすぎないよう、ルビの行の高さは詰める */
-.page .rb{position:relative}
-/* 10/20 ルビのある文だけ、行の間を少し広げる（2行目の 呼 のルビが、上の行の字にくっついて見えたため。rubycheck.js で点検） */
-.page :is(h3.sh3 .hs,.notes .nt .nx,.srows .sd2,.ixtb .ixd):has(.rb){line-height:1.9!important}
-.page .rb>.rt{position:absolute;left:50%;bottom:100%;transform:translate(-50%,.18em);font-size:.48em;line-height:1;font-weight:700;letter-spacing:0;white-space:nowrap;pointer-events:none}
-"""
+CSS = ""   # 10/21 字の上にのせるルビをやめたので、ルビ用の見た目の決まりは要らない
