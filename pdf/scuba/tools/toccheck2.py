@@ -10,7 +10,7 @@ strip = lambda x: re.sub(r'<[^>]+>', '', re.sub(r'<span class="tapm[^"]*">\*</sp
 bad = [f"NG もくじに載っていないページ：{p}ページ" for p in miss]
 for pn, tt in re.findall(r'<a class="tc" href="#p(\d+)"><span class="tl">[^<]*</span><span class="tt">(.*?)</span><span class="tp">', h):
     # 10/19 題の帯（スキル編）：<div class="ph band"> の中の h2 を見る
-    m = re.search(rf'<div class="page" id="p{pn}">(?:<span class="edtag">.*?</span>)?<div class="ph band">.*?<h2>(.*?)</h2>', h) or re.search(rf'<div class="page" id="p{pn}">(?:<span class="edtag">.*?</span>)?<div class="ph"><span class="no">[^<]*</span>(?:<span class="legend hl">.*?とくに大事な話</span>)?(?:<span class="hfish">.*?</svg></span>)?<h2>(.*?)</h2>', h)
+    m = re.search(rf'<div class="page" id="p{pn}">(?:<span class="edtag">.*?</span>)?<div class="ph band">.*?<h2>(.*?)</h2>', h) or re.search(rf'<div class="page" id="p{pn}">(?:<span class="edtag">.*?</span>)?<div class="ph"><span class="no">[^<]*</span>(?:<span class="legend hl">.*?必ず守ること</span>)?(?:<span class="hfish">.*?</svg></span>)?<h2>(.*?)</h2>', h)
     if strip(tt) == 'その他・クイズ': continue  # もくじだけの名前（10/8 ご指示）。ページの見出しは「ふり返り」
     # 10/20 もくじでは、題の終わりの「だよ」を外す（まーく様）。見出しの「だよ」を外してからくらべる
     _hd = re.sub(r'だよ(?=\s*(<span class="half|$))', '', m.group(1).strip()) if m else ''

@@ -250,7 +250,7 @@ def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
-    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>とくに大事な話</span>' if (head_no == "器材" or head_no.startswith("工程")) else ""
+    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>必ず守ること</span>' if (head_no == "器材" or head_no.startswith("工程")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
     h = _nd.header("1", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
@@ -353,7 +353,7 @@ mt = "".join(
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。<span class="lp mtk">大事</span>は、とくに大事なところ</p><div class="mtg">{mt}<p class="src mtsrc">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p></div>')
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<p class="mtl">迷ったら、まずこのページ！ 写真と番号で、流れがまるごと分かるよ。</p><div class="mtg">{mt}<p class="src mtsrc">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p></div>')
 
 # 10/20 まーく様「必要情報（最優先事項）にできる限り絞って、最大でも10ページ」→「最後に（ふり返り・クイズ）」のページは外した。
 #   写真の出どころは、まとめのページの空いたマスへ移した（出どころは消さない）

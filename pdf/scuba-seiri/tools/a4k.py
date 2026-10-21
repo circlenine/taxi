@@ -318,7 +318,7 @@ def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
-    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>とくに大事な話</span>' if (head_no in ("器材", "大事") or head_no.startswith("工程") or head_no.startswith("その")) else ""
+    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>必ず守ること</span>' if (head_no in ("器材", "大事") or head_no.startswith("工程") or head_no.startswith("その")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
     # 10/19 まーく様：題はリベ大の「5つの力を身につけよう！」のように、色の帯に「〜しよう！」の形で
     #   帯の左に番号の丸、上に小さく「スキル編　その1」、下に大きく題。補足・大事の説明と魚は、帯の下の右に置く
     num = head_no[2:] if head_no.startswith("その") else head_no
@@ -437,7 +437,7 @@ SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 page("合図", "ハンドシグナル", f'{SIGREF}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqg3">{sm}{ss3}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
-page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "集約版！サッと1ページで見返そう！"), f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span><br><span class="nw"><span class="lp mtk">大事</span>は、とくに大事なところ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div></div>{mt}</div>')
+page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "集約版！サッと1ページで見返そう！"), f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div></div>{mt}</div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
