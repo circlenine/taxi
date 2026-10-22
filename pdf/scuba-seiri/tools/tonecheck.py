@@ -8,6 +8,9 @@ t = html.unescape(re.sub(r'<[^>]+>', '', h))
 ng = []
 for m in re.finditer(r'.{0,10}[！？!?]{2,}', t):
     ng.append('「！」「？」が続いている：' + m.group(0))
+# 10/22 まーく様「やる前・やった後 はぶっきらぼう。スマートな言い方に」→ 写真の名前などに使わない（①②の手順の形にする）
+for m in re.finditer(r'.{0,10}(やる前|やった後|引く前|引いた後).{0,6}', t):
+    ng.append('「やる前・やった後」の言い方は使わない（10/22 まーく様。①②の形に）：' + m.group(0))
 for m in re.finditer(r'.{0,10}1分(探|さが)', t):
     ng.append('「1分探す」は使わない（10/20 まーく様）：' + m.group(0))
 for m in re.finditer(r'.{0,10}止ま[るっれりら]', t):

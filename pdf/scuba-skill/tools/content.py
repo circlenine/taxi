@@ -35,7 +35,7 @@ STEPS = [
      pink=dict(head="右に、回らなくなるまで回して、そこでストップ！", lines=["力いっぱい締めなくてOK。<br>左に回し戻さなくてOK！"])),
    dict(id="3-4", key=["c13","c15"], frames=["c12","c13","c14","c15"], gif="s2-4",
      title="{kachi}を、L字サインホースと合体！",
-     extra=["<b>引いた後の状態で、{bc}の左側に付いてる<br>L字サインホースと合体！</b>",
+     extra=["<b>銀色の輪を引いたまま、{bc}の左側に付いてる<br>L字サインホースと合体！</b>",
             "「カチッ」と鳴ったら、ちゃんと付いた証拠！<small>※{kachi}（正式名称：中圧ホース）</small>"]),
    dict(id="3-5", key=["twist", "strap"], frames=["c16"],
      title="{silver}のホース類のねじれを見る",
