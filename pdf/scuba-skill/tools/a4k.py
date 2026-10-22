@@ -545,7 +545,8 @@ def _mrow(name, k, point, n, lab=""):
             f'<p class="mcn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
             f'<p class="mcq">{T(point)}</p></div>')
 MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
-_mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
+# 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
+_mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
 _mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["point"], SUBPG["SIG"], lab="合図")
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mcg">{_mt}</div>')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
@@ -579,7 +580,7 @@ for lb, tt, pn in TOC:
         _toc2[-1] = (lb, _toc2[-1][1], (_toc2[-1][2][0], f"{_toc2[-1][2][0]}〜{pn}")); continue
     x = _sec_of.get(lb)
     # 10/22 まーく様「もくじにまで、こんな時は含めない」「英語など聞きなれないものは（）で補足」→ 名前と（補足）だけ
-    if x: tt = x["name"] + (f'<small class="tw">（{x["toc_note"]}）</small>' if x.get("toc_note") else "")
+    if x: tt = x["name"] + (f'<small class="tw">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else "")
     elif lb == "合図": tt = "ハンドシグナル"
     _toc2.append((lb, tt, (pn, str(pn))))
 TOC = _toc2
@@ -1438,6 +1439,7 @@ CSS += """
 .page .mcard p{margin:0;line-height:1.45}
 .page .mcn{font-size:10.6pt;font-weight:900;color:var(--navy)}
 .page .mcn .jump{display:block;font-size:8pt;font-weight:700}
+.page .mcn .mtnote{display:block;font-size:9pt;font-weight:900}   /* （）は名前の下の行に（途中で折り返さないように） */
 .page .mcq{font-size:8.8pt;font-weight:700;color:#b0154a}
 .page .sqg1p{gap:1.4mm 5mm!important}
 .page .sqg1p .sqc,.page .sqg4 .sqc{padding-top:.8mm!important}
