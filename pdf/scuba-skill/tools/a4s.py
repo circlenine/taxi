@@ -265,7 +265,13 @@ def jump(sid):
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{withjump(photos(s), s.get("jump"))}{notes(s)}</section>')
+            f'{photos(s)}{_nj(notes(s), s.get("jump"))}</section>')
+def _nj(nt, sid):
+    # 10/22 まーく様「1-3の画像と補足の間の変な高さの隙間はなに？」→ 「くわしくは」を写真のかたまりの中に入れると、
+    #   となりの手順の写真の段まで高くなり、となりの補足が下へ押されていた。札の段の頭（写真のすぐ下）に置く
+    if not sid: return nt
+    j = f'<p class="jrow">{jump(sid)}</p>'
+    return nt.replace('<div class="notes">', '<div class="notes">' + j, 1) if nt else f'<div class="notes">{j}</div>'
 def withjump(ph, sid):
     # 飛ぶ行は、写真の名前のすぐ下（写真のかたまりの中）に入れる。手順の「題・写真・札」の3段の形をくずさないため
     if not sid: return ph
@@ -741,6 +747,7 @@ CSS += """
 /* 2列は、中身の長さにかかわらず、いつも左右同じ幅にする（長い字のかたまりで、片方の列が広がらないように） */
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
 .grid2>.step>*{min-width:0}
+.notes>.jrow{margin:-1.2mm 0 0;text-align:center}
 """
 CSS += """
 /* memo：付箋の形にする（10/8 ご指示「ノートや付箋っぽく、デザインはしっかり保って」）
@@ -1152,6 +1159,8 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  // 洗浄編（10/13）：34mm あけると写真が 40mm より低くなるページは、memo を2行ぶん（20mm）にして、写真の大きさを優先する
  //  （赤い丸がスマホで見やすいように、写真を大きく。10/13 ご指示）
  // 2ページ（導入）は、写真を小さくすると表がはみ出すので、3の下のあき（25mm 以上）を memo にする（10/13）
+ // 10/22 まーく様「5-3の下に memo を付けてもらった方が良い」→ 片方の列の下に 22mm 以上あけば、そこを memo にする（横いっぱいの細い memo にしない）
+ if(best.b-best.t>=22*MM&&pg.id!=='p2'){place(pg,best);return;}
  if(best.b-best.t<(pg.id==='p2'?0:MINC)){fit(pg,lim-RES);if(+pg.dataset.ph<40)fit(pg,lim-RES2);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
  place(pg,best);});}
 // 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）

@@ -19,6 +19,11 @@ const r=await p.evaluate(()=>{const out=[];
   // 10/22 memo の欄（あとから重ねて置く箱）が、ほかの字の上にかぶさっていないか
   pg.querySelectorAll(':scope>.memo').forEach(m=>{const r=m.getBoundingClientRect();for(const q of bx){if(m.contains(q.el))continue;
     if(q.x0<r.right-1&&q.x1>r.left+1&&q.y0<r.bottom-1&&q.y1>r.top+1){out.push(pg.id+'｜memo の欄が字にかぶさっている「'+q.c+'」｜'+q.el.textContent.slice(0,20));break}}});
+  // 10/22 手順の写真と、その下の文（補足・大事）の間が、変に空いていないか（となりの手順の写真の段に引っぱられて空く）
+  pg.querySelectorAll('.grid2>.step,.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
+    let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});
+    const f=nt.firstElementChild;if(!f||!pb)return;const gap=(f.getBoundingClientRect().top-pb)/3.78;
+    if(gap>7){out.push(pg.id+'｜写真と下の文の間が空きすぎ '+gap.toFixed(1)+'mm｜'+(st.querySelector('.sn')||{}).textContent)}});
   bx.sort((a,b)=>a.x0-b.x0);
   for(let i=0;i<bx.length;i++){const a=bx[i];for(let j=i+1;j<bx.length;j++){const c=bx[j];if(c.x0>=a.x1)break;
     const ox=Math.min(a.x1,c.x1)-Math.max(a.x0,c.x0),oy=Math.min(a.y1,c.y1)-Math.max(a.y0,c.y0);

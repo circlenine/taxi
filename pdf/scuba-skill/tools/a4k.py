@@ -268,7 +268,13 @@ def jump(sid):
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s.get("side") else ""}{"" if KEYS.get(s["id"], s["key"]) else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{withjump(photos(s), s.get("jump"))}{notes(s)}</section>')
+            f'{photos(s)}{_nj(notes(s), s.get("jump"))}</section>')
+def _nj(nt, sid):
+    # 10/22 まーく様「1-3の画像と補足の間の変な高さの隙間はなに？」→ 「くわしくは」を写真のかたまりの中に入れると、
+    #   となりの手順の写真の段まで高くなり、となりの補足が下へ押されていた。札の段の頭（写真のすぐ下）に置く
+    if not sid: return nt
+    j = f'<p class="jrow">{jump(sid)}</p>'
+    return nt.replace('<div class="notes">', '<div class="notes">' + j, 1) if nt else f'<div class="notes">{j}</div>'
 def withjump(ph, sid):
     # 飛ぶ行は、写真の名前のすぐ下（写真のかたまりの中）に入れる。手順の「題・写真・札」の3段の形をくずさないため
     if not sid: return ph
@@ -297,6 +303,11 @@ if _dup:
     sys.exit("止めます：題に「ふり返り」などが入っています（右の札と重なる）→ その" + "、その".join(_dup))
 # 動作の写真は「やる前 → やった後」の2枚で見せる（10/19 まーく様：1枚だけでは、何をどう変えるのか分からない）
 CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi73"): "やった後：鼻をつまんで息を送る",
+       # 10/22 呼び名と正式名称（準備編・洗浄編と同じ書き方）。その器材が写っている写真の下に
+       ("1-4", "rr49"): "レギュ<small>正式名称：セカンドステージ</small>", ("1-5", "rc2_248"): "オクト<small>正式名称：オクトパス</small>",
+       ("2-1", "rc2_92"): "真ん中のボタン<small>正式名称：パージボタン</small>",
+       ("3-1", "oral_m"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("3-2", "oral_3"): "人差し指のボタン<small>正式名称：排気ボタン</small>",
+       ("6-2", "rc675"): "親指のボタン<small>正式名称：給気ボタン</small>",
        ("4-2", "rc2_342"): "右肩を下げて、腕を回す", ("4-2", "rc2_348"): "腕にホースがかかった",
        ("5-4", "mask35"): "泡で水が出ていく", ("5-4", "mask41"): "水が抜けた",
        ("7-4", "rc994"): "泡で水が出ていく", ("7-4", "rc1001"): "斜め上を見て、残りを出す",
@@ -528,11 +539,11 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
       ("くわえ直したら、すぐ吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
       ("真ん中のボタンから泡が出ないときは？", "「トゥー」と強く呼いて、水を出す", "2-3"),
-      ("{bc}に空気が入らないときは？", "人差し指でボタンを押しながら、口で吹きこむ", "3-2"),
+      ("{bc}に空気が入らないときは？", "人差し指のボタンを押しながら、口で吹きこむ", "3-2"),
       ("マスクに水が入ったら、どこから呼く？", "鼻から。水はマスクの下から出ていく", "4-3"),
       ("足がつったら、まず何をする？", "その場で停まれるか確かめて、合図で助けを求める", "5-1"),
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
-      ("浮いてきて、空気を抜くときのコツは？", "体を立てて、ホースを上に伸ばす", "6-3"),
+      ("浮いてきて、空気を抜くときのコツは？", "体を立てて、L字サインホースを上に伸ばす", "6-3"),
       ("親指を上に向ける合図の意味は？", "「浮上しよう」。「いいね！」ではない", "SIG")]
 _qz = "".join(f'<div class="qz"><span class="q"><span><span class="tapm scr">*</span>{T(q)}</span>{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
 # 10/22 まーく様「まとめのページではなく、クイズのところに、僕が伝えたいことを入れて」→ クイズの下に（content_k.py の MATOME_MSG。言い換えない）
@@ -747,7 +758,7 @@ CSS += """
 .grid2{grid-auto-rows:auto}
 .grid2>.step{display:grid!important;grid-row:span 3;grid-template-rows:subgrid;row-gap:2.4mm;align-content:start}
 .grid2>.step.wide{grid-row:auto;display:flex!important}
-.page .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto auto;column-gap:4mm;align-items:start;margin-top:1mm}
+.page .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto auto;row-gap:0;column-gap:4mm;align-items:start;margin-top:1mm}
 .page .grid3>.step{display:grid;grid-row:span 3;grid-template-rows:subgrid}   /* 見出しの行数がちがっても、写真の上の位置を3枚でそろえる */
 .page .grid3 .photos img{height:100mm!important;width:100%!important;aspect-ratio:auto!important;object-fit:cover}
 /* 10/22 横長の手順（写真を左・説明を右）。1-5 オクトの探し方を足して、2列の段に入りきらなくなったため */
@@ -924,6 +935,7 @@ CSS += """
 /* 2列は、中身の長さにかかわらず、いつも左右同じ幅にする（長い字のかたまりで、片方の列が広がらないように） */
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
 .grid2>.step>*{min-width:0}
+.notes>.jrow{margin:-1.2mm 0 0;text-align:center}
 """
 CSS += """
 /* memo：付箋の形にする（10/8 ご指示「ノートや付箋っぽく、デザインはしっかり保って」）
