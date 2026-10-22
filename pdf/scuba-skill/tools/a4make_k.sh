@@ -28,6 +28,7 @@ SIDE=14 node $S/tools/mcheck.js $S/build_k/a4.html | tee $S/mcheck_last.txt
 # はみ出しガード（10/19）：どのページでも、中身がページの下からはみ出していたら止める（PDFを作らせない）
 if grep -q "ページの下にはみ出し" $S/mcheck_last.txt; then echo "NG ページからはみ出している（上を見て直す）"; exit 1; fi
 python3 -I $S/tools/toccheck2.py $S/build_k/a4.html
+python3 -I $S/tools/csscheck.py $S/build_k/a4.html   # CSS のコメントの閉じ忘れ（10/22）
 node $S/tools/overlap.js $S/build_k/a4.html   # 字と字が重なっていないか、1字ずつ測る（10/22 まーく様「文字と文字が重なりまくり」）
 node $S/tools/h2line.js $S/build_k/a4.html   # 題が1行に収まっているか（10/22 まーく様「見出しが1行に収まっていないのが気になる」）
 WRAPDUMP=$S/build_k/wrap.json node $S/tools/wrapcheck.js $S/build_k/a4.html

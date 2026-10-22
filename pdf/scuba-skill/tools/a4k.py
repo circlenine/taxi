@@ -763,8 +763,11 @@ CSS += """
 .page .grid3>.step>.photos{margin-top:0!important}   /* 題の下のすき間を、ほかの手順と同じ 2.4mm に（行の間の 2.4mm と二重になっていた） */
 .page .grid3 .photos img{height:118mm!important;width:100%!important;aspect-ratio:auto!important;object-fit:cover}
 /* 10/22 横長の手順（写真を左・説明を右）。1-5 オクトの探し方を足して、2列の段に入りきらなくなったため */
-.grid2>.step.side{grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);column-gap:5mm;align-items:start}
-.grid2>.step.side>.sh3{grid-column:1/-1}
+.grid2>.step.side{grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:7mm;align-items:start}   /* 10/22 まーく様「1-5 が細長いのは何の意味が？」→ 写真の幅を、ほかの手順の列とまったく同じに（左の列と同じ幅・同じ高さ） */
+.grid2>.step.side{grid-row:auto!important;grid-template-rows:auto auto!important}
+.grid2>.step.side>.sh3{grid-column:1/-1;grid-row:1}
+.grid2>.step.side>.photos{grid-column:1;grid-row:2}
+.grid2>.step.side>.notes{grid-column:2;grid-row:2}
 .grid2>.step.side>.notes{margin-top:0!important}
 .grid2>.step>.notes{align-self:start}
 .photos.p3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
