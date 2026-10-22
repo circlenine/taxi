@@ -267,8 +267,15 @@ def jump(sid):
     lab = "次のページ" if sid == "OH" else f"<b>{sid}</b>"
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
-    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s.get("side") else ""}{"" if KEYS.get(s["id"], s["key"]) else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{_nj(notes(s), s.get("jump"))}</section>')
+    # 10/22 まーく様「6-2・6-3 の黒文字の説明は、画像の下のほうが見やすいのでは」→ 題に「：」があるときは、
+    #   「：」の前だけを題にし、後ろ（何をするか）は写真のすぐ下に置く（写真を見てから読めるように）
+    head, act = (s["title"].split("：", 1) + [""])[:2]
+    nt = notes(s)
+    if act:
+        a = f'<p class="act">{T(act)}</p>'
+        nt = nt.replace('<div class="notes">', '<div class="notes">' + a, 1) if nt else f'<div class="notes">{a}</div>'
+    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s.get("side") else ""}{"" if KEYS.get(s["id"], s["key"]) else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(head)}</span></h3>'
+            f'{photos(s)}{_nj(nt, s.get("jump"))}</section>')
 def _nj(nt, sid):
     # 10/22 まーく様「1-3の画像と補足の間の変な高さの隙間はなに？」→ 「くわしくは」を写真のかたまりの中に入れると、
     #   となりの手順の写真の段まで高くなり、となりの補足が下へ押されていた。札の段の頭（写真のすぐ下）に置く
@@ -942,6 +949,7 @@ CSS += """
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
 .grid2>.step>*{min-width:0}
 .notes>.jrow{margin:-1.2mm 0 0;text-align:center}
+.notes>.act{margin:0;font-size:11.5pt;font-weight:900;line-height:1.5;color:var(--ink,#222)}
 """
 CSS += """
 /* memo：付箋の形にする（10/8 ご指示「ノートや付箋っぽく、デザインはしっかり保って」）
