@@ -442,7 +442,7 @@ def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画と、�
         if k.startswith(p): return t(v, sec)
     if k in ("rc914", "rc916", "rc918", "rc920", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
     if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return t("kYvgkoTBkNg", int(k[2:]) - 657)   # サンズ「浮力コントロール & フィンピポット」：画面収録の 657 秒から
-    if k.startswith("sg"): return t("pS-yk6gth-8", int(k[2:]) / 100)     # ハンドシグナル（印の数字は 1/100 秒）
+    if k.startswith("sg"): return t("pS-yk6gth-8", int(re.sub(r"\D", "", k)) / 100)   # 末尾の q（5-2 用の正方形）は数えない     # ハンドシグナル（印の数字は 1/100 秒）
     if k.startswith("bs"): return t("2X4rf11ORN0", int(k[2:]) / 2)       # ビューティフルシー（取りこんだ動画は映像が2倍に伸びている）
     for p, v in (("mimi", "WvrP47_Smu0"), ("mask", "Zpf8LSiQtko"), ("rr", "5K8XyxfDplc"), ("octo", "3MHCvlPVQew"), ("sig", "pS-yk6gth-8"), ("sa", "3oDlSquqUD4")):
         if k.startswith(p):
