@@ -563,7 +563,12 @@ QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少し�
 _qz = "".join(f'<div class="qz"><span class="q"><span><span class="tapm scr">*</span>{T(q)}</span>{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
 # 10/22 まーく様「まとめのページではなく、クイズのところに、僕が伝えたいことを入れて」→ クイズの下に（content_k.py の MATOME_MSG。言い換えない）
 from content_k import MATOME_MSG
-_umsg = '<div class="umsg">' + "".join('<p>' + "<br>".join(l for l in para) + '</p>' for para in MATOME_MSG) + '</div>'
+# 10/22 まーく様「もっと見やすくまとめられないのか。文章を載せているだけで雑な扱い」→ 文は1字も変えず、形だけ組み直す。
+#   1つ目の段落は大きな見出し（中央）。残りの4つは小さなカードにし、頭に中身を一言で表す札を付ける（札の言葉だけ、こちらで足したもの）
+_UTAG = ["少しずつでいい", "楽しむ心", "うれしかったこと", "自分のペース"]
+_umsg = ('<div class="umsg2"><p class="umh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="umg">'
+         + "".join(f'<div class="umc{" umc-key" if i == 3 else ""}"><span class="umt">{_UTAG[i]}</span><p>' + "<br>".join(para) + '</p></div>' for i, para in enumerate(MATOME_MSG[1:]))
+         + '</div></div>')
 page("クイズ", "まとめクイズ", f'<p class="mtl">□をタップすると、答えが出るよ。分からない問いは、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>{_umsg}')
 
 
@@ -1446,6 +1451,14 @@ CSS += """
 .page .sqg4{margin-top:1.4mm;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm 3mm!important}
 .page .sqg4 .sqn{font-size:10pt!important}
 .page .sqg4 figcaption{font-size:8.6pt!important;line-height:1.3!important}
+.page .umsg2{margin-top:3mm;border-radius:2mm;padding:3mm 3.4mm 3.4mm;background:linear-gradient(180deg,#fffaeb 0%,#fff 100%);box-shadow:inset 0 0 0 1.4px #ecd48a}
+.page .umh{margin:0 0 2.6mm;text-align:center;font-size:13pt;line-height:1.5;font-weight:900;color:#b0154a}
+.page .umg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2.4mm 3mm}
+.page .umc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px #ecd48a;padding:2.2mm 2.6mm 2.4mm}
+.page .umc p{margin:1.2mm 0 0;font-size:9.4pt;line-height:1.6;font-weight:700;color:var(--navy)}
+.page .umt{display:inline-block;font-size:8.4pt;font-weight:900;color:#9a6b00;background:#fffaeb;border-radius:1mm;padding:.2mm 1.6mm;box-shadow:inset 0 0 0 1px #ecd48a}
+.page .umc-key{box-shadow:inset 0 0 0 1.6px #efb3c4;background:#fff5f8}
+.page .umc-key .umt{color:#b0154a;background:#fff;box-shadow:inset 0 0 0 1px #efb3c4}
 .page .umsg{margin-top:2mm;border:1.4px solid #ecd48a;background:#fffaeb;border-radius:2mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
 .page .umsg p{margin:0;font-size:9pt;line-height:1.5;font-weight:700;color:var(--navy)}
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}

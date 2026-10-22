@@ -10,7 +10,7 @@ const ALLOW = ['【あわてないように】','【だからこまめに】','�
   '【くわしくはその】'].concat((process.env.HIRA_ALLOW || '').split('|').filter(Boolean));
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const p=await b.newPage();await p.emulateMedia({media:'print'});await p.goto('file://'+process.argv[2],{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
-const r=await p.evaluate(m=>{const o=[];document.querySelectorAll('.page').forEach(pg=>{let t0=pg.innerText;pg.querySelectorAll('.umsg').forEach(u=>{t0=t0.replace(u.innerText,'')});const t=t0.replace(/\s+/g,'｜');   /* 10/22 まーく様ご自身の言葉（まとめの下）は見ない */const re=new RegExp('[ぁ-ゖー]{'+m+',}','g');let x;while(x=re.exec(t)){o.push(pg.id+'｜'+t.slice(Math.max(0,x.index-6),x.index)+'【'+x[0]+'】'+t.slice(x.index+x[0].length,x.index+x[0].length+6));}});return o;},MIN);
+const r=await p.evaluate(m=>{const o=[];document.querySelectorAll('.page').forEach(pg=>{let t0=pg.innerText;pg.querySelectorAll('.umsg,.umsg2').forEach(u=>{t0=t0.replace(u.innerText,'')});const t=t0.replace(/\s+/g,'｜');   /* 10/22 まーく様ご自身の言葉（まとめの下）は見ない */const re=new RegExp('[ぁ-ゖー]{'+m+',}','g');let x;while(x=re.exec(t)){o.push(pg.id+'｜'+t.slice(Math.max(0,x.index-6),x.index)+'【'+x[0]+'】'+t.slice(x.index+x[0].length,x.index+x[0].length+6));}});return o;},MIN);
 const ng=r.filter(x=>!ALLOW.some(a=>x.includes(a)));
 ng.forEach(x=>console.log('NG '+x));
 console.log(ng.length?'NG ひらがなが長く続く所 '+ng.length+'か所':'ひらがなの続き OK（'+MIN+'字以上続く所は、見直し済みのものだけ）');await b.close();process.exit(ng.length?1:0);})();
