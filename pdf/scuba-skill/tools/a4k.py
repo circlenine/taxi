@@ -501,25 +501,26 @@ ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(nam
 SIGSIT = dict(when=["水の中で、伝えたいこと・困りごとがある"], point="「何かおかしい」「エアがない」だけは、必ず覚えよう！")   # content_k.py の POINTS「困ったら、合図で伝える」・SIGNAL_AIR
 _sgsit = (f'<div class="sit"><p class="sw"><b class="swk">こんな時</b><span class="swv"><span class="swi">{T(SIGSIT["when"][0])}</span></span></p>'
           f'<p class="sp"><b class="spk">ポイント</b><span class="spv">{T(SIGSIT["point"])}</span></p></div>')
-# 1枚目に6つ（3段）、残りの2つ（インストラクターさんからの指示の合図）は2枚目の頭に
-page("合図", "ハンドシグナル", f'{_sgsit}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqgL">{_smf(SIG_MOVE[:6])}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])   # 大事・補足は1枚目の下に（2枚目に入りきらない）
-ss2 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
-page("合図", "ハンドシグナル（つづき）", f'{SIGREF}<div class="sqg sqgL">{_smf(SIG_MOVE[6:])}</div><p class="mtl sql">形だけで伝わる合図</p><div class="sqg sqgL sqgS">{ss2}</div>')
+# 10/22 まーく様「ハンドシグナル、1ページにまとめられないんですか？」→ 1ページに。
+#   動きのある合図（2枚1組）は2列×4段、形だけの合図は4つを横1列。写真は横長（1.7）にして、段の高さをおさえる
+ss4 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.25)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
+sm1 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
+             + f'<figure class="sqf">{im(fs[0][0], 1.7)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
+             + f'<figure class="sqf">{im(fs[1][0], 1.7)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
+page("合図", "ハンドシグナル", f'{_sgsit}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqgL">{sm1}</div><p class="mtl sql">形だけで伝わる合図</p><div class="sqg sqg4">{ss4}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
 # 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
-def _mrow(name, k, when, point, n, bd=None, lab=""):
-    b = f'<span class="bdg {"bdg-g" if bd[0] == "ほめ" else "bdg-r"} bdgs">{T(bd[1])}</span>' if bd else ""
-    return (f'<div class="mrow"><a class="mtv mrp" href="{mtv(k)}">{im(k, 1.4)}</a>'
-            f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
-            f'<p class="mrw"><b>こんな時</b>{T("／".join(when))}</p><p class="mrq"><b>ポイント</b>{T(point)}{b}</p></div></div>')
-MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc920"}   # まとめの写真（その動作をしている場面）
-_mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge"), f"その{x['id']}") for x in STEPS)
-_mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["when"], SIGSIT["point"], SUBPG["SIG"], lab="合図")
-# 10/22 まーく様の言葉（content_k.py の MATOME_MSG）を、まとめの下に。言い換えない（点検は class="umsg" の中を見ない）
-from content_k import MATOME_MSG
-_umsg = '<div class="umsg">' + "".join('<p>' + "<br>".join(l for l in para) + '</p>' for para in MATOME_MSG) + '</div>'
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mtab">{_mt}</div>{_umsg}')
+# 10/22 まーく様「まとめは画像が小さすぎる。画像の下に文章が来る形に。文章はできる限り必要最低限に、画像を大きく」
+#   → 3列のカード。上に大きな写真（タップすると動画）、下に「名前」と「ポイント」だけ
+def _mrow(name, k, point, n, lab=""):
+    return (f'<div class="mcard"><a class="mtv mcp" href="{mtv(k)}">{im(k, 1.5)}</a>'
+            f'<p class="mcn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
+            f'<p class="mcq">{T(point)}</p></div>')
+MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688"}   # まとめの写真（その動作をしている場面）
+_mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
+_mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["point"], SUBPG["SIG"], lab="合図")
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mcg">{_mt}</div>')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
 QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
@@ -530,10 +531,12 @@ QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少し�
       ("足がつったら、まず何をする？", "その場で停まれるか確かめて、合図で助けを求める", "5-1"),
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
       ("浮いてきて、空気を抜くときのコツは？", "体を立てて、ホースを上に伸ばす", "6-3"),
-      ("{bc}が壊れて、どうしても浮けないときは？", "{belt}を「ウラァ！」と外す", "7-4"),
       ("親指を上に向ける合図の意味は？", "「浮上しよう」。「いいね！」ではない", "SIG")]
 _qz = "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
-page("クイズ", "まとめクイズ", f'<p class="mtl">□をタップすると、答えが出るよ。分からない問いは、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>')
+# 10/22 まーく様「まとめのページではなく、クイズのところに、僕が伝えたいことを入れて」→ クイズの下に（content_k.py の MATOME_MSG。言い換えない）
+from content_k import MATOME_MSG
+_umsg = '<div class="umsg">' + "".join('<p>' + "<br>".join(l for l in para) + '</p>' for para in MATOME_MSG) + '</div>'
+page("クイズ", "まとめクイズ", f'<p class="mtl">□をタップすると、答えが出るよ。分からない問いは、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>{_umsg}')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1388,6 +1391,17 @@ CSS += """
 .page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1mm;margin-right:1.4mm}
 .page .mrq b{background:#b0154a}
 .page .mrq{font-weight:700;color:#b0154a}
+.page .mcg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3mm 3.4mm;margin-top:2mm}
+.page .mcard{display:flex;flex-direction:column;gap:.8mm}
+.page .mcp{position:relative;display:block}
+.page .mcp img{width:100%!important;height:auto!important;aspect-ratio:1.5!important;border-radius:1mm;display:block;object-fit:cover}
+.page .mcard p{margin:0;line-height:1.45}
+.page .mcn{font-size:10.6pt;font-weight:900;color:var(--navy)}
+.page .mcn .jump{display:block;font-size:8pt;font-weight:700}
+.page .mcq{font-size:8.8pt;font-weight:700;color:#b0154a}
+.page .sqg4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm 3mm!important}
+.page .sqg4 .sqn{font-size:10pt!important}
+.page .sqg4 figcaption{font-size:8.6pt!important;line-height:1.3!important}
 .page .umsg{margin-top:2mm;border:1.4px solid #ecd48a;background:#fffaeb;border-radius:2mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
 .page .umsg p{margin:0;font-size:9pt;line-height:1.5;font-weight:700;color:var(--navy)}
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
