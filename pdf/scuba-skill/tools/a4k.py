@@ -1364,9 +1364,9 @@ CSS += """
 .page .swv{font-size:10.5pt;font-weight:900;color:var(--navy);grid-column:2/4}
 .page .swi+.swi::before{content:"／";color:var(--muted)}
 .page .spv{font-size:11pt;font-weight:900;color:#b0154a}
-.page .bdg{font-size:8.6pt;font-weight:900;padding:.6mm 1.6mm;border-radius:1.2mm;white-space:nowrap}
-.page .bdg-g{color:#7a5200;background:#fff6d6;border:1.4px solid #d9a400;box-shadow:inset 0 0 0 .6px #f5d46b}
-.page .bdg-r{color:#a3122e;background:#fff0f2;border:1.4px solid #d23a55}
+.page .bdg{font-size:8.6pt;font-weight:900;padding:.6mm 1.6mm;border-radius:1mm;white-space:nowrap}
+.page .bdg-g{color:#9a6b00;background:#fffaeb;border:1.4px solid #ecd48a}   /* 補足の札と同じ色（決めた色だけ） */
+.page .bdg-r{color:#b0154a;background:#fff5f8;border:1.4px solid #efb3c4}   /* 大事の札と同じ色 */
 .page .ng{color:#f93612;font-weight:900}
 .page .slead{margin:0 0 1.4mm;font-size:9.6pt;font-weight:700;color:var(--ink,#333)}
 /* 合図は2列で大きく（10/22「画像が小さすぎます」） */
@@ -1377,18 +1377,18 @@ CSS += """
 .page .mtab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 4mm;margin-top:1.6mm}
 .page .mrow{display:grid;grid-template-columns:26mm minmax(0,1fr);column-gap:2.2mm;align-items:start;border-bottom:1px solid var(--line);padding-bottom:1.4mm}
 .page .mrp{position:relative;display:block}
-.page .mrp img{width:26mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1.4mm;display:block;object-fit:cover}
+.page .mrp img{width:26mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1mm;display:block;object-fit:cover}
 .page .mrb p{margin:0;line-height:1.5}
 .page .mrn{font-size:10.6pt;font-weight:900;color:var(--navy)}
 .page .mrn .jump{margin-left:1.6mm;font-size:8.6pt}
 .page .mrw,.page .mrq{font-size:8.8pt;line-height:1.45!important}
 .page .mrn{font-size:10.6pt!important}
 .page .mrb .bdgs{display:inline-block;margin:.6mm 0 0}
-.page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:.8mm;padding:0 1mm;margin-right:1.4mm}
+.page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1mm;margin-right:1.4mm}
 .page .mrq b{background:#b0154a}
 .page .mrq{font-weight:700;color:#b0154a}
-.page .umsg{margin-top:2mm;border:1.4px solid #d9a400;background:#fffbea;border-radius:2.4mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
-.page .umsg p{margin:0;font-size:9pt;line-height:1.5;font-weight:700;color:#5a4300}
+.page .umsg{margin-top:2mm;border:1.4px solid #ecd48a;background:#fffaeb;border-radius:2mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
+.page .umsg p{margin:0;font-size:9pt;line-height:1.5;font-weight:700;color:var(--navy)}
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
