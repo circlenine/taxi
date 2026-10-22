@@ -497,7 +497,7 @@ SIGNAL_NOTES = ["親指を上に向けるのは「浮上しよう」。「いい
                 "※はお店で使われることがある合図"]
 # 10/20 「エアがない」は、首の前で手を横に切る合図を使うお店・本も多い（下の出どころで確かめた）。命に関わるので、大事として必ず添える
 #   ダイバーズラウンジ https://diverlounge.com/safediving/hand-signals-list/ ・ MAX DIVE https://xn--eckya9b7cr9ksc.com/scuba-diving-must-know-hand-signals/ ・ scubadiving.com
-SIGNAL_AIR = "「エアがない」は、首の前で手を横に切る合図のお店も多いよ。どちらで伝えるか、潜る前に必ず確かめよう"
+SIGNAL_AIR = "「エアがない」は、首の前で手を横に切る合図のお店も。潜る前に必ず確かめよう"   # 10/22 合図を1ページに収めるため1行に
 SIGNALS = [
  ("sig16", "OK"), ("sig21", "停まって・待って"), ("sig26", "浮上・ダイビング終了"),
  ("sig31", "何かおかしい"), ("sig36", "耳が抜けない"), ("sig41", "耳が抜けた"),

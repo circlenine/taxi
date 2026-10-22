@@ -503,11 +503,12 @@ _sgsit = (f'<div class="sit"><p class="sw"><b class="swk">こんな時</b><span 
           f'<p class="sp"><b class="spk">ポイント</b><span class="spv">{T(SIGSIT["point"])}</span></p></div>')
 # 10/22 まーく様「ハンドシグナル、1ページにまとめられないんですか？」→ 1ページに。
 #   動きのある合図（2枚1組）は2列×4段、形だけの合図は4つを横1列。写真は横長（1.7）にして、段の高さをおさえる
-ss4 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.25)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
+ss4 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.9)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 sm1 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
-             + f'<figure class="sqf">{im(fs[0][0], 1.7)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
-             + f'<figure class="sqf">{im(fs[1][0], 1.7)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
-page("合図", "ハンドシグナル", f'{_sgsit}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqgL">{sm1}</div><p class="mtl sql">形だけで伝わる合図</p><div class="sqg sqg4">{ss4}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
+             + f'<figure class="sqf">{im(fs[0][0], 1.9)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
+             + f'<figure class="sqf">{im(fs[1][0], 1.9)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
+# こんな時・ポイントの枠は、1ページに収めるため、このページでは出さない（ポイントは、まとめのページに）
+page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）。下の段は、形だけで伝わる合図</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
 # 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
@@ -1399,7 +1400,9 @@ CSS += """
 .page .mcn{font-size:10.6pt;font-weight:900;color:var(--navy)}
 .page .mcn .jump{display:block;font-size:8pt;font-weight:700}
 .page .mcq{font-size:8.8pt;font-weight:700;color:#b0154a}
-.page .sqg4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm 3mm!important}
+.page .sqg1p{gap:1.4mm 5mm!important}
+.page .sqg1p .sqc,.page .sqg4 .sqc{padding-top:.8mm!important}
+.page .sqg4{margin-top:1.4mm;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm 3mm!important}
 .page .sqg4 .sqn{font-size:10pt!important}
 .page .sqg4 figcaption{font-size:8.6pt!important;line-height:1.3!important}
 .page .umsg{margin-top:2mm;border:1.4px solid #ecd48a;background:#fffaeb;border-radius:2mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
@@ -1407,7 +1410,7 @@ CSS += """
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
-.page .quiz.qzm{grid-template-columns:minmax(0,1fr)!important;margin-top:2mm}
+.page .quiz.qzm{grid-template-columns:repeat(2,minmax(0,1fr))!important;margin-top:2mm;gap:1.6mm 4mm!important}   /* 10/22 伝えたいことを下に入れるため2列 */
 .page .qzm .qz{font-size:10.6pt}
 .page .qzm .qz .q .jump{font-size:8pt;margin-left:2mm;font-weight:700}
 /* もくじの「こんな時」 */
