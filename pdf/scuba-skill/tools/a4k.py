@@ -510,8 +510,8 @@ page("合図", "ハンドシグナル（つづき）", f'{SIGREF}<div class="sqg
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
 def _mrow(name, k, when, point, n, bd=None):
     b = f'<span class="bdg {"bdg-g" if bd[0] == "ほめ" else "bdg-r"} bdgs">{T(bd[1])}</span>' if bd else ""
-    return (f'<div class="mrow"><a class="mtv mrp" href="{mtv(k)}">{im(k, 1.4)}<span class="play">▶</span></a>'
-            f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>（{n}ページ）</a></p>'
+    return (f'<div class="mrow"><a class="mtv mrp" href="{mtv(k)}">{im(k, 1.4)}</a>'
+            f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは（{n}ページ）</a></p>'
             f'<p class="mrw"><b>こんな時</b>{T("／".join(when))}</p><p class="mrq"><b>ポイント</b>{T(point)}{b}</p></div></div>')
 MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc918"}   # まとめの写真（その動作をしている場面）
 _mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge")) for x in STEPS)
@@ -1371,14 +1371,15 @@ CSS += """
 .page .sqgL .sqn{font-size:11pt!important}
 .page .sqgL figcaption{font-size:9.4pt!important;line-height:1.35!important}
 /* まとめ（表1枚） */
-.page .mtab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2mm 4mm;margin-top:1.6mm}
-.page .mrow{display:grid;grid-template-columns:24mm minmax(0,1fr);column-gap:2.2mm;align-items:start;border-bottom:1px solid var(--line);padding-bottom:1.6mm}
+.page .mtab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3.2mm 4.4mm;margin-top:2.4mm}
+.page .mrow{display:grid;grid-template-columns:34mm minmax(0,1fr);column-gap:2.6mm;align-items:start;border-bottom:1px solid var(--line);padding-bottom:2.4mm}
 .page .mrp{position:relative;display:block}
-.page .mrp img{width:24mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1.4mm;display:block;object-fit:cover}
+.page .mrp img{width:34mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1.4mm;display:block;object-fit:cover}
 .page .mrb p{margin:0;line-height:1.5}
 .page .mrn{font-size:10.6pt;font-weight:900;color:var(--navy)}
 .page .mrn .jump{margin-left:1.6mm;font-size:8.6pt}
-.page .mrw,.page .mrq{font-size:8.6pt}
+.page .mrw,.page .mrq{font-size:9.4pt;line-height:1.55!important}
+.page .mrn{font-size:11.4pt!important}
 .page .mrb .bdgs{display:inline-block;margin:.6mm 0 0}
 .page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:.8mm;padding:0 1mm;margin-right:1.4mm}
 .page .mrq b{background:#b0154a}
