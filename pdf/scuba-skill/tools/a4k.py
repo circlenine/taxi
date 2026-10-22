@@ -383,7 +383,8 @@ for sec in STEPS:
     for gi, g in enumerate(groups):
         t = sec["title"] if gi == 0 else sec.get("title2", sec["title"])
         t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！</span>'}.get(sec.get("rel"), "")
-        body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
+        # 10/22 layout="row3"：3つの手順を横に並べ、写真を縦長に大きく（同じ形の写真を、同じ位置・同じ大きさで見比べられるように）
+        body = (f'<div class="{"grid3" if sec.get("layout") == "row3" else "grid2"}">') + "".join(stepbox(x) for x in g) + "</div>"
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
         page(f"その{sec['id']}", t, (_sit(sec) if gi == 0 else f'<p class="slead">{T(sec["lead"])}</p>') + body, toc=True)
 
@@ -746,8 +747,11 @@ CSS += """
 .grid2{grid-auto-rows:auto}
 .grid2>.step{display:grid!important;grid-row:span 3;grid-template-rows:subgrid;row-gap:2.4mm;align-content:start}
 .grid2>.step.wide{grid-row:auto;display:flex!important}
+.page .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto auto;column-gap:4mm;align-items:start;margin-top:1mm}
+.page .grid3>.step{display:grid;grid-row:span 3;grid-template-rows:subgrid}   /* 見出しの行数がちがっても、写真の上の位置を3枚でそろえる */
+.page .grid3 .photos img{height:100mm!important;width:100%!important;aspect-ratio:auto!important;object-fit:cover}
 /* 10/22 横長の手順（写真を左・説明を右）。1-5 オクトの探し方を足して、2列の段に入りきらなくなったため */
-.grid2>.step.side{grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:5mm;align-items:start}
+.grid2>.step.side{grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);column-gap:5mm;align-items:start}
 .grid2>.step.side>.sh3{grid-column:1/-1}
 .grid2>.step.side>.notes{margin-top:0!important}
 .grid2>.step>.notes{align-self:start}
