@@ -1374,21 +1374,21 @@ CSS += """
 .page .sqgL .sqn{font-size:11pt!important}
 .page .sqgL figcaption{font-size:9.4pt!important;line-height:1.35!important}
 /* まとめ（表1枚） */
-.page .mtab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3.2mm 4.4mm;margin-top:2.4mm}
-.page .mrow{display:grid;grid-template-columns:34mm minmax(0,1fr);column-gap:2.6mm;align-items:start;border-bottom:1px solid var(--line);padding-bottom:2.4mm}
+.page .mtab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 4mm;margin-top:1.6mm}
+.page .mrow{display:grid;grid-template-columns:26mm minmax(0,1fr);column-gap:2.2mm;align-items:start;border-bottom:1px solid var(--line);padding-bottom:1.4mm}
 .page .mrp{position:relative;display:block}
-.page .mrp img{width:34mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1.4mm;display:block;object-fit:cover}
+.page .mrp img{width:26mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1.4mm;display:block;object-fit:cover}
 .page .mrb p{margin:0;line-height:1.5}
 .page .mrn{font-size:10.6pt;font-weight:900;color:var(--navy)}
 .page .mrn .jump{margin-left:1.6mm;font-size:8.6pt}
-.page .mrw,.page .mrq{font-size:9.4pt;line-height:1.55!important}
-.page .mrn{font-size:11.4pt!important}
+.page .mrw,.page .mrq{font-size:8.8pt;line-height:1.45!important}
+.page .mrn{font-size:10.6pt!important}
 .page .mrb .bdgs{display:inline-block;margin:.6mm 0 0}
 .page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:.8mm;padding:0 1mm;margin-right:1.4mm}
 .page .mrq b{background:#b0154a}
 .page .mrq{font-weight:700;color:#b0154a}
-.page .umsg{margin-top:3mm;border:1.4px solid #d9a400;background:#fffbea;border-radius:2.4mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
-.page .umsg p{margin:0;font-size:9.6pt;line-height:1.6;font-weight:700;color:#5a4300}
+.page .umsg{margin-top:2mm;border:1.4px solid #d9a400;background:#fffbea;border-radius:2.4mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
+.page .umsg p{margin:0;font-size:9pt;line-height:1.5;font-weight:700;color:#5a4300}
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
