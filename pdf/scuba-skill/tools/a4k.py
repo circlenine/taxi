@@ -533,7 +533,7 @@ QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少し�
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
       ("浮いてきて、空気を抜くときのコツは？", "体を立てて、ホースを上に伸ばす", "6-3"),
       ("親指を上に向ける合図の意味は？", "「浮上しよう」。「いいね！」ではない", "SIG")]
-_qz = "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
+_qz = "".join(f'<div class="qz"><span class="q"><span><span class="tapm scr">*</span>{T(q)}</span>{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
 # 10/22 まーく様「まとめのページではなく、クイズのところに、僕が伝えたいことを入れて」→ クイズの下に（content_k.py の MATOME_MSG。言い換えない）
 from content_k import MATOME_MSG
 _umsg = '<div class="umsg">' + "".join('<p>' + "<br>".join(l for l in para) + '</p>' for para in MATOME_MSG) + '</div>'
@@ -1410,9 +1410,11 @@ CSS += """
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
-.page .quiz.qzm{grid-template-columns:repeat(2,minmax(0,1fr))!important;margin-top:2mm;gap:1.6mm 4mm!important}   /* 10/22 伝えたいことを下に入れるため2列 */
+.page .quiz.qzm{grid-template-columns:minmax(0,1fr)!important;margin-top:2mm;gap:1.2mm!important}
 .page .qzm .qz{font-size:10.6pt}
-.page .qzm .qz .q .jump{font-size:8pt;margin-left:2mm;font-weight:700}
+/* 10/22 まーく様「くわしくは〜が変な位置の2行目。1行でまとめられないの？」→ 問いと同じ行の右はしに */
+.page .qzm .qz .q{display:flex!important;align-items:baseline;justify-content:space-between;gap:3mm}
+.page .qzm .qz .q .jump{display:inline!important;flex:none;white-space:nowrap;font-size:8.4pt;font-weight:700;margin:0!important}
 /* もくじの「こんな時」 */
 .tc .tt .tw{font-size:inherit;font-weight:inherit;color:inherit}
 /* 10/22 海洋実習でやったスキル（担当インストラクターさんの回答） */
