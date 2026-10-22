@@ -516,7 +516,10 @@ def _mrow(name, k, when, point, n, bd=None, lab=""):
 MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc918"}   # まとめの写真（その動作をしている場面）
 _mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge"), f"その{x['id']}") for x in STEPS)
 _mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["when"], SIGSIT["point"], SUBPG["SIG"], lab="合図")
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mtab">{_mt}</div>')
+# 10/22 まーく様の言葉（content_k.py の MATOME_MSG）を、まとめの下に。言い換えない（点検は class="umsg" の中を見ない）
+from content_k import MATOME_MSG
+_umsg = '<div class="umsg">' + "".join('<p>' + "<br>".join(l for l in para) + '</p>' for para in MATOME_MSG) + '</div>'
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mtab">{_mt}</div>{_umsg}')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
 QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
@@ -1384,6 +1387,9 @@ CSS += """
 .page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:.8mm;padding:0 1mm;margin-right:1.4mm}
 .page .mrq b{background:#b0154a}
 .page .mrq{font-weight:700;color:#b0154a}
+.page .umsg{margin-top:3mm;border:1.4px solid #d9a400;background:#fffbea;border-radius:2.4mm;padding:2.4mm 3.4mm;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6mm 5mm}
+.page .umsg p{margin:0;font-size:9.6pt;line-height:1.6;font-weight:700;color:#5a4300}
+.page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
 .page .quiz.qzm{grid-template-columns:minmax(0,1fr)!important;margin-top:2mm}
