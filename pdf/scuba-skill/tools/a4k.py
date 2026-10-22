@@ -760,6 +760,7 @@ CSS += """
 .grid2>.step.wide{grid-row:auto;display:flex!important}
 .page .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto auto;row-gap:0;column-gap:4mm;align-items:start;margin-top:1mm}
 .page .grid3>.step{display:grid;grid-row:span 3;grid-template-rows:subgrid}   /* 見出しの行数がちがっても、写真の上の位置を3枚でそろえる */
+.page .grid3>.step>.photos{margin-top:0!important}   /* 題の下のすき間を、ほかの手順と同じ 2.4mm に（行の間の 2.4mm と二重になっていた） */
 .page .grid3 .photos img{height:118mm!important;width:100%!important;aspect-ratio:auto!important;object-fit:cover}
 /* 10/22 横長の手順（写真を左・説明を右）。1-5 オクトの探し方を足して、2列の段に入りきらなくなったため */
 .grid2>.step.side{grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);column-gap:5mm;align-items:start}
