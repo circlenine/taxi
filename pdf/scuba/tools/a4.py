@@ -861,6 +861,8 @@ CSS += """
 /* クイズの説明は1行に収める（10/8 ご指示：印刷で消えたあとに2行ぶんの空きが残るのが気になる）。
    字をつめる（かっこ・読点の空きを詰める palt）だけで、字の大きさ（9pt）は変えない */
 #p10 .ph2 small.qhint{white-space:nowrap;font-feature-settings:"palt";letter-spacing:-.01em}
+/* 10/22 ページが増えて #p10 でなくなり、1行に収まらず「消えるよ）」が欄の右はしで切れていた → 折り返してよいことにする（clip の点検で見つけた） */
+.ph2 small.qhint{white-space:normal!important}
 """
 CSS += """
 /* もくじの札は、どれも3文字（器　材・工程1〜6・ラスト）にそろえたので、列の幅はもとの 18mm のまま */
