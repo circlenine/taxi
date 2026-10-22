@@ -1020,11 +1020,13 @@ CSS += """
 #p2 .cap3 .cr{color:var(--navy)}
 #p2 .trio{margin-top:2.4mm!important}   /* 題の下のすき間は、どの手順も 2.4mm（10/14 ご指摘） */
 #p2 .trio img{height:calc(var(--ph,40mm) * .8)!important}
-#p2 .oh2{display:grid;grid-template-columns:1fr 1fr;column-gap:7mm}
+#p2 .oh2{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1.38fr);column-gap:6mm}   /* 10/22 右（金額の表）を広く。名前と金額を1行に並べても重ならない幅に */
 #p2 .oh2 .nt{border-top:0!important}
 /* 費用の表：「＋」「いくらから」「〜」「いくらまで」を列にして、桁の位置を縦にそろえる（数字は等幅） */
-.sd2.yen{display:grid!important;font-size:.92em!important;grid-template-columns:.8em 1em 3.9em .9em 3.9em;justify-items:end;align-items:center;font-feature-settings:"tnum","palt";letter-spacing:-.03em;white-space:nowrap;margin-left:1.2mm}
+.sd2.yen{display:grid!important;font-size:.92em!important;grid-template-columns:.9em 1.2em 4.9em 1.1em 4.9em;justify-items:end;align-items:center;font-feature-settings:"tnum";letter-spacing:0;white-space:nowrap;margin-left:1.2mm}
 .sd2.yen .yt{justify-self:center}
+
+/* 10/22 「約」と「￥」・「〜」と「￥」・「レギュ」と「約」が重なっていた（まーく様のご指摘）。金額の欄が狭く、字が左へはみ出していた → 欄を広げ、字間の詰めをやめた。overlap.js で1字ずつ測って確かめる */
 .srows:has(.yen){align-items:center!important}
 .srows:has(.yen)>*{margin:0!important;padding-top:0!important;padding-bottom:0!important;line-height:1.6!important}
 /* 「目安：」の2行目を「目安：」の右の字にそろえる（10/14 ご指示） */
