@@ -449,6 +449,11 @@ F = {
  "oral_m": ("oral_m", (0, 0, 1280, 720), (380, 0, 1000, 400)),      # 水面で、吹き口を口元へ
  "oral_1": ("oral_1", (0, 0, 1280, 720), (280, 40, 1060, 330)),
  "oral_3": ("oral_3", (0, 0, 1280, 720), (330, 0, 850, 700)),       # 水の中から見た、吹きこんでいる手元
+ # 10/22 レギュリカバリーの写真を全部やり直した（まーく様「イメージ画像が文章とまったく合っていない」）。PADI「レギュレーター・リカバリー」の、その動作の場面
+ "rr16": ("rr16", (0, 0, 600, 720), (60, 100, 560, 470)),      # 外れたレギュから、少しずつ泡（息）を出している顔（右の字は切る）
+ "rr30": ("rr30", (0, 0, 1280, 720), (200, 100, 1280, 700)),   # 右腕を下へ大きく回している
+ "rr40": ("rr40", (0, 0, 1280, 720), (0, 100, 1280, 520)),     # 回した右腕に、ホースがかかった
+ "rr49": ("rr49", (480, 0, 1280, 720), (520, 0, 1100, 640)),   # くわえ直した（左の字は切る）
 }
 for _s in "16 21 26 31 36 41 45 50 54 58 61 66".split(): F["sig" + _s] = ("sig" + _s,) + SIG
 # 10/20 ハンドシグナルの「はじめ→途中→終わり」の3コマ。手を横に大きく動かす合図があるので、見せたい範囲を左右に広げる
@@ -528,6 +533,7 @@ CLOSE = {
  "tow_m": "腕の下を持つ2人の顔", "towb_m": "あお向けのバディを運ぶ2人", "towc_m": "運んでいる2人",
  "cmp_m": "行って帰る図", "cmpb_m": "手に持ったコンパス", "cmpb_2": "手に持ったコンパス", "cmpb_3": "手に持ったコンパス",
  "mask25": "上を向いて鼻から呼いている顔とマスクのアップ", "octo20": "オクトパスを受け取る2人の手元", "octo48": "いっしょに浮上する2人（2人とも要る）",
+ "rr16": "泡を出している顔のアップ", "rr30": "右腕を回す全身（腕の動きが要る）", "rr40": "腕にかかったホース", "rr49": "くわえ直した顔のアップ",
  "oral_m": "吹き口を口元へ持つ顔", "oral_1": "水面で吹き口を口元へ持つ2人", "oral_3": "吹きこんでいる手元",
 }
 for _s in "16 21 26 31 36 41 45 50 54 58 61 66".split(): CLOSE["sig" + _s] = "手の合図の画面。手と顔だけに切る"
@@ -535,6 +541,25 @@ for _k in _SGK: CLOSE[_k] = "手の合図。手（指）と顔だけに切る（
 PAD_OK = set()
 def load(frame):
     return Image.open(os.path.join(KF, frame + ".jpg")).convert("RGB")
+
+# 10/22 まーく様「レギュクリアなどで使っている暗い画像は、もっと明るさを調節して見やすく」
+#   → 切り抜いた写真の明るさ（平均）が LIFT_MIN より暗ければ、明るい所が白く飛ばない形（ガンマ）で、LIFT_TO まで持ち上げる。
+#     明るい写真には何もしない。持ち上げたあとも暗いままなら、組み立てを止める（暗い写真を、そのまま配らない）
+LIFT_MIN, LIFT_TO = 115, 140
+def _lift(im, slot):
+    from PIL import ImageStat, ImageOps
+    m = ImageStat.Stat(im.convert("L")).mean[0]
+    if m >= LIFT_MIN: return im
+    im = ImageOps.autocontrast(im, cutoff=0.5)
+    for _ in range(12):
+        m = ImageStat.Stat(im.convert("L")).mean[0]
+        if m >= LIFT_TO: break
+        g = max(0.55, min(0.95, (m / LIFT_TO) ** 0.8))
+        lut = [round(255 * (i / 255) ** g) for i in range(256)]
+        im = im.point(lut * 3)
+    m = ImageStat.Stat(im.convert("L")).mean[0]
+    if m < LIFT_MIN: sys.exit(f"止めます：写真 {slot} が、明るくしても暗いまま（平均 {m:.0f}）")
+    return im
 
 PAD = 0.06
 def aspect_range(key):
@@ -626,6 +651,7 @@ if __name__ == "__main__":
             im = canvas
         im = im.resize((tw, round(tw * h / w)), Image.LANCZOS)
         if rot: im = im.rotate(90, expand=True)
+        im = _lift(im, slot)
         im = mark(im, key, (x0, y0, x1, y1), sx, sy, im.size[0] / w)
         # 10/21 ▶ の印を置くすみ（見せたい部分・赤い印にかからない所）
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import badgepos as _bp

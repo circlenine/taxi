@@ -12,8 +12,8 @@ from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, 
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
-    _OLDT = {"1": "いちばん大事なのは“リラックス”", "2": "“耳抜き”のやり方3選"}   # 10/22 その3〜15 は content_k.py の題をそのまま使う（前の 4〜6 の題は、中身ごと移した）
-    INTRO["title"] = _OLDT["1"]
+    _OLDT = {}   # 10/22 2回目の修正で、その1・その2 はスキルのページになった（リラックス・耳抜きの題で上書きしない）   # 10/22 その3〜15 は content_k.py の題をそのまま使う（前の 4〜6 の題は、中身ごと移した）
+    INTRO["title"] = "いちばん大事なのは“リラックス”"
     for _x in STEPS:
         if _x["id"] in _OLDT: _x["title"] = _OLDT[_x["id"]]
 from focus_k import F as _F, aspect_range as _ar
@@ -358,45 +358,34 @@ COLS = set()
 # 10/20 その1は作り直し（intro_k.py）：2ページ。写真ではなく、意味のある図と表
 import intro_k as _ix
 _ixp = _ix.pages(T, jump)
-for _gi, _inner in enumerate(_ixp):
+# 10/22 まーく様の修正（2回目）：2ページ目（リラックス）は外す。中身は intro_k.py に残してある
+for _gi, _inner in enumerate(_ixp if False else []):
     _t = INTRO["title"]
     for x in _ix.MATOME_SUBS: SUBPG[x["id"]] = len(pages) + 1
     page("その1", _t, _inner)
 COLS = set()   # 10/19 まーく様：読む順は Z字（左上→右上→左下→右下）。列ごとに上から詰める形はやめた。入りきらないときは文を削る
-# 10/22 まーく様「やっとインストラクターの回答が来た。スキルのふり返りは、以下の内容を入れて」
-#   「ここの振り返りが最重要」「一つ一つの振り返りを1ページずつに、順序を丁寧に」
-#   → 担当インストラクターさんに教わった「海洋実習でやったスキル」を、1スキル＝1ページにした（その3〜15）。
-#     このページは、その目次。海洋1〜4の順に、スキルの名前・結論（各ページの題の下と同じ文）・飛び先。
-#     中身は content_k.py の dive・name から作る（ここに同じことを2回書かない。ずれないように）
-def _jisshu():
-    dv = ""
-    for d in (1, 2, 3, 4):
-        rows = [x for x in STEPS if x.get("dive") == d]
-        dv += (f'<section class="dv"><h3 class="dvh"><span class="dvn">海洋{d}</span></h3><div class="dvt">'
-               + "".join(f'<div class="dvr"><b class="dvk">{T(x["name"])}</b><span class="dvd">{T(LEADS[x["id"]][0])}</span><span class="dvj">{jump(x["subs"][0]["id"])}</span></div>' for x in rows)
-               + '</div></section>')
-    page("実習", "海洋実習でやったスキル", f'<div class="sl"><p class="sl1">講習の海で、実際にやったスキル。次のページから、1スキルずつ見返そう</p><p class="sl2"><b>なぜ？</b><span>アドバンスでも、この上に積み重ねていくから</span></p></div>{dv}', toc=True)
-_miss = [x["id"] for x in STEPS if x["id"] != "2" and (not x.get("dive") or not x.get("name") or x["id"] not in LEADS)]
-if _miss: sys.exit("止めます：スキルのページに dive・name・結論（LEADS）のどれかが無い → その" + "、その".join(_miss))
+# 10/22 まーく様の修正（2回目）：毎ページ、はじめに「こんな時」と「ポイント」。そのあと「〜のときは、落ち着いて次の方法を試そう！」の1行。
+#   あいちゃんが褒められた分野は金色の枠、上級レベルは赤い枠の札を、ポイントの右に置く
+#   （前の「結論・なぜ？」の帯と、目次のページ「海洋実習でやったスキル」は外した。もくじは1ページ目にまとめた）
+def _sit(sec):
+    bd = sec.get("badge")
+    bh = f'<span class="bdg {"bdg-g" if bd[0] == "ほめ" else "bdg-r"}">{T(bd[1])}</span>' if bd else ""
+    wh = "".join(f'<span class="swi">{T(x)}</span>' for x in sec["when"])
+    return (f'<div class="sit"><p class="sw"><b class="swk">こんな時</b><span class="swv">{wh}</span></p>'
+            f'<p class="sp"><b class="spk">ポイント</b><span class="spv">{T(sec["point"])}</span>{bh}</p></div>'
+            f'<p class="slead">{T(sec["lead"])}</p>')
+_miss = [x["id"] for x in STEPS if not (x.get("when") and x.get("point") and x.get("lead"))]
+if _miss: sys.exit("止めます：スキルのページに こんな時・ポイント・始めの1行 のどれかが無い → その" + "、その".join(_miss))
 for sec in STEPS:
-    if sec.get("dive") == 1 and "実習" not in [t[0] for t in TOC]: _jisshu()   # 海洋1のスキルの前に、目次のページを1枚
-    # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
-    # 手順が多くて文が長い工程（工程2）だけ、2ページに分ける（1項目は多くても2ページ）
     subs = sec["subs"]
-    groups = [subs]   # 洗浄編は、どの工程も1ページに収まる
+    # 中性浮力だけ2ページ（対応／コツ）。pages に、ページごとの手順の番号を書く
+    groups = [[x for x in subs if x["id"] in ids] for ids in sec["pages"]] if sec.get("pages") else [subs]
     for gi, g in enumerate(groups):
-        t = sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>'
-        # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから講習の後に、知っておくと楽になること
+        t = sec["title"] if gi == 0 else sec.get("title2", sec["title"])
         t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！</span>'}.get(sec.get("rel"), "")
-        if sec["id"] in COLS:
-            # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
-            # 中性浮力のページは、左に3-1・3-2、右に3-3〜4-2を置く（どの手順にも写真を付けたので、列の長さをそろえる）
-            L, Rr = (g[:2], g[2:]) if sec["id"] == "3" else (g[0::2], g[1::2])   # 写真が5枚になったので、左に2つ・右に3つ（読む順はそのまま）
-            body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in L) + '</div><div class="col">' + "".join(stepbox(x) for x in Rr) + "</div></div>"
-        else:
-            body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
+        body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
-        page(f"その{sec['id']}", t, q2(sec["id"]) + _lead(sec["id"]) + body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
+        page(f"その{sec['id']}", t, (_sit(sec) if gi == 0 else f'<p class="slead">{T(sec["lead"])}</p>') + body, toc=True)
 
 # まとめ
 pts = "".join(f'<p class="pth">{h}</p>' + "".join(f'<p class="bl"><span class="bm">・</span><span>{T(l)}</span></p>' for l in ls) for h, ls in POINTS)
@@ -496,9 +485,10 @@ for _n, _fs in SIG_MOVE:
     if len(_fs) != 2: raise SystemExit(f"NG 合図「{_n}」：動きのある合図は2枚（何をして→どうする）")
     _d = _diff(_fs[0][0], _fs[1][0])
     if _d < 6: raise SystemExit(f"NG 合図「{_n}」：2枚がほとんど同じ写真（ちがい {_d:.1f}）。形がちがうコマを選ぶ")
-sm = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
+_smf = lambda lst: "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
              + f'<figure class="sqf">{im(fs[0][0], 1.55)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
-             + f'<figure class="sqf">{im(fs[1][0], 1.55)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
+             + f'<figure class="sqf">{im(fs[1][0], 1.55)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in lst)
+sm = _smf(SIG_MOVE)
 ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</span></p>{im(k, 1.27)}<figcaption>{T(desc)}</figcaption></figure>' for name, k, desc in SIG_STILL)
 sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
 # 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
@@ -506,27 +496,59 @@ SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class=
 SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛ぶ
 # 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
-page("合図", "ハンドシグナル", f'{SIGREF}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqg3">{sm}{ss3}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])
+# 10/22 まーく様「ハンドシグナル、画像が小さすぎます」→ 2ページに分けて、2列で大きく。
+#   1枚目：動きのある合図（①をしてから②）／2枚目：形だけの合図と、大事・補足
+SIGSIT = dict(when=["水の中で、伝えたいこと・困ったことがある"], point="「何かおかしい」「エアがない」だけは、必ず覚えよう！")   # content_k.py の POINTS「困ったら、合図で伝える」・SIGNAL_AIR
+_sgsit = (f'<div class="sit"><p class="sw"><b class="swk">こんな時</b><span class="swv"><span class="swi">{T(SIGSIT["when"][0])}</span></span></p>'
+          f'<p class="sp"><b class="spk">ポイント</b><span class="spv">{T(SIGSIT["point"])}</span></p></div>')
+# 1枚目に6つ（3段）、残りの2つ（インストラクターさんからの指示の合図）は2枚目の頭に
+page("合図", "ハンドシグナル", f'{_sgsit}<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）</p><div class="sqg sqgL">{_smf(SIG_MOVE[:6])}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):])   # 大事・補足は1枚目の下に（2枚目に入りきらない）
+ss2 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
+page("合図", "ハンドシグナル（つづき）", f'{SIGREF}<div class="sqg sqgL">{_smf(SIG_MOVE[6:])}</div><p class="mtl sql">形だけで伝わる合図</p><div class="sqg sqgL sqgS">{ss2}</div>')
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
-page("まとめ", ("この1枚で、すぐ見返そう！" if _nd.ON else "集約版！サッと1ページで見返そう！"), f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div></div>{mt}</div>')
+# 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
+#   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
+def _mrow(name, k, when, point, n, bd=None):
+    b = f'<span class="bdg {"bdg-g" if bd[0] == "ほめ" else "bdg-r"} bdgs">{T(bd[1])}</span>' if bd else ""
+    return (f'<div class="mrow"><a class="mtv mrp" href="{mtv(k)}">{im(k, 1.4)}<span class="play">▶</span></a>'
+            f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>（{n}ページ）</a></p>'
+            f'<p class="mrw"><b>こんな時</b>{T("／".join(when))}</p><p class="mrq"><b>ポイント</b>{T(point)}{b}</p></div></div>')
+MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc918"}   # まとめの写真（その動作をしている場面）
+_mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge")) for x in STEPS)
+_mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["when"], SIGSIT["point"], SUBPG["SIG"])
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mtab">{_mt}</div>')
+# 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
+#   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
+QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
+      ("くわえ直したら、すぐ吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
+      ("真ん中のボタンから泡が出ないときは？", "「トゥー」と強く呼いて、水を出す", "2-3"),
+      ("{bc}に空気が入らないときは？", "人差し指でボタンを押しながら、口で吹きこむ", "3-2"),
+      ("マスクに水が入ったら、どこから呼く？", "鼻から。水はマスクの下から出ていく", "4-3"),
+      ("足がつったら、まず何をする？", "その場で停まれるか確かめて、合図で助けを求める", "5-1"),
+      ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
+      ("浮いてきて、空気を抜くときのコツは？", "体を立てて、ホースを上に伸ばす", "6-3"),
+      ("{bc}が壊れて、どうしても浮けないときは？", "{belt}を「ウラァ！」と外す", "7-4"),
+      ("親指を上に向ける合図の意味は？", "「浮上しよう」。「いいね！」ではない", "SIG")]
+_qz = "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
+page("クイズ", "まとめクイズ", f'<p class="mtl">□をタップすると、答えが出るよ。分からなかったら、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
 # 10/20 まーく様「目次には、だよ、は抜いて」→ もくじの行だけ、題の終わりの「だよ」を外す（ページの題はそのまま）
 def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
-# 10/22 1スキル＝1ページで、もくじが1ページ目に入りきらなくなった → スキルのページは「海洋1〜4」の4行にまとめる
-#   行の中は、スキルの名前を「・」でつなぐ。ページは「5〜7」の形。タップすると、その海洋の1つ目のスキルへ
-_dive_of = {f"その{x['id']}": x.get("dive") for x in STEPS}
-_toc2, _seen = [], set()
+# 10/22 まーく様の修正（2回目）：「1ページ目のもくじと4ページ目のもくじを、必要最低限に分かりやすく合体」
+#   → 1行に「スキルの名前」と「こんな時」だけ（4ページ目の中身）。同じ札が続くページ（中性浮力・合図）は1行にまとめ、ページは「7〜8」
+_sec_of = {f"その{x['id']}": x for x in STEPS}
+_toc2 = []
 for lb, tt, pn in TOC:
-    d = _dive_of.get(lb)
-    if not d: _toc2.append((lb, tt, pn)); continue
-    if d in _seen: continue
-    _seen.add(d)
-    _ps = [n for l2, _t, n in TOC if _dive_of.get(l2) == d]
-    _toc2.append((f"海洋{d}", "・".join(x["name"] for x in STEPS if x.get("dive") == d), (_ps[0], f"{_ps[0]}〜{_ps[-1]}" if len(_ps) > 1 else str(_ps[0]))))
-TOC = [(lb, tt, pn if isinstance(pn, tuple) else (pn, str(pn))) for lb, tt, pn in _toc2]
+    if _toc2 and _toc2[-1][0] == lb:
+        _toc2[-1] = (lb, _toc2[-1][1], (_toc2[-1][2][0], f"{_toc2[-1][2][0]}〜{pn}")); continue
+    x = _sec_of.get(lb)
+    if x: tt = f'{x["name"]}<small class="tw">{"／".join(x["when"])}</small>'
+    elif lb == "合図": tt = "ハンドシグナル"
+    _toc2.append((lb, tt, (pn, str(pn))))
+TOC = _toc2
 toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習で習ったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
@@ -1330,6 +1352,45 @@ CSS += """
 .page .sl1{margin:0;font-size:11pt;line-height:1.45;color:var(--navy);font-weight:900}
 .page .sl2{margin:.4mm 0 0;font-size:9pt;line-height:1.45;display:grid;grid-template-columns:3.6em minmax(0,1fr)}
 .page .sl2 b{color:var(--navy)}
+/* 10/22 まーく様の修正（2回目）：毎ページの頭の「こんな時／ポイント」。札は、褒められた分野＝金、上級レベル＝赤 */
+.page .sit{margin:0 0 1.6mm;border:1.2px solid var(--navy);border-radius:2mm;padding:1.6mm 2.4mm;background:#fff}
+.page .sit p{margin:0;display:grid;grid-template-columns:4.6em minmax(0,1fr) auto;column-gap:2mm;align-items:center;line-height:1.5}
+.page .sit p+p{margin-top:1mm;padding-top:1mm;border-top:1px dashed var(--line)}
+.page .swk,.page .spk{font-size:8.6pt;color:#fff;background:var(--navy);border-radius:1mm;text-align:center;padding:.3mm 0}
+.page .spk{background:#b0154a}
+.page .swv{font-size:10.5pt;font-weight:900;color:var(--navy);grid-column:2/4}
+.page .swi+.swi::before{content:"／";color:var(--muted)}
+.page .spv{font-size:11pt;font-weight:900;color:#b0154a}
+.page .bdg{font-size:8.6pt;font-weight:900;padding:.6mm 1.6mm;border-radius:1.2mm;white-space:nowrap}
+.page .bdg-g{color:#7a5200;background:#fff6d6;border:1.4px solid #d9a400;box-shadow:inset 0 0 0 .6px #f5d46b}
+.page .bdg-r{color:#a3122e;background:#fff0f2;border:1.4px solid #d23a55}
+.page .ng{color:#f93612;font-weight:900}
+.page .slead{margin:0 0 1.4mm;font-size:9.6pt;font-weight:700;color:var(--ink,#333)}
+/* 合図は2列で大きく（10/22「画像が小さすぎます」） */
+.page .sqgL{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2.4mm 5mm!important}
+.page .sqgL .sqn{font-size:11pt!important}
+.page .sqgL figcaption{font-size:9.4pt!important;line-height:1.35!important}
+/* まとめ（表1枚） */
+.page .mtab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2mm 4mm;margin-top:1.6mm}
+.page .mrow{display:grid;grid-template-columns:24mm minmax(0,1fr);column-gap:2.2mm;align-items:start;border-bottom:1px solid var(--line);padding-bottom:1.6mm}
+.page .mrp{position:relative;display:block}
+.page .mrp img{width:24mm!important;height:auto!important;aspect-ratio:1.4!important;border-radius:1.4mm;display:block;object-fit:cover}
+.page .mrb p{margin:0;line-height:1.5}
+.page .mrn{font-size:10.6pt;font-weight:900;color:var(--navy)}
+.page .mrn .jump{margin-left:1.6mm;font-size:8.6pt}
+.page .mrw,.page .mrq{font-size:8.6pt}
+.page .mrb .bdgs{display:inline-block;margin:.6mm 0 0}
+.page .mrw b,.page .mrq b{font-size:7.8pt;color:#fff;background:var(--navy);border-radius:.8mm;padding:0 1mm;margin-right:1.4mm}
+.page .mrq b{background:#b0154a}
+.page .mrq{font-weight:700;color:#b0154a}
+.page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
+/* まとめクイズ */
+.page .quiz.qzm{grid-template-columns:minmax(0,1fr)!important;margin-top:2mm}
+.page .qzm .qz{font-size:10.6pt}
+.page .qzm .qz .q .jump{font-size:8pt;margin-left:2mm;font-weight:700}
+/* もくじの「こんな時」 */
+.tc .tt .tw{font-size:8.4pt;font-weight:700;color:var(--muted);margin-left:2.4mm}
+.tc .tt .tw::before{content:"こんな時："}
 /* 10/22 海洋実習でやったスキル（担当インストラクターさんの回答） */
 .page .dv{margin:0 0 2.2mm}
 .page .dvh{margin:0 0 1mm;font-size:12pt;color:var(--navy)}
