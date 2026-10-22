@@ -69,7 +69,11 @@ p{margin:0}
 .sn{flex:none;background:var(--navy);color:#fff;border-radius:1mm;font-size:10.5pt;line-height:1.5;padding:0 1.6mm;margin-top:calc((12.5pt - 10.5pt) * 1.5 / 2);letter-spacing:.03em}
 .sh3 .t{font-size:10.5pt;line-height:1.5;vertical-align:.08em}
 /* 写真：1枚＝横いっぱい。2枚＝横に2つ。3枚＝上に大きく1枚、下に2つ */
-.photos{display:grid;gap:1.6mm;grid-template-columns:1fr 1fr}
+.photos{display:grid;gap:1.6mm;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+/* 10/22 2枚並びの写真が、写真の横長の形のまま広がり、となりの手順の写真の下に隠れていた → 半分の幅に収め、はみ出す所は切る */
+.photos>.ph3{min-width:0}
+.photos>.ph3>img{max-width:100%;object-fit:cover}
+.photos>.ph3>.cap3{white-space:normal!important;min-width:0}
 .photos .ph3:only-child,.photos.n3 .ph3:first-child,.photos.ngp .ph3:first-child{grid-column:1/-1}
 .ph3{position:relative}
 .ph3 img{display:block;width:100%;border-radius:2mm;object-fit:cover}
@@ -311,12 +315,12 @@ if _dup:
 # 動作の写真は「やる前 → やった後」の2枚で見せる（10/19 まーく様：1枚だけでは、何をどう変えるのか分からない）
 CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi73"): "やった後：鼻をつまんで息を送る",
        # 10/22 呼び名と正式名称（準備編・洗浄編と同じ書き方）。その器材が写っている写真の下に
-       ("1-2", "rc2_342"): "やる前：右肩を下げ、腕を後ろへ", ("1-2", "rc2_344"): "やった後：腕を大きく回す",
+       ("1-2", "rc2_342"): "やる前<small>右肩を下げ、腕を後ろへ</small>", ("1-2", "rc2_344"): "やった後<small>腕を大きく回す</small>",
        ("1-4", "rr49"): "レギュ<small>正式名称：セカンドステージ</small>", ("1-5", "rc2_248"): "オクト<small>正式名称：オクトパス</small>",
        ("2-1", "rc2_92"): "真ん中のボタン<small>正式名称：パージボタン</small>",
        ("3-1", "oral_m"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("3-2", "oral_3"): "人差し指のボタン<small>正式名称：排気ボタン</small>",
        ("6-2", "rc675"): "親指のボタン<small>正式名称：給気ボタン</small>",
-       ("6-1", "rc920"): "上を見る：水面に近づいた＝浮いている", ("6-1", "rc418"): "下を見る：海底に近づいた＝沈んでいる",
+       ("6-1", "rc920"): "上を見る<small>水面が近い＝浮いている</small>", ("6-1", "rc418"): "下を見る<small>海底が近い＝沈んでいる</small>",
        ("4-2", "rc2_342"): "右肩を下げて、腕を回す", ("4-2", "rc2_348"): "腕にホースがかかった",
        ("5-4", "mask35"): "泡で水が出ていく", ("5-4", "mask41"): "水が抜けた",
        ("7-4", "rc994"): "泡で水が出ていく", ("7-4", "rc1001"): "斜め上を見て、残りを出す",
@@ -442,6 +446,7 @@ def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画と、�
         n = int(k[4:])
         for st, v in ((1279, "I8HgZdkBGdU"), (366, "nb-1Zn2dyOo"), (304, "eUTyMbXD5Z8"), (198, "hxUKLZ70jL0"), (0, "LgmvXnenvkY")):
             if n >= st: return t(v, n - st)   # 緊急スイミングアセント デモ／マスク脱着／レギュリカバリー／同（バックアップ）／レギュレータクリア
+    if re.match(r"rc(39[3-9]|4[0-6]\d)$", k): return t("G59I8SB04_g", int(k[2:]) - 393)   # サンズ「フリー潜降」：画面収録の 393 秒から（場面の切りかわりで調べた 10/22）
     if re.match(r"rc(9[5-9]\d|10[0-3]\d)$", k): return t("xo6Dp8jm7Pw", int(k[2:]) - 957)   # サンズ「マスククリア」：画面収録の 957 秒から（表紙の絵 25%・50%・75% の場面と合うのを確かめた 10/22）
     # 10/22 YouTube の表紙の絵から取った写真（動画そのものは取りこめない）。秒は字幕で場面を確かめた所。分からないものは頭から
     for p, v, sec in (("ashib", "TlgX1JiGMlU", 30), ("ashi", "gxhyWQh23T8", 23), ("towb", "jZPOTQzL4Ug", 0), ("towc", "XN3xFzh56m8", 0),

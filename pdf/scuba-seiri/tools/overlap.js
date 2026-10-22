@@ -24,6 +24,17 @@ const r=await p.evaluate(()=>{const out=[];
     let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});
     const f=nt.firstElementChild;if(!f||!pb)return;const gap=(f.getBoundingClientRect().top-pb)/3.78;
     if(gap>7){out.push(pg.id+'｜写真と下の文の間が空きすぎ '+gap.toFixed(1)+'mm｜'+(st.querySelector('.sn')||{}).textContent)}});
+  // 10/22 memo が片方の列にだけあって、もう片方の列の下も 20mm 以上空いたままになっていないか
+  {const g=pg.querySelector('.grid2'),m=pg.querySelector(':scope>.memo'),pno=pg.querySelector('.pno');
+   if(g&&m&&pno){const gr=g.getBoundingClientRect(),mr=m.getBoundingClientRect(),lim=pno.getBoundingClientRect().top,mid=(gr.left+gr.right)/2;
+    if(mr.right<mid+5||mr.left>mid-5){const other=mr.left>mid-5?'L':'R';let bot=0;
+     g.querySelectorAll(':scope>.step').forEach(st=>{const r=st.getBoundingClientRect();if(other==='L'?r.left<mid:r.right>mid)bot=Math.max(bot,r.bottom)});
+     if(bot&&(lim-bot)/3.78>=20)out.push(pg.id+'｜memo が片方の列だけ（もう片方の列の下も '+((lim-bot)/3.78).toFixed(0)+'mm 空いている）');}}}
+  // 10/22 写真どうしが重なっていないか（大きすぎる写真が、となりの手順の写真の下に隠れる）
+  {const im=[...pg.querySelectorAll('.grid2 img,.grid3 img')].map(e=>({e,r:e.getBoundingClientRect()})).filter(o=>o.r.width>0);
+   for(let i=0;i<im.length;i++)for(let j=i+1;j<im.length;j++){const a=im[i].r,b=im[j].r;const ox=Math.min(a.right,b.right)-Math.max(a.left,b.left),oy=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
+    if(ox>2&&oy>2)out.push(pg.id+'｜写真どうしが重なっている '+im[i].e.dataset.k+' / '+im[j].e.dataset.k);}
+   pg.querySelectorAll('.grid2>.step').forEach(st=>{const sr=st.getBoundingClientRect();st.querySelectorAll('img').forEach(e=>{const r=e.getBoundingClientRect();if(r.right>sr.right+2||r.left<sr.left-2)out.push(pg.id+'｜写真が手順の枠からはみ出している '+e.dataset.k)})});}
   bx.sort((a,b)=>a.x0-b.x0);
   for(let i=0;i<bx.length;i++){const a=bx[i];for(let j=i+1;j<bx.length;j++){const c=bx[j];if(c.x0>=a.x1)break;
     const ox=Math.min(a.x1,c.x1)-Math.max(a.x0,c.x0),oy=Math.min(a.y1,c.y1)-Math.max(a.y0,c.y0);
