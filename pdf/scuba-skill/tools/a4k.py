@@ -267,7 +267,7 @@ def jump(sid):
     lab = "次のページ" if sid == "OH" else f"<b>{sid}</b>"
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
-    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{"" if KEYS.get(s["id"], s["key"]) else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
+    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s.get("side") else ""}{"" if KEYS.get(s["id"], s["key"]) else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
             f'{withjump(photos(s), s.get("jump"))}{notes(s)}</section>')
 def withjump(ph, sid):
     # 飛ぶ行は、写真の名前のすぐ下（写真のかたまりの中）に入れる。手順の「題・写真・札」の3段の形をくずさないため
@@ -746,6 +746,10 @@ CSS += """
 .grid2{grid-auto-rows:auto}
 .grid2>.step{display:grid!important;grid-row:span 3;grid-template-rows:subgrid;row-gap:2.4mm;align-content:start}
 .grid2>.step.wide{grid-row:auto;display:flex!important}
+/* 10/22 横長の手順（写真を左・説明を右）。1-5 オクトの探し方を足して、2列の段に入りきらなくなったため */
+.grid2>.step.side{grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:5mm;align-items:start}
+.grid2>.step.side>.sh3{grid-column:1/-1}
+.grid2>.step.side>.notes{margin-top:0!important}
 .grid2>.step>.notes{align-self:start}
 .photos.p3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
 .photos.p3 .ph3{grid-column:auto!important;grid-row:auto!important}
@@ -1466,7 +1470,7 @@ function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.s
  let lo=(pg.id==='p4'?26:30),hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
- g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
+ g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')||st.classList.contains('side')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}   /* 10/22 横長の手順（side）も、左右の列を両方ふさぐ */cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
  cols.forEach(c=>c.b=lim);return cols;}
 function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m.className='memo';
  Object.assign(m.style,{left:(q.l-P.left)+'px',top:(q.t-P.top)+'px',width:(q.r-q.l)+'px',height:(q.b-q.t)+'px'});
@@ -1484,6 +1488,7 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  //  （赤い丸がスマホで見やすいように、写真を大きく。10/13 ご指示）
  // 2ページ（導入）は、写真を小さくすると表がはみ出すので、3の下のあき（25mm 以上）を memo にする（10/13）
  if(best.b-best.t<(pg.id==='p2'?0:MINC)){fit(pg,lim-RES);if(+pg.dataset.ph<40)fit(pg,lim-RES2);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
+ if(best.b-best.t<45)return;   /* 10/22 12mm に満たない memo は置かない（字が切れて、細い帯だけが残っていた） */
  place(pg,best);});}
 // 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
 function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;

@@ -16,6 +16,9 @@ const r=await p.evaluate(()=>{const out=[];
   for(const q of bx){let e=q.el;while(e&&e!==pg&&getComputedStyle(e).display.startsWith('inline'))e=e.parentElement;if(!e||e===pg)continue;const r=e.getBoundingClientRect();
     const hang=q.el.closest('.pql,.pqr,.pqc')?(q.x1-q.x0)*0.55:1.5;   /* 行頭・行末のかっこは、半分ぶん外へ出して頭をそろえている */
     if(q.x1>r.right+hang||q.x0<r.left-hang){out.push(pg.id+'｜字が欄からはみ出している「'+q.c+'」｜'+(e.className||e.tagName)+'｜'+e.textContent.slice(0,24));}}
+  // 10/22 memo の欄（あとから重ねて置く箱）が、ほかの字の上にかぶさっていないか
+  pg.querySelectorAll(':scope>.memo').forEach(m=>{const r=m.getBoundingClientRect();for(const q of bx){if(m.contains(q.el))continue;
+    if(q.x0<r.right-1&&q.x1>r.left+1&&q.y0<r.bottom-1&&q.y1>r.top+1){out.push(pg.id+'｜memo の欄が字にかぶさっている「'+q.c+'」｜'+q.el.textContent.slice(0,20));break}}});
   bx.sort((a,b)=>a.x0-b.x0);
   for(let i=0;i<bx.length;i++){const a=bx[i];for(let j=i+1;j<bx.length;j++){const c=bx[j];if(c.x0>=a.x1)break;
     const ox=Math.min(a.x1,c.x1)-Math.max(a.x0,c.x0),oy=Math.min(a.y1,c.y1)-Math.max(a.y0,c.y0);
