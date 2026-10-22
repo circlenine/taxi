@@ -426,7 +426,7 @@ def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画と、�
     for p, v, sec in (("ashib", "TlgX1JiGMlU", 30), ("ashi", "gxhyWQh23T8", 23), ("towb", "jZPOTQzL4Ug", 0), ("towc", "XN3xFzh56m8", 0),
                       ("tow", "5-wTOpqnuj4", 83), ("cmpb", "uVPQyNRkWMA", 0), ("cmp", "AQ37U8pI6fc", 458), ("oral_3", "ttN-up-EvPA", 0), ("oral", "ClylzHRXqvA", 0)):
         if k.startswith(p): return t(v, sec)
-    if k in ("rc914", "rc918", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
+    if k in ("rc914", "rc916", "rc918", "rc920", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
     if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return t("kYvgkoTBkNg", int(k[2:]) - 657)   # サンズ「浮力コントロール & フィンピポット」：画面収録の 657 秒から
     if k.startswith("sg"): return t("pS-yk6gth-8", int(k[2:]) / 100)     # ハンドシグナル（印の数字は 1/100 秒）
     if k.startswith("bs"): return t("2X4rf11ORN0", int(k[2:]) / 2)       # ビューティフルシー（取りこんだ動画は映像が2倍に伸びている）
@@ -513,7 +513,7 @@ def _mrow(name, k, when, point, n, bd=None, lab=""):
     return (f'<div class="mrow"><a class="mtv mrp" href="{mtv(k)}">{im(k, 1.4)}</a>'
             f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
             f'<p class="mrw"><b>こんな時</b>{T("／".join(when))}</p><p class="mrq"><b>ポイント</b>{T(point)}{b}</p></div></div>')
-MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc918"}   # まとめの写真（その動作をしている場面）
+MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc920"}   # まとめの写真（その動作をしている場面）
 _mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge"), f"その{x['id']}") for x in STEPS)
 _mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["when"], SIGSIT["point"], SUBPG["SIG"], lab="合図")
 # 10/22 まーく様の言葉（content_k.py の MATOME_MSG）を、まとめの下に。言い換えない（点検は class="umsg" の中を見ない）
@@ -548,7 +548,8 @@ for lb, tt, pn in TOC:
     if _toc2 and _toc2[-1][0] == lb:
         _toc2[-1] = (lb, _toc2[-1][1], (_toc2[-1][2][0], f"{_toc2[-1][2][0]}〜{pn}")); continue
     x = _sec_of.get(lb)
-    if x: tt = f'{x["name"]}<small class="tw">{"／".join(x["when"])}</small>'
+    # 10/22 まーく様「もくじにまで、こんな時は含めない」「英語など聞きなれないものは（）で補足」→ 名前と（補足）だけ
+    if x: tt = x["name"] + (f'<small class="tw">（{x["toc_note"]}）</small>' if x.get("toc_note") else "")
     elif lb == "合図": tt = "ハンドシグナル"
     _toc2.append((lb, tt, (pn, str(pn))))
 TOC = _toc2
@@ -1396,8 +1397,7 @@ CSS += """
 .page .qzm .qz{font-size:10.6pt}
 .page .qzm .qz .q .jump{font-size:8pt;margin-left:2mm;font-weight:700}
 /* もくじの「こんな時」 */
-.tc .tt .tw{font-size:8.4pt;font-weight:700;color:var(--muted);margin-left:2.4mm}
-.tc .tt .tw::before{content:"こんな時："}
+.tc .tt .tw{font-size:inherit;font-weight:inherit;color:inherit}
 /* 10/22 海洋実習でやったスキル（担当インストラクターさんの回答） */
 .page .dv{margin:0 0 2.2mm}
 .page .dvh{margin:0 0 1mm;font-size:12pt;color:var(--navy)}
