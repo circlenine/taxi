@@ -10,7 +10,8 @@ cd $S/build_k
 python3 -I $S/tools/phrasecheck.py $S/tools/content_k.py
 python3 $S/tools/a4k.py $S/build_k
 # 10/20 まーく様「ページは10ページにとどめて」：10ページを超えたら止める
-n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_k/a4.html | wc -l); if [ "$n" -gt 10 ]; then echo "NG 10ページを超えた（$n ページ）"; exit 1; fi
+# 10/22 まーく様「組み直して、10ページを超えてよい」（海洋実習のスキルを1スキル＝1ページに）。むやみに増えないよう、22ページで止める
+n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_k/a4.html | wc -l); if [ "$n" -gt 22 ]; then echo "NG 22ページを超えた（$n ページ）"; exit 1; fi
 # 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
 python3 -I $S/tools/numcheck.py $S/build_k/num.png $(node $S/tools/numcheck.js $S/build_k/a4.html $S/build_k/num.png)
 # 1ページ目（まとめ＋もくじ）がページからはみ出していないか（10/16）

@@ -12,8 +12,7 @@ from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, 
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
-    _OLDT = {"1": "いちばん大事なのは“リラックス”", "2": "“耳抜き”のやり方3選", "4": "{bc}排気と{regu}",
-             "5": "マスククリアとマスク脱着", "6": "浮上と、潜った後の過ごし方"}
+    _OLDT = {"1": "いちばん大事なのは“リラックス”", "2": "“耳抜き”のやり方3選"}   # 10/22 その3〜15 は content_k.py の題をそのまま使う（前の 4〜6 の題は、中身ごと移した）
     INTRO["title"] = _OLDT["1"]
     for _x in STEPS:
         if _x["id"] in _OLDT: _x["title"] = _OLDT[_x["id"]]
@@ -264,6 +263,7 @@ WIDE = {"3-1"}   # 3-1：手元を横長に大きく写すため、横いっぱ�
 def jump(sid):
     # 「くわしくは 1-4（3ページ）」：タップでそのページへ飛ぶ。印刷しても何ページ目かが分かるよう、ページ番号は必ず書く（10/13 ご指示）
     # ページ番号は、手順のページを作り終えてから入れる（2ページを作る時点では、まだ決まっていないため）
+    if sid == "SIG": return '<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a>'
     lab = "次のページ" if sid == "OH" else f"<b>{sid}</b>"
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
@@ -284,7 +284,7 @@ VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]})"  
 EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
 #   10/21 番号の飛びをなくすため、content_k.py で その4 を その3 の中（3-4・3-5）に入れた。ここでは題だけを決める
-STEPS = [dict(x, title=("“中性浮力”を身につけよう！" if _nd.ON else "“中性浮力” {bc}と呼吸で合わせ、体は水平に")) if x["id"] == "3" else x for x in STEPS]
+# 10/22 1スキル＝1ページにしたので、その3 の題の上書き（中性浮力）はやめた
 TAGS, KEYS, CAP, STK_OF, REDCAP, WIDE = {}, {}, {}, {}, set(), set()
 # 写真のない手順があったら、組み立てを止める（10/19 まーく様「画像は必ずつけてください。文章だけだと読む気が失せます」）
 INTRO["subs"] = __import__("intro_k").MATOME_SUBS   # その1は図のページ。まとめには、この短い一覧を出す
@@ -297,22 +297,31 @@ if _dup:
     sys.exit("止めます：題に「ふり返り」などが入っています（右の札と重なる）→ その" + "、その".join(_dup))
 # 動作の写真は「やる前 → やった後」の2枚で見せる（10/19 まーく様：1枚だけでは、何をどう変えるのか分からない）
 CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi73"): "やった後：鼻をつまんで息を送る",
-       ("3-1", "rc664"): "やる前：沈んでいる", ("3-1", "rc685"): "やった後：吸うと、ふわっと浮く",
-       ("3-4", "rc742"): "やる前：足が下がっている", ("3-4", "rc757"): "やった後：水平",
-       ("4-1", "bs12"): "やる前：水平のまま", ("4-1", "rc922"): "やった後：体を立てて、ホースを上に",
-       ("4-2", "rr19"): "外れたとき", ("4-2", "rr48"): "くわえ直したところ",
-       ("5-1", "mask13"): "やる前：マスクに水", ("5-1", "mask41"): "やった後：水が抜けた",
-       ("5-2", "rc2_420"): "外したところ", ("5-2", "rc2_450"): "付けたところ"}
+       ("4-2", "rc2_342"): "右肩を下げて、腕を回す", ("4-2", "rc2_348"): "腕にホースがかかった",
+       ("5-4", "mask35"): "泡で水が出ていく", ("5-4", "mask41"): "水が抜けた",
+       ("7-4", "rc994"): "泡で水が出ていく", ("7-4", "rc1001"): "斜め上を見て、残りを出す",
+       ("11-1", "rc664"): "やる前：沈んでいる", ("11-1", "rc685"): "やった後：吸うと、ふわっと浮く",
+       ("11-4", "rc742"): "やる前：足が下がっている", ("11-4", "rc757"): "やった後：水平"}
 KEYS = {}   # どの手順にも写真を付ける（10/19 まーく様「画像は必ずつけてください」）  #   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
 # 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
 # 10/22 まーく様「結論→理由→具体例→結論の組み立てに」（その1と同じ）→ その2以降も、題のすぐ下に「結論」と「なぜ？」を1つずつ。
 #   具体例＝下の手順、最後の結論＝大事の欄。出どころ（字幕・記事）を行ごとに書く
 LEADS = {
  "2": ("耳は、痛くなる前に、こまめに抜く", "痛みが出た後では、耳が抜けにくいから"),   # DAN Fast Facts・耳鼻科の記事（README「耳抜き」）／Totty 耳抜き
- "3": ("{bc}は少しずつ。細かい浮き沈みは、呼吸で", "いきなり多く入れると、体が急に浮き上がるから"),   # Totty BZhbMmmuys8 12:33「いきなりたくさん入れて…」・13:48「バウンド」
- "4": ("空気を抜くときは、体を立てる。{regu}が外れても、あわてず探せば見つかる", "空気は上に集まるから。ホースは足元からたどれば、必ず手に当たるから"),   # Totty kG5D5C_QTqA（体を立てる）／サンライズのやり方（10/19）
+ # 10/22 1スキル＝1ページ。出どころは content_k.py の各ページの行に書いた動画
+ "3": ("{regu}に水が入っても、2つのやり方で出せる", "強く呼くか、ボタンを押せば、水が押し出されるから"),   # 彦坂さん 20秒・62秒
+ "4": ("{regu}が外れても、あわてず探せば見つかる", "ホースは体に付いているので、たどれば必ず手に当たるから"),   # サンライズのやり方（10/19）
  "5": ("マスクに水が入っても、鼻から呼（は）くだけで出せる", "上を押さえて呼くと、水が下から押し出されるから"),   # Totty x3f7EXiic7Q
- "6": ("上がるときも、潜った後も、ゆっくり・のんびり", "急に上がったり、すぐ飛行機に乗ったりすると、体に負担がかかるから"),   # PADI 安全潜水・DAN 飛行機のめやす
+ "6": ("{bc}は、口でも空気を入れられる", "空気が切れても、水面で浮いて待てるから"),   # ラフィン「エア切れ時のオーラル給気」
+ "7": ("水が全部入っても、やり方は「水少し」と同じ", "上を押さえて呼けば、何回かに分けて、必ず出せるから"),   # エアー福岡 26 2:25
+ "8": ("空気が切れても、バディの{octo}で呼吸できる", "合図で伝えれば、バディと空気を分け合えるから"),   # PADI バックアップ空気源
+ "9": ("足がつったら、フィンの先を引いて伸ばす", "ふくらはぎが伸びると、つりが治まるから"),   # エアー福岡 43
+ "10": ("疲れたバディは、浮かせてから運ぶ", "先に浮いていれば、2人とも楽に運べるから"),   # エアー福岡 44 0:17
+ "11": ("{bc}は少しずつ。細かい浮き沈みは、呼吸で", "いきなり多く入れると、体が急に浮き上がるから"),   # Totty BZhbMmmuys8 12:33・13:48
+ "12": ("コンパスで向きを決めれば、まっすぐ進める", "水の中は目印が少なく、まっすぐ進むのが意外と難しいから"),   # エアー福岡 51 0:59–1:16
+ "13": ("マスクが外れても、{regu}があれば呼吸できる", "マスクと{regu}は別なので、外れても息は続けられるから"),   # 彦坂さん「マスク脱着」
+ "14": ("空気がなくても、呼（は）き続けながら、ゆっくり上がれる", "上がると肺の空気が膨らむので、呼き続けて逃がすから"),   # エアー福岡 37 1:21「大切なのは絶対に呼吸し続けること」
+ "15": ("潜る前に決めて、決めたとおりに潜る", "みんなが同じ予定を知っていれば、迷わず、安心して潜れるから"),   # PADI 安全潜水実施了解声明書
 }
 def _lead(sid):
     if sid not in LEADS: return ""
@@ -354,7 +363,23 @@ for _gi, _inner in enumerate(_ixp):
     for x in _ix.MATOME_SUBS: SUBPG[x["id"]] = len(pages) + 1
     page("その1", _t, _inner)
 COLS = set()   # 10/19 まーく様：読む順は Z字（左上→右上→左下→右下）。列ごとに上から詰める形はやめた。入りきらないときは文を削る
+# 10/22 まーく様「やっとインストラクターの回答が来た。スキルのふり返りは、以下の内容を入れて」
+#   「ここの振り返りが最重要」「一つ一つの振り返りを1ページずつに、順序を丁寧に」
+#   → 担当インストラクターさんに教わった「海洋実習でやったスキル」を、1スキル＝1ページにした（その3〜15）。
+#     このページは、その目次。海洋1〜4の順に、スキルの名前・結論（各ページの題の下と同じ文）・飛び先。
+#     中身は content_k.py の dive・name から作る（ここに同じことを2回書かない。ずれないように）
+def _jisshu():
+    dv = ""
+    for d in (1, 2, 3, 4):
+        rows = [x for x in STEPS if x.get("dive") == d]
+        dv += (f'<section class="dv"><h3 class="dvh"><span class="dvn">海洋{d}</span></h3><div class="dvt">'
+               + "".join(f'<div class="dvr"><b class="dvk">{T(x["name"])}</b><span class="dvd">{T(LEADS[x["id"]][0])}</span><span class="dvj">{jump(x["subs"][0]["id"])}</span></div>' for x in rows)
+               + '</div></section>')
+    page("実習", "海洋実習でやったスキル", f'<div class="sl"><p class="sl1">講習の海で、実際にやったスキル。次のページから、1スキルずつ見返そう</p><p class="sl2"><b>なぜ？</b><span>アドバンスでも、この上に積み重ねていくから</span></p></div>{dv}', toc=True)
+_miss = [x["id"] for x in STEPS if x["id"] != "2" and (not x.get("dive") or not x.get("name") or x["id"] not in LEADS)]
+if _miss: sys.exit("止めます：スキルのページに dive・name・結論（LEADS）のどれかが無い → その" + "、その".join(_miss))
 for sec in STEPS:
+    if sec.get("dive") == 1 and "実習" not in [t[0] for t in TOC]: _jisshu()   # 海洋1のスキルの前に、目次のページを1枚
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
     # 手順が多くて文が長い工程（工程2）だけ、2ページに分ける（1項目は多くても2ページ）
     subs = sec["subs"]
@@ -394,15 +419,25 @@ MATOME = [(([k for s in sec["subs"] for k in s["key"]] or ["sig16"])[0], sec["ti
 # 10/21 まーく様「右下のリンクの列を見たら、見る気が失せる。写真をタップすると動画へ移動する形に」
 #   → まとめの写真は、タップするとその写真の元の動画（YouTube）へ飛ぶ。出どころは、写真の飛び先そのもの
 #   ・空気の札は、オクトパスを受け取る写真（PADI の動画）にかえる（飛んだ先で、その場面が見られるように）
-MT_PHOTO = {"1": "c40", "2": "mimi73", "4": "rc922", "6": "sa58"}
+MT_PHOTO = {"1": "c40", "2": "mimi73", "D1": "rc2_50", "D2": "octo35", "D3": "bs262", "D4": "sa58"}   # 10/22 海洋1〜4の札（D1〜D4）：レギュをくわえ直して吹く／腕をつかみ合う／水平に浮く／バディと楽しむ
 #   10/21 まーく様「リラックス（潜る前に決めておく）なのに、もう潜っている写真」「潜った後の過ごし方こそ、楽しく潜っている写真」
 #   → 1：潜る前、ウエットスーツで、インストラクターさんに伝えている場面（準備編のバディチェック）
 #     6：バディと2人で、海の中を楽しんでいる場面（PADI Japan「Scuba Sarah」）
 #   どの札も「書いてあること」と「写真の場面」が合っているかを、ここで見直した（2 耳抜き・3 中性浮力・4 排気・5 マスク・7 合図は合っている）   # 10/21 まーく様「耳抜きは鼻をつまんでいる写真、BCD排気は排気している場面に」
 def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画と、その場面の秒（まーく様「写真の場面の時刻から再生」）
     t = lambda v, sec: f"{v}?t={max(0, int(sec) - 1)}"
-    if k.startswith("rc2_4"): return t("nb-1Zn2dyOo", int(k[4:]) - 366)    # 彦坂さん「マスク脱着」：画面収録2の 366 秒から始まる
-    if k in ("rc914", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
+    if k.startswith("rc2_"):
+        # 彦坂さん（Club DO）の再生リスト。画面収録2では、動画が続けて流れている。各動画の始まりは、場面の切りかわりを ffmpeg で調べた（10/22）
+        #   ※ 前は「rc2_4」で始まる印を、全部マスク脱着にしていた。rc2_44（レギュクリア）が混ざるので、秒の数で分ける
+        n = int(k[4:])
+        for st, v in ((1279, "I8HgZdkBGdU"), (366, "nb-1Zn2dyOo"), (304, "eUTyMbXD5Z8"), (198, "hxUKLZ70jL0"), (0, "LgmvXnenvkY")):
+            if n >= st: return t(v, n - st)   # 緊急スイミングアセント デモ／マスク脱着／レギュリカバリー／同（バックアップ）／レギュレータクリア
+    if re.match(r"rc(9[5-9]\d|10[0-3]\d)$", k): return t("xo6Dp8jm7Pw", int(k[2:]) - 957)   # サンズ「マスククリア」：画面収録の 957 秒から（表紙の絵 25%・50%・75% の場面と合うのを確かめた 10/22）
+    # 10/22 YouTube の表紙の絵から取った写真（動画そのものは取りこめない）。秒は字幕で場面を確かめた所。分からないものは頭から
+    for p, v, sec in (("ashib", "TlgX1JiGMlU", 30), ("ashi", "gxhyWQh23T8", 23), ("towb", "jZPOTQzL4Ug", 0), ("towc", "XN3xFzh56m8", 0),
+                      ("tow", "5-wTOpqnuj4", 83), ("cmpb", "uVPQyNRkWMA", 0), ("cmp", "AQ37U8pI6fc", 458), ("oral_3", "ttN-up-EvPA", 0), ("oral", "ClylzHRXqvA", 0)):
+        if k.startswith(p): return t(v, sec)
+    if k in ("rc914", "rc918", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
     if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return t("kYvgkoTBkNg", int(k[2:]) - 657)   # サンズ「浮力コントロール & フィンピポット」：画面収録の 657 秒から
     if k.startswith("sg"): return t("pS-yk6gth-8", int(k[2:]) / 100)     # ハンドシグナル（印の数字は 1/100 秒）
     if k.startswith("bs"): return t("2X4rf11ORN0", int(k[2:]) / 2)       # ビューティフルシー（取りこんだ動画は映像が2倍に伸びている）
@@ -420,18 +455,22 @@ def mtv(k):
     for p in (k, re.sub(r"\d+$", "", k)):
         if p in MTV: return "https://youtu.be/" + MTV[p]
     raise SystemExit(f"まとめ：写真 {k} の元の動画が分からない（MTV に足す）")
-MATOME = [(MT_PHOTO.get(sec["id"], k), h, st) for (k, h, st), sec in zip(MATOME, [INTRO] + STEPS)]
 def pg_of(sid):   # 手順の番号 → その手順があるページ（ページを作り終えたあとで調べる）
     for i, x in enumerate(pages):
         if x and f'<span class="sn">{sid}</span>' in x: return i + 1
     raise SystemExit(f"まとめ：手順 {sid} のページが見つからない")
+# 10/22 1スキル＝1ページにしたので、まとめは「その1・耳抜き・海洋1〜4」の6つの札に。海洋の札は、スキルの名前と、そのページの番号
+MATOME = [(MT_PHOTO.get(sec["id"], k), h, st) for (k, h, st), sec in zip(MATOME[:2], [INTRO] + STEPS[:1])]
+for _d in (1, 2, 3, 4):
+    _ss = [x for x in STEPS if x.get("dive") == _d]
+    MATOME.append((MT_PHOTO[f"D{_d}"], f"海洋{_d}でやったスキル", [(x["subs"][0]["id"], f'{x["name"]}（{pg_of(x["subs"][0]["id"])}ページ）', False) for x in _ss]))
 def mjump(sid):
     n = pg_of(sid)
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
 mt = "".join(
     f'<section class="mtc{" mtw" if len(steps) > 6 else ""}"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="{mtv(k)}">{im(k, 1.6)}<span class="play">▶</span></a>'
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
-    + mjump(steps[0][0]) + '</section>'
+    + ("" if h.startswith("海洋") else mjump(steps[0][0])) + '</section>'   # 10/22 海洋の札は、スキルごとにページを書いたので、下の「くわしくは」は付けない
     for i, (k, h, steps) in enumerate(MATOME, 1))
 # 10/20 まとめの最後の段に空きが出たので、合図のページの札を足す（まとめから、全部のページへ行けるように）
 #   中身は合図のページにあることだけ（新しい話は入れない）
@@ -464,32 +503,6 @@ ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</s
 sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
 # 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
 SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは、動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
-# 10/22 まーく様「やっとインストラクターの回答が来た。スキルのふり返りは、以下の内容を入れて」
-#   → 担当インストラクターさんに教わった「海洋実習でやったスキル」を、海洋1〜4の順に1ページで。
-#     この資料に手順があるものは「くわしくは」で飛べる。無いものは、1行でやり方を書く（PADI のやり方。書けない数字は入れない）
-DIVES = [
- ("海洋1", [("{regu}クリア", "パージ法：パージボタン（真ん中）を押して水を出す／ブラスト法：「トゥー」と強く息を吹いて水を出す", "4-2"),
-            ("{regu}リカバリー", "外れたら、ホースを足元のほうから手でたどって、くわえ直す", "4-2"),
-            ("マスククリア（水少し）", "マスクの上を押さえて上を向き、鼻から呼（は）く", "5-1")]),
- ("海洋2", [("オーラル給気", "L字サインホースをくわえて、排気ボタンを押しながら、口から吹きこむ", ""),
-            ("マスククリア（水全部）", "やり方は同じ。水が全部出るまで、何回か呼（は）く", "5-1"),
-            ("エアシェアアセント", "「エアがない」の合図 → バディの{octo}をくわえる → 右腕をつかみ合い、いっしょに、ゆっくり浮上", "SIG"),
-            ("足のつり直し", "フィンの先をつかんで、つま先を自分のほうへ引き、ふくらはぎを伸ばす", ""),
-            ("曳航（引っぱって運ぶ）", "水面で、疲れたバディを引っぱって運ぶ。先に2人とも、{bc}に空気を入れる", "")]),
- ("海洋3", [("ホバリング", "中性浮力で、同じ深さに浮いたまま、じっとする", "3-1"),
-            ("コンパス", "進む向きを決めて、その向きへ、まっすぐ泳ぐ", ""),
-            ("マスク脱着", "外すときも、付けるときも、{regu}は付けたまま", "5-2"),
-            ("緊急スイミングアセント", "近くにバディがいないとき。{regu}は付けたまま、「アー」と呼（は）き続けて、上を見ながら、ゆっくり泳いで上がる", "")]),
- ("海洋4", [("計画潜水", "潜る前に、深さ・時間・伝える残圧・合図を、バディと決めて、その通りに潜る", "6-2")]),
-]
-def _jd(c):
-    if not c: return ""
-    if c == "SIG": return '<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a>'
-    return jump(c)
-dv = "".join(f'<section class="dv"><h3 class="dvh"><span class="dvn">{d}</span></h3><div class="dvt">'
-             + "".join(f'<div class="dvr"><b class="dvk">{T(k)}</b><span class="dvd">{T(x)}</span><span class="dvj">{_jd(c)}</span></div>' for k, x, c in rows)
-             + '</div></section>' for d, rows in DIVES)
-page("実習", "海洋実習でやったスキル", f'<div class="sl"><p class="sl1">講習の海で、実際にやったスキル。順に見返そう</p><p class="sl2"><b>なぜ？</b><span>アドバンスでも、この上に積み重ねていくから</span></p></div>{dv}', toc=True)
 SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛ぶ
 # 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
@@ -502,7 +515,19 @@ TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん
 TOC_TT = {"最後に": "その他・クイズ"}
 # 10/20 まーく様「目次には、だよ、は抜いて」→ もくじの行だけ、題の終わりの「だよ」を外す（ページの題はそのまま）
 def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
-toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
+# 10/22 1スキル＝1ページで、もくじが1ページ目に入りきらなくなった → スキルのページは「海洋1〜4」の4行にまとめる
+#   行の中は、スキルの名前を「・」でつなぐ。ページは「5〜7」の形。タップすると、その海洋の1つ目のスキルへ
+_dive_of = {f"その{x['id']}": x.get("dive") for x in STEPS}
+_toc2, _seen = [], set()
+for lb, tt, pn in TOC:
+    d = _dive_of.get(lb)
+    if not d: _toc2.append((lb, tt, pn)); continue
+    if d in _seen: continue
+    _seen.add(d)
+    _ps = [n for l2, _t, n in TOC if _dive_of.get(l2) == d]
+    _toc2.append((f"海洋{d}", "・".join(x["name"] for x in STEPS if x.get("dive") == d), (_ps[0], f"{_ps[0]}〜{_ps[-1]}" if len(_ps) > 1 else str(_ps[0]))))
+TOC = [(lb, tt, pn if isinstance(pn, tuple) else (pn, str(pn))) for lb, tt, pn in _toc2]
+toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習で習ったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span></div><p class="hw">YouTubeのリンク、memo<br>どれかをタップしてるときは、他の操作が、できないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
