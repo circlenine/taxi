@@ -9,9 +9,11 @@ for(const sc of [1,2,3]){
  const p=await b.newPage({deviceScaleFactor:sc});await p.goto('file://'+src,{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
  const boxes=await p.evaluate(()=>[...document.querySelectorAll('.page .nt.kpk,.page .notes .kx,.page .mtc>.mts')].map(e=>{const r=e.getBoundingClientRect();const pg=e.closest('.page');const P=pg.getBoundingClientRect();
    return {pg:pg.id,kind:e.classList.contains('kpk')?'大事':'補足',x:r.left+window.scrollX,y:r.top+window.scrollY+r.height/2,side:(r.left-P.left)<P.width/2?'左':'右'}}));
- const buf=await p.screenshot({fullPage:true});const png=PNG.sync.read(buf);
+ // 10/22 19ページになり、3倍で全体を1枚に撮ると、画像が大きすぎて下のほうが白く抜けた（線の幅が 0 に見えた）。
+ //   線のまわりだけを、1つずつ撮って測る
  const res={};
- for(const o of boxes){const y=Math.round(o.y*sc);let x=Math.floor(o.x*sc)-2;let w=0,cov=0;
+ for(const o of boxes){const cx=Math.max(0,o.x-2/sc),cy=Math.round(o.y)-1;const buf=await p.screenshot({fullPage:true,clip:{x:cx,y:cy,width:40,height:2}});const png=PNG.sync.read(buf);
+  const y=Math.round((o.y-cy)*sc);let x=Math.floor(o.x*sc)-Math.floor(cx*sc)-2;let w=0,cov=0;
   // 線は、白い地から色がついている所。中ほどの1行で、色の濃さを足し合わせて「実際の幅」を出す（にじみも数える）
   for(let i=0;i<Math.ceil(2*sc)+12*sc;i++){const xx=x+i;const k=(y*png.width+xx)*4;const v=(255*3-(png.data[k]+png.data[k+1]+png.data[k+2]))/(255*3);if(v>0.04){cov+=v;}else if(cov>0)break;}
   const key=o.kind;(res[key]=res[key]||[]).push({w:cov,side:o.side,pg:o.pg});}
