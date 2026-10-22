@@ -304,6 +304,7 @@ if _dup:
 # 動作の写真は「やる前 → やった後」の2枚で見せる（10/19 まーく様：1枚だけでは、何をどう変えるのか分からない）
 CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi73"): "やった後：鼻をつまんで息を送る",
        # 10/22 呼び名と正式名称（準備編・洗浄編と同じ書き方）。その器材が写っている写真の下に
+       ("1-2", "rc2_342"): "やる前：右肩を下げ、腕を後ろへ", ("1-2", "rc2_344"): "やった後：腕を大きく回す",
        ("1-4", "rr49"): "レギュ<small>正式名称：セカンドステージ</small>", ("1-5", "rc2_248"): "オクト<small>正式名称：オクトパス</small>",
        ("2-1", "rc2_92"): "真ん中のボタン<small>正式名称：パージボタン</small>",
        ("3-1", "oral_m"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("3-2", "oral_3"): "人差し指のボタン<small>正式名称：排気ボタン</small>",
@@ -531,7 +532,7 @@ def _mrow(name, k, point, n, lab=""):
     return (f'<div class="mcard"><a class="mtv mcp" href="{mtv(k)}">{im(k, 1.5)}</a>'
             f'<p class="mcn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
             f'<p class="mcq">{T(point)}</p></div>')
-MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688"}   # まとめの写真（その動作をしている場面）
+MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
 _mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
 _mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["point"], SUBPG["SIG"], lab="合図")
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mcg">{_mt}</div>')
