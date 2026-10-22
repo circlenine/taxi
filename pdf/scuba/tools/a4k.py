@@ -464,6 +464,32 @@ ss = "".join(f'<figure class="sqs"><p class="sqh"><span class="sqn">{T(name)}</s
 sgn2 = '<div class="notes">' + f'<div class="nt kpk"><span class="nk">大事</span><span class="nx">{T(SIGNAL_AIR)}</span></div>' + "".join(f'<div class="nt kx"><span class="nk">補足</span><span class="nx">{T(x)}</span></div>' for x in SIGNAL_NOTES if not x.startswith("※")) + '</div>'
 # 10/20 まーく様「動画の紹介を見出しのすぐ下に、リンクが分かるように（画像だけだと分かりづらいので、動画推奨）」
 SIGREF = '<a class="ref sigref" href="https://youtu.be/pS-yk6gth-8"><span class="play">▶</span><span><b>参考動画「18. ハンドシグナル」（動きは、動画で見るのがおすすめ）</b><span class="ru"><span class="tapm scr">*</span>youtu.be/pS-yk6gth-8</span><span class="rn scr">※タップすると、YouTubeへ移動するよ（スキューバダイビング・エアー／AIR福岡）</span></span></a>'
+# 10/22 まーく様「やっとインストラクターの回答が来た。スキルのふり返りは、以下の内容を入れて」
+#   → 担当インストラクターさんに教わった「海洋実習でやったスキル」を、海洋1〜4の順に1ページで。
+#     この資料に手順があるものは「くわしくは」で飛べる。無いものは、1行でやり方を書く（PADI のやり方。書けない数字は入れない）
+DIVES = [
+ ("海洋1", [("{regu}クリア", "パージ法：パージボタン（真ん中）を押して水を出す／ブラスト法：「トゥー」と強く息を吹いて水を出す", "4-2"),
+            ("{regu}リカバリー", "外れたら、ホースを足元のほうから手でたどって、くわえ直す", "4-2"),
+            ("マスククリア（水少し）", "マスクの上を押さえて上を向き、鼻から呼（は）く", "5-1")]),
+ ("海洋2", [("オーラル給気", "L字サインホースをくわえて、排気ボタンを押しながら、口から吹きこむ", ""),
+            ("マスククリア（水全部）", "やり方は同じ。水が全部出るまで、何回か呼（は）く", "5-1"),
+            ("エアシェアアセント", "「エアがない」の合図 → バディの{octo}をくわえる → 右腕をつかみ合い、いっしょに、ゆっくり浮上", "SIG"),
+            ("足のつり直し", "フィンの先をつかんで、つま先を自分のほうへ引き、ふくらはぎを伸ばす", ""),
+            ("曳航（引っぱって運ぶ）", "水面で、疲れたバディを引っぱって運ぶ。先に2人とも、{bc}に空気を入れる", "")]),
+ ("海洋3", [("ホバリング", "中性浮力で、同じ深さに浮いたまま、じっとする", "3-1"),
+            ("コンパス", "進む向きを決めて、その向きへ、まっすぐ泳ぐ", ""),
+            ("マスク脱着", "外すときも、付けるときも、{regu}は付けたまま", "5-2"),
+            ("緊急スイミングアセント", "近くにバディがいないとき。{regu}は付けたまま、「アー」と呼（は）き続けて、上を見ながら、ゆっくり泳いで上がる", "")]),
+ ("海洋4", [("計画潜水", "潜る前に、深さ・時間・伝える残圧・合図を、バディと決めて、その通りに潜る", "6-2")]),
+]
+def _jd(c):
+    if not c: return ""
+    if c == "SIG": return '<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a>'
+    return jump(c)
+dv = "".join(f'<section class="dv"><h3 class="dvh"><span class="dvn">{d}</span></h3><div class="dvt">'
+             + "".join(f'<div class="dvr"><b class="dvk">{T(k)}</b><span class="dvd">{T(x)}</span><span class="dvj">{_jd(c)}</span></div>' for k, x, c in rows)
+             + '</div></section>' for d, rows in DIVES)
+page("実習", "海洋実習でやったスキル", f'<div class="sl"><p class="sl1">講習の海で、実際にやったスキル。順に見返そう</p><p class="sl2"><b>なぜ？</b><span>アドバンスでも、この上に積み重ねていくから</span></p></div>{dv}', toc=True)
 SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛ぶ
 # 10/20 まーく様「ページは10ページにとどめて」→ 合図は1ページ（動きのある合図＋形の合図を3列で）。クイズは、まとめのページへ
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
@@ -1279,6 +1305,15 @@ CSS += """
 .page .sl1{margin:0;font-size:11pt;line-height:1.45;color:var(--navy);font-weight:900}
 .page .sl2{margin:.4mm 0 0;font-size:9pt;line-height:1.45;display:grid;grid-template-columns:3.6em minmax(0,1fr)}
 .page .sl2 b{color:var(--navy)}
+/* 10/22 海洋実習でやったスキル（担当インストラクターさんの回答） */
+.page .dv{margin:0 0 2.2mm}
+.page .dvh{margin:0 0 1mm;font-size:12pt;color:var(--navy)}
+.page .dvn{display:inline-block;background:var(--navy);color:#fff;border-radius:1mm;padding:.4mm 2.4mm}
+.page .dvt{border-top:1px solid var(--line)}
+.page .dvr{display:grid;grid-template-columns:42mm minmax(0,1fr) max-content;column-gap:3mm;align-items:baseline;border-bottom:1px solid var(--line);padding:1.2mm 1mm}
+.page .dvk{font-size:10pt;color:var(--navy)}
+.page .dvd{font-size:9.4pt;line-height:1.45}
+.page .dvj .jump{font-size:8.2pt!important;white-space:nowrap}
 """
 import fontset as _fs
 import logo as _lg
