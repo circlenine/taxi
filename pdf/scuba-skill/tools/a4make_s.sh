@@ -37,6 +37,7 @@ python3 -I $S/tools/chipcheck.py $S/build_s/a4.html
 python3 $S/tools/upcheck.py
 python3 -I $S/tools/jumpcheck.py $S/build_s/a4.html
 python3 -I $S/tools/pageorder.py $S/build_s/a4.html   # くわしくはのページが、表の中で順に並んでいるか（10/21）
+HIRA_MIN=7 HIRA_ALLOW='【くわえるところを】|【くわえるところも】|【ができないときもあるから】|【ぶこともあるよ】|【のふちにそろえる】|【らなくなるまで】|【らへんにあるよ】|【ぶらぶらさせない】|【てくることもあるよ】|【がないこともあるよ】|【わせてくれるよ】|【いたままにしておけば】|【けにくいときは】|【になっているので】|【すぐやることは】|【さずにおくのは】|【をふくらませる】' node $S/tools/hiracheck.js $S/build_s/a4.html   # ひらがなが長く続く所（10/22 見直し済みのものだけ通す）
 node $S/tools/relcheck.js $S/build_s/a4.html
 node $S/tools/palette.js $S/build_s/a4.html
 node $S/tools/borders.js $S/build_s/a4.html

@@ -28,6 +28,7 @@ SIDE=14 node $S/tools/mcheck.js $S/build/a4.html | tee $S/mcheck_last.txt
 if grep -q "ページの下にはみ出し" $S/mcheck_last.txt; then echo "NG ページからはみ出している（上を見て直す）"; exit 1; fi
 python3 -I $S/tools/toccheck2.py $S/build/a4.html
 python3 -I $S/tools/pageorder.py $S/build/a4.html   # くわしくはのページが、表の中で順に並んでいるか（10/21）
+HIRA_MIN=7 HIRA_ALLOW='【ができないときもあるから】|【ぶこともあるよ】|【のふちにそろえる】|【らなくなるまで】|【らへんにあるよ】|【ぶらぶらさせない】|【てくることもあるよ】|【がないこともあるよ】|【わせてくれるよ】|【いたままにしておけば】|【けにくいときは】|【になっているので】|【すぐやることは】|【さずにおくのは】|【をふくらませる】' node $S/tools/hiracheck.js $S/build/a4.html   # ひらがなが長く続く所（10/22 見直し済みのものだけ通す）
 node $S/tools/wrapcheck.js $S/build/a4.html
 node $S/tools/gapcheck.js $S/build/a4.html
 python3 -I $S/tools/pairalign.py $S/build/img/s

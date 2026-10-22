@@ -305,6 +305,20 @@ CAP = {("2-1", "mimi4"): "やる前", ("2-1", "mimi73"): "やった後：鼻を�
        ("5-2", "rc2_420"): "外したところ", ("5-2", "rc2_450"): "付けたところ"}
 KEYS = {}   # どの手順にも写真を付ける（10/19 まーく様「画像は必ずつけてください」）  #   # 中性浮力のページ（2つの話を1ページ）：3-2「呼吸で細かく」は写真なし（字で分かる。10ページに収めるため）   # スキル編は、洗浄編の特別な形を使わない
 # 各ページの頭の2択クイズ（10/19）：最後のクイズと同じ形（□をタップすると答え）。題のすぐ下に1問
+# 10/22 まーく様「結論→理由→具体例→結論の組み立てに」（その1と同じ）→ その2以降も、題のすぐ下に「結論」と「なぜ？」を1つずつ。
+#   具体例＝下の手順、最後の結論＝大事の欄。出どころ（字幕・記事）を行ごとに書く
+LEADS = {
+ "2": ("耳は、痛くなる前に、こまめに抜く", "痛みが出た後では、耳が抜けにくいから"),   # DAN Fast Facts・耳鼻科の記事（README「耳抜き」）／Totty 耳抜き
+ "3": ("{bc}は少しずつ。細かい浮き沈みは、呼吸で", "いきなり多く入れると、体が急に浮き上がるから"),   # Totty BZhbMmmuys8 12:33「いきなりたくさん入れて…」・13:48「バウンド」
+ "4": ("空気を抜くときは、体を立てる。{regu}が外れても、あわてず探せば見つかる", "空気は上に集まるから。ホースは足元からたどれば、必ず手に当たるから"),   # Totty kG5D5C_QTqA（体を立てる）／サンライズのやり方（10/19）
+ "5": ("マスクに水が入っても、鼻から呼（は）くだけで出せる", "上を押さえて呼くと、水が下から押し出されるから"),   # Totty x3f7EXiic7Q
+ "6": ("上がるときも、潜った後も、ゆっくり・のんびり", "急に上がったり、すぐ飛行機に乗ったりすると、体に負担がかかるから"),   # PADI 安全潜水・DAN 飛行機のめやす
+}
+def _lead(sid):
+    if sid not in LEADS: return ""
+    a, b = LEADS[sid]
+    return f'<div class="sl"><p class="sl1">{T(a)}</p><p class="sl2"><b>なぜ？</b><span>{T(b)}</span></p></div>'
+
 def q2(sid):
     # 10/19 まーく様：「2択クイズは全て抜いて」。何も学ぶ前のページの頭に問いがあると「？」となる（読む順に合わない）
     return ""
@@ -357,7 +371,7 @@ for sec in STEPS:
         else:
             body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
-        page(f"その{sec['id']}", t, q2(sec["id"]) + body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
+        page(f"その{sec['id']}", t, q2(sec["id"]) + _lead(sec["id"]) + body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
 # まとめ
 pts = "".join(f'<p class="pth">{h}</p>' + "".join(f'<p class="bl"><span class="bm">・</span><span>{T(l)}</span></p>' for l in ls) for h, ls in POINTS)
@@ -1259,6 +1273,13 @@ FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=N
 
 import newdesign as _nd
 CSS += _nd.css("3")
+CSS += """
+/* 10/22 その2以降の「結論・なぜ？」（その1の上の欄と同じ形） */
+.page .sl{background:var(--pale);border-radius:2mm;padding:1.4mm 3.4mm;margin:0 0 2mm}
+.page .sl1{margin:0;font-size:11pt;line-height:1.45;color:var(--navy);font-weight:900}
+.page .sl2{margin:.4mm 0 0;font-size:9pt;line-height:1.45;display:grid;grid-template-columns:3.6em minmax(0,1fr)}
+.page .sl2 b{color:var(--navy)}
+"""
 import fontset as _fs
 import logo as _lg
 import photolink as _pl   # 10/21 どの写真も、タップすると関連の動画へ
