@@ -508,14 +508,14 @@ page("合図", "ハンドシグナル（つづき）", f'{SIGREF}<div class="sqg
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
 # 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
-def _mrow(name, k, when, point, n, bd=None):
+def _mrow(name, k, when, point, n, bd=None, lab=""):
     b = f'<span class="bdg {"bdg-g" if bd[0] == "ほめ" else "bdg-r"} bdgs">{T(bd[1])}</span>' if bd else ""
     return (f'<div class="mrow"><a class="mtv mrp" href="{mtv(k)}">{im(k, 1.4)}</a>'
-            f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは（{n}ページ）</a></p>'
+            f'<div class="mrb"><p class="mrn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
             f'<p class="mrw"><b>こんな時</b>{T("／".join(when))}</p><p class="mrq"><b>ポイント</b>{T(point)}{b}</p></div></div>')
 MT_KEY = {"1": "rr30", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc688", "7": "rc918"}   # まとめの写真（その動作をしている場面）
-_mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge")) for x in STEPS)
-_mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["when"], SIGSIT["point"], SUBPG["SIG"])
+_mt = "".join(_mrow(x["name"], MT_KEY[x["id"]], x["when"], x["point"], pg_of(x["subs"][0]["id"]), x.get("badge"), f"その{x['id']}") for x in STEPS)
+_mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["when"], SIGSIT["point"], SUBPG["SIG"], lab="合図")
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mtab">{_mt}</div>')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
