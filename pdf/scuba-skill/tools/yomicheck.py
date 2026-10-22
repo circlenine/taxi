@@ -26,6 +26,7 @@ h = open(sys.argv[1]).read()
 h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 body = h[h.index("<body>"):]
 body = re.sub(r"<script.*?</script>|<svg.*?</svg>|<style.*?</style>", "", body, flags=re.S)
+body = re.sub(r'<div class="umsg">.*?</div>', "", body, flags=re.S)   # 10/22 まーく様ご自身の言葉（まとめの下）は、書き方をそろえる対象にしない
 t = re.sub(r"&[a-z#0-9]+;", "", re.sub(r"<[^>]+>", "\n", body))
 for p in PROPER: t = t.replace(p, "")
 # 左上の「更新日時：2026/10/15(木)」は言葉ではない。曜日の1字（木・火など）が「き」「か」とぶつかって、

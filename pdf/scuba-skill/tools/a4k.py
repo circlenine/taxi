@@ -498,7 +498,7 @@ SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 # 10/22 まーく様「ハンドシグナル、画像が小さすぎます」→ 2ページに分けて、2列で大きく。
 #   1枚目：動きのある合図（①をしてから②）／2枚目：形だけの合図と、大事・補足
-SIGSIT = dict(when=["水の中で、伝えたいこと・困ったことがある"], point="「何かおかしい」「エアがない」だけは、必ず覚えよう！")   # content_k.py の POINTS「困ったら、合図で伝える」・SIGNAL_AIR
+SIGSIT = dict(when=["水の中で、伝えたいこと・困りごとがある"], point="「何かおかしい」「エアがない」だけは、必ず覚えよう！")   # content_k.py の POINTS「困ったら、合図で伝える」・SIGNAL_AIR
 _sgsit = (f'<div class="sit"><p class="sw"><b class="swk">こんな時</b><span class="swv"><span class="swi">{T(SIGSIT["when"][0])}</span></span></p>'
           f'<p class="sp"><b class="spk">ポイント</b><span class="spv">{T(SIGSIT["point"])}</span></p></div>')
 # 1枚目に6つ（3段）、残りの2つ（インストラクターさんからの指示の合図）は2枚目の頭に
@@ -533,7 +533,7 @@ QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少し�
       ("{bc}が壊れて、どうしても浮けないときは？", "{belt}を「ウラァ！」と外す", "7-4"),
       ("親指を上に向ける合図の意味は？", "「浮上しよう」。「いいね！」ではない", "SIG")]
 _qz = "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
-page("クイズ", "まとめクイズ", f'<p class="mtl">□をタップすると、答えが出るよ。分からなかったら、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>')
+page("クイズ", "まとめクイズ", f'<p class="mtl">□をタップすると、答えが出るよ。分からない問いは、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
