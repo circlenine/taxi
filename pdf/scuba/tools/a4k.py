@@ -568,10 +568,10 @@ _mt += _mrow('ハンドシグナル<small class="mtnote">（手で伝える合�
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、YouTubeで見返そう</span></span></div><div class="mcg">{_mt}</div>')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
-QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を呼きながら、右腕を足元からたどって探す", "1-1"),
+QZ = [("{regu}が外れたら、まずどうする？", "泡を呼きながら、右腕をたどって探す", "1-1"),   # 10/24 答えは1行に
       ("{regu}を付け直したら、すぐ息を吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
       ("真ん中のボタンが壊れていたら？", "「トゥー」と強く呼いて、水を出す", "2-3"),
-      ("マスクに水が入ったら、どうする？", "上を向いて、鼻から呼く。水はマスクの下から出ていく", "3-3"),
+      ("マスクに水が入ったら、どうする？", "上を向いて、鼻から呼く", "3-3"),
       ("{bc}に空気が入らないときは？", "人差し指ピーンボタンを押し、口で吹き込む", "4-2"),
       ("足がつったら、まず何をする？", "停まれるか確かめ、合図で助けを求める", "5-1"),
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
@@ -1651,7 +1651,7 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
 function pullNotes(){document.querySelectorAll('.grid2>.step:not(.wide):not(.side),.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
  nt.style.marginTop='';let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});if(!pb)return;
  const want=2.4*96/25.4,gap=nt.getBoundingClientRect().top-pb;if(gap>want+2){const m=parseFloat(getComputedStyle(nt).marginTop)||0;nt.style.marginTop=(m-(gap-want))+'px';}});}
-document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();memoPages();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();eqQuiz();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();memoPages();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#7b4fb0", "#16466b": "#4b2a73", "#d7eef9": "#ece1f7", "#a9d8ef": "#cdb5ea", "#cfe5f2": "#e2d4f2",

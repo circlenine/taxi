@@ -166,8 +166,13 @@ html body .page .qh{{padding-left:3mm!important;padding-right:4.8mm!important}}
 .page .qz .q{{padding-left:calc(2mm + .76em)!important;text-indent:-.76em}}
 .page .qz .q>.tapm:first-child{{text-indent:0}}   /* 「*」の幅（.59em）＋すき間（.17em）＝.76em ぶん、2行目を下げる */
 /* 10/23 まーく様「左の問いが3行のとき、答えの枠との間に変な空白がある。答えの枠を広げて空白をなくして」→ 答えの枠は、残りの高さいっぱいまで伸ばす */
-.page .quiz .qz{{grid-template-rows:auto 1fr!important;align-items:stretch!important}}
-.page .quiz .qz .a{{height:auto!important;min-height:5.4mm;align-self:stretch!important}}
+/* 10/24 まーく様「クイズの質問の高さがバラバラ。答えは1行分・質問は2行分で統一。他の資料も、長いほうにそろえる」
+   → 枠は伸ばさず、問い・答えそれぞれ、その冊でいちばん高いものに高さをそろえる（eqQuiz） */
+.page .quiz{{align-items:start!important}}
+.page .quiz .qz{{grid-template-rows:auto auto!important;align-items:start!important;align-self:start!important}}
+.page .quiz .qz .a{{min-height:5.4mm;align-self:start!important;box-sizing:border-box}}
+html body .page .quiz .qz .q{{box-sizing:border-box;padding-top:2.2px!important;padding-bottom:2.2px!important;line-height:1.32!important}}
+html body .page .quiz .qz{{padding-top:2px!important;padding-bottom:2px!important;row-gap:1.4px!important}}   /* 高さをそろえたぶん、すき間を詰めて1ページに収める */
 .page .qz .q .jump{{text-indent:0}}
 .page .qz{{row-gap:.6mm!important}}
 .page .qz .q *{{color:#fff!important}}
