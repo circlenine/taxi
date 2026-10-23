@@ -14,7 +14,8 @@ STEPS = [
      extra=["{regu}の“プシュ～…”の音がなくなり、{gauge}の針が0になったら、抜けた合図だよ"]),
    dict(id="2-3", key=["s08"],
      title="<span class=\"nw\">{silver}ぐるぐる</span>を左に回し、キャップの水を飛ばす",
-     extra=["<span class=\"nw\">{tank}くるくる</span>を左に回して<span class=\"nw\">空気を出すと、</span>水が飛ぶよ"]),
+     extra=["<span class=\"nw\">{tank}くるくる</span>を左に回して<span class=\"nw\">空気を出すと、</span>水が飛ぶよ",
+            "{silver}ぐるぐるの正式名称は、ヨークスクリュー"]),   # 10/23 まーく様「各資料に一度は正式名称を」
    dict(id="2-4", key=["s10"],
      title="<span class=\"nw\">{silver}ぐるぐる</span>を右に回してキャップを締める",
      pinkx=["水気を飛ばしたら、すぐキャップを締め直そう！"]),
@@ -41,7 +42,8 @@ STEPS = [
      title="{bc}を回すなどして、中に水を行きわたらせる"),
    dict(id="4-4", key=["s21", "infl2"],
      title="下の口から、水を出す",
-     extra=["人差し指ピーンボタンを押しても、<span class=\"nw\">水が抜けるよ</span>"]),
+     extra=["人差し指ピーンボタンを押しても、<span class=\"nw\">水が抜けるよ</span>",
+            "人差し指ピーンボタンの正式名称は、排気ボタン"]),   # 10/23 各資料に一度は正式名称を（2-3 のぐるぐると同じ書き方）
   ]),
  dict(id="5", title="“呼吸器”は“外”だけランドリー！", rel="new",
   subs=[

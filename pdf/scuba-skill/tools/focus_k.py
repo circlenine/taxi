@@ -588,7 +588,18 @@ def load(frame):
 #   → 切り抜いた写真の明るさ（平均）が LIFT_MIN より暗ければ、明るい所が白く飛ばない形（ガンマ）で、LIFT_TO まで持ち上げる。
 #     明るい写真には何もしない。持ち上げたあとも暗いままなら、組み立てを止める（暗い写真を、そのまま配らない）
 LIFT_MIN, LIFT_TO = 115, 140
+# 10/23 まーく様「ハンドサイン一覧は 5-2 のように明るく」：合図の写真は、5-2（平均 約142）と同じ明るさまで持ち上げる
+#   合図のページは横長に切るので、暗い奥の壁や水が多く入り、同じ動画でも 5-2 より暗く見えていた
+SIG_LIFT_MIN, SIG_LIFT_TO = 138, 143
 def _lift(im, slot):
+    from PIL import ImageStat, ImageOps
+    global LIFT_MIN, LIFT_TO
+    if slot.startswith(("sg", "sig", "octo7", "octo8")):
+        _old = (LIFT_MIN, LIFT_TO); LIFT_MIN, LIFT_TO = SIG_LIFT_MIN, SIG_LIFT_TO
+        try: return _lift_(im, slot)
+        finally: LIFT_MIN, LIFT_TO = _old
+    return _lift_(im, slot)
+def _lift_(im, slot):
     from PIL import ImageStat, ImageOps
     m = ImageStat.Stat(im.convert("L")).mean[0]
     if m >= LIFT_MIN: return im

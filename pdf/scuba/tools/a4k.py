@@ -323,9 +323,11 @@ CAP = {("2-1", "mimi4"): "①鼻をつまむ", ("2-1", "mimi73"): "②鼻をつ�
        ("1-2", "rc2_342"): "①右肩を下げ、腕を後ろへ", ("1-2", "rc2_344"): "②そのまま、腕を大きく回す",   # 10/22 まーく様「やる前・やった後はぶっきらぼう。スマートな言い方に」→ 合図のページと同じ ①② の形
        ("1-4", "rr49"): "レギュ<small>（正式名称：セカンドステージ）</small>",
        ("1-4", "rc2_248"): "<small>（正式名称：オクトパス）</small>",
+       ("1-1", "rr18b"): "レギュ<small>（正式名称：セカンドステージ）</small>",   # 10/23 まーく様「各資料に一度は正式名称を」（1-4 を外して消えていた）
+       ("4-3", "oral_1"): "BCD<small>（正式名称：Buoyancy Control Device＝浮力調整装置）</small>",
        ("2-1", "rc2_92"): "真ん中のボタン<small>（正式名称：パージボタン）</small>",
        ("4-1", "oral_m"): "L字サインホース<small>（正式名称：インフレーターホース）</small>", ("4-2", "oral_3"): "人差し指ピーンボタン<small>（正式名称：排気ボタン）</small>",
-       ("6-2", "rc675"): "親指のボタン<small>（正式名称：給気ボタン）</small>",
+       ("6-2", "rc675"): "親指オヤビンボタン<small>（正式名称：給気ボタン）</small>",
        ("6-1", "rc920"): "上を見る<small>水面が近い＝浮いている</small>", ("6-1", "rc418"): "下を見る<small>海底が近い＝沈んでいる</small>",
        ("4-2", "rc2_342"): "右肩を下げて、腕を回す", ("4-2", "rc2_348"): "腕にホースがかかった",
        ("5-4", "mask35"): "泡で水が出ていく", ("5-4", "mask41"): "水が抜けた",
@@ -412,6 +414,8 @@ for sec in STEPS:
     groups = [[x for x in subs if x["id"] in ids] for ids in sec["pages"]] if sec.get("pages") else [subs]
     for gi, g in enumerate(groups):
         t = sec["title"] if gi == 0 else sec.get("title2", sec["title"])
+        # 10/23 まーく様「題の（）補足、入れるなら全て統一」。題は1行に収める決まりなので、補足は “言葉” の真下に小さく置く（横幅を増やさない）
+        if sec.get("toc_note"): t = re.sub(r"(“[^”]*”)", lambda m: f'<span class="hterm"><span>{m.group(1)}</span><small class="hnote">（{sec["toc_note"]}）</small></span>', t, count=1)
         pass   # 10/23 まーく様「スキル編の各見出しの右に、ふり返りのタグは不要。資料的には初めて出る内容」→ 札は付けない
         # 10/22 layout="row3"：3つの手順を横に並べ、写真を縦長に大きく（同じ形の写真を、同じ位置・同じ大きさで見比べられるように）
         body = (f'<div class="{"grid3" if sec.get("layout") == "row3" else "grid2"}">') + "".join(stepbox(x) for x in g) + "</div>"
@@ -489,13 +493,13 @@ def mjump(sid):
     n = pg_of(sid)
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
 mt = "".join(
-    f'<section class="mtc{" mtw" if len(steps) > 6 else ""}"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="{mtv(k)}">{im(k, 1.6)}<span class="play">▶</span></a>'
+    f'<section class="mtc{" mtw" if len(steps) > 6 else ""}"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="{mtv(k)}">{im(k, 1.6)}<span class="play scr">▶</span></a>'
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + ("" if h.startswith("海洋") else mjump(steps[0][0])) + '</section>'   # 10/22 海洋の札は、スキルごとにページを書いたので、下の「くわしくは」は付けない
     for i, (k, h, steps) in enumerate(MATOME, 1))
 # 10/20 まとめの最後の段に空きが出たので、合図のページの札を足す（まとめから、全部のページへ行けるように）
 #   中身は合図のページにあることだけ（新しい話は入れない）
-mt += (f'<section class="mtc"><h3 class="mth"><span class="mtn">{len(MATOME) + 1}</span><span>ハンドシグナル</span></h3><a class="mtv" href="{mtv("sg5500")}">{im("sg5500", 1.6)}<span class="play">▶</span></a>'
+mt += (f'<section class="mtc"><h3 class="mth"><span class="mtn">{len(MATOME) + 1}</span><span>ハンドシグナル</span></h3><a class="mtv" href="{mtv("sg5500")}">{im("sg5500", 1.6)}<span class="play scr">▶</span></a>'
        '<ol class="mts"><li><span>何かおかしい・エアがない・耳が抜けない</span></li><li><span>親指を上に向けるのは「浮上しよう」</span></li>'
        '<li class="mtb"><span><span class="lp mtk">大事</span>「エアがない」の形を確かめる</span></li></ol>'
        '<a class="jump" href="#p__PG_SIG__"><span class="tapm scr">*</span>くわしくは<b>合図</b>（__PG_SIG__ページ）</a></section>')
@@ -543,7 +547,7 @@ sm1 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}<
 sma = (f'<section class="sqc sqa3"><p class="sqh"><span class="sqn">{T(SIG_AIRNUM[0])}</span><span class="sqd">数字を1けたずつ、指で見せる</span></p><div class="sqr3">'
        + '<i class="sqa">▶</i>'.join(f'<figure class="sqf">{im(k, 1.9)}<figcaption>{"①②③"[i]}{T(c)}</figcaption></figure>' for i, (k, c) in enumerate(SIG_AIRNUM[1])) + '</div></section>')
 # こんな時・ポイントの枠は、1ページに収めるため、このページでは出さない（ポイントは、まとめのページに）
-page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんが使う合図）<br>下の段は、形だけで伝わる合図</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div>{sma}<div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
+page("合図", '<span class="hterm"><span>ハンドシグナル</span><small class="hnote">（手で伝える合図）</small></span>', f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんが使う合図）<br>下の段は、形だけで伝わる合図</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div>{sma}<div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
 # 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
@@ -556,8 +560,8 @@ def _mrow(name, k, point, n, lab=""):
 MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
 # 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
 _mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
-_mt += _mrow("ハンドシグナル", "sg3125", SIGSIT["point"], SUBPG["SIG"], lab="合図")
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、YouTubeで見返そう</span></span></div><div class="mcg">{_mt}</div>')
+_mt += _mrow('ハンドシグナル<small class="mtnote">（手で伝える合図）</small>', "sg3125", SIGSIT["point"], SUBPG["SIG"], lab="合図")
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、YouTubeで見返そう</span></span></div><div class="mcg">{_mt}</div>')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
 QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を呼きながら、右腕を足元からたどって探す", "1-1"),
@@ -604,7 +608,7 @@ for lb, tt, pn in TOC:
     if x: tt = x["name"] + (f'<small class="tw">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else "")
     # 10/23 まーく様「目次にも、あいちゃん褒められスキル／上級スキル をつけて」
     if x and x.get("badge"): tt += {"ほめ": '<span class="tbd bdg-g">あいちゃん褒められスキル</span>', "上級": '<span class="tbd bdg-r">上級スキル</span>'}[x["badge"][0]]
-    elif lb == "合図": tt = "ハンドシグナル"
+    elif lb == "合図": tt = 'ハンドシグナル<small class="tw">（手で伝える合図）</small>'
     _toc2.append((lb, tt, (pn, str(pn))))
 TOC = _toc2
 toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
@@ -1485,6 +1489,9 @@ CSS += """
 /* 10/23 残圧の伝え方（3枚を横に） */
 .page .sqa3{margin:0 0 .6mm;width:73%}
 .page .sql{margin-bottom:1mm!important}   /* 10/23 説明を2行にしたぶん、段のすき間を少し詰める */   /* 写真1枚の大きさを、上の合図とそろえる */
+.page .sqgL{row-gap:1.3mm!important}   /* 10/23 題の下に（手で伝える合図）を足したぶん、段のすき間を詰めて1ページに収める */
+.page .sqg4{margin-bottom:1mm!important}
+.page .sql{margin-top:.8mm!important}
 .page .sqa3 .sqh{display:flex;align-items:baseline;gap:3mm}
 .page .sqa3 .sqd{font-size:9pt;font-weight:700;color:var(--muted)}
 .page .sqr3{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1.4mm}
@@ -1535,6 +1542,8 @@ CSS += """
 .page .qzm .qz .q .jump{display:inline!important;flex:none;white-space:nowrap;font-size:8.4pt;font-weight:700;margin:0!important}
 /* もくじの「こんな時」 */
 .tc .tt .tw{font-size:inherit;font-weight:inherit;color:inherit}
+.page h2 .hterm{display:inline-flex;flex-direction:column;align-items:center;vertical-align:baseline}
+.page h2 .hterm .hnote{font-size:.42em;line-height:1.1;font-weight:inherit;color:inherit;letter-spacing:-.02em;white-space:nowrap;margin-top:.15em;margin-bottom:-2mm}   /* 10/23 題の（）補足：言葉の真下に小さく。題の下の線までのすき間に収め、ページの高さを増やさない */
 /* 10/22 海洋実習でやったスキル（担当インストラクターさんの回答） */
 .page .dv{margin:0 0 2.2mm}
 .page .dvh{margin:0 0 1mm;font-size:12pt;color:var(--navy)}

@@ -32,6 +32,7 @@ python3 -I $S/tools/toccheck2.py $S/build_k/a4.html
 python3 -I $S/tools/yomicheck.py $(ls $S/build/a4.html $S/build_s/a4.html $S/build_k/a4.html 2>/dev/null)
 python3 -I $S/tools/kanjicheck.py $(ls $S/build/a4.html $S/build_s/a4.html $S/build_k/a4.html 2>/dev/null)
 python3 -I $S/tools/reqcheck.py スキル $S/build_k/a4.html || exit 1
+python3 -I $S/tools/namecheck.py $S/build_k/a4.html || exit 1
 # 10/23 まーく様「改行が多すぎるのは良くない」：最後の行が数文字だけの文があれば止める
 o=$(node $S/tools/orphcheck.js $S/build_k/a4.html); if [ -n "$o" ]; then echo "$o"; echo "NG 最後の行が数文字だけの文がある（言い方を変えて詰める）"; exit 1; fi
 python3 -I $S/tools/csscheck.py $S/build_k/a4.html   # CSS のコメントの閉じ忘れ（10/22）
