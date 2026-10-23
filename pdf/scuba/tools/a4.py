@@ -264,8 +264,9 @@ def _strap_head(h):   # 3-5 の列：大事の頭の2行だけ
 def _strap_row(h):    # 2列の下：3つの箱＋理想の形
     k = h.index('<div class="pbg pbs">'); e = h.index('</div></div>', h.rindex('<div class="pbc">', 0, h.index('</div></div></div>', k))) + len('</div></div>')
     rows = h[k + len('<div class="pbg pbs">'):e - len('</div>')]
-    return ('<section class="step wide strapx"><div class="nt kpk"><span class="nk">大事</span><span class="nx sxh">3-5 の続き：<b>ストラップの使い方</b></span>'
-            f'<div class="sxg">{rows}{IDEAL}</div></div></section>')
+    # 10/24 まーく様「3-5 補足ではなく、3-6 扱いに」→ 手順の番号の札と題をつけた、ひとつの手順にする
+    return ('<section class="step wide strapx"><h3 class="sh3"><span class="sn">3-6</span><span>ストラップの使い方</span></h3><div class="notes"><div class="nt kpk"><span class="nk">大事</span>'
+            f'<div class="nx sxw"><div class="sxg">{rows}{IDEAL}</div></div></div></div></section>')
 def _ideal(h):
     # 「ストラップあり」の札の箱（.pbc の1つ目）の中で、左に文、右に写真
     k = h.index('<span class="pbt">ストラップあり</span>'); e = h.index('</p></div>', k) + len('</p>')
@@ -676,18 +677,20 @@ CSS += """
 CSS += """
 /* 2-5：ストラップの写真を広くとる（オクトの口からストラップの金具まで、切らずに入れるため） */
 .photos.strap2{grid-template-columns:.8fr 1.2fr!important}
-#p5 .grid2>.step.strapx{border-top:0!important;padding-top:0!important;margin-top:-1mm}
-.strapx>.nt{width:100%;display:block!important}
-.strapx>.nt>.nk{display:inline-block!important;margin-right:2mm}
-.strapx>.nt>.sxh{display:inline!important}
+.page .grid2>.step.wide.strapx{display:flex!important;flex-direction:column!important}
+.page .grid2>.step.wide.strapx>.notes{width:100%!important;grid-column:auto!important;grid-row:auto!important;margin-top:2.4mm!important}
+.strapx .notes{width:100%;margin-top:2.4mm}
+.strapx .nt{width:100%;display:block!important}
+.strapx .nt>.nk{display:inline-block!important}
 .strapx .sxg{width:100%}
+.strapx .sxw{display:block!important;margin-top:1.2mm}
 .strapx .sxh{font-size:10pt!important;color:var(--navy)!important}
 .strapx .sxg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 35mm;column-gap:2.4mm;align-items:stretch;margin-top:1.6mm}
 .strapx .sxg .pbc{margin:0!important;display:block!important;padding:2mm 2mm!important}
 .strapx .sxg .pbc .pbt{display:inline-block!important;margin:0 0 1.2mm!important;white-space:nowrap}
 .strapx .sxg .pbc p{margin:0!important;font-size:9.6pt!important;line-height:1.5!important}
 .strapx .sxg .pbc p small{display:block;font-size:8.6pt!important;margin-top:.6mm}
-.strapx>.nt>.nk{vertical-align:middle;font-size:9pt!important;padding:.2mm 1.6mm!important}
+
 .strapx .sxg .ideal{margin:0;align-self:center}
 .strapx .sxg .ideal img{width:100%;height:auto!important;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
 .strapx .sxg .ideal .cap3{font-size:8.6pt!important;white-space:nowrap}
@@ -1155,10 +1158,10 @@ function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const 
 document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 CSS += '''
 /* 10/21 工程3：3-5 は横いっぱいの1段。左に題と写真、右に大事の箱（memo の場所に入る） */
-.page .grid2>.step.wide:has(>.notes){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:7mm}
-.page .grid2>.step.wide:has(>.notes)>.sh3{grid-column:1;grid-row:1}
-.page .grid2>.step.wide:has(>.notes)>.photos{grid-column:1;grid-row:2}
-.page .grid2>.step.wide:has(>.notes)>.notes{grid-column:2;grid-row:1/3;margin-top:0!important}
+.page .grid2>.step.wide:not(.strapx):has(>.notes){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:7mm}
+.page .grid2>.step.wide:not(.strapx):has(>.notes)>.sh3{grid-column:1;grid-row:1}
+.page .grid2>.step.wide:not(.strapx):has(>.notes)>.photos{grid-column:1;grid-row:2}
+.page .grid2>.step.wide:not(.strapx):has(>.notes)>.notes{grid-column:2;grid-row:1/3;margin-top:0!important}
 /* 10/21 まーく様「1ページふり返りは全て、スキル編と同じく、画像をタップしたら動画が見られるように」「参考動画は右下ではなく、下側に行数を減らして」 */
 .page .mtg .mtc>a.mtv{order:1;display:block;position:relative;line-height:0;background:none!important;padding:0!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:2mm}
 .page .mtg .mtc>a.mtv>img{width:100%!important;height:auto!important;aspect-ratio:1.65!important;object-fit:cover;display:block;border-radius:2mm}
