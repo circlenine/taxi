@@ -343,7 +343,10 @@ for sec in STEPS:
 _pl = [l for _, ls in POINTS for l in ls]
 pts = ('<div class="pbox"><p class="pbh">' + "<br>".join(T(h) for h, _ in POINTS) + '</p><div class="pbg">'
        + "".join(f'<div class="pbc"><span class="pbt">{t}</span><p>{T(l)}</p></div>' for t, l in zip(POINT_TAGS, _pl)) + '</div></div>')
-quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
+def _qz1(q, a, c=""): return f'<div class="qz{c}"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>'
+# 10/23 まーく様「見出しとクイズが離れていたら意味がない」→ 1つ目の組（7問）は、札と1問目を左の列に、右上の1マスを空け（qph）、
+#   そこまで memo を伸ばす。左の列は「ふり返ってみようクイズ！」→ 札 → 1問目 と、見出しのすぐ下からクイズが始まる
+quiz = "".join(f'<span class="qh{" qh1" if gi == 0 else ""}">{h}</span>' + (_qz1(*qs[0], " q1st") + '<div class="qph"></div>' + "".join(_qz1(q, a) for q, a in qs[1:]) if gi == 0 else "".join(_qz1(q, a) for q, a in qs)) for gi, (h, qs) in enumerate(QUIZ))
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
@@ -371,7 +374,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 
 # 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
 #   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2" data-to=".qph"></div></div>
 <div class="quiz">{quiz}</div>""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -532,6 +535,9 @@ CSS += """
 .page .pbc p small{display:block;font-size:8.5pt;color:var(--muted)}
 .quiz{display:grid!important;grid-template-columns:1fr 1fr;column-gap:7mm;row-gap:0!important}
 .quiz .qh{grid-column:1/-1;justify-self:start;margin-top:2mm}
+.quiz .qh1{grid-column:1!important;grid-row:1;margin-top:0}
+.quiz .q1st{grid-column:1;grid-row:2}
+.quiz .qph{grid-column:2;grid-row:1/3}   /* 右上の空き（memo がここまで伸びる） */
 .qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.6mm 0!important;font-size:11pt}
 """
 
@@ -1002,7 +1008,7 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
  const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;
  const n=Math.floor(inner/(8.5*MM));for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
- const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:r.bottom});return;}
+ const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:(slot.dataset.to&&pg.querySelector(slot.dataset.to)?pg.querySelector(slot.dataset.to).getBoundingClientRect().bottom:r.bottom)});return;}
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
  // 10/22 まーく様「4-4の下も空いてるのに、なぜmemoを広げないのか」→ 左右の列の下が両方とも 20mm 以上あいていれば、

@@ -405,8 +405,8 @@ mt = "".join(
     for i, (k, h, steps) in enumerate(MATOME, 1))
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ダイビング 器材の片付け」</span><br><span class="nw">OPEN EV／沖縄県立沖縄水産高等学校・</span><br><span class="nw">沖縄県教育委員会</span></p></div>{mt}</div>')
 
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
-<div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
+# 10/23 まーく様「見出しとクイズが離れている・変な高さの空白」→ 大事なこと（横いっぱい・札3枚を横に）→ 見出し → クイズ → memo（下いっぱい）の順に
+page("最後に", "ふり返り", f"""<div class="pts pw">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><div class="memo-slot" data-fill="1"></div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
@@ -561,6 +561,9 @@ CSS += """
 .page .pbox{border-radius:2mm;padding:2mm 3mm 2.2mm;background:var(--pale);box-shadow:inset 0 0 0 1.4px var(--line)}
 .page .pbh{margin:0 0 1.6mm;text-align:center;font-size:11.5pt;line-height:1.5;font-weight:900;color:var(--navy)}
 .page .pbg{display:grid;grid-template-columns:minmax(0,1fr);gap:1.6mm}
+.page .pw .pbg{grid-template-columns:repeat(3,minmax(0,1fr))}
+.page .pw .pbc{grid-template-columns:minmax(0,1fr);row-gap:1mm}
+.page .pw .pbt{justify-self:start}
 .page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */
 .page .pbt{display:inline-block;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm;text-align:center}
 .page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}
@@ -1165,7 +1168,7 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
  const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;
  const n=Math.floor(inner/(8.5*MM));for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
- const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:r.bottom});return;}
+ const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:(slot.dataset.fill?frame(pg).lim:r.bottom)});return;}   /* 10/23 data-fill：ページの下まで */
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
  // 10/22 まーく様「4-4の下も空いてるのに、なぜmemoを広げないのか」→ 左右の列の下が両方とも 20mm 以上あいていれば、
