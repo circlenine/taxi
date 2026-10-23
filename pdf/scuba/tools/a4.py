@@ -347,7 +347,8 @@ def _qz1(q, a, c=""): return f'<div class="qz{c}"><span class="q"><span class="t
 # 10/23 まーく様（B の形）：「ふり返ってみようクイズ！」の見出しを、クイズの左上のマスに置き、右に1つ目の札と1問目を並べる。
 #   見出しは左の列の幅（右まで広げない）。見出しのすぐ横・すぐ下からクイズが始まる。3冊同じ形
 QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3>'
-quiz = QHEAD + "".join(f'<span class="qh{" qh1" if gi == 0 else ""}">{h}</span>' + "".join(_qz1(q, a, " q1st" if gi == 0 and n == 0 else "") for n, (q, a) in enumerate(qs)) for gi, (h, qs) in enumerate(QUIZ))
+# 10/23 まーく様：洗浄編と同じ形に。見出しは上の段の左の列のいちばん下（クイズのすぐ上）、クイズは1問目から左→右にそろえて並べる（ずらさない）
+quiz = "".join(f'<span class="qh">{h}</span>' + "".join(_qz1(q, a) for q, a in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
@@ -375,7 +376,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 
 # 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
 #   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div>{QHEAD}</div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -535,6 +536,7 @@ CSS += """
 .toprow>.tcol>.pts{flex:none}
 .toprow .pts>.pbox{flex:none;display:flex;flex-direction:column}
 .toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
+.toprow>.tcol>.qhd{margin-top:0!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上）。洗浄編と同じ */
 .page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */
 .page .pbt{display:inline-block;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm;text-align:center}
 .page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}

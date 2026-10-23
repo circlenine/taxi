@@ -573,7 +573,7 @@ CSS += """
 .toprow>.tcol>.pts{flex:none}
 .toprow .pts>.pbox{flex:none;display:flex;flex-direction:column}
 .toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
-.toprow>.tcol>.qhd{margin-top:3mm!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上） */
+.toprow>.tcol>.qhd{margin-top:0!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上） */
 .page .pw .pbg{grid-template-columns:repeat(3,minmax(0,1fr))}
 .page .pw .pbc{grid-template-columns:minmax(0,1fr);row-gap:1mm}
 .page .pw .pbt{justify-self:start}
