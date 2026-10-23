@@ -25,7 +25,7 @@ STEPS = [
    dict(id="3-1", key=["c09"], frames=["c09"],
      title="{tank}の口に、Oリングがあるか見る",
      # 10/19 見直し（中身のない補足 → 何を見ればいいかを書く）
-     extra=["Oリング＝{tank}の口にある、細いゴムの輪。あればOK！"]),
+     extra=["<span class=\"nw\">Oリング＝{tank}の口にある、細いゴムの輪。</span><br>しっかり付いていればOK！"]),
    dict(id="3-2", key=["c10"], frames=["c10"],
      title="{silver}を、{tank}の口にかぶせる",
      extra=["<span class=\"nw\">{silver}ぐるぐる</span>は<span class=\"nw\">自分のほう</span><span class=\"nw\">（{bc}の反対）！</span>"]),
