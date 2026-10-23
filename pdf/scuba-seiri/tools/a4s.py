@@ -41,7 +41,8 @@ CSS = """
 @page{margin:0}
 *{box-sizing:border-box;box-shadow:none}
 html,body{margin:0;background:#fff;color:var(--ink);font-family:"Noto Sans JP",sans-serif;font-weight:700;font-size:11pt;line-height:1.7;
- -webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:auto-phrase;text-wrap-style:pretty}
+ -webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:auto-phrase;text-wrap-style:auto}
+/* 10/23 まーく様「中途半端な改行」→ 行の長さをそろえる折り返し（pretty）をやめ、文節単位で右はしまで詰める */
 p{margin:0}
 .page{width:110mm;position:relative;padding:8mm 8mm 12mm;break-after:page;
  background:#bfe3f4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M-3 3 L3 -3 M0 12 L12 0 M9 15 L15 9' stroke='%23e3f3fb' stroke-width='4'/%3E%3C/svg%3E") repeat;
