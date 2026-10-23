@@ -27,6 +27,8 @@ SIDE=14 node $S/tools/mcheck.js $S/build_s/a4.html | tee $S/mcheck_last.txt
 # はみ出しガード（10/19）：どのページでも、中身がページの下からはみ出していたら止める（PDFを作らせない）
 if grep -q "ページの下にはみ出し" $S/mcheck_last.txt; then echo "NG ページからはみ出している（上を見て直す）"; exit 1; fi
 python3 -I $S/tools/toccheck2.py $S/build_s/a4.html
+# 10/23 まーく様「改行が多すぎるのは良くない」：最後の行が数文字だけの文があれば止める
+o=$(node $S/tools/orphcheck.js $S/build_s/a4.html); if [ -n "$o" ]; then echo "$o"; echo "NG 最後の行が数文字だけの文がある（言い方を変えて詰める）"; exit 1; fi
 python3 -I $S/tools/csscheck.py $S/build_s/a4.html   # CSS のコメントの閉じ忘れ（10/22）
 node $S/tools/overlap.js $S/build_s/a4.html   # 字と字が重なっていないか、1字ずつ測る（10/22 まーく様「文字と文字が重なりまくり」）
 WRAPDUMP=$S/build_s/wrap.json node $S/tools/wrapcheck.js $S/build_s/a4.html
