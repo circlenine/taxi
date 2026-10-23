@@ -558,7 +558,7 @@ def _mrow(name, k, point, n, lab=""):
     return (f'<div class="mcard"><a class="mtv mcp" href="{mtv(k)}">{im(k, 1.5)}</a>'
             f'<p class="mcn">{T(name)}</p>'
             f'<p class="mcq">{T(point)}</p><a class="jump mcj" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></div>')   # 10/23 まーく様「くわしくはを一番下に」→ ポイントの下、右寄せ（ほかのページと同じ）
-MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
+MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashib_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
 # 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
 _mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
 _mt += _mrow('ハンドシグナル<small class="mtnote">（手で伝える合図）</small>', "sg3125", SIGSIT["point"], SUBPG["SIG"], lab="合図")
