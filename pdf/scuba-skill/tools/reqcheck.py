@@ -12,6 +12,10 @@ REQ = {
           "初めに外したら、そのまま！で覚えよう", "オクトパス（タコ）に見えー…ないね"],
  "スキル": ["（正式名称：オクトパス）", "人差し指ピーンボタン（正式名称：排気ボタン）"],
 }
+# NOT … ページに出てはいけない形（HTMLのまま、正規表現で探す。✕ 高すぎ などの赤は残す）
+NOT = {
+ "準備": [(r'class="cap3 red">[^<]*<small>（正式名称', "写真の下の名前を赤くしない（10/23 まーく様「銀色金具ぐるぐる、別に赤くする必要ない」）")],
+}
 PINK = {
  "洗浄": ["オクトも、真ん中のボタンは押さないでね", "キャップは、締めたまま洗う"],
 }
@@ -33,6 +37,8 @@ p = P(); p.feed(open(f).read())
 sq = lambda x: re.sub(r'\s+', '', x)
 txt, pk = sq("".join(p.all)), sq("".join(p.pk))
 ng = [f"NG ご指示の字が見当たらない：{r}" for r in REQ.get(book, []) if sq(r) not in txt]
+raw = open(f).read()
+ng += [f"NG {why}" for pat, why in NOT.get(book, []) if re.search(pat, raw)]
 ng += [f"NG 「大事」の枠に入っていない：{r}" for r in PINK.get(book, []) if sq(r) not in pk]
 print("\n".join(ng) if ng else f"ご指示の点検 OK（{book}）")
 sys.exit(1 if ng else 0)

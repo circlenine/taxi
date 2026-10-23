@@ -21,6 +21,7 @@ node $S/tools/p1fit.js $S/build/a4.html
 mkdir -p img/s
 for f in $(grep -o 'img/s/[a-z0-9_]*\.jpg' a4.html | sort -u); do [ -f "$f" ] || cp img/c05.jpg "$f"; done
 node $S/tools/measure.js $S/build/a4.html a4sizes.json
+python3 -I $S/tools/markcheck.py $S/tools || exit 1
 python3 -I $S/tools/focus.py a4sizes.json img/s
 python3 -I $S/tools/badgeset.py $S/build/a4.html img/s/badge.json   # ▶ の印を置くすみ（見せたい部分・赤い印にかからない所。10/21）
 SIDE=14 node $S/tools/mcheck.js $S/build/a4.html | tee $S/mcheck_last.txt
