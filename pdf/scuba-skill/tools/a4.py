@@ -344,9 +344,10 @@ _pl = [l for _, ls in POINTS for l in ls]
 pts = ('<div class="pbox"><p class="pbh">' + "<br>".join(T(h) for h, _ in POINTS) + '</p><div class="pbg">'
        + "".join(f'<div class="pbc"><span class="pbt">{t}</span><p>{T(l)}</p></div>' for t, l in zip(POINT_TAGS, _pl)) + '</div></div>')
 def _qz1(q, a, c=""): return f'<div class="qz{c}"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>'
-# 10/23 まーく様「見出しとクイズが離れていたら意味がない」→ 1つ目の組（7問）は、札と1問目を左の列に、右上の1マスを空け（qph）、
-#   そこまで memo を伸ばす。左の列は「ふり返ってみようクイズ！」→ 札 → 1問目 と、見出しのすぐ下からクイズが始まる
-quiz = "".join(f'<span class="qh{" qh1" if gi == 0 else ""}">{h}</span>' + (_qz1(*qs[0], " q1st") + '<div class="qph"></div>' + "".join(_qz1(q, a) for q, a in qs[1:]) if gi == 0 else "".join(_qz1(q, a) for q, a in qs)) for gi, (h, qs) in enumerate(QUIZ))
+# 10/23 まーく様（B の形）：「ふり返ってみようクイズ！」の見出しを、クイズの左上のマスに置き、右に1つ目の札と1問目を並べる。
+#   見出しは左の列の幅（右まで広げない）。見出しのすぐ横・すぐ下からクイズが始まる。3冊同じ形
+QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3>'
+quiz = QHEAD + "".join(f'<span class="qh{" qh1" if gi == 0 else ""}">{h}</span>' + "".join(_qz1(q, a, " q1st" if gi == 0 and n == 0 else "") for n, (q, a) in enumerate(qs)) for gi, (h, qs) in enumerate(QUIZ))
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
@@ -374,7 +375,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 
 # 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
 #   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2" data-to=".qph"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="quiz">{quiz}</div>""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -529,15 +530,20 @@ CSS += """
 .page .pbox{border-radius:2mm;padding:2mm 3mm 2.2mm;background:var(--pale);box-shadow:inset 0 0 0 1.4px var(--line)}
 .page .pbh{margin:0 0 1.6mm;text-align:center;font-size:11.5pt;line-height:1.5;font-weight:900;color:var(--navy)}
 .page .pbg{display:grid;grid-template-columns:minmax(0,1fr);gap:1.6mm}
+/* 10/23 上の段：大事なことの箱を、右の memo と同じ高さまで伸ばし、札を上下に散らす（箱の下に空白を残さない） */
+.toprow>.tcol{display:flex;flex-direction:column}
+.toprow>.tcol>.pts{flex:1}
+.toprow .pts>.pbox{flex:1;display:flex;flex-direction:column}
+.toprow .pbox>.pbg{flex:1;align-content:space-evenly}
 .page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */
 .page .pbt{display:inline-block;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm;text-align:center}
 .page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}
 .page .pbc p small{display:block;font-size:8.5pt;color:var(--muted)}
 .quiz{display:grid!important;grid-template-columns:1fr 1fr;column-gap:7mm;row-gap:0!important}
 .quiz .qh{grid-column:1/-1;justify-self:start;margin-top:2mm}
-.quiz .qh1{grid-column:1!important;grid-row:1;margin-top:0}
-.quiz .q1st{grid-column:1;grid-row:2}
-.quiz .qph{grid-column:2;grid-row:1/3}   /* 右上の空き（memo がここまで伸びる） */
+.quiz .qhd{grid-column:1;grid-row:1/3;align-self:start;margin:0!important}   /* 見出しは左上のマス（10/23） */
+.quiz .qh1{grid-column:2!important;grid-row:1;margin-top:0}
+.quiz .q1st{grid-column:2;grid-row:2}
 .qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.6mm 0!important;font-size:11pt}
 """
 

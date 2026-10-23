@@ -379,7 +379,11 @@ for sec in STEPS:
 _pl = [l for _, ls in POINTS for l in ls]
 pts = ('<div class="pbox"><p class="pbh">' + "<br>".join(T(h) for h, _ in POINTS) + '</p><div class="pbg">'
        + "".join(f'<div class="pbc"><span class="pbt">{t}</span><p>{T(l)}</p></div>' for t, l in zip(POINT_TAGS, _pl)) + '</div></div>')
-quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
+def _qz1(q, a, c=""): return f'<div class="qz{c}"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>'
+# 10/23 まーく様（B の形）：「ふり返ってみようクイズ！」の見出しを、クイズの左上のマスに置き、右に1つ目の札と1問目を並べる。
+#   見出しは左の列の幅（右まで広げない）。見出しのすぐ横・すぐ下からクイズが始まる。3冊同じ形
+QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3>'
+quiz = QHEAD + "".join(f'<span class="qh{" qh1" if gi == 0 else ""}">{h}</span>' + "".join(_qz1(q, a, " q1st" if gi == 0 and n == 0 else "") for n, (q, a) in enumerate(qs)) for gi, (h, qs) in enumerate(QUIZ))
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
@@ -406,7 +410,7 @@ mt = "".join(
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ダイビング 器材の片付け」</span><br><span class="nw">OPEN EV／沖縄県立沖縄水産高等学校・</span><br><span class="nw">沖縄県教育委員会</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「見出しとクイズが離れている・変な高さの空白」→ 大事なこと（横いっぱい・札3枚を横に）→ 見出し → クイズ → memo（下いっぱい）の順に
-page("最後に", "ふり返り", f"""<div class="pts pw">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz">{quiz}</div><div class="memo-slot" data-fill="1"></div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
+page("最後に", "ふり返り", f"""<div class="pts pw">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><div class="quiz">{quiz}</div><div class="memo-slot" data-fill="1"></div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
@@ -570,6 +574,9 @@ CSS += """
 .page .pbc p small{display:block;font-size:8.5pt;color:var(--muted)}
 .quiz{display:grid!important;grid-template-columns:1fr 1fr;column-gap:7mm;row-gap:0!important}
 .quiz .qh{grid-column:1/-1;justify-self:start;margin-top:2mm}
+.quiz .qhd{grid-column:1;grid-row:1/3;align-self:start;margin:0!important}   /* 見出しは左上のマス（10/23） */
+.quiz .qh1{grid-column:2!important;grid-row:1;margin-top:0}
+.quiz .q1st{grid-column:2;grid-row:2}
 .qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.6mm 0!important;font-size:11pt}
 """
 
