@@ -18,7 +18,7 @@ function phraseBreak(){const SEL='.nx,.ns,.mts li,.pbc p,.qz .a,.mcq,.sd2,.cap3,
     done=false;break;}
    if(done)return;}});}
 // 10/23 まーく様「あいちゃん褒められスキル／前半・後半／ふり返り・NEW の左位置を統一して」→ もくじで、同じ札どうしの左の位置をそろえる
-function alignTags(){document.querySelectorAll('.toc').forEach(t=>{const g={};t.querySelectorAll('.tt .half,.tt .tbd').forEach(e=>{(g[e.className]=g[e.className]||[]).push(e);});
+function alignTags(){document.querySelectorAll('.toc').forEach(t=>{const g={};t.querySelectorAll('.tt .half,.tt .tbd').forEach(e=>{const k=e.classList.contains('tbd')?'tbd':e.className;(g[k]=g[k]||[]).push(e);});/* 10/23 まーく様「あいちゃん褒められスキルと上級スキルの左位置もそろえて」→ スキル編の札（.tbd）は色ちがいでも1つの組 */
  Object.values(g).forEach(es=>{if(es.length<2)return;es.forEach(e=>{e.style.marginLeft='';});const L=Math.max(...es.map(e=>e.getBoundingClientRect().left));
   es.forEach(e=>{const d=L-e.getBoundingClientRect().left;if(d>0.5){const ml=parseFloat(getComputedStyle(e).marginLeft)||0;e.style.setProperty('margin-left',(ml+d)+'px','important');}});});});}
 // 10/23 まーく様「しおりの札の文字が、やや左寄りに見える」→ 矢印の四角の部分だけで真ん中にすると、矢印の先のぶん左に寄って見える。
