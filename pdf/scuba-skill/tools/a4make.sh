@@ -27,6 +27,9 @@ SIDE=14 node $S/tools/mcheck.js $S/build/a4.html | tee $S/mcheck_last.txt
 # はみ出しガード（10/19）：どのページでも、中身がページの下からはみ出していたら止める（PDFを作らせない）
 if grep -q "ページの下にはみ出し" $S/mcheck_last.txt; then echo "NG ページからはみ出している（上を見て直す）"; exit 1; fi
 python3 -I $S/tools/toccheck2.py $S/build/a4.html
+# 10/23 まーく様「指摘する以外の表記ゆれがないか、全て確認できているのか」：3冊をまとめて、読みが同じで書き方がちがう言葉を調べる
+python3 -I $S/tools/yomicheck.py $(ls $S/build/a4.html $S/build_s/a4.html $S/build_k/a4.html 2>/dev/null)
+python3 -I $S/tools/kanjicheck.py $(ls $S/build/a4.html $S/build_s/a4.html $S/build_k/a4.html 2>/dev/null)
 # 10/23 まーく様「改行が多すぎるのは良くない」：最後の行が数文字だけの文があれば止める
 o=$(node $S/tools/orphcheck.js $S/build/a4.html); if [ -n "$o" ]; then echo "$o"; echo "NG 最後の行が数文字だけの文がある（言い方を変えて詰める）"; exit 1; fi
 python3 -I $S/tools/csscheck.py $S/build/a4.html   # CSS のコメントの閉じ忘れ（10/22）

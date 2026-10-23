@@ -347,16 +347,16 @@ P2_TRIO = [("s10", "{silver}のキャップの水気を飛ばしたら、すぐ�
 trio = "".join(f'<figure class="ph3">{im(k, 1.0)}<span class="cap3">{T(t)}</span>{jl(j)}</figure>' for k, t, j in P2_TRIO)
 page("器材", "先に“取扱注意”なものを伝えるよ", f"""
 <div class="grid2">
-<section class="step wide w2"><h3 class="sh3"><span class="sn">1-1</span><span>{T("{bc}")}と{T("{silver}のホース類")}は、洗い方がちがう！</span></h3>
+<section class="step wide w2"><h3 class="sh3"><span class="sn">1-1</span><span>{T("{bc}")}と{T("{silver}のホース類")}は、洗い方が違う！</span></h3>
 <div class="photos two">
-<figure class="ph3">{im("bc", 1.0)}<span class="cap3"><b class="ct">{T("{bc}")}</b><br>L字サインホースの口が<b>開いてる</b><br>→ 海水が“入ってる”<br><b class="cr">その為、“中”も洗う</b></span></figure>
-<figure class="ph3">{im("s15", 1.0)}<span class="cap3"><b class="ct">{T("{silver}のホース類")}</b><br>隙間を<b>締める</b><br>→ 海水が“入らない”<br><b class="cr">その為、“外”だけ洗う</b></span></figure>
+<figure class="ph3">{im("bc", 1.0)}<span class="cap3"><b class="ct">{T("{bc}")}</b><br>L字サインホースの口が<b>開いてる</b><br>→ 海水が“入ってる”<br><b class="cr">そのため、“中”も洗う</b></span></figure>
+<figure class="ph3">{im("s15", 1.0)}<span class="cap3"><b class="ct">{T("{silver}のホース類")}</b><br>隙間を<b>締める</b><br>→ 海水が“入らない”<br><b class="cr">そのため、“外”だけ洗う</b></span></figure>
 </div>
 <div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{T("{silver}のホース類")}の中は、乾いたままキープ！</b></span><div class="ns">中に海水を入れなければ、器材が長持ち。下の3つを押さえておけば、大丈夫！<br>細かくは、次のページ以降で紹介するよ</div></div></div></section>
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-2</span><span>とくに気を付ける3つ</span></h3><div class="trio">{trio}</div></section>
 <section class="step wide w2 nophoto"><h3 class="sh3"><span class="sn">1-3</span><span>万が一、水が入ったり、故障したら</span></h3>
 <div class="oh2"><div class="ohl"><div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>レンタルの人：</b></span><div class="ns">使わずに、すぐお店へ</div></div></div><div class="memo-slot"></div></div>
-<div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>自分の器材がある人：</b></span><div class="ns">お店で健康診断<span class="nw">（正式名称：オーバーホール）</span>を受けよう。<br>目安：1年に1回 or 100本潜水後の、早い方</div><div class="ns np"><div class="srows">{oh_rows}</div><small>※部品代こみ・税込（2026年10月）。<span class="nw">時期による品薄などで、</span><span class="nw">部品代が変動するよ</span></small></div></div></div></div></section>
+<div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>自分の器材がある人：</b></span><div class="ns">お店で健康診断<span class="nw">（正式名称：オーバーホール）</span>を受けよう。<br>目安：1年に1回 or 100本潜水後の、早いほう</div><div class="ns np"><div class="srows">{oh_rows}</div><small>※部品代込・税込（2026年10月）。<span class="nw">時期による品薄などで、</span><span class="nw">部品代が変動するよ</span></small></div></div></div></div></section>
 </div>""")
 
 # 工程4は、4-2の「大事」が長く、4-1の下に大きな空きができる。そのままでは memo がページのまん中に来てしまい、
