@@ -162,6 +162,10 @@ html body .page .qh{{padding-left:3mm!important;padding-right:4.8mm!important}}
 .mcard>.mcq::before{{content:"";position:absolute;left:0;top:.6mm;bottom:.6mm;width:4px;background:{line}}}
 /* 10/20 まーく様「クイズは、質問文にも、答えと同じ幅で背景色を」→ 質問＝濃い地に白い字、答え＝うすい地。左右の幅はそろえる */
 .page .qz .q{{background:{m};color:#fff!important;padding:1mm 2mm;border-radius:1mm;display:block;box-sizing:border-box;font-size:10pt;line-height:1.45!important}}   /* flex にすると、字と札がばらばらの箱になって崩れる（10/20 洗浄編で確かめた）ので block */
+/* 10/23 まーく様「■のある文字が、ほかの文字とズレている」→ 問いが2行になったとき、2行目の書き出しを「*」の右（1行目の字の始まり）にそろえる */
+.page .qz .q{{padding-left:calc(2mm + .76em)!important;text-indent:-.76em}}
+.page .qz .q>.tapm:first-child{{text-indent:0}}   /* 「*」の幅（.59em）＋すき間（.17em）＝.76em ぶん、2行目を下げる */
+.page .qz .q .jump{{text-indent:0}}
 .page .qz{{row-gap:.6mm!important}}
 .page .qz .q *{{color:#fff!important}}
 .page .qz .a{{padding-left:2mm;box-sizing:border-box}}

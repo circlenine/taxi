@@ -409,7 +409,7 @@ for sec in STEPS:
     groups = [[x for x in subs if x["id"] in ids] for ids in sec["pages"]] if sec.get("pages") else [subs]
     for gi, g in enumerate(groups):
         t = sec["title"] if gi == 0 else sec.get("title2", sec["title"])
-        t += {"rev": '<span class="half rel">ふり返り</span>', "new": '<span class="half rel new">NEW！</span>'}.get(sec.get("rel"), "")
+        pass   # 10/23 まーく様「スキル編の各見出しの右に、ふり返りのタグは不要。資料的には初めて出る内容」→ 札は付けない
         # 10/22 layout="row3"：3つの手順を横に並べ、写真を縦長に大きく（同じ形の写真を、同じ位置・同じ大きさで見比べられるように）
         body = (f'<div class="{"grid3" if sec.get("layout") == "row3" else "grid2"}">') + "".join(stepbox(x) for x in g) + "</div>"
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
@@ -550,14 +550,14 @@ def _mrow(name, k, point, n, lab=""):
 MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
 # 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
 _mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
-_mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["point"], SUBPG["SIG"], lab="合図")
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><div class="mcg">{_mt}</div>')
+_mt += _mrow("ハンドシグナル", "sg3125", SIGSIT["point"], SUBPG["SIG"], lab="合図")
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、YouTubeで見返そう</span></span></div><div class="mcg">{_mt}</div>')
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
-QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
+QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を呼きながら、右腕を足元からたどって探す", "1-1"),
       ("{regu}を付け直したら、すぐ息を吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
       ("真ん中のボタンが壊れていたら？", "「トゥー」と強く呼いて、水を出す", "2-3"),
-      ("マスクに水が入ったら、どこから呼く？", "鼻から。水はマスクの下から出ていく", "3-3"),
+      ("マスクに水が入ったら、どうする？", "上を向いて、鼻から呼く。水はマスクの下から出ていく", "3-3"),
       ("{bc}に空気が入らないときは？", "人差し指ピーンボタンを押しながら、口で吹きこむ", "4-2"),
       ("足がつったら、まず何をする？", "その場で停まれるか確かめて、合図で助けを求める", "5-1"),
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
@@ -603,7 +603,7 @@ for lb, tt, pn in TOC:
 TOC = _toc2
 toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
-<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習で習ったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
+<h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、押せるところ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>リンクを押すと、YouTubeへ移動</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、押すと書ける</span><span class="hp">__TOTAL__ページ</span><span>クイズの□を押すと、答えが出る</span></div><p class="hw">もし、うまく動かない場合は、右上の「✔︎」を押して、試してみてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 # 中性浮力のページ（3と4を1ページにまとめた）は、写真を少し低くしてよい（10ページ以内に収めるため。仮の形）
@@ -1466,7 +1466,8 @@ CSS += """
 .page .mcard p{margin:0;line-height:1.45}
 .page .mcn{font-size:10.6pt;font-weight:900;color:var(--navy)}
 .page .mcn .jump{display:block;font-size:8pt;font-weight:700}
-.page .mcn .mtnote{display:block;font-size:9pt;font-weight:900}   /* （）は名前の下の行に（途中で折り返さないように） */
+.page .mcn .mtnote{display:inline;font-size:8.4pt;font-weight:900;white-space:nowrap;letter-spacing:-.02em}   /* 10/23 まーく様「（）の文字も1行にできるのでは」→ 名前と同じ行に */
+.page .mcn{white-space:nowrap}   /* （）は名前の下の行に（途中で折り返さないように） */
 .page .mcq{font-size:8.8pt;font-weight:700;color:#b0154a}
 .page .sqg1p{gap:1.4mm 5mm!important}
 .page .sqg1p .sqc,.page .sqg4 .sqc{padding-top:.8mm!important}

@@ -355,8 +355,8 @@ page("器材", "先に“取扱注意”なものを伝えるよ", f"""
 <div class="notes"><div class="nt kpk"><span class="nk">大事</span><span class="nx"><b>{T("{silver}のホース類")}の中は、乾いたままキープ！</b></span><div class="ns">中に海水を入れなければ、器材が長持ち。下の3つを押さえておけば、大丈夫！<br>細かくは、次のページ以降で紹介するよ</div></div></div></section>
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-2</span><span>とくに気を付ける3つ</span></h3><div class="trio">{trio}</div></section>
 <section class="step wide w2 nophoto"><h3 class="sh3"><span class="sn">1-3</span><span>万が一、水が入ったり、故障したら</span></h3>
-<div class="oh2"><div class="ohl"><div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>レンタルの人</b></span><div class="ns">そのまま使わずに、すぐお店に伝えよう</div></div></div><div class="memo-slot"></div></div>
-<div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>自分の器材を買った人</b></span><div class="ns">お店で、器材の健康診断<br><span class="nw">（正式名称：オーバーホール）</span>を受けよう。<br>目安：1年に1回 or 100本潜水後<br><span class="ind">どちらか早い方のタイミング</span></div><div class="ns np"><div class="srows">{oh_rows}</div><small>※部品代こみ・税込（2026年10月）。<span class="nw">時期による品薄などで、</span><span class="nw">部品代が変動するよ</span></small></div></div></div></div></section>
+<div class="oh2"><div class="ohl"><div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>レンタルの人：</b></span><div class="ns">使わずに、すぐお店へ</div></div></div><div class="memo-slot"></div></div>
+<div class="notes"><div class="nt kx"><span class="nk">補足</span><span class="nx"><b>自分の器材がある人：</b></span><div class="ns">お店で健康診断<span class="nw">（正式名称：オーバーホール）</span>を受けよう。<br>目安：1年に1回 or 100本潜水後の、早い方</div><div class="ns np"><div class="srows">{oh_rows}</div><small>※部品代こみ・税込（2026年10月）。<span class="nw">時期による品薄などで、</span><span class="nw">部品代が変動するよ</span></small></div></div></div></div></section>
 </div>""")
 
 # 工程4は、4-2の「大事」が長く、4-1の下に大きな空きができる。そのままでは memo がページのまん中に来てしまい、
@@ -386,13 +386,13 @@ for sec in STEPS:
 _pl = [l for _, ls in POINTS for l in ls]
 pts = ('<div class="pbox"><p class="pbh">' + "<br>".join(T(h) for h, _ in POINTS) + '</p><div class="pbg">'
        + "".join(f'<div class="pbc"><span class="pbt">{t}</span><p>{T(l)}</p></div>' for t, l in zip(POINT_TAGS, _pl)) + '</div></div>')
-def _qz1(q, a, c=""): return f'<div class="qz{c}"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>'
+def _qz1(q, a, sid, c=""): return f'<div class="qz{c}"><span class="q"><span class="tapm scr">*</span>{T(q)}<a class="jump qjs" href="#p__QPG_{sid}__"><span class="tapm scr">*</span>{sid}（__QPG_{sid}__ページ）</a></span><span class="a"><span class="ans">{T(a)}</span></span></div>'   # 10/23 まーく様「なぜ、クイズにくわしくは〇ページが無いのか」→ スキル編と同じく、問いの帯の右はしに
 # 10/23 まーく様（B の形）：「ふり返ってみようクイズ！」の見出しを、クイズの左上のマスに置き、右に1つ目の札と1問目を並べる。
 #   見出しは左の列の幅（右まで広げない）。見出しのすぐ横・すぐ下からクイズが始まる。3冊同じ形
 QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ</small></h3>'
 # 10/23 まーく様「クイズが複数あるのに、クイズ自体はずらさない」「memo は右側に」→ 洗浄編は、見出しを上の段の左の列のいちばん下（クイズのすぐ上）に置き、
 #   クイズは1問目から左→右の順にそろえて並べる
-quiz = "".join(f'<span class="qh">{h}</span>' + "".join(_qz1(q, a) for q, a in qs) for h, qs in QUIZ)
+quiz = "".join(f'<span class="qh">{h}</span>' + "".join(_qz1(q, a, sid) for q, a, sid in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
@@ -416,7 +416,7 @@ mt = "".join(
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ダイビング 器材の片付け」</span><br><span class="nw">OPEN EV／沖縄県立沖縄水産高等学校・</span><br><span class="nw">沖縄県教育委員会</span></p></div>{mt}</div>')
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、YouTubeで見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ダイビング 器材の片付け」</span><br><span class="nw">OPEN EV／沖縄県立沖縄水産高等学校・</span><br><span class="nw">沖縄県教育委員会</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p></div><div class="memo-slot" data-up=".ph h2"></div></div>
@@ -581,6 +581,9 @@ CSS += """
 .toprow .pts>.pbox{flex:none;display:flex;flex-direction:column}
 .toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
 .toprow>.tcol>.qhd{margin-top:0!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上） */
+/* 10/23 クイズの「くわしくは」：問いの帯の右はし（スキル編と同じ） */
+.page .qz .qjs{float:right;margin:0 0 0 2mm!important;font-size:7.6pt!important;font-weight:700;color:#fff!important;white-space:nowrap;line-height:inherit;text-indent:0}
+.page .qz .qjs .tapm{color:#fff!important}
 .page .qsec{width:calc(50% - 3.5mm);margin-top:7mm}   /* 10/23 まーく様「全てが繋がっていると、どこが区切りか分かりづらい」→ 上の段とクイズのかたまりの間を空ける */
 .page .qsec>.qhd{margin:0!important}
 .page .pw .pbg{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -1272,6 +1275,7 @@ CSS += '''
 .page .mtfirst>p.mtcred{margin:0!important;font-size:7.8pt!important;line-height:1.5!important;color:var(--muted)}   /* 10/21 まーく様「参考動画も、スキル編と同じく、いちばん初めの左上に」 */
 '''
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
+pages = [re.sub(r"__QPG_([0-9A-Z-]+)__", lambda m: str(pg_of(m.group(1))), x) if x else x for x in pages]   # 10/23 クイズの「くわしくは」のページ番号
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>洗浄編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["2"][0])), _vid_wash)}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>'))
