@@ -346,7 +346,8 @@ def _qz1(q, a, c=""): return f'<div class="qz{c}"><span class="q"><span class="t
 #   見出しは左の列の幅（右まで広げない）。見出しのすぐ横・すぐ下からクイズが始まる。3冊同じ形
 QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ</small></h3>'
 # 10/23 まーく様：洗浄編と同じ形に。見出しは上の段の左の列のいちばん下（クイズのすぐ上）、クイズは1問目から左→右にそろえて並べる（ずらさない）
-quiz = "".join(f'<span class="qh">{h}</span>' + "".join(_qz1(q, a) for q, a in qs) for h, qs in QUIZ)
+QB = len(QUIZ[0][1]) % 2 == 1   # 1つ目の組が奇数 → B の形（見出しを左上のマス、右に札と1問目）
+quiz = "".join(f'<span class="qh{" qh1" if QB and gi == 0 else ""}">{h}</span>' + "".join(_qz1(q, a, " q1st" if QB and gi == 0 and n == 0 else "") for n, (q, a) in enumerate(qs)) for gi, (h, qs) in enumerate(QUIZ))
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
 #   文字だけでは分かりづらい → 初心者がイメージしやすく、復習しやすい形に）
@@ -375,7 +376,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 # 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
 #   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
 page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>
-<div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")
+{(f'<div class="quiz qb">{QHEAD}{quiz}</div>' if QB else f'<div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>')}""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
@@ -552,6 +553,11 @@ CSS += """
 .page .sk2 .rn2{margin:0;font-size:8.8pt;color:var(--muted)}
 .page .qsec{width:calc(50% - 3.5mm);margin-top:7mm}   /* 10/23 まーく様「全てが繋がっていると、どこが区切りか分かりづらい」→ 上の段とクイズのかたまりの間を空ける */
 .page .qsec>.qhd{margin:0!important}
+/* 10/23 まーく様「1つ目の組が奇数で、右下に空きができる場合は、見出しを左、右にクイズのはじめ」（B の形）。偶数なら、見出しを上に置く */
+.page .quiz.qb{margin-top:7mm}
+.page .qb>.qhd{grid-column:1;grid-row:1/3;align-self:start;margin:0!important}
+.page .qb>.qh1{grid-column:2!important;grid-row:1;margin-top:0!important;justify-self:start}
+.page .qb>.q1st{grid-column:2;grid-row:2}
 .page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */
 .page .pbt{display:inline-block;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm;text-align:center}
 .page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}
