@@ -5,7 +5,8 @@
 # ・どのページも、まったく同じ型：見出し → 手順（番号と題 → 写真 → 補足）の順に、1列で並べる
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
-import newdesign as _nd   # 10/19 新しい形の部品
+import newdesign as _nd
+import phrasebreak as _pb   # 10/23 改行を区切り（、。）にそろえる   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import TERMS
 from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIG_AIRNUM, SIGNAL_NOTES, SIGNAL_AIR, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
@@ -1628,7 +1629,7 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
 function pullNotes(){document.querySelectorAll('.grid2>.step:not(.wide):not(.side),.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
  nt.style.marginTop='';let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});if(!pb)return;
  const want=2.4*96/25.4,gap=nt.getBoundingClientRect().top-pb;if(gap>want+2){const m=parseFloat(getComputedStyle(nt).marginTop)||0;nt.style.marginTop=(m-(gap-want))+'px';}});}
-document.fonts.ready.then(()=>{hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();memoPages();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{phraseBreak();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();memoPages();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#7b4fb0", "#16466b": "#4b2a73", "#d7eef9": "#ece1f7", "#a9d8ef": "#cdb5ea", "#cfe5f2": "#e2d4f2",
@@ -1642,5 +1643,5 @@ def recolor(h):
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>スキル編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["3"][0])), _vid_k)}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>'))
+    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["3"][0])), _vid_k)}{_pl.JS}{_pb.JS}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))

@@ -5,7 +5,8 @@
 # ・どのページも、まったく同じ型：見出し → 手順（番号と題 → 写真 → 補足）の順に、1列で並べる
 # 使い方: python3 mobile.py <buildディレクトリ>
 import sys, os, re
-import newdesign as _nd   # 10/19 新しい形の部品
+import newdesign as _nd
+import phrasebreak as _pb   # 10/23 改行を区切り（、。）にそろえる   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import STEPS, TERMS, POINTS, POINT_TAGS, QUIZ, MATOME
 from focus import F as _F, aspect_range as _ar
@@ -1098,7 +1099,7 @@ function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();con
 // 10/23 まーく様「memo、下が空いているなら、ふり返ってみようクイズと被らない位置まで伸ばして」→ クイズのかたまりの 6mm 上まで
 function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),qt=q.getBoundingClientRect().top-6*MM;if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
  m.querySelectorAll('.ml').forEach(l=>l.remove());const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;for(let i=0;i<Math.floor(inner/(8.5*MM));i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
-document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{phraseBreak();hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 CSS += '''
 /* 10/21 工程3：3-5 は横いっぱいの1段。左に題と写真、右に大事の箱（memo の場所に入る） */
 .page .grid2>.step.wide:has(>.notes){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:7mm}
@@ -1123,5 +1124,5 @@ CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 10/20「最後に」のペー�
 pages = [re.sub(r"__QPG_([0-9A-Z-]+)__", lambda m: str(pg_of(m.group(1))), x) if x else x for x in pages]   # 10/23 クイズの「くわしくは」のページ番号
 open(os.path.join(B, "a4.html"), "w").write(
     f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>準備編</title>{FONTS}<style>{CSS}</style></head>'
-    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["1"][0])), _vid_set)}{_pl.JS}{_fs.punct_js()}{FIT}</body></html>')
+    f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["1"][0])), _vid_set)}{_pl.JS}{_pb.JS}{_fs.punct_js()}{FIT}</body></html>')
 print("pages", len(pages))
