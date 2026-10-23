@@ -586,11 +586,16 @@ from content_k import MATOME_MSG
 #   1つ目の段落は大きな見出し（中央）。残りの4つは小さなカードにし、頭に中身を一言で表す札を付ける（札の言葉だけ、こちらで足したもの）
 _UTAG = ["少しずつでOK", "楽しむ心", "自分のペース"]
 # 10/23 準備編・洗浄編と同じ形（見出し＋札つきの3枠）。右に memo
+# 10/23 まーく様「ほかの編と同じく、ハンドシグナルで主に使った動画の名前とリンクを。それ以外は、各写真を見てね、の形で」
+SRC_END = ('<p class="src">写真：参考動画「18. ハンドシグナル【ダイビング基礎スキル】」（スキューバダイビング・エアー 福岡）の画面から。'
+           '<a href="https://youtu.be/pS-yk6gth-8"><span class="tapm scr">*</span>https://youtu.be/pS-yk6gth-8</a><br>'
+           '動画の一覧：<a href="https://www.youtube.com/@Air-diving/videos"><span class="tapm scr">*</span>youtube.com/@Air-diving</a><br>'
+           '※他の写真は、いくつかの動画から集めたもの<span class="scr">。元の動画は、写真をタップすると開くよ</span></p>')   # タップの話は画面だけ（印刷には出さない）
 _umsg = ('<div class="pbox"><p class="pbh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="pbg">'
          + "".join(f'<div class="pbc"><span class="pbt">{_UTAG[i]}</span><p>{"".join(para)}</p></div>' for i, para in enumerate(MATOME_MSG[1:])) + '</div></div>')
 QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ<br>分からない問いは、そのページを見返そう</small></h3>'
 # 10/23 準備編・洗浄編と同じ：伝えたいこと → すき間 → 見出し → 札 → クイズ（ずらさない）→ あまりに memo
-page("最後に", "ふり返り", f'<div class="toprow"><div class="tcol"><div class="pts">{_umsg}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>{(f'<div class="quiz qzk qb">{QHEAD}<span class="qh qh1">{len(QZ)}つのクイズ</span>{_qz}</div>' if len(QZ) % 2 else f'<div class="qsec">{QHEAD}</div><div class="quiz qzk"><span class="qh">{len(QZ)}つのクイズ</span>{_qz}</div>')}')
+page("最後に", "ふり返り", f'<div class="toprow"><div class="tcol"><div class="pts">{_umsg}</div>{SRC_END}</div><div class="memo-slot" data-up=".ph h2"></div></div>{(f'<div class="quiz qzk qb">{QHEAD}<span class="qh qh1">{len(QZ)}つのクイズ</span>{_qz}</div>' if len(QZ) % 2 else f'<div class="qsec">{QHEAD}</div><div class="quiz qzk"><span class="qh">{len(QZ)}つのクイズ</span>{_qz}</div>')}')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
