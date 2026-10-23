@@ -11,7 +11,7 @@ STEPS = [
      extra=["開けたときと逆で、右に回しきればOK！"]),
    dict(id="2-2", key=["s05", "g0"],
      title="{regu}の真ん中のボタンで、ホース類の空気を抜く",
-     extra=["{regu}の“プシュ～…”の音が無くなり、<br>{gauge}の針が0になったら、抜けた合図だよ"]),
+     extra=["{regu}の“プシュ～…”の音が無くなり、{gauge}の針が0になったら、抜けた合図だよ"]),
    dict(id="2-3", key=["s08"],
      title="<span class=\"nw\">{silver}ぐるぐる</span>を左に回し、キャップの水を飛ばす",
      extra=["<span class=\"nw\">{tank}くるくる</span>を左に回して空気を出すと、水が飛ぶよ"]),

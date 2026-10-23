@@ -706,7 +706,7 @@ CSS += """
 """
 CSS += """
 /* 改行：文のかたまりは、行の長さをなるべくそろえて折り返す（最後の行に1〜2文字だけ落ちるのを防ぐ。10/7 ご指摘） */
-.nx,.ns,.ns small,.sd2,.sd2 small,.pts p,.say,.q,.ds{text-wrap-style:balance!important}
+.nx,.ns,.ns *,.sd2,.sd2 small,.pts p,.say,.q,.ds,.pbc p,.pbc p small{text-wrap-style:auto!important}   /* 10/23 まーく様「中途半端な改行で右スペースを無駄にしている」→ 行の長さをそろえる（balance）をやめ、右はしまで使う（pretty：1字だけの行は作らない） */
 """
 CSS += """
 /* 2列のまん中に、水色の線（行の区切りと同じ線）を引いて、左右を区切る（10/7 ご指示） */
@@ -777,7 +777,7 @@ CSS += """
    札を左の細い列に立てるのをやめ、1行目の頭に「字の一部」として置く。
    2行目からは札の下（欄の左はし）から書くので、左にむだな空きができず、どの行も欄の幅いっぱいに使える。
    札は「大事」「補足」とも同じ2文字・同じ幅なので、1行目の書き出しもそろう */
-.notes .nt{display:block!important;text-wrap-style:balance}
+.notes .nt{display:block!important;text-wrap-style:auto}
 .notes .nk{display:inline;margin:0 1.6mm 0 0!important;padding:0 1.4mm;vertical-align:.08em;-webkit-box-decoration-break:clone}
 .notes .ns{display:block}
 /* memo：あいている場所に、PDFから字を入れられる欄を置く（10/8 ご指示）。欄そのものは、あとでPDFに足す */
