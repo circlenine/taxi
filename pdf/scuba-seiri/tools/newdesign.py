@@ -158,6 +158,8 @@ html body .page .qh{{padding-left:3mm!important;padding-right:4.8mm!important}}
 .notes .kx::before{{content:"";position:absolute;left:0;top:1.4mm;bottom:1.4mm;width:4px;background:{line}}}   /* 補足：うすい色の左縦線。太さは大事と同じ（10/20 まーく様「左側の線の太さは合わせて」）。差は色だけでつける */
 .mtc>.mts{{position:relative;padding-left:3.2mm!important}}   /* 10/20 まーく様「本文には左線を入れて」（まとめの札の文） */
 .mtc>.mts::before{{content:"";position:absolute;left:0;top:.6mm;bottom:.6mm;width:4px;background:{line}}}   /* 補足の左線と同じ太さ・同じ色 */
+.mcard>.mcq{{position:relative;padding-left:3.2mm!important}}   /* 10/23 まーく様「集約版はなぜ他と合わせて左に線が入っていないのか」→ スキル編の集約版の文にも同じ左線 */
+.mcard>.mcq::before{{content:"";position:absolute;left:0;top:.6mm;bottom:.6mm;width:4px;background:{line}}}
 /* 10/20 まーく様「クイズは、質問文にも、答えと同じ幅で背景色を」→ 質問＝濃い地に白い字、答え＝うすい地。左右の幅はそろえる */
 .page .qz .q{{background:{m};color:#fff!important;padding:1mm 2mm;border-radius:1mm;display:block;box-sizing:border-box;font-size:10pt;line-height:1.45!important}}   /* flex にすると、字と札がばらばらの箱になって崩れる（10/20 洗浄編で確かめた）ので block */
 .page .qz{{row-gap:.6mm!important}}
