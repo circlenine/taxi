@@ -539,7 +539,9 @@ CSS += """
 /* 10/23 まーく様「長文をもっと見やすく」：ステージごと・1つずつの枠に分ける（言葉は変えない） */
 .page .pbs{margin-top:1.4mm}
 .page .pbs .pbc{grid-template-columns:minmax(0,1fr)!important;row-gap:.8mm;padding:1.4mm 2.4mm}
-.page .pbs .pbt,.kpk .ns .pbs .pbt{justify-self:start;font-size:8.4pt;color:#fff!important;background:var(--navy)!important}
+.page .pbs .pbt,.kpk .ns .pbs .pbt{justify-self:start;font-size:9.4pt;color:var(--p-ink-red)!important;background:none!important;padding:0!important;border-radius:0!important;border-bottom:1.4px solid var(--p-pink2)}   /* 10/23 まーく様「青の枠文字だと他と区別できない」→ 番号の札（紺の枠）とちがう形：大事と同じ赤い字に下線 */
+.page .pbs .pbt::before{content:"▶ ";font-size:.8em}
+.page .pbs .pbc{box-shadow:inset 0 0 0 1px var(--p-pink2)!important}
 .page .srowc .nn2,.kpk .ns .srowc .nn2{background:var(--navy)!important;color:#fff!important;text-align:center;border-radius:1mm;font-size:8.4pt;line-height:1.6}
 .page .pbs .pbc p{font-size:9.6pt;line-height:1.5;color:var(--ink)}
 .page .pbs .pbc p small{display:block;font-size:8.4pt;color:var(--muted);font-weight:700}
