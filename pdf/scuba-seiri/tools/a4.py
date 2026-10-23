@@ -310,7 +310,7 @@ page("器材", "まずは“ダイビング器材”", f"""
 <div class="names">{names_html}</div></div></section>
 <section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke sk2"><div class="skc"><p class="skh">ホースでつなぐのは、この2点！</p><p>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
  <div class="skc"><p class="skh"><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p class="say">「さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！<br>{T("{tank}")}に上から付けられるか？<br>{T("{bc}")}には{T("{kachi}")}の難所も！<br>あぁー！付いたぁー！」</p></div>
- <div class="skc"><p class="skh"><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p><p class="say">「続いて！<span class="fs">セカンドステージ</span>！<br>呼吸は無事できるか？　あぁーっと！吸えたぁー！<br>左手にセカンド！右手には緊急信号の黄色いタコ…<br>そう！オクトパスだぁー！」</p></div>
+ <div class="skc"><p class="skh"><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p><p class="say">「続いて！<span class="fs">セカンドステージ</span>！<br>呼吸は無事できるか？　あぁーっと！吸えたぁー！<br>左手にセカンド！右手には緊急信号の黄色タコさん！<br>そう！オクトパスだぁー！」</p></div>
  <p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p></div>
 </section>
 <section class="step"><h3 class="sh3"><span class="sn">1-3</span><span>大きな器材</span></h3>
