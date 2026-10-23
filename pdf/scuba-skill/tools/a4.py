@@ -379,7 +379,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 
 # 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
 #   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div></div><div class="rcol"><div class="memo-slot" data-up=".ph h2"></div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 {(f'<div class="quiz qb">{QHEAD}{quiz}</div>' if QB else f'<div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>')}""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -796,10 +796,10 @@ CSS += """
 .toprow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:7mm}
 .toprow .tcol{display:flex;flex-direction:column;gap:5mm}
 .memo-slot{min-height:30mm}
-/* 10/23 まーく様「どうして準備編には関連動画の紹介が無いのか」→ 洗浄編と同じく最後のページに。左の段を伸ばすとはみ出すので、右の memo の下に置く */
-.rcol{display:flex;flex-direction:column;min-width:0}
-.rcol>.memo-slot{flex:1}
-.rcol>.src{margin-top:2mm}
+/* 10/23 まーく様「参考動画は、ふり返りの3つのポイントの下に入れられないのか」→ 洗浄編と同じ位置に。
+   そのぶん、ポイントと紹介のすき間・クイズの上のすき間を詰めて、1ページに収める */
+#p11 .tcol>.src{margin-top:-3.2mm!important}
+#p11 .quiz{margin-top:2.4mm!important}
 /* memo：ノートのように、行ごとに下線を引く（ほかの区切りと同じ、水色の1pxの線。10/8 ご指示）。点は打たない
    付箋の形（うすい黄色の紙・水色のテープ・右下の折り目）＋下線、で決まり（10/8 ご判断「このデザインなら良し」） */
 .page>.memo{background-image:none!important;padding:1.6mm 2.4mm!important}
