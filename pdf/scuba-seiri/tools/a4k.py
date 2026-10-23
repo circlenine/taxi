@@ -553,7 +553,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 # 10/22 まーく様「まとめクイズ、無いので作ってください」→ 最後のページ。□をタップすると答えが出る（準備編の「最後に」と同じ形）
 #   問いと答えは、各ページに書いたことだけ（新しい話は入れない）
 QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
-      ("くわえ直したら、すぐ吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
+      ("{regu}をくわえ直したら、すぐ息を吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
       ("真ん中のボタンが壊れていたら？", "「トゥー」と強く呼いて、水を出す", "2-3"),
       ("{bc}に空気が入らないときは？", "人差し指のボタンを押しながら、口で吹きこむ", "3-2"),
       ("マスクに水が入ったら、どこから呼く？", "鼻から。水はマスクの下から出ていく", "4-3"),
@@ -561,7 +561,10 @@ QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少し�
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
       ("浮いてきて、空気を抜くときのコツは？", "体を立てて、L字サインホースを上に伸ばす", "6-3"),
       ("親指を上に向ける合図の意味は？", "「浮上しよう」。「いいね！」ではない", "SIG")]
-_qz = "".join(f'<div class="qz"><span class="q"><span><span class="tapm scr">*</span>{T(q)}</span>{jump(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
+# 10/23 まーく様「スキル編も他編となるべく近い構成に」→ 準備編・洗浄編の「ふり返り」と同じ形：
+#   上に伝えたいこと（見出し＋札）→ 左上のマスに「ふり返ってみようクイズ！」、右に札と1問目 → 横2列のクイズ → あまりに memo
+#   「くわしくは」は、答えの下の行（右寄せ）。2列だと、問いと同じ行には入らないため
+_qz = "".join(f'<div class="qz{" q1st" if n == 0 else ""}"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span><span class="qj">{jump(j)}</span></div>' for n, (q, a, j) in enumerate(QZ))
 # 10/22 まーく様「まとめのページではなく、クイズのところに、僕が伝えたいことを入れて」→ クイズの下に（content_k.py の MATOME_MSG。言い換えない）
 from content_k import MATOME_MSG
 # 10/22 まーく様「もっと見やすくまとめられないのか。文章を載せているだけで雑な扱い」→ 文は1字も変えず、形だけ組み直す。
@@ -570,7 +573,8 @@ _UTAG = ["少しずつでいい", "楽しむ心", "うれしかったこと", "�
 _umsg = ('<div class="umsg2"><p class="umh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="umg">'
          + "".join(f'<div class="umc{" umc-key" if i == 3 else ""}"><span class="umt">{_UTAG[i]}</span><p>' + "<br>".join(para) + '</p></div>' for i, para in enumerate(MATOME_MSG[1:]))
          + '</div></div>')
-page("クイズ", "まとめクイズ", f'<p class="mtl qzl">□をタップすると、答えが出るよ。分からない問いは、そのページを見返そう</p><div class="quiz qzm">{_qz}</div>{_umsg}')
+QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）<br>分からない問いは、そのページを見返そう</small></h3>'
+page("最後に", "ふり返り", f'{_umsg}<div class="quiz qzk">{QHEAD}<span class="qh qh1">{len(QZ)}つのクイズ</span>{_qz}</div><div class="memo-slot" data-fill="1"></div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -593,7 +597,7 @@ TOC = _toc2
 toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>講習で習ったことの、おさらい　<span class="half rel new">NEW！</span>講習の後に、知っておくと楽になること</p>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span></div><p class="hw">YouTubeのリンク、memo<br>どれかをタップしてるときは、他の操作が、できないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>が付いているところは、タップできるよ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>下のリンクをタップすると、YouTubeへ移動するよ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップすると字が書けるよ</span><span class="hp">__TOTAL__ページ</span><span>クイズの□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</span></div><p class="hw">YouTubeのリンク、memo、クイズの□<br>どれかをタップしてるときは、他の操作が、できないときもあるから<br>もう良いよ！ってなったら右上の「✔︎」をタップすると元に戻るよ</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 # 中性浮力のページ（3と4を1ページにまとめた）は、写真を少し低くしてよい（10ページ以内に収めるため。仮の形）
 #   （写真の高さの下限を、p4 だけ 20mm にする。下の FIT の fit() で見分ける）
@@ -1109,6 +1113,7 @@ CSS += """
 /* クイズの説明は1行に収める（10/8 ご指示：印刷で消えたあとに2行ぶんの空きが残るのが気になる）。
    字をつめる（かっこ・読点の空きを詰める palt）だけで、字の大きさ（9pt）は変えない */
 #p10 .ph2 small.qhint{white-space:nowrap;font-feature-settings:"palt";letter-spacing:-.01em}
+.ph2 small.qhint{white-space:normal!important}   /* 10/23 準備編と同じ：細い列では折り返す（欄からはみ出さない） */
 """
 CSS += """
 /* もくじの札は、どれも3文字（器　材・工程1〜6・ラスト）にそろえたので、列の幅はもとの 18mm のまま */
@@ -1465,6 +1470,15 @@ CSS += """
 .page .umsg p:first-child{grid-column:1/-1;font-size:11.4pt;font-weight:900;color:#b0154a}
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
+/* 10/23 ふり返り（準備編・洗浄編と同じ形） */
+.page .quiz.qzk{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:7mm;row-gap:0!important;margin-top:3mm}
+.page .qzk .qhd{grid-column:1;grid-row:1/3;align-self:start;margin:0!important}
+.page .qzk .qh1{grid-column:2;grid-row:1;justify-self:start}
+.page .qzk .q1st{grid-column:2;grid-row:2}
+.page .qzk .qz{font-size:10pt;row-gap:.6mm!important;grid-template-rows:auto auto auto}
+.page .qzk .qz .a{height:auto!important;min-height:5.4mm;line-height:1.35;padding-top:.4mm;padding-bottom:.4mm}
+.page .qzk .qj{grid-column:2;justify-self:end;font-size:8.4pt;font-weight:700;line-height:1.2}
+.page .qzk .qj .jump{display:inline!important;margin:0!important;white-space:nowrap}
 .page .quiz.qzm{grid-template-columns:minmax(0,1fr)!important;margin-top:1.4mm;gap:.6mm!important}
 .page .qzm .qz{font-size:10.6pt;padding:.5mm 0!important;row-gap:.6mm!important}
 .page .qzm .qz .a{height:5mm!important}
