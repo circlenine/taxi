@@ -307,7 +307,7 @@ _t = (_d + _dt.timedelta(minutes=7, seconds=30)).replace(second=0, microsecond=0
 def _ampm(hm):   # 10/24 まーく様「日付、全てに AM を付けて」→ 13:05 は PM01:05 の形
     h, m = map(int, hm.split(':')); return f"{'AM' if h < 12 else 'PM'}{(h % 12):02d}:{m:02d}"
 VER = f"更新日時：{_t:%Y/%m/%d}({'月火水木金土日'[_t.weekday()]}) {_ampm(os.environ.get('VER_TIME') or format(_t, '%H:%M'))}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
-EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
+EDTAG = f'<span class="edtag"><b>3</b>OW編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
 #   10/21 番号の飛びをなくすため、content_k.py で その4 を その3 の中（3-4・3-5）に入れた。ここでは題だけを決める
 # 10/22 1スキル＝1ページにしたので、その3 の題の上書き（中性浮力）はやめた
@@ -621,7 +621,7 @@ for lb, tt, pn in TOC:
     _toc2.append((lb, tt, (pn, str(pn))))
 TOC = _toc2
 toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
-pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
+pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">OW</span><span class="cvp">（オープンウォーター）</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>リンクをタップで、YouTubeへ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
@@ -1341,6 +1341,8 @@ CSS += """
 .mtc .jump{grid-column:2;grid-row:3;text-align:left;margin-top:0;align-self:end;font-size:8.5pt!important;line-height:1.5!important;white-space:nowrap}
 """
 CSS += """
+/* 10/24 まーく様「スキル編を OW編 に名前を変えて」。1ページ目は OW（オープンウォーター）編 */
+html body #p1 .cover .cv-e .cvp{font-size:.36em;letter-spacing:0;margin:0 .15em;font-family:'M PLUS Rounded 1c',sans-serif!important;font-weight:800!important;vertical-align:.35em;letter-spacing:0!important}
 /* スキル編（10/19 仮）：流れの矢印・やる順の一覧・ハンドシグナルの表 */
 .flw{display:flex;flex-wrap:wrap;align-items:center;gap:1mm 1.4mm}
 .flb{background:#fff;border:1px solid var(--line);border-radius:1mm;padding:.4mm 1.6mm}
@@ -1664,6 +1666,6 @@ def recolor(h):
 
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 open(os.path.join(B, "a4.html"), "w").write(recolor(
-    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>スキル編</title>{FONTS}<style>{CSS}</style></head>'
+    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>OW編</title>{FONTS}<style>{CSS}</style></head>'
     f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["3"][0])), _vid_k)}{_pl.JS}{_pb.JS}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))
