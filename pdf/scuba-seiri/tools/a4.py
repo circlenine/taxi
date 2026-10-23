@@ -19,7 +19,7 @@ B = sys.argv[1]
 #   まーく様のドライブの画面収録（ScreenRecording_10-07-2026：この動画を最初から最後まで流したもの）と、写真の元の画面を1コマずつ見比べて出した（1秒前から始める）
 #   strap・twist は、ホース類のねじれを見る場面（144秒あたり）
 SET_T = {'bc': 28, 'belt': 236, 'c04': 36, 'c05': 51, 'c06': 58, 'c09': 80, 'c10': 103, 'c11': 112, 'c13': 129, 'c14': 126, 'c15': 138, 'c19': 165, 'c21': 172, 'c22': 175, 'c24': 182, 'c26': 195, 'c27': 199, 'c29': 220, 'c30': 227, 'c33': 256, 'c35': 271, 'c37': 295, 'c38': 301, 'c39': 307, 'c40': 315, 'c41': 321, 'c44': 138, 'cap': 34, 'nghi': 63, 'nglo': 63, 'strap': 143, 'tank': 28, 'twist': 143}
-def _vid_set(k): return "3oDlSquqUD4?t=26" if k == "ideal" else "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")   # ideal＝PADI Japan「Scuba Sarah」（10/23）
+def _vid_set(k): return "5K8XyxfDplc?t=10" if k == "ideal" else "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")   # ideal＝PADI「レギュレーター・リカバリー」10秒（10/24 まーく様が選んだ場面）
 
 def T(s):
     s = re.sub(r"\{(\w+)\}", lambda m: f'<span class="t t-{m.group(1)}">{TERMS[m.group(1)]}</span>', s)
@@ -252,9 +252,9 @@ def stepbox(s):
 #   PADI Japan 公式「Scuba Sarah」26秒：オクト・残圧計がストラップで胸にまとまり、ぶら下がっていない
 #   3-4 の補足の下（左の列のあき）に置く。中身は 3-5 の話なので、札に「3-5」と書く
 # 10/24 まーく様「ここのシーンではない。ホースがストラップに付いて泳いでいる映像」→ 合う写真が見つかるまで外す（IDEAL_ON=False）。写真を替えたら True に
-IDEAL_ON = False
+IDEAL_ON = True
 IDEAL = (f'<div class="nt kx ideal"><span class="nk">補足</span><span class="nx">3-5 ストラップに付けると…</span>'
-         f'<figure class="ph3">{im("ideal", 16/9)}<span class="cap3"><b>コレが理想の形！</b><br>{T("{octo}")}や{T("{gauge}")}が、体の前でスッキリ</span></figure></div>')
+         f'<figure class="ph3">{im("ideal", 1.0)}<span class="cap3"><b>コレが理想の形！</b><br><span class="nw">{T("{octo}")}・{T("{gauge}")}が、</span><br>体の前でスッキリ</span></figure></div>')
 
 # 更新日（10/14 ご指示：版の番号ではなく「2026/10/14（水）更新」の形で全ページに入れる）
 # 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
@@ -614,8 +614,9 @@ CSS += """
 .grid2>.step.wide{grid-row:auto;display:flex!important}
 .grid2>.step>.notes{align-self:start}
 .notes>.ideal{margin-top:3mm;display:block!important}   /* 10/23 3-4 の補足の下（左の列のあき）に置く */
-.notes>.ideal .ph3{margin-top:1.6mm}
-.notes>.ideal .ph3 img{height:auto!important;width:100%;aspect-ratio:16/9!important;object-fit:cover;border-radius:2mm;display:block}
+.notes>.ideal .ph3{margin-top:1.6mm;display:grid!important;grid-template-columns:52% minmax(0,1fr);column-gap:3mm;align-items:center}   /* 縦長の写真なので、左に写真・右に一言 */
+.notes>.ideal .ph3 img{height:auto!important;width:100%;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
+.notes>.ideal .cap3{text-align:left!important;font-size:10pt!important;line-height:1.6!important;white-space:normal!important}
 .photos.p3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
 .photos.p3 .ph3{grid-column:auto!important;grid-row:auto!important}
 .photos.p3 .ph3>img{height:var(--ph,50mm)!important}
