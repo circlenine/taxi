@@ -537,6 +537,7 @@ CSS += """
 .toprow .pts>.pbox{flex:none;display:flex;flex-direction:column}
 .toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
 .toprow>.tcol>.qhd{margin-top:0!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上）。洗浄編と同じ */
+.cmp3{display:grid;grid-template-columns:auto auto auto;justify-content:start;column-gap:.6em}   /* 10/23 くらべる2行：「→」と結果の書き出しを縦にそろえる */
 /* 10/23 クイズの「くわしくは」：問いの帯の右はし（スキル編と同じ） */
 .page .qz .qjs{float:right;margin:0 0 0 2mm!important;font-size:7.6pt!important;font-weight:700;color:#fff!important;white-space:nowrap;line-height:inherit;text-indent:0}
 .page .qz .qjs .tapm{color:#fff!important}
