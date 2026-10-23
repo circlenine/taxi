@@ -26,5 +26,7 @@ OK['#e0507f']='表紙のピンク（題の S・D・G・s の頭文字と、副�
 ['#2f9e7a','#e3f5ee','#d9466f','#fde6ec','#c98a00','#fff3cf','#2f78c4','#e1eefb','#fbf8ff'].forEach(c=>OK[c]='カードの色（10/19 スキル編2ページと同じ。緑・ピンク・黄・青）');
 // 洗浄編のオレンジ（a4s.py の COLORS と同じ）
 ['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='洗浄編のオレンジ');
+// スーツ編の緑（a4w.py の COLORS と同じ。10/24）
+['#2a8a62','#1f5c45','#d6efe3','#a6d8c0','#cfe8dc','#f2faf6','#c8e8d8','#e9f7f0','#e2f4eb','#bde3d0','#d4eee1','#b5dcc8','#f4fbf7'].forEach(c=>OK[c]='スーツ編の緑');
 const bad=Object.entries(r).filter(([k])=>!OK[k]);
 console.log(bad.length?bad.map(([k,v])=>'NG 決めていない色 '+k+' … '+v.join(' / ')).join('\n'):'色 OK（'+Object.keys(r).length+'色、すべて決めた色）');await b.close();})();
