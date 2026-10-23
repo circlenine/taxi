@@ -149,3 +149,22 @@
 ## 写真がまだ無い
 YouTube の動画は、この作業場所からは取りこめない（10/24 試した。ボットとして止められる）。
 写真は、まーく様に画面収録をお願いする（前の3冊と同じ）。
+
+## いただいた動画（10/24 AM5時ごろ・ドライブ）
+取りこみ先は /tmp/claude-0/drv3/（1920x1080）。消えたら、下の ID でドライブから取り直す。
+| 名前 | ドライブの ID | 長さ | 元の動画 |
+|---|---|---|---|
+| dry_ocean | 1v_4j7rJWQO1X7UMpxCrpKABN99orXMyx | 16:29（画面収録。動画は 8分） | ocean_a QtNIOoj7Lp0 |
+| dry_bcd | 1qmkGR860lHNmiXdsRuv8RydRmdcnnedp | 22:57 | パパラギ NS8OkAwcAJc |
+| wet_diver | 1R7RWuZdHSeTcCR827RXVPI6Imvr0WAWq | 12:55 | DIVER mag DwV0Abnrm9s |
+| wet_roxy | 1IEL51RSoNpj1EA2u3ks7I_yjrCuE-BBX | 17:54 | ROXY 8eup5ULd8_U |
+| dry_papa | 1Z39-NnD5vLYHEqQC_M0wuEq3mRKqOnqp | 35:01 | パパラギ 9IG9z5nAkl0 |
+- 画面収録は、動画の秒とずれる（ゆっくり再生などのため）。写真の秒は、画面に出ている字幕で動画の秒に合わせる。
+- dry_ocean：女性が着る・脱ぐを全部、字幕の手順番号つきで見せている。軸にする。
+- wet_diver：女性。半分に裏返す・かかとを持つ・膝パッド。屋外で明るい。
+- wet_roxy：女性。字幕に「着方①〜⑪」「脱ぎ方①〜」の番号つき。
+
+## YouTube のサムネイルから切り抜いた写真（講習編で使った）
+動画そのものは取りこめないが、YouTube が自動で作る静止画（1本につき4枚：表紙と、動画の1/4・1/2・3/4ごろ）は取れる。
+講習編の 足のつり（ashib・ashi）・オーラル給気（oral）・曳航（tow）・コンパス（cmp）の写真は、これで作った。
+場面は選べない（4枚のうちから選ぶだけ）。画質も 480x360 と低い。手順を1つずつ見せる写真には足りない。
