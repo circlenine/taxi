@@ -304,7 +304,7 @@ SUBPG = {}   # 手順の番号 → その手順があるページ
 import datetime as _dt
 _d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
 _t = _d.replace(minute=_d.minute // 30 * 30)   # 10/23 まーく様「更新日付に時間を、区切りよく」→ 30分ごとに切り捨て（22:47 → 22:30）
-VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]}) {_t:%H:%M}"   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
+VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]}) {os.environ.get('VER_TIME') or format(_t, '%H:%M')}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
 EDTAG = f'<span class="edtag"><b>3</b>スキル編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 # 10ページ以内の決まり（10/15）：中性浮力の①②（3と4）は、1ページにまとめる
 #   10/21 番号の飛びをなくすため、content_k.py で その4 を その3 の中（3-4・3-5）に入れた。ここでは題だけを決める
@@ -464,7 +464,7 @@ def _vid_k(k):   # 10/21 スキル編：写真の印 → 関連の動画と、�
     for p, v, sec in (("ashib", "TlgX1JiGMlU", 30), ("ashi", "gxhyWQh23T8", 23), ("towb", "jZPOTQzL4Ug", 0), ("towc", "XN3xFzh56m8", 0),
                       ("tow", "5-wTOpqnuj4", 83), ("cmpb", "uVPQyNRkWMA", 0), ("cmp", "AQ37U8pI6fc", 458), ("oral_3", "ttN-up-EvPA", 0), ("oral", "ClylzHRXqvA", 0)):
         if k.startswith(p): return t(v, sec)
-    if k in ("rc914", "rc916", "rc918", "rc920", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
+    if k in ("rc914", "rc916", "rc917", "rc918", "rc920", "rc922"): return t("rfjKcQkeu7w", int(k[2:]) - 881)  # サンズ「緊急スキル浮上」：画面収録の 881 秒から（914 はベルトを外す・922 は体を立てて排気）
     if re.match(r"rc(6[5-9]\d|7[0-6]\d)$", k): return t("kYvgkoTBkNg", int(k[2:]) - 657)   # サンズ「浮力コントロール & フィンピポット」：画面収録の 657 秒から
     if k.startswith("sg"): return t("pS-yk6gth-8", int(re.sub(r"\D", "", k)) / 100)   # 末尾の q（5-2 用の正方形）は数えない     # ハンドシグナル（印の数字は 1/100 秒）
     if k.startswith("bs"): return t("2X4rf11ORN0", int(k[2:]) / 2)       # ビューティフルシー（取りこんだ動画は映像が2倍に伸びている）
@@ -559,7 +559,7 @@ def _mrow(name, k, point, n, lab=""):
     return (f'<div class="mcard"><a class="mtv mcp" href="{mtv(k)}">{im(k, 1.5)}</a>'
             f'<p class="mcn">{T(name)}</p>'
             f'<p class="mcq">{T(point)}</p><a class="jump mcj" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></div>')   # 10/23 まーく様「くわしくはを一番下に」→ ポイントの下、右寄せ（ほかのページと同じ）
-MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashib_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
+MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashib_m", "6": "rc917"}   # 10/23 泡が出ている場面   # まとめの写真（その動作をしている場面）
 # 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
 _mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
 _mt += _mrow('ハンドシグナル<small class="mtnote">（手で伝える合図）</small>', "sg3125", SIGSIT["point"], SUBPG["SIG"], lab="合図")
@@ -590,7 +590,7 @@ _UTAG = ["少しずつでOK", "楽しむ心", "自分のペース"]
 # 10/23 まーく様「ほかの編と同じく、ハンドシグナルで主に使った動画の名前とリンクを。それ以外は、各写真を見てね、の形で」
 SRC_END = ('<p class="src">写真：参考動画「18. ハンドシグナル【ダイビング基礎スキル】」（スキューバダイビング・エアー 福岡）の画面から。'
            '<a href="https://youtu.be/pS-yk6gth-8"><span class="tapm scr">*</span>https://youtu.be/pS-yk6gth-8</a><br>'
-           '動画の一覧：<a href="https://www.youtube.com/@Air-diving/videos"><span class="tapm scr">*</span>youtube.com/@Air-diving</a><br>'
+           # 10/23 まーく様「動画の一覧って、ただのメイン画面ですよね。それなら取り除いて」→ 外した
            '※他の写真は、いくつかの動画から集めたもの<span class="scr">。元の動画は、写真をタップすると開くよ</span></p>')   # タップの話は画面だけ（印刷には出さない）
 _umsg = ('<div class="pbox"><p class="pbh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="pbg">'
          + "".join(f'<div class="pbc"><span class="pbt">{_UTAG[i]}</span><p>{"".join(para)}</p></div>' for i, para in enumerate(MATOME_MSG[1:])) + '</div></div>')

@@ -19,7 +19,7 @@ B = sys.argv[1]
 #   まーく様のドライブの画面収録（ScreenRecording_10-07-2026：この動画を最初から最後まで流したもの）と、写真の元の画面を1コマずつ見比べて出した（1秒前から始める）
 #   strap・twist は、ホース類のねじれを見る場面（144秒あたり）
 SET_T = {'bc': 28, 'belt': 236, 'c04': 36, 'c05': 51, 'c06': 58, 'c09': 80, 'c10': 103, 'c11': 112, 'c13': 129, 'c14': 126, 'c15': 138, 'c19': 165, 'c21': 172, 'c22': 175, 'c24': 182, 'c26': 195, 'c27': 199, 'c29': 220, 'c30': 227, 'c33': 256, 'c35': 271, 'c37': 295, 'c38': 301, 'c39': 307, 'c40': 315, 'c41': 321, 'c44': 138, 'cap': 34, 'nghi': 63, 'nglo': 63, 'strap': 143, 'tank': 28, 'twist': 143}
-def _vid_set(k): return "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")
+def _vid_set(k): return "3oDlSquqUD4?t=26" if k == "ideal" else "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")   # ideal＝PADI Japan「Scuba Sarah」（10/23）
 
 def T(s):
     s = re.sub(r"\{(\w+)\}", lambda m: f'<span class="t t-{m.group(1)}">{TERMS[m.group(1)]}</span>', s)
@@ -246,14 +246,20 @@ REDCAP = set()   # 10/23 まーく様「画像下の銀色金具ぐるぐる、�
 WIDE = set()
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{notes(s)}</section>')
+            f'{photos(s)}{(notes(s)[:-6] + IDEAL + "</div>") if s["id"] == "3-4" else notes(s)}</section>')   # 3-4 は補足の下に「理想の形」を足す
+
+# 10/23 まーく様「3-4 の下のあきに、3-5 の補足として、ストラップを付けてダイビングを楽しんでいる様子の写真を。画像の下に“これが理想の形！”」
+#   PADI Japan 公式「Scuba Sarah」26秒：オクト・残圧計がストラップで胸にまとまり、ぶら下がっていない
+#   3-4 の補足の下（左の列のあき）に置く。中身は 3-5 の話なので、札に「3-5」と書く
+IDEAL = (f'<div class="nt kx ideal"><span class="nk">補足</span><span class="nx">3-5 ストラップに付けると…</span>'
+         f'<figure class="ph3">{im("ideal", 16/9)}<span class="cap3"><b>コレが理想の形！</b><br>{T("{octo}")}や{T("{gauge}")}が、体の前でスッキリ</span></figure></div>')
 
 # 更新日（10/14 ご指示：版の番号ではなく「2026/10/14（水）更新」の形で全ページに入れる）
 # 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
 import datetime as _dt
 _d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
 _t = _d.replace(minute=_d.minute // 30 * 30)   # 10/23 まーく様「更新日付に時間を、区切りよく」→ 30分ごとに切り捨て（22:47 → 22:30）
-VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]}) {_t:%H:%M}"   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
+VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]}) {os.environ.get('VER_TIME') or format(_t, '%H:%M')}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
 EDTAG = f'<span class="edtag"><b>1</b>器材準備編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
 def page(head_no, head_title, inner, toc=True):
@@ -605,6 +611,9 @@ CSS += """
 .grid2>.step{display:grid!important;grid-row:span 3;grid-template-rows:subgrid;row-gap:2.4mm;align-content:start}
 .grid2>.step.wide{grid-row:auto;display:flex!important}
 .grid2>.step>.notes{align-self:start}
+.notes>.ideal{margin-top:3mm;display:block!important}   /* 10/23 3-4 の補足の下（左の列のあき）に置く */
+.notes>.ideal .ph3{margin-top:1.6mm}
+.notes>.ideal .ph3 img{height:auto!important;width:100%;aspect-ratio:16/9!important;object-fit:cover;border-radius:2mm;display:block}
 .photos.p3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
 .photos.p3 .ph3{grid-column:auto!important;grid-row:auto!important}
 .photos.p3 .ph3>img{height:var(--ph,50mm)!important}
