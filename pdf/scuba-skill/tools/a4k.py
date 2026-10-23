@@ -572,13 +572,13 @@ _qz = "".join(f'<div class="qz{" q1st" if n == 0 and len(QZ) % 2 else ""}"><span
 from content_k import MATOME_MSG
 # 10/22 まーく様「もっと見やすくまとめられないのか。文章を載せているだけで雑な扱い」→ 文は1字も変えず、形だけ組み直す。
 #   1つ目の段落は大きな見出し（中央）。残りの4つは小さなカードにし、頭に中身を一言で表す札を付ける（札の言葉だけ、こちらで足したもの）
-_UTAG = ["少しずつでいい", "楽しむ心", "うれしかったこと", "自分のペース"]
-_umsg = ('<div class="umsg2"><p class="umh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="umg">'
-         + "".join(f'<div class="umc{" umc-key" if i == 3 else ""}"><span class="umt">{_UTAG[i]}</span><p>' + "<br>".join(para) + '</p></div>' for i, para in enumerate(MATOME_MSG[1:]))
-         + '</div></div>')
+_UTAG = ["少しずつでOK", "楽しむ心", "自分のペース"]
+# 10/23 準備編・洗浄編と同じ形（見出し＋札つきの3枠）。右に memo
+_umsg = ('<div class="pbox"><p class="pbh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="pbg">'
+         + "".join(f'<div class="pbc"><span class="pbt">{_UTAG[i]}</span><p>{"".join(para)}</p></div>' for i, para in enumerate(MATOME_MSG[1:])) + '</div></div>')
 QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ<br>分からない問いは、そのページを見返そう</small></h3>'
 # 10/23 準備編・洗浄編と同じ：伝えたいこと → すき間 → 見出し → 札 → クイズ（ずらさない）→ あまりに memo
-page("最後に", "ふり返り", f'{_umsg}{(f'<div class="quiz qzk qb">{QHEAD}<span class="qh qh1">{len(QZ)}つのクイズ</span>{_qz}</div>' if len(QZ) % 2 else f'<div class="qsec">{QHEAD}</div><div class="quiz qzk"><span class="qh">{len(QZ)}つのクイズ</span>{_qz}</div>')}<div class="memo-slot" data-fill="1"></div>')
+page("最後に", "ふり返り", f'<div class="toprow"><div class="tcol"><div class="pts">{_umsg}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>{(f'<div class="quiz qzk qb">{QHEAD}<span class="qh qh1">{len(QZ)}つのクイズ</span>{_qz}</div>' if len(QZ) % 2 else f'<div class="qsec">{QHEAD}</div><div class="quiz qzk"><span class="qh">{len(QZ)}つのクイズ</span>{_qz}</div>')}')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1490,6 +1490,14 @@ CSS += """
 .page .qzk>.qh{grid-column:1/-1;justify-self:start}
 .page .qsec{width:calc(50% - 3.5mm);margin-top:7mm}   /* 10/23 区切りが見えるよう、上とのあいだを空ける（準備編・洗浄編と同じ） */
 .page .qsec>.qhd{margin:0!important}
+/* 10/23 ふり返りの見出し＋札（準備編・洗浄編と同じ） */
+.pts{background:none!important;padding:0!important}
+.page .pbox{border-radius:2mm;padding:2mm 3mm 2.2mm;background:var(--pale);box-shadow:inset 0 0 0 1.4px var(--line)}
+.page .pbh{margin:0 0 1.6mm;text-align:center;font-size:11.5pt;line-height:1.5;font-weight:900;color:var(--navy)}
+.page .pbg{display:grid;grid-template-columns:minmax(0,1fr);gap:1.6mm}
+.page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:minmax(0,1fr);row-gap:.8mm}
+.page .pbt{justify-self:start;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm}
+.page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}
 /* 10/23 まーく様「1つ目の組が奇数で、右下に空きができる場合は、見出しを左、右にクイズのはじめ」（B の形）。偶数なら、見出しを上に置く */
 .page .quiz.qb{margin-top:7mm}
 .page .qb>.qhd{grid-column:1;grid-row:1/3;align-self:start;margin:0!important}
