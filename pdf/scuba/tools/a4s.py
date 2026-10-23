@@ -1179,7 +1179,8 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  // 2ページ（導入）は、写真を小さくすると表がはみ出すので、3の下のあき（25mm 以上）を memo にする（10/13）
  // 10/22 まーく様「5-3の下に memo を付けてもらった方が良い」→ 片方の列の下に 22mm 以上あけば、そこを memo にする（横いっぱいの細い memo にしない）
  if(best.b-best.t>=22*MM&&pg.id!=='p2'){place(pg,best);return;}
- if(best.b-best.t<(pg.id==='p2'?0:MINC)){fit(pg,lim-RES);if(+pg.dataset.ph<40)fit(pg,lim-RES2);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
+ if(best.b-best.t<(pg.id==='p2'?0:MINC)){const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}   /* 10/23 まーく様「ここだけ写真を小さくされるのはデザイン的に酷い」→ memo のために写真を縮めない。あまった所にだけ置く */
+ if(best.b-best.t<45)return;
  place(pg,best);});}
 // 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
 function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;

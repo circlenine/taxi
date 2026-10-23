@@ -1014,7 +1014,8 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  // 10/22 まーく様「4-4の下も空いてるのに、なぜmemoを広げないのか」→ 左右の列の下が両方とも 20mm 以上あいていれば、
  //   memo は横いっぱいに（上は、低いほうの列の下にそろえる）。片方だけ空いているときは、その列だけ
  {const cs=colSpace(pg);if(cs.length===2&&cs.every(c=>c.b-c.t>=20*96/25.4)){best={l:cs[0].l,r:cs[1].r,t:Math.max(cs[0].t,cs[1].t),b:cs[0].b};}}
- if(best.b-best.t<MINC){fit(pg,lim-RES);const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}
+ if(best.b-best.t<MINC){const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}   /* 10/23 まーく様「ここだけ写真を小さくされるのはデザイン的に酷い」→ memo のために写真を縮めない。あまった所にだけ置く */
+ if(best.b-best.t<45)return;
  place(pg,best);});}
 // 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
 function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;
