@@ -540,7 +540,7 @@ sm1 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}<
 sma = (f'<section class="sqc sqa3"><p class="sqh"><span class="sqn">{T(SIG_AIRNUM[0])}</span><span class="sqd">数字を1けたずつ、指で見せる</span></p><div class="sqr3">'
        + '<i class="sqa">▶</i>'.join(f'<figure class="sqf">{im(k, 1.9)}<figcaption>{"①②③"[i]}{T(c)}</figcaption></figure>' for i, (k, c) in enumerate(SIG_AIRNUM[1])) + '</div></section>')
 # こんな時・ポイントの枠は、1ページに収めるため、このページでは出さない（ポイントは、まとめのページに）
-page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんが使う合図）</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div>{sma}<div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
+page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんが使う合図）<br>下の段は、形だけで伝わる合図</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div>{sma}<div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
 # 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
@@ -1369,7 +1369,7 @@ CSS += """
 .sqg3>.sqc.sq1{grid-column:span 1}
 .sqg3 .sqf figcaption{font-size:8.2pt!important}
 .sqg3 .sqn{font-size:10pt!important}
-.sgn3{margin-top:2mm}
+.sgn3{margin-top:.4mm}
 .sqg3 .sqh{margin-bottom:.8mm!important}
 .sqg3 .sqc{padding-top:1.2mm!important}
 .sqg3 figcaption{line-height:1.3!important;margin-top:.5mm!important}
@@ -1445,7 +1445,7 @@ CSS += """
 .page .ng{color:#f93612;font-weight:900}
 .page .slead{margin:0 0 1.4mm;font-size:9.6pt;font-weight:700;color:var(--ink,#333)}
 /* 合図は2列で大きく（10/22「画像が小さすぎます」） */
-.page .sqgL{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2.4mm 5mm!important}
+.page .sqgL{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2mm 5mm!important}
 .page .sqgL .sqn{font-size:11pt!important}
 .page .sqgL figcaption{font-size:9.4pt!important;line-height:1.35!important}
 /* まとめ（表1枚） */
@@ -1472,13 +1472,14 @@ CSS += """
 .page .mcn .mtnote{display:inline;font-size:8.4pt;font-weight:900;white-space:nowrap;letter-spacing:-.02em}   /* 10/23 まーく様「（）の文字も1行にできるのでは」→ 名前と同じ行に */
 .page .mcn{white-space:nowrap}   /* （）は名前の下の行に（途中で折り返さないように） */
 .page .mcq{font-size:8.8pt;font-weight:700;color:#b0154a}
-.page .sqg1p{gap:1.4mm 5mm!important}
+.page .sqg1p{gap:1mm 5mm!important}
 .page .sqg1p .sqc,.page .sqg4 .sqc{padding-top:.8mm!important}
 .page .sqg4{margin-top:1.4mm;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm 3mm!important}
 .page .sqg4 .sqn{font-size:10pt!important}
 .page .sqg4 figcaption{font-size:8.6pt!important;line-height:1.3!important}
 /* 10/23 残圧の伝え方（3枚を横に） */
-.page .sqa3{margin:0 0 2mm;width:76%}   /* 写真1枚の大きさを、上の合図とそろえる */
+.page .sqa3{margin:0 0 .6mm;width:73%}
+.page .sql{margin-bottom:1mm!important}   /* 10/23 説明を2行にしたぶん、段のすき間を少し詰める */   /* 写真1枚の大きさを、上の合図とそろえる */
 .page .sqa3 .sqh{display:flex;align-items:baseline;gap:3mm}
 .page .sqa3 .sqd{font-size:9pt;font-weight:700;color:var(--muted)}
 .page .sqr3{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1.4mm}
