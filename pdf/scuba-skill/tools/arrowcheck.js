@@ -15,6 +15,6 @@ for(const e of els){const info=await e.evaluate(el=>{const cp=getComputedStyle(e
  const base=Math.floor(png.width-info.tip*SC)-1;
  for(let y=1;y<png.height-1;y++){if(!dark(bx0+1,y)||!dark(base-1,y))continue;for(let x=bx0+2;x<base-1;x++){if(isW(x,y)){if(x<mn)mn=x;if(x>mx)mx=x;}}}
  mn-=bx0;
- if(mx<0)continue;n++;const L=mn/SC/MM,R=(base+1-(mx+1))/SC/MM;   /* 左：地の左はし〜字の左はし／右：字の右はし〜矢印の付け根 */(kinds[info.c]=kinds[info.c]||[]).push({t:info.t,L,R});if(Math.abs(L-R)>0.3){bad++;console.log('  ずれ「'+info.t+'」左'+L.toFixed(2)+'・右'+R.toFixed(2)+'mm');}}
+ if(mx<0)continue;n++;const L=mn/SC/MM,R=(base+1-(mx+1))/SC/MM;   /* 左：地の左はし〜字の左はし／右：字の右はし〜矢印の付け根 */(kinds[info.c]=kinds[info.c]||[]).push({t:info.t,L,R});if(Math.abs(L-R-1.12)>0.35){bad++;/* 10/23 まーく様「やや左寄りに見える」→ 矢印の先のぶん、字を0.6mm右へ（左の余白が右より1.2mm多い形が正しい） */console.log('  ずれ「'+info.t+'」左'+L.toFixed(2)+'・右'+R.toFixed(2)+'mm');}}
 for(const [k,a] of Object.entries(kinds)){const d=a.map(x=>x.L-x.R);console.log('  '+k+' '+a.length+'個 左-右 '+Math.min(...d).toFixed(2)+'〜'+Math.max(...d).toFixed(2)+'mm 例「'+a[0].t+'」左'+a[0].L.toFixed(2)+'・右'+a[0].R.toFixed(2)+'mm');}
 console.log(bad?'NG しおりの札：字の左右の余白がそろっていない（'+bad+'個）':'しおりの札 OK（'+n+'個・字の左右の余白が同じ）');await b.close();process.exit(bad?1:0);})();

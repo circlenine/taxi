@@ -173,13 +173,13 @@ TAGS = {}
 KEYS = {}
 # 写真の下の名前。器材が写っている写真には、必ず正式名称を添える（10/13 ご指示）
 CAP = {("2-1", "tv"): "タンクくるくる<small>（正式名称：タンクバルブ）</small>", ("2-2", "s05"): "レギュの真ん中のボタン<small>（正式名称：パージボタン）</small>",
-       ("2-3", "s08"): "銀色金具の真ん中のキャップ<small>（正式名称：ダストキャップ）<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具の真ん中のキャップ<small>（正式名称：ダストキャップ）<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
-       ("3-1", "s11"): "カチカチホース<small>（正式名称：中圧ホース）</small>", ("3-1", "c14"): "カチカチを、手前に引いた形", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>（正式名称：<br>Buoyancy Control Device<br>＝浮力調整装置）</small>",
+       ("2-3", "s08"): "銀色金具キャップ<small class=\"inl\">（正式名称：ダストキャップ）</small><small>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具キャップ<small class=\"inl\">（正式名称：ダストキャップ）</small><small>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
+       ("3-1", "s11"): "カチカチホース<small>（正式名称：中圧ホース）</small>", ("3-1", "c13"): "ふだんのカチカチ", ("3-1", "c14"): "手前に引いた形", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>（正式名称：<br>Buoyancy Control Device<br>＝浮力調整装置）</small>",
        ("4-2", "s18"): "L字サインホース<small>（正式名称：インフレーターホース）</small>",
        ("4-1", "s19"): "<small>（正式名称：オーラル給気）</small>", 
        ("4-4", "s21"): "下の空気を抜く口<small>（正式名称：排気バルブ）</small>", ("5-1", "s25"): "レギュ<small>（正式名称：セカンドステージ）</small>",
-       ("5-3", "s28"): "銀色金具<small>（正式名称：ファーストステージ）</small>",
-       ("6-1", "s23"): "タンクの口のキャップ",
+       ("5-3", "s28"): "<small>（正式名称：ファーストステージ）</small>",
+       ("6-1", "s23"): "タンクの口のキャップ<small>初めに外したら、そのまま！で覚えよう</small>", ("5-4", "s30"): "水にひたるとオクトパス（タコ）に見えー…ないね",
        ("6-2", "s31"): "干す場所は、インストラクターさんに<br>聞いて、日かげにウラァ！と干しちゃおう",
        # 10/13 ご指示：水をかけていない大写し・持ち方の写真
        ("2-2", "g0"): "残圧計の針が0", ("4-2", "infl"): "ここから水を入れる", ("4-4", "infl2"): "ここから水が抜ける",
@@ -321,6 +321,7 @@ CAP = {("2-1", "mimi4"): "①鼻をつまむ", ("2-1", "mimi73"): "②鼻をつ�
        # 10/22 呼び名と正式名称（準備編・洗浄編と同じ書き方）。その器材が写っている写真の下に
        ("1-2", "rc2_342"): "①右肩を下げ、腕を後ろへ", ("1-2", "rc2_344"): "②そのまま、腕を大きく回す",   # 10/22 まーく様「やる前・やった後はぶっきらぼう。スマートな言い方に」→ 合図のページと同じ ①② の形
        ("1-4", "rr49"): "レギュ<small>（正式名称：セカンドステージ）</small>",
+       ("1-4", "rc2_248"): "<small>（正式名称：オクトパス）</small>",
        ("2-1", "rc2_92"): "真ん中のボタン<small>（正式名称：パージボタン）</small>",
        ("4-1", "oral_m"): "L字サインホース<small>（正式名称：インフレーターホース）</small>", ("4-2", "oral_3"): "人差し指ピーンボタン<small>（正式名称：排気ボタン）</small>",
        ("6-2", "rc675"): "親指のボタン<small>（正式名称：給気ボタン）</small>",
@@ -608,7 +609,7 @@ TOC = _toc2
 toc_rows = "".join(f'<a class="tc" href="#p{pn[0]}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn[1]}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">3</span></span><span class="cv-e"><span class="g">スキル</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>リンクをタップで、YouTubeへ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">もし、うまく動かない場合は、右上の「✔︎」をタップして、試してみてね</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__YTP__ページ</span><span>リンクをタップで、YouTubeへ</span><span class="hp" id="memop">__MEMOP__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 # 中性浮力のページ（3と4を1ページにまとめた）は、写真を少し低くしてよい（10ページ以内に収めるため。仮の形）
 #   （写真の高さの下限を、p4 だけ 20mm にする。下の FIT の fit() で見分ける）
@@ -939,6 +940,7 @@ CSS += """
 CSS += """
 /* 写真の下の名前に添える正式名称（ほかの「正式名称：」と同じ、うすい字） */
 .cap3 small{display:block;font-size:9pt;color:var(--muted)}
+.cap3 small.inl{display:inline}   /* 10/23 正式名称を名前と同じ行に */
 """
 CSS += """
 /* もくじの説明は、「もくじ」と同じ行の右に置く（1行ぶんの高さを、もくじの行に回す） */
@@ -1120,6 +1122,7 @@ CSS += """
 #p1 .howto .htap{margin-left:4mm!important}
 #p1 .howto .hrows{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)!important;column-gap:2mm!important;row-gap:1mm!important;margin-top:1mm!important}
 #p1 .howto .hw{margin-top:1mm!important}
+#p1 .howto .hw .ckc{display:inline-flex;align-items:center;justify-content:center;width:1.25em;height:1.25em;border-radius:50%;border:.12em solid currentColor;font-size:.85em;line-height:1;margin:0 .15em;vertical-align:.05em}   /* 10/23 丸の中の✓（iPhone の「完了」ボタンに近い形） */
 """
 CSS += """
 /* memo のテープ：紙（うすい黄色）とはっきり違う、マスキングテープらしい濃いめの黄色。
@@ -1629,7 +1632,7 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
 function pullNotes(){document.querySelectorAll('.grid2>.step:not(.wide):not(.side),.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
  nt.style.marginTop='';let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});if(!pb)return;
  const want=2.4*96/25.4,gap=nt.getBoundingClientRect().top-pb;if(gap>want+2){const m=parseFloat(getComputedStyle(nt).marginTop)||0;nt.style.marginTop=(m-(gap-want))+'px';}});}
-document.fonts.ready.then(()=>{phraseBreak();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();memoPages();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();memoPages();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#7b4fb0", "#16466b": "#4b2a73", "#d7eef9": "#ece1f7", "#a9d8ef": "#cdb5ea", "#cfe5f2": "#e2d4f2",

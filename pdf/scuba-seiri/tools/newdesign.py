@@ -165,6 +165,9 @@ html body .page .qh{{padding-left:3mm!important;padding-right:4.8mm!important}}
 /* 10/23 まーく様「■のある文字が、ほかの文字とズレている」→ 問いが2行になったとき、2行目の書き出しを「*」の右（1行目の字の始まり）にそろえる */
 .page .qz .q{{padding-left:calc(2mm + .76em)!important;text-indent:-.76em}}
 .page .qz .q>.tapm:first-child{{text-indent:0}}   /* 「*」の幅（.59em）＋すき間（.17em）＝.76em ぶん、2行目を下げる */
+/* 10/23 まーく様「左の問いが3行のとき、答えの枠との間に変な空白がある。答えの枠を広げて空白をなくして」→ 答えの枠は、残りの高さいっぱいまで伸ばす */
+.page .quiz .qz{{grid-template-rows:auto 1fr!important;align-items:stretch!important}}
+.page .quiz .qz .a{{height:auto!important;min-height:5.4mm;align-self:stretch!important}}
 .page .qz .q .jump{{text-indent:0}}
 .page .qz{{row-gap:.6mm!important}}
 .page .qz .q *{{color:#fff!important}}

@@ -173,13 +173,13 @@ TAGS = {}
 KEYS = {}
 # 写真の下の名前。器材が写っている写真には、必ず正式名称を添える（10/13 ご指示）
 CAP = {("2-1", "tv"): "タンクくるくる<small>（正式名称：タンクバルブ）</small>", ("2-2", "s05"): "レギュの真ん中のボタン<small>（正式名称：パージボタン）</small>",
-       ("2-3", "s08"): "銀色金具の真ん中のキャップ<small>（正式名称：ダストキャップ）<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具の真ん中のキャップ<small>（正式名称：ダストキャップ）<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
-       ("3-1", "s11"): "カチカチホース<small>（正式名称：中圧ホース）</small>", ("3-1", "c14"): "カチカチを、手前に引いた形", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>（正式名称：<br>Buoyancy Control Device<br>＝浮力調整装置）</small>",
+       ("2-3", "s08"): "銀色金具キャップ<small class=\"inl\">（正式名称：ダストキャップ）</small><small>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具キャップ<small class=\"inl\">（正式名称：ダストキャップ）</small><small>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
+       ("3-1", "s11"): "カチカチホース<small>（正式名称：中圧ホース）</small>", ("3-1", "c13"): "ふだんのカチカチ", ("3-1", "c14"): "手前に引いた形", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>（正式名称：<br>Buoyancy Control Device<br>＝浮力調整装置）</small>",
        ("4-2", "s18"): "L字サインホース<small>（正式名称：インフレーターホース）</small>",
        ("4-1", "s19"): "<small>（正式名称：オーラル給気）</small>", 
        ("4-4", "s21"): "下の空気を抜く口<small>（正式名称：排気バルブ）</small>", ("5-1", "s25"): "レギュ<small>（正式名称：セカンドステージ）</small>",
-       ("5-3", "s28"): "銀色金具<small>（正式名称：ファーストステージ）</small>",
-       ("6-1", "s23"): "タンクの口のキャップ",
+       ("5-3", "s28"): "<small>（正式名称：ファーストステージ）</small>",
+       ("6-1", "s23"): "タンクの口のキャップ<small>初めに外したら、そのまま！で覚えよう</small>", ("5-4", "s30"): "水にひたるとオクトパス（タコ）に見えー…ないね",
        ("6-2", "s31"): "干す場所は、インストラクターさんに<br>聞いて、日かげにウラァ！と干しちゃおう",
        # 10/13 ご指示：水をかけていない大写し・持ち方の写真
        ("2-2", "g0"): "残圧計の針が0", ("4-2", "infl"): "ここから水を入れる", ("4-4", "infl2"): "ここから水が抜ける",
@@ -342,7 +342,7 @@ oh_rows = ("".join(f'<span class="nn2">{i+1}</span><span class="sp2">{T(a)}</spa
 SUBPG_P2 = 2
 def jl(sid):   # 写真の名前の下の「くわしくは〜」
     return jump(sid)
-P2_TRIO = [("s10", "{silver}のキャップの水気を飛ばしたら、すぐ締め直す", "2-4"),
+P2_TRIO = [("s10", "{silver}キャップの水気を飛ばしたら、すぐ締め直す", "2-4"),
            ("s25", "{regu}と{octo}を洗うときは、真ん中のボタンを押さない", "5-1"),
            ("s28", "{silver}の外側やホース類は、キャップを締めたまま洗う", "5-3")]
 trio = "".join(f'<figure class="ph3">{im(k, 1.0)}<span class="cap3">{T(t)}</span>{jl(j)}</figure>' for k, t, j in P2_TRIO)
@@ -430,7 +430,7 @@ def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">2</span></span><span class="cv-e"><span class="g">洗浄</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div><p class="relnote"><span class="half rel">ふり返り</span>付けたときと逆の順に、外していくだけ　<span class="half rel new">NEW！</span>新規項目である洗浄のやり方</p>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>リンクをタップで、YouTubeへ</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">もし、うまく動かない場合は、右上の「✔︎」をタップして、試してみてね</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>リンクをタップで、YouTubeへ</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 pages = [re.sub(r"__PG_([0-9A-Z-]+)__", lambda m: str(SUBPG[m.group(1)]), x) for x in pages]
@@ -755,6 +755,7 @@ CSS += """
 CSS += """
 /* 写真の下の名前に添える正式名称（ほかの「正式名称：」と同じ、うすい字） */
 .cap3 small{display:block;font-size:9pt;color:var(--muted)}
+.cap3 small.inl{display:inline}   /* 10/23 正式名称を名前と同じ行に */
 """
 CSS += """
 /* もくじの説明は、「もくじ」と同じ行の右に置く（1行ぶんの高さを、もくじの行に回す） */
@@ -936,6 +937,7 @@ CSS += """
 #p1 .howto .htap{margin-left:4mm!important}
 #p1 .howto .hrows{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)!important;column-gap:2mm!important;row-gap:1mm!important;margin-top:1mm!important}
 #p1 .howto .hw{margin-top:1mm!important}
+#p1 .howto .hw .ckc{display:inline-flex;align-items:center;justify-content:center;width:1.25em;height:1.25em;border-radius:50%;border:.12em solid currentColor;font-size:.85em;line-height:1;margin:0 .15em;vertical-align:.05em}   /* 10/23 丸の中の✓（iPhone の「完了」ボタンに近い形） */
 """
 CSS += """
 /* memo のテープ：紙（うすい黄色）とはっきり違う、マスキングテープらしい濃いめの黄色。
@@ -1254,7 +1256,7 @@ function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();con
 // 10/23 まーく様「memo、下が空いているなら、ふり返ってみようクイズと被らない位置まで伸ばして」→ クイズのかたまりの 6mm 上まで
 function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),qt=q.getBoundingClientRect().top-6*MM;if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
  m.querySelectorAll('.ml').forEach(l=>l.remove());const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;for(let i=0;i<Math.floor(inner/(8.5*MM));i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
-document.fonts.ready.then(()=>{phraseBreak();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#c2571a", "#16466b": "#6b3410", "#d7eef9": "#ffe6d2", "#a9d8ef": "#f6c095", "#cfe5f2": "#f6d9c2",

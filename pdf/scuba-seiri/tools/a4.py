@@ -167,7 +167,7 @@ ASP = {1: 4 / 3, 2: 1.0}
 TAGS = {"4-2": "左に回りきったら、右に半回転戻す！"}
 KEYS = {"2-1": ["cap", "c04"], "3-4": ["c44", "c13", "c14"], "5-2": ["c27"], "6-1": ["c33"], "6-2": ["c35"]}
 CAP = {("3-5", "twist"): "手でたどって見る", ("3-5", "strap"): "ストラップ<small>※基本はお腹の横らへんにあるよ！</small>", ("2-1", "cap"): "キャップを外す",
-       ("2-1", "c04"): "タンクくるくるを右手で持つ", ("3-4", "c13"): "ふだんの輪", ("3-4", "c14"): "輪を手前に引いた形",   # 10/22 まーく様「やる前・やった後はぶっきらぼう」→ 引く前・引いた後 も言いかえた
+       ("2-1", "c04"): "タンクくるくるを右手で持つ", ("3-4", "c13"): "ふだんのカチカチ", ("3-4", "c14"): "手前に引いた形",   # 10/22 まーく様「やる前・やった後はぶっきらぼう」→ 引く前・引いた後 も言いかえた
        ("3-4", "c44"): "L字サインホース<small>（正式名称：インフレーターホース）</small>", ("3-3", "c11"): "銀色金具ぐるぐる<small>（正式名称：ヨークスクリュー）</small>", ("3-2", "c10"): "銀色金具ぐるぐる<small>（正式名称：ヨークスクリュー）</small>", ("4-2", "c24"): "タンクくるくる<small>（正式名称：タンクバルブ）</small>", ("6-2", "c35"): "黒いスーツ着てて見づらいね", ("6-1", "c33"): "この人、ウエスト細いね", ("3-1", "c09"): "Oって感じだよね<small>（正式名称：Oリング）</small>", ("4-1", "c19"): "目は、つぶらなくて良いよ", ("5-2", "c27"): "L字サインホース<small>（正式名称：インフレーターホース）</small>"}
 
 _slots = {}
@@ -308,7 +308,7 @@ page("器材", "まずは“ダイビング器材”", f"""
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:{RX1 - RX0}/{RY1 - RY0}">{marks}</div>
 <div class="names">{names_html}</div></div></section>
-<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke sk2"><div class="skc"><p class="skh"><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p class="say">「さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！」</p><p><b>ホースでつなぐのは、この2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
+<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke sk2"><div class="skc"><p class="skh"><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p class="say">「さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！」</p><p><b>ホースでつなぐのは、この2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
  <div class="skc"><p class="skh"><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p class="say">「続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？　あぁーっと！吸えたぁー！」</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div>
  <p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p></div>
 </section>
@@ -387,7 +387,7 @@ def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">1</span></span><span class="cv-e"><span class="g">準備</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">2・{len(pages) - 1}ページ</span><span>青い字をタップで、YouTubeへ</span><span class="hp">2〜{len(pages) - 2}・{len(pages)}ページ</span><span>memo は、タップで書ける</span><span class="hp">{len(pages)}ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">もし、うまく動かない場合は、右上の「✔︎」をタップして、試してみてね</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">2・{len(pages) - 1}ページ</span><span>青い字をタップで、YouTubeへ</span><span class="hp">2〜{len(pages) - 2}・{len(pages)}ページ</span><span>memo は、タップで書ける</span><span class="hp">{len(pages)}ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 
@@ -911,6 +911,7 @@ CSS += """
 #p1 .howto .htap{margin-left:4mm!important}
 #p1 .howto .hrows{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)!important;column-gap:2mm!important;row-gap:1mm!important;margin-top:1mm!important}
 #p1 .howto .hw{margin-top:1mm!important}
+#p1 .howto .hw .ckc{display:inline-flex;align-items:center;justify-content:center;width:1.25em;height:1.25em;border-radius:50%;border:.12em solid currentColor;font-size:.85em;line-height:1;margin:0 .15em;vertical-align:.05em}   /* 10/23 丸の中の✓（iPhone の「完了」ボタンに近い形） */
 """
 CSS += """
 /* memo のテープ：紙（うすい黄色）とはっきり違う、マスキングテープらしい濃いめの黄色。
@@ -1099,7 +1100,7 @@ function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();con
 // 10/23 まーく様「memo、下が空いているなら、ふり返ってみようクイズと被らない位置まで伸ばして」→ クイズのかたまりの 6mm 上まで
 function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),qt=q.getBoundingClientRect().top-6*MM;if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
  m.querySelectorAll('.ml').forEach(l=>l.remove());const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;for(let i=0;i<Math.floor(inner/(8.5*MM));i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
-document.fonts.ready.then(()=>{phraseBreak();hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 CSS += '''
 /* 10/21 工程3：3-5 は横いっぱいの1段。左に題と写真、右に大事の箱（memo の場所に入る） */
 .page .grid2>.step.wide:has(>.notes){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:7mm}
