@@ -308,7 +308,8 @@ page("器材", "まずは“ダイビング器材”", f"""
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:{RX1 - RX0}/{RY1 - RY0}">{marks}</div>
 <div class="names">{names_html}</div></div></section>
-<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke sk2"><div class="skc"><p class="skh"><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースでつなぐのは、この2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p><p class="say">「さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！」</p></div>
+<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えよう！</span></h3><div class="sasuke sk2"><div class="skc"><p class="skh">ホースでつなぐのは、この2点！</p><p>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
+ <div class="skc"><p class="skh"><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p class="say">「さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！」</p></div>
  <div class="skc"><p class="skh"><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p><p class="say">「続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？　あぁーっと！吸えたぁー！」</p></div>
  <p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p></div>
 </section>
