@@ -321,8 +321,13 @@ names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class
 # 費用の目安（10/14 ご指示：「〇万円」「〇,〇〇〇円」が混ざっていた → 全部「￥00,000」の形にそろえ、桁の位置も縦にそろえる）
 # （名前, 頭の記号, いくらから, いくらまで）。「＋」は、銀色金具＋レギュに足す分
 OH = [("{silver}＋{regu}", "", "￥15,000", "￥20,000"), ("{octo}", "＋", "￥5,000", ""),
-      ("L字サインホース", "＋", "￥2,000", "￥4,000"), ("修理が必要なとき", "", "￥30,000", "￥50,000")]
-oh_rows = "".join(f'<span class="nn2">{i+1}</span><span class="sp2">{T(a)}</span><span class="sd2 yen"><span class="yp">{pl}</span><span class="ya">約</span><span class="y1">{lo}</span><span class="yt">〜</span><span class="y2">{hi}</span></span>' for i, (a, pl, lo, hi) in enumerate(OH))
+      ("L字サインホース", "＋", "￥2,000", "￥4,000")]
+# 10/23 まーく様「結局のところ、総額いくら払わなきゃいけないの？ってなりませんか」
+#   → 1〜3の合計を足した行を置き、修理は「さらに」と分けて書く（オクトの上限が無いので、合計は「〜」まで）
+_yen = lambda pl, lo, hi: f'<span class="sd2 yen"><span class="yp">{pl}</span><span class="ya">約</span><span class="y1">{lo}</span><span class="yt">〜</span><span class="y2">{hi}</span></span>'
+oh_rows = ("".join(f'<span class="nn2">{i+1}</span><span class="sp2">{T(a)}</span>' + _yen(pl, lo, hi) for i, (a, pl, lo, hi) in enumerate(OH))
+           + '<span class="nn2 ohs">＝</span><span class="sp2 ohs">健康診断の合計</span>' + _yen("", "￥22,000", "").replace('sd2 yen', 'sd2 yen ohs')
+           + '<span class="nn2">！</span><span class="sp2">修理が必要なときは、さらに</span>' + _yen("＋", "￥30,000", "￥50,000"))
 # 2ページは、ほかのページと同じ「2列に、題・写真・札」の形で作る（10/13 ご指摘：決まりとちがう作りで、見た感じがもやもやする）
 # 2ページは「導入」のページ（10/13 ご指摘：いきなり決まりが並ぶと、初心者は「何これ？」となる）
 #   ① まず、なぜ気をつけるのか（ホースや銀色金具の中は繊細）を伝える
@@ -781,7 +786,8 @@ CSS += """
 /* 2列は、中身の長さにかかわらず、いつも左右同じ幅にする（長い字のかたまりで、片方の列が広がらないように） */
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
 .grid2>.step>*{min-width:0}
-.notes>.jrow{margin:0;text-align:right}   /* 10/23 補足の下、右寄せ */
+.notes>.jrow{margin:0;text-align:right}
+.srows .ohs{border-top:1px solid var(--line);padding-top:.8mm;margin-top:.4mm;font-weight:900;color:var(--p-ink-red)}   /* 10/23 合計の行 */   /* 10/23 補足の下、右寄せ */
 """
 CSS += """
 /* memo：付箋の形にする（10/8 ご指示「ノートや付箋っぽく、デザインはしっかり保って」）
