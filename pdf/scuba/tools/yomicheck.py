@@ -39,6 +39,7 @@ for p in PROPER: t = t.replace(p, "")
 # 木曜・火曜にだけ落ちていた（10/15 見つけた）。日付ごと取りのぞいてから調べる。
 t = re.sub(r"更新日時：\d{4}/\d{2}/\d{2}\([月火水木金土日]\)", "", t)
 t = t.replace("試してみてね", "").replace("タップしてみてね", "")   # 10/23 まーく様の言葉（「〜してみる」の「みる」は、ひらがなが正しい書き方）
+t = t.replace("よーくスクリュー", "")   # 10/23 まーく様のだじゃれ（ヨークスクリューにかけて、わざと ひらがな）
 tk = Tokenizer(); by = defaultdict(lambda: defaultdict(int))
 for line in t.split("\n"):
     line = line.strip()
