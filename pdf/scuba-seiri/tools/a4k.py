@@ -548,8 +548,8 @@ page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合�
 #   → 3列のカード。上に大きな写真（タップすると動画）、下に「名前」と「ポイント」だけ
 def _mrow(name, k, point, n, lab=""):
     return (f'<div class="mcard"><a class="mtv mcp" href="{mtv(k)}">{im(k, 1.5)}</a>'
-            f'<p class="mcn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
-            f'<p class="mcq">{T(point)}</p></div>')
+            f'<p class="mcn">{T(name)}</p>'
+            f'<p class="mcq">{T(point)}</p><a class="jump mcj" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></div>')   # 10/23 まーく様「くわしくはを一番下に」→ ポイントの下、右寄せ（ほかのページと同じ）
 MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
 # 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
 _mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
@@ -1468,7 +1468,7 @@ CSS += """
 .page .mcp img{width:100%!important;height:auto!important;aspect-ratio:1.5!important;border-radius:1mm;display:block;object-fit:cover}
 .page .mcard p{margin:0;line-height:1.45}
 .page .mcn{font-size:10.6pt;font-weight:900;color:var(--navy)}
-.page .mcn .jump{display:block;font-size:8pt;font-weight:700}
+.page .mcard>.mcj{display:block;align-self:flex-end;font-size:8pt;font-weight:700;margin:0!important}
 .page .mcn .mtnote{display:inline;font-size:8.4pt;font-weight:900;white-space:nowrap;letter-spacing:-.02em}   /* 10/23 まーく様「（）の文字も1行にできるのでは」→ 名前と同じ行に */
 .page .mcn{white-space:nowrap}   /* （）は名前の下の行に（途中で折り返さないように） */
 .page .mcq{font-size:8.8pt;font-weight:700;color:#b0154a}

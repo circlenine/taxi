@@ -1111,7 +1111,7 @@ CSS += '''
 .page .mtg .mtc>a.mtv>.play{position:absolute;right:1.6mm;bottom:1.6mm;width:6mm;height:6mm;border-radius:1mm;background:#fff;border:.3mm solid var(--line);box-sizing:border-box;color:var(--navy);font-size:8pt;line-height:6mm;text-align:center;padding-left:.4mm;box-sizing:border-box}
 .page .mtg>.mtfirst{align-self:stretch;display:flex;flex-direction:column;gap:3mm;padding-top:2mm;grid-column:auto/span 1!important}
 /* 10/23 まーく様「集約版の、むだな高さの空白」→ 「くわしくは」を一覧のすぐ下に（枠の下に貼りつけない）。左上のマスは、中身を上下まん中に */
-.page .mtg .mtc .jump{align-self:start!important}
+.page .mtg .mtc .jump{align-self:flex-end!important;justify-self:end!important;text-align:right!important}   /* 10/23 くわしくは：一番下・右寄せ（3冊・全ページ同じ） */
 .page .mtg>.mtfirst{justify-content:center!important}
 .page .mtfirst>.mtl{margin:0!important;font-size:9.2pt!important;line-height:1.6}
 .page .mtfirst>.mthow{align-self:stretch!important;margin:0!important;display:flex;gap:2mm;align-items:center;grid-column:auto!important}
