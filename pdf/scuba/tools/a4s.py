@@ -688,6 +688,8 @@ CSS += """
 CSS += """
 .ph3.stack .cap3{align-self:center;text-align:left}
 .photos.p3.rev{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)!important}
+.photos.p3:not(.rev){grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:7mm!important}   /* 10/23 まーく様「左の1枚はページの半分まで、右の2枚もページ半分くらいの幅に」→ 下の2列（3-2・3-3）と同じ割りにそろえる */
+.step.wide:has(>.photos.p3:not(.rev))>.notes{width:calc(50% - 3.5mm)!important;align-self:flex-start!important}   /* 補足も左の写真と同じ幅（ページの半分）に */
 """
 CSS += """
 /* 魚のイラスト：見出しの線の右はしに1匹、空いた枠に小さな群れ */
