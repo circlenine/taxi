@@ -277,10 +277,10 @@ def _ideal(h):
 # 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
 import datetime as _dt
 _d = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=9)))
-_t = _d.replace(minute=_d.minute // 30 * 30)   # 10/23 まーく様「更新日付に時間を、区切りよく」→ 30分ごとに切り捨て（22:47 → 22:30）
+_t = (_d + _dt.timedelta(minutes=7, seconds=30)).replace(second=0, microsecond=0); _t = _t.replace(minute=_t.minute // 15 * 15)   # 10/24 まーく様「修正時間の15分単位で、いちばん近いものに（永久に）」→ 1:52 は 1:45、1:53 は 2:00
 def _ampm(hm):   # 10/24 まーく様「日付、全てに AM を付けて」→ 13:05 は PM01:05 の形
     h, m = map(int, hm.split(':')); return f"{'AM' if h < 12 else 'PM'}{(h % 12):02d}:{m:02d}"
-VER = f"更新日時：{_d:%Y/%m/%d}({'月火水木金土日'[_d.weekday()]}) {_ampm(os.environ.get('VER_TIME') or format(_t, '%H:%M'))}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
+VER = f"更新日時：{_t:%Y/%m/%d}({'月火水木金土日'[_t.weekday()]}) {_ampm(os.environ.get('VER_TIME') or format(_t, '%H:%M'))}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
 EDTAG = f'<span class="edtag"><b>1</b>器材準備編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
 def page(head_no, head_title, inner, toc=True):
