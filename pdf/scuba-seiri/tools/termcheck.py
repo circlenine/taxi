@@ -7,7 +7,7 @@ h = open(sys.argv[1]).read()
 h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 h = re.sub(r'<style.*?</style>|<script.*?</script>|<svg.*?</svg>', '', h, flags=re.S)
 # 更新日時の曜日のかっこだけは半角（10/14 まーく様のご指示）。ここだけ調べる前に取りのぞく
-h = re.sub(r'<span class="ver">更新日時：\d{4}/\d\d/\d\d\([月火水木金土日]\)( \d\d:\d\d)?</span>', '', h)   # 10/23 時刻（22:30）も足した
+h = re.sub(r'<span class="ver">更新日時：\d{4}/\d\d/\d\d\([月火水木金土日]\)( (AM|PM)?\d\d:\d\d)?</span>', '', h)   # 10/23 時刻（22:30）も足した
 t = re.sub(r'\s', '', re.sub(r'<[^>]+>', '', h))
 # 言いかえの言葉 → 使ってよい場所（前後の文字）
 RULES = {
