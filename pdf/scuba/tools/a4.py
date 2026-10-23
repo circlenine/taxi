@@ -7,7 +7,7 @@
 import sys, os, re
 import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
-from content import STEPS, TERMS, POINTS, QUIZ, MATOME
+from content import STEPS, TERMS, POINTS, POINT_TAGS, QUIZ, MATOME
 from focus import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -166,7 +166,7 @@ TAGS = {"4-2": "左に回りきったら、右に半回転戻す！"}
 KEYS = {"2-1": ["cap", "c04"], "3-4": ["c44", "c13", "c14"], "5-2": ["c27"], "6-1": ["c33"], "6-2": ["c35"]}
 CAP = {("3-5", "twist"): "手でたどって見る", ("3-5", "strap"): "ストラップ<small>※基本はお腹の横らへんにあるよ！</small>", ("2-1", "cap"): "キャップを外す",
        ("2-1", "c04"): "タンクくるくるを右手で持つ", ("3-4", "c13"): "ふだんの輪", ("3-4", "c14"): "輪を手前に引いた形",   # 10/22 まーく様「やる前・やった後はぶっきらぼう」→ 引く前・引いた後 も言いかえた
-       ("3-4", "c44"): "L字サインホース<small>正式名称：インフレーターホース</small>", ("3-3", "c11"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("3-2", "c10"): "銀色金具ぐるぐる<small>正式名称：ヨークスクリュー</small>", ("4-2", "c24"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("6-2", "c35"): "黒いスーツ着てて見づらいね", ("6-1", "c33"): "この人、ウエスト細いね", ("3-1", "c09"): "Oって感じだよね", ("4-1", "c19"): "目は、つぶらなくて良いよ", ("5-2", "c27"): "L字サインホース<small>正式名称：インフレーターホース</small>"}
+       ("3-4", "c44"): "L字サインホース<small>（正式名称：インフレーターホース）</small>", ("3-3", "c11"): "銀色金具ぐるぐる<small>（正式名称：ヨークスクリュー）</small>", ("3-2", "c10"): "銀色金具ぐるぐる<small>（正式名称：ヨークスクリュー）</small>", ("4-2", "c24"): "タンクくるくる<small>（正式名称：タンクバルブ）</small>", ("6-2", "c35"): "黒いスーツ着てて見づらいね", ("6-1", "c33"): "この人、ウエスト細いね", ("3-1", "c09"): "Oって感じだよね", ("4-1", "c19"): "目は、つぶらなくて良いよ", ("5-2", "c27"): "L字サインホース<small>（正式名称：インフレーターホース）</small>"}
 
 _slots = {}
 def im(k, asp):
@@ -300,7 +300,7 @@ names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"
          ("{octo}", "緊急用<span class=\"dsn\">（黄色って緊急っぽいよね）</span>", "オクトパス"), ("{kachi}", "{bc}と合体！", "中圧ホース"),
          ("{gauge}", "空気の残りを確認するゲージ", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
-names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
+names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>（正式名称：{c}）</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
 page("器材", "まずは“ダイビング器材”", f"""
 <div class="toprow"><div class="tcol"><a class="ref" href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="play">▶</span><span><b>参考動画「ダイビング機材セッティング」</b><span class="ru"><span class="tapm scr">*</span>youtu.be/twjEJS_0kms</span><span class="rn scr">※タップすると、YouTubeへ移動するよ</span><span class="cr">OPEN EV（沖縄県教育委員会 教育支援ビデオ）<br>／制作 沖縄県立沖縄水産高等学校</span></span></a></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
@@ -315,8 +315,8 @@ page("器材", "まずは“ダイビング器材”", f"""
 <section class="step"><h3 class="sh3"><span class="sn">1-3</span><span>大きな器材</span></h3>
 <div class="big">
  <div class="bg">{im("tank", 0.42)}{T("{tank}")}<p>空気のボンベ。<br>{T("{bc}")}＆{T("{silver}")}と合体！</p></div>
- <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{tank}")}＆{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">正式名称：Buoyancy Control Device（浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
- <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターさんに聞こう！</p><p class="of">正式名称：ウェイトベルト</p></div>
+ <div class="bg">{im("bc", 1.0)}{T("{bc}")}<p>いわゆる浮き袋。<br>{T("{tank}")}＆{T("{silver}")}＆<br>{T("{kachi}")}と合体！</p><p class="of">（正式名称：Buoyancy Control Device＝浮力調整装置）<br>ネイティブに発音できたらカッコイイかも</p></div>
+ <div class="bg">{im("belt", 0.45)}{T("{belt}")}<p>体を沈めるベルト。<br><span class="nw">何kg必要かは、</span>インストラクターさんに聞こう！</p><p class="of">（正式名称：ウェイトベルト）</p></div>
 </div></section></div>""")
 
 # 工程4は、4-2の「大事」が長く、4-1の下に大きな空きができる。そのままでは memo がページのまん中に来てしまい、
@@ -339,7 +339,10 @@ for sec in STEPS:
         page(f"工程{sec['id']}", t, body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
 # まとめ
-pts = "".join(f'<p class="pth">{h}</p>' + "".join(f"<p>・{T(l)}</p>" for l in ls) for h, ls in POINTS)
+# 10/22 まーく様「ふり返りも、スキル編にならって見やすく」→ 見出し（上・まん中）＋1つずつの札（左上に短い名前）
+_pl = [l for _, ls in POINTS for l in ls]
+pts = ('<div class="pbox"><p class="pbh">' + "<br>".join(T(h) for h, _ in POINTS) + '</p><div class="pbg">'
+       + "".join(f'<div class="pbc"><span class="pbt">{t}</span><p>{T(l)}</p></div>' for t, l in zip(POINT_TAGS, _pl)) + '</div></div>')
 quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
@@ -519,6 +522,14 @@ CSS += """
 .tl{font-size:10.5pt!important}.tt{font-size:12.5pt!important}.tp{font-size:15pt!important}
 /* まとめ */
 .pts{background:none!important;padding:0!important;font-size:12pt}
+/* 10/22 ふり返りの見出し＋札（スキル編の「伝えたいこと」と同じ形。色は、この本の色） */
+.page .pbox{border-radius:2mm;padding:2mm 3mm 2.2mm;background:var(--pale);box-shadow:inset 0 0 0 1.4px var(--line)}
+.page .pbh{margin:0 0 1.6mm;text-align:center;font-size:11.5pt;line-height:1.5;font-weight:900;color:var(--navy)}
+.page .pbg{display:grid;grid-template-columns:minmax(0,1fr);gap:1.6mm}
+.page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */
+.page .pbt{display:inline-block;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm;text-align:center}
+.page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}
+.page .pbc p small{display:block;font-size:8.5pt;color:var(--muted)}
 .quiz{display:grid!important;grid-template-columns:1fr 1fr;column-gap:7mm;row-gap:0!important}
 .quiz .qh{grid-column:1/-1;justify-self:start;margin-top:2mm}
 .qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.6mm 0!important;font-size:11pt}
@@ -980,7 +991,7 @@ function vis(el){let m=-1e9;const w=document.createTreeWalker(el,NodeFilter.SHOW
   if(c.tagName==='IMG'||c.tagName==='svg'||parseFloat(s.borderBottomWidth)>0||(s.backgroundColor!=='rgba(0, 0, 0, 0)'&&c!==el))m=Math.max(m,r.bottom);});return m;}
 function frame(pg){const P=pg.getBoundingClientRect(),cs=getComputedStyle(pg);return {P,L:P.left+parseFloat(cs.paddingLeft),R:P.right-parseFloat(cs.paddingRight),lim:P.bottom-parseFloat(cs.paddingBottom)};}
 function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *')].map(c=>c.getBoundingClientRect().bottom))-1;
- let lo=30,hi=pg.querySelector('[data-k=strap]')?56:95;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
+ let lo=30,hi=pg.querySelector('[data-k=strap]')?56:58;   /* 10/22 まーく様「このページの画像だけ異常に大きい」→ ほかのページ（55〜58mm）と同じくらいまでで止める。余りは memo へ */for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
  g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});

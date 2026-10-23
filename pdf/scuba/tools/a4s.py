@@ -7,7 +7,7 @@
 import sys, os, re
 import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
-from content_s import STEPS, TERMS, POINTS, QUIZ, MATOME   # 器材洗浄編（10/13）
+from content_s import STEPS, TERMS, POINTS, POINT_TAGS, QUIZ, MATOME   # 器材洗浄編（10/13）
 from focus_s import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -170,13 +170,13 @@ ASP = {1: 4 / 3, 2: 1.0}
 TAGS = {}
 KEYS = {}
 # 写真の下の名前。器材が写っている写真には、必ず正式名称を添える（10/13 ご指示）
-CAP = {("2-1", "tv"): "タンクくるくる<small>正式名称：タンクバルブ</small>", ("2-2", "s05"): "レギュの真ん中のボタン<small>正式名称：パージボタン</small>",
-       ("2-3", "s08"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具の真ん中のキャップ<small>正式名称：ダストキャップ<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
-       ("3-1", "s11"): "カチカチホース<small>正式名称：中圧ホース</small>", ("3-1", "c14"): "銀色の輪を、手前に引いた形", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>正式名称：<br>Buoyancy Control Device<br>（浮力調整装置）</small>",
-       ("3-3", "s17"): "水を張ったバケツなどで洗うよ", ("4-2", "s18"): "L字サインホース<small>正式名称：インフレーターホース</small>",
-       ("4-1", "s19"): "口から吹きこむ<small>正式名称：オーラル給気</small>", ("4-3", "s20"): "上下左右にゆすってね",
-       ("4-4", "s21"): "下の空気を抜く口<small>正式名称：排気バルブ</small>", ("5-1", "s25"): "レギュ<small>正式名称：セカンドステージ</small>",
-       ("5-2", "s27"): "オクト<small>正式名称：オクトパス</small>", ("5-3", "s28"): "銀色金具<small>正式名称：ファーストステージ</small>",
+CAP = {("2-1", "tv"): "タンクくるくる<small>（正式名称：タンクバルブ）</small>", ("2-2", "s05"): "レギュの真ん中のボタン<small>（正式名称：パージボタン）</small>",
+       ("2-3", "s08"): "銀色金具の真ん中のキャップ<small>（正式名称：ダストキャップ）<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>", ("2-4", "s10"): "銀色金具の真ん中のキャップ<small>（正式名称：ダストキャップ）<br>ゴミ・砂・水が入るのを防ぐ、大切な保護パーツ</small>",
+       ("3-1", "s11"): "カチカチホース<small>（正式名称：中圧ホース）</small>", ("3-1", "c14"): "銀色の輪を、手前に引いた形", ("3-2", "coil"): "銀色金具のホース類の<br>まとめ方は<br>画像のように、<br>クルッとすると良いよ", ("3-2", "s14"): "BCD<small>（正式名称：<br>Buoyancy Control Device<br>＝浮力調整装置）</small>",
+       ("3-3", "s17"): "水を張ったバケツなどで洗うよ", ("4-2", "s18"): "L字サインホース<small>（正式名称：インフレーターホース）</small>",
+       ("4-1", "s19"): "口から吹きこむ<small>（正式名称：オーラル給気）</small>", ("4-3", "s20"): "上下左右にゆすってね",
+       ("4-4", "s21"): "下の空気を抜く口<small>（正式名称：排気バルブ）</small>", ("5-1", "s25"): "レギュ<small>（正式名称：セカンドステージ）</small>",
+       ("5-2", "s27"): "オクト<small>（正式名称：オクトパス）</small>", ("5-3", "s28"): "銀色金具<small>（正式名称：ファーストステージ）</small>",
        ("5-4", "s30"): "キャップをしたまま沈めるよ", ("6-1", "s23"): "タンクの口のキャップ",
        ("6-2", "s31"): "干す場所は、インストラクターさんに<br>聞いて、日かげにウラァ！と干しちゃおう",
        # 10/13 ご指示：水をかけていない大写し・持ち方の写真
@@ -314,7 +314,7 @@ names = [("{silver}", "{tank}＆{bc}と合体！", "ファーストステージ"
          ("{octo}", "緊急用<span class=\"dsn\">（黄色って緊急っぽいよね）</span>", "オクトパス"), ("{kachi}", "{bc}と合体！", "中圧ホース"),
          ("{gauge}", "空気の残りを確認するゲージ", "")]
 # 道具の名前の下に、正式名称を小さく添える（10/8 ご指示）。残圧計は、名前そのものが正式名称なので添えない（10/8 ご指摘）
-names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>正式名称：{c}</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
+names_html = "".join(f'<div class="nmr"><span class="nn">{i+1}</span><span class="nm">{T(a)}<span class="ds">{T(b)}</span>{f'<small>（正式名称：{c}）</small>' if c else ''}</span></div>' for i, (a, b, c) in enumerate(names))
 # 2ページ：いちばん大事な話（ホースに水を入れない）と、オーバーホール（10/13 ご指示）
 # 費用の目安は、ショップの料金表（DGMS・アイダックなど、2026年10月）から、部品代こみ・税込のおおよそで出した
 # 費用の目安（10/14 ご指示：「〇万円」「〇,〇〇〇円」が混ざっていた → 全部「￥00,000」の形にそろえ、桁の位置も縦にそろえる）
@@ -338,7 +338,7 @@ P2_TRIO = [("s10", "{silver}のキャップの水気を飛ばしたら、すぐ�
            ("s25", "{regu}と{octo}を洗うときは、真ん中のボタンを押さない", "5-1"),
            ("s28", "{silver}の外側やホース類は、キャップを締めたまま洗う", "5-3")]
 trio = "".join(f'<figure class="ph3">{im(k, 1.0)}<span class="cap3">{T(t)}</span>{jl(j)}</figure>' for k, t, j in P2_TRIO)
-page("大事", "先に“取扱注意”なものを伝えるよ", f"""
+page("器材", "先に“取扱注意”なものを伝えるよ", f"""
 <div class="grid2">
 <section class="step wide w2"><h3 class="sh3"><span class="sn">1-1</span><span>{T("{bc}")}と{T("{silver}のホース類")}は、洗い方がちがう！</span></h3>
 <div class="photos two">
@@ -375,7 +375,10 @@ for sec in STEPS:
         page(f"工程{sec['id']}", t, body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
 # まとめ
-pts = "".join(f'<p class="pth">{h}</p>' + "".join(f'<p class="bl"><span class="bm">・</span><span>{T(l)}</span></p>' for l in ls) for h, ls in POINTS)
+# 10/22 まーく様「ふり返りも、スキル編にならって見やすく」→ 見出し（上・まん中）＋1つずつの札（左上に短い名前）
+_pl = [l for _, ls in POINTS for l in ls]
+pts = ('<div class="pbox"><p class="pbh">' + "<br>".join(T(h) for h, _ in POINTS) + '</p><div class="pbg">'
+       + "".join(f'<div class="pbc"><span class="pbt">{t}</span><p>{T(l)}</p></div>' for t, l in zip(POINT_TAGS, _pl)) + '</div></div>')
 quiz = "".join(f'<span class="qh">{h}</span>' + "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a in qs) for h, qs in QUIZ)
 # 写真の出どころの文は、ページの下から、まとめの文の下（左半分）へ移す。ページの下があいたぶん、右上の memo が大きくなる（10/8 ご指示）
 # 「まとめ」のページ（10/16 まーく様：「今回覚えるべきポイント」はやめて、その他・クイズの前のページに「まとめ」を挟む。
@@ -402,7 +405,8 @@ mt = "".join(
     for i, (k, h, steps) in enumerate(MATOME, 1))
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、動画で見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ダイビング 器材の片付け」</span><br><span class="nw">OPEN EV／沖縄県立沖縄水産高等学校・</span><br><span class="nw">沖縄県教育委員会</span></p></div>{mt}</div>')
 
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3><div class="quiz q1">{quiz}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>""")
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ダイビング 器材の片付け」（OPEN EV／制作協力　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/Cg4JdxYFcoo?si=bO1JE0EX5Wfy7HWN"><span class="tapm scr">*</span>https://youtu.be/Cg4JdxYFcoo</a><br>※動画の後半は、字幕の説明が変な文になっているので気を付けてね</p><h3 class="ph2">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）</small></h3></div><div class="memo-slot" data-up=".ph h2"></div></div>
+<div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
 TOC_TT = {"最後に": "その他・クイズ"}
@@ -553,6 +557,14 @@ CSS += """
 .tl{font-size:10.5pt!important}.tt{font-size:12.5pt!important}.tp{font-size:15pt!important}
 /* まとめ */
 .pts{background:none!important;padding:0!important;font-size:12pt}
+/* 10/22 ふり返りの見出し＋札（スキル編の「伝えたいこと」と同じ形。色は、この本の色） */
+.page .pbox{border-radius:2mm;padding:2mm 3mm 2.2mm;background:var(--pale);box-shadow:inset 0 0 0 1.4px var(--line)}
+.page .pbh{margin:0 0 1.6mm;text-align:center;font-size:11.5pt;line-height:1.5;font-weight:900;color:var(--navy)}
+.page .pbg{display:grid;grid-template-columns:minmax(0,1fr);gap:1.6mm}
+.page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */
+.page .pbt{display:inline-block;font-size:8pt;line-height:1.6;font-weight:900;color:#fff;background:var(--navy);border-radius:1mm;padding:0 1.6mm;text-align:center}
+.page .pbc p{margin:0;font-size:10pt;line-height:1.45;font-weight:800;color:var(--ink)}
+.page .pbc p small{display:block;font-size:8.5pt;color:var(--muted)}
 .quiz{display:grid!important;grid-template-columns:1fr 1fr;column-gap:7mm;row-gap:0!important}
 .quiz .qh{grid-column:1/-1;justify-self:start;margin-top:2mm}
 .qz{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:1.6mm 0!important;font-size:11pt}
