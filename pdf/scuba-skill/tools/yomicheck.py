@@ -40,6 +40,7 @@ for p in PROPER: t = t.replace(p, "")
 t = re.sub(r"更新日時：\d{4}/\d{2}/\d{2}\([月火水木金土日]\)", "", t)
 t = t.replace("試してみてね", "").replace("タップしてみてね", "")   # 10/23 まーく様の言葉（「〜してみる」の「みる」は、ひらがなが正しい書き方）
 t = t.replace("よーくスクリュー", "")   # 10/23 まーく様のだじゃれ（ヨークスクリューにかけて、わざと ひらがな）
+t = t.replace("これで、あいちゃん", "")   # 10/24 まーく様「コレで、は日本語的におかしいので、これで、に」（ほかの「コレ」は札の言い回しのまま）
 tk = Tokenizer(); by = defaultdict(lambda: defaultdict(int))
 for line in t.split("\n"):
     line = line.strip()
