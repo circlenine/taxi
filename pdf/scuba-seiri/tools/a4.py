@@ -685,7 +685,7 @@ CSS += """
 .strapx .sxg{width:100%}
 .strapx .sxw{display:block!important;margin-top:1.2mm}
 .strapx .sxh{font-size:10pt!important;color:var(--navy)!important}
-.strapx .sxg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 35mm;column-gap:2.4mm;align-items:stretch;margin-top:1.6mm}
+.strapx .sxg{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr) minmax(0,1fr) 40mm;column-gap:2.4mm;align-items:stretch;margin-top:1.6mm}
 .strapx .sxg .pbc{margin:0!important;display:block!important;padding:2mm 2mm!important}
 .strapx .sxg .pbc .pbt{display:inline-block!important;margin:0 0 1.2mm!important;white-space:nowrap}
 .strapx .sxg .pbc p{margin:0!important;font-size:9.6pt!important;line-height:1.5!important}
