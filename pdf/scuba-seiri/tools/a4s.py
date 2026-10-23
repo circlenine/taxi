@@ -570,9 +570,9 @@ CSS += """
 .page .pbg{display:grid;grid-template-columns:minmax(0,1fr);gap:1.6mm}
 /* 10/23 準備編と同じ：大事なことの箱を、右の memo と同じ高さまで伸ばす */
 .toprow>.tcol{display:flex;flex-direction:column}
-.toprow>.tcol>.pts{flex:1}
-.toprow .pts>.pbox{flex:1;display:flex;flex-direction:column}
-.toprow .pbox>.pbg{flex:1;align-content:space-evenly}
+.toprow>.tcol>.pts{flex:none}
+.toprow .pts>.pbox{flex:none;display:flex;flex-direction:column}
+.toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
 .toprow>.tcol>.qhd{margin-top:3mm!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上） */
 .page .pw .pbg{grid-template-columns:repeat(3,minmax(0,1fr))}
 .page .pw .pbc{grid-template-columns:minmax(0,1fr);row-gap:1mm}
@@ -829,7 +829,7 @@ CSS += """
 /* 参考動画の枠は、凡例の下から memo の下はしまで伸ばし、中身はまん中に置く（あいだに半端なすき間を作らない） */
 #p2 .tcol .ref{flex:1}
 /* ふり返り：ページの下のあまりを、右上の memo に回す（下に半端な空きを残さない） */
-#p10 .toprow{flex:1}
+#p10 .toprow{flex:none}   /* 10/23 上の段は中身の高さだけ（引きのばして空白を作らない） */
 /* 出どころの文は、左の列の下はし（memo の下はしと同じ高さ）に置く */
 /* ふり返り：クイズの見出しを左の列のいちばん下（クイズのすぐ上）に入れ、見出しの1段ぶんを右上の memo に回す（10/8 ご指示「もっと大きく」）
    出どころの文は、まとめの文のすぐ下に置く */
