@@ -191,12 +191,12 @@ def notes(s):
     if s.get("pinkbig"):
         p_ = s["pinkbig"]
         subs = ([f'<b>{p_["why"]}</b>'] if p_.get("why") else []) + \
-               ['<div class="srows two">' + "".join(f'<span class="sp2">{a}</span><span class="sd2">{T(b)}' + (f'<small>{T(c)}</small>' if c else "") + '</span>' for a, b, c in p_.get("rows", [])) + '</div>']
+               ['<div class="pbg pbs">' + "".join(f'<div class="pbc"><span class="pbt">{a}</span><p>{T(b)}' + (f'<small>{T(c)}</small>' if c else "") + '</p></div>' for a, b, c in p_.get("rows", [])) + '</div>']   # 10/23 まーく様「長文をもっと見やすく」→ 1つずつ札つきの枠に
         n("pk", f'<b>{p_["head"].replace("<wbr>", "")}</b>', subs)
     if s.get("steps"):
         p_ = s["steps"]
         # 留める順番は、表の形にする：番号／場所／やること の3列。やることが2行になっても、書き出しの位置はそろう
-        n("pk", f'<b>{p_["head"]}</b>', ['<div class="srows">' + "".join(f'<span class="nn2">{a}</span><span class="sp2">{b}</span><span class="sd2">{c}</span>' for a, b, c in p_["rows"]) + '</div>'])
+        n("pk", f'<b>{p_["head"]}</b>', ['<div class="srowc">' + "".join(f'<div class="src"><span class="nn2">{a}</span><span class="sp2">{b}</span><span class="sd2">{c}</span></div>' for a, b, c in p_["rows"]) + '</div>'])   # 10/23 1行ずつ枠に（区切りが見えるように）
     for t in s.get("extra") or []: n("x", t)
     html = "".join(f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
                    + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>" for kind, text, subs in out)
@@ -306,11 +306,9 @@ page("器材", "まずは“ダイビング器材”", f"""
 <div class="grid2 tools"><section class="step wide"><h3 class="sh3"><span class="sn">1-1</span><span>ホースの塊＝レギュレーター</span></h3><div class="regrow">
 <div class="reg"><img src="img/reg2.jpg" alt="" style="aspect-ratio:{RX1 - RX0}/{RY1 - RY0}">{marks}</div>
 <div class="names">{names_html}</div></div></section>
-<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke"> <p class="say">さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！</p>
- <p class="say">続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？　あぁーっと！吸えたぁー！</p>
- <div class="sum"><p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p>
-  <div class="row2"><p><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p><b>ホースでつなぐのは、この2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
-  <div class="row2"><p><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div></div></div>
+<section class="step"><h3 class="sh3"><span class="sn">1-2</span><span>SASUKEで覚えると良いかも！</span></h3><div class="sasuke sk2"><div class="skc"><p class="skh"><span class="fs">ファーストステージ</span>＝{T("{silver}")}</p><p class="say">「さぁ！<span class="fs">ファーストステージ</span>！{T("{silver}")}だ！果たして、{T("{tank}")}に無事付けられるかぁ？　おぉー！クリア！」</p><p><b>ホースでつなぐのは、この2点！</b><br>・空気を出すために、{T("{tank}")}と合体！<br>・その空気を使うために、{T("{bc}")}と合体！</p></div>
+ <div class="skc"><p class="skh"><span class="fs">セカンドステージ</span>＝{T("{regu}")}</p><p class="say">「続いて！<span class="fs">セカンドステージ</span>！呼吸は無事できるのかぁ？　あぁーっと！吸えたぁー！」</p><p><b>合体して空気が出せたら、いざ吸ってみよう！</b></p></div>
+ <p class="rn2">（呼吸する部分だけを「レギュ」と呼ぶこともあるよ）</p></div>
 </section>
 <section class="step"><h3 class="sh3"><span class="sn">1-3</span><span>大きな器材</span></h3>
 <div class="big">
@@ -537,6 +535,21 @@ CSS += """
 .toprow .pts>.pbox{flex:none;display:flex;flex-direction:column}
 .toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
 .toprow>.tcol>.qhd{margin-top:0!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上）。洗浄編と同じ */
+/* 10/23 まーく様「長文をもっと見やすく」：ステージごと・1つずつの枠に分ける（言葉は変えない） */
+.page .pbs{margin-top:1.4mm}
+.page .pbs .pbc{grid-template-columns:minmax(0,1fr)!important;row-gap:.8mm;padding:1.4mm 2.4mm}
+.page .pbs .pbt,.kpk .ns .pbs .pbt{justify-self:start;font-size:8.4pt;color:#fff!important;background:var(--navy)!important}
+.page .srowc .nn2,.kpk .ns .srowc .nn2{background:var(--navy)!important;color:#fff!important;text-align:center;border-radius:1mm;font-size:8.4pt;line-height:1.6}
+.page .pbs .pbc p{font-size:9.6pt;line-height:1.5;color:var(--ink)}
+.page .pbs .pbc p small{display:block;font-size:8.4pt;color:var(--muted);font-weight:700}
+.page .srowc{display:flex;flex-direction:column;gap:1.2mm;margin-top:1mm}
+.page .srowc .src{display:grid;grid-template-columns:5mm 9mm minmax(0,1fr);column-gap:1.6mm;align-items:baseline;background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1mm 2mm}
+.page .sk2{gap:2mm!important}
+.page .sk2 .skc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.8mm 2.6mm;display:flex;flex-direction:column;gap:1mm;font-size:10pt;line-height:1.55}
+.page .sk2 .skc p{margin:0}
+.page .sk2 .skh{font-weight:900;color:var(--navy)}
+.page .sk2 .say{font-size:9.4pt!important;color:var(--muted);font-weight:700}
+.page .sk2 .rn2{margin:0;font-size:8.8pt;color:var(--muted)}
 .page .qsec{width:calc(50% - 3.5mm);margin-top:7mm}   /* 10/23 まーく様「全てが繋がっていると、どこが区切りか分かりづらい」→ 上の段とクイズのかたまりの間を空ける */
 .page .qsec>.qhd{margin:0!important}
 .page .pbc{background:#fff;border-radius:2mm;box-shadow:inset 0 0 0 1px var(--line);padding:1.4mm 2.4mm 1.6mm;display:grid;grid-template-columns:15mm minmax(0,1fr);column-gap:2mm;align-items:baseline}   /* 札の名前は左、文は右（1行ぶん低くして、ページに収める） */

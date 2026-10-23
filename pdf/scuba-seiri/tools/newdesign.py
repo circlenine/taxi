@@ -92,7 +92,7 @@ FINE = """
 .kpk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#e0507f}   /* 10/20 太さは「点の数」で決める（4px）。1.2mm だと、置く場所によって画面で4点にも5点にも丸められ、左の列と右の列で太さが変わっていた */   /* 左の太線（線の太さの決まりは1pxなので、線ではなく細い帯で描く） */
 .kpk .nk{background:#e0507f!important;color:#fff!important}
 .kpk .nx,.kpk .nx b,.kpk .nh{color:#b4234a!important}
-.kpk .ns,.kpk .ns *:not(.t):not(.nn2){color:#1f2a37!important}
+.kpk .ns,.kpk .ns *:not(.t):not(.nn2):not(.pbt){color:#1f2a37!important}   /* 10/23 札（.pbt）は白い字のまま */
 .step .nt{padding:2.2mm .4mm!important}
 .step .nt.kpk,.notes .nt.kpk{padding:2mm 2.4mm 2mm 3.2mm!important}   /* 大事の欄は、左の太線と札がくっつかないよう、左を広くあける */
 .step .nt .nx{font-weight:900}
