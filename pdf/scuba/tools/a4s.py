@@ -1247,8 +1247,11 @@ function pullNotes(){document.querySelectorAll('.grid2>.step:not(.wide):not(.sid
 // 10/23 まーく様「ふり返り・memo・クイズの3つのかたまりに分かれて見えるように。クイズ全体をもっと下げて」
 //   → 最後のページで、クイズの下にあまっている高さの半分（最大20mm）を、クイズの上のすき間に足す
 function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();const q=pg.querySelector('.qsec,.quiz.qb');if(!q)return;const {lim}=frame(pg);
- const bot=Math.max(...[...pg.querySelectorAll('.quiz *')].map(e=>e.getBoundingClientRect().bottom));const free=lim-bot-2*MM;if(free<=0)return;
- q.style.setProperty('margin-top',(parseFloat(getComputedStyle(q).marginTop)+Math.min(free/2,20*MM))+'px','important');}
+ const bot=Math.max(...[...pg.querySelectorAll('.quiz *')].map(e=>e.getBoundingClientRect().bottom));const free=lim-bot-2*MM;if(free<=0){stretchMemo(pg,q);return;}
+ q.style.setProperty('margin-top',(parseFloat(getComputedStyle(q).marginTop)+Math.min(free/2,20*MM))+'px','important');stretchMemo(pg,q);}
+// 10/23 まーく様「memo、下が空いているなら、ふり返ってみようクイズと被らない位置まで伸ばして」→ クイズのかたまりの 6mm 上まで
+function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),qt=q.getBoundingClientRect().top-6*MM;if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
+ m.querySelectorAll('.ml').forEach(l=>l.remove());const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;for(let i=0;i<Math.floor(inner/(8.5*MM));i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 document.fonts.ready.then(()=>{hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
