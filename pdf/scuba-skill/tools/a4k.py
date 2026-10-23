@@ -564,7 +564,9 @@ QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少し�
 # 10/23 まーく様「スキル編も他編となるべく近い構成に」→ 準備編・洗浄編の「ふり返り」と同じ形：
 #   上に伝えたいこと（見出し＋札）→ 左上のマスに「ふり返ってみようクイズ！」、右に札と1問目 → 横2列のクイズ → あまりに memo
 #   「くわしくは」は、答えの下の行（右寄せ）。2列だと、問いと同じ行には入らないため
-_qz = "".join(f'<div class="qz{" q1st" if n == 0 else ""}"><span class="q"><span class="tapm scr">*</span>{T(q)}</span><span class="a"><span class="ans">{T(a)}</span></span><span class="qj">{jump(j)}</span></div>' for n, (q, a, j) in enumerate(QZ))
+def _jshort(sid):   # 10/23 2列に収めるため、問いの帯の右はしに「2-1（3ページ）」と短く
+    return f'<a class="jump qjs" href="#p__PG_{sid}__"><span class="tapm scr">*</span>{"合図" if sid == "SIG" else sid}（__PG_{sid}__ページ）</a>'
+_qz = "".join(f'<div class="qz"><span class="q"><span class="tapm scr">*</span>{T(q)}{_jshort(j)}</span><span class="a"><span class="ans">{T(a)}</span></span></div>' for q, a, j in QZ)
 # 10/22 まーく様「まとめのページではなく、クイズのところに、僕が伝えたいことを入れて」→ クイズの下に（content_k.py の MATOME_MSG。言い換えない）
 from content_k import MATOME_MSG
 # 10/22 まーく様「もっと見やすくまとめられないのか。文章を載せているだけで雑な扱い」→ 文は1字も変えず、形だけ組み直す。
@@ -573,8 +575,9 @@ _UTAG = ["少しずつでいい", "楽しむ心", "うれしかったこと", "�
 _umsg = ('<div class="umsg2"><p class="umh">' + "<br>".join(MATOME_MSG[0]) + '</p><div class="umg">'
          + "".join(f'<div class="umc{" umc-key" if i == 3 else ""}"><span class="umt">{_UTAG[i]}</span><p>' + "<br>".join(para) + '</p></div>' for i, para in enumerate(MATOME_MSG[1:]))
          + '</div></div>')
-QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ（もう一度タップすると消えるよ）<br>分からない問いは、そのページを見返そう</small></h3>'
-page("最後に", "ふり返り", f'{_umsg}<div class="quiz qzk">{QHEAD}<span class="qh qh1">{len(QZ)}つのクイズ</span>{_qz}</div><div class="memo-slot" data-fill="1"></div>')
+QHEAD = '<h3 class="ph2 qhd">ふり返ってみようクイズ！<small class="scr qhint">□をタップすると、答えが出るよ<br>分からない問いは、そのページを見返そう</small></h3>'
+# 10/23 準備編・洗浄編と同じ：伝えたいこと → すき間 → 見出し → 札 → クイズ（ずらさない）→ あまりに memo
+page("最後に", "ふり返り", f'{_umsg}<div class="qsec">{QHEAD}</div><div class="quiz qzk"><span class="qh">{len(QZ)}つのクイズ</span>{_qz}</div><div class="memo-slot" data-fill="1"></div>')
 
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -1471,11 +1474,13 @@ CSS += """
 .page .bdgs{margin-left:1.6mm;font-size:7.6pt;padding:.2mm 1.2mm}
 /* まとめクイズ */
 /* 10/23 ふり返り（準備編・洗浄編と同じ形） */
-.page .quiz.qzk{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:7mm;row-gap:0!important;margin-top:3mm}
-.page .qzk .qhd{grid-column:1;grid-row:1/3;align-self:start;margin:0!important}
-.page .qzk .qh1{grid-column:2;grid-row:1;justify-self:start}
-.page .qzk .q1st{grid-column:2;grid-row:2}
-.page .qzk .qz{font-size:10pt;row-gap:.6mm!important;grid-template-rows:auto auto auto}
+.page .quiz.qzk{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:7mm;row-gap:0!important;margin-top:2mm}
+.page .qzk>.qh{grid-column:1/-1;justify-self:start}
+.page .qsec{width:calc(50% - 3.5mm);margin-top:7mm}   /* 10/23 区切りが見えるよう、上とのあいだを空ける（準備編・洗浄編と同じ） */
+.page .qsec>.qhd{margin:0!important}
+.page .qzk .qz{font-size:10pt;row-gap:.6mm!important;grid-template-rows:auto auto}
+.page .qzk .qjs{float:right;margin:0 0 0 2mm!important;font-size:7.6pt!important;font-weight:700;color:#fff!important;white-space:nowrap;line-height:inherit}
+.page .qzk .qjs .tapm{color:#fff!important}
 .page .qzk .qz .a{height:auto!important;min-height:5.4mm;line-height:1.35;padding-top:.4mm;padding-bottom:.4mm}
 .page .qzk .qj{grid-column:2;justify-self:end;font-size:8.4pt;font-weight:700;line-height:1.2}
 .page .qzk .qj .jump{display:inline!important;margin:0!important;white-space:nowrap}
@@ -1548,7 +1553,8 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
 function memoPages(){const el=document.getElementById('memop');if(!el)return;const ns=[...document.querySelectorAll('.page')].map((pg,i)=>pg.querySelector('.memo')?i+1:0).filter(Boolean);
  const out=[];for(let i=0;i<ns.length;){let j=i;while(j+1<ns.length&&ns[j+1]===ns[j]+1)j++;out.push(j-i>=2?ns[i]+'〜'+ns[j]:ns.slice(i,j+1).join('・'));i=j+1;}el.innerHTML=out.join('<span class="pqc">・</span>')+'ページ';}   // 「・」も詰める（ほかの表の字と同じ見た目）
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
- const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:(slot.dataset.fill?frame(pg).lim:r.bottom)});return;}   
+ const slot=pg.querySelector('.memo-slot');if(slot&&slot.dataset.fill&&frame(pg).lim-slot.getBoundingClientRect().top<45){return;}   /* 10/23 下のすき間が12mmに満たなければ memo を置かない（見出しだけがはみ出す） */
+ if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:(slot.dataset.fill?frame(pg).lim:r.bottom)});return;}   
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
  // 10/22 まーく様「4-4の下も空いてるのに、なぜmemoを広げないのか」→ 左右の列の下が両方とも 20mm 以上あいていれば、
