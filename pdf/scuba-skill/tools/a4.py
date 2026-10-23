@@ -254,7 +254,7 @@ def stepbox(s):
 # 10/24 まーく様「ここのシーンではない。ホースがストラップに付いて泳いでいる映像」→ 合う写真が見つかるまで外す（IDEAL_ON=False）。写真を替えたら True に
 IDEAL_ON = True
 IDEAL = (f'<div class="nt kx ideal"><span class="nk">補足</span><span class="nx">3-5 ストラップに付けると…</span>'
-         f'<figure class="ph3">{im("ideal", 1.0)}<span class="cap3"><b>コレが理想の形！</b><br><span class="nw">{T("{octo}")}・{T("{gauge}")}が、</span><br>体の前でスッキリ</span></figure></div>')
+         f'<figure class="ph3">{im("ideal", 1.0)}<span class="cap3"><b>コレが理想の形！</b><br><span class="nw">{T("{octo}")}のホースを、</span><br><span class="nw">お腹の横の</span><span class="nw"><b>ストラップ</b>で留める</span></span></figure></div>')
 
 # 更新日（10/14 ご指示：版の番号ではなく「2026/10/14（水）更新」の形で全ページに入れる）
 # 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
@@ -614,7 +614,7 @@ CSS += """
 .grid2>.step.wide{grid-row:auto;display:flex!important}
 .grid2>.step>.notes{align-self:start}
 .notes>.ideal{margin-top:3mm;display:block!important}   /* 10/23 3-4 の補足の下（左の列のあき）に置く */
-.notes>.ideal .ph3{margin-top:1.6mm;display:grid!important;grid-template-columns:52% minmax(0,1fr);column-gap:3mm;align-items:center}   /* 縦長の写真なので、左に写真・右に一言 */
+.notes>.ideal .ph3{margin-top:1.6mm;display:grid!important;grid-template-columns:50% minmax(0,1fr);column-gap:3mm;align-items:center}   /* 縦長の写真なので、左に写真・右に一言 */
 .notes>.ideal .ph3 img{height:auto!important;width:100%;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
 .notes>.ideal .cap3{text-align:left!important;font-size:10pt!important;line-height:1.6!important;white-space:normal!important}
 .photos.p3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
