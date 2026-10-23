@@ -31,6 +31,6 @@ JS = """<style>.page a.phv,.page a.phv:hover{background:transparent!important;bo
  document.querySelectorAll('.page .phb').forEach(function(k){var g=k._im.closest('.photos,.sqc');if(g&&one.get(g).k!==k)k.remove();});
  /* 10/21 まーく様「▶ の大きさは、この場合 BCD の大きさに統一」→ 同じ段・同じ欄の写真は、いちばん大きい ▶ にそろえる */
  var gm=new Map();document.querySelectorAll('.page .phb').forEach(function(k){gm.set(k._g,Math.max(gm.get(k._g)||0,parseFloat(k.dataset.sz)));});
- document.querySelectorAll('.page .phb').forEach(function(k){var sz=gm.get(k._g);k.style.width=k.style.height=k.style.lineHeight=sz+'mm';k.style.fontSize=(sz*1.33)+'pt';});
+ document.querySelectorAll('.page .phb').forEach(function(k){var sz=gm.get(k._g);if(k._im.closest('.strapx')){k.closest('.page').querySelectorAll('.phb').forEach(function(o){sz=Math.max(sz,gm.get(o._g)||0);});}/* 10/24 3-5 の続きの段の写真は、同じページのほかの ▶ と同じ大きさに */k.style.width=k.style.height=k.style.lineHeight=sz+'mm';k.style.fontSize=(sz*1.33)+'pt';});
  document.querySelectorAll('.page a.mtv').forEach(function(m){var im=m.querySelector('img'),p=m.querySelector('.play');if(!im||!p)return;var c=(im.dataset.b||'br').split(':')[0];p.style.top=p.style.bottom=p.style.left=p.style.right='auto';p.style[c[0]==='b'?'bottom':'top']='1.6mm';p.style[c[1]==='r'?'right':'left']='1.6mm';});}
  Object.defineProperty(window,'__laid',{configurable:true,get:function(){return v;},set:function(x){if(x&&!v)link();v=x;}});})();</script>"""

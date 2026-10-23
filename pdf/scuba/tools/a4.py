@@ -246,15 +246,30 @@ REDCAP = set()   # 10/23 まーく様「画像下の銀色金具ぐるぐる、�
 WIDE = set()
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{(notes(s)[:-6] + IDEAL + "</div>") if s["id"] == "3-4" and IDEAL_ON else notes(s)}</section>')   # 3-4 は補足の下に「理想の形」を足す
+            f'{photos(s)}{_strap_head(notes(s)) if s["id"] == "3-5" and IDEAL_ON else notes(s)}</section>'
+            + (_strap_row(notes(s)) if s["id"] == "3-5" and IDEAL_ON else ""))
+# 10/24 まーく様「3-4 の補足にしか見えない。このページの全体レイアウトを見直して」
+#   → 3-5 の大事は、頭の2行だけを 3-5 の列に残し、「ストラップあり／なし／ホース類」の3つの箱と理想の形の写真は、
+#     2列の下に横いっぱいの段として並べる（左の列のあきがなくなり、写真も 3-5 の話だと分かる）   # 3-4 は補足の下に「理想の形」を足す
 
 # 10/23 まーく様「3-4 の下のあきに、3-5 の補足として、ストラップを付けてダイビングを楽しんでいる様子の写真を。画像の下に“これが理想の形！”」
 #   PADI Japan 公式「Scuba Sarah」26秒：オクト・残圧計がストラップで胸にまとまり、ぶら下がっていない
 #   3-4 の補足の下（左の列のあき）に置く。中身は 3-5 の話なので、札に「3-5」と書く
 # 10/24 まーく様「ここのシーンではない。ホースがストラップに付いて泳いでいる映像」→ 合う写真が見つかるまで外す（IDEAL_ON=False）。写真を替えたら True に
 IDEAL_ON = True
-IDEAL = (f'<div class="nt kx ideal"><span class="nk">補足</span><span class="nx">3-5 ストラップに付けると…</span>'
-         f'<figure class="ph3">{im("ideal", 1.0)}<span class="cap3"><b>コレが理想の形！</b><br><span class="nw">{T("{octo}")}のホースを、</span><br><span class="nw">お腹の横の</span><span class="nw"><b>ストラップ</b>で留める</span></span></figure></div>')
+IDEAL = (f'<figure class="ph3 ideal">{im("ideal", 1.0)}<span class="cap3"><b>コレが理想の形！</b></span></figure>')
+def _strap_head(h):   # 3-5 の列：大事の頭の2行だけ
+    k = h.index('<div class="ns"><div class="pbg pbs">'); e = h.index('</div></div></div>', k) + len('</div></div></div>')
+    return h[:k] + h[e:]
+def _strap_row(h):    # 2列の下：3つの箱＋理想の形
+    k = h.index('<div class="pbg pbs">'); e = h.index('</div></div>', h.rindex('<div class="pbc">', 0, h.index('</div></div></div>', k))) + len('</div></div>')
+    rows = h[k + len('<div class="pbg pbs">'):e - len('</div>')]
+    return ('<section class="step wide strapx"><div class="nt kpk"><span class="nk">大事</span><span class="nx sxh">3-5 の続き：<b>ストラップの使い方</b></span>'
+            f'<div class="sxg">{rows}{IDEAL}</div></div></section>')
+def _ideal(h):
+    # 「ストラップあり」の札の箱（.pbc の1つ目）の中で、左に文、右に写真
+    k = h.index('<span class="pbt">ストラップあり</span>'); e = h.index('</p></div>', k) + len('</p>')
+    return h[:k] + '<div class="pbi"><div>' + h[k:e] + '</div>' + IDEAL + '</div>' + h[e:]
 
 # 更新日（10/14 ご指示：版の番号ではなく「2026/10/14（水）更新」の形で全ページに入れる）
 # 組み立てた日（日本時間）を自動で入れる。直して配り直すたびに、自然に新しい日付になる
@@ -613,7 +628,7 @@ CSS += """
 .grid2>.step{display:grid!important;grid-row:span 3;grid-template-rows:subgrid;row-gap:2.4mm;align-content:start}
 .grid2>.step.wide{grid-row:auto;display:flex!important}
 .grid2>.step>.notes{align-self:start}
-.notes>.ideal{margin-top:3mm;display:block!important}   /* 10/23 3-4 の補足の下（左の列のあき）に置く */
+/* (10/24 理想の形は 3-5 の写真の段へ移した) */ .notes>.ideal{margin-top:3mm;display:block!important}   /* 10/23 3-4 の補足の下（左の列のあき）に置く */
 .notes>.ideal .ph3{margin-top:1.6mm;display:grid!important;grid-template-columns:50% minmax(0,1fr);column-gap:3mm;align-items:center}   /* 縦長の写真なので、左に写真・右に一言 */
 .notes>.ideal .ph3 img{height:auto!important;width:100%;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
 .notes>.ideal .cap3{text-align:left!important;font-size:10pt!important;line-height:1.6!important;white-space:normal!important}
@@ -661,6 +676,25 @@ CSS += """
 CSS += """
 /* 2-5：ストラップの写真を広くとる（オクトの口からストラップの金具まで、切らずに入れるため） */
 .photos.strap2{grid-template-columns:.8fr 1.2fr!important}
+#p5 .grid2>.step.strapx{border-top:0!important;padding-top:0!important;margin-top:-1mm}
+.strapx>.nt{width:100%;display:block!important}
+.strapx>.nt>.nk{display:inline-block!important;margin-right:2mm}
+.strapx>.nt>.sxh{display:inline!important}
+.strapx .sxg{width:100%}
+.strapx .sxh{font-size:10pt!important;color:var(--navy)!important}
+.strapx .sxg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 35mm;column-gap:2.4mm;align-items:stretch;margin-top:1.6mm}
+.strapx .sxg .pbc{margin:0!important;display:block!important;padding:2mm 2mm!important}
+.strapx .sxg .pbc .pbt{display:inline-block!important;margin:0 0 1.2mm!important;white-space:nowrap}
+.strapx .sxg .pbc p{margin:0!important;font-size:9.6pt!important;line-height:1.5!important}
+.strapx .sxg .pbc p small{display:block;font-size:8.6pt!important;margin-top:.6mm}
+.strapx>.nt>.nk{vertical-align:middle;font-size:9pt!important;padding:.2mm 1.6mm!important}
+.strapx .sxg .ideal{margin:0;align-self:center}
+.strapx .sxg .ideal img{width:100%;height:auto!important;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
+.strapx .sxg .ideal .cap3{font-size:8.6pt!important;white-space:nowrap}
+.pbi{display:grid;grid-template-columns:minmax(0,1fr) 30mm;column-gap:2.4mm;align-items:center}   /* 10/24 ストラップありの箱：左に文、右に理想の形の写真 */
+.pbi .ideal{margin:0}
+.pbi .ideal img{width:100%;height:auto!important;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
+.pbi .ideal .cap3{font-size:8.6pt!important;white-space:nowrap}
 """
 CSS += """
 .ngx{position:relative;flex:1;min-height:0;display:block}
