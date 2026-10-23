@@ -320,7 +320,7 @@ CAP = {("2-1", "mimi4"): "①鼻をつまむ", ("2-1", "mimi73"): "②鼻をつ�
        ("1-2", "rc2_342"): "①右肩を下げ、腕を後ろへ", ("1-2", "rc2_344"): "②そのまま、腕を大きく回す",   # 10/22 まーく様「やる前・やった後はぶっきらぼう。スマートな言い方に」→ 合図のページと同じ ①② の形
        ("1-4", "rr49"): "レギュ<small>（正式名称：セカンドステージ）</small>", ("1-4", "rc2_248"): "オクト",
        ("2-1", "rc2_92"): "真ん中のボタン<small>（正式名称：パージボタン）</small>",
-       ("3-1", "oral_m"): "L字サインホース<small>（正式名称：インフレーターホース）</small>", ("3-2", "oral_3"): "人差し指ピーンボタン<small>（正式名称：排気ボタン）</small>",
+       ("4-1", "oral_m"): "L字サインホース<small>（正式名称：インフレーターホース）</small>", ("4-2", "oral_3"): "人差し指ピーンボタン<small>（正式名称：排気ボタン）</small>",
        ("6-2", "rc675"): "親指のボタン<small>（正式名称：給気ボタン）</small>",
        ("6-1", "rc920"): "上を見る<small>水面が近い＝浮いている</small>", ("6-1", "rc418"): "下を見る<small>海底が近い＝沈んでいる</small>",
        ("4-2", "rc2_342"): "右肩を下げて、腕を回す", ("4-2", "rc2_348"): "腕にホースがかかった",
@@ -546,7 +546,7 @@ def _mrow(name, k, point, n, lab=""):
     return (f'<div class="mcard"><a class="mtv mcp" href="{mtv(k)}">{im(k, 1.5)}</a>'
             f'<p class="mcn">{T(name)}<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{lab}</b>（{n}ページ）</a></p>'
             f'<p class="mcq">{T(point)}</p></div>')
-MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "oral_m", "4": "rc994", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
+MT_KEY = {"1": "rc2_344", "2": "rc2_92", "3": "rc1000", "4": "oral_m", "5": "ashi_m", "6": "rc920"}   # まとめの写真（その動作をしている場面）
 # 10/22 まーく様「集約版にも（）内の言い換えを含めて。初心者用に、難しい用語は分かりやすく」→ もくじと同じ（）を付ける
 _mt = "".join(_mrow(x["name"] + (f'<small class="mtnote">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else ""), MT_KEY[x["id"]], x["point"], pg_of(x["subs"][0]["id"]), f"その{x['id']}") for x in STEPS)
 _mt += _mrow("ハンドシグナル", "sg5500", SIGSIT["point"], SUBPG["SIG"], lab="合図")
@@ -556,8 +556,8 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 QZ = [("{regu}が外れたら、まずどうする？", "小さな泡を少しずつ呼きながら、右腕を回して探す", "1-1"),
       ("{regu}を付け直したら、すぐ息を吸っていい？", "✕。真ん中のボタンで水を出してから", "2-1"),
       ("真ん中のボタンが壊れていたら？", "「トゥー」と強く呼いて、水を出す", "2-3"),
-      ("{bc}に空気が入らないときは？", "人差し指ピーンボタンを押しながら、口で吹きこむ", "3-2"),
-      ("マスクに水が入ったら、どこから呼く？", "鼻から。水はマスクの下から出ていく", "4-3"),
+      ("マスクに水が入ったら、どこから呼く？", "鼻から。水はマスクの下から出ていく", "3-3"),
+      ("{bc}に空気が入らないときは？", "人差し指ピーンボタンを押しながら、口で吹きこむ", "4-2"),
       ("足がつったら、まず何をする？", "その場で停まれるか確かめて、合図で助けを求める", "5-1"),
       ("浮いているか沈んでいるかは、どう見分ける？", "上か下を見て、水面・海底に近づいていないか", "6-1"),
       ("浮いてきて、空気を抜くときのコツは？", "体を立てて、L字サインホースを上に伸ばす", "6-3"),
@@ -595,6 +595,8 @@ for lb, tt, pn in TOC:
     x = _sec_of.get(lb)
     # 10/22 まーく様「もくじにまで、こんな時は含めない」「英語など聞きなれないものは（）で補足」→ 名前と（補足）だけ
     if x: tt = x["name"] + (f'<small class="tw">（{T(x["toc_note"])}）</small>' if x.get("toc_note") else "")
+    # 10/23 まーく様「目次にも、あいちゃん褒められスキル／上級スキル をつけて」
+    if x and x.get("badge"): tt += {"ほめ": '<span class="tbd bdg-g">あいちゃん褒められスキル</span>', "上級": '<span class="tbd bdg-r">上級スキル</span>'}[x["badge"][0]]
     elif lb == "合図": tt = "ハンドシグナル"
     _toc2.append((lb, tt, (pn, str(pn))))
 TOC = _toc2
@@ -1427,6 +1429,7 @@ CSS += """
 .page .bdg{font-size:8.6pt;font-weight:900;padding:.6mm 1.6mm;border-radius:1mm;white-space:nowrap}
 .page .bdg-g{color:#9a6b00;background:#fffaeb;border:1.4px solid #ecd48a}   /* 補足の札と同じ色（決めた色だけ） */
 .page .bdg-r{color:#b0154a;background:#fff5f8;border:1.4px solid #efb3c4}   /* 大事の札と同じ色 */
+.page .tc .tbd{display:inline-block;margin-left:2mm;font-size:7.6pt;font-weight:900;padding:0 1.4mm;border-radius:1mm;line-height:1.6;vertical-align:.15em;white-space:nowrap}   /* もくじの札（小さく） */
 .page .ng{color:#f93612;font-weight:900}
 .page .slead{margin:0 0 1.4mm;font-size:9.6pt;font-weight:700;color:var(--ink,#333)}
 /* 合図は2列で大きく（10/22「画像が小さすぎます」） */

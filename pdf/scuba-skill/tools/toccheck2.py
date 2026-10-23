@@ -11,15 +11,15 @@ for a, _lb, _tt, a2, b2 in grp:
     toc += [str(n) for n in range(int(a2), int(b2) + 1)]
 miss = [p for p in ids[1:] if p not in toc]
 # タップの印「*」（画面だけの印）は、見出しとくらべるときは数えない
-# 10/22 もくじの行に添えた「こんな時」（<small class="tw">）は、見出しとくらべるときは数えない
-strip = lambda x: re.sub(r'<[^>]+>', '', re.sub(r'<small class="tw">.*?</small>', '', re.sub(r'<span class="tapm[^"]*">\*</span>', '', x))).strip()
+# 10/22 もくじの行に添えた「こんな時」（<small class="tw">）と、10/23 の札（<span class="tbd">）は、見出しとくらべるときは数えない
+strip = lambda x: re.sub(r'<[^>]+>', '', re.sub(r'<small class="tw">.*?</small>|<span class="tbd[^"]*">.*?</span>', '', re.sub(r'<span class="tapm[^"]*">\*</span>', '', x))).strip()
 bad = [f"NG もくじに載っていないページ：{p}ページ" for p in miss]
 def _h2(pn):
     m = re.search(rf'<div class="page" id="p{pn}">.*?<h2>(.*?)</h2>', h)
     return re.sub(r'<[^>]+>', '', m.group(1)) if m else ''
 for a, lb, tt, a2, b2 in grp:
     if not lb.startswith("海洋"):   # 10/22 同じ札が続くページをまとめた行：範囲のどのページの見出しにも、行の名前が入っているか
-        nm = re.sub(r'<[^>]+>', '', re.sub(r'<small class="tw">.*?</small>', '', tt)).strip()
+        nm = re.sub(r'<[^>]+>', '', re.sub(r'<small class="tw">.*?</small>|<span class="tbd[^"]*">.*?</span>', '', tt)).strip()
         for pn in range(int(a2), int(b2) + 1):
             if nm not in _h2(pn): bad.append(f"NG もくじ {lb}：「{nm}」が {pn}ページの見出しに無い")
         continue
