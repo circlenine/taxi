@@ -246,8 +246,8 @@ REDCAP = set()   # 10/23 まーく様「画像下の銀色金具ぐるぐる、�
 WIDE = set()
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{_strap_head(notes(s)) if s["id"] == "3-5" and IDEAL_ON else notes(s)}</section>'
-            + (_strap_row(notes(s)) if s["id"] == "3-5" and IDEAL_ON else ""))
+            f'{photos(s)}{_ideal(notes(s)) if s["id"] == "3-5" and IDEAL_ON else notes(s)}</section>')
+# 10/24 まーく様「3-6 のパターンはストップ」→ 3-5 の大事の「ストラップあり」の箱の中に、理想の形の写真を置く形に戻した（_strap_head / _strap_row は使わない）
 # 10/24 まーく様「3-4 の補足にしか見えない。このページの全体レイアウトを見直して」
 #   → 3-5 の大事は、頭の2行だけを 3-5 の列に残し、「ストラップあり／なし／ホース類」の3つの箱と理想の形の写真は、
 #     2列の下に横いっぱいの段として並べる（左の列のあきがなくなり、写真も 3-5 の話だと分かる）   # 3-4 は補足の下に「理想の形」を足す
@@ -694,7 +694,7 @@ CSS += """
 .strapx .sxg .ideal{margin:0;align-self:center}
 .strapx .sxg .ideal img{width:100%;height:auto!important;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
 .strapx .sxg .ideal .cap3{font-size:8.6pt!important;white-space:nowrap}
-.pbi{display:grid;grid-template-columns:minmax(0,1fr) 30mm;column-gap:2.4mm;align-items:center}   /* 10/24 ストラップありの箱：左に文、右に理想の形の写真 */
+.pbi{display:grid;grid-template-columns:minmax(0,1fr) 34mm;column-gap:2.4mm;align-items:center}   /* 10/24 ストラップありの箱：左に文、右に理想の形の写真 */
 .pbi .ideal{margin:0}
 .pbi .ideal img{width:100%;height:auto!important;aspect-ratio:1!important;object-fit:cover;border-radius:2mm;display:block}
 .pbi .ideal .cap3{font-size:8.6pt!important;white-space:nowrap}
