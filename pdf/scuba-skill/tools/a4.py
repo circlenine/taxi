@@ -1083,7 +1083,12 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
 function pullNotes(){document.querySelectorAll('.grid2>.step:not(.wide):not(.side),.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
  nt.style.marginTop='';let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});if(!pb)return;
  const want=2.4*96/25.4,gap=nt.getBoundingClientRect().top-pb;if(gap>want+2){const m=parseFloat(getComputedStyle(nt).marginTop)||0;nt.style.marginTop=(m-(gap-want))+'px';}});}
-document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();window.__laid=true})</script>'''
+// 10/23 まーく様「ふり返り・memo・クイズの3つのかたまりに分かれて見えるように。クイズ全体をもっと下げて」
+//   → 最後のページで、クイズの下にあまっている高さの半分（最大20mm）を、クイズの上のすき間に足す
+function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();const q=pg.querySelector('.qsec,.quiz.qb');if(!q)return;const {lim}=frame(pg);
+ const bot=Math.max(...[...pg.querySelectorAll('.quiz *')].map(e=>e.getBoundingClientRect().bottom));const free=lim-bot-2*MM;if(free<=0)return;
+ q.style.setProperty('margin-top',(parseFloat(getComputedStyle(q).marginTop)+Math.min(free/2,20*MM))+'px','important');}
+document.fonts.ready.then(()=>{hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 CSS += '''
 /* 10/21 工程3：3-5 は横いっぱいの1段。左に題と写真、右に大事の箱（memo の場所に入る） */
 .page .grid2>.step.wide:has(>.notes){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:7mm}
