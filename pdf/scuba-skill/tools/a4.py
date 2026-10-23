@@ -378,7 +378,7 @@ page("まとめ", "集約版！サッと1ページで見返そう！", f'<div cl
 
 # 10/21 まーく様「準備編、振り返りクイズが抜けてます」→「最後に（ふり返り・クイズ）」のページを戻した。
 #   10/21 まーく様のご判断：準備編だけ11ページにしてよい（工程3を1ページにまとめる案は入りきらなかった）。写真の出どころは、まとめの左上にあるので、ここには書かない
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div></div><div class="rcol"><div class="memo-slot" data-up=".ph h2"></div><p class="src">写真：参考動画「ダイビング機材セッティング」（OPEN EV／制作　沖縄県立沖縄水産高等学校／著作　沖縄県教育委員会）の画面から。<a href="https://youtu.be/twjEJS_0kms?si=AB5PNzWt31c5r9AB"><span class="tapm scr">*</span>https://youtu.be/twjEJS_0kms</a></p></div></div>
 {(f'<div class="quiz qb">{QHEAD}{quiz}</div>' if QB else f'<div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>')}""")
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -795,6 +795,10 @@ CSS += """
 .toprow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:7mm}
 .toprow .tcol{display:flex;flex-direction:column;gap:5mm}
 .memo-slot{min-height:30mm}
+/* 10/23 まーく様「どうして準備編には関連動画の紹介が無いのか」→ 洗浄編と同じく最後のページに。左の段を伸ばすとはみ出すので、右の memo の下に置く */
+.rcol{display:flex;flex-direction:column;min-width:0}
+.rcol>.memo-slot{flex:1}
+.rcol>.src{margin-top:2mm}
 /* memo：ノートのように、行ごとに下線を引く（ほかの区切りと同じ、水色の1pxの線。10/8 ご指示）。点は打たない
    付箋の形（うすい黄色の紙・水色のテープ・右下の折り目）＋下線、で決まり（10/8 ご判断「このデザインなら良し」） */
 .page>.memo{background-image:none!important;padding:1.6mm 2.4mm!important}
@@ -1099,7 +1103,7 @@ function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();con
  const bot=Math.max(...[...pg.querySelectorAll('.quiz *')].map(e=>e.getBoundingClientRect().bottom));const free=lim-bot-2*MM;if(free<=0){stretchMemo(pg,q);return;}
  q.style.setProperty('margin-top',(parseFloat(getComputedStyle(q).marginTop)+Math.min(free/2,20*MM))+'px','important');stretchMemo(pg,q);}
 // 10/23 まーく様「memo、下が空いているなら、ふり返ってみようクイズと被らない位置まで伸ばして」→ クイズのかたまりの 6mm 上まで
-function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),qt=q.getBoundingClientRect().top-6*MM;if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
+function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),sr=pg.querySelector('.rcol>.src');let qt=q.getBoundingClientRect().top-6*MM;if(sr)qt=Math.min(qt,sr.getBoundingClientRect().top-2*MM);/* 10/23 memo の下の動画の紹介には重ねない */if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
  m.querySelectorAll('.ml').forEach(l=>l.remove());const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;for(let i=0;i<Math.floor(inner/(8.5*MM));i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();hangKome();fitCover();fitP2();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 CSS += '''
