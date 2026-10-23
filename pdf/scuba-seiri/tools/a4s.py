@@ -917,6 +917,14 @@ CSS += """
 /* タップできるところの印「*」：字より少し大きく、大事と同じ赤で、すぐ後ろの字とくっつけすぎない */
 .tapm{display:inline-block;color:var(--p-ink-red)!important;font-weight:900;font-size:1.15em;line-height:1;margin-right:.15em;vertical-align:-.05em;text-decoration:none}
 #p1 .howto .htap{margin-top:.4mm;margin-bottom:.4mm}
+/* 10/23 まーく様「右の余白も活用して行数を減らし、その分もくじの間隔を広く（誤タップを防ぐ）」
+   ・題「このPDFの使い方」と「＊は、押せるところ」を同じ行に
+   ・4つの項目を2列×2行に
+   ・あいた高さは、もくじの行（flex:1）が自動で広がって使う */
+#p1 .howto .hh,#p1 .howto .htap{display:inline-block!important;margin:0!important;vertical-align:baseline}
+#p1 .howto .htap{margin-left:4mm!important}
+#p1 .howto .hrows{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)!important;column-gap:2mm!important;row-gap:1mm!important;margin-top:1mm!important}
+#p1 .howto .hw{margin-top:1mm!important}
 """
 CSS += """
 /* memo のテープ：紙（うすい黄色）とはっきり違う、マスキングテープらしい濃いめの黄色。
