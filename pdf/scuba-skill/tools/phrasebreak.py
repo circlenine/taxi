@@ -26,7 +26,7 @@ function alignTags(){document.querySelectorAll('.toc').forEach(t=>{const g={};t.
 function centerTags(){const MM=96/25.4,cv=document.createElement('canvas').getContext('2d');document.querySelectorAll('.page .tl,.page .no,.page .sn,.page .qh').forEach(e=>{const r=e.getBoundingClientRect();if(!r.width||getComputedStyle(e).clipPath==='none')return;
  const rg=document.createRange();rg.selectNodeContents(e);const t=rg.getBoundingClientRect();const cs0=getComputedStyle(e);cv.font=cs0.fontWeight+' '+cs0.fontSize+' '+cs0.fontFamily;const m=cv.measureText(e.textContent.trim());
  /* 字の形（インク）の真ん中で合わせる。「1」のように細い字は、字の箱の中で片寄っているため */
- const target=r.left+(r.width-1.8*MM)/2+0.6*MM,cur=t.left+(m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2,d=target-cur;
+ const target=r.left+(r.width-1.8*MM)/2+0.6*MM,k=m.width?t.width/m.width:1,cur=t.left+k*(m.actualBoundingBoxRight-m.actualBoundingBoxLeft)/2,d=target-cur;/* 10/24 全角にした英数字（.fw）は字の間を詰めているので、実際の幅（t.width）に合わせて伸び縮みさせる（「１０のクイズ」がずれていた） */
  if(Math.abs(d)<0.2)return;const cs=getComputedStyle(e),pl=parseFloat(cs.paddingLeft),pr=parseFloat(cs.paddingRight);
  e.style.setProperty('padding-left',Math.max(0,pl+d)+'px','important');e.style.setProperty('padding-right',Math.max(0,pr-d)+'px','important');});}
 // 10/23 まーく様「OKの文字が小さく見える。見出し系で英数字が使われているなら、全角に統一して同じくらいの大きさに」
