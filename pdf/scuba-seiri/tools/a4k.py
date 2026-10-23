@@ -286,7 +286,8 @@ def _nj(nt, sid):
     #   となりの手順の写真の段まで高くなり、となりの補足が下へ押されていた。札の段の頭（写真のすぐ下）に置く
     if not sid: return nt
     j = f'<p class="jrow">{jump(sid)}</p>'
-    return nt.replace('<div class="notes">', '<div class="notes">' + j, 1) if nt else f'<div class="notes">{j}</div>'
+    # 10/23 まーく様「くわしくは〜は補足の下に」→ 札の段の最後に置く（2冊同じ）
+    return (nt[:-len("</div>")] + j + "</div>") if nt else f'<div class="notes">{j}</div>'
 def withjump(ph, sid):
     # 飛ぶ行は、写真の名前のすぐ下（写真のかたまりの中）に入れる。手順の「題・写真・札」の3段の形をくずさないため
     if not sid: return ph
@@ -967,7 +968,7 @@ CSS += """
 /* 2列は、中身の長さにかかわらず、いつも左右同じ幅にする（長い字のかたまりで、片方の列が広がらないように） */
 .grid2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
 .grid2>.step>*{min-width:0}
-.notes>.jrow{margin:-1.2mm 0 0;text-align:center}
+.notes>.jrow{margin:0;text-align:right}   /* 10/23 補足の下、右寄せ */
 .notes>.act{margin:0;font-size:11.5pt;font-weight:900;line-height:1.5;color:var(--ink,#222)}
 """
 CSS += """
