@@ -14,7 +14,7 @@ STEPS = [
      extra=["{regu}の“プシュ～…”の音が無くなり、<br>{gauge}の針が0になったら、抜けた合図だよ"]),
    dict(id="2-3", key=["s08"],
      title="<span class=\"nw\">{silver}ぐるぐる</span>を左に回し、キャップの水を飛ばす",
-     extra=["<span class=\"nw\">{tank}くるくる</span>を左に回し、空気を出して、{silver}の真ん中のキャップの水気を、しっかり<span class=\"nw\">飛ばそう！</span>"]),
+     extra=["<span class=\"nw\">{tank}くるくる</span>を左に回して空気を出すと、水が飛ぶよ"]),
    dict(id="2-4", key=["s10"],
      title="<span class=\"nw\">{silver}ぐるぐる</span>を右に回してキャップを締める",
      pinkx=["水気を飛ばしたら、すぐキャップを締め直そう！"]),
