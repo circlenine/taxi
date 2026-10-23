@@ -8,7 +8,7 @@ import sys, os, re
 import newdesign as _nd   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content import TERMS
-from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIGNAL_NOTES, SIGNAL_AIR, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
+from content_k import INTRO, STEPS, SIGNALS, SIG_STILL, SIG_MOVE, SIG_AIRNUM, SIGNAL_NOTES, SIGNAL_AIR, POINTS, QUIZ, QUIZ2   # スキル編（10/19 仮の形。順番は講習の返事しだいで前後する）
 # 10/20 まーく様「リベ大に合わせたパターンの前のバージョンにまで戻して」：題も「〜しよう！」の形の前に戻す（NEWDESIGN=0 のとき）
 #   ただし「耳抜き3選」と「題にふり返りを書かない」は、まーく様のご指示なので残す
 if not _nd.ON:
@@ -527,7 +527,7 @@ SUBPG["SIG"] = len(pages) + 1   # その1の表から、合図のページへ飛
 ss3 = "".join(f'<section class="sqc sq1"><p class="sqh"><span class="sqn">{T(name)}</span></p><figure class="sqf">{im(k, 1.55)}<figcaption>{T(desc)}</figcaption></figure></section>' for name, k, desc in SIG_STILL)
 # 10/22 まーく様「ハンドシグナル、画像が小さすぎます」→ 2ページに分けて、2列で大きく。
 #   1枚目：動きのある合図（①をしてから②）／2枚目：形だけの合図と、大事・補足
-SIGSIT = dict(when=["水の中で、伝えたいこと・困りごとがある"], point="「何かおかしい」「エアがない」だけは、必ず覚えよう！")   # content_k.py の POINTS「困ったら、合図で伝える」・SIGNAL_AIR
+SIGSIT = dict(when=["水の中で、伝えたいこと・困りごとがある"], point="よく使うのは「OK」「何かおかしい」「残圧の伝え方」！")   # 10/23 まーく様「エアがないとおかしいだけは、は語弊がある。普段よく使うのは OK・何かおかしい・残圧の伝え方」   # content_k.py の POINTS「困ったら、合図で伝える」・SIGNAL_AIR
 _sgsit = (f'<div class="sit"><p class="sw"><b class="swk">こんな時</b><span class="swv"><span class="swi">{T(SIGSIT["when"][0])}</span></span></p>'
           f'<p class="sp"><b class="spk">ポイント</b><span class="spv">{T(SIGSIT["point"])}</span></p></div>')
 # 10/22 まーく様「ハンドシグナル、1ページにまとめられないんですか？」→ 1ページに。
@@ -536,8 +536,11 @@ ss4 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}<
 sm1 = "".join(f'<section class="sqc"><p class="sqh"><span class="sqn">{T(name)}</span></p><div class="sqr">'
              + f'<figure class="sqf">{im(fs[0][0], 1.9)}<figcaption>①{T(fs[0][1])}</figcaption></figure><i class="sqa">▶</i>'
              + f'<figure class="sqf">{im(fs[1][0], 1.9)}<figcaption>②{T(fs[1][1])}</figcaption></figure></div></section>' for name, fs in SIG_MOVE)
+# 10/23 残圧の伝え方：数字を1けたずつ、指で見せる（3枚を横に）
+sma = (f'<section class="sqc sqa3"><p class="sqh"><span class="sqn">{T(SIG_AIRNUM[0])}</span><span class="sqd">数字を1けたずつ、指で見せる</span></p><div class="sqr3">'
+       + '<i class="sqa">▶</i>'.join(f'<figure class="sqf">{im(k, 1.9)}<figcaption>{"①②③"[i]}{T(c)}</figcaption></figure>' for i, (k, c) in enumerate(SIG_AIRNUM[1])) + '</div></section>')
 # こんな時・ポイントの枠は、1ページに収めるため、このページでは出さない（ポイントは、まとめのページに）
-page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんからの指示で使う合図）。下の段は、形だけで伝わる合図</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div><div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
+page("合図", "ハンドシグナル", f'<p class="mtl sql">動きのある合図は、①をしてから②をするよ（*は、インストラクターさんが使う合図）</p><div class="sqg sqgL sqg1p">{sm1}</div><div class="sqg sqg4">{ss4}</div>{sma}<div class="notes sgn3">' + sgn2[len('<div class="notes">'):].split('<div class="nt kx">')[0] + '</div>')   # 大事だけ（親指の補足は、クイズにある）
 # 10/20 まーく様：まとめの題は、もくじ・題とも「集約版！サッと1ページで見返そう！」
 # 10/22 まーく様「振り返り1ページ、ぜんぜん1ページに集約できていない」→ 表1枚に。
 #   1行に1スキル：名前（写真をタップすると動画）／こんな時／ポイント／ページ。中身は各ページの when・point と同じ（2回書かない）
@@ -1474,6 +1477,12 @@ CSS += """
 .page .sqg4{margin-top:1.4mm;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm 3mm!important}
 .page .sqg4 .sqn{font-size:10pt!important}
 .page .sqg4 figcaption{font-size:8.6pt!important;line-height:1.3!important}
+/* 10/23 残圧の伝え方（3枚を横に） */
+.page .sqa3{margin:0 0 2mm;width:76%}   /* 写真1枚の大きさを、上の合図とそろえる */
+.page .sqa3 .sqh{display:flex;align-items:baseline;gap:3mm}
+.page .sqa3 .sqd{font-size:9pt;font-weight:700;color:var(--muted)}
+.page .sqr3{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1.4mm}
+.page .sqr3 figcaption{font-size:9.4pt!important;line-height:1.35!important}
 .page .umsg2{margin-top:1.6mm;border-radius:2mm;padding:2mm 3mm 2.2mm;background:linear-gradient(180deg,#fffaeb 0%,#fff 100%);box-shadow:inset 0 0 0 1.4px #ecd48a}
 .page .umh{margin:0 0 1.4mm;text-align:center;font-size:11.5pt;line-height:1.4;font-weight:900;color:#b0154a}
 .page .umg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.8mm 2.6mm}
