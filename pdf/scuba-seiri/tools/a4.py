@@ -246,11 +246,13 @@ REDCAP = set()   # 10/23 まーく様「画像下の銀色金具ぐるぐる、�
 WIDE = set()
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{(notes(s)[:-6] + IDEAL + "</div>") if s["id"] == "3-4" else notes(s)}</section>')   # 3-4 は補足の下に「理想の形」を足す
+            f'{photos(s)}{(notes(s)[:-6] + IDEAL + "</div>") if s["id"] == "3-4" and IDEAL_ON else notes(s)}</section>')   # 3-4 は補足の下に「理想の形」を足す
 
 # 10/23 まーく様「3-4 の下のあきに、3-5 の補足として、ストラップを付けてダイビングを楽しんでいる様子の写真を。画像の下に“これが理想の形！”」
 #   PADI Japan 公式「Scuba Sarah」26秒：オクト・残圧計がストラップで胸にまとまり、ぶら下がっていない
 #   3-4 の補足の下（左の列のあき）に置く。中身は 3-5 の話なので、札に「3-5」と書く
+# 10/24 まーく様「ここのシーンではない。ホースがストラップに付いて泳いでいる映像」→ 合う写真が見つかるまで外す（IDEAL_ON=False）。写真を替えたら True に
+IDEAL_ON = False
 IDEAL = (f'<div class="nt kx ideal"><span class="nk">補足</span><span class="nx">3-5 ストラップに付けると…</span>'
          f'<figure class="ph3">{im("ideal", 16/9)}<span class="cap3"><b>コレが理想の形！</b><br>{T("{octo}")}や{T("{gauge}")}が、体の前でスッキリ</span></figure></div>')
 
