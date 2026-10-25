@@ -364,7 +364,8 @@ def aspect_range(key):
     fw, fh = (fx1 - fx0) * (1 + 2 * PAD), (fy1 - fy0) * (1 + 2 * PAD)
     return fw / (ay1 - ay0), (ax1 - ax0) / fh
 
-def box_for(allowed, focus, aspect, pad=PAD):
+PAIRK = {"nghi", "nglo"}   # 重ねて比べる写真（1-3 の高すぎ・低すぎ）
+def box_for(allowed, focus, aspect, pad=PAD, zoom=True):
     """focusを少し余白つきで含み、縦横比がaspectで、allowedからはみ出さない、いちばん小さい枠"""
     ax0, ay0, ax1, ay1 = allowed
     fx0, fy0, fx1, fy1 = focus
@@ -376,9 +377,20 @@ def box_for(allowed, focus, aspect, pad=PAD):
     if w > ax1 - ax0: w = ax1 - ax0; h = w / aspect
     if h > ay1 - ay0: h = ay1 - ay0; w = h * aspect
     cx, cy = (fx0 + fx1) / 2, (fy0 + fy1) / 2
+    # 10/20 まーく様「器材が上に寄っていて、中央にきていない」→ 写したいものは、写真のまん中に置く。
+    #   画面のはしに当たってまん中に置けないときは、同じ形のまま少し寄って（小さく切って）まん中に置く。
+    #   寄っても、写したいもの（余白なし）が全部入るときだけ寄る。入らないときは、いままでどおり（あとで知らせる）
+    hw, hh = min(cx - ax0, ax1 - cx), min(cy - ay0, ay1 - cy)
+    sc = min(1.0, 2 * hw / w, 2 * hh / h)
+    if zoom and sc < 1.0 and w * sc + 0.5 >= fw and h * sc + 0.5 >= fh:
+        w, h = w * sc, h * sc
     x0 = min(max(cx - w / 2, ax0), ax1 - w)
     y0 = min(max(cy - h / 2, ay0), ay1 - h)
+    # 10/20 写したいものが、写真のまん中から ずれていないか（画面のはしに当たって、まん中に置けないとき）。あとでまとめて知らせる
+    _dx, _dy = (x0 + w / 2 - cx) / w, (y0 + h / 2 - cy) / h
+    if abs(_dx) > .04 or abs(_dy) > .04: OFFC.append((focus, round(_dx * 100), round(_dy * 100)))
     return x0, y0, x0 + w, y0 + h, (w + 0.5 >= fw and h + 0.5 >= fh)
+OFFC = []
 
 if __name__ == "__main__":
     # 使い方: python3 focus.py <sizes.json> <出力ディレクトリ>
@@ -386,12 +398,13 @@ if __name__ == "__main__":
     out = sys.argv[2]
     os.makedirs(out, exist_ok=True)
     warn = []
+    BADGE = {}
     ROT = {"belt"}  # 重りは横に長いので、90度回して縦長にする（左右のいらない部分を減らし、ベルト自体を大きく見せる。10/7 ご指示）
     for slot, (key, w, h) in sizes.items():
         frame, allowed, focus = F[key]
         rot = key in ROT
         if rot: w, h = h, w
-        pad_to = None
+        pad_to = None; _n0 = len(OFFC)
         if key in PAD_OK:
             # 切り抜ける幅の上限までで切り、足りないぶんは、あとで左右をうめる
             fh = (focus[3] - focus[1]) * (1 + 2 * PAD)
@@ -399,8 +412,9 @@ if __name__ == "__main__":
             x0, y0, x1, y1, ok = box_for(allowed, focus, a_fit)
             if a_fit < w / h - 0.01: pad_to = w / h
         else:
-            x0, y0, x1, y1, ok = box_for(allowed, focus, w / h)
+            x0, y0, x1, y1, ok = box_for(allowed, focus, w / h, zoom=key not in PAIRK)   # 比べる2枚は、同じ切り方のまま（寄せると2枚がずれる）
         if not ok: warn.append(f"{slot}: 見せたい部分が枠に入りきらない")
+        if len(OFFC) > _n0: print(f"  まん中からずれ {slot}（{key}）：左右 {OFFC[-1][1]}%・上下 {OFFC[-1][2]}%（画面のはしに当たって、まん中に置けない）")
         src = load(frame)
         sx, sy = src.size[0] / 1280, src.size[1] / 720
         im = src.crop((round(x0 * sx), round(y0 * sy), round(x1 * sx), round(y1 * sy)))
@@ -429,5 +443,10 @@ if __name__ == "__main__":
         im = im.resize((tw, round(tw * h / w)), Image.LANCZOS)
         if rot: im = im.rotate(90, expand=True)
         im = mark(im, key, (x0, y0, x1, y1), sx, sy, im.size[0] / w)
+        # 10/21 ▶ の印を置くすみ（見せたい部分・赤い印にかからない所）
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import badgepos as _bp
+        _ff = _bp.focus_frac(focus, (x0, y0, x1, y1), pad_to, None, rot) if not isinstance(focus, list) else [0, 0, 0, 0]
+        _c, _s, _ = _bp.corners(im, _ff, *( (h, w) if rot else (w, h) )); BADGE[slot] = f"{_c}:{_s}"
         im.save(os.path.join(out, f"{slot}.jpg"), quality=88)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); __import__("badgepos").save(out, BADGE)
     print("\n".join(warn) if warn else "all focus fit")

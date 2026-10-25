@@ -35,16 +35,17 @@ F = {
  "c14": (14, (0, 0, 1280, 545), (610, 120, 970, 370)),
  "c15": (15, (0, 0, 1280, 545), (380, 80, 960, 360)),
  "c44": (44, (0, 0, 1280, 540), (470, 150, 880, 340)),
+ "ideal": (46, (0, 0, 1180, 720), (560, 45, 940, 600)),   # 10/24 まーく様「赤丸は外して、画像はギリギリまでアップ」→ 体いっぱいに切る   # 10/24 女の人の体とオクト・残圧計が全部入るように。右下の PADI の印は切る   # 10/23 理想の形（サラさん）。字幕（y≈630〜）は入れない
  "strap": (43, (0, 0, 1280, 720), (160, 20, 790, 700)),  # 上下を回したあと：オクトの口（左）からストラップの金具（下）まで全部入れる  # 上下を回したあとの位置
  "twist": (42, (0, 0, 1280, 720), (240, 300, 900, 712)),
  "c16": (16, (205, 58, 1082, 545), (530, 290, 790, 525)),
  "hoses": (8, (195, 62, 1085, 515), (330, 95, 930, 455)),
- "c19": (19, (0, 0, 1280, 550), (420, 120, 1000, 545)),
+ "c19": (19, (0, 0, 1280, 550), (420, 78, 1000, 545)),   # 10/23 まーく様「目を閉じているところのユーモアが消えている。ギリギリで良いので目まで写して」→ 目（y≈100）が入るよう上を 78 に
  "c21": (21, (0, 0, 1280, 545), (390, 90, 760, 470)),
  "c22": (22, (0, 0, 1280, 545), (370, 150, 730, 520)),
  "c24": (24, (0, 0, 1280, 555), (300, 60, 900, 540)),
  "c26": (26, (0, 0, 1280, 555), (370, 140, 730, 520)),
- "c27": (27, (0, 0, 1280, 545), (340, 20, 1100, 545)),
+ "c27": (27, (0, 0, 1280, 545), (690, 150, 1140, 410)),   # 10/22 まーく様「L字サインホースをもっとアップに」→ BCDの肩からホースの先と手まで（赤い丸）に寄せた
  "c29": (29, (0, 0, 1280, 585), (500, 170, 880, 585)),
  "c30": (30, (0, 0, 1280, 575), (450, 140, 910, 575)),
  "c32": (32, (0, 0, 1280, 545), (380, 140, 1000, 545)),
@@ -84,6 +85,7 @@ OV = 1.2
 MARKE = {"c06": [(518, 172.5, 114.5, 105, RED)]}
 # ななめの四角（中心x, 中心y, 長さ, 幅, 角度[度・反時計回り]）。ホースの向きに合わせて傾ける（10/8 ご指示）
 MARKQ = {"c44": [(612, 281, 205, 72, 12.5)],             # 2-4：カチカチホースとL字サインホースのつなぎ目
+         "c15": [(612, 281, 205, 72, 12.5)],             # 集約版3：同じ場面（138秒）。10/23 まーく様「カチカチホースの接続部分に赤丸がされてません」
          # 1-2：上のベルト（四角い留め具つき）と、下のベルト（銀色の留め具）。どちらも右上がりなので、ベルトに合わせて傾ける（10/8 ご指示）
          "c05": [(447, 178, 112, 40, 6), (440, 320, 128, 50, 11)],
          # 2-5：ストラップの金具。金具は少し右に傾いた縦長なので、丸も金具の向きに合わせて傾ける（写真のはしからはみ出さないように）
@@ -93,7 +95,8 @@ MARKR = {
  "cap":   [(500, 155, 552, 205)],                          # 1-1：手に持っている黒いキャップ
  "c04":   [(398, 125, 452, 178)],                          # 1-1：タンクくるくる（黒いつまみ）
  "twist": [(405, 290, 545, 380)],                          # 2-5：ホースを手でたどっているところ
- "c19":   [(888, 445, 992, 505)],                          # 3-1：手に持っている残圧計
+ "c19":   [(888, 445, 992, 505)],
+ "ideal": [(560, 410, 680, 520)],                          # 10/24 まーく様「赤丸はやっぱり付けて」→ お腹の横で、オクトの黄色いホースを留めているストラップ
 }
 # 写真に書きこむ文字は、PDFのタグ（.tag：「全回転で止める！」など）と同じ見た目にする。
 # 同じフォント・同じ大きさ（紙の上で14pt）・同じ余白・同じ色で描く。数値は .tag のCSSと合わせること。
@@ -178,6 +181,9 @@ def mark(im, key, box, sx, sy, ppx):
     return out.convert("RGB")
 
 def load(frame):
+    if frame == 46:
+        # 10/24 まーく様が選んだ場面：PADI「レギュレーター・リカバリー」10秒（字幕が出る前）。オクト（黄色いホース）がストラップで胸にまとまって泳いでいる
+        return Image.open("/tmp/claude-0/kf/rr10full.jpg").convert("RGB").resize((1280, 720))
     if frame == 45:
         # あとから送ってもらった、BCDの前側を留めている正面の画面（左右の黒い帯を落とす）
         im = Image.open(os.path.join(UP, "79b8fd86-image.png")).convert("RGB")
@@ -228,7 +234,8 @@ def aspect_range(key):
     fw, fh = (fx1 - fx0) * (1 + 2 * PAD), (fy1 - fy0) * (1 + 2 * PAD)
     return fw / (ay1 - ay0), (ax1 - ax0) / fh
 
-def box_for(allowed, focus, aspect, pad=PAD):
+PAIRK = {"nghi", "nglo"}   # 重ねて比べる写真（1-3 の高すぎ・低すぎ）
+def box_for(allowed, focus, aspect, pad=PAD, zoom=True):
     """focusを少し余白つきで含み、縦横比がaspectで、allowedからはみ出さない、いちばん小さい枠"""
     ax0, ay0, ax1, ay1 = allowed
     fx0, fy0, fx1, fy1 = focus
@@ -240,9 +247,20 @@ def box_for(allowed, focus, aspect, pad=PAD):
     if w > ax1 - ax0: w = ax1 - ax0; h = w / aspect
     if h > ay1 - ay0: h = ay1 - ay0; w = h * aspect
     cx, cy = (fx0 + fx1) / 2, (fy0 + fy1) / 2
+    # 10/20 まーく様「器材が上に寄っていて、中央にきていない」→ 写したいものは、写真のまん中に置く。
+    #   画面のはしに当たってまん中に置けないときは、同じ形のまま少し寄って（小さく切って）まん中に置く。
+    #   寄っても、写したいもの（余白なし）が全部入るときだけ寄る。入らないときは、いままでどおり（あとで知らせる）
+    hw, hh = min(cx - ax0, ax1 - cx), min(cy - ay0, ay1 - cy)
+    sc = min(1.0, 2 * hw / w, 2 * hh / h)
+    if zoom and sc < 1.0 and w * sc + 0.5 >= fw and h * sc + 0.5 >= fh:
+        w, h = w * sc, h * sc
     x0 = min(max(cx - w / 2, ax0), ax1 - w)
     y0 = min(max(cy - h / 2, ay0), ay1 - h)
+    # 10/20 写したいものが、写真のまん中から ずれていないか（画面のはしに当たって、まん中に置けないとき）。あとでまとめて知らせる
+    _dx, _dy = (x0 + w / 2 - cx) / w, (y0 + h / 2 - cy) / h
+    if abs(_dx) > .04 or abs(_dy) > .04: OFFC.append((focus, round(_dx * 100), round(_dy * 100)))
     return x0, y0, x0 + w, y0 + h, (w + 0.5 >= fw and h + 0.5 >= fh)
+OFFC = []
 
 if __name__ == "__main__":
     # 使い方: python3 focus.py <sizes.json> <出力ディレクトリ>
@@ -250,12 +268,13 @@ if __name__ == "__main__":
     out = sys.argv[2]
     os.makedirs(out, exist_ok=True)
     warn = []
+    BADGE = {}
     ROT = {"belt"}  # 重りは横に長いので、90度回して縦長にする（左右のいらない部分を減らし、ベルト自体を大きく見せる。10/7 ご指示）
     for slot, (key, w, h) in sizes.items():
         frame, allowed, focus = F[key]
         rot = key in ROT
         if rot: w, h = h, w
-        pad_to = None
+        pad_to = None; _n0 = len(OFFC)
         if key in PAD_OK:
             # 切り抜ける幅の上限までで切り、足りないぶんは、あとで左右をうめる
             fh = (focus[3] - focus[1]) * (1 + 2 * PAD)
@@ -263,8 +282,9 @@ if __name__ == "__main__":
             x0, y0, x1, y1, ok = box_for(allowed, focus, a_fit)
             if a_fit < w / h - 0.01: pad_to = w / h
         else:
-            x0, y0, x1, y1, ok = box_for(allowed, focus, w / h)
+            x0, y0, x1, y1, ok = box_for(allowed, focus, w / h, zoom=key not in PAIRK)   # 比べる2枚は、同じ切り方のまま（寄せると2枚がずれる）
         if not ok: warn.append(f"{slot}: 見せたい部分が枠に入りきらない")
+        if len(OFFC) > _n0: print(f"  まん中からずれ {slot}（{key}）：左右 {OFFC[-1][1]}%・上下 {OFFC[-1][2]}%（画面のはしに当たって、まん中に置けない）")
         src = load(frame)
         sx, sy = src.size[0] / 1280, src.size[1] / 720
         im = src.crop((round(x0 * sx), round(y0 * sy), round(x1 * sx), round(y1 * sy)))
@@ -293,5 +313,10 @@ if __name__ == "__main__":
         im = im.resize((tw, round(tw * h / w)), Image.LANCZOS)
         if rot: im = im.rotate(90, expand=True)
         im = mark(im, key, (x0, y0, x1, y1), sx, sy, im.size[0] / w)
+        # 10/21 ▶ の印を置くすみ（見せたい部分・赤い印にかからない所）
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import badgepos as _bp
+        _ff = _bp.focus_frac(focus, (x0, y0, x1, y1), pad_to, None, rot) if not isinstance(focus, list) else [0, 0, 0, 0]
+        _c, _s, _ = _bp.corners(im, _ff, *( (h, w) if rot else (w, h) )); BADGE[slot] = f"{_c}:{_s}"
         im.save(os.path.join(out, f"{slot}.jpg"), quality=88)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); __import__("badgepos").save(out, BADGE)
     print("\n".join(warn) if warn else "all focus fit")

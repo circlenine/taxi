@@ -4,8 +4,11 @@ const { chromium } = require('playwright');
   const [src, out] = process.argv.slice(2);
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const p = await b.newPage();
-  await p.emulateMedia({media:'print'});await p.goto('file://' + src, { waitUntil: 'networkidle' });
-  await p.evaluate(() => document.fonts.ready); await p.waitForFunction(() => window.__laid === true);
+  // 10/21 読みこみの途中で、まれに「ページが読み直された」と止まることがある → 3回まで読み直す
+  for (let i = 0; ; i++) { try {
+    await p.emulateMedia({media:'print'});await p.goto('file://' + src, { waitUntil: 'networkidle' });
+    await p.evaluate(() => document.fonts.ready); await p.waitForFunction(() => window.__laid === true); break;
+  } catch (e) { if (i >= 2 || !/destroyed|navigation/.test(String(e))) throw e; } }
   
   const bad = await p.evaluate(() => {
     const r = [];

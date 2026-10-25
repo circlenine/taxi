@@ -7,7 +7,7 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
  document.querySelectorAll('.page').forEach((pg,i)=>{const P=pg.getBoundingClientRect(),L=P.left+SIDE*MM,R=P.right-SIDE*MM;
   {const lim=P.bottom-parseFloat(getComputedStyle(pg).paddingBottom)+1;pg.querySelectorAll('*').forEach(e=>{if(e.closest('.pno'))return;const r=e.getBoundingClientRect();if(r.height&&r.bottom>lim)out.push('p'+(i+1)+' ページの下にはみ出し '+e.className+' '+e.textContent.slice(0,10));});}
   [...pg.children].forEach(c=>{const r=c.getBoundingClientRect();if(!r.width||c.classList.contains('memo')||c.classList.contains('edtag'))return;   /* 左上の編の札は、本文の線の外に置くもの */if(!ok(r.left,L)||!ok(r.right,R))out.push('p'+(i+1)+' 左右が本文の線とずれ '+c.className+' '+Math.round(r.left-L)+'/'+Math.round(R-r.right));});
-  pg.querySelectorAll('*').forEach(e=>{const r=e.getBoundingClientRect();if(r.width&&(r.right>R+1||r.left<L-1)&&!e.closest('.pno'))out.push('p'+(i+1)+' 横にはみ出し '+e.className+' '+e.textContent.slice(0,12));});
+  pg.querySelectorAll('*').forEach(e=>{const r=e.getBoundingClientRect();if(r.width&&(r.right>R+1||r.left<L-1)&&!e.closest('.pno')&&!e.matches('.ph.band'))out.push('p'+(i+1)+' 横にはみ出し '+e.className+' '+e.textContent.slice(0,12));});   // 題の帯（.ph.band）は、わざとページの左右いっぱいに広げている（10/19）。帯の中身ははみ出しを見る
   pg.querySelectorAll('.step>.photos,.step>.notes,.step>.names,.step>.reg,.step>.sasuke,.step>.big').forEach(e=>{const r=e.getBoundingClientRect(),S=e.parentElement.getBoundingClientRect();if(!ok(r.left,S.left)||!ok(r.right,S.right))out.push('p'+(i+1)+' 写真・補足の幅がそろっていない '+e.className);});
   const L2=[...pg.querySelectorAll('.t,.sn,.fs,.nk,.nn,.tl')].map(e=>({e,r:e.getBoundingClientRect()})).filter(o=>o.r.height);
   for(let a=0;a<L2.length;a++)for(let c=a+1;c<L2.length;c++){const A=L2[a].r,B=L2[c].r;const ov=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);
@@ -22,7 +22,7 @@ const r=await p.evaluate((SIDE)=>{const out=[],MM=96/25.4,ok=(a,b)=>Math.abs(a-b
    if(Math.max(...B)-Math.min(...B)>1)out.push('となりの手順と写真の下がずれ '+r.map(x=>x.querySelector('.sn').textContent).join('/'));
    r.forEach(x=>{const a=[...x.querySelectorAll('.photos img')].map(i=>i.getBoundingClientRect());const b=Math.round(Math.max(...a.map(q=>q.bottom)));a.forEach(q=>{});});});});
  // 表紙の題：ページ（本文）の幅いっぱいに広がっているか（10/15 ご指示：題をページ幅に合わせる）
- {const c=document.querySelector('#p1 .cover'),t=c&&c.querySelector('.cv-t');if(t){const rg=document.createRange();rg.selectNodeContents(t);
+ {const c=document.querySelector('#p1 .cover'),t=c&&c.querySelector('.cv-t:not(.cv-logo)');if(t){   /* 10/20 ステッカー型のロゴ（lgE）は、高さを決めてまん中に置く形なので、幅いっぱいの決まりから外す */const rg=document.createRange();rg.selectNodeContents(t);
   const w=rg.getBoundingClientRect().width,W=c.getBoundingClientRect().width;if(w<W*0.97)out.push('表紙の題がページ幅に届いていない '+Math.round(w/W*100)+'%');}}
  // 本文の行の間隔：どこも字の大きさの1.6倍か（10/7 ご指摘）
  {const bad={};document.querySelectorAll('.notes *,.nmr *,.bg *,.sasuke *,.pts *,.qz *').forEach(e=>{const cs=getComputedStyle(e);if(!e.textContent.trim()||cs.display==='none')return;

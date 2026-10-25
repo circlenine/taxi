@@ -3,3 +3,4 @@
 # 文字起こしは pdf/scuba-skill/tools/getscript.py でいつでも取り直せる。
 pdf/**/*.pdf
 pdf/scuba-skill/transcripts/
+__pycache__/

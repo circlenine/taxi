@@ -17,13 +17,16 @@ const OK={'#1f2a37':'字','#6b7785':'うすい字','#d9e1ea':'ふち','#ffffff':
  '#4f3a00':'黄の字','#fffaeb':'黄の地','#ecd48a':'黄のふち','#9a6b00':'黄の見出し','#7d1236':'ピンクの字','#fff5f8':'ピンクの地','#efb3c4':'ピンクのふち','#b0154a':'ピンクの見出し',
  '#5f6b73':'銀色金具','#ad1457':'レギュ','#3a2e00':'オクトの字','#f2c200':'オクト','#8b5a2b':'カチカチホース','#2e7d32':'タンク','#1565c0':'BCD','#4a1424':'重りの字','#e8a1b3':'重り','#6a3fb5':'残圧計','#ef7fa0':'重り'};
 // 角の丸み：0（上の帯）・1mm・2mm・円 だけか
-const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAll('.page *').forEach(e=>{if(e.closest('svg'))return;const cs=getComputedStyle(e);const r=e.getBoundingClientRect();if(!r.width)return;
+const rad=await p.evaluate(()=>{const MM=96/25.4,out={};document.querySelectorAll('.page *').forEach(e=>{if(e.closest('svg')||e.classList.contains('ckc'))return;const cs=getComputedStyle(e);const r=e.getBoundingClientRect();if(!r.width)return;
  const v=cs.borderTopLeftRadius;if(v==='0px')return;const mm=parseFloat(v)/MM;if(v.includes('%')||parseFloat(v)>=Math.min(r.width,r.height)/2-0.5){out[(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' 丸']=1;return;}
  if(Math.abs(mm-1)>.05&&Math.abs(mm-2)>.05&&parseFloat(v)<Math.min(r.width,r.height)/2-0.5){const k=(e.className&&e.className.baseVal===undefined?e.className:e.tagName)+' '+mm.toFixed(2)+'mm';out[k]=1;}});return Object.keys(out);});
 console.log(rad.length?'NG 決めていない角の丸み … '+rad.join(' / '):'角の丸み OK（1mm・2mm だけ。丸い形なし）');
 ['#7b4fb0','#4b2a73','#ece1f7','#cdb5ea','#e2d4f2','#f8f3fd','#e6d8f6','#dcc9f1','#e9ddf7','#d6c2f0','#faf6fe'].forEach(c=>OK[c]='スキル編の紫');
 OK['#e0507f']='表紙のピンク（題の S・D・G・s の頭文字と、副題の SDGs だけ。10/15 ご指示）';
+['#2f9e7a','#e3f5ee','#d9466f','#fde6ec','#c98a00','#fff3cf','#2f78c4','#e1eefb','#fbf8ff'].forEach(c=>OK[c]='カードの色（10/19 スキル編2ページと同じ。緑・ピンク・黄・青）');
 // 洗浄編のオレンジ（a4s.py の COLORS と同じ）
 ['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='洗浄編のオレンジ');
+// スーツ編の緑（a4w.py の COLORS と同じ。10/24）
+['#2a8a62','#1f5c45','#d6efe3','#a6d8c0','#cfe8dc','#f2faf6','#c8e8d8','#e9f7f0','#e2f4eb','#bde3d0','#d4eee1','#b5dcc8','#f4fbf7'].forEach(c=>OK[c]='スーツ編の緑');
 const bad=Object.entries(r).filter(([k])=>!OK[k]);
 console.log(bad.length?bad.map(([k,v])=>'NG 決めていない色 '+k+' … '+v.join(' / ')).join('\n'):'色 OK（'+Object.keys(r).length+'色、すべて決めた色）');await b.close();})();

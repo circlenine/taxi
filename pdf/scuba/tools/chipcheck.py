@@ -4,6 +4,7 @@
 # 10/7 に、2-3の「銀色金具」だけ札になっていないのを見逃してご指摘を受けたので、毎回調べる
 import re, sys
 h = open(sys.argv[1]).read()
+h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ルビ（ふりがな）は、点検では数えない
 h = re.sub(r'<style.*?</style>|<script.*?</script>|<svg.*?</svg>', '', h, flags=re.S)
 # 札にしなくてよい場所を消す
 for pat in [r'<div class="ph[^"]*">.*?</h2></div>',        # ページの見出し
@@ -12,7 +13,7 @@ for pat in [r'<div class="ph[^"]*">.*?</h2></div>',        # ページの見出�
             r'<div class="reg">.*?(?=<div class="names">)',     # 2ページ目の写真の名札
             r'<(?:span|p) class="rn2">.*?</(?:span|p)>',                   # 「レギュ」と呼ぶことも（呼び名そのものの説明）
             r'<div class="logo">.*?</div></div>',            # 表紙のロゴ
-            r'<p class="src">.*?</p>', r'<a class="ref".*?</a>',
+            r'<p class="src[^"]*">.*?</p>', r'<a class="ref".*?</a>',
             r'<p class="of">.*?</p>',                         # 正式名称の行
             r'<div class="b3h">.*?</div>',                    # 道具2の見出し（札そのもの）
             r'<div class="pno">.*?</div>']:

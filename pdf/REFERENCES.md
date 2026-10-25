@@ -54,3 +54,36 @@
 - https://youtu.be/BxI9PpgsezQ https://youtu.be/Sxmtj_vZPNc https://youtu.be/ITHbu8p7N8Q https://youtu.be/1Aa02C3kvFk
 - https://youtu.be/FkYDxRr5558 https://youtu.be/Cm7H-uYyGXI https://youtu.be/xSRftekpirM https://youtu.be/gDhYOr3OuMY
 - https://youtu.be/ZUx16WOGBWU https://youtu.be/AeaJ59QlfOc https://youtu.be/zlHosescU2c https://youtu.be/T43jwPcO5q0
+
+## 10/19 資料の作り方（図解）—— まーく様にいただいたもの
+- https://youtu.be/CxA_Ko7zShw （世界で一番やさしい資料作りの教科書・要約）
+- https://youtube.com/playlist?list=PLW9xRy22MDKo （せかチャン 共通テスト情報I やさしい講座）
+- https://youtu.be/Qfn49-nP6lY （マコなり社長：見やすい・伝わる資料の7つのコツ）
+- https://youtu.be/TNlMd7PyDYo （しごおもTV：一瞬で伝わる図解の作り方）
+- https://diamond.jp/articles/-/360209 （前田鎌利『プレゼン資料の図解化大全』）
+- https://www.lifehacker.jp/article/239089zukai-memo-method-02/ （吉澤準特『図解作成の基本』）
+- https://fbicenter.co.jp/blog/20240523_figure-point （図解デザイン9つ）
+- https://liginc.co.jp/575236 （LIG：伝わる図解の作り方）
+- 画像3枚（図解デザインの例・飲食店の売上・サービス利用の流れ）
+
+## 10/19 あわてない（パニック予防）—— まーく様にいただいたもの
+- https://youtu.be/NojfvytyNBA （大人のダイビング倶楽部：呼吸と神経のしくみ）
+- https://youtu.be/CkhOk9KYVHE （熱烈先生：恐怖感・不安を和らげる方法）
+- https://youtu.be/C2DpfolYgmU （大人のダイビング倶楽部：パニックにならない方法）
+- https://youtu.be/UOWYYw_6R-c （パパラギ先生：初心者がつまずきがちな事5選）
+- https://youtu.be/pcnoTiMgp5I （Totty：水中パニックのしくみと予防法）
+
+## 10/21 その1 を組み直すときに使った動画（まーく様にいただいたもの）
+- 10/19 の分（上）に加えて、次を読んだ（字幕から。行ごとの出どころは intro_k.py に書いた）
+- https://youtu.be/DdQ_FBW611U （熱烈先生：ダイビング中の呼吸ペース）
+- https://youtu.be/JV4Y5JFUl0Q （山田孝之さんの初ダイビング：小さな心配が重なる・生き物に気持ちを向ける）
+- https://youtu.be/_5WJG7QlgW0 （パパラギ先生：事故例から学ぶ）
+- https://youtu.be/yxGndu5whlk （パパラギ先生：パニックの対処法）
+- https://youtu.be/SCNIUKBHLLg （熱烈先生：パニックの対処方法）
+- https://youtu.be/goZLJAGXoQE （大人のダイビング倶楽部：バディがパニックになったら）
+- https://youtu.be/NWilL1G3rgM （タテキ：海が怖い本当の理由）
+- https://youtu.be/au4pS-a3Ins （タテキ：上達する3つのポイント）
+- https://youtu.be/fWYj7n5pbQk （SHIRO DIVE：パニックや不安感）
+- https://youtu.be/aES1ndyvCXY ・ https://youtu.be/WvxX4FgwIxo （熱烈先生）・ https://youtu.be/ZE8B_kOCD2U （パパラギ先生）・ https://youtu.be/z2yIbIVPUhU （英語：30秒の方法）
+- 中身が取れなかったもの：https://youtu.be/3DgFyHQhQao （字幕なし）・https://youtu.be/ltXMa80NvX4 （字幕が音楽だけ）
+- 入れなかったもの：呼吸のやり方（秒数・止める・長く吐く）＝まーく様の決まり／首を強く押すほぐし方・出どころのない数字
