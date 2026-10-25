@@ -8,7 +8,7 @@ import sys, os, re
 import newdesign as _nd
 import phrasebreak as _pb   # 10/23 改行を区切り（、。）にそろえる   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
-from content_w import STEPS, TERMS, POINTS, POINT_TAGS, QUIZ, MATOME   # スーツ編（10/24）
+from content_w import STEPS, TERMS, POINTS, POINT_TAGS, QUIZ, MATOME, CAPS   # スーツ編（10/24）
 from focus_w import F as _F, aspect_range as _ar
 from fish import head_fish, scene, page_fish
 
@@ -25,18 +25,18 @@ def _vid_set(k): return "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")
 #   ほかの写真は「器材の片付け」の動画。こちらは画面収録が無いので、秒が分からない → 動画の最初から
 SET_T.update({'g0': 191, 'infl': 138, 'infl2': 138, 'tv': 182})
 # 10/24 スーツ編：写真の頭の2字 → 元の動画。画面収録の秒は、動画の秒とほぼ同じ（字幕で見比べた）。写真の場面から再生する
-SUIT_T = {"wd_whole": 252, "do_susp": 224, "do_sock": 183, "bc_inner": 436, "do_hair": 288, "do_nail": 248, "wd_half": 30, "wd_heel": 80,
-          "wd_knee": 100, "wr_arm": 200, "wr_zip": 240, "wr_off1": 378, "wr_off2": 420, "wr_wash": 476, "wr_off3": 482, "do_seal": 56,
-          "do_zipc": 64, "do_valve": 70, "bc_valve": 226, "do_inv": 140, "do_leg": 165, "do_wrist": 258, "do_neck": 278, "do_fold": 306,
-          "do_zip": 324, "do_zip2": 332, "do_squat": 338, "bc_under": 214, "bc_feet": 302, "bc_arm": 400, "do_wash": 354, "do_head": 396,
-          "do_armoff": 424, "do_legoff": 452}
-SUIT_V = {"do": "QtNIOoj7Lp0", "bc": "NS8OkAwcAJc", "wd": "DwV0Abnrm9s", "wr": "8eup5ULd8_U"}
+SUIT_T = {"b_bcdx": 168, "b_group": 154, "b_held2": 366, "b_uw": 398, "bc_arm": 400, "d_heel": 78, "d_knee": 96, "d_pad": 126, "do_seal": 56, "do_squat": 338, "do_susp": 224, "do_valve": 66, "do_zip2": 332, "do_zipc": 60, "o_armoff2": 426, "o_fold": 312, "o_hair": 288, "o_head": 390, "o_inv": 150, "o_leg": 162, "o_neck2": 282, "o_sock": 186, "o_susoff": 438, "o_wash": 354, "o_wrist": 246, "o_zip2": 330, "p_bone": 290, "p_nfold": 410, "p_seal": 205, "p_step": 870, "p_waist": 180, "p_zipc": 500, "r_in": 66, "r_shade": 498, "r_wash": 474, "r_zip2": 246, "r_zipoff": 330, "wr_off2": 420}
+SUIT_V = {"do": "QtNIOoj7Lp0", "o": "QtNIOoj7Lp0", "bc": "NS8OkAwcAJc", "b": "NS8OkAwcAJc", "p": "9IG9z5nAkl0",
+          "wd": "DwV0Abnrm9s", "d": "DwV0Abnrm9s", "wr": "8eup5ULd8_U", "r": "8eup5ULd8_U"}   # 写真の名前の頭（_ の前）→ 元の動画
 def _vid_wash(k):
-    v = SUIT_V.get(k[:2])
+    v = SUIT_V.get(k.split("_")[0])
     if not v: return None
     return v + (f"?t={max(0, SUIT_T[k] - 2)}" if k in SUIT_T else "")
 
+KINDCHIP = {"ウェット": '<span class="kind kwet">ウェット</span>', "ドライ": '<span class="kind kdry">ドライ</span>'}
 def T(s):
+    # 10/24 まーく様「ウェットスーツと、ドライスーツとで、タグをつけるなどでしっかり差別化を」→〔ウェット〕〔ドライ〕を色つきの札に
+    s = re.sub(r"〔(ウェット|ドライ)〕", lambda m: KINDCHIP[m.group(1)], s)
     s = re.sub(r"\{(\w+)\}", lambda m: f'<span class="t t-{m.group(1)}">{TERMS[m.group(1)]}</span>', s)
     return s.replace("“", '<span class="ql">“</span>').replace("”", '<span class="qr">”</span>')
 
@@ -70,6 +70,10 @@ p{margin:0}
 .t-bc{background:var(--bcd);color:#fff}.t-tank{background:var(--tank);color:#fff}
 .t-belt{background:var(--belt);color:#4a1424}.t-kachi{background:var(--kachi);color:#fff}.t-silver{background:var(--silver);color:#fff}
 .ql,.qr{margin:0}
+/* 10/24 ウェット・ドライの札（まーく様「タグをつけるなどでしっかり差別化を」）。ウェット＝水色、ドライ＝黄色。題の頭・写真の説明・まとめに付ける */
+.kind{display:inline-block;border-radius:1mm;padding:0 .45em;margin:0 .35em 0 0;font-size:.78em;line-height:1.45;vertical-align:.1em;font-weight:900;white-space:nowrap;letter-spacing:.02em}
+.kind.kwet{background:#d6ecfd;color:#1b5a8e;box-shadow:inset 0 0 0 1.2px #8cc4ef}
+.kind.kdry{background:#ffefc4;color:#7a5200;box-shadow:inset 0 0 0 1.2px #f0cf74}
 .nw{white-space:nowrap}
 /* 見出し：「工程1 ───」＋大きな題 */
 .ph{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:2.5mm;row-gap:1mm;color:var(--navy)}
@@ -197,6 +201,7 @@ CAP = {("2-1", "tv"): "タンクくるくる<small>（正式名称：タンク�
       
        ("5-1", "r7250"): "持ち方は、こんな感じ", ("5-2", "oc3473"): "持ち方は、こんな感じ"}
 
+CAP.update(CAPS)   # 10/24 スーツ編：どの写真にも「何をしているか」を書く（content_w.py）
 _slots = {}
 def im(k, asp):
     n = sum(1 for v in _slots.values() if v == k)
@@ -247,7 +252,7 @@ def photos(s):
     if not keys: return ""
     cap = lambda k: CAP.get((s["id"], k))
     def fig(k, asp, lab=None, red=False):
-        l = f'<span class="cap3{" red" if red else ""}">{lab}</span>' if lab else ""  # 名前がない写真は、下に空きを作らない
+        l = f'<span class="cap3{" red" if red else ""}">{T(lab)}</span>' if lab else ""  # 名前がない写真は、下に空きを作らない
         return f'<figure class="ph3">{im(k, asp)}{l}</figure>'
     if s.get("ng"):
         a, b, la, lb, red = keys[0], ("nghi", "nglo"), "○ 正しい高さ", "上：✕ 高すぎ<br>下：✕ 低すぎ", True
@@ -257,8 +262,8 @@ def photos(s):
         if len(keys) == 1: return f'<div class="photos">{fig(keys[0], 4/3, cap(keys[0]), (s["id"], keys[0]) in REDCAP)}</div>'
         cls = " strap2" if "strap" in keys else ""
         return f'<div class="photos{cls}">' + "".join(fig(k, 1.0, cap(k)) for k in keys) + "</div>"
-    big = f'<figure class="ph3">{im(a, 1.0)}<span class="cap3">{la}</span></figure>'
-    stk = f'<figure class="ph3 stack"><span class="st2">{xm(b[0], red)}{xm(b[1], red)}</span><span class="cap3{" red" if red else ""}">{lb}</span></figure>'
+    big = f'<figure class="ph3">{im(a, 1.0)}<span class="cap3">{T(la)}</span></figure>'
+    stk = f'<figure class="ph3 stack"><span class="st2">{xm(b[0], red)}{xm(b[1], red)}</span><span class="cap3{" red" if red else ""}">{T(lb)}</span></figure>'
     # 2-4は、やる順番（引く前 → 引いた後 → L字サインホースに付ける）のとおり、左に2枚・右に大きく1枚（10/7 ご指示）
     if s["id"] == "2-4":
         return f'<div class="photos p3 rev">{stk}{big}</div>'
@@ -348,7 +353,7 @@ for sec in STEPS:
     subs = sec["subs"]
     groups = [subs]   # 洗浄編は、どの工程も1ページに収まる
     for gi, g in enumerate(groups):
-        t = sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>'
+        t = (f"〔{sec['kind']}〕" if sec.get("kind") else "") + (sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>')
         # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから新規項目である洗浄のやり方
         pass   # 10/24 スーツ編は、どれも初めての話なので、ふり返り・NEW の札は付けない
         if sec["id"] in COLS:
@@ -1238,9 +1243,9 @@ function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const 
 document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();eqQuiz();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
-COLORS = {"#1c6ea4": "#2a8a62", "#16466b": "#1f5c45", "#d7eef9": "#d6efe3", "#a9d8ef": "#a6d8c0", "#cfe5f2": "#cfe8dc",
-          "#f1f8fc": "#f2faf6", "#c9e8f8": "#c8e8d8", "%23eaf6fd": "%23e9f7f0", "%23e3f3fb": "%23e2f4eb", "#bfe3f4": "#bde3d0",
-          "#d4ecfa": "#d4eee1", "#b8def5": "#b5dcc8", "#f4fafe": "#f4fbf7", "rgba(212,236,250,.9)": "rgba(212,238,225,.9)"}   # 10/24 スーツ編は緑（4冊を色で見分ける）
+COLORS = {"#1c6ea4": "#4fae84", "#16466b": "#3f9a73", "#d7eef9": "#dcf4e8", "#a9d8ef": "#ade3c8", "#cfe5f2": "#cdeedd",
+          "#f1f8fc": "#f2fbf6", "#c9e8f8": "#ccefdd", "%23eaf6fd": "%23eaf8f1", "%23e3f3fb": "%23e0f5ea", "#bfe3f4": "#c3ebd6",
+          "#d4ecfa": "#d4f2e3", "#b8def5": "#b8e8cf", "#f4fafe": "#f5fcf8", "rgba(212,236,250,.9)": "rgba(212,242,227,.9)"}   # 10/24 スーツ編は緑（4冊を色で見分ける）。同じ日 まーく様「パステル風のグリーンに」→ 濃い緑をやめ、やわらかい緑に
 def recolor(h):
     for k, v in COLORS.items(): h = h.replace(k, v).replace(k.upper(), v)
     return h
