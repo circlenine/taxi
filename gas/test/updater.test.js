@@ -6709,6 +6709,18 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
    *   確実に切れる道が1つ要ります。
    */
   t(okList.indexOf('event-off') !== -1, '★★「自動発信を切る」おつかいがある');
+  /*
+   * ★見張りが外れて、LINEの記録がスプシに入らなくなったとき用。
+   *   まーく様が仕事中でボタンを押せないことがあるので、
+   *   こちらから入れ直せる道を1つ残しておきます。
+   */
+  t(okList.indexOf('fix') !== -1, '★★「なおす」おつかいがある');
+  const srcF = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const atF = srcF.indexOf('task === "fix"');
+  t(atF !== -1, '★その分かれ道がある');
+  const partF = srcF.slice(atF, atF + 600);
+  t(/fixAll\(\)/.test(partF), '★★ちゃんと「なおす」を走らせている');
+  t(partF.indexOf('typeof fixAll !== "function"') !== -1, '★係が無くても落ちない');
   t(okList.indexOf('event-on') !== -1, '　 入れ直すほうもある');
   const src9 = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
   const at9 = src9.indexOf('task === "event-off"');
