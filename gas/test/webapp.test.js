@@ -734,5 +734,22 @@ console.log('\n■ ⚙️ 設定タブに、足りない行を こちらで足�
   ok(after && after[2] === '14:00', '  入れた値になっている');
 }
 
+console.log('\n■ 🔧 ウェブを開いたときも、見張りを直す');
+/*
+ * ★見張りが止まると、それを直すしくみも一緒に止まります。
+ *   復活できる入口は、多いほどよい（LINE・スプシ・ウェブ）。
+ *   2026/10 に何度も止まったので、入口を増やしました。
+ */
+{
+  const srcW = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '004-WebApp.gs'), 'utf8');
+  const at = srcW.indexOf('function doGet');
+  const part = srcW.slice(at, at + 700);
+  ok(/panelHealWatch_\(\)/.test(part),
+     '★★★doGet から 見張りを直す係を呼んでいる');
+  ok(part.indexOf('typeof panelHealWatch_ === "function"') !== -1,
+     '★係が入っていなくても落ちない');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

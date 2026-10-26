@@ -1045,7 +1045,7 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 21, 'いつも21個並ぶ（' + items.length + '個）');
+t(items.length === 22, 'いつも22個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
@@ -1053,7 +1053,7 @@ t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
   'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck,panelCleanDeploys,panelManual,' +
-  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape,panelShareGo',
+  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape,panelExportLedger,panelShareGo',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -1360,7 +1360,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '17個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '18個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1496,7 +1496,9 @@ panel._cells['55,2'] = false;
 panel._cells['55,3'] = '[20] 結果らんの形を調べる';
 panel._cells['56,2'] = false;
 panel._cells['56,3'] = '[21] さっきの絵をグループへ送る';
-panel._cells['57,2'] = '結果';
+panel._cells['57,2'] = false;
+panel._cells['57,3'] = '[22] つけ待ち台帳用に書き出す';
+panel._cells['58,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1577,15 +1579,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 15, '[7]〜[21] が足りない');
+t(F('panelCheck_')(panel).missing.length === 16, '[7]〜[22] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 17, '17個足りない');
+t(miss.length === 18, '18個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 21, '21個になった');
+t(F('panelReadRows_')(panel).length === 22, '22個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -1764,8 +1766,11 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
     const rc0 = F('panelResultCell_')(panel);
     const said = String(panel._cells[rc0.row + ',' + rc0.col] || '');
     has(said, '新しいボタンを足しました', '何を足したか伝える');
-    t(said.indexOf('[19] ぜんぶ読み直す') !== -1,
-      '★足したボタンの名前が、そのまま出る', said);
+    // ★ボタンは増えていくので、名前を書き写さない。
+    //   消した3つのうち、いちばん下のものが出ていることを見る
+    const lastName = F('panelItems_')().slice(-1)[0].label;
+    t(said.indexOf(lastName) !== -1,
+      '★足したボタンの名前が、そのまま出る（' + lastName + '）', said);
     t(said.indexOf('確かめてください') === -1,
       '★関わりのない「期間」「送り先」の話は、出さない', said);
   }
@@ -5380,7 +5385,30 @@ console.log('\n■ 🚑 fixAll ―― どこからも動かせなくなったと
   has(out, '記録用スプシ', '★スプシが開けるかを、まず確かめる');
   has(out, '見張りを入れ直しました', '★★見張りを入れ直す');
   t(triggers.some(x => x.getHandlerFunction() === 'panelWatch') === true,
-    '★★1分おきの見張りが戻る');
+    '★★保険の見張りが戻る');
+
+  /*
+   * ★「押した瞬間に動くほう」が消えていても、気づけること。
+   *   前はこちらを見ていなかったので、ボタンが効かないまま
+   *   何日も過ぎることがありました。
+   */
+  triggers = triggers.filter(x => x.getHandlerFunction() !== 'panelOnEdit');
+  delete props['PANEL_HEAL_AT'];
+  ctx.pu.length = 0;
+  t(F('panelHealWatch_')() === true, '★★★押した瞬間のほうが消えても、気づく');
+  t(triggers.some(x => x.getHandlerFunction() === 'panelOnEdit') === true,
+    '★★そちらも入れ直す');
+
+  /*
+   * ★保険の見張りは「3分おき」。
+   *   無料で使える持ち時間は1日90分まで。1分おきだと1日1440回で、
+   *   それだけで使い切ります。使い切ると その日は ぜんぶ止まります。
+   *   まーく様から「前にも何度も止まってます」と言われた件です。
+   */
+  t(vm.runInContext('PANEL_WATCH_MIN', ctx) >= 2,
+    '★★★保険の見張りは2分おきより ゆっくり（持ち時間を使い切らない）');
+  t(triggers.filter(x => x.getHandlerFunction() === 'panelWatch').length === 1,
+    '　 保険の見張りは1つだけ（二重に動かさない）');
   t(props['PANEL_RUNNING'] === undefined, '★動きっぱなしの札を、はがす');
   t(ctx.pu.length === 1, '★LINEにも知らせる（どれか1つでも届けば、直ったと分かる）');
   has(String(panel._cells[F('panelResultCell_')(panel).row + ',' +
@@ -6715,6 +6743,61 @@ console.log('\n■ 📮 おつかい「お知らせの絵を、自分にだけ�
    *   こちらから入れ直せる道を1つ残しておきます。
    */
   t(okList.indexOf('fix') !== -1, '★★「なおす」おつかいがある');
+
+  /*
+   * ★止まっていた間の乗車記録を、あとから入れ直せること。
+   *   二重に入ると売上が水増しされるので、そこを重く見ます。
+   */
+  t(okList.indexOf('rides') !== -1, '★★「乗車記録を入れ直す」おつかいがある');
+  {
+    const DAY = F('updDayText_');
+    t(DAY(new Date(2026, 9, 20)) === '2026-10-20', '★日付を字にそろえる（Date）');
+    t(DAY('2026/10/20') === '2026-10-20', '　 「2026/10/20」でも同じ形になる');
+    t(DAY('2026-10-20') === '2026-10-20', '　 「2026-10-20」でも同じ形になる');
+
+    /*
+     * ★列の番号などは 001-Code.gs にあります。
+     *   このテストは 005-Updater.gs だけを読んでいるので、
+     *   同じ値をここに置いてから見ます（本物と同じ並び）。
+     */
+    vm.runInContext('var START_ROW = 4, LAST_COL = 11,' +
+                    ' C_SENDER = 1, C_DATE = 2, C_START = 3, C_WAIT = 4,' +
+                    ' C_TIME = 5, C_MONEY = 6, C_PLACE = 7, C_METHOD = 8,' +
+                    ' C_OTHER = 9, C_LINK = 10, C_MARK = 11;', ctx);
+
+    // そのタブに、同じ記録があるかを見る
+    const SEEN = F('updRideSeen_');
+    const rows = [['ﾀﾞｲｽｹ', new Date(2026, 9, 20), '', '', '00:30', 1800,
+                   '新地7', '', '', '', '']];
+    const fakeSh = {
+      getLastRow: () => 4,
+      getRange: () => ({ getValues: () => rows })
+    };
+    t(SEEN(fakeSh, { bizDate: new Date(2026, 9, 20), time: '00:30', money: 1800 }) === true,
+      '★★★同じ記録は「もうある」と分かる');
+    t(SEEN(fakeSh, { bizDate: new Date(2026, 9, 20), time: '00:30', money: 1801 }) === false,
+      '★★1円でも違えば、別の記録として入れる');
+    t(SEEN(fakeSh, { bizDate: new Date(2026, 9, 21), time: '00:30', money: 1800 }) === false,
+      '★★日が違えば、別の記録として入れる');
+    t(SEEN(fakeSh, { bizDate: new Date(2026, 9, 20), time: '00:31', money: 1800 }) === false,
+      '　 時刻が違えば、別の記録');
+    t(SEEN(null, { bizDate: new Date(), time: '00:30', money: 1 }) === false,
+      '　 タブが無くても落ちない');
+  }
+
+  {
+    // 入れる本体。ふだんLINEから入るときと同じ係に通していること
+    const srcR = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+    const atR = srcR.indexOf('function updPutRides_');
+    t(atR !== -1, '★入れる係がある');
+    const partR = srcR.slice(atR, atR + 2600);
+    t(/parseRideMessage_\(text, at\)/.test(partR),
+      '★★★読み取りは、ふだんと同じ係に通している（並びがずれない）');
+    t(/updRideSeen_\(/.test(partR), '★★★入れる前に、同じ記録が無いか見ている');
+    t(/writeRecord_\(rec\)/.test(partR), '★ふだんと同じ書き込みに通している');
+    t(partR.indexOf('rec.messageId = ""') !== -1,
+      '　 あとから入れたぶんは、元の投稿とつなげない');
+  }
   const srcF = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
   const atF = srcF.indexOf('task === "fix"');
   t(atF !== -1, '★その分かれ道がある');

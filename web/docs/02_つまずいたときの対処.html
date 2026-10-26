@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>つまずいたときの対処｜つけ待ち台帳</title>
+<style>
+:root{
+  --ink:#1D2430; --ink2:#49556A; --muted:#78859B; --line:#E0DCD2;
+  --paper:#FBF8F1; --card:#FFFFFF; --amber:#C97A15; --amberbg:#FDF3E2;
+  --red:#B4402C; --redbg:#FBEDE9; --green:#1E7A4E; --greenbg:#EAF5EF;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,system-ui,sans-serif;
+  line-height:1.9;font-size:15px;-webkit-text-size-adjust:100%}
+.wrap{max-width:780px;margin:0 auto;padding:40px 22px 80px}
+header{border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:10px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--amber);font-weight:700;margin-bottom:8px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.45;letter-spacing:.01em}
+.lede{color:var(--ink2);font-size:14px;margin:0}
+h2{font-size:19px;margin:46px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line);letter-spacing:.01em}
+h2 .num{display:inline-grid;place-items:center;width:27px;height:27px;background:var(--ink);color:var(--paper);
+  border-radius:50%;font-size:13px;margin-right:11px;vertical-align:2px;font-weight:700}
+h3{font-size:15px;margin:26px 0 8px;color:var(--ink)}
+p{margin:12px 0}
+ol,ul{padding-left:1.4em;margin:12px 0}
+li{margin:7px 0}
+b,strong{font-weight:700}
+code,.k{font-family:ui-monospace,"SF Mono",Consolas,monospace;background:#F0EDE4;
+  border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:13px;word-break:break-all}
+.btnname{display:inline-block;background:var(--ink);color:#fff;border-radius:5px;
+  padding:1px 9px;font-size:13px;font-weight:600;white-space:nowrap;margin:0 1px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:18px 0}
+.note{background:var(--amberbg);border-left:4px solid var(--amber);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.warn{background:var(--redbg);border-left:4px solid var(--red);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.ok{background:var(--greenbg);border-left:4px solid var(--green);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.note>b:first-child,.warn>b:first-child,.ok>b:first-child{display:block;margin-bottom:4px;
+  font-size:13px;letter-spacing:.04em}
+.warn>b:first-child{color:var(--red)} .ok>b:first-child{color:var(--green)} .note>b:first-child{color:var(--amber)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{background:#F3F0E7;text-align:left;padding:9px 12px;border:1px solid var(--line);font-size:12.5px;
+  letter-spacing:.04em;vertical-align:top}
+td{padding:9px 12px;border:1px solid var(--line);vertical-align:top}
+.goal{background:var(--greenbg);border:1px solid #BFDFCE;border-radius:8px;padding:11px 15px;
+  margin:16px 0 0;font-size:13.5px}
+.goal:before{content:"ここまでできたら";display:block;font-size:11px;letter-spacing:.1em;
+  color:var(--green);font-weight:700;margin-bottom:3px}
+.time{float:right;font-size:12px;color:var(--muted);font-weight:400;letter-spacing:.04em;
+  background:#F3F0E7;border-radius:12px;padding:2px 11px;margin-top:2px}
+.check{list-style:none;padding:0}
+.check li{padding-left:30px;position:relative;margin:11px 0}
+.check li:before{content:"";position:absolute;left:0;top:4px;width:17px;height:17px;
+  border:2px solid var(--ink2);border-radius:3px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;padding-left:38px;position:relative;margin:14px 0}
+.steps>li:before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;
+  background:var(--amberbg);border:1.5px solid var(--amber);color:var(--amber);border-radius:50%;
+  display:grid;place-items:center;font-size:12.5px;font-weight:700}
+footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);line-height:1.9}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 22px;margin:24px 0 10px}
+.toc ol{margin:6px 0 0;padding-left:1.3em}
+.toc li{margin:4px 0;font-size:14px}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--amber);text-decoration:underline}
+.sql{background:#1D2430;color:#EDE6D8;border-radius:8px;padding:14px 16px;margin:14px 0;
+  font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;white-space:pre}
+@media print{
+  body{background:#fff;font-size:11.5pt} .wrap{max-width:none;padding:0}
+  h2{page-break-after:avoid} .card,.note,.warn,.ok,table{page-break-inside:avoid}
+}
+@media(max-width:560px){ .wrap{padding:26px 16px 60px} h1{font-size:22px} .time{float:none;display:inline-block} }
+</style></head>
+<body><div class="wrap">
+
+<header>
+  <div class="eyebrow">つけ待ち台帳</div>
+  <h1>つまずいたときの対処</h1>
+  <p class="lede">症状から引ける表です。当てはまるものがなければ、画面のスクリーンショットを撮って送ってください。それが一番早く解決します。</p>
+</header>
+
+<h2>セットアップ中に起きること</h2>
+<table>
+<tr><th style="width:31%">こうなった</th><th style="width:28%">たぶん原因</th><th>直し方</th></tr>
+
+<tr><td><b>画面が「読み込んでいます…」から進まない</b></td>
+<td><code>config.js</code> の2行が正しくない</td>
+<td>GitHubで <code>config.js</code> を開き直し、URLとキーを貼り直す。URLの最後に <code>/</code> が付いていないか、ダブルクォートが消えていないかを確認。直して <span class="btnname">Commit changes</span> すると1分ほどで自動的に反映される。</td></tr>
+
+<tr><td><b>公開URLを開くと「404」と出る</b></td>
+<td>GitHubにフォルダごとアップロードした</td>
+<td>GitHubのトップ画面に <code>index.html</code> が直接並んでいるか確認。<code>アプリ本体</code> というフォルダが1個あるだけなら、手順書の2番をやり直す。</td></tr>
+
+<tr><td><b>SQLを実行したら赤い文字が出た</b></td>
+<td>貼り付けが途中で切れている</td>
+<td><code>schema.sql</code> をもう一度メモ帳で開き、<b>Ctrl + A</b> で全選択してから貼り直す。何度実行しても壊れない作りなので、そのまま再実行してよい。</td></tr>
+
+<tr><td><b>作ったアカウントでログインできない</b></td>
+<td><b>Auto Confirm User</b> のチェックを忘れた</td>
+<td>Supabase → Authentication → Users でその人を削除し、チェックを入れて作り直す。</td></tr>
+
+<tr><td><b>記録ボタンを押すと「保存できませんでした」</b></td>
+<td>手順1のSQLが最後まで通っていない</td>
+<td>SQL Editorで <code>schema.sql</code> を丸ごと貼り直して <span class="btnname">Run</span>。それでも出るなら連絡を。</td></tr>
+
+<tr><td><b>Vercelのリポジトリ一覧に出てこない</b></td>
+<td>GitHubとの連携が未許可</td>
+<td>Import画面の <span class="btnname">Adjust GitHub App Permissions</span> から <code>tsukemachi</code> を選んで許可する。</td></tr>
+</table>
+
+<h2>使っていて起きること</h2>
+<table>
+<tr><th style="width:31%">こうなった</th><th style="width:28%">たぶん原因</th><th>直し方</th></tr>
+
+<tr><td><b>パスワード再設定のメールが来ない</b></td>
+<td>迷惑メールに入っている／短時間に送りすぎ</td>
+<td>まず迷惑メールフォルダを見る。メールは<b>1時間に数通まで</b>という制限があるので、連打すると届かなくなる。急ぐなら管理者が Supabase → Authentication → Users からその人を選び、パスワードを直接上書きするのが早い。</td></tr>
+
+<tr><td><b>再設定メールのリンクを押したらエラー</b></td>
+<td>Redirect URL が未登録</td>
+<td>手順書の5番をやる。<code>https://〇〇.vercel.app/login</code> を Redirect URLs に追加。</td></tr>
+
+<tr><td><b>久しぶりに開いたら繋がらない</b></td>
+<td>Supabaseが一時停止している</td>
+<td>無料プランは<b>7日間アクセスがないと自動で止まります</b>。Supabaseにログインして <span class="btnname">Restore</span> を押せば戻る。<b>データは消えません。</b>毎晩使っていれば止まりません。</td></tr>
+
+<tr><td><b>自分の記録に「直す・消す」が出ない</b></td>
+<td>別のアカウントでログインしている</td>
+<td>右上の名前を確認。違う人でログインしていたらログアウトして入り直す。</td></tr>
+
+<tr><td><b>他人の記録を消したい</b></td>
+<td>管理者権限がない</td>
+<td>管理者だけが他人の記録を消せます。管理者本人に頼むか、手順書7-2のSQLで管理者を増やす。</td></tr>
+
+<tr><td><b>グラフが真っ白</b></td>
+<td>その絞り込みに記録がない</td>
+<td>「自分だけ」になっていないか確認し、「全員」に戻す。</td></tr>
+
+<tr><td><b>スマホで表が切れる</b></td>
+<td>横に長い表</td>
+<td>表の上で<b>横にスワイプ</b>すると続きが見えます。</td></tr>
+</table>
+
+<h2>画面によく出る英語</h2>
+<table>
+<tr><td><b>Sign up</b></td><td>新規登録</td><td><b>Deploy</b></td><td>公開する</td></tr>
+<tr><td><b>Log in / Sign in</b></td><td>ログイン</td><td><b>Commit changes</b></td><td>変更を保存する</td></tr>
+<tr><td><b>Dashboard</b></td><td>管理画面</td><td><b>Repository</b></td><td>ファイルの保管庫</td></tr>
+<tr><td><b>Settings</b></td><td>設定</td><td><b>Import</b></td><td>取り込む</td></tr>
+<tr><td><b>Authentication</b></td><td>ログインまわり</td><td><b>Restore</b></td><td>元に戻す・再開する</td></tr>
+<tr><td><b>Users</b></td><td>利用者</td><td><b>Run</b></td><td>実行する</td></tr>
+<tr><td><b>Authorize / Allow</b></td><td>許可する</td><td><b>Cancel</b></td><td>やめる</td></tr>
+</table>
+
+<div class="warn">
+  <b>これだけは押さないでください</b>
+  Supabaseの <b>Project Settings → General</b> の下のほうにある <b>Delete project</b>、
+  GitHubの <b>Settings → Delete this repository</b>。
+  この2つは、押すと記録もアプリも<b>戻せません</b>。それ以外のボタンは、だいたい押しても元に戻せます。
+</div>
+
+<div class="note">
+  <b>連絡するときに添えてほしいもの</b>
+  ① 画面全体のスクリーンショット　② どの手順の何番をやっていたか　③ 直前に押したボタン。
+  この3つがあれば、ほとんど一往復で片がつきます。
+</div>
+
+<footer>つけ待ち台帳　引き継ぎ資料<br>作成：古里健太／2026年10月5日　この資料に書いていない画面が出たら、スクリーンショットを撮って送ってください。</footer>
+</div></body></html>
