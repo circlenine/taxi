@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U142ver  （2026/10/25）  ★★★
+ *  ★★★  U143ver  （2026/10/26）  ★★★
+ *
+ *  [U143ver]
+ *   ・🧾 止まっていた間の乗車記録を、あとから入れ直せるようにした
+ *     ★まーく様からのご提案（2026/10/26）：
+ *       LINEのやりとりの写真を、クロちゃんに送る形でもよいか。
+ *     ★できます。写真から読み取った中身を、ここから入れます。
+ *     ★中身は、**ふだんLINEから入るときと同じ係**に通します。
+ *       自前で列を組み立てると、並びがずれるためです。
+ *     ★「営業日・時刻・金額」がそろって同じ行がすでにあれば、
+ *       入れずに飛ばします。二重に入ると売上が水増しされ、
+ *       いちばん困るためです。
+ *     ★1円でも違えば、別の記録として入れます。
  *
  *  [U142ver]
  *   ・🚑 おつかいに「なおす（見張りを入れ直す）」を足した
@@ -1548,7 +1560,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U142ver";
+const UPD_VERSION = "U143ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9572,9 +9584,121 @@ const UPD_ERRAND_OK = {
    *   ★見張りが丸ごと止まっていると、この合図も届きません。
    *     そのときは、スプシのボタンを押していただくしかありません。
    */
+  /*
+   * ★スプシが止まっていた間の乗車記録を、あとから入れ直す。
+   *   まーく様がLINEのやりとりの写真をクロちゃんに送り、
+   *   クロちゃんが読み取った中身を、ここから入れます。
+   *   ★同じ記録が二度入らないように、必ず見くらべてから入れます。
+   */
+  "rides":       "乗車記録を、あとから入れ直す",
   "fix":         "なおす（見張りを入れ直す）",
   "ping":        "動いているかどうかの返事だけ"
 };
+
+/* ================================================================
+ *  🧾 止まっていた間の乗車記録を、あとから入れ直す
+ *
+ *  ★なぜ要るのか
+ *    見張り（決まった時刻にひとりでに動くしかけ）が外れると、
+ *    LINEに書かれた乗車記録が、スプシに入らないまま流れます。
+ *    LINEの投稿は残っているのに、記録だけが消える形です。
+ *    2026/10/25 に実際に起きました。
+ *
+ *  ★どう入れるか
+ *    まーく様がLINEの写真をクロちゃんに送り、
+ *    クロちゃんが読み取った中身を、メモに並べて渡します。
+ *    中身の読み取りは、**ふだんLINEから入るときと同じ係**
+ *    （parseRideMessage_）に通します。
+ *    自前で列を組み立てると、並びがずれるためです。
+ *
+ *  ★同じ記録を二度入れない
+ *    「営業日・時刻・金額」がそろって同じ行が、そのタブに
+ *    すでにあれば、入れずに飛ばします。
+ *    二重に入ると、売上が水増しされて、いちばん困ります。
+ * ================================================================ */
+
+/** そのタブに、同じ記録がもう入っていないかを見る */
+function updRideSeen_(sh, rec) {
+  try {
+    if (!sh) return false;
+    const last = sh.getLastRow();
+    if (last < START_ROW) return false;
+    const vals = sh.getRange(START_ROW, 1, last - START_ROW + 1, LAST_COL).getValues();
+    const d2 = updDayText_(rec.bizDate);
+    for (let i = 0; i < vals.length; i++) {
+      const r = vals[i];
+      if (String(r[C_TIME - 1]) !== String(rec.time)) continue;
+      if (Number(r[C_MONEY - 1]) !== Number(rec.money)) continue;
+      if (updDayText_(r[C_DATE - 1]) !== d2) continue;
+      return true;
+    }
+    return false;
+  } catch (e) { return false; }
+}
+
+/** 日付を「2026-10-20」の形の字にそろえる（Date でも字でも比べられるように） */
+function updDayText_(v) {
+  try {
+    if (v && typeof v.getTime === "function") {
+      return v.getFullYear() + "-" + ("0" + (v.getMonth() + 1)).slice(-2) +
+             "-" + ("0" + v.getDate()).slice(-2);
+    }
+    const m = String(v).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);
+    if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2);
+    return String(v);
+  } catch (e) { return String(v); }
+}
+
+/**
+ * メモの rows を、1件ずつ入れていく。
+ * 返すのは、まーく様へのお知らせの文。
+ */
+function updPutRides_(j) {
+  const rows = (j && j.rows) || [];
+  if (!rows.length) return "入れる記録がありませんでした（rows が空）。";
+  if (typeof parseRideMessage_ !== "function" || typeof writeRecord_ !== "function") {
+    return "記録を入れる係が見あたりませんでした。";
+  }
+
+  let ok = 0, dup = 0, ng = 0;
+  const ngList = [];
+  const ss = mainSS_();
+
+  rows.forEach(function (r) {
+    try {
+      const tab = String((r && r.tab) || "").trim();
+      const text = String((r && r.text) || "");
+      if (!tab || !text) { ng++; ngList.push("中身が足りません"); return; }
+
+      const at = r.at ? new Date(String(r.at).replace(/-/g, "/")) : new Date();
+      const rec = parseRideMessage_(text, at);
+      if (!rec) { ng++; ngList.push(text.split("\n")[0] + "…（読めません）"); return; }
+
+      rec.ownerTab = tab;
+      rec.sender   = tab;
+      rec.messageId = "";          // あとから入れたぶんは、元の投稿とつながっていない
+
+      /*
+       * ★同じ記録が入っていないかを、先に見ます。
+       *   二重に入ると、売上が水増しされます。
+       *   1円でも違えば別の記録なので、そのときは入れます。
+       */
+      if (updRideSeen_(ss.getSheetByName(tab), rec)) { dup++; return; }
+
+      writeRecord_(rec);
+      ok++;
+    } catch (e) {
+      ng++; ngList.push((e && e.message) || String(e));
+    }
+  });
+
+  let out = "🧾 乗車記録を入れ直しました。\n" +
+            "・入れた　　：" + ok + "件\n" +
+            "・もうあった：" + dup + "件\n" +
+            "・読めない　：" + ng + "件";
+  if (ngList.length) out += "\n\n読めなかったもの\n・" + ngList.slice(0, 5).join("\n・");
+  return out;
+}
 
 /**
  * おつかいメモに書かれた「お知らせの絵」を、LINEに出せる形にする。
@@ -9883,6 +10007,8 @@ function updErrandTick_() {
     } else if (task === "venue-probe") {
       if (typeof panelVenueProbe === "function") out = panelVenueProbe();
       else out = "イベントのしくみが、まだ入っていません。";
+    } else if (task === "rides") {
+      out = updPutRides_(j);
     } else if (task === "fix") {
       /*
        * ★「なおす」を走らせて、見張りを入れ直します。
