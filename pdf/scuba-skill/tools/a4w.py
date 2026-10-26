@@ -9,7 +9,7 @@ import newdesign as _nd
 import phrasebreak as _pb   # 10/23 改行を区切り（、。）にそろえる   # 10/19 新しい形の部品
 sys.path.insert(0, os.path.dirname(__file__))
 from content_w import STEPS, TERMS, POINTS, POINT_TAGS, QUIZ, MATOME, CAPS   # スーツ編（10/24）
-from focus_w import F as _F, aspect_range as _ar
+from focus_w import F as _F, aspect_range as _ar, SRC as _SRC
 from fish import head_fish, scene, page_fish
 
 B = sys.argv[1]
@@ -25,13 +25,11 @@ def _vid_set(k): return "twjEJS_0kms" + (f"?t={SET_T[k]}" if k in SET_T else "")
 #   ほかの写真は「器材の片付け」の動画。こちらは画面収録が無いので、秒が分からない → 動画の最初から
 SET_T.update({'g0': 191, 'infl': 138, 'infl2': 138, 'tv': 182})
 # 10/24 スーツ編：写真の頭の2字 → 元の動画。画面収録の秒は、動画の秒とほぼ同じ（字幕で見比べた）。写真の場面から再生する
-SUIT_T = {"b_bcdx": 168, "b_group": 154, "b_held2": 366, "b_uw": 398, "bc_arm": 400, "d_heel": 78, "d_knee": 96, "d_pad": 126, "do_seal": 56, "do_squat": 338, "do_susp": 224, "do_valve": 66, "do_zip2": 332, "do_zipc": 60, "o_armoff2": 426, "o_fold": 312, "o_hair": 288, "o_head": 390, "o_inv": 150, "o_leg": 162, "o_neck2": 282, "o_sock": 186, "o_susoff": 438, "o_wash": 354, "o_wrist": 246, "o_zip2": 330, "p_bone": 290, "p_nfold": 410, "p_seal": 205, "p_step": 870, "p_waist": 180, "p_zipc": 500, "r_in": 66, "r_shade": 498, "r_wash": 474, "r_zip2": 246, "r_zipoff": 330, "wr_off2": 420}
-SUIT_V = {"do": "QtNIOoj7Lp0", "o": "QtNIOoj7Lp0", "bc": "NS8OkAwcAJc", "b": "NS8OkAwcAJc", "p": "9IG9z5nAkl0",
-          "wd": "DwV0Abnrm9s", "d": "DwV0Abnrm9s", "wr": "8eup5ULd8_U", "r": "8eup5ULd8_U"}   # 写真の名前の頭（_ の前）→ 元の動画
+# 10/26 写真 → 元の動画とその秒は focus_w.SRC（kfw3/list3.txt から）。カタログの図（d_cat）は動画なし
 def _vid_wash(k):
-    v = SUIT_V.get(k.split("_")[0])
-    if not v: return None
-    return v + (f"?t={max(0, SUIT_T[k] - 2)}" if k in SUIT_T else "")
+    if k not in _SRC: return None
+    v, t = _SRC[k]
+    return v if t is None else v + f"?t={max(0, t - 2)}"
 
 KINDCHIP = {"ウェット": '<span class="kind kwet">ウェット</span>', "ドライ": '<span class="kind kdry">ドライ</span>'}
 def T(s):
@@ -259,7 +257,7 @@ def photos(s):
     elif len(keys) == 3:
         a, b, la, lb, red = keys[0], keys[1:], cap(keys[0]), f"上：{cap(keys[1])}<br>下：{cap(keys[2])}" + STK_OF.get(s["id"], ""), False
     else:
-        if len(keys) == 1: return f'<div class="photos">{fig(keys[0], 4/3, cap(keys[0]), (s["id"], keys[0]) in REDCAP)}</div>'
+        if len(keys) == 1: return f'<div class="photos">{fig(keys[0], ASPECT.get(keys[0], 4/3), cap(keys[0]), (s["id"], keys[0]) in REDCAP)}</div>'
         cls = " strap2" if "strap" in keys else ""
         return f'<div class="photos{cls}">' + "".join(fig(k, 1.0, cap(k)) for k in keys) + "</div>"
     big = f'<figure class="ph3">{im(a, 1.0)}<span class="cap3">{T(la)}</span></figure>'
@@ -276,7 +274,8 @@ STK_OF = {}
 REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
-WIDE = set()   # スーツ編は、どの手順も2列にそろえる（洗浄編の3-1の横長は使わない）
+WIDE = {"2-1"}   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+ASPECT = {"d_cat": 1920 / 880}   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
     # 「くわしくは 1-4（3ページ）」：タップでそのページへ飛ぶ。印刷しても何ページ目かが分かるよう、ページ番号は必ず書く（10/13 ご指示）
     # ページ番号は、手順のページを作り終えてから入れる（2ページを作る時点では、まだ決まっていないため）
@@ -313,7 +312,7 @@ def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
-    lg = '<span class="legend hl"><span class="lx">補足</span>動画にない話<span class="lp">大事</span>必ず守ること</span>' if (head_no in ("器材", "大事") or head_no.startswith("工程")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
+    lg = '<span class="legend hl"><span class="lx">補足</span>知っておくと楽な点<span class="lp">大事</span>必ず守ること</span>' if (head_no in ("器材", "大事") or head_no.startswith("工程")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
     h = _nd.header("4", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
@@ -395,14 +394,14 @@ def mjump(sid):
     n = pg_of(sid)
     return f'<a class="jump" href="#p{n}"><span class="tapm scr">*</span>くわしくは<b>{sid}</b>（{n}ページ）</a>'
 mt = "".join(
-    f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="https://youtu.be/{_vid_wash(k)}">{im(k, 1.6)}<span class="play scr">▶</span></a>'
+    f'<section class="mtc"><h3 class="mth"><span class="mtn">{i}</span><span>{T(h)}</span></h3><a class="mtv" href="{(_vid_wash(k) if _vid_wash(k).startswith("http") else "https://youtu.be/" + _vid_wash(k))}">{im(k, 1.6)}<span class="play scr">▶</span></a>'
     + '<ol class="mts">' + "".join(f'<li{" class=\"mtb\"" if big else ""}><span>{"<span class=\"lp mtk\">大事</span>" if big else ""}{T(x)}</span></li>' for sid, x, big in steps) + '</ol>'
     + mjump(steps[0][0]) + '</section>'
     for i, (k, h, steps) in enumerate(MATOME, 1))
-page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、YouTubeへ移動するよ</b><span class="rn">動きは、YouTubeで見返そう</span></span></div><p class="src mtcred"><span class="nw">参考動画：「ドライスーツの</span><br><span class="nw">着方・脱ぎ方を完全解説」（ocean_a）</span><br><span class="nw">他4本の動画の画面から</span></p></div>{mt}</div>')
+page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、元のページへ</b><span class="rn">動画・お店のブログ・カタログ</span></span></div><p class="src mtcred"><span class="nw">写真：海人商店ブログ・</span><br><span class="nw">ワールドダイブのカタログ・</span><br><span class="nw">参考動画5本から（最後のページ）</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真：参考動画「ドライスーツの着方・脱ぎ方を完全解説」（ocean_a）他4本の画面から。<a href="https://youtu.be/QtNIOoj7Lp0"><span class="tapm scr">*</span>https://youtu.be/QtNIOoj7Lp0</a><br>※他の写真の元の動画は、写真ごとに違うよ<span class="scr">。写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真の元：ドライの着方・脱ぎ方＝海人商店ブログ（ワールドダイブ取扱店）の写真／しくみ＝ワールドダイブのカタログ／他＝ocean_a・パパラギ先生（2本）・DIVER mag・ROXY の動画の画面。文の元：他に熱烈先生・THINKING ABOUT THE SEA・KOBEkazunori の動画、TUSA の取扱説明書<span class="scr">。写真をタップすると、元のページが開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -412,7 +411,7 @@ def _tocdayo(t): return re.sub(r"だよ(?=\s*(<span class=\"half|$))", "", t)
 toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb, lb)}</span><span class="tt">{_tocdayo(T(TOC_TT.get(lb, tt)))}</span><span class="tp">{pn}<small>ページ</small></span></a>' for lb, tt, pn in TOC)
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">4</span></span><span class="cv-e"><span class="g">スーツ</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
-<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>リンクをタップで、YouTubeへ</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
+<div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>出どころの一覧</span><span class="hp">2〜{len(pages) - 2}・__TOTAL__ページ</span><span>memo は、タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
 <div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 pages = [re.sub(r"__PG_([0-9A-Z-]+)__", lambda m: str(SUBPG[m.group(1)]), x) for x in pages]
@@ -523,6 +522,8 @@ CSS += """
 .sn{height:calc(13.5pt * 1.5)!important;font-size:11pt!important}
 .sh3 .t{font-size:12.5pt!important}
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
+/* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
+.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:1920/880!important;width:100%!important}
 .photos.n3 img,.photos.ngp img{height:calc((var(--ph,50mm) - 1.6mm - 6mm) / 2)!important}
 .photos.n3,.photos.ngp{grid-template-columns:1.4fr 1fr!important;grid-template-rows:auto auto}
 .photos.n3 .ph3:first-child,.photos.ngp .ph3:first-child{grid-column:1!important;grid-row:1/3}

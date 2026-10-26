@@ -11,10 +11,11 @@ def apply(html, vid_of):
         k = re.search(r'data-k="([^"]+)"', m.group(0))
         v = vid_of(k.group(1)) if k else None
         if not v: raise SystemExit(f"写真 {k.group(1) if k else '?'} の関連動画が決まっていない（photolink の対応表に足す）")
-        return m.group(0)[:-1] + f' data-v="https://youtu.be/{v}">'   # v は「動画の番号」か「動画の番号?t=秒」（10/21 写真の場面から再生）
+        u = v if v.startswith("http") else f"https://youtu.be/{v}"   # 10/26 動画でない写真（お店のページ・カタログ）は、そのページへ
+        return m.group(0)[:-1] + f' data-v="{u}">'   # v は「動画の番号」か「動画の番号?t=秒」（10/21 写真の場面から再生）
     html = re.sub(r'<img [^>]*>', lambda m: add(m) if 'data-k=' in m.group(0) else m.group(0), html)
     # 使い方の欄に、1行足す
-    html = html.replace('<div class="hrows">', '<div class="hrows"><span class="hp">写真</span><span>▶をタップで、YouTubeへ</span>', 1)
+    html = html.replace('<div class="hrows">', '<div class="hrows"><span class="hp">写真</span><span>▶をタップで、元の動画・ページへ</span>', 1)
     return html
 
 # 10/21 透明のリンクに、ほかのリンク用の「うすい色の背景」がかかって、写真が全部隠れた（まーく様「画像が全て見えない」）→ 背景を必ず透明にする。photocover.js で点検
