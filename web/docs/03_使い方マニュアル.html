@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方マニュアル｜つけ待ち台帳</title>
+<style>
+:root{
+  --ink:#1D2430; --ink2:#49556A; --muted:#78859B; --line:#E0DCD2;
+  --paper:#FBF8F1; --card:#FFFFFF; --amber:#C97A15; --amberbg:#FDF3E2;
+  --red:#B4402C; --redbg:#FBEDE9; --green:#1E7A4E; --greenbg:#EAF5EF;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,system-ui,sans-serif;
+  line-height:1.9;font-size:15px;-webkit-text-size-adjust:100%}
+.wrap{max-width:780px;margin:0 auto;padding:40px 22px 80px}
+header{border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:10px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--amber);font-weight:700;margin-bottom:8px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.45;letter-spacing:.01em}
+.lede{color:var(--ink2);font-size:14px;margin:0}
+h2{font-size:19px;margin:46px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line);letter-spacing:.01em}
+h2 .num{display:inline-grid;place-items:center;width:27px;height:27px;background:var(--ink);color:var(--paper);
+  border-radius:50%;font-size:13px;margin-right:11px;vertical-align:2px;font-weight:700}
+h3{font-size:15px;margin:26px 0 8px;color:var(--ink)}
+p{margin:12px 0}
+ol,ul{padding-left:1.4em;margin:12px 0}
+li{margin:7px 0}
+b,strong{font-weight:700}
+code,.k{font-family:ui-monospace,"SF Mono",Consolas,monospace;background:#F0EDE4;
+  border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:13px;word-break:break-all}
+.btnname{display:inline-block;background:var(--ink);color:#fff;border-radius:5px;
+  padding:1px 9px;font-size:13px;font-weight:600;white-space:nowrap;margin:0 1px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:18px 0}
+.note{background:var(--amberbg);border-left:4px solid var(--amber);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.warn{background:var(--redbg);border-left:4px solid var(--red);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.ok{background:var(--greenbg);border-left:4px solid var(--green);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.note>b:first-child,.warn>b:first-child,.ok>b:first-child{display:block;margin-bottom:4px;
+  font-size:13px;letter-spacing:.04em}
+.warn>b:first-child{color:var(--red)} .ok>b:first-child{color:var(--green)} .note>b:first-child{color:var(--amber)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{background:#F3F0E7;text-align:left;padding:9px 12px;border:1px solid var(--line);font-size:12.5px;
+  letter-spacing:.04em;vertical-align:top}
+td{padding:9px 12px;border:1px solid var(--line);vertical-align:top}
+.goal{background:var(--greenbg);border:1px solid #BFDFCE;border-radius:8px;padding:11px 15px;
+  margin:16px 0 0;font-size:13.5px}
+.goal:before{content:"ここまでできたら";display:block;font-size:11px;letter-spacing:.1em;
+  color:var(--green);font-weight:700;margin-bottom:3px}
+.time{float:right;font-size:12px;color:var(--muted);font-weight:400;letter-spacing:.04em;
+  background:#F3F0E7;border-radius:12px;padding:2px 11px;margin-top:2px}
+.check{list-style:none;padding:0}
+.check li{padding-left:30px;position:relative;margin:11px 0}
+.check li:before{content:"";position:absolute;left:0;top:4px;width:17px;height:17px;
+  border:2px solid var(--ink2);border-radius:3px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;padding-left:38px;position:relative;margin:14px 0}
+.steps>li:before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;
+  background:var(--amberbg);border:1.5px solid var(--amber);color:var(--amber);border-radius:50%;
+  display:grid;place-items:center;font-size:12.5px;font-weight:700}
+footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);line-height:1.9}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 22px;margin:24px 0 10px}
+.toc ol{margin:6px 0 0;padding-left:1.3em}
+.toc li{margin:4px 0;font-size:14px}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--amber);text-decoration:underline}
+.sql{background:#1D2430;color:#EDE6D8;border-radius:8px;padding:14px 16px;margin:14px 0;
+  font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;white-space:pre}
+@media print{
+  body{background:#fff;font-size:11.5pt} .wrap{max-width:none;padding:0}
+  h2{page-break-after:avoid} .card,.note,.warn,.ok,table{page-break-inside:avoid}
+}
+@media(max-width:560px){ .wrap{padding:26px 16px 60px} h1{font-size:22px} .time{float:none;display:inline-block} }
+</style></head>
+<body><div class="wrap">
+
+<header>
+  <div class="eyebrow">つけ待ち台帳</div>
+  <h1>使い方マニュアル</h1>
+  <p class="lede">毎晩の入力から、グラフの読み方、人の追加・削除まで。セットアップが終わったあとに読むものです。</p>
+</header>
+
+<h2>まず、スマホで開けるようにする</h2>
+<p>公開URLをスマホのブラウザで開き、ホーム画面に追加しておくと、アプリと同じように1タップで開けます。</p>
+<table>
+<tr><th style="width:18%">iPhone</th><td>Safariで開く → 下の<b>共有ボタン</b>（四角に上矢印）→「ホーム画面に追加」</td></tr>
+<tr><th>Android</th><td>Chromeで開く → 右上の<b>︙</b> →「ホーム画面に追加」</td></tr>
+</table>
+<div class="note"><b>ログインは入れっぱなしで大丈夫</b>一度ログインすれば、しばらく入力を求められません。車内で素早く記録するためのものなので、毎回ログインする必要はありません。</div>
+
+<h2>毎晩やること</h2>
+<p>1回の乗務が終わるたびに、4つだけ入れます。<b>信号待ちでも10秒で終わる</b>のが狙いです。</p>
+<table>
+<tr><th style="width:26%">入れるもの</th><th>補足</th></tr>
+<tr><td><b>つけ待ち場所</b></td><td>一度入れた場所はボタンで出てくるので、2回目からはタップだけ。</td></tr>
+<tr><td><b>乗せた時刻</b></td><td><code>2530</code> <code>25:30</code> <code>1:30</code> どれでも通る。深夜1時半は25:30でも1:30でも同じ扱い。</td></tr>
+<tr><td><b>待ち時間（分）</b></td><td>つけてから出発するまで。5分・10分などのボタンあり。</td></tr>
+<tr><td><b>乗車時間（分）</b></td><td>乗せてから降ろすまで。</td></tr>
+<tr><td><b>金額</b></td><td>メーターの金額。</td></tr>
+</table>
+<div class="note"><b>日付は「夜が始まった日」</b>深夜2時に入力しても、その夜の始まりの日付のままにします。朝6時までは自動で前日の日付が入るようになっています。</div>
+
+<h2>グラフの読み方</h2>
+
+<h3>いちばん大事な数字「時間単価」</h3>
+<p>金額 ÷（待ち時間 ＋ 乗車時間）× 60 で出した、<b>1時間あたりの実入り</b>です。つけ待ちで潰した時間も込みで計算しています。</p>
+<div class="card">
+<p style="margin:0 0 10px"><b>なぜ金額だけで見てはいけないか</b></p>
+<table style="margin:0">
+<tr><th>ケース</th><th class="n">金額</th><th>かかった時間</th><th>時間単価</th></tr>
+<tr><td>長距離を1本</td><td>¥24,070</td><td>待ち12分＋乗車82分</td><td><b style="color:#1E7A4E">¥15,364/h</b></td></tr>
+<tr><td>近場をちょこちょこ</td><td>¥1,000</td><td>待ち5分＋乗車7分</td><td><b style="color:#1E7A4E">¥5,000/h</b></td></tr>
+<tr><td>待たされた末の近場</td><td>¥3,400</td><td>待ち30分＋乗車16分</td><td><b style="color:#B4402C">¥4,435/h</b></td></tr>
+</table>
+<p style="margin:10px 0 0;font-size:13.5px;color:#49556A">金額が3倍違っても、時間単価では逆転することがあります。「どこで何時に待つか」を決めるのは、金額ではなくこちらの数字です。</p>
+</div>
+
+<h3>4つの見方</h3>
+<table>
+<tr><th style="width:24%">タブ</th><th>何が分かるか</th></tr>
+<tr><td><b>熱いところ</b></td><td>時間帯×場所のマス目。<b>濃いマスほど割がいい</b>。今夜どこで待つかを決める画面。3件以上たまったマスだけ信じること。</td></tr>
+<tr><td><b>一夜の流れ</b></td><td>夜ごとの帯グラフ。細い線が待ち、太い帯が実車。<b>空白が長い夜</b>は、流しに切り替えるかつけ場所を変える余地があった夜。</td></tr>
+<tr><td><b>時間×金額</b></td><td>これまでのスプレッドシートと同じ形のグラフ。金額のラベルは自動で重ならない位置に逃げる。</td></tr>
+<tr><td><b>集計</b></td><td>時間帯別・場所別のランキング。平均の待ち時間も出る。<b>薄い棒は件数が足りていない印</b>。</td></tr>
+</table>
+<div class="note"><b>「自分だけ／全員」の切り替え</b>どのタブにもあります。自分の成績を見るときは「自分だけ」、場所の良し悪しを判断するときは3人ぶんのデータが集まる「全員」が当てになります。</div>
+
+<h2>管理画面でできること</h2>
+<p>右上の <span class="btnname">管理</span> から入ります。</p>
+<table>
+<tr><th style="width:26%">やりたいこと</th><th>やり方</th></tr>
+<tr><td><b>表示名を変える</b></td><td>「自分の設定」の表示名を書き換えて保存。台帳の「記録者」欄に出る名前です。</td></tr>
+<tr><td><b>パスワードを変える</b></td><td>「パスワードを変える」に2回入力して保存。<b>仮パスワードのままにしないこと。</b></td></tr>
+<tr><td><b>誰がどれだけ記録しているか見る</b><span style="font-size:12px;color:#78859B">（管理者のみ）</span></td><td>「使っている人」の表。件数・売上・時間単価・最後の記録日が出ます。</td></tr>
+<tr><td><b>全員のデータを書き出す</b><span style="font-size:12px;color:#78859B">（管理者のみ）</span></td><td>「全部CSVで書き出す」。月末の集計や、控えを残すときに。</td></tr>
+</table>
+
+<h3>新しいドライバーを増やす</h3>
+<p>安全のため、台帳の画面からはアカウントを作れません。Supabaseで作ります（1分）。</p>
+<ol class="steps">
+  <li>Supabase → <span class="btnname">Authentication</span> → <span class="btnname">Users</span></li>
+  <li>右上 <span class="btnname">Add user</span> → <span class="btnname">Create new user</span></li>
+  <li>メールアドレスと仮パスワードを入れ、<b>Auto Confirm User にチェック</b></li>
+  <li><span class="btnname">Create user</span> を押す</li>
+  <li>本人に「公開URL・メールアドレス・仮パスワード」を伝え、<b>初回ログイン後すぐに管理画面でパスワードを変えてもらう</b></li>
+</ol>
+
+<h3>辞めた人を消す</h3>
+<div class="warn">
+  <b>先にCSVを書き出してから</b>
+  Supabase → Authentication → Users でその人を削除すると、<b>その人が入力した記録もまとめて消えます</b>。
+  売上の記録を残しておきたいなら、<b>消す前に</b>管理画面の「全部CSVで書き出す」を実行してください。
+</div>
+
+<h2>お金とバックアップ</h2>
+<table>
+<tr><th style="width:22%">Supabase</th><td>無料。データ500MBまで。この使い方なら<b>10年たっても埋まりません</b>。7日間アクセスがないと一時停止（ボタン1つで復活、データは無事）。</td></tr>
+<tr><th>Vercel</th><td>無料。月100GBの通信まで。3人で使うぶんには届きません。</td></tr>
+</table>
+<div class="note">
+  <b>月に一度の習慣</b>
+  管理画面から「全部CSVで書き出す」を実行して、スプレッドシートかパソコンに保存してください。
+  サービス側の障害や、うっかり削除から守る唯一の方法です。1分で終わります。
+</div>
+<div class="note">
+  <b>勝手に課金されることはありません</b>
+  有料に切り替わるときは必ずクレジットカードの入力を求められます。カードを登録しない限り、請求は発生しません。
+  「上限に達しました」というメールが来たら、無視せず転送してください。
+</div>
+
+<h2>アプリを直したくなったら</h2>
+<p>使っているうちに「ここをこう変えたい」が出てきたら、連絡をください。直したファイルをお渡しするので、次の手順で反映できます。</p>
+<ol class="steps">
+  <li>GitHubの <code>tsukemachi</code> を開く</li>
+  <li>差し替えるファイル名をクリック → 鉛筆アイコン → 中身を全部消して、新しい中身を貼る</li>
+  <li><span class="btnname">Commit changes</span> を押す</li>
+  <li>1〜2分で、公開URLに自動的に反映される</li>
+</ol>
+<div class="note"><b>記録は消えません</b>アプリの見た目や機能を差し替えても、Supabaseに入っている記録はそのままです。入れ物を替えるだけで、中身は触りません。</div>
+
+<footer>つけ待ち台帳　引き継ぎ資料<br>作成：古里健太／2026年10月5日　この資料に書いていない画面が出たら、スクリーンショットを撮って送ってください。</footer>
+</div></body></html>

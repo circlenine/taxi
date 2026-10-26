@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>つけ待ち台帳</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#101A2B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Antique&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="boot" class="boot">読み込んでいます…</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div class="andon" id="andon"><span id="andonTxt">空車</span></div>
+    <div>
+      <h1>つけ待ち台帳</h1>
+      <div class="sub">つけ待ち場所・待ち時間・乗車時間・金額を残して、熱い時間帯を割り出す</div>
+    </div>
+    <div class="who">
+      <span><b id="me">—</b><span class="badge" id="meBadge" hidden>管理者</span></span>
+      <a class="mini" id="toAdmin" href="/admin" hidden style="text-decoration:none">管理</a>
+      <button class="mini" id="out">ログアウト</button>
+    </div>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><small>記録</small><b id="k1">0</b></div>
+    <div class="kpi"><small>売上合計</small><b id="k2">¥0</b></div>
+    <div class="kpi gr"><small>平均 時間単価</small><b id="k3">—</b></div>
+    <div class="kpi"><small>熱い時間帯</small><b id="k4">—</b></div>
+  </div>
+
+  <nav id="tabs">
+    <button data-t="in" aria-selected="true">記録する</button>
+    <button data-t="heat" aria-selected="false">熱いところ</button>
+    <button data-t="tl" aria-selected="false">一夜の流れ</button>
+    <button data-t="sc" aria-selected="false">時間×金額</button>
+    <button data-t="rank" aria-selected="false">集計</button>
+    <button data-t="list" aria-selected="false">一覧・書き出し</button>
+  </nav>
+
+  <div id="panes"></div>
+
+  <footer>
+    時間単価 ＝ 金額 ÷（待ち時間 ＋ 乗車時間）× 60。つけ待ちで潰した時間まで含めた、1時間あたりの実入り。<br>
+    0〜11時に入力した時刻は、その夜の続き（24時以降）として扱う。
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

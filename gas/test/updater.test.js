@@ -1045,7 +1045,7 @@ t(String(panel._cells['8,3']) === '▼ チェックを入れると動きます�
 let items = F('panelItems_')();
 // このテストでは 005-Updater しか読み込んでいないので、
 // 004-WebApp や 001-Code の機能は出てこないのが正しい
-t(items.length === 21, 'いつも21個並ぶ（' + items.length + '個）');
+t(items.length === 22, 'いつも22個並ぶ（' + items.length + '個）');
 t(items[0].fn === 'menuUpdateCode', '1つめは「コードを更新する」');
 t(items.some(x => x.fn === 'menuWebAppSendLineStep'),
   '入れていない機能も並べる（数が変わると行がずれるため）');
@@ -1053,7 +1053,7 @@ t(items.map(x => x.fn).join(',') ===
   'menuUpdateCode,menuUpdateStatus,menuFormatAll,menuRestoreCode,' +
   'menuWebAppSendLineStep,menuWebAppCheck,menuSendReportPanel,panelAutoReportStatus,panelVenueProbe,menuVenueSample,' +
   'menuVenueTestSend,panelVenueAuto,panelVenueList,panelLineCheck,panelCleanDeploys,panelManual,' +
-  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape,panelShareGo',
+  'panelSaveVersions,panelMoveTabs,panelForcePull,panelResultShape,panelExportLedger,panelShareGo',
   'スプシに置いてある番号どおりの並び');
 t(F('panelHas_')('menuUpdateCode') === true, '入っている機能は分かる');
 t(F('panelHas_')('menuWebAppSendLineStep') === false, '入っていない機能も分かる');
@@ -1360,7 +1360,7 @@ t(added.some(x => x.indexOf('レポートをLINE') !== -1), '7つめが足され
 t(added.some(x => x.indexOf('自動送信の状態') !== -1), '8つめが足された');
 t(F('panelReadRows_')(panel).every(r => r.value === false),
   '足した行にチェックボックスが付く');
-has(alerts[alerts.length - 1].b, '17個のボタンを足しました', '何個足したか伝える');
+has(alerts[alerts.length - 1].b, '18個のボタンを足しました', '何個足したか伝える');
 has(alerts[alerts.length - 1].b, 'レポートの期間', '入力らんも置いたと伝える');
 
 console.log('\n■ そろっていれば何も足さない');
@@ -1496,7 +1496,9 @@ panel._cells['55,2'] = false;
 panel._cells['55,3'] = '[20] 結果らんの形を調べる';
 panel._cells['56,2'] = false;
 panel._cells['56,3'] = '[21] さっきの絵をグループへ送る';
-panel._cells['57,2'] = '結果';
+panel._cells['57,2'] = false;
+panel._cells['57,3'] = '[22] つけ待ち台帳用に書き出す';
+panel._cells['58,2'] = '結果';
 const st = F('panelCheck_')(panel);
 t(st.dup.length === 0, '重複が消えた');
 t(st.missing.length === 0, '足りないものも無い');
@@ -1577,15 +1579,15 @@ gapLayout();
 // 重複を直した状態にする
 panel._cells['44,3'] = '💬 ページのURLをLINEに送る';
 panel._cells['46,3'] = '🩺 ページが開けるか調べる';
-t(F('panelCheck_')(panel).missing.length === 15, '[7]〜[21] が足りない');
+t(F('panelCheck_')(panel).missing.length === 16, '[7]〜[22] が足りない');
 // 5つめ6つめを消して、足りない状態を作る
 delete panel._cells['44,2']; delete panel._cells['44,3'];
 delete panel._cells['46,2']; delete panel._cells['46,3'];
 const miss = F('panelCheck_')(panel).missing;
-t(miss.length === 17, '17個足りない');
+t(miss.length === 18, '18個足りない');
 F('menuMakePanel')();
 t(F('panelCheck_')(panel).missing.length === 0, '足したのでそろった');
-t(F('panelReadRows_')(panel).length === 21, '21個になった');
+t(F('panelReadRows_')(panel).length === 22, '22個になった');
 
 console.log('\n■ 結果らんが結合されていても書ける');
 gapLayout();
@@ -1764,8 +1766,11 @@ console.log('\n■ コードを更新したら、増えたボタンを自分で�
     const rc0 = F('panelResultCell_')(panel);
     const said = String(panel._cells[rc0.row + ',' + rc0.col] || '');
     has(said, '新しいボタンを足しました', '何を足したか伝える');
-    t(said.indexOf('[19] ぜんぶ読み直す') !== -1,
-      '★足したボタンの名前が、そのまま出る', said);
+    // ★ボタンは増えていくので、名前を書き写さない。
+    //   消した3つのうち、いちばん下のものが出ていることを見る
+    const lastName = F('panelItems_')().slice(-1)[0].label;
+    t(said.indexOf(lastName) !== -1,
+      '★足したボタンの名前が、そのまま出る（' + lastName + '）', said);
     t(said.indexOf('確かめてください') === -1,
       '★関わりのない「期間」「送り先」の話は、出さない', said);
   }

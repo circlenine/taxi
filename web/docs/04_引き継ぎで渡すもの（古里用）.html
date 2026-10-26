@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>引き継ぎで渡すもの｜開発側メモ</title>
+<style>
+:root{
+  --ink:#1D2430; --ink2:#49556A; --muted:#78859B; --line:#E0DCD2;
+  --paper:#FBF8F1; --card:#FFFFFF; --amber:#C97A15; --amberbg:#FDF3E2;
+  --red:#B4402C; --redbg:#FBEDE9; --green:#1E7A4E; --greenbg:#EAF5EF;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,system-ui,sans-serif;
+  line-height:1.9;font-size:15px;-webkit-text-size-adjust:100%}
+.wrap{max-width:780px;margin:0 auto;padding:40px 22px 80px}
+header{border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:10px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--amber);font-weight:700;margin-bottom:8px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.45;letter-spacing:.01em}
+.lede{color:var(--ink2);font-size:14px;margin:0}
+h2{font-size:19px;margin:46px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line);letter-spacing:.01em}
+h2 .num{display:inline-grid;place-items:center;width:27px;height:27px;background:var(--ink);color:var(--paper);
+  border-radius:50%;font-size:13px;margin-right:11px;vertical-align:2px;font-weight:700}
+h3{font-size:15px;margin:26px 0 8px;color:var(--ink)}
+p{margin:12px 0}
+ol,ul{padding-left:1.4em;margin:12px 0}
+li{margin:7px 0}
+b,strong{font-weight:700}
+code,.k{font-family:ui-monospace,"SF Mono",Consolas,monospace;background:#F0EDE4;
+  border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:13px;word-break:break-all}
+.btnname{display:inline-block;background:var(--ink);color:#fff;border-radius:5px;
+  padding:1px 9px;font-size:13px;font-weight:600;white-space:nowrap;margin:0 1px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:18px 0}
+.note{background:var(--amberbg);border-left:4px solid var(--amber);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.warn{background:var(--redbg);border-left:4px solid var(--red);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.ok{background:var(--greenbg);border-left:4px solid var(--green);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.note>b:first-child,.warn>b:first-child,.ok>b:first-child{display:block;margin-bottom:4px;
+  font-size:13px;letter-spacing:.04em}
+.warn>b:first-child{color:var(--red)} .ok>b:first-child{color:var(--green)} .note>b:first-child{color:var(--amber)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{background:#F3F0E7;text-align:left;padding:9px 12px;border:1px solid var(--line);font-size:12.5px;
+  letter-spacing:.04em;vertical-align:top}
+td{padding:9px 12px;border:1px solid var(--line);vertical-align:top}
+.goal{background:var(--greenbg);border:1px solid #BFDFCE;border-radius:8px;padding:11px 15px;
+  margin:16px 0 0;font-size:13.5px}
+.goal:before{content:"ここまでできたら";display:block;font-size:11px;letter-spacing:.1em;
+  color:var(--green);font-weight:700;margin-bottom:3px}
+.time{float:right;font-size:12px;color:var(--muted);font-weight:400;letter-spacing:.04em;
+  background:#F3F0E7;border-radius:12px;padding:2px 11px;margin-top:2px}
+.check{list-style:none;padding:0}
+.check li{padding-left:30px;position:relative;margin:11px 0}
+.check li:before{content:"";position:absolute;left:0;top:4px;width:17px;height:17px;
+  border:2px solid var(--ink2);border-radius:3px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;padding-left:38px;position:relative;margin:14px 0}
+.steps>li:before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;
+  background:var(--amberbg);border:1.5px solid var(--amber);color:var(--amber);border-radius:50%;
+  display:grid;place-items:center;font-size:12.5px;font-weight:700}
+footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);line-height:1.9}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 22px;margin:24px 0 10px}
+.toc ol{margin:6px 0 0;padding-left:1.3em}
+.toc li{margin:4px 0;font-size:14px}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--amber);text-decoration:underline}
+.sql{background:#1D2430;color:#EDE6D8;border-radius:8px;padding:14px 16px;margin:14px 0;
+  font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;white-space:pre}
+@media print{
+  body{background:#fff;font-size:11.5pt} .wrap{max-width:none;padding:0}
+  h2{page-break-after:avoid} .card,.note,.warn,.ok,table{page-break-inside:avoid}
+}
+@media(max-width:560px){ .wrap{padding:26px 16px 60px} h1{font-size:22px} .time{float:none;display:inline-block} }
+</style></head>
+<body><div class="wrap">
+
+<header>
+  <div class="eyebrow">つけ待ち台帳　開発側メモ</div>
+  <h1>引き継ぎで渡すもの／渡さないもの</h1>
+  <p class="lede">この資料だけ、作った側（古里）が見るためのものです。本人に渡す必要はありません。</p>
+</header>
+
+<h2>渡すもの</h2>
+<table>
+<tr><th style="width:30%">渡すもの</th><th style="width:22%">渡し方</th><th>補足</th></tr>
+<tr><td><b>この一式（zip）</b></td><td>LINE・メールどちらでも</td><td>解凍してデスクトップに置いてもらう。「アプリ本体」フォルダを手順の途中で使う。</td></tr>
+<tr><td><b>自分の連絡先</b><br><span style="font-size:12.5px;color:#78859B">詰まったときのスクショ送り先</span></td><td>口頭／LINE</td><td>「分からなくなったら押さずに送る」を先に合意しておく。これが一番効く。</td></tr>
+<tr><td><b>作業する時間の約束</b></td><td>口頭</td><td>40分。細切れだと途中で迷子になるので、まとまった時間を取ってもらう。</td></tr>
+</table>
+
+<div class="ok">
+  <b>渡す必要がないもの</b>
+  Supabase の Project URL と anon キーは、<b>本人が自分の画面から見る</b>手順にしてあります。
+  こちらが預かって伝える必要はありません。公開URLも、本人がVercelで取得します。
+</div>
+
+<h2>渡してはいけないもの</h2>
+<table>
+<tr><th style="width:34%">渡さないもの</th><th>理由</th></tr>
+<tr><td><b>service_role キー</b></td><td>これ1つで全データの消去・書き換えができる。アプリにも持たせていない。手順書では「コピーもしない」と明記済み。</td></tr>
+<tr><td><b>Database Password</b></td><td>同上。本人が紙に控えて本人だけが持つ。</td></tr>
+<tr><td><b>各サービスのログインパスワード</b></td><td>渡す理由も受け取る理由もない。</td></tr>
+<tr><td><b>メール・SMSの確認コード</b></td><td>アカウントを丸ごと明け渡すのと同じ。</td></tr>
+</table>
+
+<h2>引き継ぎ後に、こちら側で外すもの</h2>
+<p>本人が自分で設定を終えたあと、開発中に持っていたアクセス権を落とします。<b>本人に以下を依頼してください。</b></p>
+<ul class="check">
+  <li>Supabase → 組織の <b>Team</b> から、古里のアカウントを削除してもらう<span style="font-size:12.5px;color:#78859B">（開発中に Administrator で招待していた場合）</span></li>
+  <li>Vercel に自分のアカウントで入っていたら、<b>ログアウト</b>しておく</li>
+</ul>
+<p>自分の側では、テスト用に作った Supabase プロジェクトと Vercel プロジェクトを削除し、ローカルに置いた <code>config.js</code>（本番の値が入っているもの）を消しておきます。</p>
+
+<h2>当日の進行（画面共有する場合）</h2>
+<p>本人が一人で進める前提の資料ですが、不安がるようなら30分だけ画面共有で伴走するのが確実です。その場合の配分。</p>
+<table>
+<tr><th style="width:14%">時間</th><th>やること</th></tr>
+<tr><td><b>0-5分</b></td><td>全体像の説明。「棚を作る → ファイルを置く → 公開する → 鍵をかける」の4つだけだと伝える。</td></tr>
+<tr><td><b>5-15分</b></td><td>手順1〜2。<b>GitHubのアップロードだけ見届ける。</b>ここが唯一、間違えると後で詰まる箇所。</td></tr>
+<tr><td><b>15-25分</b></td><td>手順3〜6。config.js の貼り付けと、サインアップを閉じるところ。</td></tr>
+<tr><td><b>25-30分</b></td><td>手順7〜8。アカウント作成と動作確認6項目。ここまで通ったら離れてよい。</td></tr>
+</table>
+<div class="note">
+  <b>手を出さない</b>
+  代わりに操作すると、次に同じ場面が来たとき本人が止まります。
+  <b>「どこを押すか」だけ言って、押すのは本人</b>に徹してください。Vercelの無料プランは1人しか入れない仕様なので、どのみち代わりには操作できません。
+</div>
+
+<h2>構成のメモ</h2>
+<table>
+<tr><th style="width:24%">置き場所</th><th>中身</th></tr>
+<tr><td><b>Vercel</b></td><td>静的サイト（ビルドなし）。GitHubにpushすると自動で再デプロイ。</td></tr>
+<tr><td><b>GitHub</b></td><td>本人所有のPrivateリポジトリ。Hobbyプランは共同編集ができないので、こちらからpushはできない。修正時はファイル内容を渡して本人に貼り替えてもらう。</td></tr>
+<tr><td><b>Supabase</b></td><td>Postgres + Auth。RLSで「ログイン済みなら全件読める／自分の記録だけ書き換えられる／管理者は全部」。<code>supabase/schema.sql</code> は再実行しても壊れない。</td></tr>
+<tr><td><b>キーの扱い</b></td><td><code>config.js</code> に URL と anon キーを直書き。anon キーはブラウザに載る前提の公開値で、守りはRLS側。service_role はどこにも置いていない。</td></tr>
+</table>
+<div class="note">
+  <b>将来、自動同期を頼まれたら</b>
+  スプレッドシートからの自動取り込みは Apps Script で可能だが、重複防止のために <code>rides</code> に <code>source_key</code> 列と一意制約を足す必要がある。
+  ただし二重管理になるので、入力はアプリ・集計はCSV書き出しの一方向を勧める。
+</div>
+
+<footer>つけ待ち台帳　開発側メモ（本人に渡す必要はありません）<br>作成：古里健太／2026年10月5日　この資料に書いていない画面が出たら、スクリーンショットを撮って送ってください。</footer>
+</div></body></html>

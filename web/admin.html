@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理｜つけ待ち台帳</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Antique&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="boot" class="boot">読み込んでいます…</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div class="andon busy"><span>賃走</span></div>
+    <div>
+      <h1>管理</h1>
+      <div class="sub">自分の設定と、使っている人の一覧</div>
+    </div>
+    <div class="who">
+      <span><b id="me">—</b><span class="badge" id="meBadge" hidden>管理者</span></span>
+      <a class="mini" href="/" style="text-decoration:none">台帳にもどる</a>
+      <button class="mini" id="out">ログアウト</button>
+    </div>
+  </header>
+
+  <div class="card" style="margin-top:16px">
+    <h2>自分の設定</h2>
+    <p class="note">表示名は、台帳の「記録者」欄に出る名前です。</p>
+    <div class="grid">
+      <div class="f w3"><label>表示名</label><input class="ja" id="dname" placeholder="まーく"></div>
+      <div class="f w3"><label>メールアドレス（変更はできません）</label><input class="ja" id="email" disabled></div>
+    </div>
+    <div class="actions"><button class="btn" id="saveName">表示名を保存</button><span class="msg" id="m1"></span></div>
+  </div>
+
+  <div class="card">
+    <h2>パスワードを変える</h2>
+    <p class="note">6文字以上。変えたあともログインは続きます。</p>
+    <div class="grid">
+      <div class="f w3"><label>新しいパスワード</label><input id="pw1" type="password" autocomplete="new-password"></div>
+      <div class="f w3"><label>もう一度</label><input id="pw2" type="password" autocomplete="new-password"></div>
+    </div>
+    <div class="actions"><button class="btn ghost" id="savePw">パスワードを変える</button><span class="msg" id="m2"></span></div>
+  </div>
+
+  <div id="adminOnly" hidden>
+    <div class="card">
+      <h2>使っている人</h2>
+      <p class="note">記録の件数と売上は、その人が自分で入れたぶんだけを数えています。</p>
+      <div id="members"></div>
+    </div>
+
+    <div class="card">
+      <h2>新しいドライバーを追加する</h2>
+      <p class="note">安全のため、この画面からはアカウントを作れません。Supabaseの管理画面で作ります（1分）。</p>
+      <ol style="font-size:13px;line-height:2;color:var(--paper);margin:0;padding-left:1.3em">
+        <li>Supabase → 左メニュー <b>Authentication</b> → <b>Users</b></li>
+        <li>右上の <b>Add user</b> → <b>Create new user</b></li>
+        <li>メールアドレスと仮のパスワードを入れ、<b>Auto Confirm User</b> に必ずチェック</li>
+        <li><b>Create user</b> を押す</li>
+        <li>本人に「このURL・このメール・この仮パスワード」を伝え、初回ログイン後にこの画面でパスワードを変えてもらう</li>
+      </ol>
+      <p class="note" style="margin-top:12px">やめた人を消すときは、同じ Users の画面でその行を削除します。<b>その人の記録もまとめて消えます</b>。残したいなら先に台帳からCSVを書き出してください。</p>
+    </div>
+
+    <div class="card">
+      <h2>全データの書き出し</h2>
+      <p class="note">全員ぶんの記録をCSVで。月末の集計や、万一のときの控えに。</p>
+      <div class="actions"><button class="btn ghost" id="dump">全部CSVで書き出す</button><span class="msg" id="m3"></span></div>
+    </div>
+  </div>
+
+  <footer>アカウントの追加・削除は Supabase の管理画面から。この台帳からは操作できません。</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

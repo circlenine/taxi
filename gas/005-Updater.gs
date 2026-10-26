@@ -2,7 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U144ver  （2026/10/26）  ★★★
+ *  ★★★  U145ver  （2026/10/26）  ★★★
+ *
+ *  [U145ver]
+ *   ・📤 [22]「つけ待ち台帳用に書き出す」を足した（ご指示）
+ *     ★ふるくんからいただいたウェブのアプリへ、記録を移すためのものです。
+ *     ★アプリが分かる見出しを付けて、CSVの形で書き出します。
+ *     ★人ごとのタブだけを読みます（北7・ﾐﾅﾐ などは同じ記録の写しなので、
+ *       そちらも読むと 同じ乗車が何回も入ってしまいます）。
+ *     ★まーく様のドライブに置くだけです。**共有の設定は触りません。**
+ *       売上の記録なので、人に見える形には絶対にしません。
  *
  *  [U144ver]
  *   ・⏱ 止まらないようにした（ご指示・いちばん大事）
@@ -1581,7 +1590,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U144ver";
+const UPD_VERSION = "U145ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -7264,12 +7273,158 @@ function panelItems_() {
      *   スプシのボタンは、いまのコードで動きます。だから ここに置きます。
      */
     // ★key は、ほかのボタンの文言に含まれない言葉にすること
+    /*
+     * ★[22] は、つけ待ち台帳（ウェブのアプリ）へ移すためのボタンです。
+     *   ふるくんからいただいたアプリは「貼り付けで取り込む」ことができます。
+     *   そこに合う形のCSVを書き出して、ドライブに置きます。
+     */
+    { key: "台帳用に書き出",       label: "[22] つけ待ち台帳用に書き出す", fn: "panelExportLedger",
+      sec: 120, stall: 300,
+      note: "ウェブのアプリ（つけ待ち台帳）に取り込める形で、記録をぜんぶ書き出します。" +
+            "まーく様のドライブに置きます（ほかの人には見えません）" },
     { key: "絵をグループ",         label: "[21] さっきの絵をグループへ送る", fn: "panelShareGo",
       sec: 25,
       note: "クロちゃんから届いた「まとめの絵」を、そのままグループへ出します。" +
             "1回目は何を送るか出るだけ。3分以内にもう一度で出ます。" +
             "届いてから3日をすぎた絵は、消えています" }
   ];
+}
+
+/* ================================================================
+ *  📤 つけ待ち台帳（ウェブのアプリ）用に書き出す
+ *
+ *  ★まーく様のご指示（2026/10/26）：
+ *    「これまでスプシに挙げていたものを、このデータでも
+ *      確認、操作ができる完全体にしてほしいです」
+ *
+ *  ★アプリ側は「貼り付けで取り込む」ことができます。
+ *    見出しの名前で列を見分けるので、
+ *    アプリが分かる言葉で見出しを付けて書き出します。
+ *
+ *  ★人ごとのタブだけを読みます（北７・ﾐﾅﾐ などは同じ記録の写しなので、
+ *    そちらも読むと 同じ乗車が何回も入ってしまいます）。
+ *
+ *  ★書き出したものは、まーく様のドライブに置くだけです。
+ *    共有の設定は一切触りません。
+ *    売上の記録なので、人に見える形には絶対にしません。
+ * ================================================================ */
+
+/** アプリが分かる見出し（ここを変えると、向こうで列を見分けられなくなる） */
+const EXP_HEAD = "日付,場所,乗せた時刻,待ち時間(分),乗車時間(分),金額,種類,他,記録者";
+
+/** CSVの1つぶんを、安全な形にする（カンマや改行が入っていても壊れない） */
+function expCell_(v) {
+  const s = String(v == null ? "" : v).replace(/[\r\n]+/g, " ").trim();
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+/** 日付を 2026-10-16 の形にする */
+function expDate_(v) {
+  try {
+    if (v && typeof v.getTime === "function") {
+      return v.getFullYear() + "-" + ("0" + (v.getMonth() + 1)).slice(-2) +
+             "-" + ("0" + v.getDate()).slice(-2);
+    }
+    const m = String(v).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);
+    if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2);
+    return "";
+  } catch (e) { return ""; }
+}
+
+/** 「00:30」や 時刻の入れものを「0:30」の字にする */
+function expTime_(v) {
+  try {
+    if (v && typeof v.getTime === "function") {
+      return v.getHours() + ":" + ("0" + v.getMinutes()).slice(-2);
+    }
+    const m = String(v).match(/(\d{1,2})\D(\d{2})/);
+    return m ? (Number(m[1]) + ":" + m[2]) : "";
+  } catch (e) { return ""; }
+}
+
+/** 「15分」→ 15。読めなければ空 */
+function expMin_(v) {
+  const m = String(v == null ? "" : v).match(/(\d{1,4})/);
+  return m ? String(Number(m[1])) : "";
+}
+
+/** 「¥3,400」→ 3400 */
+function expMoney_(v) {
+  if (typeof v === "number") return String(Math.round(v));
+  const m = String(v == null ? "" : v).replace(/[¥￥,，円\s]/g, "").match(/(\d+)/);
+  return m ? m[1] : "";
+}
+
+/**
+ * 人ごとのタブを読んで、アプリ用のCSVの字を作る。
+ * 返すのは { text: CSVの字, n: 件数 }
+ */
+function expLedgerCsv_() {
+  const ss = mainSS_();
+  const lines = [EXP_HEAD];
+  let n = 0;
+
+  PERSONAL_TABS.forEach(function (tab) {
+    const sh = ss.getSheetByName(tab);
+    if (!sh) return;
+    const last = sh.getLastRow();
+    if (last < START_ROW) return;
+    const vals = sh.getRange(START_ROW, 1, last - START_ROW + 1, LAST_COL).getValues();
+    vals.forEach(function (r) {
+      const d = expDate_(r[C_DATE - 1]);
+      const t = expTime_(r[C_TIME - 1]);
+      const f = expMoney_(r[C_MONEY - 1]);
+      // 日付・時刻・金額のどれかが無い行は、向こうで読めないので出さない
+      if (!d || !t || !f) return;
+      lines.push([
+        expCell_(d),
+        expCell_(r[C_PLACE - 1]),
+        expCell_(t),
+        expCell_(expMin_(r[C_WAIT - 1])),
+        expCell_(""),                       // 乗車時間は、スプシでは取っていない
+        expCell_(f),
+        expCell_(r[C_METHOD - 1]),
+        expCell_(r[C_OTHER - 1]),
+        expCell_(tab)
+      ].join(","));
+      n++;
+    });
+  });
+
+  return { text: lines.join("\n"), n: n };
+}
+
+/**
+ * [22] つけ待ち台帳用に書き出す（そうさボタンから）。
+ *
+ * ★まーく様のドライブに置くだけです。
+ *   共有の設定は触りません（売上の記録なので、
+ *   人に見える形には絶対にしません）。
+ */
+function panelExportLedger() {
+  try {
+    const got = expLedgerCsv_();
+    if (!got.n) return "📤 書き出せる記録がありませんでした。";
+
+    const name = "つけ待ち台帳_" + expDayKey_() + ".csv";
+    // ★先頭に見えない印（BOM）を付けます。付けないと、
+    //   表計算ソフトで開いたときに日本語が化けます
+    const file = DriveApp.createFile(name, "\ufeff" + got.text, MimeType.CSV);
+
+    return "📤 " + got.n + "件を書き出しました。\n" +
+           "・ドライブに「" + name + "」という名前で入っています\n" +
+           "・まーく様だけが見られます（共有はしていません）\n\n" +
+           "開いて中身をすべてコピーし、\n" +
+           "つけ待ち台帳（ウェブ）の「取り込み」に貼ってください。";
+  } catch (e) {
+    return "📤 書き出せませんでした：" + ((e && e.message) || e);
+  }
+}
+
+/** 書き出した日を、ファイル名に使う形で返す */
+function expDayKey_() {
+  const d = new Date();
+  return d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
 }
 
 /** 列の番号を、画面に出ている文字（A、B、…）に直す */

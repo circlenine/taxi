@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>セットアップ手順書｜つけ待ち台帳</title>
+<style>
+:root{
+  --ink:#1D2430; --ink2:#49556A; --muted:#78859B; --line:#E0DCD2;
+  --paper:#FBF8F1; --card:#FFFFFF; --amber:#C97A15; --amberbg:#FDF3E2;
+  --red:#B4402C; --redbg:#FBEDE9; --green:#1E7A4E; --greenbg:#EAF5EF;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,system-ui,sans-serif;
+  line-height:1.9;font-size:15px;-webkit-text-size-adjust:100%}
+.wrap{max-width:780px;margin:0 auto;padding:40px 22px 80px}
+header{border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:10px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--amber);font-weight:700;margin-bottom:8px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.45;letter-spacing:.01em}
+.lede{color:var(--ink2);font-size:14px;margin:0}
+h2{font-size:19px;margin:46px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line);letter-spacing:.01em}
+h2 .num{display:inline-grid;place-items:center;width:27px;height:27px;background:var(--ink);color:var(--paper);
+  border-radius:50%;font-size:13px;margin-right:11px;vertical-align:2px;font-weight:700}
+h3{font-size:15px;margin:26px 0 8px;color:var(--ink)}
+p{margin:12px 0}
+ol,ul{padding-left:1.4em;margin:12px 0}
+li{margin:7px 0}
+b,strong{font-weight:700}
+code,.k{font-family:ui-monospace,"SF Mono",Consolas,monospace;background:#F0EDE4;
+  border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:13px;word-break:break-all}
+.btnname{display:inline-block;background:var(--ink);color:#fff;border-radius:5px;
+  padding:1px 9px;font-size:13px;font-weight:600;white-space:nowrap;margin:0 1px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:18px 0}
+.note{background:var(--amberbg);border-left:4px solid var(--amber);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.warn{background:var(--redbg);border-left:4px solid var(--red);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.ok{background:var(--greenbg);border-left:4px solid var(--green);border-radius:0 7px 7px 0;
+  padding:14px 18px;margin:18px 0;font-size:14px}
+.note>b:first-child,.warn>b:first-child,.ok>b:first-child{display:block;margin-bottom:4px;
+  font-size:13px;letter-spacing:.04em}
+.warn>b:first-child{color:var(--red)} .ok>b:first-child{color:var(--green)} .note>b:first-child{color:var(--amber)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{background:#F3F0E7;text-align:left;padding:9px 12px;border:1px solid var(--line);font-size:12.5px;
+  letter-spacing:.04em;vertical-align:top}
+td{padding:9px 12px;border:1px solid var(--line);vertical-align:top}
+.goal{background:var(--greenbg);border:1px solid #BFDFCE;border-radius:8px;padding:11px 15px;
+  margin:16px 0 0;font-size:13.5px}
+.goal:before{content:"ここまでできたら";display:block;font-size:11px;letter-spacing:.1em;
+  color:var(--green);font-weight:700;margin-bottom:3px}
+.time{float:right;font-size:12px;color:var(--muted);font-weight:400;letter-spacing:.04em;
+  background:#F3F0E7;border-radius:12px;padding:2px 11px;margin-top:2px}
+.check{list-style:none;padding:0}
+.check li{padding-left:30px;position:relative;margin:11px 0}
+.check li:before{content:"";position:absolute;left:0;top:4px;width:17px;height:17px;
+  border:2px solid var(--ink2);border-radius:3px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;padding-left:38px;position:relative;margin:14px 0}
+.steps>li:before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;
+  background:var(--amberbg);border:1.5px solid var(--amber);color:var(--amber);border-radius:50%;
+  display:grid;place-items:center;font-size:12.5px;font-weight:700}
+footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);line-height:1.9}
+.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 22px;margin:24px 0 10px}
+.toc ol{margin:6px 0 0;padding-left:1.3em}
+.toc li{margin:4px 0;font-size:14px}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--amber);text-decoration:underline}
+.sql{background:#1D2430;color:#EDE6D8;border-radius:8px;padding:14px 16px;margin:14px 0;
+  font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;white-space:pre}
+@media print{
+  body{background:#fff;font-size:11.5pt} .wrap{max-width:none;padding:0}
+  h2{page-break-after:avoid} .card,.note,.warn,.ok,table{page-break-inside:avoid}
+}
+@media(max-width:560px){ .wrap{padding:26px 16px 60px} h1{font-size:22px} .time{float:none;display:inline-block} }
+</style></head>
+<body><div class="wrap">
+
+<header>
+  <div class="eyebrow">つけ待ち台帳</div>
+  <h1>セットアップ手順書</h1>
+  <p class="lede">アプリを自分のアカウントで公開するまでの、全部の手順。パソコンのブラウザだけで終わります。黒い画面（コマンド）は一切使いません。</p>
+</header>
+
+<div class="toc">
+  <b style="font-size:12px;letter-spacing:.1em;color:#78859B">この順番でやります（全部で40分ほど）</b>
+  <ol>
+    <li><a href="#s1">データの置き場所を作る（Supabase）</a></li>
+    <li><a href="#s2">アプリのファイルを置く（GitHub）</a></li>
+    <li><a href="#s3">アプリに「データの置き場所」を教える</a></li>
+    <li><a href="#s4">公開する（Vercel）</a></li>
+    <li><a href="#s5">公開したURLをSupabaseに登録する</a></li>
+    <li><a href="#s6">勝手に登録されないように閉める</a></li>
+    <li><a href="#s7">ログインする人を作る</a></li>
+    <li><a href="#s8">ちゃんと動くか確かめる</a></li>
+    <li><a href="#s9">これまでのデータを取り込む</a></li>
+  </ol>
+</div>
+
+<div class="note">
+  <b>はじめる前に</b>
+  GitHub・Vercel・Supabase の3つのアカウントと、Supabaseのプロジェクトができていることが前提です（前の手順書のぶん）。
+  できていなければ、先にそちらを終わらせてください。<br>
+  それと、<b>この資料の入っているフォルダの中にある「アプリ本体」フォルダ</b>を、デスクトップなど分かりやすい場所に置いておいてください。途中で使います。
+</div>
+
+<div class="warn">
+  <b>途中で分からなくなったら</b>
+  無理に進めず、その画面のスクリーンショットを撮って送ってください。中途半端に押して進むより、止まって聞くほうが早く終わります。
+  <b style="display:inline">やり直しは何度でもできます。</b>壊れることはありません。
+</div>
+
+<h2 id="s1"><span class="num">1</span>データの置き場所を作る<span class="time">約5分</span></h2>
+<p>記録をしまう「棚」を、Supabaseの中に作ります。長い呪文を貼り付けて実行ボタンを押すだけです。中身を理解する必要はありません。</p>
+<ol class="steps">
+  <li>「アプリ本体」フォルダの中の <code>supabase</code> フォルダを開き、<code>schema.sql</code> を<b>メモ帳で開きます</b>。<br>
+      <span style="font-size:13.5px;color:#49556A">（ファイルを右クリック →「プログラムから開く」→「メモ帳」。Macなら右クリック →「このアプリケーションで開く」→「テキストエディット」）</span></li>
+  <li>開いたら <b>Ctrl + A</b>（Macは <b>⌘ + A</b>）で全部選んで、<b>Ctrl + C</b> でコピー。</li>
+  <li>ブラウザで Supabase を開き、左メニューの <span class="btnname">SQL Editor</span> をクリック。</li>
+  <li><span class="btnname">New query</span> を押すと、大きな入力欄が出ます。そこをクリックして <b>Ctrl + V</b> で貼り付け。</li>
+  <li>右下の <span class="btnname">Run</span> を押す。（<b>Ctrl + Enter</b> でも実行できます）</li>
+</ol>
+<div class="ok"><b>成功のサイン</b>画面の下に <code>Success. No rows returned</code> と緑色で出ます。これが出れば完了です。赤い文字が出たら、何も触らずスクリーンショットを送ってください。</div>
+<div class="goal">記録をしまう棚と、「ログインした人だけが読み書きできる」という鍵のルールができました。</div>
+
+<h2 id="s2"><span class="num">2</span>アプリのファイルを置く<span class="time">約8分</span></h2>
+<p>アプリの部品（11個のファイル）を、GitHubという保管庫に置きます。ここに置いたものが、次のステップで自動的にインターネットに公開されます。</p>
+<ol class="steps">
+  <li>ブラウザで <code>github.com</code> を開いてログイン。</li>
+  <li>右上の <b>＋</b> マーク → <span class="btnname">New repository</span> をクリック。</li>
+  <li><b>Repository name</b> に <code>tsukemachi</code> と入力。</li>
+  <li>その下の <b>Private</b> を選ぶ。（自分だけが見られる設定です）</li>
+  <li>いちばん下の <span class="btnname">Create repository</span> を押す。</li>
+  <li>次の画面に <b>uploading an existing file</b> という青いリンクがあるので、それをクリック。</li>
+  <li><b>「アプリ本体」フォルダを開いて、<u>中身のファイルを全部選んで</u></b>、ブラウザの点線の枠の中にドラッグ＆ドロップします。<br>
+      <span style="font-size:13.5px;color:#49556A">（フォルダを開いて <b>Ctrl + A</b> で全選択 → そのままドラッグ）</span></li>
+  <li>ファイル名がずらっと並んだら、下の <span class="btnname">Commit changes</span> を押す。</li>
+</ol>
+<div class="warn">
+  <b>ここが一番間違えやすい</b>
+  「アプリ本体」という<b>フォルダごと</b>ドラッグすると、あとで真っ白な画面になります。
+  <b style="display:inline">フォルダを開いて、中のファイルを選んで</b>ドラッグしてください。<br><br>
+  アップロード後の画面に <code>index.html</code> <code>app.js</code> <code>style.css</code> などが<b>直接</b>並んでいればOK。
+  <code>アプリ本体</code> というフォルダが1個だけ表示されていたら、やり直しです（その場合は、そのフォルダ名をクリックして中に入り、同じようにアップロードし直すか、連絡をください）。
+</div>
+<div class="goal">GitHubの画面に、<code>index.html</code> を含む11個のファイルと <code>supabase</code> フォルダが並んでいます。</div>
+
+<h2 id="s3"><span class="num">3</span>アプリに「データの置き場所」を教える<span class="time">約6分</span></h2>
+<p>アプリは、自分のデータがどこにあるかをまだ知りません。Supabaseから2つの文字列をコピーして、アプリに教えます。</p>
+
+<h3>3-1　Supabaseから2つコピーする</h3>
+<ol class="steps">
+  <li>Supabaseを開き、左メニューのいちばん下 <span class="btnname">Project Settings</span> → <span class="btnname">API</span> をクリック。<br>
+      <span style="font-size:13.5px;color:#49556A">（新しい画面では <b>Data API</b> という名前のこともあります）</span></li>
+  <li><b>Project URL</b> という欄の <code>https://〇〇〇〇.supabase.co</code> をコピー。横のコピーボタンが便利です。</li>
+  <li>メモ帳に貼って、いったん置いておきます。</li>
+  <li>同じ画面の <b>anon</b> または <b>publishable</b> と書かれた長い文字列もコピーして、メモ帳に貼ります。</li>
+</ol>
+<div class="warn">
+  <b>間違えてはいけないもの</b>
+  同じ画面に <b>service_role</b> という、赤字で「秘密」「Never share」と注意書きのあるキーがあります。
+  <b style="display:inline">こちらは絶対に使いません。</b>コピーもしないでください。間違えて使うと、URLを知った誰でも記録を全部消せる状態になります。
+  使うのは <b>anon</b>／<b>publishable</b> の方だけです。
+</div>
+
+<h3>3-2　アプリに書き込む</h3>
+<ol class="steps">
+  <li>GitHubの <code>tsukemachi</code> の画面に戻り、ファイル一覧から <code>config.js</code> をクリック。</li>
+  <li>右上のほうにある<b>鉛筆のアイコン</b>（Edit this file）をクリック。</li>
+  <li>下のほうに2行あります。<b>ダブルクォート <code>"</code> の内側だけ</b>を書き換えます。
+    <div class="sql">window.SUPABASE_URL      = "ここにProject URL";
+window.SUPABASE_ANON_KEY = "ここにanonキー";</div>
+  </li>
+  <li>右上の <span class="btnname">Commit changes...</span> → 出てきた箱の <span class="btnname">Commit changes</span> を押す。</li>
+</ol>
+<div class="note">
+  <b>よくある失敗</b>
+  クォート <code>"</code> を消してしまう／前後に余計な空白が入る／URLの最後に <code>/</code> を足してしまう。この3つが原因のほぼ全てです。
+  貼り付けたあと、行の見た目が最初と同じ形（<code>= "……";</code>）になっているか確かめてください。
+</div>
+<div class="goal">アプリが、自分のデータの置き場所を知っている状態になりました。</div>
+
+<h2 id="s4"><span class="num">4</span>公開する<span class="time">約5分</span></h2>
+<p>GitHubに置いたファイルを、インターネットから見られるようにします。</p>
+<ol class="steps">
+  <li>ブラウザで <code>vercel.com</code> を開いてログイン。</li>
+  <li><span class="btnname">Add New...</span> → <span class="btnname">Project</span> をクリック。</li>
+  <li>GitHubのリポジトリ一覧が出ます。初回は <span class="btnname">Install</span> や <span class="btnname">Adjust GitHub App Permissions</span> を求められるので、案内に従って許可してください。</li>
+  <li>一覧から <code>tsukemachi</code> を見つけて <span class="btnname">Import</span> を押す。</li>
+  <li>設定画面が出ますが、<b>何も変えずに</b>そのまま <span class="btnname">Deploy</span> を押す。<br>
+      <span style="font-size:13.5px;color:#49556A">（Framework Preset が <b>Other</b> になっていればOK。環境変数の入力は不要です）</span></li>
+  <li>1〜2分待つと、紙吹雪とともに完成画面が出ます。<span class="btnname">Continue to Dashboard</span> をクリック。</li>
+  <li><b>Domains</b> のところに <code>https://tsukemachi-〇〇〇.vercel.app</code> というURLがあります。<b>これをコピーしてメモ帳に貼ってください。</b>これが台帳のアドレスです。</li>
+</ol>
+<div class="note">
+  <b>この時点で開いてもログインできません</b>
+  まだアカウントを1つも作っていないので、それで正常です。ログイン画面が出ることだけ確認できれば十分です。
+</div>
+<div class="goal">インターネット上にアプリが置かれ、ログイン画面が表示されます。</div>
+
+<h2 id="s5"><span class="num">5</span>公開したURLをSupabaseに登録する<span class="time">約3分</span></h2>
+<p>「このアドレスからのアクセスは本物です」とSupabaseに教えます。<b>これを飛ばすと、パスワード再設定のメールが使えません。</b></p>
+<ol class="steps">
+  <li>Supabase → 左メニュー <span class="btnname">Authentication</span> → <span class="btnname">URL Configuration</span>。</li>
+  <li><b>Site URL</b> の欄に、さっきコピーしたURL（<code>https://tsukemachi-〇〇〇.vercel.app</code>）を貼って <span class="btnname">Save</span>。</li>
+  <li><b>Redirect URLs</b> の <span class="btnname">Add URL</span> を押し、<b>URLの最後に <code>/login</code> を足したもの</b>を貼って保存。
+    <div class="sql">https://tsukemachi-〇〇〇.vercel.app/login</div>
+  </li>
+</ol>
+<div class="goal">パスワードを忘れたときの再設定メールが、正しく戻ってくるようになりました。</div>
+
+<h2 id="s6"><span class="num">6</span>勝手に登録されないように閉める<span class="time">約2分</span></h2>
+<p>初期状態では、URLを知った人が自分でアカウントを作れてしまいます。入り口を閉めます。</p>
+<ol class="steps">
+  <li>Supabase → <span class="btnname">Authentication</span> → <span class="btnname">Sign In / Providers</span>。</li>
+  <li>一覧の <b>Email</b> をクリックして開く。</li>
+  <li><b>Allow new users to sign up</b> のスイッチを<b>オフ</b>にする。</li>
+  <li><b>Confirm email</b> は<b>オフ</b>のままでOK。</li>
+  <li><span class="btnname">Save</span> を押す。</li>
+</ol>
+<div class="ok"><b>これで</b>URLが外に漏れても、アカウントを持っていない人は中身を一切見られません。記録も、グラフも、金額も。</div>
+
+<h2 id="s7"><span class="num">7</span>ログインする人を作る<span class="time">約6分</span></h2>
+
+<h3>7-1　アカウントを作る（人数ぶん繰り返す）</h3>
+<ol class="steps">
+  <li>Supabase → <span class="btnname">Authentication</span> → <span class="btnname">Users</span>。</li>
+  <li>右上の <span class="btnname">Add user</span> → <span class="btnname">Create new user</span>。</li>
+  <li>その人のメールアドレスと、仮のパスワード（6文字以上）を入力。</li>
+  <li><b>Auto Confirm User にチェックを入れる</b>。<span style="color:#B4402C;font-weight:700">ここを忘れるとログインできません。</span></li>
+  <li><span class="btnname">Create user</span> を押す。</li>
+  <li>残りの人のぶんも、同じように作ります。</li>
+</ol>
+
+<h3>7-2　自分を管理者にする</h3>
+<p>管理者になると、メンバー一覧を見たり、他の人の記録を直したりできます。</p>
+<ol class="steps">
+  <li>Supabase → <span class="btnname">SQL Editor</span> → <span class="btnname">New query</span>。</li>
+  <li>下の2行を貼り付け、<b>メールアドレスのところだけ自分のものに書き換えて</b> <span class="btnname">Run</span>。
+    <div class="sql">update public.profiles set is_admin = true
+where id = (select id from auth.users where email = 'ここに自分のメール');</div>
+  </li>
+</ol>
+<div class="note">
+  <b>仮パスワードの伝え方</b>
+  他の人に仮パスワードを伝えるときは、<b>初回ログイン後にすぐ自分で変えてもらってください</b>。
+  変え方は「管理」画面にあります（使い方マニュアルを参照）。
+</div>
+<div class="goal">全員ぶんのログインができ、自分は管理者になりました。</div>
+
+<h2 id="s8"><span class="num">8</span>ちゃんと動くか確かめる<span class="time">約5分</span></h2>
+<p>上から順に試してください。6つ全部通れば完成です。</p>
+<ul class="check">
+  <li>公開URLを開くと、<b>ログイン画面</b>が出る</li>
+  <li>作ったアカウントでログインできて、<b>台帳が表示される</b>（右上に自分の名前が出る）</li>
+  <li>1件記録してみると、<b>「記録した（時間単価 ¥◯◯/h）」</b>と出る</li>
+  <li>別のアカウントでログインすると、<b>さっきの記録が見える</b>。ただし「直す・消す」のボタンは<b>出ない</b></li>
+  <li>管理者のアカウントで右上の <span class="btnname">管理</span> を押すと、<b>メンバー一覧</b>が出る</li>
+  <li><span class="btnname">ログアウト</span>してから公開URLを開き直すと、<b>ログイン画面に戻される</b></li>
+</ul>
+<div class="warn">
+  <b>4つめが重要です</b>
+  「他の人の記録は見えるけれど、直す・消すのボタンが出ない」——ここが出ていれば、鍵のルールが正しくかかっています。
+  もし他人の記録に「消す」ボタンが出ていたら、そのアカウントが管理者になっているか、手順1が途中で失敗しています。連絡をください。
+</div>
+
+<h2 id="s9"><span class="num">9</span>これまでのデータを取り込む<span class="time">約5分</span></h2>
+<p>スプレッドシートに貯めてきた記録を、まとめて移します。</p>
+<ol class="steps">
+  <li>台帳にログインし、<span class="btnname">一覧・書き出し</span> タブを開く。</li>
+  <li>いちばん下の「スプレッドシートから取り込む」の入力欄に、<b>スプレッドシートで範囲を選んでコピーしたものを、そのまま貼り付けます</b>。見出しの行も一緒で構いません。</li>
+  <li>年が書かれていない日付（<code>5/21</code> のような形）がある場合は、横の「年」の欄を合わせます。</li>
+  <li><span class="btnname">中身を確かめる</span> を押す。</li>
+  <li>読めた件数・すでに同じ記録がある件数・読めなかった件数が出ます。<b>表の中身を見て、日付と金額が合っているか確かめてください。</b></li>
+  <li>問題なければ <span class="btnname">この◯件を取り込む</span> を押す。</li>
+</ol>
+<div class="note">
+  <b>安心して試せます</b>
+  「中身を確かめる」の段階では、まだ何も保存されていません。おかしければ貼り直せば済みます。
+  また、同じ記録を二重に取り込むことはない仕組みなので、途中で失敗して貼り直しても増えません。<br><br>
+  <b>取り込んだ記録は、操作した人の名義で入ります。</b>3人ぶんが混ざったシートなら、それぞれが自分のぶんだけを貼ってください。
+</div>
+
+<div class="ok" style="margin-top:40px">
+  <b>以上で完成です</b>
+  公開URLをスマホで開き、ホーム画面に追加しておくと、アプリのように使えます（やり方は使い方マニュアルに書いてあります）。
+  日々の使い方・困ったときの対処は、同じフォルダの他の資料を見てください。
+</div>
+
+<footer>つけ待ち台帳　引き継ぎ資料<br>作成：古里健太／2026年10月5日　この資料に書いていない画面が出たら、スクリーンショットを撮って送ってください。</footer>
+</div></body></html>
