@@ -5,7 +5,7 @@ console.log(await p.evaluate(()=>{const out=[];
  const sel='.sh3>span:last-child,.nx,.ns,.cap3,.mts li,.pbc p,.pbh,.qz .q,.qz .a,.mcq,.act,.slead,.mtl,.say,.skc p,.srowc .sd2,.mth span:last-child,.mcn,.ds';
  document.querySelectorAll(sel).forEach(e=>{if(e.closest('.howto'))return;const pg=e.closest('.page');
   // 行ごとの右はしを、文字の範囲から求める
-  const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n,rects=[];while(n=w.nextNode()){if(!n.textContent.trim())continue;const r=document.createRange();r.selectNodeContents(n);rects.push(...r.getClientRects());}
+  const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n,rects=[];while(n=w.nextNode()){if(!n.textContent.trim())continue;if(n.parentElement.closest('.kind'))continue;   /* 10/25 ウェット・ドライの札は小さい字で上下が少しずれるので、行の数に入れない */const r=document.createRange();r.selectNodeContents(n);rects.push(...r.getClientRects());}
   if(!rects.length)return;const lines={};rects.forEach(r=>{if(r.width<1)return;const k=Math.round(r.top/4);lines[k]=lines[k]||{l:1e9,r:-1e9};lines[k].l=Math.min(lines[k].l,r.left);lines[k].r=Math.max(lines[k].r,r.right);});
   const ks=Object.keys(lines).map(Number).sort((a,b)=>a-b);if(ks.length<2)return;
   const cs=getComputedStyle(e),br=e.getBoundingClientRect(),inner=br.width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
