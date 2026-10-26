@@ -5380,7 +5380,30 @@ console.log('\n■ 🚑 fixAll ―― どこからも動かせなくなったと
   has(out, '記録用スプシ', '★スプシが開けるかを、まず確かめる');
   has(out, '見張りを入れ直しました', '★★見張りを入れ直す');
   t(triggers.some(x => x.getHandlerFunction() === 'panelWatch') === true,
-    '★★1分おきの見張りが戻る');
+    '★★保険の見張りが戻る');
+
+  /*
+   * ★「押した瞬間に動くほう」が消えていても、気づけること。
+   *   前はこちらを見ていなかったので、ボタンが効かないまま
+   *   何日も過ぎることがありました。
+   */
+  triggers = triggers.filter(x => x.getHandlerFunction() !== 'panelOnEdit');
+  delete props['PANEL_HEAL_AT'];
+  ctx.pu.length = 0;
+  t(F('panelHealWatch_')() === true, '★★★押した瞬間のほうが消えても、気づく');
+  t(triggers.some(x => x.getHandlerFunction() === 'panelOnEdit') === true,
+    '★★そちらも入れ直す');
+
+  /*
+   * ★保険の見張りは「3分おき」。
+   *   無料で使える持ち時間は1日90分まで。1分おきだと1日1440回で、
+   *   それだけで使い切ります。使い切ると その日は ぜんぶ止まります。
+   *   まーく様から「前にも何度も止まってます」と言われた件です。
+   */
+  t(vm.runInContext('PANEL_WATCH_MIN', ctx) >= 2,
+    '★★★保険の見張りは2分おきより ゆっくり（持ち時間を使い切らない）');
+  t(triggers.filter(x => x.getHandlerFunction() === 'panelWatch').length === 1,
+    '　 保険の見張りは1つだけ（二重に動かさない）');
   t(props['PANEL_RUNNING'] === undefined, '★動きっぱなしの札を、はがす');
   t(ctx.pu.length === 1, '★LINEにも知らせる（どれか1つでも届けば、直ったと分かる）');
   has(String(panel._cells[F('panelResultCell_')(panel).row + ',' +

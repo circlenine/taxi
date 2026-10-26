@@ -2,7 +2,28 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U143ver  （2026/10/26）  ★★★
+ *  ★★★  U144ver  （2026/10/26）  ★★★
+ *
+ *  [U144ver]
+ *   ・⏱ 止まらないようにした（ご指示・いちばん大事）
+ *     ★まーく様のご指示：
+ *       「前にも何度も止まってますので
+ *         止まらない仕組み作りをクロちゃん側でできる範囲は
+ *         全て至急徹底してください」
+ *
+ *     ★止まっていた いちばんの理由（こちらの見立て）
+ *       保険の見張りが **1分おき** に動いていました。1日1440回です。
+ *       無料で使える持ち時間は **1日90分まで**。1回に数秒かかるので、
+ *       これだけで使い切ります。使い切ると、その日の残りは
+ *       **ぜんぶ止まります**（取り込みも、お知らせも）。
+ *     ★**3分おき**に変えました。使う時間は3分の1になります。
+ *       押した瞬間に動くほうは そのままなので、
+ *       ボタンの効き方は変わりません。
+ *
+ *     ★見張りが消えていないかを見るとき、**2つとも**見るようにしました。
+ *       前は「保険の見張り」だけを見ていたので、
+ *       「押した瞬間に動くほう」が消えていても気づけず、
+ *       ボタンが効かないまま何日も過ぎることがありました。
  *
  *  [U143ver]
  *   ・🧾 止まっていた間の乗車記録を、あとから入れ直せるようにした
@@ -1560,7 +1581,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U143ver";
+const UPD_VERSION = "U144ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9129,13 +9150,22 @@ function panelHealWatch_() {
     pr.setProperty(PANEL_HEAL_AT, String(Date.now()));
   } catch (e) {}
 
-  let alive = false;
+  /*
+   * ★見るのは2つとも。
+   *   前は「3分おきの見張り」だけを見ていました。
+   *   「押した瞬間に動くほう」が消えていても気づけず、
+   *   ボタンが効かないまま何日も過ぎることがあります。
+   *   どちらか片方でも欠けていたら、両方入れ直します。
+   */
+  let watch = false, edit = false;
   try {
     ScriptApp.getProjectTriggers().forEach(function (t) {
-      if (t.getHandlerFunction() === "panelWatch") alive = true;
+      const f = t.getHandlerFunction();
+      if (f === "panelWatch") watch = true;
+      if (f === "panelOnEdit") edit = true;
     });
   } catch (e) { return false; }          // 一覧が読めないときは、何もしない
-  if (alive) return false;
+  if (watch && edit) return false;
 
   try { panelInstall_(); } catch (e) { return false; }
 
@@ -9152,6 +9182,12 @@ function panelHealWatch_() {
 }
 
 /** チェックを見張るしくみを入れる（すでにあれば入れ直す） */
+/*
+ * 保険の見張りを、何分おきに動かすか。
+ * ★持ち時間（1日90分）を使い切らないための、いちばん効く手です。
+ */
+const PANEL_WATCH_MIN = 3;
+
 function panelInstall_() {
   const ss = mainSS_();
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -9160,8 +9196,21 @@ function panelInstall_() {
   });
   // ① チェックした瞬間に動く
   ScriptApp.newTrigger("panelOnEdit").forSpreadsheet(ss).onEdit().create();
-  // ② ①が効かない機種向けの保険。1分おきに見にいく
-  ScriptApp.newTrigger("panelWatch").timeBased().everyMinutes(1).create();
+  /*
+   * ② ①が効かない機種向けの保険。
+   *
+   * ★前は「1分おき」でした。これが止まる原因だった可能性が高いです。
+   *   無料で使える持ち時間は **1日90分まで**。
+   *   1分おきだと1日1440回。1回に数秒かかるので、
+   *   それだけで90分を使い切ります。使い切ると、
+   *   その日の残りは **ぜんぶ止まります**（取り込みも、お知らせも）。
+   *   まーく様から「前にも何度も止まってます」と言われました。
+   *
+   * ★3分おきに変えました。使う時間は3分の1になります。
+   *   押した瞬間に動くほう（①）はそのままなので、
+   *   ボタンの効き方は変わりません。
+   */
+  ScriptApp.newTrigger("panelWatch").timeBased().everyMinutes(PANEL_WATCH_MIN).create();
 }
 
 /** 見張りを止める（1分おきの実行が気になるとき用） */
