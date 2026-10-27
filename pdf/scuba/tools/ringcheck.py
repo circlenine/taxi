@@ -42,6 +42,10 @@ for slot, (k, x0, y0, x1, y1, rings) in boxes.items():
 # 10/27 まーく様「赤丸と文字は絶対に被らせない」：写真の上の名札が、赤丸の線にかかっていないか（focus_w.py が測った結果）
 for k, text in json.load(open(os.path.join(out, "labhit.json"))):
     ng.append(f"NG {k}：写真の上の名札「{text}」が、赤丸の線にかぶっている。名札を赤丸から離す")
+# 10/27 まーく様「女性目線での資料ファースト」：男性が写る写真は、理由（MALE_OK）がなければ止める
+_used = {s.rsplit("_", 1)[0] for s in boxes}
+for k in sorted(_used & focus_w.MALE):
+    if not focus_w.MALE_OK.get(k): ng.append(f"NG {k}：男性が写っている写真。女性の写真に替えるか、男性のままの理由を MALE_OK に書く")
 # 10/27 まーく様「画像の鮮明さや明るさ」：写真ごとに、元の画素が足りているか・明るさ・くっきり具合
 qual = json.load(open(os.path.join(out, "quality.json")))
 for slot, q in qual.items():
