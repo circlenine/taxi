@@ -47,7 +47,7 @@ qual = json.load(open(os.path.join(out, "quality.json")))
 for slot, q in qual.items():
     if q["src_w"] < q["need_w"] * 0.42:
         ng.append(f"NG {slot}：元の写真の画素が足りず、ぼやける（元 {q['src_w']}px／必要 {q['need_w']}px）。もっと寄りでない写真か、くっきりした写真にする")
-    if not 70 <= q["light"] <= 205:
+    if not 70 <= q["light"] <= 205 and slot.rsplit("_", 1)[0] not in focus_w.WHITEBG:
         ng.append(f"NG {slot}：明るさ {q['light']}（70〜205 の外）。暗すぎ・白すぎ")
     if q["sharp"] < 120:
         ng.append(f"NG {slot}：くっきりしていない（{q['sharp']}）。ピンぼけ・ぶれの少ない場面にする")
