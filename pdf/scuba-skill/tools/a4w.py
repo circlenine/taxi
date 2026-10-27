@@ -550,6 +550,8 @@ table.cmp tr:first-child th:first-child:empty{background:none;border-top-color:t
 table.cmp th.cr{width:24%;font-weight:900;color:var(--navy)}
 .grid2>.step.step.wide:has(table.cmp)>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 .cmpw,table.cmp{width:100%}
+/* 10/27 検査役：白地にした写真（中の服）だけ、ふちが見えず、となりの写真とそろわない → 薄い線のふちを付ける */
+img[data-k=d_inner]{box-shadow:inset 0 0 0 1px var(--line);border:1px solid var(--line)}
 table.cmp{display:table!important}table.cmp tr{display:table-row!important}table.cmp th,table.cmp td{display:table-cell!important}
 .photos.n3 img,.photos.ngp img{height:calc((var(--ph,50mm) - 1.6mm - 6mm) / 2)!important}
 .photos.n3,.photos.ngp{grid-template-columns:1.4fr 1fr!important;grid-template-rows:auto auto}
