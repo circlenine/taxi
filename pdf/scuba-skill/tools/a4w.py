@@ -231,7 +231,6 @@ def notes(s):
         _sk = p_.get("kind", "pk")   # 10/27 スーツ編：脱ぐ順番は「補足」の札で出す（大事は、そのあとの一言だけ）
         # 留める順番は、表の形にする：番号／場所／やること の3列。やることが2行になっても、書き出しの位置はそろう
         n(_sk, f'<b>{p_["head"]}</b>', ['<div class="srows">' + "".join(f'<span class="nn2">{a}</span><span class="sp2">{b}</span><span class="sd2">{c}</span>' for a, b, c in p_["rows"]) + '</div>'])
-    for t in s.get("extra") or []: n("x", t)
     if s.get("table"):
         # 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」→ 横に並べた表（左の列＝何を比べるか、上の行＝比べる2つ）
         tb = s["table"]
@@ -244,6 +243,8 @@ def notes(s):
         # 10/27 夜 左の列の見出しが短い（2字まで）表は、左の列を細くして、中身の列を広げる（折り返しを減らす）
         _nar = " nar" if not tb["cols"][0] and all(len(r[0]) <= 2 for r in tb["rows"]) else ""
         out.append(("tb", f'<table class="cmp{_nar}"><tr>{th}</tr>{tr}</table>', []))
+    # 10/28 まーく様「補足なので、表の下に載せるべき」→ 補足は、表のあと（どの手順も同じ順：大事 → 表 → 補足）
+    for t in s.get("extra") or []: n("x", t)
     html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
                    + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>") for kind, text, subs in out)
     return '<div class="notes">' + html + "</div>" if out else ""
