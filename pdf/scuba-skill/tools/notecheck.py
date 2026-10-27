@@ -22,8 +22,8 @@ for s in c.STEPS:
         for t in ex:
             if L(t) > lim: ng.append(f"NG {u['id']}：補足が長い（{L(t)}字・{lim}字まで）「{t}」")
         tb = u.get("table")
-        if tb and len(tb["cols"]) == 2 and all(tb["cols"]) and not any(("オススメ" in x or "★" in x) for x in tb["cols"]):
-            ng.append(f"NG {u['id']}：2つから選ぶ表に「オススメ」がない")
+        if tb and len(tb["cols"]) == 2 and all(tb["cols"]) and not any("[おすすめ]" in x for x in tb["cols"]):
+            ng.append(f"NG {u['id']}：2つから選ぶ表に「[おすすめ]」の札がない（★・*・カタカナのオススメは使わない）")
         ks = u.get("key", [])
         for i, k in enumerate(ks):
             cap = c.CAPS.get((u["id"], k), "")

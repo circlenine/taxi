@@ -235,7 +235,8 @@ def notes(s):
     if s.get("table"):
         # 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」→ 横に並べた表（左の列＝何を比べるか、上の行＝比べる2つ）
         tb = s["table"]
-        th = "".join(f'<th>{T(c)}</th>' for c in tb["cols"])
+        # 10/28 まーく様「★オススメより おすすめ。名前のカタカナと続くと見づらい」→ [おすすめ] は、補足・大事と同じ形の小さな札にする（* はタップの印なので使わない）
+        th = "".join(f'<th>{T(c.replace("[おすすめ]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "")}</th>' for c in tb["cols"])
         if tb["cols"][0]:   # 左の列（何を比べるか）がない、2つを並べるだけの表
             tr = "".join('<tr>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for xs in tb["rows"])
         else:
@@ -553,6 +554,7 @@ CSS += """
 .grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes,.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
+table.cmp th .rec{display:inline-block;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.2mm 1.4mm;vertical-align:.2mm}
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
