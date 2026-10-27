@@ -557,7 +557,7 @@ table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
 .ph h2 .ttl{flex:none;white-space:nowrap}
-.hookr{margin-left:auto;flex:none;white-space:nowrap;display:inline-block;font-size:10pt;font-weight:900;color:#c2571a;letter-spacing:0}
+.hookr{margin-left:auto;padding-left:6mm;flex:none;white-space:nowrap;display:inline-block;font-size:10pt;font-weight:900;color:#c2571a;letter-spacing:0}
 .hookr *{display:inline!important;white-space:nowrap!important}
 .hookr .hk{margin-right:1.6mm}
 .hookr .hk{font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.4mm 1.6mm;white-space:nowrap}
