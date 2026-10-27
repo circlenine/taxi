@@ -31,7 +31,8 @@ def _vid_wash(k):
     v, t = _SRC[k]
     return v if t is None else v + f"?t={max(0, t - 2)}"
 
-KINDCHIP = {"ウェット": '<span class="kind kwet">ウェット</span>', "ドライ": '<span class="kind kdry">ドライ</span>'}
+# 10/27 まーく様「もくじのタグは、ウェットスーツ、ドライスーツ、と「スーツ」も入れて」→ どこでも同じ札にする
+KINDCHIP = {"ウェット": '<span class="kind kwet">ウェットスーツ</span>', "ドライ": '<span class="kind kdry">ドライスーツ</span>'}
 def T(s):
     # 10/24 まーく様「ウェットスーツと、ドライスーツとで、タグをつけるなどでしっかり差別化を」→〔ウェット〕〔ドライ〕を色つきの札に
     s = re.sub(r"〔(ウェット|ドライ)〕", lambda m: KINDCHIP[m.group(1)], s)
@@ -227,11 +228,21 @@ def notes(s):
         n("pk", f'<b>{p_["head"].replace("<wbr>", "")}</b>', subs)
     if s.get("steps"):
         p_ = s["steps"]
+        _sk = p_.get("kind", "pk")   # 10/27 スーツ編：脱ぐ順番は「補足」の札で出す（大事は、そのあとの一言だけ）
         # 留める順番は、表の形にする：番号／場所／やること の3列。やることが2行になっても、書き出しの位置はそろう
-        n("pk", f'<b>{p_["head"]}</b>', ['<div class="srows">' + "".join(f'<span class="nn2">{a}</span><span class="sp2">{b}</span><span class="sd2">{c}</span>' for a, b, c in p_["rows"]) + '</div>'])
+        n(_sk, f'<b>{p_["head"]}</b>', ['<div class="srows">' + "".join(f'<span class="nn2">{a}</span><span class="sp2">{b}</span><span class="sd2">{c}</span>' for a, b, c in p_["rows"]) + '</div>'])
     for t in s.get("extra") or []: n("x", t)
-    html = "".join(f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
-                   + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>" for kind, text, subs in out)
+    if s.get("table"):
+        # 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」→ 横に並べた表（左の列＝何を比べるか、上の行＝比べる2つ）
+        tb = s["table"]
+        th = "".join(f'<th>{T(c)}</th>' for c in tb["cols"])
+        if tb["cols"][0]:   # 左の列（何を比べるか）がない、2つを並べるだけの表
+            tr = "".join('<tr>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for xs in tb["rows"])
+        else:
+            tr = "".join('<tr><th class="cr">' + T(a) + '</th>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for a, *xs in tb["rows"])
+        out.append(("tb", f'<table class="cmp"><tr>{th}</tr>{tr}</table>', []))
+    html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
+                   + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>") for kind, text, subs in out)
     return '<div class="notes">' + html + "</div>" if out else ""
 
 def xm(k, ng):
@@ -259,7 +270,7 @@ def photos(s):
     else:
         if len(keys) == 1: return f'<div class="photos">{fig(keys[0], ASPECT.get(keys[0], 4/3), cap(keys[0]), (s["id"], keys[0]) in REDCAP)}</div>'
         cls = " strap2" if "strap" in keys else ""
-        return f'<div class="photos{cls}">' + "".join(fig(k, 1.0, cap(k)) for k in keys) + "</div>"
+        return f'<div class="photos{cls}">' + "".join(fig(k, 4 / 3 if s["id"] in LAND2 else 1.0, cap(k)) for k in keys) + "</div>"
     big = f'<figure class="ph3">{im(a, 1.0)}<span class="cap3">{T(la)}</span></figure>'
     stk = f'<figure class="ph3 stack"><span class="st2">{xm(b[0], red)}{xm(b[1], red)}</span><span class="cap3{" red" if red else ""}">{T(lb)}</span></figure>'
     # 2-4は、やる順番（引く前 → 引いた後 → L字サインホースに付ける）のとおり、左に2枚・右に大きく1枚（10/7 ご指示）
@@ -267,6 +278,8 @@ def photos(s):
         return f'<div class="photos p3 rev">{stk}{big}</div>'
     return f'<div class="photos p3">{big}{stk}</div>'
 
+# 10/27 手順が6つあるページ（ウェットの着脱）と、図の大きいページ（ドライの特徴）は、2枚の写真を横長にして、1ページに収める
+LAND2 = set()
 # 2-4 の左の名前に「カチカチホース（正式名称：中圧ホース）」を足すと、細い欄で3〜4行になり、はみ出してごちゃつくので足さない（10/8 試した結果）
 STK_OF = {}
 
@@ -274,8 +287,8 @@ STK_OF = {}
 REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
-WIDE = {"2-1"}   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
-ASPECT = {"d_cat": 1920 / 880}   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
+WIDE = {"1-3", "3-1"}   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+ASPECT = {"d_cat": 2080 / 880}   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
     # 「くわしくは 1-4（3ページ）」：タップでそのページへ飛ぶ。印刷しても何ページ目かが分かるよう、ページ番号は必ず書く（10/13 ご指示）
     # ページ番号は、手順のページを作り終えてから入れる（2ページを作る時点では、まだ決まっていないため）
@@ -312,7 +325,7 @@ def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
-    lg = '<span class="legend hl"><span class="lx">補足</span>知っておくと楽な点<span class="lp">大事</span>必ず守ること</span>' if (head_no in ("器材", "大事") or head_no.startswith("工程")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
+    lg = '<span class="legend hl"><span class="lx">補足</span>知っておくと楽な点<span class="lp">大事</span>必ず守ること</span>' if (head_no in ("器材", "大事", "装備") or head_no.startswith("工程")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
     h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
     h = _nd.header("4", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
@@ -361,7 +374,7 @@ for sec in STEPS:
         else:
             body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
-        page(f"工程{sec['id']}", t, body, toc=True)  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
+        page(sec.get("lb", f"工程{sec['id']}"), t, body, toc=True)   # 10/27 まーく様：もくじの札は［装備〉［工程1〉…  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
 # まとめ
 # 10/22 まーく様「ふり返りも、スキル編にならって見やすく」→ 見出し（上・まん中）＋1つずつの札（左上に短い名前）
@@ -401,7 +414,7 @@ mt = "".join(
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、元のページへ</b><span class="rn">動画・お店のブログ・カタログ</span></span></div><p class="src mtcred"><span class="nw">写真：海人商店ブログ・</span><br><span class="nw">ワールドダイブのカタログ・</span><br><span class="nw">参考動画5本から（最後のページ）</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">写真の元：ドライの着方・脱ぎ方＝海人商店ブログ（ワールドダイブ取扱店）の写真／しくみ＝ワールドダイブのカタログ／他＝ocean_a・パパラギ先生（2本）・DIVER mag・ROXY の動画の画面。文の元：他に熱烈先生・THINKING ABOUT THE SEA・KOBEkazunori の動画、TUSA の取扱説明書<span class="scr">。写真をタップすると、元のページが開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">ドライの着方・脱ぎ方で、いちばん参考にした動画：「初心者の9割が知らない！プロが教えるドライスーツの着脱のコツとは？」（パパラギ先生のまるごとダイビングTV）<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※他の写真は、海人商店ブログ（ワールドダイブ取扱店）・ワールドダイブのカタログ・いくつかの動画から集めたもの<span class="scr">。元のページは、写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -523,11 +536,21 @@ CSS += """
 .sh3 .t{font-size:12.5pt!important}
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
 /* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
-.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:1920/880!important;width:100%!important}
+.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:2080/880!important;width:100%!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
-.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
+.grid2>.step:not(.wide)+.step.wide,.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
 /* 10/27 検査役：2-1 の補足の線が左半分で切れていた（写真が横いっぱいのときは、補足も横いっぱい） */
 .grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
+/* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
+.cmpw{padding:1.2mm 0 .6mm}
+table.cmp{width:100%;border-collapse:collapse;font-size:10pt;line-height:1.45;table-layout:fixed}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:1.2mm 1.6mm;vertical-align:middle;text-align:left}
+table.cmp tr:first-child th{background:var(--sea2,#e6f4ec);text-align:center;font-weight:900}
+table.cmp tr:first-child th:first-child:empty{background:none;border-top-color:transparent;border-left-color:transparent}
+table.cmp th.cr{width:24%;font-weight:900;color:var(--navy)}
+.grid2>.step.step.wide:has(table.cmp)>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
+.cmpw,table.cmp{width:100%}
+table.cmp{display:table!important}table.cmp tr{display:table-row!important}table.cmp th,table.cmp td{display:table-cell!important}
 .photos.n3 img,.photos.ngp img{height:calc((var(--ph,50mm) - 1.6mm - 6mm) / 2)!important}
 .photos.n3,.photos.ngp{grid-template-columns:1.4fr 1fr!important;grid-template-rows:auto auto}
 .photos.n3 .ph3:first-child,.photos.ngp .ph3:first-child{grid-column:1!important;grid-row:1/3}

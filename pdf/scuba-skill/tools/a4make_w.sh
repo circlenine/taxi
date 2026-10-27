@@ -84,6 +84,8 @@ mv $S/build_w/a4l.pdf $S/build_w/a4c.pdf
 python3 -I $S/tools/lnkcheck.py $S/build_w/a4c.pdf
 # 仕上がりのPDFを、ファイル名に「直した日（日本時間）」を入れて置く（10/8 ご指示：日付は必ず直した日に合わせる）
 D=$(TZ=Asia/Tokyo date +%y%m%d)
-rm -f $S/out/4_*_ｽｷｭｰﾊﾞ_ｽｰﾂ編.pdf
+rm -f $S/out/4_*_ｽｷｭｰﾊﾞ_ｽｰﾂ編.pdf $S/out/4_*_ｽｷｭｰﾊﾞ_ｽｰﾂ編_答え.pdf
 cp $S/build_w/a4c.pdf "$S/out/4_${D}_ｽｷｭｰﾊﾞ_ｽｰﾂ編.pdf"
 echo "出力: 4_${D}_ｽｷｭｰﾊﾞ_ｽｰﾂ編.pdf"
+# 10/27 まーく様「各クイズの答えも見せた状態のものも送って」
+python3 -I $S/tools/ansver.py "$S/out/4_${D}_ｽｷｭｰﾊﾞ_ｽｰﾂ編.pdf" "$S/out/4_${D}_ｽｷｭｰﾊﾞ_ｽｰﾂ編_答え.pdf"

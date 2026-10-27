@@ -39,6 +39,9 @@ for slot, (k, x0, y0, x1, y1, rings) in boxes.items():
         dx, dy = (gx - (x0 + x1) / 2) / w, (gy - (y0 + y1) / 2) / h
         if abs(dx) > .12 or abs(dy) > .12:
             ng.append(f"NG {slot}：赤丸が写真の真ん中にない（横に {dx:+.0%}・縦に {dy:+.0%}）。写真のはしに寄っている場合は、切り抜ける範囲（allowed）を見直す")
+# 10/27 まーく様「赤丸と文字は絶対に被らせない」：写真の上の名札が、赤丸の線にかかっていないか（focus_w.py が測った結果）
+for k, text in json.load(open(os.path.join(out, "labhit.json"))):
+    ng.append(f"NG {k}：写真の上の名札「{text}」が、赤丸の線にかぶっている。名札を赤丸から離す")
 # 10/27 まーく様「画像の鮮明さや明るさ」：写真ごとに、元の画素が足りているか・明るさ・くっきり具合
 qual = json.load(open(os.path.join(out, "quality.json")))
 for slot, q in qual.items():
