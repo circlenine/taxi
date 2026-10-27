@@ -21,11 +21,11 @@ F = {
  # focus＝説明文が言っている所。赤丸（MARK）は focus の中に入れ、写真の中で十分大きく写るようにする（ringcheck.py で点検）
  # ウェット
  "w_fold":  ("w_fold",  (0, 0, 1280, 600),    (480, 120, 780, 595)),
- "w_heel":  ("w_heel",  (0, 0, 1280, 470),    (380, 180, 820, 465)),
- "w_pad":   ("w_pad",   (0, 0, 1280, 545),    (520, 120, 900, 540)),
- "w_bag":   ("w_bag",   (0, 0, 1280, 545),    (360, 160, 760, 540)),
+ "w_heel":  ("w_heel",  (0, 0, 1280, 545),    (420, 60, 860, 540)),   # 10/27 赤丸を「かかとを握る手」へ（前は芝と脚の上だった）
+ "w_pad":   ("w_pad",   (0, 0, 1280, 720),    (480, 160, 960, 720)),   # 10/27 128秒（両方の膝パッドが見える）。下の字幕はぼかして埋める（SUBBLUR）
+ "w_bag":   ("w_bag",   (0, 0, 1280, 555),    (300, 120, 820, 640)),
  "w_zip":   ("w_zip",   (0, 0, 1280, 535),    (480, 100, 860, 530)),
- "r345":    ("r345",    (300, 60, 1280, 560), (440, 60, 920, 555)),
+ "r345":    ("r345",    (0, 0, 1280, 720),    (480, 250, 820, 610)),   # 10/27 348秒のコマに（前は肩の大写しで何の場面か分からなかった）。左下の字幕はぼかして埋める（SUBBLUR）
  "w_wash":  ("w_wash",  (300, 60, 1280, 640),  (380, 60, 1000, 635)),
  # しくみ
  "d_cat":   ("d_cat",   (0, 0, 1280, 720),    (0, 0, 1280, 720)),
@@ -57,13 +57,19 @@ F = {
  # 潜る
  "d_squat": ("d_squat", (0, 0, 1280, 620),    (360, 180, 920, 615)),
  "b_uw":    ("b_uw",    (0, 0, 1280, 560),   (300, 100, 1200, 555)),
+ "d_frin":  ("d_frin",  (0, 130, 1280, 720),  (240, 170, 640, 670)),   # 10/27 366秒：スーツを持ち上げ、ボタンが胸の高さ。体ごと写る。下の字幕の帯は、すぐ上の帯をぼかしてのばしたもので埋めた（ブログ写真の左右と同じ）
+ "d_frex":  ("d_frex",  (0, 130, 1280, 720),  (410, 135, 810, 635)),
+ "m_valves": ("m_valves", (0, 130, 1280, 720), (300, 200, 750, 620)),
+ "d_bcdw":  ("d_bcdw",  (0, 0, 1280, 555),   (160, 0, 1120, 550)),
  "d_bcd":   ("d_bcd",   (0, 0, 1280, 560),    (300, 100, 900, 555)),
  # 洗い方・脱ぎ方
  "d_wash":  ("d_wash",  (0, 110, 1280, 500),  (300, 110, 1000, 495)),
  "u27":     ("u27",     (100, 0, 1180, 720),  (440, 160, 1100, 560)),
- "u29":     ("u29",     (100, 0, 1180, 720),  (300, 60, 980, 520)),
+ "u29":     ("u29",     (100, 0, 1180, 720),  (250, 0, 1030, 600)),
+ "u28":     ("u28",     (100, 0, 1180, 720),  (300, 60, 840, 720)),   # 10/27 検査役「u29 は首だと分かりにくい」→ 横顔まで写る、ブログ28枚目（首のゴムを伸ばしたところ）に替えた
  "u30":     ("u30",     (100, 0, 1180, 720),  (380, 100, 900, 600)),
  "u31":     ("u31",     (100, 0, 1180, 720),  (440, 160, 1000, 680)),
+ "u36":     ("u36",     (100, 0, 1180, 720),  (300, 160, 900, 715)),
  "u33":     ("u33",     (100, 0, 1180, 720),  (440, 40, 1000, 715)),
  "d_heel":  ("d_heel",  (0, 0, 980, 600),     (300, 0, 900, 595)),
 }
@@ -81,11 +87,11 @@ for _k in F:
 MARK = {
  # 説明文が言っている物の上に赤丸（中心x, 中心y, 半径, 写真に書く名前, 置き場所）。1枚ずつ目で確かめた（10/26）
  # どの物を囲んだかは RINGWHAT に書く。その言葉が、写真の下の説明か手順の題に入っていないと ringcheck.py が止める
- "w_heel":  [(580, 390, 85, "", "")],
- "w_pad":   [(700, 450, 75, "", "")],
- "w_bag":   [(540, 400, 105, "", "")],
+ "w_heel":  [(640, 300, 100, "", "")],
+ "w_pad":   [(720, 470, 85, "", "")],
+ "w_bag":   [(560, 380, 105, "", "")],
  "w_zip":   [(640, 250, 85, "", "")],
- "r345":    [(670, 460, 95, "", "")],
+ "r345":    [(650, 430, 90, "", "")],
  "d_catin": [(380, 490, 100, "", "")],
  "d_catex": [(950, 340, 100, "", "")],
  "d_auto":  [(620, 340, 150, "", "")],
@@ -107,18 +113,24 @@ MARK = {
  "u23":     [(820, 370, 110, "", "")],
  "d_squat": [(630, 360, 130, "", "")],
  "d_bcd":   [(560, 330, 110, "", "")],
+ "d_frin":  [(440, 420, 52, "", "")],
+ "d_frex":  [(610, 385, 50, "", "")],
+ "m_valves": [(440, 420, 42, "入れる", "l"), (610, 385, 46, "抜く", "r")],
+ "d_bcdw":  [(720, 300, 190, "", "")],
  "b_uw":    [(770, 300, 90, "", "")],
  "u27":     [(740, 340, 110, "", "")],
  "u29":     [(640, 280, 190, "", "")],
+ "u28":     [(570, 430, 165, "", "")],
  "u30":     [(640, 330, 180, "", "")],
  "u31":     [(780, 420, 150, "", "")],
  "d_heel":  [(640, 520, 70, "", "")],
+ "u36":     [(575, 470, 150, "", "")],
 }
-RINGWHAT = {"w_heel": "かかと", "w_pad": "膝", "w_bag": "ビニール袋", "w_zip": "髪", "r345": "肩", "d_catin": "胸", "d_catex": "左肩", "b_uw": "左肩",
+RINGWHAT = {"w_heel": "かかと", "w_pad": "膝", "w_bag": "ビニール袋", "w_zip": "髪", "r345": "肩", "d_catin": "胸", "d_catex": "左肩", "b_uw": "左肩", "d_frin": "胸", "d_frex": "左肩", "m_valves": "ボタン", "d_bcdw": "{bc}",
  "d_auto": "回して", "u34": "ブーツ", "d_sock": "靴下", "d_seal": "ゴム", "d_valv": "ボタン", "d_gel": "ゴム", "u04": "サスペンダー",
  "u09": "サスペンダー", "u11": "手", "u12": "ゴム", "u15": "首のゴム", "u16": "広げる", "u17": "頭", "u19": "伸ばす", "u20": "内側",
- "u21": "ファスナー", "u23": "ファスナー", "d_squat": "首", "d_bcd": "ホース", "u27": "ファスナー", "u29": "首のゴム", "u30": "あご",
- "u31": "手首", "d_heel": "かかと"}
+ "u21": "ファスナー", "u23": "ファスナー", "d_squat": "首", "d_bcd": "ホース", "u27": "ファスナー", "u29": "首のゴム", "u28": "首のゴム", "u30": "あご",
+ "u31": "手首", "d_heel": "かかと", "u36": "膝"}
 # 長方形で囲むもの（左上x, 左上y, 右下x, 右下y。1280x720 の画面での位置）。10/8 ご指示（スクショに手で囲んでもらった場所）
 RED = (249, 54, 18)            # #f93612：2-1 の動画の赤い丸と同じ色。囲み・丸・矢印・✕は、全部この色にそろえる（10/8 ご指示）
 # 赤い囲みの線の太さ（紙の上の mm）。2-1 の動画の赤い丸を紙の上で測ると 2.2mm なので、全部これにそろえる（10/8 ご指示）
@@ -295,11 +307,33 @@ def mark(im, key, box, sx, sy, ppx):
     out = base.convert("RGBA"); out.alpha_composite(im)
     return out.convert("RGB")
 
+# 10/27 写したいものが画面の下（字幕のすぐ上）にあると、赤丸をまん中に置くために寄るしかなく、「体のどこか」が分からない大写しになった。
+#   そこで、字幕の帯（この高さより下・1280x720 で数えた値）を、すぐ上の帯をのばしてぼかしたもので埋め、そこまで写せるようにする。
+#   （ブログ写真の左右をぼかしで埋めたのと同じやり方。字幕の字は読めなくなり、写真の下がふんわりぼける）
+SUBBLUR = {"d_frin": 555, "d_frex": 555, "m_valves": 555, "w_pad": 543, "r345": 505}
 def load(frame):
-    return Image.open(os.path.join("/tmp/claude-0/kfw4", frame + ".jpg")).convert("RGB")
+    im = Image.open(os.path.join("/tmp/claude-0/kfw4", frame + ".jpg")).convert("RGB")
+    if frame in SUBBLUR:
+        from PIL import ImageFilter
+        # 字幕の帯は、すぐ上を鏡に映したもので埋めて強くぼかし、さかい目は少しずつ混ぜる（さかい目の線を見せない）。
+        #   混ぜる所も、字幕より上だけを使う（字幕の字や光が、ぼけて写りこまないように）
+        W, H = im.size; cut = int(SUBBLUR[frame] * H / 720); fe = int(H / (48 if frame == "w_pad" else 16))   # 10/27 検査役「ぼかした四角が見える」→ さかい目を広く混ぜる（膝の写真だけは、膝がぼけないよう狭く）
+        low = Image.new("RGB", (W, H - cut + 2 * fe)); low.paste(im.crop((0, cut - 2 * fe, W, cut)), (0, 0))
+        low.paste(im.crop((0, 2 * cut - H, W, cut)).transpose(Image.FLIP_TOP_BOTTOM), (0, 2 * fe))
+        # 10/27 検査役「下がにじんで見える」→ 形が残ると「にじみ」に見えるので、もっと強くぼかし、写真の平均の色へ少し寄せて「ふんわり消える」形にする
+        low = low.filter(ImageFilter.GaussianBlur(H / 18))
+        from PIL import ImageStat
+        avg = Image.new("RGB", low.size, tuple(int(v) for v in ImageStat.Stat(low).mean))
+        fade = Image.linear_gradient("L").resize(low.size).point(lambda v: int(v * 0.55))
+        low = Image.composite(avg, low, fade)
+        mask = Image.new("L", low.size, 255); mask.paste(Image.linear_gradient("L").resize((W, 2 * fe)), (0, 0))
+        im.paste(low, (0, cut - 2 * fe), mask)
+    return im
 
 PAD = 0.06
 NOCROP = {"d_cat"}   # サンライズのスーツの図（mkcat.py で作った完成図）
+# わざと大写しにする写真（ringcheck の「寄りすぎ」から外す）。どれも、同じ部分を 2-1 の図や となりの写真で、体ごと見せている
+CLOSEUP = {"d_inval", "d_auto", "d_valv", "d_seal"}
 def aspect_range(key):
     """この写真を切り抜ける縦横比の範囲（見せたい部分を切らずに済む範囲）"""
     _, (ax0, ay0, ax1, ay1), (fx0, fy0, fx1, fy1) = F[key]
@@ -342,11 +376,21 @@ if __name__ == "__main__":
     warn = []
     BADGE = {}
     BOXES = {}
+    QUAL = {}
     import copy as _cp; _MARK0 = _cp.deepcopy(MARK)
     ROT = {"belt"}  # 重りは横に長いので、90度回して縦長にする（左右のいらない部分を減らし、ベルト自体を大きく見せる。10/7 ご指示）
     for slot, (key, w, h) in sizes.items():
         frame, allowed, focus = F[key]
         if key in _MARK0: MARK[key] = list(_MARK0[key])
+        # 10/27 まーく様「赤丸は基本的に画像の中心にきたほうがよい」→ 見せたい部分を、赤丸の真ん中を中心に置き直す（大きさはそのまま）
+        if MARK.get(key):
+            _ms = MARK[key]
+            _gx = sum(m[0] for m in _ms) / len(_ms); _gy = sum(m[1] for m in _ms) / len(_ms)
+            _fw, _fh = focus[2] - focus[0], focus[3] - focus[1]
+            # 赤丸から、切り抜ける範囲のはしまでの近いほうの距離に合わせて、上下・左右を同じ幅にする（はしに当たって赤丸が下に寄るのを防ぐ）
+            _R0 = max(m[2] for m in _ms) * OV + 16
+            _hw = max(_R0, min(_fw / 2, _gx - allowed[0], allowed[2] - _gx)); _hh = max(_R0, min(_fh / 2, _gy - allowed[1], allowed[3] - _gy))
+            focus = (max(allowed[0], _gx - _hw), max(allowed[1], _gy - _hh), min(allowed[2], _gx + _hw), min(allowed[3], _gy + _hh))
         # 10/26 赤丸は、必ず写真の中に全部入れる：見せたい部分を、赤丸（線の外がわまで）を含む大きさに広げる
         for _cx, _cy, _r, *_ in MARK.get(key, []):
             _R = _r * OV + 14
@@ -363,6 +407,17 @@ if __name__ == "__main__":
             if a_fit < w / h - 0.01: pad_to = w / h
         else:
             x0, y0, x1, y1, ok = box_for(allowed, focus, w / h, zoom=key not in PAIRK)   # 比べる2枚は、同じ切り方のまま（寄せると2枚がずれる）
+            # 10/27 赤丸が真ん中に来ないときは、赤丸を中心に、同じ形のまま寄る。寄りすぎて元の画素が足りなくなるときは寄らない（ringcheck.py が知らせる）
+            if MARK.get(key):
+                _ms = MARK[key]; _gx = sum(m[0] for m in _ms) / len(_ms); _gy = sum(m[1] for m in _ms) / len(_ms)
+                _asp = w / h; _bw, _bh = x1 - x0, y1 - y0
+                if abs((_gx - (x0 + x1) / 2) / _bw) > .1 or abs((_gy - (y0 + y1) / 2) / _bh) > .1:
+                    _H = min(_gy - allowed[1], allowed[3] - _gy, _bh / 2); _W = min(_gx - allowed[0], allowed[2] - _gx, _bw / 2)
+                    _hw = min(_W, _H * _asp); _hh = _hw / _asp
+                    _Rmax = max(abs(m[0] - _gx) + m[2] * OV for m in _ms), max(abs(m[1] - _gy) + m[2] * OV for m in _ms)
+                    _srch = 2 * _hh * load(frame).size[1] / 720
+                    if _srch >= 0.45 * (h / 96 * 300):   # 刷り上がりに要る画素の半分以上あれば寄る
+                        x0, y0, x1, y1 = _gx - _hw, _gy - _hh, _gx + _hw, _gy + _hh
         # 10/26 それでも写真のはしにかかる赤丸は、中心はそのままで、写真に収まる大きさまで小さくする（ringcheck.py が、小さくなりすぎていないか調べる）
         if key in MARK:
             _adj = []
@@ -379,6 +434,16 @@ if __name__ == "__main__":
             BOXES[slot] = [key, 0, 0, 1280, 720, []]; BADGE[slot] = "br:6"; continue
         sx, sy = src.size[0] / 1280, src.size[1] / 720
         im = src.crop((round(x0 * sx), round(y0 * sy), round(x1 * sx), round(y1 * sy)))
+        # 10/27 まーく様「画像の鮮明さや明るさ」→ 明るさをそろえる（暗い場面は少し明るく）。くっきり具合と、元の画素の足りなさを記録して ringcheck.py で止める
+        from PIL import ImageOps, ImageStat, ImageFilter
+        im = ImageOps.autocontrast(im, cutoff=0.5)
+        _L = ImageStat.Stat(im.convert("L")).mean[0]
+        for _i in range(3):   # 暗い写真は、明るさ 95 を目安に少しずつ持ち上げる（白とびしないよう、ガンマで）
+            if _L >= 95: break
+            im = im.point(lambda v: round(255 * (v / 255) ** 0.8)); _L = ImageStat.Stat(im.convert("L")).mean[0]
+        _g = im.convert("L").resize((480, round(480 * im.size[1] / im.size[0])))
+        QUAL[slot] = dict(src_w=im.size[0], need_w=round(w / 96 * 300), light=round(ImageStat.Stat(im.convert("L")).mean[0]),
+                          sharp=round(ImageStat.Stat(_g.filter(ImageFilter.FIND_EDGES)).var[0]))
         # 紙の上で 300dpi 相当まで（元の画質より大きくはしない）
         tw = min(im.size[0], round(w / 96 * 300))
         if pad_to:
@@ -409,6 +474,6 @@ if __name__ == "__main__":
         _ff = _bp.focus_frac(focus, (x0, y0, x1, y1), pad_to, None, rot) if not isinstance(focus, list) else [0, 0, 0, 0]
         _c, _s, _ = _bp.corners(im, _ff, *( (h, w) if rot else (w, h) )); BADGE[slot] = f"{_c}:{_s}"
         im.save(os.path.join(out, f"{slot}.jpg"), quality=88)
-    json.dump(BOXES, open(os.path.join(out, "boxes.json"), "w"))   # 10/26 ringcheck.py が、赤丸が写真の中に大きく入っているかを調べる
+    json.dump(BOXES, open(os.path.join(out, "boxes.json"), "w")); json.dump(QUAL, open(os.path.join(out, "quality.json"), "w"))   # 10/26 ringcheck.py が、赤丸が写真の中に大きく入っているかを調べる
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); __import__("badgepos").save(out, BADGE)
     print("\n".join(warn) if warn else "all focus fit")

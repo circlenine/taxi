@@ -524,6 +524,10 @@ CSS += """
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
 /* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
 .grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:1920/880!important;width:100%!important}
+/* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
+.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
+/* 10/27 検査役：2-1 の補足の線が左半分で切れていた（写真が横いっぱいのときは、補足も横いっぱい） */
+.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 .photos.n3 img,.photos.ngp img{height:calc((var(--ph,50mm) - 1.6mm - 6mm) / 2)!important}
 .photos.n3,.photos.ngp{grid-template-columns:1.4fr 1fr!important;grid-template-rows:auto auto}
 .photos.n3 .ph3:first-child,.photos.ngp .ph3:first-child{grid-column:1!important;grid-row:1/3}

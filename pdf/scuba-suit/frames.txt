@@ -1,9 +1,9 @@
 w_fold wet_diver 54
-w_heel wet_diver 81
-w_pad wet_diver 126
+w_heel wet_diver 77
+w_pad wet_diver 128
 w_bag wet_diver 314
 w_zip wet_diver 348
-r345 wet_roxy 345
+r345 wet_roxy 348
 w_wash wet_roxy 474
 d_inval dry_bcd 204
 d_auto dry_ocean 342
@@ -19,3 +19,8 @@ d_heel dry_papa 870
 d_susoff dry_ocean 438
 d_shv dry_bcd 290
 b_uw dry_bcd 398
+d_front dry_bcd 381
+m_valves dry_bcd 366
+d_bcdw dry_bcd 235
+d_frin dry_bcd 366
+d_frex dry_bcd 366
