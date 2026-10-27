@@ -9,11 +9,11 @@ src=Image.open("/tmp/claude-0/kfw3/cat.jpg").convert("RGB")
 # 10/27 夜 まーく様「左肩の文が真ん中にあると、左のスーツか右のスーツか分からない」「右の無駄な空白」
 #   → 前・後ろを、それぞれ薄い灰色の枠（共通の領域：同じ枠の中＝同じまとまり、と人は見る）で囲み、
 #     タグは、自分の図の枠の中にだけ置く。枠は中身に合わせた大きさにして、何もない白を残さない
-H=820; GAP=36; PAD=36; BG=(242,245,247)
+H=720; GAP=36; PAD=36; BG=(242,245,247)
 
 FP="/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 font=ImageFont.truetype(FP,56); cap=ImageFont.truetype(FP,60); cf=ImageFont.truetype(FP,42)   # cf＝丸の中の1字（丸からはみ出さない大きさ）
-FH, TOP = 690, 22   # 図の高さ（前も後ろも同じ）
+FH, TOP = 600, 18   # 図の高さ（前も後ろも同じ）
 out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(249,54,18)
 def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
@@ -35,7 +35,7 @@ def tag(text,x,y,anchor,line_to,circ=None,minw=0,halo=False):
         cx=x0+20+d.textlength(text,font=font)+(font.size+14)/2; R=(font.size+10)/2
         d.ellipse((cx-R,y-R,cx+R,y+R),fill="white")
         d.text((cx,y+1),circ,font=cf,fill=RED,anchor="mm")
-ROWS=[100,230,360,490,620]   # 左のタグの高さ（同じ間かく。体の上から順）
+ROWS=[90,200,310,420,530]   # 左のタグの高さ（同じ間かく。体の上から順）
 # 10/27 夜 まーく様「左肩も、左の方に載せられないのか」→ 前の図のタグは、5つとも左の列にそろえる
 #   左肩の線は体の前を横切るので、線に白いふちを付けて見失わないようにする
 LW=max(tagw("首のゴム",None),tagw("胸：空気","入"),tagw("左肩：空気","抜"),tagw("手首のゴム",None),tagw("ブーツも一体",None))

@@ -546,20 +546,11 @@ CSS += """
 /* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
 .grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:__ASP_d_cat__!important;width:100%!important}
 .grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:__ASP_w_cat__!important;width:100%!important}
-/* 10/27 夜 ウェットの図は縦長に近いので、図（左 60%）と補足（右）を横に並べる（下に置くと、図の左右が白く空く） */
-.grid2>.step.step.wide:has(>.photos img[data-k=w_cat]){display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;column-gap:5mm!important}
-.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.sh3{flex:0 0 100%!important}
-.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.photos{flex:0 0 68%!important;width:68%!important}
-.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes{flex:1 1 0!important;width:auto!important;align-self:center!important}
-/* 10/27 夜 ドライの図も同じ形（図 76%・補足は右）。図の下に補足を置くと、ページの高さが足りない */
-.grid2>.step.step.wide:has(>.photos img[data-k=d_cat]){display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;column-gap:5mm!important}
-.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.sh3{flex:0 0 100%!important}
-.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.photos{flex:0 0 76%!important;width:76%!important}
-.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{flex:1 1 0!important;width:auto!important;align-self:center!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
 .grid2>.step:not(.wide)+.step.wide,.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
 /* 10/27 検査役：2-1 の補足の線が左半分で切れていた（写真が横いっぱいのときは、補足も横いっぱい） */
-.grid2>.step.step.wide:has(>.photos img[data-k=__none__])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
+/* 10/27 夜 まーく様「ドライと同じく、画像は大きく、文章は画像の下。統一性を」→ ウェット・ドライとも、図は横いっぱい、補足は図の下 */
+.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes,.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
@@ -571,7 +562,7 @@ table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 .hookr .hk{margin-right:1.6mm}
 .hookr .hk{font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.4mm 1.6mm;white-space:nowrap}
 table.cmp{width:100%;border-collapse:collapse;font-size:10pt;line-height:1.45;table-layout:fixed}
-table.cmp th,table.cmp td{border:1px solid var(--line);padding:1.2mm 1.6mm;vertical-align:middle;text-align:left}
+table.cmp th,table.cmp td{border:1px solid var(--line);padding:.8mm 1.6mm;vertical-align:middle;text-align:left}
 table.cmp tr:first-child th{background:var(--sea2,#e6f4ec);text-align:center;font-weight:900}
 table.cmp tr:first-child th:first-child:empty{background:none;border-top-color:transparent;border-left-color:transparent}
 table.cmp th.cr{width:24%;font-weight:900;color:var(--navy)}
