@@ -35,3 +35,5 @@ d_inner dry_ocean 199
 w_fold2 wet_diver 67
 w_cat wet_diver 373
 p_heel dry_papa 870
+d_toilet dry_ocean 329
+d_shoes dry_papa 168
