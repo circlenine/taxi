@@ -4,7 +4,7 @@ w_pad wet_diver 91
 w_bag wet_diver 314
 w_zip wet_diver 348
 r345 wet_roxy 348
-w_wash wet_roxy 474
+w_wash wet_roxy 476
 d_inval dry_bcd 204
 d_auto dry_ocean 342
 d_sock dry_ocean 186

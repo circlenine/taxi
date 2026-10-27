@@ -6,16 +6,19 @@
 #   ・札の高さ・左右の位置をそろえる（左の4つは右はしをそろえ、同じ間かくで並べる。1段目は3つとも同じ高さ）
 from PIL import Image, ImageDraw, ImageFont
 src=Image.open("/tmp/claude-0/kfw3/cat.jpg").convert("RGB")
-W,H=2080,880; out=Image.new("RGB",(W,H),"white"); d=ImageDraw.Draw(out); RED=(249,54,18)
+# 10/27 夜 まーく様「左肩の文が真ん中にあると、左のスーツか右のスーツか分からない」「右の無駄な空白」
+#   → 前・後ろを、それぞれ薄い灰色の枠（共通の領域：同じ枠の中＝同じまとまり、と人は見る）で囲み、
+#     タグは、自分の図の枠の中にだけ置く。枠は中身に合わせた大きさにして、何もない白を残さない
+H=880; GAP=36; PAD=36; BG=(242,245,247)
+
 FP="/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 font=ImageFont.truetype(FP,56); cap=ImageFont.truetype(FP,60); cf=ImageFont.truetype(FP,42)   # cf＝丸の中の1字（丸からはみ出さない大きさ）
-FH, TOP = 770, 10   # 図の高さ（前も後ろも同じ）
+FH, TOP = 740, 24   # 図の高さ（前も後ろも同じ）
+out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(249,54,18)
 def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
     out.paste(src.crop(box).resize((round((x1-x0)*s),FH),Image.LANCZOS),(ox,TOP))
     return (lambda x,y:(ox+(x-x0)*s, TOP+(y-y0)*s)), round((x1-x0)*s)
-P1,w1=fig((540,160,858,1062),490)     # 前
-P2,w2=fig((855,505,1045,1062),1270)   # 後ろ
 def ring(c,r,ry=None,w=9):
     ry=ry or r; x,y=c; d.ellipse((x-r,y-ry,x+r,y+ry),outline=RED,width=w)
 def tagw(text,circ): return d.textlength(text,font=font)+40+(font.size+14 if circ else 0)
@@ -31,16 +34,36 @@ def tag(text,x,y,anchor,line_to,circ=None,minw=0):
         cx=x0+20+d.textlength(text,font=font)+(font.size+14)/2; R=(font.size+10)/2
         d.ellipse((cx-R,y-R,cx+R,y+R),fill="white")
         d.text((cx,y+1),circ,font=cf,fill=RED,anchor="mm")
-ROWS=[146,337,527,718]   # 左のタグの高さ（同じ間かく）
+ROWS=[150,330,510,690]   # 左のタグの高さ（同じ間かく）
 LW=max(tagw("首のゴム",None),tagw("胸：空気","入"),tagw("手首のゴム",None),tagw("ブーツも一体",None))
-neck=P1(681,322); ring(neck,48,34); tag("首のゴム",440,ROWS[0],"r",(neck[0]-48,neck[1]),minw=LW)
-chest=P1(667,412); ring(chest,34); tag("胸：空気",440,ROWS[1],"r",(chest[0]-34,chest[1]),"入",minw=LW)
-wr=P1(800,575); ring(wr,38,32); tag("手首のゴム",440,ROWS[2],"r",(wr[0]-30,wr[1]+20),minw=LW)
-bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",440,ROWS[3],"r",(bt[0]-50,bt[1]),minw=LW)
-sh=P1(806,376); ring(sh,34); tag("左肩：空気",810,ROWS[0],"l",(sh[0]+30,sh[1]-14),"抜")
-zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",1570,ROWS[0],"l",(zp[0]+110,zp[1]-20))
-for P,w,t in ((490,w1,"前"),(1270,w2,"後")):
-    d.text((P+w/2,H-14),t,font=cap,fill=(70,70,70),anchor="ms")
+SW=tagw("左肩：空気","抜"); ZW=tagw("背中のファスナー",None)
+X1=PAD                      # 前の枠の左はし
+TX=round(X1+PAD+LW)                # 左のタグの右はし
+OX1=TX+70                   # 前の図
+P1,w1=fig((540,160,858,1062),OX1)
+SX=round(OX1+w1+40)                # 左肩のタグの左はし（前の図のすぐ右。前の枠の中）
+R1=round(SX+SW+PAD)                # 前の枠の右はし
+X2=R1+GAP; OX2=X2+PAD       # 後ろの枠・後ろの図
+P2,w2=fig((855,505,1045,1062),OX2)
+ZX=round(OX2+w2+40); R2=round(ZX+ZW+PAD)
+W=R2+PAD
+# 枠（図より先に描きたいので、図をいったん退避して重ねる）
+snap=out.copy(); d.rectangle((0,0,4000,H),fill="white")
+for a_,b_ in ((X1,R1),(X2,R2)): d.rounded_rectangle((a_,8,b_,H-8),radius=28,fill=BG)
+m=Image.new("L",out.size,0); ImageDraw.Draw(m).rectangle((OX1,TOP,OX1+w1,TOP+FH),fill=255); ImageDraw.Draw(m).rectangle((OX2,TOP,OX2+w2,TOP+FH),fill=255)
+# 図の白い背景は、枠の色に置きかえて貼る（白い四角が浮かないように）
+import numpy as _np
+arr=_np.array(snap).astype(int); wh=(arr.min(axis=2)>236)
+arr[wh]=BG; fig_img=Image.fromarray(arr.astype("uint8")); out.paste(fig_img,(0,0),m)
+neck=P1(681,322); ring(neck,48,34); tag("首のゴム",TX,ROWS[0],"r",(neck[0]-48,neck[1]),minw=LW)
+chest=P1(667,412); ring(chest,34); tag("胸：空気",TX,ROWS[1],"r",(chest[0]-34,chest[1]),"入",minw=LW)
+wr=P1(800,575); ring(wr,38,32); tag("手首のゴム",TX,ROWS[2],"r",(wr[0]-30,wr[1]+20),minw=LW)
+bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[3],"r",(bt[0]-50,bt[1]),minw=LW)
+sh=P1(806,376); ring(sh,34); tag("左肩：空気",SX,ROWS[1],"l",(sh[0]+30,sh[1]),"抜")
+zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,ROWS[1],"l",(zp[0]+110,zp[1]))
+for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
+    d.text((P+w/2,H-22),t,font=cap,fill=(70,70,70),anchor="ms")
+out=out.crop((0,0,W,H))
 out.save("/tmp/claude-0/kfw3/d_cat.jpg",quality=92); out.save("/tmp/claude-0/kfw4/d_cat.jpg",quality=92)   # kfw4 が focus_w.py の読む場所
 print("ok", w1, w2)
 # 横長（2080x880）で作り、ページでは切り抜かずにそのまま見せる（a4w.py の ASPECT と CSS）

@@ -20,19 +20,27 @@ def cut(box):
     return rgba.crop(bb), bb
 front, fb = cut((3800, 380, 4300, 2440))
 back, bb_ = cut((4440, 1520, 4860, 3010))
-W, H = 2200, 800; out = Image.new("RGB", (W, H), "white"); d = ImageDraw.Draw(out); RED = (249, 54, 18)
+# 10/27 夜 まーく様「この無駄な右の空白は何か」→ ドライの図（mkcat.py）と同じく、前・後ろを薄い灰色の枠で囲み、
+#   タグは自分の図の枠の中だけ。枠は中身に合わせた大きさ（何もない白を残さない）
+H = 800; PAD = 30; GAP = 30; BG = (242, 245, 247); RED = (249, 54, 18)
 FP = "/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 font = ImageFont.truetype(FP, 56); cap = ImageFont.truetype(FP, 60)
-FH, TOP = 700, 8
-def place(im, bb, ox):
-    sc = FH / im.size[1]; r = im.resize((round(im.size[0] * sc), FH), Image.LANCZOS); out.paste(r, (ox, TOP), r)
-    return (lambda x, y: (ox + (x - bb[0]) * sc, TOP + (y - bb[1]) * sc)), r.size[0]   # 切り出した枠の中の位置 → 図の上の位置
-P1, w1 = place(front, fb, 760)
-P2, w2 = place(back, bb_, 1240)
+FH, TOP = 690, 20
+out = Image.new("RGB", (3000, H), "white"); d = ImageDraw.Draw(out)
+tw = lambda t: d.textlength(t, font=font) + 40
+X1 = PAD; TX = round(X1 + PAD + tw("膝パッド")); OX1 = TX + 40
+sc1 = FH / front.size[1]; w1 = round(front.size[0] * sc1); R1 = OX1 + w1 + PAD
+X2 = R1 + GAP; OX2 = X2 + PAD; sc2 = FH / back.size[1]; w2 = round(back.size[0] * sc2)
+ZX = OX2 + w2 + 40; R2 = round(ZX + tw("背中のファスナー") + PAD); W = R2 + PAD
+for a_, b_ in ((X1, R1), (X2, R2)): d.rounded_rectangle((a_, 8, b_, H - 8), radius=28, fill=BG)
+def place(im, bb, ox, sc):
+    r = im.resize((round(im.size[0] * sc), FH), Image.LANCZOS); out.paste(r, (ox, TOP), r)
+    return lambda x, y: (ox + (x - bb[0]) * sc, TOP + (y - bb[1]) * sc)
+P1 = place(front, fb, OX1, sc1); P2 = place(back, bb_, OX2, sc2)
 def ring(c, r, ry=None, w=9):
     ry = ry or r; x, y = c; d.ellipse((x - r, y - ry, x + r, y + ry), outline=RED, width=w)
-def tag(text, x, y, anchor, to, minw=0):
-    bw, bh = max(d.textlength(text, font=font) + 40, minw), font.size + 30
+def tag(text, x, y, anchor, to):
+    bw, bh = tw(text), font.size + 30
     x0 = x - bw if anchor == "r" else x; y0 = y - bh / 2
     d.line((to[0], to[1], x0 + bw if anchor == "r" else x0, y), fill=RED, width=6)
     d.rounded_rectangle((x0 - 5, y0 - 5, x0 + bw + 5, y0 + bh + 5), radius=16, fill="white")
@@ -40,9 +48,10 @@ def tag(text, x, y, anchor, to, minw=0):
     d.text((x0 + 20, y), text, font=font, fill="white", anchor="lm")
 # 膝パッド（黒い当て布・両ひざ）／背中のファスナー（後ろの首から腰の上まで）
 k1, k2 = P1(170, 1452), P1(309, 1457); kc = ((k1[0] + k2[0]) / 2, (k1[1] + k2[1]) / 2)
-ring(kc, 60, 42); tag("膝パッド", 700, kc[1], "r", (kc[0] - 60, kc[1]))
-bz = P2(152, 438); ring(bz, 36, 80); tag("背中のファスナー", 1560, bz[1], "l", (bz[0] + 34, bz[1]))
-for x, w, t in ((760, w1, "前"), (1240, w2, "後")):
-    d.text((x + w / 2, H - 14), t, font=cap, fill=(70, 70, 70), anchor="ms")
+ring(kc, 54, 40); tag("膝パッド", TX, kc[1], "r", (kc[0] - 54, kc[1]))
+bz = P2(152, 438); ring(bz, 34, 74); tag("背中のファスナー", ZX, bz[1], "l", (bz[0] + 34, bz[1]))
+for x, w, t in ((OX1, w1, "前"), (OX2, w2, "後")):
+    d.text((x + w / 2, H - 20), t, font=cap, fill=(70, 70, 70), anchor="ms")
+out = out.crop((0, 0, W, H))
 out.save("/tmp/claude-0/kfw4/w_cat.jpg", quality=92)
-print("ok", w1, w2, kc, bz)
+print("ok", out.size)

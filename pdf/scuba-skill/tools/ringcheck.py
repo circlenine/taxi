@@ -34,6 +34,10 @@ for slot, (k, x0, y0, x1, y1, rings) in boxes.items():
     if not k.startswith("u") and k not in focus_w.NOCROP and k not in focus_w.CLOSEUP and w < 340:
         ng.append(f"NG {slot}：寄りすぎ（動画の画面の {w / 1280:.0%} だけを切っている）。体のどこか分かるよう、引いて写す")
         # 10/27 まーく様「赤丸は基本的に画像の中心に」→ 赤丸（いくつかあるときはその真ん中）が、写真の真ん中から 12% 以内か
+    # 10/27 夜 まーく様「アップの写真は、丸の大きさを統一」：赤丸1つのアップ写真は、直径が写真の高さの 50〜75%（目安 62%）
+    if len(rings) == 1 and k not in focus_w.CTX and k not in focus_w.NOCROP:
+        _q = 2 * rings[0][2] * 1.2 / h
+        if not .50 <= _q <= .75: ng.append(f"NG {slot}：アップ写真の赤丸の大きさがそろっていない（写真の高さの {_q:.0%}・50〜75%に）")
     if rings:
         gx = sum(r[0] for r in rings) / len(rings); gy = sum(r[1] for r in rings) / len(rings)
         dx, dy = (gx - (x0 + x1) / 2) / w, (gy - (y0 + y1) / 2) / h

@@ -240,7 +240,9 @@ def notes(s):
             tr = "".join('<tr>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for xs in tb["rows"])
         else:
             tr = "".join('<tr><th class="cr">' + T(a) + '</th>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for a, *xs in tb["rows"])
-        out.append(("tb", f'<table class="cmp"><tr>{th}</tr>{tr}</table>', []))
+        # 10/27 夜 左の列の見出しが短い（2字まで）表は、左の列を細くして、中身の列を広げる（折り返しを減らす）
+        _nar = " nar" if not tb["cols"][0] and all(len(r[0]) <= 2 for r in tb["rows"]) else ""
+        out.append(("tb", f'<table class="cmp{_nar}"><tr>{th}</tr>{tr}</table>', []))
     html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
                    + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>") for kind, text, subs in out)
     return '<div class="notes">' + html + "</div>" if out else ""
@@ -288,7 +290,8 @@ REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
 WIDE = {"1-1", "1-2", "1-3", "3-1"}   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
-ASPECT = {"d_cat": 2080 / 880, "w_cat": 2200 / 800}   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
+from PIL import Image as _I
+ASPECT = {k: (lambda z: z[0] / z[1])(_I.open(f"/tmp/claude-0/kfw4/{k}.jpg").size) for k in ("d_cat", "w_cat")}   # 10/27 夜 図は中身に合わせた大きさで作る（mkcat.py・mkwet.py）ので、形は画像から読む   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
     # 「くわしくは 1-4（3ページ）」：タップでそのページへ飛ぶ。印刷しても何ページ目かが分かるよう、ページ番号は必ず書く（10/13 ご指示）
     # ページ番号は、手順のページを作り終えてから入れる（2ページを作る時点では、まだ決まっていないため）
@@ -537,14 +540,20 @@ CSS += """
 .sh3 .t{font-size:12.5pt!important}
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
 /* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
-.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:2080/880!important;width:100%!important}
-.grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:2200/800!important;width:100%!important}
+.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:__ASP_d_cat__!important;width:100%!important}
+.grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:__ASP_w_cat__!important;width:100%!important}
+/* 10/27 夜 ウェットの図は縦長に近いので、図（左 60%）と補足（右）を横に並べる（下に置くと、図の左右が白く空く） */
+.grid2>.step.step.wide:has(>.photos img[data-k=w_cat]){display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;column-gap:5mm!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.sh3{flex:0 0 100%!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.photos{flex:0 0 68%!important;width:68%!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes{flex:1 1 0!important;width:auto!important;align-self:center!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
 .grid2>.step:not(.wide)+.step.wide,.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
 /* 10/27 検査役：2-1 の補足の線が左半分で切れていた（写真が横いっぱいのときは、補足も横いっぱい） */
-.grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes,.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
+table.cmp.nar tr>*:first-child{width:12%}
 table.cmp{width:100%;border-collapse:collapse;font-size:10pt;line-height:1.45;table-layout:fixed}
 table.cmp th,table.cmp td{border:1px solid var(--line);padding:1.2mm 1.6mm;vertical-align:middle;text-align:left}
 table.cmp tr:first-child th{background:var(--sea2,#e6f4ec);text-align:center;font-weight:900}
@@ -1300,6 +1309,6 @@ CSS += '''
 CSS = CSS.replace("#p10", f"#p{len(pages)}")   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる   # 準備編の最後のページ（10）の決まりを、洗浄編の最後のページに読みかえる
 pages = [re.sub(r"__QPG_([0-9A-Z-]+)__", lambda m: str(pg_of(m.group(1))), x) if x else x for x in pages]   # 10/23 クイズの「くわしくは」のページ番号
 open(os.path.join(B, "a4.html"), "w").write(recolor(
-    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>スーツ編</title>{FONTS}<style>{CSS}</style></head>'
+    f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>スーツ編</title>{FONTS}<style>{CSS.replace("__ASP_d_cat__", f"{ASPECT['d_cat']:.4f}").replace("__ASP_w_cat__", f"{ASPECT['w_cat']:.4f}")}</style></head>'
     f'<body>{_pl.apply(_rb.apply(_lg.apply("".join(pages), _nd.COL["4"][0])), _vid_wash)}{_pl.JS}{_pb.JS}{_fs.punct_js()}{FIT}</body></html>'))
 print("pages", len(pages))
