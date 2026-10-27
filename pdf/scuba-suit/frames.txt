@@ -27,7 +27,7 @@ w_front wet_diver 336
 w_side wet_diver 342
 w_bag2 wet_diver 329
 w_hair wet_diver 344
-w_velc wet_diver 354
+w_velc wet_diver 359
 rx386 wet_roxy 384
 rx420 wet_roxy 420
 d_inner dry_ocean 199
