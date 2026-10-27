@@ -26,6 +26,7 @@ mkdir -p img/s
 for f in $(grep -o 'img/s/[a-z0-9_]*\.jpg' a4.html | sort -u); do [ -f "$f" ] || cp img/c05.jpg "$f"; done
 node $S/tools/measure.js $S/build_w/a4.html a4sizes.json
 python3 -I $S/tools/focus_w.py a4sizes.json img/s
+ck python3 $S/tools/kantencheck.py   # 10/27 夜 観点の表（いろいろな方向から書き出したか）に空らんがないか
 ck python3 $S/tools/posecheck.py img/s   # 10/27 その動作で使う体の部位が、全部・大きく写っているか（姿勢を読む道具で測る）
 ck python3 -I $S/tools/ringcheck.py img/s   # 10/26 写真の赤丸と説明が合っているか・赤丸が大きく写っているか・出どころがあるか
 python3 $S/tools/ringsheet.py img/s $S/shw/rings.jpg   # 10/27 赤丸の中身を1枚に並べて、目で確かめる

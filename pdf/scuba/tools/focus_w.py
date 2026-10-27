@@ -38,7 +38,7 @@ F = {
  "w_wash":  ("w_wash",  (300, 60, 1280, 600),  (380, 60, 1000, 595)),   # 10/27 左下に字幕の字が残っていたので、下を少し切る
  # しくみ
  "d_cat":   ("d_cat",   (0, 0, 1280, 720),    (0, 0, 1280, 720)),
- "w_cat":   ("w_cat",   (0, 0, 1280, 720),    (0, 0, 1280, 720)),   # 10/27 ウェットの図（mkwet.py で作った完成図）
+ "w_cat":   ("w_cat",   (0, 0, 1280, 720),    (0, 0, 1280, 720)),   # 10/27 ウェットの図（mkwet.py で作った完成図。10/27 夜 カタログの AF1 に）
  "d_catin":  ("d_catin",  (0, 0, 1280, 720),  (200, 330, 560, 660)),
  "d_inval": ("d_inval", (0, 0, 1280, 535),    (260, 60, 720, 520)),   # 10/27 まーく様「ボタン部分がずれてて、何を中心にしているのか」→ 真ん中の押す所を中心に
  "d_catex":  ("d_catex",  (0, 0, 1280, 720),  (780, 180, 1120, 500)),
@@ -91,6 +91,7 @@ for _l in open("/tmp/claude-0/kfw4/list4.txt"):
     _k, _v, _t = _l.split()
     if _v in _YT: SRC[_k] = (_YT[_v], int(_t))
 SRC["d_cat"] = SRC["d_catin"] = SRC["d_catex"] = ("https://www.worlddive.co.jp/product/", None)
+SRC["w_cat"] = ("https://www.worlddive.co.jp/catalog/data/26wd_catalog.pdf", None)   # 10/27 夜 ウェットの図はカタログ p.30（AF1）から
 for _k in F:
     if _k.startswith("u"): SRC[_k] = (UMI, None)
 

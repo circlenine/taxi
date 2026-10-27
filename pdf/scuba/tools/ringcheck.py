@@ -92,13 +92,13 @@ for (sid, k) in caps:
     if k not in keys_of.get(sid, []): ng.append(f"NG {sid} {k}：説明はあるのに、その手順に写真がない")
 # 出どころ
 src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "content_w.py")).read()
-known = {"OA", "PP", "PB", "NR", "TS", "KB", "DM", "RX", "PW", "OW", "WD", "WDc", "SR", "UMI", "TUSA"}
+known = {"OA", "PP", "PB", "NR", "TS", "KB", "DM", "RX", "PW", "OW", "WD", "WDc", "SR", "UMI", "TUSA", "WDK", "MH", "DN", "MC", "GS", "JMA"}
 blocks = re.split(r'\n   dict\(id="', src)
 for b in blocks[1:]:
     sid = b.split('"')[0]
     prev = blocks[blocks.index(b) - 1].rstrip().split("\n")[-1]
     if not prev.strip().startswith("#"): ng.append(f"NG {sid}：出どころの # の行がない"); continue
-    codes = set(re.findall(r'\b(OA|PP|PB|NR|TS|KB|DM|RX|PW|OW|WDc|WD|SR|UMI|TUSA)\b', prev))
+    codes = set(re.findall(r'\b(OA|PP|PB|NR|TS|KB|DM|RX|PW|OW|WDK|WDc|WD|SR|UMI|TUSA|MH|DN|MC|GS|JMA)\b', prev))
     if not codes: ng.append(f"NG {sid}：出どころの記号が # の行にない（{prev.strip()[:40]}）")
 print("\n".join(ng) if ng else f"写真と説明の点検 OK（赤丸 {sum(len(v) for v in focus_w.MARK.values())}個・説明 {len(caps)}件・出どころ {len(blocks) - 1}手順）")
 sys.exit(1 if ng else 0)

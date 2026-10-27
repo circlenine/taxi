@@ -287,8 +287,8 @@ STK_OF = {}
 REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
-WIDE = {"1-1", "1-2", "1-3", "3-1"}   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
-ASPECT = {"d_cat": 2080 / 880, "w_cat": 2200 / 880}   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
+WIDE = {"1-1", "1-2", "1-3", "3-1"}   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+ASPECT = {"d_cat": 2080 / 880, "w_cat": 2200 / 800}   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
     # 「くわしくは 1-4（3ページ）」：タップでそのページへ飛ぶ。印刷しても何ページ目かが分かるよう、ページ番号は必ず書く（10/13 ご指示）
     # ページ番号は、手順のページを作り終えてから入れる（2ページを作る時点では、まだ決まっていないため）
@@ -415,7 +415,7 @@ mt = "".join(
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、元のページへ</b><span class="rn">動画・お店のブログ・カタログ</span></span></div><p class="src mtcred"><span class="nw">写真：海人商店ブログ・</span><br><span class="nw">ワールドダイブのカタログ・</span><br><span class="nw">動画から（最後のページ）</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">ドライの着方・脱ぎ方で、いちばん参考にした動画：「初心者の9割が知らない！プロが教えるドライスーツの着脱のコツとは？」（パパラギ先生のまるごとダイビングTV）<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※他の写真は、海人商店ブログ（ワールドダイブ取扱店）・ワールドダイブのカタログ・いくつかの動画から集めたもの<span class="scr">。元のページは、写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">ドライの着方・脱ぎ方で、いちばん参考にした動画：「初心者の9割が知らない！プロが教えるドライスーツの着脱のコツとは？」（パパラギ先生のまるごとダイビングTV）<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※他の写真は、海人商店ブログ（ワールドダイブ取扱店）・ワールドダイブのカタログ・いくつかの動画から集めたもの。厚さと水温の表は、ダイビングのお店3つの目安と気象庁（網代の平年値）から<span class="scr">。元のページは、写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -538,7 +538,7 @@ CSS += """
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
 /* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
 .grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:2080/880!important;width:100%!important}
-.grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:2200/880!important;width:100%!important}
+.grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:2200/800!important;width:100%!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
 .grid2>.step:not(.wide)+.step.wide,.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
 /* 10/27 検査役：2-1 の補足の線が左半分で切れていた（写真が横いっぱいのときは、補足も横いっぱい） */

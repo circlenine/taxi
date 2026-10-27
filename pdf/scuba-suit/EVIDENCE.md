@@ -22,6 +22,12 @@
 | PW | パパラギ先生「超簡単！ウエットスーツ着脱のコツ」 | https://youtu.be/LCOT_-MAkq0 |
 | OW | ocean_a「ウェットスーツの中、何着る？」 | https://youtu.be/vljgA5VqNPE |
 | UMI | 海人商店ブログ「ドライスーツの着脱方法」（World Dive 取扱店。写真つき手順。スーツは World Dive の店の限定モデル＝色と細部が DCD とちがう） | https://umikizai.com/blog/2021/10/16/4259 |
+| WDK | World Dive 2026 総合カタログ（26wd_catalog.pdf）。p.24 TSZR「SCDシリーズ、人気のベストセラーモデル」（ファスナーは体の横のロングコイル）・p.30 AF1（WOMEN・背中ファスナー・膝パッド）・p.67-68 価格表（ほとんどの型が 3mm と 5mm、6.5mm は Z1 だけ） | https://www.worlddive.co.jp/catalog/data/26wd_catalog.pdf |
+| MH | マハロ大阪「ウェットスーツとドライスーツの違い｜季節別の選び方」：水温27℃前後3mm・25℃前後5mm・22℃前後が切り替えの線・20℃以下はドライが快適 | https://mahalo-scubadiving.com/wetsuit-vs-drysuit/ |
+| DN | divenet.jp「ダイビングウェットスーツ厚さ選び方」：25℃以上3mm・18〜25℃5mm・10〜18℃7mm。5mm が日本でいちばん一般的（※7mm の水温は他と食い違うので使わない） | https://divenet.jp/blog/diving-wetsuit-thickness-selection-guide |
+| MC | mic21「ダイビング器材 ウエットスーツの選び方」：汎用は5mm・南国リゾートは3mm・寒い海は6.5mm（ロクハン） | https://www.mic21.com/divinggear/wetsuit.php |
+| GS | ゴーゴースクーバ（PADI）「伊豆の水温と透明度とスーツの目安」：月別の水温（1月15〜18℃ … 9月24〜28℃ … 12月17〜21℃）と季節ごとのスーツ（春・冬ドライ／初夏ドライか5mm＋α／夏5mm／秋ウェットかドライ・10月はドライの人も増える） | https://www.55scuba.com/izutemp/ |
+| JMA | 気象庁「網代 平年値（月ごと）」平均気温：1月7.0・2月7.4・3月10.1・4月14.5・5月18.5・6月21.4・7月25.2・8月26.4・9月23.3・10月18.7・11月14.0・12月9.6℃ | https://www.data.jma.go.jp/stats/etrn/view/nml_sfc_ym.php?prec_no=50&block_no=47668 |
 | TUSA | TUSA「WATERPROOF ドライスーツ 取扱説明書」（別メーカー。一般的な注意の確かめに使う） | https://tusa.net/brand/waterproof/pdf/140402_WATERPROOF_torisetsu.pdf |
 
 ## ドライスーツ（サンライズのスーツ）
