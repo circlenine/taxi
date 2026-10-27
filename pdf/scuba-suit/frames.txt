@@ -26,11 +26,12 @@ d_frin dry_bcd 366
 d_frex dry_bcd 366
 w_front wet_diver 336
 w_side wet_diver 342
-w_bag2 wet_diver 328
+w_bag2 wet_diver 329
 w_hair wet_diver 349
-w_velc wet_diver 364
+w_velc wet_diver 354
 rx386 wet_roxy 384
 rx420 wet_roxy 420
 d_inner dry_ocean 199
 w_fold2 wet_diver 67
 w_cat wet_diver 373
+p_heel dry_papa 870

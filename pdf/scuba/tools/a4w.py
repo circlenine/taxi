@@ -325,12 +325,14 @@ def _ampm(hm):   # 10/24 まーく様「日付、全てに AM を付けて」→
 VER = f"更新日時：{_t:%Y/%m/%d}({'月火水木金土日'[_t.weekday()]}) {_ampm(os.environ.get('VER_TIME') or format(_t, '%H:%M'))}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
 EDTAG = f'<span class="edtag"><b>4</b>スーツ編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
+HOOK = {}
 def page(head_no, head_title, inner, toc=True):
     n = len(pages) + 1
     if toc: TOC.append((head_no, head_title, n))
     # 道具・工程のページは、見出しの右上に、札（補足・大事）の説明を置く（10/8 ご指示：2ページの本文の中ではなく、全ページの右上に）
     lg = '<span class="legend hl"><span class="lx">補足</span>知っておくと楽な点<span class="lp">大事</span>必ず守ること</span>' if (head_no in ("器材", "大事", "装備") or head_no.startswith("工程")) else ('<span class="legend hl"><span class="lp">大事</span>必ず守ること</span>' if head_no == "まとめ" else "")   # 10/21 まーく様：大事の説明は「必ず守ること」（「とくに大事」は同じことの言い直し）。まとめにも右上に
-    h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{T(head_title)}</h2></div>' if head_no else ""
+    _hk = f'<span class="hookr"><span class="hk">ポイント</span>{T(HOOK[n])}</span>' if HOOK.get(n) else ""
+    h = f'<div class="ph"><span class="no">{head_no}</span>{lg}{page_fish(n)}<h2>{('<span class="ttl">' + T(head_title) + '</span>' + _hk) if _hk else T(head_title)}</h2></div>' if head_no else ""
     h = _nd.header("4", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
@@ -377,6 +379,8 @@ for sec in STEPS:
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in g[0::2]) + '</div><div class="col">' + "".join(stepbox(x) for x in g[1::2]) + "</div></div>"
         else:
             body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
+        # 10/27 夜 まーく様「ワクワクして読み進めたくなる作りか」→ ページの一番上に「このページで何がうれしいか」を1行（各ページの最初の数秒で、自分に役立つと分かるように）
+        HOOK[len(pages) + 1] = sec.get("hook", "")   # 題の右に置く（高さを増やさない）
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
         page(sec.get("lb", f"工程{sec['id']}"), t, body, toc=True)   # 10/27 まーく様：もくじの札は［装備〉［工程1〉…  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
@@ -547,13 +551,25 @@ CSS += """
 .grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.sh3{flex:0 0 100%!important}
 .grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.photos{flex:0 0 68%!important;width:68%!important}
 .grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes{flex:1 1 0!important;width:auto!important;align-self:center!important}
+/* 10/27 夜 ドライの図も同じ形（図 76%・補足は右）。図の下に補足を置くと、ページの高さが足りない */
+.grid2>.step.step.wide:has(>.photos img[data-k=d_cat]){display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;column-gap:5mm!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.sh3{flex:0 0 100%!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.photos{flex:0 0 76%!important;width:76%!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{flex:1 1 0!important;width:auto!important;align-self:center!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
 .grid2>.step:not(.wide)+.step.wide,.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
 /* 10/27 検査役：2-1 の補足の線が左半分で切れていた（写真が横いっぱいのときは、補足も横いっぱい） */
-.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
+.grid2>.step.step.wide:has(>.photos img[data-k=__none__])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
-table.cmp.nar tr>*:first-child{width:12%}
+table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
+/* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
+.ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
+.ph h2 .ttl{flex:none;white-space:nowrap}
+.hookr{margin-left:auto;flex:none;white-space:nowrap;display:inline-block;font-size:10pt;font-weight:900;color:#c2571a;letter-spacing:0}
+.hookr *{display:inline!important;white-space:nowrap!important}
+.hookr .hk{margin-right:1.6mm}
+.hookr .hk{font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.4mm 1.6mm;white-space:nowrap}
 table.cmp{width:100%;border-collapse:collapse;font-size:10pt;line-height:1.45;table-layout:fixed}
 table.cmp th,table.cmp td{border:1px solid var(--line);padding:1.2mm 1.6mm;vertical-align:middle;text-align:left}
 table.cmp tr:first-child th{background:var(--sea2,#e6f4ec);text-align:center;font-weight:900}
