@@ -566,6 +566,9 @@ CSS += """
 .grid2:has(img[data-k=d_cat])>.step,.grid2:has(img[data-k=w_cat])>.step{padding-bottom:1mm!important}
 .grid2:has(img[data-k=d_cat])>.step.wide+.step,.grid2:has(img[data-k=d_cat])>.step.wide+.step+.step{padding-top:2.4mm!important}
 .grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.5mm 1.6mm!important}
+/* 10/28 まーく様「ブーツやファスナーと、その右の間に：を」→ 手順の表は「場所：やること」。場所は太く目立たせる（どの表も同じ） */
+.srows .sp2{font-weight:900!important;color:#1f2a37!important;display:flex!important;justify-content:space-between;padding-right:1.2mm}
+.srows .sp2::after{content:"：";font-weight:900}
 .tnote{margin:.6mm 0 0;font-size:9pt;font-weight:700;color:#5f6b73}
 table.cmp th .rec{display:inline-block;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.2mm 1.4mm;vertical-align:.2mm}
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
