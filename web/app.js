@@ -18,6 +18,14 @@ let scOpt = { line: true, label: true }, onlyMine = false;
   });
   $('#boot').hidden = true; $('#app').hidden = false;
   await reload();
+  /*
+   * ★「いまアツい」は時刻で中身が変わるので、
+   *   1分ごとに描き直します（通信はしません）。
+   *   天気は30分ごとに読み直します（気象庁・無料）。
+   */
+  loadWx();
+  setInterval(function (){ if (tab === 'hot') render(); }, 60 * 1000);
+  setInterval(loadWx, 30 * 60 * 1000);
 })();
 
 /* ---------- 読み込み ---------- */
@@ -120,7 +128,7 @@ function render(){
   $('#andon').classList.toggle('busy', rs.length > 0);
   $('#andonTxt').textContent = rs.length ? '賃走' : '空車';
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
-  $('#panes').innerHTML = { in:paneIn, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList }[tab]();
+  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList }[tab]();
   wire();
 }
 const msgHTML = id => `<span class="msg ${msgBad?'bad':''}" id="${id}">${esc(msg)}</span>`;
@@ -238,6 +246,296 @@ function paneHeat(){
     <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>うすい＝単価が低い</span>
     <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span><span>最大 ${yen(mx)}/h</span></div></div>`;
 }
+
+/* =============================================================
+ *  いまアツい（ここから）
+ *
+ *  ★まーく様のご指示（2026/10/27）
+ *    「大阪タクシー狙い目エリアで リアルタイムでの人の集中してる
+ *      ところを割り出して 今はここがアツいポイントを、
+ *      手軽にわかりやすく可視化できるようにしてください」
+ *
+ *  ★ここに出るのは「いま何人いるか」ではありません。
+ *    自分たちの記録から出した
+ *    「この曜日・この時間に、強かった場所」です。
+ *    この2つを混ぜると、数字が嘘になります
+ *    （CLAUDE.md「数字を出すときの決まり」）。だから言葉を分けます。
+ *
+ *  ★お金のかからないものだけで組んでいます。
+ *    ・自分たちの乗車記録（Supabase・無料のまま）
+ *    ・気象庁の天気（無料・登録なし・そのまま読める）
+ *    どちらが読めなくても、残りはそのまま出ます。
+ * ============================================================= */
+
+/** これ未満の件数は「平均」と呼ばない（1件は、たまたまの1本） */
+const HOT_MIN_N = 3;
+/** いまの時刻から、前後どれだけを「いま」とみなすか（時間） */
+const HOT_WIN = 1;
+
+/**
+ * その夜が、どの種類の夜か。
+ *   金土 … 週末の夜（終電後の動きがまるで違う）
+ *   日   … 日曜の夜
+ *   平日 … それ以外
+ * ★営業日（夜のはじまりの日）で見ます。
+ */
+function dayKind(dateStr){
+  const p = String(dateStr || '').split('-').map(Number);
+  if (p.length < 3 || !p[0]) return '平日';
+  const w = new Date(p[0], p[1] - 1, p[2]).getDay();
+  if (w === 5 || w === 6) return '金土';
+  if (w === 0) return '日';
+  return '平日';
+}
+
+/** 夜の見当を出しはじめる時刻（17:00に出庫して、着くのが17:20〜17:40） */
+const HOT_FROM = 18;
+
+/**
+ * いまが、どの夜の何時か。
+ *   h     … 記録と同じ数え方（0〜11時は 24時以降）
+ *   ah    … 見当を引くときに使う時刻
+ *   early … まだ乗務の時間ではない（昼・朝）
+ *   clock … 画面に出す、ふつうの時計の字
+ *
+ * ★昼や朝に開いたときに「記録が足りません」だけが出ると、
+ *   見ても何の役にも立ちません。
+ *   その時間は、きょうの夜（18時台）の見当にそろえて出します。
+ */
+function hotNow(now){
+  const d = now || new Date();
+  let h = d.getHours() + d.getMinutes() / 60;
+  if (h < 12) h += 24;
+  // 営業日は、朝6時までは前の日
+  const b = new Date(d.getTime());
+  b.setHours(b.getHours() - 6);
+  const date = b.getFullYear() + '-' + pad(b.getMonth() + 1) + '-' + pad(b.getDate());
+  const early = (h < HOT_FROM) || (h >= 30);      // 昼〜夕方、または朝6時すぎ
+  return { h: h, ah: early ? HOT_FROM : h, early: early,
+           clock: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+           date: date, kind: dayKind(date), wd: WD[d.getDay()] };
+}
+
+/**
+ * 時計は回るので、23時と翌1時は「2時間ちがい」。
+ * 引き算だけだと 22時間ちがいになってしまうので、短いほうを取ります。
+ */
+function hotDist(a, b){
+  let d = Math.abs(a - b);
+  if (d > 12) d = 24 - d;
+  return d;
+}
+
+/** 場所ごとにまとめる。返すのは割のいい順 */
+function hotGroup(rs){
+  const m = {};
+  rs.forEach(function (r){
+    const p = (r.place || '').trim();
+    if (!p) return;
+    (m[p] = m[p] || []).push(r);
+  });
+  return Object.keys(m).map(function (p){
+    const a = m[p];
+    const rt = a.map(rate).filter(function (v){ return v > 0; });
+    return { p: p, n: a.length,
+      avg:  rt.length ? rt.reduce(function (x,y){ return x+y; }, 0) / rt.length : 0,
+      fare: a.reduce(function (x,r){ return x + (+r.fare || 0); }, 0) / a.length,
+      wait: a.reduce(function (x,r){ return x + (+r.wait || 0); }, 0) / a.length };
+  }).sort(function (x,y){ return y.avg - x.avg; });
+}
+
+/**
+ * 「いま」に近い記録だけを拾って、場所ごとにまとめる。
+ *   win      … 前後何時間までを「いま」とみなすか
+ *   sameKind … 同じ種類の夜（金土／日／平日）だけに絞るか
+ */
+function hotPick(c, win, sameKind, rows){
+  const R = (rows || visible()).filter(function (r){
+    if (!r.place) return false;
+    if (sameKind && dayKind(r.date) !== c.kind) return false;
+    return hotDist(+r.dep, c.h) <= win;
+  });
+  return hotGroup(R);
+}
+
+/**
+ * 出せるものを探す。きびしい条件から順に ゆるめていきます。
+ * 返すのは { rows, basis, loose }
+ *   rows  … 件数が足りている場所（信じていい並び）
+ *   thin  … 件数が足りない場所（参考まで）
+ *   basis … 何を根拠にしたかの一言。これを必ず画面に出します
+ */
+function hotBest(c, rows){
+  const plan = [
+    { win: HOT_WIN,     kind: true,  basis: c.kind + 'の夜・' + Math.floor(c.h % 24) + '時台の記録' },
+    { win: HOT_WIN + 1, kind: true,  basis: c.kind + 'の夜・前後2時間の記録' },
+    { win: HOT_WIN + 1, kind: false, basis: '曜日を問わず・前後2時間の記録' }
+  ];
+  let last = { rows: [], thin: [], basis: plan[0].basis, loose: true };
+  for (let i = 0; i < plan.length; i++) {
+    const g = hotPick(c, plan[i].win, plan[i].kind, rows);
+    const okRows = g.filter(function (x){ return x.n >= HOT_MIN_N; });
+    const thin   = g.filter(function (x){ return x.n <  HOT_MIN_N; });
+    last = { rows: okRows, thin: thin, basis: plan[i].basis, loose: i > 0 };
+    if (okRows.length) return last;
+  }
+  return last;
+}
+
+/** いまから3時間ぶん、1時間ごとの「いちばん強かった場所」 */
+function hotPlan(c, rows){
+  const out = [];
+  for (let k = 0; k < 3; k++) {
+    const cc = { h: c.h + k, date: c.date, kind: c.kind };
+    const g = hotPick(cc, HOT_WIN, true, rows).filter(function (x){ return x.n >= HOT_MIN_N; });
+    out.push({ h: Math.floor((c.h + k) % 24), top: g[0] || null });
+  }
+  return out;
+}
+
+/**
+ * 天気の読み取り（気象庁の公開データ）。
+ * ★読めなかったときは、黙って消えるのではなく「取れなかった」と出します。
+ */
+function wxRead(j, now){
+  try {
+    const t0 = j[0].timeSeries[0].areas[0];
+    const text = String(t0.weathers[0] || '').replace(/　+/g, ' ').trim();
+    let pop = null;
+    // ★降水確率は、timeSeries[1] の areas[0].pops に入っています
+    //   （areas をはさむのを忘れると、いつまでも取れません）
+    const ps = j[0].timeSeries[1];
+    const pa = ps && ps.areas && ps.areas[0];
+    if (pa && pa.pops && ps.timeDefines) {
+      const nowMs = (now || new Date()).getTime();
+      for (let i = ps.timeDefines.length - 1; i >= 0; i--) {
+        if (new Date(ps.timeDefines[i]).getTime() <= nowMs) { pop = +pa.pops[i]; break; }
+      }
+      if (pop === null || isNaN(pop)) pop = +pa.pops[0];
+      if (isNaN(pop)) pop = null;
+    }
+    const rain = /雨|雷|雪|みぞれ/.test(text) || (pop !== null && pop >= 50);
+    return { ok: true, text: text, pop: pop, rain: rain };
+  } catch (e) {
+    return { ok: false };
+  }
+}
+
+/** 天気のひとこと（短く。長い説明は読まれません） */
+function wxLine(wx){
+  if (!wx) return '天気を読んでいます…';
+  if (!wx.ok) return '天気は取れませんでした（気象庁）。ほかはそのまま使えます。';
+  const p = (wx.pop === null || wx.pop === undefined) ? '' : '（降水 ' + wx.pop + '%）';
+  return (wx.rain ? '☔ ' : '　') + wx.text + p +
+         (wx.rain ? '　→ 雨。ふだんより人が乗ります。乗り場・ビル前が強い。'
+                  : '　→ 雨の見込みは薄い。足で稼ぐ日。');
+}
+
+/** 場所の名前で地図をさがす（番地まで当てないので「さがす」と書きます） */
+function hotMap(place){
+  return 'https://www.google.com/maps/search/?api=1&query=' +
+         encodeURIComponent('大阪 ' + String(place || ''));
+}
+
+/* ---- 画面 ---- */
+function paneHot(now){
+  // ★now は、テストのときだけ渡します（ふだんは「いま」）
+  const c = hotNow(now);
+  // ★見当を引くときは ah（乗務の時間でなければ18時台）を使います
+  const cc = { h: c.ah, date: c.date, kind: c.kind };
+  const got = hotBest(cc);
+  const plan = hotPlan(cc);
+  const mx = Math.max.apply(null, got.rows.map(function (x){ return x.avg; }).concat([1]));
+
+  const head = '<div class="card"><h2>いまアツい</h2>' +
+    '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
+    (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
+             : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
+    'いま何人いるかを測っているのではありません。</p>' +
+    '<div class="wx">' + esc(wxLine(hotWx)) + '</div>' +
+    filterChips();
+
+  if (!got.rows.length) {
+    return head + '<div class="empty">この時間の記録が、まだ ' + HOT_MIN_N + '件 たまっていません。<br>' +
+      '1件は、たまたまの1本なので、出しません。</div>' +
+      (got.thin.length ? '<div class="note" style="margin:0">参考（件数が足りない）：' +
+        got.thin.slice(0,5).map(function (x){ return esc(x.p) + ' ' + x.n + '件'; }).join('・') + '</div>' : '') +
+      '</div>' + hotPlanCard(plan, c.early) + hotNoteCard(got);
+  }
+
+  const cards = got.rows.slice(0, 3).map(function (x, i){
+    return '<div class="hotc' + (i === 0 ? ' top' : '') + '">' +
+      '<small>' + (i + 1) + '位' + (i === 0 ? '　いちばん濃い' : '') + '</small>' +
+      '<b>' + esc(x.p) + '</b>' +
+      '<div class="hv">' + yen(x.avg) + '/h</div>' +
+      '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
+      '<a class="mini" href="' + hotMap(x.p) + '" target="_blank" rel="noopener">地図でさがす</a>' +
+      '</div>';
+  }).join('');
+
+  const bars = got.rows.slice(0, 8).map(function (x){
+    return '<tr><td>' + esc(x.p) + '</td><td class="n">' + x.n + '</td>' +
+      '<td class="n" style="color:var(--meter)">' + yen(x.avg) + '</td>' +
+      '<td><div class="bar" style="width:' + Math.max(3, x.avg / mx * 100) + '%"></div></td>' +
+      '<td class="n">' + Math.round(x.wait) + '分</td></tr>';
+  }).join('');
+
+  return head +
+    '<div class="hot">' + cards + '</div>' +
+    '<div class="note" style="margin:12px 0 0">根拠：' + esc(got.basis) +
+    (got.loose ? '（この時間ぴったりの記録が足りないので、少し広げました）' : '') + '</div>' +
+    '</div>' +
+    hotPlanCard(plan, c.early) +
+    '<div class="card"><h2>この時間に強い場所（' + HOT_MIN_N + '件以上）</h2>' +
+    '<p class="note">時間単価は、つけ待ちで潰した時間まで入れた1時間あたりの実入り。</p>' +
+    '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
+    '<th class="n">平均 時間単価</th><th style="width:38%"></th><th class="n">平均 待ち</th>' +
+    '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
+    hotNoteCard(got);
+}
+
+/** これから3時間の見当 */
+function hotPlanCard(plan, early){
+  return '<div class="card"><h2>このあと3時間の見当</h2>' +
+    '<p class="note">1時間ごとに、その時間 強かった場所。空いているところは、記録がまだ足りない時間です。</p>' +
+    '<div class="plan">' + plan.map(function (s, i){
+      return '<div class="pl">' +
+        '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>' +
+        (s.top ? '<b>' + esc(s.top.p) + '</b><span>' + yen(s.top.avg) + '/h・' + s.top.n + '件</span>'
+               : '<b class="thin">—</b><span>記録が足りない</span>') +
+        '</div>';
+    }).join('') + '</div></div>';
+}
+
+/** 注意書き（毎回おなじ所に出す） */
+function hotNoteCard(got){
+  return '<div class="card"><h2>この画面の読み方（だいじ）</h2>' +
+    '<p class="note" style="margin:0">' +
+    '・<b>いま人が何人いるか</b>は出していません。自分たちの記録からの傾向です。<br>' +
+    '・' + HOT_MIN_N + '件より少ない場所は、平均と呼べないので出しません。<br>' +
+    '・催し（ライブ・宴会）がある夜は、記録の傾向より催しが勝ちます。終演の15分前に着けるのが先。<br>' +
+    '・天気は気象庁の公開データ。取れない日は、その行だけ出ません。<br>' +
+    '・数字は時間単価（待ち時間込み）。金額の大きい場所と、割のいい場所は別です。' +
+    '</p></div>';
+}
+
+/* ---- 天気を読む（無料・気象庁） ---- */
+let hotWx = null;
+const WX_URL = 'https://www.jma.go.jp/bosai/forecast/data/forecast/270000.json';
+async function loadWx(){
+  try {
+    const res = await fetch(WX_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('status ' + res.status);
+    hotWx = wxRead(await res.json());
+  } catch (e) {
+    // ★取れなくても、ほかは動かします（画面には「取れなかった」と出ます）
+    hotWx = { ok: false };
+  }
+  if (tab === 'hot') render();
+}
+/* =============================================================
+ *  いまアツい（ここまで）
+ * ============================================================= */
 
 /* ---- 一夜の流れ ---- */
 function paneTl(){
