@@ -2,7 +2,7 @@
 # 前・後ろとも、まーく様にいただいた World Dive カタログのページ（DCD2R）から。別の型の写真はまぜない（10/26 監査：同じスーツかどうか分からなくなる）
 # 10/27 まーく様のご指示で作り直し
 #   ・後ろも前と同じ大きさに。図の下は「前」「後」
-#   ・「胸：空気 入」「左肩：空気 抜」（入・抜 は丸で囲む）。「入れる・抜く」だけでは、何を？が分からない
+#   ・「胸上：空気 入」（10/28 左肩と字数をそろえ、丸の位置をそろえる）「左肩：空気 抜」（入・抜 は丸で囲む）。「入れる・抜く」だけでは、何を？が分からない
 #   ・札の高さ・左右の位置をそろえる（左の4つは右はしをそろえ、同じ間かくで並べる。1段目は3つとも同じ高さ）
 from PIL import Image, ImageDraw, ImageFont
 src=Image.open("/tmp/claude-0/kfw3/cat.jpg").convert("RGB")
@@ -37,11 +37,13 @@ def tag(text,x,y,anchor,line_to,circ=None,minw=0,halo=False):
     if circ:
         cx=x0+12+d.textlength(text,font=font)+(font.size+10)/2; R=(font.size+6)/2
         d.ellipse((cx-R,y-R,cx+R,y+R),fill="white")
-        d.text((cx,y+1),circ,font=cf,fill=RED,anchor="mm")
+        # 10/28 まーく様「入・抜を丸の真ん中に」→ 字の形そのもの（墨の範囲）の真ん中を、丸の真ん中に合わせる
+        bb=d.textbbox((0,0),circ,font=cf,anchor="lt")
+        d.text((cx-(bb[0]+bb[2])/2,y-(bb[1]+bb[3])/2),circ,font=cf,fill=RED,anchor="lt")
 ROWS=[140,250,470]   # 左のタグの高さ（同じ間かく。体の上から順）
 # 10/27 夜 まーく様「左肩も、左の方に載せられないのか」→ 前の図のタグは、5つとも左の列にそろえる
 #   左肩の線は体の前を横切るので、線に白いふちを付けて見失わないようにする
-LW=max(tagw("胸：空気","入"),tagw("左肩：空気","抜"),tagw("ブーツも一体",None))
+LW=max(tagw("胸上：空気","入"),tagw("左肩：空気","抜"),tagw("ブーツも一体",None))
 ZW=tagw("背中のファスナー",None)
 X1=PAD                      # 前の枠の左はし
 TX=round(X1+PAD+LW)         # 左のタグの右はし
@@ -61,9 +63,9 @@ import numpy as _np
 arr=_np.array(snap).astype(int); wh=(arr.min(axis=2)>236)
 arr[wh]=BG; fig_img=Image.fromarray(arr.astype("uint8")); out.paste(fig_img,(0,0),m)
 # 10/28 まーく様「ドライの首のゴム・手首のゴムはいらない」→ 空気の2つのボタンと、ブーツ一体（ウェットとの違い）だけ
-chest=P1(667,412); ring(chest,34); tag("胸：空気",TX,ROWS[0],"r",(chest[0]-34,chest[1]),"入",minw=LW)
-sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[1],"r",(sh[0]-24,sh[1]+24),"抜",minw=LW,halo=True)
-bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]),minw=LW)
+chest=P1(667,412); ring(chest,34); tag("胸上：空気",TX,ROWS[0],"r",(chest[0]-34,chest[1]),"入")
+sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[1],"r",(sh[0]-24,sh[1]+24),"抜",halo=True)
+bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]))
 zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,zp[1],"l",(zp[0]+118,zp[1]))
 for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
     d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms")

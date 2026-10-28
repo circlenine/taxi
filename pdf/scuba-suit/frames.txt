@@ -5,7 +5,7 @@ w_bag wet_diver 314
 w_zip wet_diver 348
 r345 wet_roxy 348
 w_wash wet_roxy 476
-d_inval dry_bcd 204
+d_inval dry_bcd 200
 d_auto dry_ocean 342
 d_sock dry_ocean 186
 d_valv dry_ocean 72
@@ -41,3 +41,4 @@ d_seal dry_ocean 55
 u15 dry_ocean 378
 o_heel dry_ocean 453
 w_sandal wet_diver 85
+d_hose catalog 0

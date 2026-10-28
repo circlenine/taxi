@@ -236,10 +236,20 @@ def notes(s):
         tb = s["table"]
         # 10/28 まーく様「★オススメより おすすめ。名前のカタカナと続くと見づらい」→ [おすすめ] は、補足・大事と同じ形の小さな札にする（* はタップの印なので使わない）
         th = "".join(f'<th>{T(c.replace("[おすすめ]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "")}</th>' for c in tb["cols"])
+        # 10/28 まーく様「いちばん左の列は黒、良い方は青・悪い方は赤・ふつうは濃いグレー」→ 中身の頭の + は青、- は赤
+        #   「a|b|c」は3つの枠に分けて、同じ字が各行で同じ位置に来るようにする。align で右そろえ（月・℃）
+        _al = tb.get("align") or []
+        def _td(x, i):
+            c = "pos" if x.startswith("+") else "neg" if x.startswith("-") else ""
+            x = x[1:] if c else x
+            if "|" in x: x = '<span class="g3">' + "".join(f"<span>{T(v)}</span>" for v in x.split("|")) + '</span>'
+            else: x = T(x)
+            cl = " ".join(v for v in (c, "ar" if i < len(_al) and _al[i] == "r" else "") if v)
+            return f'<td class="{cl}">{x}</td>' if cl else f'<td>{x}</td>'
         if tb["cols"][0]:   # 左の列（何を比べるか）がない、2つを並べるだけの表
-            tr = "".join('<tr>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for xs in tb["rows"])
+            tr = "".join('<tr>' + "".join(_td(x, i) for i, x in enumerate(xs)) + '</tr>' for xs in tb["rows"])
         else:
-            tr = "".join('<tr><th class="cr">' + T(a) + '</th>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for a, *xs in tb["rows"])
+            tr = "".join('<tr><th class="cr' + (' ar' if _al and _al[0] == "r" else '') + '">' + T(a) + '</th>' + "".join(_td(x, i + 1) for i, x in enumerate(xs)) + '</tr>' for a, *xs in tb["rows"])
         # 10/27 夜 左の列の見出しが短い（2字まで）表は、左の列を細くして、中身の列を広げる（折り返しを減らす）
         _nar = " nar" if not tb["cols"][0] and all(len(r[0]) <= 2 for r in tb["rows"]) else ""
         _cg = ("<colgroup>" + "".join(f'<col style="width:{w}%">' for w in tb["widths"]) + "</colgroup>") if tb.get("widths") else ""
@@ -565,17 +575,29 @@ CSS += """
 .grid2:has(img[data-k=d_cat]) .photos img:not([data-k=d_cat]){height:33mm!important}
 .grid2:has(img[data-k=d_cat])>.step,.grid2:has(img[data-k=w_cat])>.step{padding-bottom:1mm!important}
 .grid2:has(img[data-k=d_cat])>.step.wide+.step,.grid2:has(img[data-k=d_cat])>.step.wide+.step+.step{padding-top:2.4mm!important}
+/* 10/28 3-2 にホースのつなぎ方を入れたぶん、このページだけ 3-1 の補足の下を詰める */
+.grid2:has(img[data-k=d_cat])>.step.wide>.notes{margin-bottom:0!important;padding-bottom:0!important}
+.grid2:has(img[data-k=d_cat])>.step:not(.wide){padding-bottom:0!important}
+.grid2:has(img[data-k=d_cat]) .srows{line-height:1.35!important}
 .grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.5mm 1.6mm!important}
 /* 10/28 まーく様「ブーツやファスナーと、その右の間に：を」→ 手順の表は「場所：やること」。場所は太く目立たせる（どの表も同じ） */
 .srows .sp2{font-weight:900!important;color:#1f2a37!important;display:flex!important;justify-content:space-between;padding-right:1.2mm}
 .srows .sp2::after{content:"：";font-weight:900}
+/* 10/28 表の色：左の列は黒・中央そろえ、良い方は青、悪い方は赤、ふつうは濃いグレー */
+table.cmp td{color:#5f6b73!important}
+table.cmp td.pos{color:#1565c0!important}
+table.cmp td.neg{color:#c8372d!important}
+table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
+table.cmp td.ar,table.cmp th.ar{text-align:right!important;padding-right:4mm!important}
+table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 1.6em 2.6em;align-items:baseline}
+table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:.6mm 0 0;font-size:9pt;font-weight:700;color:#5f6b73}
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
 .ph h2 .ttl{flex:none;white-space:nowrap}
-.hookr{margin-left:auto;padding-left:6mm;flex:none;white-space:nowrap;display:inline-block;font-size:10pt;font-weight:900;color:#c2571a;letter-spacing:0}
+.hookr{margin-left:auto;padding-left:6mm;flex:none;max-width:100%;white-space:nowrap;display:inline-block;font-size:10pt;font-weight:900;color:#c2571a;letter-spacing:0}
 .hookr *{display:inline!important;white-space:nowrap!important}
 .hookr .hk{margin-right:1.6mm}
 .hookr .hk{font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.4mm 1.6mm;white-space:nowrap}
@@ -631,7 +653,7 @@ table.cmp{display:table!important}table.cmp tr{display:table-row!important}table
 .toprow .pbox>.pbg{flex:none;align-content:start}   /* 10/23 まーく様「むだな高さの空白は見栄えが最悪」→ 札は上から詰める */
 .toprow>.tcol>.qhd{margin-top:0!important}   /* 10/23 見出しは左の列のいちばん下（クイズのすぐ上） */
 /* 10/23 クイズの「くわしくは」：問いの帯の右はし（スキル編と同じ） */
-.page .qz .qjs{float:right;margin:0 0 0 2mm!important;font-size:7.6pt!important;font-weight:700;color:#fff!important;white-space:nowrap;line-height:inherit;text-indent:0}
+.page .qz .qjs{display:block;float:none!important;text-align:right;margin:0!important;font-size:7.6pt!important;font-weight:700;color:#fff!important;white-space:nowrap;line-height:inherit;text-indent:0}
 .page .qz .qjs .tapm{color:#fff!important}
 .page .qsec{width:calc(50% - 3.5mm);margin-top:7mm}   /* 10/23 まーく様「全てが繋がっていると、どこが区切りか分かりづらい」→ 上の段とクイズのかたまりの間を空ける */
 .page .qsec>.qhd{margin:0!important}
