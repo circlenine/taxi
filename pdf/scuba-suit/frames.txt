@@ -40,3 +40,4 @@ d_toilet dry_ocean 326
 d_seal dry_ocean 55
 u15 dry_ocean 378
 o_heel dry_ocean 453
+w_sandal wet_diver 85
