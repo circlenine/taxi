@@ -238,18 +238,25 @@ def notes(s):
         th = "".join(f'<th>{T(c.replace("[おすすめ]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "")}</th>' for c in tb["cols"])
         # 10/28 まーく様「いちばん左の列は黒、良い方は青・悪い方は赤・ふつうは濃いグレー」→ 中身の頭の + は青、- は赤
         #   「a|b|c」は3つの枠に分けて、同じ字が各行で同じ位置に来るようにする。align で右そろえ（月・℃）
-        _al = tb.get("align") or []
+        # 10/29 まーく様「表は全て中央位置。ただし月や℃など合わせられるところは合わせて」
+        #   → 字はどれも真ん中。「11〜3月」「7月」のような列は、〜の前・〜・〜の後の3つの枠に分け、〜と月・℃の位置を各行でそろえる
+        _all = [list(r) for r in tb["rows"]]
+        _rng = {j for j in range(len(_all[0])) if any("〜" in r[j] for r in _all) and all(r[j].endswith(("月", "℃")) for r in _all)}
+        def _rg(x):
+            a_, m_, b_ = x.partition("〜")
+            if not m_: a_, b_ = "", a_
+            return f'<span class="g2"><span>{T(a_)}</span><span>{m_}</span><span>{T(b_)}</span></span>'
         def _td(x, i):
             c = "pos" if x.startswith("+") else "neg" if x.startswith("-") else ""
             x = x[1:] if c else x
-            if "|" in x: x = '<span class="g3">' + "".join(f"<span>{T(v)}</span>" for v in x.split("|")) + '</span>'
+            if i in _rng: x = _rg(x)
+            elif "|" in x: x = '<span class="g3">' + "".join(f"<span>{T(v)}</span>" for v in x.split("|")) + '</span>'
             else: x = T(x)
-            cl = " ".join(v for v in (c, "ar" if i < len(_al) and _al[i] == "r" else "") if v)
-            return f'<td class="{cl}">{x}</td>' if cl else f'<td>{x}</td>'
+            return f'<td class="{c}">{x}</td>' if c else f'<td>{x}</td>'
         if tb["cols"][0]:   # 左の列（何を比べるか）がない、2つを並べるだけの表
             tr = "".join('<tr>' + "".join(_td(x, i) for i, x in enumerate(xs)) + '</tr>' for xs in tb["rows"])
         else:
-            tr = "".join('<tr><th class="cr' + (' ar' if _al and _al[0] == "r" else '') + '">' + T(a) + '</th>' + "".join(_td(x, i + 1) for i, x in enumerate(xs)) + '</tr>' for a, *xs in tb["rows"])
+            tr = "".join('<tr><th class="cr">' + (_rg(a) if 0 in _rng else T(a)) + '</th>' + "".join(_td(x, i + 1) for i, x in enumerate(xs)) + '</tr>' for a, *xs in tb["rows"])
         # 10/27 夜 左の列の見出しが短い（2字まで）表は、左の列を細くして、中身の列を広げる（折り返しを減らす）
         _nar = " nar" if not tb["cols"][0] and all(len(r[0]) <= 2 for r in tb["rows"]) else ""
         _cg = ("<colgroup>" + "".join(f'<col style="width:{w}%">' for w in tb["widths"]) + "</colgroup>") if tb.get("widths") else ""
@@ -588,7 +595,11 @@ table.cmp td{color:#5f6b73!important}
 table.cmp td.pos{color:#1565c0!important}
 table.cmp td.neg{color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
-table.cmp td.ar,table.cmp th.ar{text-align:right!important;padding-right:4mm!important}
+table.cmp td,table.cmp th{text-align:center!important}
+table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.cmp .g2>span:nth-child(1){text-align:right}
+table.cmp .g2>span:nth-child(3){text-align:left}   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
+table.cmp .g2>span:nth-child(2){text-align:center}
 table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 1.6em 2.6em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:.6mm 0 0;font-size:9pt;font-weight:700;color:#5f6b73}
