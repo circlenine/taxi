@@ -109,6 +109,10 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .login .foot{text-align:center;margin-top:16px;font-size:11.5px;color:var(--muted);line-height:1.9}
 .login .foot a{color:var(--muted);text-decoration:underline}
 .boot{display:grid;place-items:center;min-height:100vh;color:var(--muted);font-size:13px}
+/* ★隠したものは、必ず消えること。
+ *   （.boot の display:grid が勝ってしまい、読み込みのあとも
+ *     「読み込んでいます…」が画面に残っていました） */
+[hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ------------------------------------------------------------
@@ -121,3 +125,28 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .mtag.go{background:#c6f6ff;color:#1155ca}
 .mtag.uber{background:#ffe086;color:#7f6000}
 .mtag.musen{background:#d9ead3;color:#274e13}
+
+/* ------------------------------------------------------------
+ *  いまアツい（2026/10/27 追加）
+ *  ★スマホの細い画面でも、横スクロールさせないこと。
+ *    幅はピクセルで決め打ちせず、割合で分けます。
+ * ---------------------------------------------------------- */
+.wx{font-size:12.5px;line-height:1.7;color:var(--paper);background:#0C1422;
+    border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin:0 0 12px}
+.hot{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hotc{background:#0C1422;border:1px solid var(--line);border-radius:9px;padding:11px 12px;
+      display:flex;flex-direction:column;gap:3px;min-width:0}
+.hotc.top{border-color:var(--andon);box-shadow:0 0 16px rgba(240,163,59,.18)}
+.hotc small{color:var(--muted);font-size:10.5px;letter-spacing:.04em}
+.hotc b{font-size:17px;line-height:1.3;word-break:break-all}
+.hotc .hv{font-family:var(--mono);font-size:21px;color:var(--andon);line-height:1.2}
+.hotc.top .hv{color:var(--meter)}
+.hotc .hs{color:var(--muted);font-size:11px;line-height:1.6}
+.hotc .mini{align-self:flex-start;margin-top:5px;text-decoration:none}
+.plan{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.plan .pl{background:#0C1422;border:1px solid var(--line);border-radius:9px;padding:10px 11px;min-width:0}
+.plan .pl small{display:block;color:var(--muted);font-size:10.5px;margin-bottom:3px}
+.plan .pl b{display:block;font-size:15px;line-height:1.35;word-break:break-all}
+.plan .pl b.thin{color:var(--muted)}
+.plan .pl span{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+@media(max-width:640px){.hot,.plan{grid-template-columns:1fr}}
