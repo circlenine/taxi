@@ -20,8 +20,10 @@ def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
     out.paste(src.crop(box).resize((round((x1-x0)*s),FH),Image.LANCZOS),(ox,TOP))
     return (lambda x,y:(ox+(x-x0)*s, TOP+(y-y0)*s)), round((x1-x0)*s)
-def ring(c,r,ry=None,w=9):
-    ry=ry or r; x,y=c; d.ellipse((x-r,y-ry,x+r,y+ry),outline=RED,width=w)
+# 10/28 まーく様「スーツがいちばん良く見えなければ。赤丸は補足に徹する」→ 赤丸は、ほかの写真と同じく すかした別の紙に描いて重ねる
+OVL=[]
+def ring(c,r,ry=None,w=7):
+    ry=ry or r; OVL.append((c,r,ry,w))
 def tagw(text,circ): return d.textlength(text,font=font)+24+(font.size+10 if circ else 0)
 def tag(text,x,y,anchor,line_to,circ=None,minw=0,halo=False):
     # anchor="r"：右はしを x にそろえる／"l"：左はしを x にそろえる。circ は、丸で囲む1字（入・抜）
@@ -36,10 +38,10 @@ def tag(text,x,y,anchor,line_to,circ=None,minw=0,halo=False):
         cx=x0+12+d.textlength(text,font=font)+(font.size+10)/2; R=(font.size+6)/2
         d.ellipse((cx-R,y-R,cx+R,y+R),fill="white")
         d.text((cx,y+1),circ,font=cf,fill=RED,anchor="mm")
-ROWS=[58,158,258,358,458]   # 左のタグの高さ（同じ間かく。体の上から順）
+ROWS=[140,250,470]   # 左のタグの高さ（同じ間かく。体の上から順）
 # 10/27 夜 まーく様「左肩も、左の方に載せられないのか」→ 前の図のタグは、5つとも左の列にそろえる
 #   左肩の線は体の前を横切るので、線に白いふちを付けて見失わないようにする
-LW=max(tagw("首のゴム",None),tagw("胸：空気","入"),tagw("左肩：空気","抜"),tagw("手首のゴム",None),tagw("ブーツも一体",None))
+LW=max(tagw("胸：空気","入"),tagw("左肩：空気","抜"),tagw("ブーツも一体",None))
 ZW=tagw("背中のファスナー",None)
 X1=PAD                      # 前の枠の左はし
 TX=round(X1+PAD+LW)         # 左のタグの右はし
@@ -58,15 +60,16 @@ m=Image.new("L",out.size,0); ImageDraw.Draw(m).rectangle((OX1,TOP,OX1+w1,TOP+FH)
 import numpy as _np
 arr=_np.array(snap).astype(int); wh=(arr.min(axis=2)>236)
 arr[wh]=BG; fig_img=Image.fromarray(arr.astype("uint8")); out.paste(fig_img,(0,0),m)
-neck=P1(681,322); ring(neck,48,34); tag("首のゴム",TX,ROWS[0],"r",(neck[0]-48,neck[1]),minw=LW)
-chest=P1(667,412); ring(chest,34); tag("胸：空気",TX,ROWS[1],"r",(chest[0]-34,chest[1]),"入",minw=LW)
-# 左肩の線は、胸のボタンの丸の下を通して、左肩の丸の左下につなぐ（胸の丸と交わらないように）
-sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[2],"r",(sh[0]-24,sh[1]+24),"抜",minw=LW,halo=True)
-wr=P1(800,575); ring(wr,38,32); tag("手首のゴム",TX,ROWS[3],"r",(wr[0]-30,wr[1]+20),minw=LW,halo=True)
-bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[4],"r",(bt[0]-50,bt[1]),minw=LW)
-zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,ROWS[1],"l",(zp[0]+110,zp[1]))
+# 10/28 まーく様「ドライの首のゴム・手首のゴムはいらない」→ 空気の2つのボタンと、ブーツ一体（ウェットとの違い）だけ
+chest=P1(667,412); ring(chest,34); tag("胸：空気",TX,ROWS[0],"r",(chest[0]-34,chest[1]),"入",minw=LW)
+sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[1],"r",(sh[0]-24,sh[1]+24),"抜",minw=LW,halo=True)
+bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]),minw=LW)
+zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,zp[1],"l",(zp[0]+118,zp[1]))
 for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
     d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms")
+ov=Image.new("RGBA",out.size,(0,0,0,0)); dv=ImageDraw.Draw(ov)
+for (x,y),r,ry,w in OVL: dv.ellipse((x-r,y-ry,x+r,y+ry),outline=RED+(150,),width=w)
+out=Image.alpha_composite(out.convert("RGBA"),ov).convert("RGB")
 out=out.crop((0,0,W,H))
 out.save("/tmp/claude-0/kfw3/d_cat.jpg",quality=92); out.save("/tmp/claude-0/kfw4/d_cat.jpg",quality=92)   # kfw4 が focus_w.py の読む場所
 print("ok", w1, w2)

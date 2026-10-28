@@ -244,8 +244,11 @@ def notes(s):
         _nar = " nar" if not tb["cols"][0] and all(len(r[0]) <= 2 for r in tb["rows"]) else ""
         out.append(("tb", f'<table class="cmp{_nar}"><tr>{th}</tr>{tr}</table>', []))
     # 10/28 まーく様「補足なので、表の下に載せるべき」→ 補足は、表のあと（どの手順も同じ順：大事 → 表 → 補足）
-    for t in s.get("extra") or []: n("x", t)
-    html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
+    for t in s.get("extra") or []:
+        # 10/28 まーく様「確証がない参考の数字には、目安である注意を必ず」→ ※ で始まる文は、表のすぐ下の小さな注意書きにする
+        if t.startswith("※"): out.append(("tn", T(t), []))
+        else: n("x", t)
+    html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<p class="tnote">{text}</p>' if kind == "tn" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
                    + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>") for kind, text, subs in out)
     return '<div class="notes">' + html + "</div>" if out else ""
 
@@ -561,6 +564,7 @@ CSS += """
 .grid2:has(img[data-k=d_cat])>.step,.grid2:has(img[data-k=w_cat])>.step{padding-bottom:1mm!important}
 .grid2:has(img[data-k=d_cat])>.step.wide+.step,.grid2:has(img[data-k=d_cat])>.step.wide+.step+.step{padding-top:2.4mm!important}
 .grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.5mm 1.6mm!important}
+.tnote{margin:.6mm 0 0;font-size:9pt;font-weight:700;color:#5f6b73}
 table.cmp th .rec{display:inline-block;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.2mm 1.4mm;vertical-align:.2mm}
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
