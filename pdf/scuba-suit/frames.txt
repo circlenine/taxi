@@ -36,7 +36,7 @@ w_cat wet_diver 373
 p_heel dry_papa 870
 d_shoes dry_papa 168
 u20 dry_ocean 308
-d_toilet dry_ocean 330
+d_toilet dry_ocean 326
 d_seal dry_ocean 55
 u15 dry_ocean 378
 o_heel dry_ocean 453
