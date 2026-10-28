@@ -555,6 +555,12 @@ CSS += """
 .grid2>.step.step.wide:has(>.photos img[data-k=w_cat])>.notes.notes,.grid2>.step.step.wide:has(>.photos img[data-k=d_cat])>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
+/* 10/28 図の字を小さくして図を大きくしたぶん、図のあるページは手順の間・表の行を少し詰める */
+.grid2:has(img[data-k=w_cat]),.grid2:has(img[data-k=d_cat]){row-gap:3.2mm!important}
+.grid2:has(img[data-k=d_cat]) .photos img:not([data-k=d_cat]){height:33mm!important}
+.grid2:has(img[data-k=d_cat])>.step,.grid2:has(img[data-k=w_cat])>.step{padding-bottom:1mm!important}
+.grid2:has(img[data-k=d_cat])>.step.wide+.step,.grid2:has(img[data-k=d_cat])>.step.wide+.step+.step{padding-top:2.4mm!important}
+.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.5mm 1.6mm!important}
 table.cmp th .rec{display:inline-block;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.2mm 1.4mm;vertical-align:.2mm}
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */

@@ -25,12 +25,12 @@ back, bb_ = cut((4440, 1520, 4860, 3010))
 # 10/27 夜 まーく様「ドライと同じく、画像は大きく、文章は画像の下。統一性を」
 #   → 高さ・図の高さはドライの図（mkcat.py）と同じ。ページでは横いっぱいに出すので、
 #     タグの字の見た目の大きさがドライと同じになるよう、字の大きさを図の横幅に合わせて決める（数回くり返して合わせる）
-H = 720; PAD = 30; GAP = 30; BG = (242, 245, 247); RED = (249, 54, 18)
+H = 625; PAD = 30; GAP = 30; BG = (242, 245, 247); RED = (249, 54, 18)
 FP = "/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
-FH, TOP = 600, 18
+FH, TOP = 560, 10
 WD = Image.open("/tmp/claude-0/kfw4/d_cat.jpg").size[0]   # ドライの図の横幅（字の見た目をそろえる相手）
 def draw(fs):
-    font = ImageFont.truetype(FP, round(fs)); cap = ImageFont.truetype(FP, round(fs * 60 / 56)); k = fs / 56
+    font = ImageFont.truetype(FP, round(fs)); cap = ImageFont.truetype(FP, round(fs)); k = fs / 56
     out = Image.new("RGB", (3000, H), "white"); d = ImageDraw.Draw(out)
     tw = lambda t: d.textlength(t, font=font) + 40 * k
     X1 = PAD; TX = round(X1 + PAD + tw("膝パッド")); OX1 = TX + round(40 * k)
@@ -56,12 +56,12 @@ def draw(fs):
     ring(kc, 50, 36); tag("膝パッド", TX, kc[1], "r", (kc[0] - 50, kc[1]))
     bz = P2(152, 438); ring(bz, 30, 66); tag("背中のファスナー", ZX, bz[1], "l", (bz[0] + 30, bz[1]))
     for x, w, t in ((OX1, w1, "前"), (OX2, w2, "後")):
-        d.text((x + w / 2, H - 20), t, font=cap, fill=(70, 70, 70), anchor="ms")
+        d.text((x + w / 2, H - 16), t, font=cap, fill=(70, 70, 70), anchor="ms")
     return out.crop((0, 0, W, H)), W
 # 字の大きさはドライと同じ 56。横幅をドライと同じにするため、あいた所には「アップ」の枠を置き、
 #   膝パッドと背中のファスナーを大きく見せる（何もない白を作らない・図の中身を増やす）。
 #   アップはカタログを 600dpi で画像にして切り出す（粗くならないように）。アップの下の名前は、前・後と同じ灰色の字
-out, W = draw(56)
+out, W = draw(32)   # 10/28 字は本文と同じ見た目の大きさ（ドライの図と同じ 32）
 X3 = W + GAP - PAD; R3 = WD - PAD
 import subprocess, os
 HI = "/tmp/claude-0/kfw4/wd_p16_600.png"
@@ -71,8 +71,8 @@ if not os.path.exists(HI):
 SRC2 = Image.open(HI).convert("RGB")
 big = Image.new("RGB", (WD, H), "white"); big.paste(out, (0, 0)); d = ImageDraw.Draw(big)
 d.rounded_rectangle((X3, 8, R3, H - 8), radius=28, fill=BG)
-cap = ImageFont.truetype(FP, 60)
-P3 = 14; iw = R3 - X3 - 2 * P3; ih = (H - 16 - 30 - 2 * 80) // 2
+cap = ImageFont.truetype(FP, 32)
+P3 = 14; iw = R3 - X3 - 2 * P3; ih = (H - 16 - 2 * 48 - 24) // 2
 y = 8 + 8
 for box, lab, rc in (((3905, 1715, 4175, 1985), "膝パッド", None), ((4500, 1800, 4700, 2110), "ファスナー", None)):
     im = SRC2.crop(tuple(v * 2 for v in box)); im.thumbnail((iw, ih), Image.LANCZOS)
@@ -81,9 +81,9 @@ for box, lab, rc in (((3905, 1715, 4175, 1985), "膝パッド", None), ((4500, 1
     # 名前は写真の上に置く（右下には、ページで ▶ の印が重なるため）
     f = cap
     while d.textlength(lab, font=f) > iw: f = ImageFont.truetype(FP, f.size - 2)
-    d.text(((X3 + R3) / 2, y + 58), lab, font=f, fill=(70, 70, 70), anchor="ms")
-    big.paste(im, (x, y + 72), m)
-    y += im.size[1] + 72 + 24
+    d.text(((X3 + R3) / 2, y + 36), lab, font=f, fill=(70, 70, 70), anchor="ms")
+    big.paste(im, (x, y + 46), m)
+    y += im.size[1] + 46 + 20
 out = big
 out.save("/tmp/claude-0/kfw4/w_cat.jpg", quality=92)
 print("ok", out.size, "ドライの横幅", WD, "アップの幅", iw)

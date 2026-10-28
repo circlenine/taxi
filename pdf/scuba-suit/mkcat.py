@@ -9,11 +9,12 @@ src=Image.open("/tmp/claude-0/kfw3/cat.jpg").convert("RGB")
 # 10/27 夜 まーく様「左肩の文が真ん中にあると、左のスーツか右のスーツか分からない」「右の無駄な空白」
 #   → 前・後ろを、それぞれ薄い灰色の枠（共通の領域：同じ枠の中＝同じまとまり、と人は見る）で囲み、
 #     タグは、自分の図の枠の中にだけ置く。枠は中身に合わせた大きさにして、何もない白を残さない
-H=720; GAP=36; PAD=36; BG=(242,245,247)
+H=625; GAP=36; PAD=36; BG=(242,245,247)
 
 FP="/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
-font=ImageFont.truetype(FP,56); cap=ImageFont.truetype(FP,60); cf=ImageFont.truetype(FP,42)   # cf＝丸の中の1字（丸からはみ出さない大きさ）
-FH, TOP = 600, 18   # 図の高さ（前も後ろも同じ）
+# 10/28 まーく様「前・後やタグの字が大きすぎる。他の文に合わせ、画像を大きく」→ 字は本文と同じ見た目の大きさ（32）に。そのぶん図が大きく出る
+font=ImageFont.truetype(FP,32); cap=ImageFont.truetype(FP,32); cf=ImageFont.truetype(FP,24)   # cf＝丸の中の1字（丸からはみ出さない大きさ）
+FH, TOP = 560, 10   # 図の高さ（前も後ろも同じ）
 out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(249,54,18)
 def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
@@ -21,21 +22,21 @@ def fig(box, ox):
     return (lambda x,y:(ox+(x-x0)*s, TOP+(y-y0)*s)), round((x1-x0)*s)
 def ring(c,r,ry=None,w=9):
     ry=ry or r; x,y=c; d.ellipse((x-r,y-ry,x+r,y+ry),outline=RED,width=w)
-def tagw(text,circ): return d.textlength(text,font=font)+40+(font.size+14 if circ else 0)
+def tagw(text,circ): return d.textlength(text,font=font)+24+(font.size+10 if circ else 0)
 def tag(text,x,y,anchor,line_to,circ=None,minw=0,halo=False):
     # anchor="r"：右はしを x にそろえる／"l"：左はしを x にそろえる。circ は、丸で囲む1字（入・抜）
-    bw,bh=max(tagw(text,circ),minw),font.size+30   # minw：左の4つは同じ幅にして、左はしもそろえる（10/27 検査役）
+    bw,bh=max(tagw(text,circ),minw),font.size+16   # minw：左の4つは同じ幅にして、左はしもそろえる（10/27 検査役）
     x0=x-bw if anchor=="r" else x; y0=y-bh/2
-    if halo: d.line((line_to[0],line_to[1],x0+bw if anchor=="r" else x0,y),fill="white",width=14)
-    d.line((line_to[0],line_to[1],x0+bw if anchor=="r" else x0,y),fill=RED,width=6)
-    d.rounded_rectangle((x0-5,y0-5,x0+bw+5,y0+bh+5),radius=16,fill="white")
-    d.rounded_rectangle((x0,y0,x0+bw,y0+bh),radius=14,fill=RED)
-    d.text((x0+20,y),text,font=font,fill="white",anchor="lm")
+    if halo: d.line((line_to[0],line_to[1],x0+bw if anchor=="r" else x0,y),fill="white",width=9)
+    d.line((line_to[0],line_to[1],x0+bw if anchor=="r" else x0,y),fill=RED,width=4)
+    d.rounded_rectangle((x0-5,y0-5,x0+bw+5,y0+bh+5),radius=10,fill="white")
+    d.rounded_rectangle((x0,y0,x0+bw,y0+bh),radius=8,fill=RED)
+    d.text((x0+12,y),text,font=font,fill="white",anchor="lm")
     if circ:
-        cx=x0+20+d.textlength(text,font=font)+(font.size+14)/2; R=(font.size+10)/2
+        cx=x0+12+d.textlength(text,font=font)+(font.size+10)/2; R=(font.size+6)/2
         d.ellipse((cx-R,y-R,cx+R,y+R),fill="white")
         d.text((cx,y+1),circ,font=cf,fill=RED,anchor="mm")
-ROWS=[90,200,310,420,530]   # 左のタグの高さ（同じ間かく。体の上から順）
+ROWS=[58,158,258,358,458]   # 左のタグの高さ（同じ間かく。体の上から順）
 # 10/27 夜 まーく様「左肩も、左の方に載せられないのか」→ 前の図のタグは、5つとも左の列にそろえる
 #   左肩の線は体の前を横切るので、線に白いふちを付けて見失わないようにする
 LW=max(tagw("首のゴム",None),tagw("胸：空気","入"),tagw("左肩：空気","抜"),tagw("手首のゴム",None),tagw("ブーツも一体",None))
@@ -65,7 +66,7 @@ wr=P1(800,575); ring(wr,38,32); tag("手首のゴム",TX,ROWS[3],"r",(wr[0]-30,w
 bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[4],"r",(bt[0]-50,bt[1]),minw=LW)
 zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,ROWS[1],"l",(zp[0]+110,zp[1]))
 for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
-    d.text((P+w/2,H-22),t,font=cap,fill=(70,70,70),anchor="ms")
+    d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms")
 out=out.crop((0,0,W,H))
 out.save("/tmp/claude-0/kfw3/d_cat.jpg",quality=92); out.save("/tmp/claude-0/kfw4/d_cat.jpg",quality=92)   # kfw4 が focus_w.py の読む場所
 print("ok", w1, w2)
