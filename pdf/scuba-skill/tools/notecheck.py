@@ -18,8 +18,9 @@ for s in c.STEPS:
     for u in s["subs"]:
         lim = 40 if u["id"] in WIDE else 24
         ex = u.get("extra", [])
-        if len(ex) > 3: ng.append(f"NG {u['id']}：補足が{len(ex)}つ。3つまで（多いときは表に）")
+        if len([t for t in ex if not t.startswith("※")]) > 3: ng.append(f"NG {u['id']}：補足が{len(ex)}つ。3つまで（多いときは表に）")
         for t in ex:
+            if t.startswith("※"): continue   # 表の下の注意書きは数えない（目安の注意は必ず書く：10/28）
             if L(t) > lim: ng.append(f"NG {u['id']}：補足が長い（{L(t)}字・{lim}字まで）「{t}」")
         tb = u.get("table")
         if tb and len(tb["cols"]) == 2 and all(tb["cols"]) and not any("[おすすめ]" in x for x in tb["cols"]):
