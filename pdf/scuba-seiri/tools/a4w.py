@@ -242,7 +242,8 @@ def notes(s):
             tr = "".join('<tr><th class="cr">' + T(a) + '</th>' + "".join(f'<td>{T(x)}</td>' for x in xs) + '</tr>' for a, *xs in tb["rows"])
         # 10/27 夜 左の列の見出しが短い（2字まで）表は、左の列を細くして、中身の列を広げる（折り返しを減らす）
         _nar = " nar" if not tb["cols"][0] and all(len(r[0]) <= 2 for r in tb["rows"]) else ""
-        out.append(("tb", f'<table class="cmp{_nar}"><tr>{th}</tr>{tr}</table>', []))
+        _cg = ("<colgroup>" + "".join(f'<col style="width:{w}%">' for w in tb["widths"]) + "</colgroup>") if tb.get("widths") else ""
+        out.append(("tb", f'<table class="cmp{_nar if not _cg else ""}">{_cg}<tr>{th}</tr>{tr}</table>', []))
     # 10/28 まーく様「補足なので、表の下に載せるべき」→ 補足は、表のあと（どの手順も同じ順：大事 → 表 → 補足）
     for t in s.get("extra") or []:
         # 10/28 まーく様「確証がない参考の数字には、目安である注意を必ず」→ ※ で始まる文は、表のすぐ下の小さな注意書きにする
