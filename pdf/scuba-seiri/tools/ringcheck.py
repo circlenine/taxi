@@ -41,7 +41,7 @@ for slot, (k, x0, y0, x1, y1, rings) in boxes.items():
     if rings:
         gx = sum(r[0] for r in rings) / len(rings); gy = sum(r[1] for r in rings) / len(rings)
         dx, dy = (gx - (x0 + x1) / 2) / w, (gy - (y0 + y1) / 2) / h
-        if (abs(dx) > .12 or abs(dy) > .12) and k not in focus_w.CENTER_OK:
+        if (abs(dx) > .04 or abs(dy) > .04) and k not in focus_w.CENTER_OK:   # 10/28 12% → 4%（まーく様「上下左右まん中に」）
             ng.append(f"NG {slot}：赤丸が写真の真ん中にない（横に {dx:+.0%}・縦に {dy:+.0%}）。写真のはしに寄っている場合は、切り抜ける範囲（allowed）を見直す")
 # 10/27 まーく様「赤丸と文字は絶対に被らせない」：写真の上の名札が、赤丸の線にかかっていないか（focus_w.py が測った結果）
 for k, text in json.load(open(os.path.join(out, "labhit.json"))):
