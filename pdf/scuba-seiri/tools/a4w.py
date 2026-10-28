@@ -312,7 +312,8 @@ STK_OF = {}
 REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
-WIDE = {"1-1", "1-2", "1-3", "3-1"}   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+WIDE = {"1-1", "1-2", "1-3", "3-1", "4-5"}
+SIDE = {"4-5"}   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
 from PIL import Image as _I
 ASPECT = {k: (lambda z: z[0] / z[1])(_I.open(f"/tmp/claude-0/kfw4/{k}.jpg").size) for k in ("d_cat", "w_cat")}   # 10/27 夜 図は中身に合わせた大きさで作る（mkcat.py・mkwet.py）ので、形は画像から読む   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
@@ -321,7 +322,7 @@ def jump(sid):
     lab = "次のページ" if sid == "OH" else f"<b>{sid}</b>"
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
-    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
+    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s["id"] in SIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
             f'{photos(s)}{_nj(notes(s), s.get("jump"))}</section>')
 def _nj(nt, sid):
     # 10/22 まーく様「1-3の画像と補足の間の変な高さの隙間はなに？」→ 「くわしくは」を写真のかたまりの中に入れると、
@@ -707,6 +708,15 @@ CSS += """
 .grid2{grid-auto-rows:auto}
 .grid2>.step{display:grid!important;grid-row:span 3;grid-template-rows:subgrid;row-gap:2.4mm;align-content:start}
 .grid2>.step.wide{grid-row:auto;display:flex!important}
+/* 10/29 4-5：写真は左、説明は右（横いっぱいの1段） */
+.grid2>.step.wide.side{display:grid!important;grid-template-columns:38% minmax(0,1fr);grid-template-rows:auto auto!important;column-gap:5mm;row-gap:2.4mm!important;align-items:start;padding-bottom:0!important}
+.grid2>.step.wide.side>.sh3{grid-column:1/-1;grid-row:1}
+.grid2>.step.wide.side .srows{line-height:1.35!important}
+.grid2>.step:not(.wide)+.step.wide.side{padding-top:2.6mm!important}
+.grid2>.step.wide.side .nt.kpk{padding-bottom:.6mm!important}
+.grid2:has(>.step.wide.side)>.step:not(.wide){padding-bottom:1.6mm!important}
+.grid2>.step.wide.side>.photos{grid-column:1;grid-row:2;margin-top:0!important}
+.grid2>.step.wide.side>.notes{grid-column:2;grid-row:2;width:auto!important;align-self:start!important;margin-top:0!important}
 .grid2>.step>.notes{align-self:start}
 .photos.p3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
 .photos.p3 .ph3{grid-column:auto!important;grid-row:auto!important}
