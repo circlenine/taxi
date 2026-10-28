@@ -570,7 +570,7 @@ CSS += """
 .srows .sp2{font-weight:900!important;color:#1f2a37!important;display:flex!important;justify-content:space-between;padding-right:1.2mm}
 .srows .sp2::after{content:"：";font-weight:900}
 .tnote{margin:.6mm 0 0;font-size:9pt;font-weight:700;color:#5f6b73}
-table.cmp th .rec{display:inline-block;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:.2mm 1.4mm;vertical-align:.2mm}
+table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
