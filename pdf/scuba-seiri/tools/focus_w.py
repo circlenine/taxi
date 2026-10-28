@@ -85,7 +85,7 @@ F = {
  "p_heel":  ("p_heel",  (0, 140, 960, 612),  (420, 300, 890, 612)),   # 10/27 夜 初見テスト「足先とかかとが写らない」→ PP 14:30：かかとを反対の足で踏んで抜く（顔・右下の小窓・下の字幕は入れない）
  "d_toilet": ("d_toilet", (370, 55, 960, 535), (370, 55, 960, 365)),   # 10/28 まーく様「赤丸が見切れ。何を写したいのか」→ OA 5:26：背中のファスナーを、バディが両手で閉めている所（左上の題・右上のロゴ・下の字幕は入れない）
  "d_shoes": ("d_shoes", (0, 0, 1280, 525), (120, 40, 940, 525)),   # PP 2:48：紐をしっかり結ぶブーツ（✕ の例）。下の字幕は入れない
- "w_sandal": ("w_sandal", (700, 220, 1180, 560), (760, 270, 1060, 520)),   # 10/28 まーく様「脱ぎやすい靴（サンダル）の写真を」→ DM 1:25 の足もとのサンダル
+ "w_sandal": ("w_sandal", (0, 0, 1280, 853), (200, 330, 960, 730)),   # 10/28 まーく様「女性用の“ビーチ”サンダル」→ ウィキメディア・コモンズ「Woman wearing red flip flops」（CC BY-SA 2.0）
  "d_hose":  ("d_hose",  (55, 100, 1240, 520), (55, 100, 545, 440)),   # 10/28 まーく様「どのホースか写真を」→ WD カタログ p.57 ドライホース（先の金属の輪を引いて差す）
  "u36":     ("u36",     (100, 0, 1180, 720),  (300, 0, 1000, 720)),   # 10/27 初見の点検 → 腰から足元まで（下ろしている手が見えるように）
  "u33":     ("u33",     (100, 0, 1180, 720),  (440, 40, 1000, 715)),
@@ -100,6 +100,7 @@ for _l in open("/tmp/claude-0/kfw4/list4.txt"):
     if _v in _YT: SRC[_k] = (_YT[_v], int(_t))
 SRC["d_cat"] = SRC["d_catin"] = SRC["d_catex"] = ("https://www.worlddive.co.jp/product/", None)
 SRC["d_hose"] = ("https://www.worlddive.co.jp/catalog/data/26wd_catalog.pdf", None)   # 10/28 ホースの写真はカタログ p.57
+SRC["w_sandal"] = ("https://commons.wikimedia.org/wiki/File:Woman_wearing_red_flip_flops.jpg", None)   # 10/28 CC BY-SA 2.0。出どころをタップで開けるように
 SRC["w_cat"] = ("https://www.worlddive.co.jp/catalog/data/26wd_catalog.pdf", None)   # 10/27 夜 ウェットの図はカタログ p.30（AF1）から
 for _k in F:
     if _k.startswith("u"): SRC[_k] = (UMI, None)

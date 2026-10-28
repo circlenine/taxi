@@ -13,8 +13,8 @@ H=625; GAP=36; PAD=36; BG=(242,245,247)
 
 FP="/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 # 10/28 まーく様「前・後やタグの字が大きすぎる。他の文に合わせ、画像を大きく」→ 字は本文と同じ見た目の大きさ（32）に。そのぶん図が大きく出る
-font=ImageFont.truetype(FP,32); cap=ImageFont.truetype(FP,32); cf=ImageFont.truetype(FP,24)   # cf＝丸の中の1字（丸からはみ出さない大きさ）
-FH, TOP = 560, 10   # 図の高さ（前も後ろも同じ）
+font=ImageFont.truetype(FP,42); cap=ImageFont.truetype(FP,42); cf=ImageFont.truetype(FP,31)   # 10/28 3枠になって図が小さく出るぶん、字を大きくして、ページ上の見た目を本文とそろえる   # cf＝丸の中の1字（丸からはみ出さない大きさ）
+FH, TOP = 545, 8   # 図の高さ（前も後ろも同じ）
 out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(249,54,18)
 def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
@@ -53,10 +53,16 @@ R1=round(OX1+w1+PAD)        # 前の枠の右はし（右にはタグを置か�
 X2=R1+GAP; OX2=X2+PAD       # 後ろの枠・後ろの図
 P2,w2=fig((855,505,1045,1062),OX2)
 ZX=round(OX2+w2+40); R2=round(ZX+ZW+PAD)
-W=R2+PAD
+# 10/28 まーく様「フル装備（BCDもつけた状態）のイメージ写真を、ドライの全体写真と一緒に」
+#   → 3つ目の枠に、背負った姿の写真（PB 9:25：エントリー直前の女性。下の字幕は入れない）
+X3=R2+GAP; OX3=X3+PAD
+fsrc=Image.open("/tmp/claude-0/kfw4/d_full_src.jpg").convert("RGB")
+FB=(130,150,720,920); fs_=FH/(FB[3]-FB[1]); w3=round((FB[2]-FB[0])*fs_)
+R3=OX3+w3+PAD
+W=R3+PAD
 # 枠（図より先に描きたいので、図をいったん退避して重ねる）
 snap=out.copy(); d.rectangle((0,0,4000,H),fill="white")
-for a_,b_ in ((X1,R1),(X2,R2)): d.rounded_rectangle((a_,8,b_,H-8),radius=28,fill=BG)
+for a_,b_ in ((X1,R1),(X2,R2),(X3,R3)): d.rounded_rectangle((a_,8,b_,H-8),radius=28,fill=BG)
 m=Image.new("L",out.size,0); ImageDraw.Draw(m).rectangle((OX1,TOP,OX1+w1,TOP+FH),fill=255); ImageDraw.Draw(m).rectangle((OX2,TOP,OX2+w2,TOP+FH),fill=255)
 # 図の白い背景は、枠の色に置きかえて貼る（白い四角が浮かないように）
 import numpy as _np
@@ -67,7 +73,8 @@ chest=P1(667,412); ring(chest,34); tag("胸上：空気",TX,ROWS[0],"r",(chest[0
 sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[1],"r",(sh[0]-24,sh[1]+24),"抜",halo=True)
 bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]))
 zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,zp[1],"l",(zp[0]+118,zp[1]))
-for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
+out.paste(fsrc.crop(FB).resize((w3,FH),Image.LANCZOS),(OX3,TOP))
+for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後"),(OX3,w3,"フル装備のイメージ")):
     d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms")
 ov=Image.new("RGBA",out.size,(0,0,0,0)); dv=ImageDraw.Draw(ov)
 for (x,y),r,ry,w in OVL: dv.ellipse((x-r,y-ry,x+r,y+ry),outline=RED+(150,),width=w)

@@ -16,5 +16,6 @@ for k in ("d_cat", "w_cat"):
     if (np.abs(a - [242, 245, 247]).sum(axis=2) < 14).mean() < .2: ng.append(f"NG {k}：前・後ろの枠がない（タグがどちらの図のものか、迷わせる）")
 # 10/27 夜 まーく様「ドライと同じく…ちゃんと統一性を」：ウェットとドライの図は、同じ大きさ（＝ページでの字の大きさも同じ）
 _sz = {k: Image.open(f"/tmp/claude-0/kfw4/{k}.jpg").size for k in ("d_cat", "w_cat")}
-if _sz["d_cat"] != _sz["w_cat"]: ng.append(f"NG ウェットとドライの図の大きさがちがう（{_sz}）。字の大きさ・図の高さがそろわない")
+# 10/28 まーく様「フル装備のイメージ写真を、ドライの全体写真と一緒に」→ ドライは3枠で横に長い。高さはそろえ、ドライが短くなることだけを止める
+if _sz["d_cat"][1] != _sz["w_cat"][1] or _sz["d_cat"][0] < _sz["w_cat"][0]: ng.append(f"NG ウェットとドライの図の大きさがちがう（{_sz}）。字の大きさ・図の高さがそろわない")
 print("\n".join(ng) if ng else "図の余白 OK（何もない帯なし・前後の枠あり）"); sys.exit(1 if ng else 0)

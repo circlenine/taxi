@@ -28,7 +28,7 @@ back, bb_ = cut((4440, 1520, 4860, 3010))
 H = 625; PAD = 30; GAP = 30; BG = (242, 245, 247); RED = (249, 54, 18)
 FP = "/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 FH, TOP = 560, 10
-WD = Image.open("/tmp/claude-0/kfw4/d_cat.jpg").size[0]   # ドライの図の横幅（字の見た目をそろえる相手）
+WD = 1276   # ドライの図の「前・後」2枠ぶんの横幅（字の見た目をそろえる相手）。10/28 ドライに3つ目の枠（フル装備）を足したので、決まった数にする
 def draw(fs, ext=0):
     font = ImageFont.truetype(FP, round(fs)); cap = ImageFont.truetype(FP, round(fs)); k = fs / 56
     out = Image.new("RGB", (3000, H), "white"); d = ImageDraw.Draw(out)
