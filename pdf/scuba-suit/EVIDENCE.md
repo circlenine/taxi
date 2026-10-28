@@ -151,3 +151,4 @@
 ## 10/28 追加した写真の出どころ
 - 4-4 ビーチサンダル：ウィキメディア・コモンズ「Woman wearing red flip flops.jpg」（CC BY-SA 2.0）https://commons.wikimedia.org/wiki/File:Woman_wearing_red_flip_flops.jpg
 - 3-1 フル装備のイメージ：パパラギ先生のまるごとダイビングTV（PB）9:25 ごろ、エントリー直前の女性ダイバー（下の字幕は入れない）
+- 3-2 ホースの写真：PADI「How To | Gear Assembly」（https://youtu.be/YE2_K7WfarA）37秒。BCDにつなぐ所。画面の飾り文字（09の丸）は消した。ドライ用のホースも先の形は同じ（TUSA 取扱説明書 p.18）
