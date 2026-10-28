@@ -328,7 +328,8 @@ _t = (_d + _dt.timedelta(minutes=7, seconds=30)).replace(second=0, microsecond=0
 def _ampm(hm):   # 10/24 まーく様「日付、全てに AM を付けて」→ 13:05 は PM01:05 の形
     # 10/27 まーく様「PM7:00 ではなく PM19:00 に。表記はおかしいと思うが、こっちの方がわかりやすい」→ AM/PM のあとは 24 時間の数字
     h, m = map(int, hm.split(':')); return f"{'AM' if h < 12 else 'PM'}{h:02d}:{m:02d}"
-VER = f"更新日時：{_t:%Y/%m/%d}({'月火水木金土日'[_t.weekday()]}) {_ampm(os.environ.get('VER_TIME') or format(_t, '%H:%M'))}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
+_q15 = lambda v: f"{v[:2]}:{int(v[3:5]) // 15 * 15:02d}"   # 10/28 まーく様「更新時間は15分単位」→ 15分単位に切り下げ
+VER = f"更新日時：{_t:%Y/%m/%d}({'月火水木金土日'[_t.weekday()]}) {_ampm(_q15(os.environ.get('VER_TIME') or format(_t, '%H:%M')))}"   # VER_TIME=22:45 のように、時刻を決めて出すこともできる（10/23 まーく様「22:45で」）   # 10/14 ご指示：「更新日時：」を前に。曜日のかっこだけは半角（ほかの本文は全角のまま）
 EDTAG = f'<span class="edtag"><b>4</b>スーツ編<span class="ver">{VER}</span></span>'   # 全ページの左上の、編の番号と名前
 pages, TOC = [], []
 HOOK = {}
