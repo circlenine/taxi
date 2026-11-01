@@ -51,3 +51,5 @@ d_conn dry_bcd 223
 w_shoes commons 0
 d_ba dry_bcd 223
 d_autoa dry_ocean 342
+d_conn2 seasir 0
+d_full2 seasir 0

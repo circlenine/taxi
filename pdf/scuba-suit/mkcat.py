@@ -56,8 +56,9 @@ ZX=round(OX2+w2+40); R2=round(ZX+ZW+PAD)
 # 10/28 まーく様「フル装備（BCDもつけた状態）のイメージ写真を、ドライの全体写真と一緒に」
 #   → 3つ目の枠に、背負った姿の写真（PB 9:25：エントリー直前の女性。下の字幕は入れない）
 X3=R2+GAP; OX3=X3+PAD
-fsrc=Image.open("/tmp/claude-0/kfw4/d_full_src.jpg").convert("RGB")
-FB=(130,150,720,920); fs_=FH/(FB[3]-FB[1]); w3=round((FB[2]-FB[0])*fs_)
+# 11/2 まーく様「ドライとホースが繋がっているのが分かるバストショットが必須」→ シーサー那覇店ブログ（World Dive のドライ＋BCD。胸のボタンにホースがつながり、指さしている）
+fsrc=Image.open("/tmp/claude-0/kfw4/d_full2.jpg").convert("RGB")
+FB=(80,20,440,420); fs_=FH/(FB[3]-FB[1]); w3=round((FB[2]-FB[0])*fs_)
 R3=OX3+w3+PAD
 W=R3+PAD
 # 枠（図より先に描きたいので、図をいったん退避して重ねる）
@@ -74,7 +75,7 @@ sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[1],"r",(sh[0]-24,sh[1
 bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]))
 zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,zp[1],"l",(zp[0]+118,zp[1]))
 out.paste(fsrc.crop(FB).resize((w3,FH),Image.LANCZOS),(OX3,TOP))
-for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後"),(OX3,w3,"フル装備のイメージ")):
+for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後"),(OX3,w3,"フル装備：ホースは胸へ")):
     d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms")
 ov=Image.new("RGBA",out.size,(0,0,0,0)); dv=ImageDraw.Draw(ov)
 for (x,y),r,ry,w in OVL: dv.ellipse((x-r,y-ry,x+r,y+ry),outline=RED+(150,),width=w)
