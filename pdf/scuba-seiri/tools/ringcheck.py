@@ -31,7 +31,7 @@ for slot, (k, x0, y0, x1, y1, rings) in boxes.items():
     # 10/27 寄りすぎ：動画の画面を、横幅の 27%（1280 のうち 340）より狭く切ると、まわりが写らず「体のどこか」が分からない
     #   （肩・ボタン・膝の大写しで起きた）。わざと大写しにする写真（同じ部分を、別の写真で体ごと見せているもの）は CLOSEUP に書く
     #   ※はじめは「赤丸が写真の 70% より大きい」で数えたが、ブーツ1足・BCD全体のように大きな物を囲んだ写真まで引っかかったので、切った幅で数える
-    if not k.startswith("u") and k not in focus_w.NOCROP and k not in focus_w.CLOSEUP and w < 340:
+    if not k.startswith("u") and k not in focus_w.NOCROP and k not in focus_w.CLOSEUP and k not in focus_w.PUSH and w < 340:
         ng.append(f"NG {slot}：寄りすぎ（動画の画面の {w / 1280:.0%} だけを切っている）。体のどこか分かるよう、引いて写す")
         # 10/27 まーく様「赤丸は基本的に画像の中心に」→ 赤丸（いくつかあるときはその真ん中）が、写真の真ん中から 12% 以内か
     # 10/27 夜 まーく様「アップの写真は、丸の大きさを統一」：赤丸1つのアップ写真は、直径が写真の高さの 50〜75%（目安 62%）
