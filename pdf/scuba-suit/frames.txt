@@ -49,3 +49,4 @@ d_nip commons 0
 d_tip commons 0
 d_conn dry_bcd 223
 w_shoes commons 0
+d_ba dry_bcd 223
