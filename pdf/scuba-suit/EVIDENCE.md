@@ -29,6 +29,8 @@
 | GS | ゴーゴースクーバ（PADI）「伊豆の水温と透明度とスーツの目安」：月別の水温（1月15〜18℃ … 9月24〜28℃ … 12月17〜21℃）と季節ごとのスーツ（春・冬ドライ／初夏ドライか5mm＋α／夏5mm／秋ウェットかドライ・10月はドライの人も増える） | https://www.55scuba.com/izutemp/ |
 | JMA | 気象庁「網代 平年値（月ごと）」平均気温：1月7.0・2月7.4・3月10.1・4月14.5・5月18.5・6月21.4・7月25.2・8月26.4・9月23.3・10月18.7・11月14.0・12月9.6℃ | https://www.data.jma.go.jp/stats/etrn/view/nml_sfc_ym.php?prec_no=50&block_no=47668 |
 | TUSA | TUSA「WATERPROOF ドライスーツ 取扱説明書」（別メーカー。一般的な注意の確かめに使う） | https://tusa.net/brand/waterproof/pdf/140402_WATERPROOF_torisetsu.pdf |
+| DVN | Divernet「Dive Like A Pro: Drysuit diving hints and advice」：PADI TecRec インストラクタートレーナー Martin Robson「ドライは濡れないため・温かさのため。浮力には使わない。それはBCDの役目」「空気が少ないほど姿勢と浮力が楽」／PADI のトレーニング担当「入れすぎると空気が足など困る所へ移る」「BCDほど抜きやすくない」「最初は締めつけを避けるだけの少しの空気で」 | https://divernet.com/scuba-diving/dive-like-a-pro-drysuit-diving-hints-and-advice/ |
+| PADI | PADI「How To \| Gear Assembly」（器材のセッティング） | https://youtu.be/YE2_K7WfarA |
 
 ## ドライスーツ（サンライズのスーツ）
 

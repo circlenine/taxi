@@ -13,8 +13,8 @@ cd $S/build_w
 # 不安にさせる言い回しが無いか（10/15 ご指示・全資料共通）
 ck python3 -I $S/tools/phrasecheck.py $S/tools/content_w.py
 python3 $S/tools/a4w.py $S/build_w
-# 10/20 まーく様「最大でも10ページ」：10ページを超えたら止める
-n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_w/a4.html | wc -l); if [ "$n" -gt 10 ]; then echo "NG 10ページを超えた（$n ページ）"; exit 1; fi
+# 10/20 まーく様「最大でも10ページ」→ 10/29 まーく様の了承で11ページまで（ホースと空気の1ページを足した）
+n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_w/a4.html | wc -l); if [ "$n" -gt 11 ]; then echo "NG 11ページを超えた（$n ページ）"; exit 1; fi
 # 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
 ck python3 -I $S/tools/numcheck.py $S/build_w/num.png $(node $S/tools/numcheck.js $S/build_w/a4.html $S/build_w/num.png)
 # 1ページ目（まとめ＋もくじ）がページからはみ出していないか（10/16）

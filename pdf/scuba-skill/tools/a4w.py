@@ -312,8 +312,8 @@ STK_OF = {}
 REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
-WIDE = {"1-1", "1-2", "1-3", "3-1", "4-5"}
-SIDE = {"4-5"}   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+WIDE = {"1-1", "1-2", "1-3", "3-1", "3-6", "3-7"}
+SIDE = {"3-6"}   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
 from PIL import Image as _I
 ASPECT = {k: (lambda z: z[0] / z[1])(_I.open(f"/tmp/claude-0/kfw4/{k}.jpg").size) for k in ("d_cat", "w_cat")}   # 10/27 夜 図は中身に合わせた大きさで作る（mkcat.py・mkwet.py）ので、形は画像から読む   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
@@ -394,9 +394,10 @@ for sec in STEPS:
     # 手順は2列に並べる（A4の1ページに収めるため）。同じ行の手順は、枠の高さをそろえる
     # 手順が多くて文が長い工程（工程2）だけ、2ページに分ける（1項目は多くても2ページ）
     subs = sec["subs"]
-    groups = [subs]   # 洗浄編は、どの工程も1ページに収まる
+    groups = [subs[:sec["split"]], subs[sec["split"]:]] if sec.get("split") else [subs]   # 10/29 まーく様の了承で11ページに：ドライの特徴（3）だけ、ホースと空気の話を2ページ目に分ける
     for gi, g in enumerate(groups):
         t = (f"〔{sec['kind']}〕" if sec.get("kind") else "") + (sec["title"] if len(groups) == 1 else (sec["title"] if gi == 0 else sec.get("title2", sec["title"])) + f'<span class="half">{"前半" if gi == 0 else "後半"}</span>')
+        if sec.get("split"): t = (f"〔{sec['kind']}〕" if sec.get("kind") else "") + (sec["title"] if gi == 0 else sec["title2"])   # 2ページ目は別の題（前半・後半とは書かない）
         # 準備とのちがいを、題の右の札で見せる（10/13 ご指示）：つけたときの逆の順に外すだけ／ここから新規項目である洗浄のやり方
         pass   # 10/24 スーツ編は、どれも初めての話なので、ふり返り・NEW の札は付けない
         if sec["id"] in COLS:
@@ -405,7 +406,7 @@ for sec in STEPS:
         else:
             body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         # 10/27 夜 まーく様「ワクワクして読み進めたくなる作りか」→ ページの一番上に「このページで何がうれしいか」を1行（各ページの最初の数秒で、自分に役立つと分かるように）
-        HOOK[len(pages) + 1] = sec.get("hook", "")   # 題の右に置く（高さを増やさない）
+        HOOK[len(pages) + 1] = sec.get("hook2", sec.get("hook", "")) if gi else sec.get("hook", "")   # 題の右に置く（高さを増やさない）
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
         page(sec.get("lb", f"工程{sec['id']}"), t, body, toc=True)   # 10/27 まーく様：もくじの札は［装備〉［工程1〉…  # 前半・後半とも、もくじに出す（10/7 ご指摘：後半が抜けていた）
 
@@ -713,6 +714,9 @@ CSS += """
 .grid2>.step.wide.side>.sh3{grid-column:1/-1;grid-row:1}
 .grid2>.step.wide.side .srows{line-height:1.35!important}
 .grid2>.step:not(.wide)+.step.wide.side{padding-top:2.6mm!important}
+.grid2>.step.wide.side+.step.wide{padding-top:2.6mm!important}
+.grid2>.step.wide.side{padding-bottom:2mm!important}
+.grid2>.step.wide.side+.step.wide{padding-bottom:0!important}
 .grid2>.step.wide.side .nt.kpk{padding-bottom:.6mm!important}
 .grid2:has(>.step.wide.side)>.step:not(.wide){padding-bottom:1.6mm!important}
 .grid2>.step.wide.side>.photos{grid-column:1;grid-row:2;margin-top:0!important}

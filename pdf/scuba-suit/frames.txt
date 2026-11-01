@@ -43,3 +43,5 @@ o_heel dry_ocean 453
 w_sandal commons 0
 d_hose padi_setting 37
 d_reg padi_setting 23
+p_bcdh dry_bcd 643
+p_bcduse dry_bcd 271
