@@ -1,3 +1,4 @@
+import re
 # A4のPDF（10/7 ご指示「A4にして」。スマホ版の作りを、A4の1ページに収める）
 # もとはスマホで読むためのPDF（10/7 ご指示「スマホで見る。各項目は1ページ、多くても2ページ」）
 # ・紙の幅を、スマホの画面に近い 110mm にする（A4のまま縮めると、字が小さくて読めないため）
@@ -252,6 +253,7 @@ def notes(s):
             if i in _rng: x = _rg(x)
             elif "|" in x: x = '<span class="g3">' + "".join(f"<span>{T(v)}</span>" for v in x.split("|")) + '</span>'
             else: x = T(x)
+            x = re.sub(r'\*\*(.+?)\*\*', r'<b class="em">\1</b>', x)   # 11/2 まーく様「大事な部分だけを色変えや太字に」→ **〜** の所を太く、下に黄色の帯
             return f'<td class="{c}">{x}</td>' if c else f'<td>{x}</td>'
         if tb["cols"][0]:   # 左の列（何を比べるか）がない、2つを並べるだけの表
             tr = "".join('<tr>' + "".join(_td(x, i) for i, x in enumerate(xs)) + '</tr>' for xs in tb["rows"])
@@ -598,6 +600,9 @@ table.cmp td.pos{color:#1565c0!important}
 table.cmp td.neg{color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
+table.cmp .em{font-weight:900;color:inherit;background:linear-gradient(transparent 58%,#ffe08a 58%);padding:0 .1em}
+table.cmp td:not(.pos):not(.neg) .em{color:#1f2a37}
+table.cmp td{font-weight:700}
 table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap}
 table.cmp .g2>span:nth-child(1){text-align:right}
 table.cmp .g2>span:nth-child(3){text-align:left}   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
