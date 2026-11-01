@@ -45,3 +45,7 @@ d_hose padi_setting 37
 d_reg padi_setting 23
 p_bcdh dry_bcd 643
 p_bcduse dry_bcd 271
+d_nip commons 0
+d_tip commons 0
+d_conn dry_bcd 223
+w_shoes commons 0

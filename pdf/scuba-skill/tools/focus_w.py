@@ -87,7 +87,11 @@ F = {
  "d_shoes": ("d_shoes", (0, 0, 1280, 525), (120, 40, 940, 525)),   # PP 2:48：紐をしっかり結ぶブーツ（✕ の例）。下の字幕は入れない
  "w_sandal": ("w_sandal", (0, 0, 1280, 853), (200, 330, 960, 730)),   # 10/28 まーく様「女性用の“ビーチ”サンダル」→ ウィキメディア・コモンズ「Woman wearing red flip flops」（CC BY-SA 2.0）
  "p_bcdh":  ("p_bcdh",  (520, 100, 1100, 530), (560, 120, 1000, 500)),   # 10/29 PB 10:44「BCDのホースって短い」：手に持ったBCD用のホース（顔は入れない・下の字幕も入れない）
- "p_bcduse": ("p_bcduse", (150, 40, 1000, 600), (200, 80, 920, 600)),   # 10/29 PB 4:31 水中で、ドライを着たままBCDのボタンを持つ所（下の字幕は入れない）
+ "p_bcduse": ("p_bcduse", (150, 40, 1000, 560), (200, 60, 920, 560)),   # 10/29 PB 4:31 水中で、ドライを着たままBCDのボタンを持つ所（下の字幕は入れない）
+ "d_nip":   ("d_nip",   (0, 0, 1280, 720), (150, 0, 1040, 690)),   # 11/2 ドライの胸のボタン（Apeks 給気バルブ）と、ホースを差しこむ口（ウィキメディア・コモンズ CC BY-SA 4.0）
+ "d_tip":   ("d_tip",   (0, 0, 1280, 720), (120, 50, 1120, 630)),   # 11/2 ホースの先（輪を引いて差す所。コモンズ Seatec quick disconnect CC BY-SA 4.0）
+ "d_conn":  ("d_conn",  (0, 150, 700, 555), (40, 250, 520, 555)),   # 11/2 PB 3:43 ドライの胸のボタンに、ホースがつながっている所（下の字幕は入れない）
+ "w_shoes": ("w_shoes", (0, 0, 1280, 847), (40, 40, 1200, 760)),   # 11/2 まーく様「女性用の紐靴に」→ コモンズ「New Balance Women's 990」CC BY 2.0
  "d_reg":   ("d_reg",   (0, 0, 1280, 600), (150, 60, 1050, 600)),   # 10/29 タンクに付ける器材（レギュレーター）から、ホースが何本も出ている所（PADI 23.5秒）
  "d_hose":  ("d_hose",  (700, 120, 1280, 605), (775, 163, 1215, 603)),   # 10/29 まーく様「なんのホースか・ホースの画像は」→ PADI「器材のセッティング」37.8秒。動画の飾り文字（09の丸）は消してある
  "u36":     ("u36",     (100, 0, 1180, 720),  (300, 0, 1000, 720)),   # 10/27 初見の点検 → 腰から足元まで（下ろしている手が見えるように）
@@ -103,6 +107,9 @@ for _l in open("/tmp/claude-0/kfw4/list4.txt"):
     if _v in _YT: SRC[_k] = (_YT[_v], int(_t))
 SRC["d_cat"] = SRC["d_catin"] = SRC["d_catex"] = ("https://www.worlddive.co.jp/product/", None)
 SRC["w_sandal"] = ("https://commons.wikimedia.org/wiki/File:Woman_wearing_red_flip_flops.jpg", None)   # 10/28 CC BY-SA 2.0。出どころをタップで開けるように
+SRC["d_nip"] = ("https://commons.wikimedia.org/wiki/File:Dry_suit_inflation_valve_P8170013.jpg", None)
+SRC["d_tip"] = ("https://commons.wikimedia.org/wiki/File:Seatec_quick_disconnect_end_fitting_P8180016.jpg", None)
+SRC["w_shoes"] = ("https://commons.wikimedia.org/wiki/File:New_Balance_Women%27s_990_Running_Shoes.jpg", None)
 SRC["w_cat"] = ("https://www.worlddive.co.jp/catalog/data/26wd_catalog.pdf", None)   # 10/27 夜 ウェットの図はカタログ p.30（AF1）から
 for _k in F:
     if _k.startswith("u"): SRC[_k] = (UMI, None)
@@ -387,8 +394,9 @@ NOCROP = {"d_cat", "w_cat"}   # サンライズのスーツの図（mkcat.py で
 # わざと大写しにする写真（ringcheck の「寄りすぎ」から外す）。どれも、同じ部分を 2-1 の図や となりの写真で、体ごと見せている
 CLOSEUP = {"w_bag", "d_sock", "w_hair", "d_auto", "d_valv", "d_seal", "d_frex"}   # d_frex：10/27 夜 説明の男性の顔を外すと幅が狭くなる。体のどこかは 3-1 の図で見せている
 # 10/27 まーく様「女性目線での資料ファースト」：男性が写っている写真と、男性のままにしている理由（理由がない男性の写真は ringcheck が止める）
-MALE = {"p_bcdh", "p_bcduse", "d_frin", "d_frex", "m_valves", "d_cat", "p_heel"}
+MALE = {"d_conn", "p_bcdh", "p_bcduse", "d_frin", "d_frex", "m_valves", "d_cat", "p_heel"}
 MALE_OK = {
+ "d_conn": "胸のボタンにホースがつながった所だけ（顔は入れない）。女性の同じ場面は、手元の動画に無い",
  "p_bcdh": "BCD用のホースが短いことを見せる写真。手とホースだけ（顔は入れない）。女性が持つ場面は、根拠の動画に無い",
  "p_bcduse": "ドライを着て水中でBCDを使う場面。マスクで顔は分からない。女性の同じ場面は、手元の動画に無い",
  "d_frin": "ボタンの位置を見せる写真。男性は、スーツを持ち上げているだけ（女性が着た姿で胸と左肩のボタンが写る場面は、根拠の動画に無い）",
@@ -411,7 +419,7 @@ def aspect_range(key):
 
 # 10/27 初見の点検「何の場面か分からない」10枚 → 赤丸のまわりに寄せると、体のどこで・何をしているかが消える。
 #   ここに入れた写真は、F に書いた広さをそのまま使う（赤丸に合わせて寄らない）。F は赤丸がほぼ真ん中に来るように書く
-CTX = {"p_bcdh", "p_bcduse", "d_reg", "d_inval", "w_bag2", "rx386", "rx420", "d_hose", "u21w", "d_toilet", "o_heel", "w_hair", "u15", "d_seal", "p_heel", "u34", "u36", "d_frin", "d_frex"}   # 10/27 夜 ボタン・靴下は「体のどこか」を見せる写真
+CTX = {"d_nip", "d_tip", "d_conn", "w_shoes", "p_bcdh", "p_bcduse", "d_reg", "d_inval", "w_bag2", "rx386", "rx420", "d_hose", "u21w", "d_toilet", "o_heel", "w_hair", "u15", "d_seal", "p_heel", "u34", "u36", "d_frin", "d_frex"}   # 10/27 夜 ボタン・靴下は「体のどこか」を見せる写真
 # 10/27 夜 赤丸を真ん中に置けない写真（理由つき）。かかとは画面の下の字幕のすぐ上にあり、真ん中に置くと寄りすぎて何の場面か分からなくなる
 CENTER_OK = {"rx386": "左手と袖の両方を見せるため", "rx420": "お腹から折りたたんだ所まで見せるため",
              "d_toilet": "ファスナーは背中の上の横一文字。ファスナー全体を見せるため、丸は上寄り",
