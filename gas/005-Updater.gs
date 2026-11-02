@@ -2,7 +2,25 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U146ver  （2026/11/2）  ★★★
+ *  ★★★  U147ver  （2026/11/2）  ★★★
+ *
+ *  [U147ver]
+ *   ・🩺 自動のお医者さんを置いた（ご指示）
+ *     ★まーく様のご指示：
+ *       「クロちゃん側で自動で修正できることは
+ *         永続的に全て自動で行ってください」
+ *     ★1時間に1回、自分で自分を診ます。
+ *       ① 見張りがそろっているか     → 足りなければ立て直す
+ *       ② 中身の無い見張りが無いか   → あれば消す
+ *       ③ LINEの受け口が生きているか → 死んでいたら公開し直す
+ *     ★③は いちばん気づけない壊れ方です。
+ *       どこにもエラーが出ないまま、記録だけが入らなくなります。
+ *       公開し直すと住所が変わるので、
+ *       **LINE側の登録も、こちらで書きかえます**。
+ *       ここまでやらないと、結局 人の手が要ります。
+ *     ★新しい「版」は作りません（200個の上限に当たっていても通ります）。
+ *     ★黙って直します。知らせるのは、直したときと
+ *       人の手が要るときだけ。1日に1回までです。
  *
  *  [U146ver]
  *   ・🧹 中身の無い見張りを、こちらで消すようにした
@@ -1607,7 +1625,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U146ver";
+const UPD_VERSION = "U147ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9467,7 +9485,17 @@ function fixAll() {
    *   なおすたびに、ここで必ず確かめます。
    */
   try {
-    if (typeof updWebAppCheck_ === "function") L.push(updWebAppCheck_());
+    /*
+     * ★見るだけでなく、死んでいたら その場で直します（まーく様のご指示）。
+     *   「クロちゃん側で自動で修正できることは、全て自動で」
+     */
+    if (typeof updWebAppFix_ === "function") {
+      const w = updWebAppFix_();
+      if (w && w.text) L.push(w.text);
+      else L.push("✅ LINEの受け口：生きています");
+    } else if (typeof updWebAppCheck_ === "function") {
+      L.push(updWebAppCheck_());
+    }
   } catch (e) {}
 
   L.push("");
@@ -9490,6 +9518,210 @@ function fixAll() {
     }
   } catch (e) {}
   return text;
+}
+
+/* ================================================================
+ *  \U0001fa7a 自動のお医者さん ―― 人の手を、もう要らなくする
+ *
+ *  ★まーく様のご指示（2026/11/2）
+ *    「クロちゃん側で自動で修正できることは
+ *      永続的に全て自動で行ってください」
+ *
+ *  ★ここまでの事故は、どれも同じ形でした。
+ *    ① どこかが壊れる
+ *    ② 直す係も いっしょに止まる
+ *    ③ だれも気づかない
+ *    ④ 何週間も そのまま
+ *
+ *  ★だから「1時間に1回、自分で自分を診る」係を置きます。
+ *    診るのは3つだけ。どれも、見つけたら その場で直します。
+ *      ① 見張りがそろっているか     → 足りなければ立て直す
+ *      ② 中身の無い見張りが無いか   → あれば消す
+ *      ③ LINEの受け口が生きているか → 死んでいたら公開し直す
+ *
+ *  ★③は、いちばん気づけない壊れ方です。
+ *    どこにもエラーが出ないまま、記録だけが入らなくなります。
+ *    公開し直すと受け口の住所が変わるので、
+ *    **LINE側の登録も、こちらで書きかえます**。
+ *    ここまで自動でやらないと、結局 人の手が要ります。
+ *
+ *  ★黙って直します。うるさくしません。
+ *    直したとき と 直せなかったときだけ、1日に1回まで知らせます。
+ *
+ *  ★お金はかかりません。新しい道具も使いません。
+ *    使う許可は、いま持っている9つの中に収まっています。
+ * ================================================================ */
+
+const DR_EVERY_MIN   = 60;              // 何分おきに診るか
+const DR_AT_KEY      = "UPD_DR_AT";     // 前に診た時刻
+const DR_TELL_KEY    = "UPD_DR_TELL";   // 前に知らせた日と中身
+
+/** いまの受け口（ウェブアプリ）の住所。無ければ空 */
+function updWebAppUrl_() {
+  try { return String(ScriptApp.getService().getUrl() || ""); } catch (e) { return ""; }
+}
+
+/** その住所が、ほんとうに開けるか */
+function updUrlAlive_(url) {
+  if (!url) return false;
+  try {
+    const res = UrlFetchApp.fetch(url + (url.indexOf("?") === -1 ? "?" : "&") + "ping=1",
+      { muteHttpExceptions: true, followRedirects: true });
+    const code = res.getResponseCode();
+    return (code >= 200 && code < 400);
+  } catch (e) { return false; }
+}
+
+/**
+ * LINE側に「受け口はここです」と登録し直す。
+ *
+ * ★ここまでやらないと、公開し直しても LINEは古い住所に送りつづけます。
+ *   記録は、やっぱり入りません。
+ */
+function updLineHookSet_(url) {
+  let tok = "";
+  try { tok = PropertiesService.getScriptProperties().getProperty("LINE_TOKEN") || ""; } catch (e) {}
+  if (!tok) return "LINEの鍵が無いので、登録し直せませんでした";
+  try {
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/channel/webhook/endpoint", {
+      method: "put",
+      headers: { "Authorization": "Bearer " + tok },
+      contentType: "application/json",
+      payload: JSON.stringify({ endpoint: url }),
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    if (code < 200 || code >= 300) {
+      return "LINEへの登録し直しが断られました（" + code + "）";
+    }
+    return "";                                   // うまくいった
+  } catch (e) {
+    return "LINEへの登録し直しができませんでした（" + ((e && e.message) || e) + "）";
+  }
+}
+
+/**
+ * 受け口が死んでいたら、公開し直す。
+ * 返すのは { fixed:bool, url:"", text:"ひとこと" }
+ *
+ * ★新しい「版」は作りません。いまある いちばん新しい版を、そのまま公開します。
+ *   版は200個までという決まりがあり、満杯でも ここは通るようにするためです。
+ */
+function updWebAppFix_() {
+  const url0 = updWebAppUrl_();
+  if (updUrlAlive_(url0)) return { fixed: false, url: url0, text: "" };   // 生きている
+
+  // ① いまある版のうち、いちばん新しいものを探す
+  let ver = 0;
+  try {
+    const vs = (updApi_("/versions", "get", null).versions) || [];
+    vs.forEach(function (v) { if (Number(v.versionNumber) > ver) ver = Number(v.versionNumber); });
+  } catch (e) {
+    return { fixed: false, url: url0,
+             text: "❌ LINEの受け口が死んでいます。版を調べられませんでした（" +
+                   ((e && e.message) || e) + "）" };
+  }
+  if (!ver) {
+    return { fixed: false, url: url0,
+             text: "❌ LINEの受け口が死んでいます。公開できる版がありません" };
+  }
+
+  // ② その版で、公開し直す
+  let made = null;
+  try {
+    made = updApi_("/deployments", "post", {
+      versionNumber: ver,
+      manifestFileName: "appsscript",
+      description: "自動修復 " + new Date().toISOString()
+    });
+  } catch (e) {
+    return { fixed: false, url: url0,
+             text: "❌ LINEの受け口を公開し直せませんでした（" + ((e && e.message) || e) + "）" };
+  }
+
+  // ③ 新しい住所を読む
+  let url = "";
+  try {
+    ((made && made.entryPoints) || []).forEach(function (p) {
+      if (p && p.webApp && p.webApp.url) url = String(p.webApp.url);
+    });
+  } catch (e) {}
+  if (!url) url = updWebAppUrl_();
+  if (!url) {
+    return { fixed: false, url: "",
+             text: "❌ 公開し直しましたが、新しい住所が読めませんでした" };
+  }
+
+  // ④ LINE側の登録も、こちらで書きかえる（ここまでやらないと記録は入らない）
+  const ng = updLineHookSet_(url);
+  if (ng) {
+    return { fixed: true, url: url,
+             text: "🩺 LINEの受け口を公開し直しました（版 " + ver + "）。\n" +
+                   "ただし " + ng + "。\n" +
+                   "・LINE Developers の Webhook URL に、下の住所を貼ってください\n" +
+                   "・" + url };
+  }
+  return { fixed: true, url: url,
+           text: "🩺 LINEの受け口が死んでいたので、こちらで直しました（版 " + ver + "）。\n" +
+                 "・LINE側の登録も、こちらで書きかえました\n" +
+                 "・いままでどおり、LINEに書けば記録が入ります" };
+}
+
+/** 1日に1回だけ、同じ中身を知らせる */
+function updDrTell_(text) {
+  if (!text) return;
+  const pr = updProps_();
+  const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd");
+  const key = today + "|" + text.slice(0, 40);
+  try { if (String(pr.getProperty(DR_TELL_KEY) || "") === key) return; } catch (e) {}
+  try { pr.setProperty(DR_TELL_KEY, key); } catch (e) {}
+  try {
+    const me = updMe_();
+    if (me && typeof lrPush_ === "function") {
+      lrPush_(me, [{ type: "text", text: text }]);
+    }
+  } catch (e) {}
+  try {
+    const sh = mainSS_().getSheetByName(PANEL_TAB);
+    if (sh && typeof panelSay_ === "function") panelSay_(sh, text);
+  } catch (e) {}
+}
+
+/**
+ * 1時間に1回、自分で自分を診る。
+ * 見張り（panelWatch）から呼びます。返すのは「診たかどうか」。
+ *
+ * ★直せたものは黙って直します。
+ *   知らせるのは「人の手が要るとき」と「直したとき」だけです。
+ */
+function updDoctorTick_() {
+  const pr = updProps_();
+  try {
+    const at = Number(pr.getProperty(DR_AT_KEY) || 0);
+    if (at && (Date.now() - at) < DR_EVERY_MIN * 60000) return false;
+    pr.setProperty(DR_AT_KEY, String(Date.now()));
+  } catch (e) { return false; }
+
+  const say = [];
+
+  // ① 見張りをそろえる（中身の無い見張りの掃除も、この中でやります）
+  try {
+    if (typeof updEnsureAll_ === "function") {
+      const t = String(updEnsureAll_() || "");
+      if (t.indexOf("立てました") !== -1 || t.indexOf("消しました") !== -1) say.push("🩺 " + t);
+    }
+  } catch (e) { try { logErr_("doctorTriggers", e); } catch (e2) {} }
+
+  // ② LINEの受け口を診て、死んでいたら公開し直す
+  try {
+    if (typeof updWebAppFix_ === "function") {
+      const r = updWebAppFix_();
+      if (r && r.text) say.push(r.text);
+    }
+  } catch (e) { try { logErr_("doctorWebApp", e); } catch (e2) {} }
+
+  if (say.length) updDrTell_(say.join("\n\n"));
+  return true;
 }
 
 /**
@@ -10859,6 +11091,15 @@ function panelWatch() {
      *   入れ替わった直後の並びで、もう一度触りにいかないためです。
      */
     try { if (updAutoPullTick_()) return; } catch (e) { logErr_("panelWatchPull", e); }
+
+    /*
+     * ★1時間に1回、自分で自分を診ます（updDoctorTick_）。
+     *   見張りがそろっているか・中身の無い見張りが無いか・
+     *   LINEの受け口が生きているか。見つけたら、その場で直します。
+     *   ★ここに置いたのは、見張りが生きているかぎり必ず通る道だからです。
+     *   ★ふだんは何も言いません。直したときだけ、1日1回まで知らせます。
+     */
+    try { if (updDoctorTick_()) return; } catch (e) { logErr_("doctor", e); }
 
     /*
      * ★イベントの見張り（venueDailyJob）が無ければ、ここで作ります。
