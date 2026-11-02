@@ -1,7 +1,16 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C076ver  （2026/10/26）  ★★★   ← もとは version 232
+ *  ★★★  C077ver  （2026/11/2）  ★★★   ← もとは version 232
+ *
+ *  [C077ver]
+ *   ・🔄 見張りの入れ替えを「先に作ってから、古いのを消す」形にした
+ *     ★2026/10/16、記録が丸ごと止まり、2週間 だれも気づけませんでした。
+ *       入れ直すところが「先に消してから、作る」形だったためです。
+ *       作るところでしくじると、見張りが1つも無い状態が残ります。
+ *       見張りが無いと、入れ直す係も動けません。そこで永久に止まります。
+ *     ★共通の係（trgSwap_）にまとめ、全部そこを通すようにしました。
+ *       作れなければ、古いほうを そのまま残します。止めないためです。
  *
  *  [C076ver]
  *   ・🚕 「ゴー」を ぜんぶ GO にそろえた（ご指示）
@@ -782,7 +791,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C076ver";
+const CODE_VERSION = "C077ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -4375,12 +4384,62 @@ function menuOpenCheckStatus() {
   ui.alert("🩺 動いているか調べる", L.join("\n"), ui.ButtonSet.OK);
 }
 
+/* ================================================================
+ *  🔄 見張りを「入れ替える」ための、共通の係
+ *
+ *  ★2026/10/16、記録が丸ごと止まりました。2週間 だれも気づけません。
+ *    見張りを入れ直すところが「**先に消してから、作る**」形でした。
+ *    作るところでしくじると、見張りが **1つも無い状態** が残ります。
+ *    見張りが無いと、入れ直す係も動けません。そこで永久に止まります。
+ *
+ *  ★だから、入れ替えは かならず この順でやります。
+ *      ① 先に 新しいものを作る
+ *      ② 作れたときだけ、古いものを消す
+ *      ③ 作れなければ、古いものを そのまま残す（止めない）
+ *
+ *  ★返すのは true（入れ替えた）／false（作れなかった）。
+ *    しくじりは logErr_ に残すので、黙って消えることはありません。
+ * ================================================================ */
+function trgSwap_(names, make, where) {
+  const want = Array.isArray(names) ? names : [names];
+  const old = [];
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      let f = "";
+      try { f = String(t.getHandlerFunction() || ""); } catch (e) { return; }
+      if (want.indexOf(f) !== -1) old.push(t);
+    });
+  } catch (e) {
+    try { logErr_(where || "trgSwap", e); } catch (e2) {}
+    return false;                      // 一覧が読めない → 何もしない（消さない）
+  }
+
+  let made = null;
+  try {
+    made = make();                     // ① 先に作る
+  } catch (e) {
+    try { logErr_(where || "trgSwap", e); } catch (e2) {}
+    return false;                      // ③ 作れない → 古いものは、そのまま
+  }
+
+  // ② 作れたときだけ、古いものを消す
+  old.forEach(function (t) {
+    if (made && t === made) return;
+    try { ScriptApp.deleteTrigger(t); } catch (e) {}
+  });
+  return true;
+}
+
 function menuOpenCheckOn() {
   const ss = mainSS_();
-  ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === "onOpenCheck") ScriptApp.deleteTrigger(t);
-  });
-  ScriptApp.newTrigger("onOpenCheck").forSpreadsheet(ss).onOpen().create();
+  // ★先に作って、作れたときだけ古いほうを消します（trgSwap_ のとおり）
+  const okNow = trgSwap_("onOpenCheck", function () {
+    return ScriptApp.newTrigger("onOpenCheck").forSpreadsheet(ss).onOpen().create();
+  }, "menuOpenCheckOn");
+  if (!okNow) {
+    ss.toast("入れられませんでした。前のままです", "⚠️ 開いたときのチェック", 8);
+    return;
+  }
   ss.toast("次に開いたときから右下に出ます", "✅ 開いたときのチェックを ON にしました", 6);
 }
 
@@ -4497,12 +4556,12 @@ function ensureAutoFormatTrigger_(force) {
   } catch (e) { return false; }
   if (!force && cur.length === 1) return false;
 
-  cur.forEach(function (t) { try { ScriptApp.deleteTrigger(t); } catch (e) {} });
-  try {
-    ScriptApp.newTrigger("autoFormatJob").timeBased()
+  // ★先に作って、作れたときだけ古いほうを消します
+  //   （作れないのに消すと、毎日17時のしかけが 丸ごと無くなります）
+  return trgSwap_("autoFormatJob", function () {
+    return ScriptApp.newTrigger("autoFormatJob").timeBased()
       .atHour(17).nearMinute(0).everyDays(1).create();
-    return true;
-  } catch (e) { logErr_("ensureAutoFormat", e); return false; }
+  }, "ensureAutoFormat");
 }
 
 /** スマホからでも自動で整形されるように、毎日17時のしかけを入れる */

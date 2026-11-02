@@ -9138,6 +9138,72 @@ function panelLampNote_(st) {
  * @param {Date}    now   いまの時刻
  * @param {boolean} force 顔が変わっていなくても、必ず書き直すか
  */
+/* ================================================================
+ *  🚦 信号を「数式」にする ―― まーく様のご指摘（2026/11/2）
+ *
+ *  > F列の○サインも全く機能してないので、確認の意味が全くありません
+ *
+ *  ★なぜ 機能していなかったか
+ *    これまで信号は「**だれかが書いた字**」でした。
+ *    見張りが全部 止まると、書く人がいなくなります。
+ *    すると「🟢 順調」と書かれたまま、**固まります**。
+ *    いちばん危ないときに、いちばん安心な顔をしていました。
+ *    ★iPhoneのスプレッドシートのアプリでは、
+ *      「開いたときに書き直す」しかけも動きません（Googleの決まり）。
+ *      まーく様は ほぼiPhoneなので、ずっと固まったままでした。
+ *
+ *  ★これからは「**数式**」にします。
+ *    数式は、スプシが開くたびに ひとりでに計算し直されます。
+ *    コードが1行も動かなくても、時間だけは進みます。
+ *    だから、止まれば **ひとりでに赤くなります**。
+ *    ★止まった時刻も出します（「🔴 停止　10/16 22:21」）。
+ *      いつ止まったのかが、ひと目で分かります。
+ *
+ *  ★控えの置き場（消さないでください）
+ *    BZ1 … 最後に見張りが動いた時刻
+ *    CA1 … 最後にしくじった時刻
+ *    どちらも ずっと右のほうなので、ふだんの画面には出ません。
+ * ================================================================ */
+const PANEL_BEAT_CELL = "BZ1";     // 最後に見張りが動いた時刻
+const PANEL_ERRT_CELL = "CA1";     // 最後にしくじった時刻
+
+/**
+ * 信号の数式。
+ * ★中身の決め方は panelLampState_ と同じです（遅延5分・停止25分・失敗3時間）。
+ *   片方だけ直すと食いちがうので、直すときは必ず両方 見てください。
+ */
+function panelLampFormula_() {
+  const B = PANEL_BEAT_CELL, E = PANEL_ERRT_CELL;
+  return '=IF(' + B + '="","⚪ 不明　--:--",' +
+         'IF(NOW()-' + B + '>' + PANEL_LAMP_DEAD + '/1440,' +
+           '"🔴 停止　"&TEXT(' + B + ',"M/D HH:MM"),' +
+         'IF(AND(' + E + '<>"",NOW()-' + E + '<' + PANEL_LAMP_ERR_H + '/24),' +
+           '"🟠 失敗　"&TEXT(' + E + ',"HH:MM"),' +
+         'IF(NOW()-' + B + '>' + PANEL_LAMP_LATE + '/1440,' +
+           '"🟡 遅延　"&TEXT(' + B + ',"HH:MM"),' +
+           '"🟢 順調　"&TEXT(' + B + ',"HH:MM")))))';
+}
+
+/**
+ * 控えのらん（BZ1・CA1）を書く。
+ * ★数式は、このらんを見て顔を決めます。ここさえ新しければ、信号は正しく出ます。
+ */
+function panelBeatCells_(sh, st) {
+  if (!sh) return false;
+  try {
+    sh.getRange(PANEL_BEAT_CELL).setValue(st && st.beat ? new Date(st.beat) : "");
+  } catch (e) { return false; }
+  try {
+    sh.getRange(PANEL_ERRT_CELL)
+      .setValue(st && st.err && st.err.n > 0 && st.err.at ? new Date(st.err.at) : "");
+  } catch (e) {}
+  try {
+    sh.getRange(PANEL_BEAT_CELL).setNote(
+      "信号（F1）のもとになる時刻です。消さないでください。");
+  } catch (e) {}
+  return true;
+}
+
 function panelLamp_(sh, now, force) {
   try {
     if (!sh) return false;
@@ -9160,6 +9226,13 @@ function panelLamp_(sh, now, force) {
      *   1分おきに書くと、1日1440回の書きこみになります。
      *   1日の持ち時間（90分）を、見るだけのことで食いつぶします。
      */
+    /*
+     * ★控えのらん（BZ1）は、しぼらずに毎回 書きます。
+     *   ここが新しくないと、生きているのに「遅延」に見えてしまいます。
+     *   1つのらんに時刻を入れるだけなので、持ち時間はほとんど使いません。
+     */
+    try { panelBeatCells_(sh, st); } catch (e) {}
+
     if (!force && !changed && !aged) return false;
 
     let rg = sh.getRange(PANEL_LAMP_ROW, PANEL_LAMP_COL);
@@ -9175,7 +9248,21 @@ function panelLamp_(sh, now, force) {
       }
     } catch (e) {}
 
-    rg.setValue(st.text);
+    /*
+     * ★字ではなく「数式」を入れます。
+     *   字だと、見張りが止まったときに そのまま固まり、
+     *   「🟢 順調」のまま うそをつきます（まーく様のご指摘）。
+     *   数式なら、スプシを開くたびに時間を見直すので、
+     *   止まれば ひとりでに赤くなります。
+     */
+    try { panelBeatCells_(sh, st); } catch (e) {}
+    try {
+      const want = panelLampFormula_();
+      const cur  = String(rg.getFormula() || "");
+      if (cur !== want) rg.setFormula(want);   // 同じなら書き直さない（持ち時間の節約）
+    } catch (e) {
+      try { rg.setValue(st.text); } catch (e2) {}   // 数式が入らない機種では、字で出す
+    }
     /*
      * ★見た目。右寄せはご指示です（つないだらんの右端＝G列側に出ます）。
      * ★折り返しは切ります。折り返すと1行目が太り、
@@ -9186,8 +9273,14 @@ function panelLamp_(sh, now, force) {
     try { rg.setWrap(false); } catch (e) {}
     try { rg.setFontSize(10); } catch (e) {}
     try { rg.setFontWeight(st.bold ? "bold" : "normal"); } catch (e) {}
-    try { rg.setFontColor(st.color); } catch (e) {}
-    try { rg.setBackground(st.bg); } catch (e) {}
+    /*
+     * ★文字の色と下地は、書いたときの顔のままになります。
+     *   数式で顔が変わっても、色は変わりません。
+     *   色が食いちがうと かえって紛らわしいので、
+     *   赤・黄・緑は **丸の色そのもの** で見ていただきます。
+     */
+    try { rg.setFontColor("#202124"); } catch (e) {}
+    try { rg.setBackground(null); } catch (e) {}
     // メモは長いので、顔が変わったときだけ書き直します
     if (force || changed) { try { rg.setNote(panelLampNote_(st)); } catch (e) {} }
 
@@ -9469,12 +9562,40 @@ const PANEL_WATCH_MIN = 3;
 
 function panelInstall_() {
   const ss = mainSS_();
-  ScriptApp.getProjectTriggers().forEach(function (t) {
-    const f = t.getHandlerFunction();
-    if (f === "panelOnEdit" || f === "panelWatch") ScriptApp.deleteTrigger(t);
-  });
-  // ① チェックした瞬間に動く
-  ScriptApp.newTrigger("panelOnEdit").forSpreadsheet(ss).onEdit().create();
+
+  /*
+   * ★まず、中身の無い見張りを片づけます。
+   *   見張りは1つのコードに **20こまで** しか作れません。
+   *   こわれたものが席を取っていると、新しいものが作れなくなります。
+   */
+  try { if (typeof updSweepDeadTriggers_ === "function") updSweepDeadTriggers_(); } catch (e) {}
+
+  const old = [];
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      const f = t.getHandlerFunction();
+      if (f === "panelOnEdit" || f === "panelWatch") old.push(t);
+    });
+  } catch (e) {}
+
+  /* ================================================================
+   *  ★★ ここが、いちばん大事なところです ★★
+   *
+   *  前は「先に消してから、作って」いました。
+   *  作るところでしくじると、見張りが **1つも無い状態** が残ります。
+   *  見張りが無いと、入れ直す係も動けません。
+   *  そこで **永久に止まります**。だれも気づけません。
+   *
+   *  2026/10/16 に、実際にそうなったと見ています。
+   *  そこから2週間、1行も記録が入りませんでした。
+   *
+   *  だから **先に作って、作れたときだけ 古いほうを消します。**
+   *  作れなければ、古いほうがそのまま残るので、止まりません。
+   * ================================================================ */
+  const made = [];
+  try {
+    // ① チェックした瞬間に動く
+    made.push(ScriptApp.newTrigger("panelOnEdit").forSpreadsheet(ss).onEdit().create());
   /*
    * ② ①が効かない機種向けの保険。
    *
@@ -9489,7 +9610,17 @@ function panelInstall_() {
    *   押した瞬間に動くほう（①）はそのままなので、
    *   ボタンの効き方は変わりません。
    */
-  ScriptApp.newTrigger("panelWatch").timeBased().everyMinutes(PANEL_WATCH_MIN).create();
+    made.push(ScriptApp.newTrigger("panelWatch").timeBased()
+                       .everyMinutes(PANEL_WATCH_MIN).create());
+  } catch (e) {
+    // ★作りかけを片づけて、古いほうは残したまま、しくじりを伝えます
+    made.forEach(function (t) { try { ScriptApp.deleteTrigger(t); } catch (e2) {} });
+    throw new Error("見張りを立て直せませんでした（" + ((e && e.message) || e) + "）。" +
+                    "古いほうは、そのまま残しました。");
+  }
+
+  // ★作れたときだけ、古いほうを消します
+  old.forEach(function (t) { try { ScriptApp.deleteTrigger(t); } catch (e) {} });
 }
 
 /** 見張りを止める（1分おきの実行が気になるとき用） */

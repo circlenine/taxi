@@ -2,7 +2,13 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V077ver  （2026/10/19）  ★★★
+ *  ★★★  V078ver  （2026/11/2）  ★★★
+ *
+ *  [V078ver]
+ *   ・\U0001f504 見張りの入れ替えを「先に作ってから、古いのを消す」形にした
+ *     ★2026/10/16 に記録が丸ごと止まった件と、同じ作りでした。
+ *       作るところでしくじると、見張りが1つも無い状態が残ります。
+ *     ★共通の係（trgSwap_・001-Code.gs）を通すようにしました。
  *
  *  [V077ver]
  *   ・⏸ イベントの自動発信を、既定で「送らない」にした（ご指示）
@@ -1104,7 +1110,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V077ver";
+const VN_VERSION = "V078ver";
 
 /**
  * 見にいく先の一覧。
@@ -8319,24 +8325,43 @@ function vnSelfHeal_() {
 function vnEnsureDailyTrigger_(force) {
   let list = [];
   try { list = ScriptApp.getProjectTriggers(); } catch (e) { return false; }
-  let keep = null;
+
+  // V006ver で名前が変わった。前の名前のままの見張りは迷子なので消す
   list.forEach(function (t) {
-    const fn = t.getHandlerFunction();
-    // V006ver で名前が変わった。前の名前のままの見張りは迷子なので消す
-    if (fn === "eventDailyJob") { try { ScriptApp.deleteTrigger(t); } catch (e) {} return; }
-    if (fn !== "venueDailyJob") return;
-    if (keep || force) { try { ScriptApp.deleteTrigger(t); } catch (e) {} }
-    else keep = t;
+    let fn = "";
+    try { fn = String(t.getHandlerFunction() || ""); } catch (e) { return; }
+    if (fn === "eventDailyJob") { try { ScriptApp.deleteTrigger(t); } catch (e) {} }
   });
-  if (keep && !force) return true;
-  try {
-    // ★15分おき。5分おきにすると、1日に288回も動く。
-    //   Googleが1日にくれる「決められた時間」は決まっていて、
-    //   1分おきのボタンの見張りと合わせると使い切ってしまい、
-    //   見張りごと止まってしまう（実際に止まった）。
-    ScriptApp.newTrigger("venueDailyJob").timeBased().everyMinutes(15).create();
-    return true;
-  } catch (e) {
+
+  let n = 0;
+  list.forEach(function (t) {
+    try { if (t.getHandlerFunction() === "venueDailyJob") n++; } catch (e) {}
+  });
+  if (!force && n === 1) return false;        // もう1つだけ入っている（作っていない）
+
+  /*
+   * ★先に作って、作れたときだけ古いほうを消します（trgSwap_）。
+   *   先に消すと、作るところでしくじったときに
+   *   イベントの見張りが1つも無い状態が残り、そこで止まります。
+   *   2026/10/16 に、同じ作りで 記録が丸ごと止まりました。
+   *
+   * ★15分おき。5分おきにすると、1日に288回も動く。
+   *   Googleが1日にくれる「決められた時間」は決まっていて、
+   *   ボタンの見張りと合わせると使い切ってしまい、
+   *   見張りごと止まってしまう（実際に止まった）。
+   */
+  const make = function () {
+    return ScriptApp.newTrigger("venueDailyJob").timeBased().everyMinutes(15).create();
+  };
+  /*
+   * ★共通の係（001-Code.gs の trgSwap_）が無いときも止まらないようにします。
+   *   更新の途中で、片方のファイルだけ新しいことがあります。
+   *   そのときは「作るだけ」にします。
+   *   同じ見張りが2つになるより、1つも無いほうが ずっと困るためです。
+   */
+  if (typeof trgSwap_ === "function") return trgSwap_("venueDailyJob", make, "vnTrigger");
+  try { make(); return true; }
+  catch (e) {
     if (typeof logErr_ === "function") logErr_("vnTrigger", e);
     return false;
   }

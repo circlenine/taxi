@@ -197,11 +197,15 @@ function mkPanel() {
     }
   }
 
+  const formulas = {};
   // 結合セルの左上を返す小さな入れ物
   function panelCell(r, c) {
     const k = r + ',' + c;
     const C = { setValue: v => { cells[k] = v; return C; },
                 getValue: () => cells[k],
+                // ★信号は「数式」になりました（止まれば ひとりでに赤くなる形）
+                setFormula: v => { formulas[k] = v; cells[k] = v; return C; },
+                getFormula: () => (formulas[k] === undefined ? '' : formulas[k]),
                 // ★見た目も覚える。つないだらんの左上に書くときは、こちらを通る
                 setHorizontalAlignment: v => { aligns[k] = v; return C; },
                 setVerticalAlignment: v => { valigns[k] = v; return C; },
@@ -218,6 +222,7 @@ function mkPanel() {
   const sh0 = {
     _merged: mergedCalls,
     _cells: cells,
+    _formulas: formulas,
     _aligns: aligns,
     _valigns: valigns,
     _bgs: bgs,
@@ -6469,6 +6474,8 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
   const clearLamp = () => {
     delete props['PANEL_LAMP_MK']; delete props['PANEL_LAMP_AT'];
     delete panel._cells['1,6']; delete panel._aligns['1,6'];
+    delete panel._formulas['1,6'];
+    delete panel._cells['BZ1']; delete panel._cells['CA1'];
   };
 
   // ――― 心ぱくが新しい ＝ 🟢 順調
@@ -6480,15 +6487,33 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
   // ――― 書く場所と、右寄せ（ご指示）
   clearLamp();
   t(LAMP(panel, NOW, true) === true, '★書けた');
-  t(panel._cells['1,6'] === '🟢 順調　' + hm(NOW.getTime() - 60000),
-    '★★つないだらんの左上（F1）に書く', String(panel._cells['1,6']));
+  t(String(panel._formulas['1,6'] || '').indexOf('=IF(') === 0,
+    '★★つないだらんの左上（F1）に、字ではなく「数式」を入れる',
+    String(panel._formulas['1,6']).slice(0, 40));
+  /*
+   * ★★★ここが、まーく様のご指摘の芯です（2026/11/2）。
+   *   「F列の○サインも全く機能してないので、確認の意味が全くありません」
+   *   字で書くと、見張りが止まったときに「🟢 順調」のまま固まります。
+   *   数式なら、スプシが開くたびに時間を見直すので、
+   *   コードが1行も動かなくても、止まれば ひとりでに赤くなります。
+   */
+  t(String(panel._formulas['1,6'] || '').indexOf('NOW()') !== -1,
+    '★★★数式が「いまの時刻」を見ている（止まれば ひとりでに赤くなる）');
+  t(String(panel._cells['BZ1'] || '') !== '',
+    '★★控えのらん（BZ1）に、最後に動いた時刻を書く', String(panel._cells['BZ1']));
   t(panel._aligns['1,6'] === 'right',
     '★★右寄せ（つないだらんの右端＝G列側に出る）', String(panel._aligns['1,6']));
   t(panel._cells['1,7'] === undefined,
     '★★内側（G1）には書かない（本物では怒られる）');
   t(panel._wraps['1,6'] === false,
     '★折り返さない（1行目が太るとボタンが下へ押し下がる）');
-  t(panel._bgs['1,6'] === '#e6f4ea', '　順調の背景は うすい緑');
+  /*
+   * ★下地の色は付けません。数式で顔が変わっても色は変わらないので、
+   *   色と顔が食いちがうと、かえって紛らわしくなります。
+   *   赤・黄・緑は、丸の色そのもので見ていただきます。
+   */
+  t(panel._bgs['1,6'] === null || panel._bgs['1,6'] === undefined,
+    '　下地の色は付けない（顔と色が食いちがわないように）', String(panel._bgs['1,6']));
   t(String(panel._notes['1,6'] || '').indexOf('ニア僕の勝ちだ') !== -1,
     '★メモに「どうすればよいか」が入っている');
 
@@ -6562,8 +6587,14 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
   props['PANEL_WATCH_AT'] = String(NOW.getTime() - 40 * 60 * 1000);   // 止まった
   const soon2 = new Date(NOW.getTime() + 60 * 1000);
   t(LAMP(panel, soon2, false) === true, '★★顔が変わったら、5分待たずに すぐ書く');
-  t(String(panel._cells['1,6']).indexOf('🔴') === 0, '　🔴 になっている',
-    String(panel._cells['1,6']));
+  /*
+   * ★信号は数式なので、セルの字は いつも同じです。
+   *   顔を決めるのは、控えのらん（BZ1）と「いまの時刻」です。
+   *   だから、ここで確かめるのは控えのほうです。
+   */
+  t(String(panel._cells['BZ1'] || '') !== '', '　控えのらんに、止まった時刻が残っている',
+    String(panel._cells['BZ1']));
+  t(ST(soon2).mark === '🔴', '　中身は 🔴 停止 になっている', ST(soon2).mark);
 
   // ――― 控えがまるごと読めないときは、何も書かない（誤報を出さない）
   clearLamp();
@@ -6602,8 +6633,14 @@ console.log('\n■ 🚦 いまの調子の信号（説明タブ 1行目 F〜G）
   const ONOPEN = F('panelLampOnOpen_');
   t(ONOPEN({ getSheetByName: n => (n === '説明' ? panel : null) }) === true,
     '★★開いた瞬間に作り直す（固まった🟢がいちばん危ない）');
-  t(String(panel._cells['1,6']).indexOf('🔴') === 0, '　🔴 になっている',
-    String(panel._cells['1,6']));
+  /*
+   * ★信号は数式なので、セルの字は いつも同じです。
+   *   顔を決めるのは、控えのらん（BZ1）と「いまの時刻」です。
+   *   だから、ここで確かめるのは控えのほうです。
+   */
+  t(String(panel._cells['BZ1'] || '') !== '', '　控えのらんに、止まった時刻が残っている',
+    String(panel._cells['BZ1']));
+  t(ST(new Date()).mark === '🔴', '　中身は 🔴 停止 になっている', ST(new Date()).mark);
   t(ONOPEN({ getSheetByName: () => null }) === false, '　説明タブが無くても落ちない');
   /*
    * ★スプシを渡されなかったときは、mainSS_() に頼ります（わざとの逃げ道）。
