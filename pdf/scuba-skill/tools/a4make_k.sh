@@ -71,6 +71,7 @@ if [ "${PDF_OK:-}" != "1" ]; then echo "PDFは作っていません（許可待�
 node $S/tools/print2.js $S/build_k/a4.html $S/build_k/a4.pdf
 node $S/tools/chkpos.js $S/build_k/a4.html $S/build_k/a4chk.json
 COVER="0.914 0.867 0.969" python3 -I $S/tools/addchk.py $S/build_k/a4.pdf $S/build_k/a4chk.json $S/build_k/a4c.pdf
+python3 -I $S/tools/chkcheck.py $S/build_k/a4.pdf $S/build_k/a4chk.json || exit 1   # ✓が□とぴったり重なるか（11/2 ✓が下にずれていた）
 node $S/tools/memopos.js $S/build_k/a4.html $S/build_k/a4memo.json
 python3 -I $S/tools/addmemo.py $S/build_k/a4c.pdf $S/build_k/a4memo.json $S/build_k/a4m.pdf
 mv $S/build_k/a4m.pdf $S/build_k/a4c.pdf
