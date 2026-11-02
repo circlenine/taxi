@@ -406,8 +406,22 @@ for sec in STEPS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in g[0::2]) + '</div><div class="col">' + "".join(stepbox(x) for x in g[1::2]) + "</div></div>"
         else:
-            # 11/2 まーく様「どこからが着るで、どこからが脱ぐか、区切りがない」→ 手順に band があれば、その前に横いっぱいの見出し帯を入れる
-            body = '<div class="grid2">' + "".join((f'<div class="band">{x["band"]}</div>' if x.get("band") else "") + stepbox(x) for x in g) + "</div>"
+            # 11/2 まーく様「着る・脱ぐの区切りが分からない」→ 横いっぱいの青い帯を入れた
+            # → 同日「全体と合わない・同じ色で違いも分からない。ブロック分けは？」→ 帯をやめ、着る・脱ぐを「囲み」に分けた
+            #   ・囲み：この冊の角の丸み（2mm）と、細い線（1px）の決まりに合わせる。中は白のまま（補足・大事の色をにごらせない）
+            #   ・札：ページ上の「装備」の札と同じく、線の上に乗せる（見出しは線の上、という冊の約束をくり返す）
+            #   ・色：着る＝この冊の緑（海へ向かう、始まり）／脱ぐ＝ウェットの札と同じ青（上がったあと、水の色）。赤・青は「大事」「よい所」の意味があるので使わない
+            #   ・字：「着る」「脱ぐ」の2字だけ。順番は手順の番号（2-1…）がすでに表している。足さない
+            if any(x.get("band") for x in g):
+                segs = []
+                for x in g:
+                    if x.get("band") or not segs: segs.append((x.get("band", ""), []))
+                    segs[-1][1].append(x)
+                body = '<div class="blks">' + "".join(
+                    (f'<div class="blk blk-{"on" if b == "着る" else "off"}"><span class="blkh">{b}</span>' if b else '<div class="blk0">')
+                    + '<div class="grid2">' + "".join(stepbox(x) for x in xs) + "</div></div>" for b, xs in segs) + "</div>"
+            else:
+                body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         # 10/27 夜 まーく様「ワクワクして読み進めたくなる作りか」→ ページの一番上に「このページで何がうれしいか」を1行（各ページの最初の数秒で、自分に役立つと分かるように）
         HOOK[len(pages) + 1] = sec.get("hook2", sec.get("hook", "")) if gi else sec.get("hook", "")   # 題の右に置く（高さを増やさない）
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
@@ -601,11 +615,17 @@ table.cmp td.pos{color:#1565c0!important}
 table.cmp td.neg{color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
-table.cmp .em{font-weight:900;color:inherit}   .grid2>.band{grid-column:1/-1;display:block;font-size:10.5pt;line-height:1.35;font-weight:900;color:#fff;background:#1565c0;border-radius:1mm;padding:.3mm 3mm;margin:0}
-.grid2>.band+section.step,.grid2>.band+section.step+section.step{border-top:0!important;padding-top:1.6mm!important}
-.grid2:has(>.band)>section.step{padding-bottom:1.2mm!important}
-.grid2:has(>.band)>section.step:nth-of-type(n+3){padding-top:1.6mm!important}
-.grid2:has(>.band)>.band+section.step,.grid2:has(>.band)>.band+section.step+section.step{padding-top:1.2mm!important}   /* 帯のすぐ下は、帯が区切りになる */
+table.cmp .em{font-weight:900;color:inherit}
+.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
+.blks>.blk>.grid2{flex:none}
+.blk>.grid2{row-gap:0}
+.blk>.grid2>section.step{padding-bottom:1.2mm!important}
+.blk>.grid2>section.step:nth-of-type(-n+2){border-top:0!important;padding-top:0!important}   /* 囲みの1段目：上の線は囲みの線が受けもつ */
+.blk>.grid2>section.step:nth-of-type(n+3){padding-top:2mm!important}
+.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:4mm 3mm 1.2mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
+.blk-on{--bl:#ade3c8;--bh:#3f9a73}
+.blk-off{--bl:#8cc4ef;--bh:#1b5a8e}   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
+.blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:var(--bh);color:#fff;font-size:10.5pt;line-height:1.5;font-weight:900;letter-spacing:.2em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .2em);box-shadow:0 0 0 1mm #fff}
 /* 11/2 まーく様「黄色のラインはいらない。色が多すぎる」→ 太字だけ */
 table.cmp td:not(.pos):not(.neg) .em{color:#1f2a37}
 table.cmp td{font-weight:700}
@@ -1306,11 +1326,12 @@ function vis(el){let m=-1e9;const w=document.createTreeWalker(el,NodeFilter.SHOW
  [el,...el.querySelectorAll('*')].forEach(c=>{const r=c.getBoundingClientRect();if(!r.height)return;const s=getComputedStyle(c);
   if(c.tagName==='IMG'||c.tagName==='svg'||parseFloat(s.borderBottomWidth)>0||(s.backgroundColor!=='rgba(0, 0, 0, 0)'&&c!==el))m=Math.max(m,r.bottom);});return m;}
 function frame(pg){const P=pg.getBoundingClientRect(),cs=getComputedStyle(pg);return {P,L:P.left+parseFloat(cs.paddingLeft),R:P.right-parseFloat(cs.paddingRight),lim:P.bottom-parseFloat(cs.paddingBottom)};}
-function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *')].map(c=>c.getBoundingClientRect().bottom))-1;
+function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *,.blk')].map(c=>c.getBoundingClientRect().bottom))-1;
  let lo=30,hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
- g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
+ pg.querySelectorAll('.blk').forEach(k=>{const v=k.getBoundingClientRect().bottom+GAP;cols.forEach(c=>c.t=Math.max(c.t,v));});   /* 11/2 着る・脱ぐの囲みがあるページは、囲みの下だけを空きとする */
+ pg.querySelectorAll('.grid2 .step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
  cols.forEach(c=>c.b=lim);return cols;}
 function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m.className='memo';
  Object.assign(m.style,{left:(q.l-P.left)+'px',top:(q.t-P.top)+'px',width:(q.r-q.l)+'px',height:(q.b-q.t)+'px'});
