@@ -315,7 +315,7 @@ REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
 WIDE = {"1-1", "1-2", "1-3", "3-1", "3-4", "3-5"}
-SIDE = {"3-5"}   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+SIDE = set()   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
 from PIL import Image as _I
 ASPECT = {k: (lambda z: z[0] / z[1])(_I.open(f"/tmp/claude-0/kfw4/{k}.jpg").size) for k in ("d_cat", "w_cat", "d_ba")}   # 10/27 夜 図は中身に合わせた大きさで作る（mkcat.py・mkwet.py）ので、形は画像から読む   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
@@ -406,7 +406,8 @@ for sec in STEPS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in g[0::2]) + '</div><div class="col">' + "".join(stepbox(x) for x in g[1::2]) + "</div></div>"
         else:
-            body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
+            # 11/2 まーく様「どこからが着るで、どこからが脱ぐか、区切りがない」→ 手順に band があれば、その前に横いっぱいの見出し帯を入れる
+            body = '<div class="grid2">' + "".join((f'<div class="band">{x["band"]}</div>' if x.get("band") else "") + stepbox(x) for x in g) + "</div>"
         # 10/27 夜 まーく様「ワクワクして読み進めたくなる作りか」→ ページの一番上に「このページで何がうれしいか」を1行（各ページの最初の数秒で、自分に役立つと分かるように）
         HOOK[len(pages) + 1] = sec.get("hook2", sec.get("hook", "")) if gi else sec.get("hook", "")   # 題の右に置く（高さを増やさない）
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
@@ -600,16 +601,21 @@ table.cmp td.pos{color:#1565c0!important}
 table.cmp td.neg{color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
-table.cmp .em{font-weight:900;color:inherit;background:linear-gradient(transparent 58%,#ffe08a 58%);padding:0 .1em}
+table.cmp .em{font-weight:900;color:inherit}   .grid2>.band{grid-column:1/-1;display:block;font-size:11pt;line-height:1.5;font-weight:900;color:#fff;background:#1565c0;border-radius:1mm;padding:.3mm 3mm;margin:0}
+.grid2>.band+section.step,.grid2>.band+section.step+section.step{border-top:0!important;padding-top:1.6mm!important}
+.grid2:has(>.band)>section.step{padding-bottom:1.2mm!important}
+.grid2:has(>.band)>section.step:nth-of-type(n+3){padding-top:2mm!important}
+.grid2:has(>.band)>.band+section.step,.grid2:has(>.band)>.band+section.step+section.step{padding-top:1.2mm!important}   /* 帯のすぐ下は、帯が区切りになる */
+/* 11/2 まーく様「黄色のラインはいらない。色が多すぎる」→ 太字だけ */
 table.cmp td:not(.pos):not(.neg) .em{color:#1f2a37}
 table.cmp td{font-weight:700}
 table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap}
 table.cmp .g2>span:nth-child(1){text-align:right}
-table.cmp .g2>span:nth-child(3){text-align:left}   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
+table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月の月の位置がずれる。半角2文字分も考えて合わせて」→ 月・℃ の字の位置を右でそろえる */   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
 table.cmp .g2>span:nth-child(2){text-align:center}
 table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 1.6em 2.6em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
-.tnote{margin:.6mm 0 0;font-size:9pt;font-weight:700;color:#5f6b73}
+.tnote{margin:1mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.5mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
@@ -826,7 +832,7 @@ CSS += """
    最後が大事（ピンク）でも補足（白）でも、次の手順との境目がはっきり分かるように（10/7 ご指摘） */
 .grid2{row-gap:0!important}
 .grid2>.step{padding-bottom:4mm}
-.grid2>.step:nth-child(n+3),.grid2.tools>.step:nth-child(2){border-top:1px solid var(--line)!important;padding-top:4mm!important}
+.grid2>section.step:nth-of-type(n+3),.grid2.tools>.step:nth-child(2){border-top:1px solid var(--line)!important;padding-top:4mm!important}
 .grid2.tools>.step:nth-child(3){border-top:1px solid var(--line)!important;padding-top:4mm!important}
 """
 CSS += """
