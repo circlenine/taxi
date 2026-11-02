@@ -411,14 +411,14 @@ for sec in STEPS:
             #   ・囲み：この冊の角の丸み（2mm）と、細い線（1px）の決まりに合わせる。中は白のまま（補足・大事の色をにごらせない）
             #   ・札：ページ上の「装備」の札と同じく、線の上に乗せる（見出しは線の上、という冊の約束をくり返す）
             #   ・色：着る＝この冊の緑（海へ向かう、始まり）／脱ぐ＝ウェットの札と同じ青（上がったあと、水の色）。赤・青は「大事」「よい所」の意味があるので使わない
-            #   ・字：「着る」「脱ぐ」の2字だけ。順番は手順の番号（2-1…）がすでに表している。足さない
+            #   ・字：「着るとき」「脱ぐとき」だけ（番号札とまちがえないよう、場面を表す言葉に）。順番は手順の番号（2-1…）がすでに表している。足さない
             if any(x.get("band") for x in g):
                 segs = []
                 for x in g:
                     if x.get("band") or not segs: segs.append((x.get("band", ""), []))
                     segs[-1][1].append(x)
                 body = '<div class="blks">' + "".join(
-                    (f'<div class="blk blk-{"on" if b == "着る" else "off"}"><span class="blkh">{b}</span>' if b else '<div class="blk0">')
+                    (f'<div class="blk blk-{"on" if b == "着る" else "off"}"><span class="blkh">{b}とき</span>' if b else '<div class="blk0">')
                     + '<div class="grid2">' + "".join(stepbox(x) for x in xs) + "</div></div>" for b, xs in segs) + "</div>"
             else:
                 body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
@@ -597,7 +597,7 @@ CSS += """
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
 /* 10/28 図の字を小さくして図を大きくしたぶん、図のあるページは手順の間・表の行を少し詰める */
-.grid2:has(img[data-k=w_cat]),.grid2:has(img[data-k=d_cat]){row-gap:3.2mm!important}
+.grid2:has(img[data-k=w_cat]),.grid2:has(img[data-k=d_cat]){row-gap:2.6mm!important}
 .grid2:has(img[data-k=d_cat]) .photos img:not([data-k=d_cat]){height:33mm!important}
 .grid2:has(img[data-k=d_cat])>.step,.grid2:has(img[data-k=w_cat])>.step{padding-bottom:1mm!important}
 .grid2:has(img[data-k=d_cat])>.step.wide+.step,.grid2:has(img[data-k=d_cat])>.step.wide+.step+.step{padding-top:2.4mm!important}
@@ -605,17 +605,25 @@ CSS += """
 .grid2:has(img[data-k=d_cat])>.step.wide>.notes{margin-bottom:0!important;padding-bottom:0!important}
 .grid2:has(img[data-k=d_cat])>.step:not(.wide){padding-bottom:0!important}
 .grid2:has(img[data-k=d_cat]) .srows{line-height:1.35!important}
-.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.5mm 1.6mm!important}
+.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.2mm 1.6mm!important}   /* 11/2 目立たせる言葉を大きくした分、上下のすき間を詰める */
 /* 10/28 まーく様「ブーツやファスナーと、その右の間に：を」→ 手順の表は「場所：やること」。場所は太く目立たせる（どの表も同じ） */
 .srows .sp2{font-weight:900!important;color:#1f2a37!important;display:flex!important;justify-content:space-between;padding-right:1.2mm}
 .srows .sp2::after{content:"：";font-weight:900}
 /* 10/28 表の色：左の列は黒・中央そろえ、良い方は青、悪い方は赤、ふつうは濃いグレー */
 table.cmp td{color:#5f6b73!important}
-table.cmp td.pos{color:#1565c0!important}
-table.cmp td.neg{color:#c8372d!important}
+/* 11/2 まーく様「遠目に見て、色の違いが分かりますか？目立たせる所を目立たせて」
+   → この冊の本文の字は、もともと太い（800）。太字（900）にしても、ほとんど差が出ない。灰色と黒の差も、遠目には消える。
+   → 目立たせる言葉（**…**）だけを「1段大きく＋はっきりした色」にし、説明の部分はぜんぶ灰色に下げる。
+     大きさの差は、遠目でも残る。色の意味（青＝よい所・赤＝手間のかかる所）は、目立たせる言葉が受けもつ */
+table.cmp td.pos .em{color:#1565c0!important}
+table.cmp td.neg .em{color:#c8372d!important}
+table.cmp td.pos:not(:has(.em)){color:#1565c0!important}
+table.cmp td.neg:not(:has(.em)){color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
-table.cmp .em{font-weight:900;color:inherit}
+table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
+.notes table.cmp .em.em{line-height:0!important}
+.notes table.cmp .g3 .em.em{line-height:1.25!important}   /* スーツの列は小さな格子の中なので、行の高さ0だと字が上にずれる */   /* .notes の中は行の高さを1.6に決めているので、それより強く指定する */   /* 行の高さは増やさない（大きな字だけが上下にふくらまないように） */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
@@ -625,7 +633,7 @@ table.cmp .em{font-weight:900;color:inherit}
 .blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:4mm 3mm 1.2mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
 .blk-on{--bl:#ade3c8;--bh:#3f9a73}
 .blk-off{--bl:#8cc4ef;--bh:#1b5a8e}   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
-.blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:var(--bh);color:#fff;font-size:10.5pt;line-height:1.5;font-weight:900;letter-spacing:.2em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .2em);box-shadow:0 0 0 1mm #fff}
+.blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:#fff;color:var(--bh);border:1px solid var(--bh);font-size:10.5pt;line-height:1.45;font-weight:900;letter-spacing:.1em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .1em);box-shadow:0 0 0 1mm #fff}   /* 11/2 まーく様「着る・脱ぐと、番号札のデザインが一緒で見分けにくい」→ 番号札は「塗りつぶし＋矢じり」。囲みの札は「白地＋線」にして、形でも分ける。字は「着るとき」と、場面を表す言葉に */
 /* 11/2 まーく様「黄色のラインはいらない。色が多すぎる」→ 太字だけ */
 table.cmp td:not(.pos):not(.neg) .em{color:#1f2a37}
 table.cmp td{font-weight:700}
@@ -633,9 +641,9 @@ table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-it
 table.cmp .g2>span:nth-child(1){text-align:right}
 table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月の月の位置がずれる。半角2文字分も考えて合わせて」→ 月・℃ の字の位置を右でそろえる */   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
 table.cmp .g2>span:nth-child(2){text-align:center}
-table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 2.6em;align-items:baseline}
+table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 3.2em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
-.tnote{margin:1mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.5mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
+.tnote{margin:.6mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
