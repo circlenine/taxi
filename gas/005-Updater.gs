@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U145ver  （2026/10/26）  ★★★
+ *  ★★★  U146ver  （2026/11/2）  ★★★
+ *
+ *  [U146ver]
+ *   ・🧹 中身の無い見張りを、こちらで消すようにした
+ *     ★まーく様のメールが
+ *       「スクリプト関数が見つかりません: drawBordersAllSheets」で
+ *       埋まりました。5分おきに失敗し、ひと晩で288回です。
+ *     ★「決まった時刻にひとりでに動くしかけ」だけが残っていて、
+ *       呼ぶ中身が無い状態でした。放っておくと、ずっと続きます。
+ *     ★「なおす」を動かすたびに、中身の無いしかけを消します。
+ *     ★消しすぎると全部 止まるので、先に自分を試します。
+ *       「必ずある名前」を引けて「絶対に無い名前」を引けない、
+ *       この2つが そろわなければ、1つも消しません。
+ *   ・🚪 LINEの受け口が生きているかを、自分で確かめるようにした
+ *     ★いちばん こわい止まり方は、受け口（ウェブアプリ）が死ぬことです。
+ *       どこにもエラーが出ないまま、記録だけが入らなくなります。
+ *     ★「なおす」のたびに、自分の窓口を叩いて確かめ、
+ *       死んでいたら 直し方（デプロイのやり直し）まで出します。
  *
  *  [U145ver]
  *   ・📤 [22]「つけ待ち台帳用に書き出す」を足した（ご指示）
@@ -1590,7 +1607,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U145ver";
+const UPD_VERSION = "U146ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5608,6 +5625,91 @@ function menuUpdateCode() {
  *   どこから呼んでも、同じものがそろうようにするためです。
  *   ばらばらに書くと、片方だけ足し忘れます（実際に忘れました）。
  */
+/* ================================================================
+ *  🧹 中身の無い見張りを、消す
+ *
+ *  ★2026/11/2、まーく様のメールが
+ *    「スクリプト関数が見つかりません: drawBordersAllSheets」で
+ *    埋まりました。5分おきに失敗し、ひと晩で288回です。
+ *
+ *  ★何が起きているか
+ *    「決まった時刻にひとりでに動くしかけ」だけが残っていて、
+ *    呼ぼうとしている中身が、もうありません。
+ *    呼べないので毎回しくじり、そのたびにGoogleが
+ *    まーく様へメールを出します。放っておくと、ずっと続きます。
+ *
+ *  ★だから、中身の無いしかけは、こちらで消します。
+ *
+ *  ★消しすぎると、全部が止まります。だから、まず自分を試します。
+ *    「必ずある名前」を引けて、「絶対に無い名前」を引けない。
+ *    この2つが両方そろわなければ、1つも消しません。
+ * ================================================================ */
+
+/** その名前の中身が、いま動かせるかどうか */
+function updFnAlive_(name) {
+  try {
+    if (!name) return true;                       // 名前が読めない → さわらない
+    const g = (typeof globalThis === "object" && globalThis) ? globalThis : null;
+    if (!g) return true;                          // 調べる手が無い → さわらない
+    return typeof g[name] === "function";
+  } catch (e) { return true; }                    // 分からないときは「生きている」扱い
+}
+
+/** 中身の無い見張りを消す。返すのは { gone:[名前], text:"ひとこと" } */
+function updSweepDeadTriggers_() {
+  const gone = [];
+  const NG = { gone: gone, text: "中身の無い見張り：調べられませんでした" };
+  try {
+    // ① 自分を試す。ここが通らなければ、見分けがついていない
+    if (!updFnAlive_("updSweepDeadTriggers_")) return NG;
+    if (updFnAlive_("__kono_namae_no_nakami_wa_nai__")) return NG;
+
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      let f = "";
+      try { f = String(t.getHandlerFunction() || ""); } catch (e) { return; }
+      if (!f) return;
+      if (updFnAlive_(f)) return;
+      if (gone.length >= 10) return;               // ② いちどに消しすぎない
+      try { ScriptApp.deleteTrigger(t); gone.push(f); } catch (e) {}
+    });
+  } catch (e) { return NG; }
+  return { gone: gone,
+           text: gone.length
+             ? "🧹 中身の無い見張りを消しました（" + gone.join("・") + "）\n" +
+               "　→ このしくじりのメールは、もう来ません"
+             : "中身の無い見張り：ありません" };
+}
+
+/* ================================================================
+ *  🚪 LINEの受け口（ウェブアプリ）が、生きているか
+ *
+ *  ★ここが死ぬと、LINEに書いた乗車記録が、スプシに1行も入りません。
+ *    しかも、どこにもエラーが出ません。黙って入らないだけです。
+ *    これがいちばん こわい止まり方です。
+ *
+ *  ★だから「なおす」のたびに、自分で自分の窓口を叩いて確かめます。
+ * ================================================================ */
+function updWebAppCheck_() {
+  let url = "";
+  try { url = String(ScriptApp.getService().getUrl() || ""); } catch (e) { url = ""; }
+  if (!url) {
+    return "❌ LINEの受け口が、まだ公開されていません\n" +
+           "　→ スクリプトの画面で【デプロイ】→【新しいデプロイ】";
+  }
+  try {
+    const res = UrlFetchApp.fetch(url + (url.indexOf("?") === -1 ? "?" : "&") + "ping=1",
+      { muteHttpExceptions: true, followRedirects: true });
+    const code = res.getResponseCode();
+    if (code >= 200 && code < 400) return "✅ LINEの受け口：生きています";
+    return "❌ LINEの受け口が死んでいます（" + code + "）\n" +
+           "・LINEに書いても、スプシに入りません\n" +
+           "・直し方：スクリプトの画面で【デプロイ】→【デプロイを管理】\n" +
+           "　→ えんぴつ → バージョン「新バージョン」→【デプロイ】";
+  } catch (e) {
+    return "LINEの受け口：確かめられませんでした（" + ((e && e.message) || e) + "）";
+  }
+}
+
 function updEnsureAll_() {
   const made = [], keep = [];
   const one = function (name, fn) {
@@ -5625,8 +5727,21 @@ function updEnsureAll_() {
   one("レポート本番（16日5:30）", typeof ensureAutoReportTrigger_ === "function" ? ensureAutoReportTrigger_ : null);
   one("レポート確認用（16日3:00）", typeof ensureAutoReportTestTrigger_ === "function" ? ensureAutoReportTestTrigger_ : null);
   one("イベントの見張り（15分おき）", typeof vnEnsureDailyTrigger_ === "function" ? vnEnsureDailyTrigger_ : null);
-  if (!made.length && !keep.length) return "見張り：確かめられませんでした";
-  return "見張り：" + (made.length ? "立てました（" + made.join("・") + "）" : "ぜんぶ そろっています");
+
+  /*
+   * ★そろえるついでに、中身の無い見張りを消します。
+   *   残しておくと、しくじりのメールが まーく様に届きつづけます。
+   */
+  let sweep = "";
+  try {
+    if (typeof updSweepDeadTriggers_ === "function") {
+      const sw = updSweepDeadTriggers_();
+      if (sw && sw.gone && sw.gone.length) sweep = "\n" + sw.text;
+    }
+  } catch (e) {}
+
+  if (!made.length && !keep.length) return "見張り：確かめられませんでした" + sweep;
+  return "見張り：" + (made.length ? "立てました（" + made.join("・") + "）" : "ぜんぶ そろっています") + sweep;
 }
 
 /** 書き換える直前の状態に戻す */
@@ -9251,6 +9366,15 @@ function fixAll() {
     // 見張りを入れ直したので、しぼりも解いておきます
     pr.deleteProperty(PANEL_HEAL_AT);
     pr.deleteProperty("PANEL_TIDY_OK");
+  } catch (e) {}
+
+  /*
+   * ★いちばん こわい止まり方は「LINEの受け口が死んでいる」です。
+   *   どこにもエラーが出ないまま、記録だけが入らなくなります。
+   *   なおすたびに、ここで必ず確かめます。
+   */
+  try {
+    if (typeof updWebAppCheck_ === "function") L.push(updWebAppCheck_());
   } catch (e) {}
 
   L.push("");
