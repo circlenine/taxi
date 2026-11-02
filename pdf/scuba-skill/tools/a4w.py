@@ -325,7 +325,13 @@ def jump(sid):
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s["id"] in SIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{_nj(notes(s), s.get("jump"))}</section>')
+            f'{photos(s)}{_olink(_nj(notes(s), s.get("jump")), s.get("olink"))}</section>')
+def _olink(nt, ol):
+    # 11/2 夜 まーく様「公式マニュアルのリンクも、ドライスーツ全体画像の下にわかりやすく」→ 写真のすぐ下（札の段のいちばん上）に、公式の資料へのリンクを1行
+    if not ol: return nt
+    lab, url = ol
+    j = f'<p class="olink"><a href="{url}"><span class="tapm scr">*</span>{T(lab)}</a></p>'
+    return nt.replace('<div class="notes">', '<div class="notes">' + j, 1) if nt else f'<div class="notes">{j}</div>'
 def _nj(nt, sid):
     # 10/22 まーく様「1-3の画像と補足の間の変な高さの隙間はなに？」→ 「くわしくは」を写真のかたまりの中に入れると、
     #   となりの手順の写真の段まで高くなり、となりの補足が下へ押されていた。札の段の頭（写真のすぐ下）に置く
@@ -587,7 +593,7 @@ CSS += """
 .sh3 .t{font-size:12.5pt!important}
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
 /* 10/26 SunraIZUさんのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
-.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:__ASP_d_cat__!important;width:100%!important}
+.grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:__ASP_d_cat__!important;width:93%!important;margin:0 auto!important}   /* 11/2 夜 公式資料へのリンクを1行足した分、図を少しだけ小さく */
 .grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:__ASP_w_cat__!important;width:100%!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
 .grid2>.step:not(.wide)+.step.wide,.grid2>.step.wide+.step,.grid2>.step.wide+.step+.step{border-top:1px solid var(--line)!important;padding-top:4mm!important}
@@ -624,6 +630,8 @@ table.cmp td,table.cmp th{text-align:center!important}
 table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 .notes table.cmp .em.em{line-height:0!important}
 .notes table.cmp .g3 .em.em{line-height:1.25!important}   /* スーツの列は小さな格子の中なので、行の高さ0だと字が上にずれる */   /* .notes の中は行の高さを1.6に決めているので、それより強く指定する */   /* 行の高さは増やさない（大きな字だけが上下にふくらまないように） */
+.olink{text-align:center;margin:0 0 1.2mm;font-size:10.5pt;font-weight:900;line-height:1.5}
+.olink a{color:#1c6ea4;text-decoration:underline;text-underline-offset:.2em}
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}

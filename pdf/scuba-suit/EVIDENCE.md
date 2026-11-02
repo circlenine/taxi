@@ -167,3 +167,4 @@
   - 7-2 首のゴムを上へ伸ばす＝オーシャナ「ドライスーツの故障原因No.1は？」（https://oceana.ne.jp/diving/diving-equipment/115629）。
   - フル装備でレギュレーターから胸のボタンまでホースがつながって見える写真：見つからず（マリンダイビング・オーシャナ・ZERO・owd・bucho-diver・シーサー・マレア・伊豆高原・net-diver ほか）。
 | 首が薄いゴム（ラテックス）のタイプは、折らずに首に平らにそわせる。厚いゴム（ネオプレン）は内側に折りこむ | DTM「Diving Dry: How to Don A Dry Suit」https://dtmag.com/thelibrary/diving-dry-don-dry-suit/（latex neck seal lies flat／neoprene neck seal is folded under）／WD「ソリッドネック：内側に折り返す」標準仕様（SunraIZUさんのドライは WD） |
+- 11/2 夜 公式マニュアル：World Dive のドライスーツ取扱説明書・給排気バルブ説明書は、スーツの付属品（04-Drysuits.pdf の付属品の欄）。ネットには公開されていない（11/2 夜 もう一度さがした）。3-1 の図の下には、公式に公開されている説明 https://www.worlddive.co.jp/product/data/04-Drysuits.pdf （開いて中身を確かめた）へのリンクを置いた。
