@@ -1316,7 +1316,8 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
  Object.assign(m.style,{left:(q.l-P.left)+'px',top:(q.t-P.top)+'px',width:(q.r-q.l)+'px',height:(q.b-q.t)+'px'});
  m.innerHTML='<span class="mh"><span class="tapm scr">*</span>memo<small class="scr">※タップすると入力</small></span>';pg.appendChild(m);
  const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;
- const n=Math.floor(inner/(8.5*MM));for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
+ const n=Math.floor(inner/(8.5*MM));if(n<2&&pg.querySelector('.grid2')){m.remove();return;}   // 11/2 まーく様「memo が小さいなら役割を果たしにくいので取り除いて」→ 書ける行が2本に満たない memo は置かない
+ for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
  const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:(slot.dataset.fill?frame(pg).lim:r.bottom)});return;}   /* 10/23 data-fill：ページの下まで */
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
@@ -1330,7 +1331,7 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  // 10/22 まーく様「5-3の下に memo を付けてもらった方が良い」→ 片方の列の下に 22mm 以上あけば、そこを memo にする（横いっぱいの細い memo にしない）
  if(best.b-best.t>=22*MM&&pg.id!=='p2'){place(pg,best);return;}
  if(best.b-best.t<(pg.id==='p2'?0:MINC)){const c=colSpace(pg);best={l:L,r:R,t:Math.max(c[0].t,c[1].t),b:lim};}   /* 10/23 まーく様「ここだけ写真を小さくされるのはデザイン的に酷い」→ memo のために写真を縮めない。あまった所にだけ置く */
- if(best.b-best.t<45)return;
+ if(best.b-best.t<26*MM)return;   // 11/2 まーく様「memo が小さいなら役割を果たしにくいので取り除いて」→ 高さ 26mm（書ける行が2本以上）に満たない memo は置かない
  place(pg,best);});}
 // 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
 function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;
