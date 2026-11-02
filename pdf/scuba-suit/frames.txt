@@ -56,3 +56,5 @@ d_full2 seasir 0
 d_nip2 commons 0
 d_conn3 seasir 0
 d_push dry_ocean 68
+d_nip3 izukougen 0
+u28w oceana 0
