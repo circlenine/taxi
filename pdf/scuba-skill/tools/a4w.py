@@ -601,10 +601,10 @@ table.cmp td.pos{color:#1565c0!important}
 table.cmp td.neg{color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
-table.cmp .em{font-weight:900;color:inherit}   .grid2>.band{grid-column:1/-1;display:block;font-size:11pt;line-height:1.5;font-weight:900;color:#fff;background:#1565c0;border-radius:1mm;padding:.3mm 3mm;margin:0}
+table.cmp .em{font-weight:900;color:inherit}   .grid2>.band{grid-column:1/-1;display:block;font-size:10.5pt;line-height:1.35;font-weight:900;color:#fff;background:#1565c0;border-radius:1mm;padding:.3mm 3mm;margin:0}
 .grid2>.band+section.step,.grid2>.band+section.step+section.step{border-top:0!important;padding-top:1.6mm!important}
 .grid2:has(>.band)>section.step{padding-bottom:1.2mm!important}
-.grid2:has(>.band)>section.step:nth-of-type(n+3){padding-top:2mm!important}
+.grid2:has(>.band)>section.step:nth-of-type(n+3){padding-top:1.6mm!important}
 .grid2:has(>.band)>.band+section.step,.grid2:has(>.band)>.band+section.step+section.step{padding-top:1.2mm!important}   /* 帯のすぐ下は、帯が区切りになる */
 /* 11/2 まーく様「黄色のラインはいらない。色が多すぎる」→ 太字だけ */
 table.cmp td:not(.pos):not(.neg) .em{color:#1f2a37}
@@ -613,7 +613,7 @@ table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-it
 table.cmp .g2>span:nth-child(1){text-align:right}
 table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月の月の位置がずれる。半角2文字分も考えて合わせて」→ 月・℃ の字の位置を右でそろえる */   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
 table.cmp .g2>span:nth-child(2){text-align:center}
-table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 1.6em 2.6em;align-items:baseline}
+table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 2.6em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:1mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.5mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
@@ -794,7 +794,8 @@ CSS += """
 .ph3.stack .cap3{align-self:center;text-align:left}
 .photos.p3.rev{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)!important}
 .photos.p3:not(.rev){grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:7mm!important}   /* 10/23 まーく様「左の1枚はページの半分まで、右の2枚もページ半分くらいの幅に」→ 下の2列（3-2・3-3）と同じ割りにそろえる */
-.step.wide:has(>.photos.p3:not(.rev))>.notes{width:calc(50% - 3.5mm)!important;align-self:flex-start!important}   /* 補足も左の写真と同じ幅（ページの半分）に */
+.step.wide:has(>.photos.p3:not(.rev))>.notes{width:calc(50% - 3.5mm)!important;align-self:flex-start!important}
+.step.wide:has(img[data-k=d_conn3])>.notes,.step.wide:has(img[data-k=d_push])>.notes{width:100%!important}   /* 11/2 検査役：5ページの箱が左半分だけで右が空く → 横いっぱい */   /* 補足も左の写真と同じ幅（ページの半分）に */
 """
 CSS += """
 /* 魚のイラスト：見出しの線の右はしに1匹、空いた枠に小さな群れ */
