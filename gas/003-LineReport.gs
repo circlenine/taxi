@@ -2,7 +2,14 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L063ver  （2026/09/25）  ★★★
+ *  ★★★  L064ver  （2026/11/2）  ★★★
+ *
+ *  [L064ver]
+ *   ・🔄 見張りの入れ替えを「先に作ってから、古いのを消す」形にした
+ *     ★2026/10/16 に記録が丸ごと止まった件と、同じ作りでした。
+ *       作るところでしくじると、見張りが1つも無い状態が残ります。
+ *     ★共通の係（trgSwap_・001-Code.gs）を通すようにしました。
+ *       作れなければ、古いほうを そのまま残します。
  *
  *  [L063ver]
  *   ・🏷 「なおしました」の知らせを、Fix として数えるようにした
@@ -820,7 +827,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L063ver";
+const LR_VERSION = "L064ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1106,15 +1113,21 @@ function setupReportMenu() {
   // 起動時トリガーを作り直す。
   // setupReportMenu 自身に向いたトリガーがあると毎回作り直しが走るので、それも消す
   // （メニューが二重に出る原因にもなる）。
+  /*
+   * ★先に作って、作れたときだけ古いほうを消します（trgSwap_）。
+   *   先に消すと、作るところでしくじったときに
+   *   見張りが1つも無い状態が残り、そこで止まります。
+   */
   let removed = 0;
-  ScriptApp.getProjectTriggers().forEach(function (t) {
-    const f = t.getHandlerFunction();
-    if (f === "onOpenReport" || f === "setupReportMenu") {
-      ScriptApp.deleteTrigger(t);
-      removed++;
-    }
-  });
-  ScriptApp.newTrigger("onOpenReport").forSpreadsheet(ss).onOpen().create();
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      const f = t.getHandlerFunction();
+      if (f === "onOpenReport" || f === "setupReportMenu") removed++;
+    });
+  } catch (e) {}
+  lrTrgSwap_(["onOpenReport", "setupReportMenu"], function () {
+    return ScriptApp.newTrigger("onOpenReport").forSpreadsheet(ss).onOpen().create();
+  }, "setupReportMenu");
   // レポートの自動送信（毎月◯日の朝）も、ここで入れておく
   try { ensureAutoReportTrigger_(true); } catch (e) { console.log("自動送信の用意: " + e.message); }
 
@@ -1984,9 +1997,13 @@ function ensureAutoReportTrigger_(force) {
   });
   if (!force && cur.length === 1 && props.getProperty("AUTO_REPORT_TRIGGER") === want) return false;
 
-  cur.forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger("monthlyReportJob").timeBased()
-    .atHour(hour).nearMinute(min).everyDays(1).create();
+  // ★先に作って、作れたときだけ古いほうを消します
+  if (!lrTrgSwap_("monthlyReportJob", function () {
+        return ScriptApp.newTrigger("monthlyReportJob").timeBased()
+          .atHour(hour).nearMinute(min).everyDays(1).create();
+      }, "ensureAutoReport")) {
+    return false;                       // 作れなかった。前のまま（止めない）
+  }
   props.setProperty("AUTO_REPORT_TRIGGER", want);
   ensureAutoReportTestTrigger_(true);
   return true;
@@ -2006,6 +2023,23 @@ function autoReportTestHour_() {
  *   1つの見張りで両方やろうとすると、Apps Script の時刻のずれ（前後30分ほど）で
  *   確認用と本番が続けて動いてしまうことがある。2時間半あけておけば、それが起きない。
  */
+/**
+ * 見張りの入れ替え。001-Code.gs の trgSwap_ に渡すだけ。
+ *
+ * ★係が無いときも止まらないようにします。
+ *   更新の途中で、片方のファイルだけ新しいことがあります。
+ *   そのときは「作るだけ」にします。同じ見張りが2つになるより、
+ *   1つも無いほうが ずっと困るためです。
+ */
+function lrTrgSwap_(names, make, where) {
+  if (typeof trgSwap_ === "function") return trgSwap_(names, make, where);
+  try { make(); return true; }
+  catch (e) {
+    if (typeof logErr_ === "function") logErr_(where || "lrTrgSwap", e);
+    return false;
+  }
+}
+
 function ensureAutoReportTestTrigger_(force) {
   const hour = autoReportTestHour_();
   const props = PropertiesService.getScriptProperties();
@@ -2014,9 +2048,13 @@ function ensureAutoReportTestTrigger_(force) {
     return t.getHandlerFunction() === "monthlyReportTestJob";
   });
   if (!force && cur.length === 1 && props.getProperty("AUTO_REPORT_TEST_TRIGGER") === want) return false;
-  cur.forEach(function (t) { try { ScriptApp.deleteTrigger(t); } catch (e) {} });
-  ScriptApp.newTrigger("monthlyReportTestJob").timeBased()
-    .atHour(hour).nearMinute(0).everyDays(1).create();
+  // ★先に作って、作れたときだけ古いほうを消します
+  if (!lrTrgSwap_("monthlyReportTestJob", function () {
+        return ScriptApp.newTrigger("monthlyReportTestJob").timeBased()
+          .atHour(hour).nearMinute(0).everyDays(1).create();
+      }, "ensureAutoReportTest")) {
+    return false;                       // 作れなかった。前のまま（止めない）
+  }
   props.setProperty("AUTO_REPORT_TEST_TRIGGER", want);
   return true;
 }
