@@ -315,7 +315,7 @@ REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
 WIDE = {"1-1", "1-2", "1-3", "3-1", "3-4", "3-5"}
-SIDE = set()   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+SIDE = set()   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 SunraIZUさんのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
 from PIL import Image as _I
 ASPECT = {k: (lambda z: z[0] / z[1])(_I.open(f"/tmp/claude-0/kfw4/{k}.jpg").size) for k in ("d_cat", "w_cat", "d_ba")}   # 10/27 夜 図は中身に合わせた大きさで作る（mkcat.py・mkwet.py）ので、形は画像から読む   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
@@ -586,7 +586,7 @@ CSS += """
 .sn{height:calc(13.5pt * 1.5)!important;font-size:11pt!important}
 .sh3 .t{font-size:12.5pt!important}
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
-/* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
+/* 10/26 SunraIZUさんのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
 .grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:__ASP_d_cat__!important;width:100%!important}
 .grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:__ASP_w_cat__!important;width:100%!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */

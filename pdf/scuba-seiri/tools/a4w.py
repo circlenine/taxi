@@ -315,7 +315,7 @@ REDCAP = set()
 
 # 写真の中身が横に長い手順は、横いっぱいの1段にする（ストラップとオクトが切れないように。10/7 ご指摘）
 WIDE = {"1-1", "1-2", "1-3", "3-1", "3-4", "3-5"}
-SIDE = set()   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 サンライズのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
+SIDE = set()   # 10/29 横いっぱいの1段で、写真は左・説明は右に並べる（ページの高さに収めるため）   # 10/27 夜 1-3 は厚さと伊豆の季節の表（横いっぱい）   # 10/27 1-1 はウェットの図（ドライの図と同じ横いっぱい）   # 10/27 組み直し：3-1＝ドライの図、1-3＝ウェットとドライの比べの表   # 10/26 SunraIZUさんのスーツの図は、名札が読める大きさにするため横いっぱい（図は 16:9 で作る）
 from PIL import Image as _I
 ASPECT = {k: (lambda z: z[0] / z[1])(_I.open(f"/tmp/claude-0/kfw4/{k}.jpg").size) for k in ("d_cat", "w_cat", "d_ba")}   # 10/27 夜 図は中身に合わせた大きさで作る（mkcat.py・mkwet.py）ので、形は画像から読む   # 10/27 後ろも前と同じ大きさにしたので横長に（mkcat.py）   # 図は 1920x880 で作った（mkcat.py）。ほかの形で切ると名札が欠ける
 def jump(sid):
@@ -406,8 +406,22 @@ for sec in STEPS:
             # 左の列・右の列を、それぞれ上から順に詰める（左＝1つ目・3つ目、右＝2つ目・4つ目）
             body = '<div class="grid2 cols"><div class="col">' + "".join(stepbox(x) for x in g[0::2]) + '</div><div class="col">' + "".join(stepbox(x) for x in g[1::2]) + "</div></div>"
         else:
-            # 11/2 まーく様「どこからが着るで、どこからが脱ぐか、区切りがない」→ 手順に band があれば、その前に横いっぱいの見出し帯を入れる
-            body = '<div class="grid2">' + "".join((f'<div class="band">{x["band"]}</div>' if x.get("band") else "") + stepbox(x) for x in g) + "</div>"
+            # 11/2 まーく様「着る・脱ぐの区切りが分からない」→ 横いっぱいの青い帯を入れた
+            # → 同日「全体と合わない・同じ色で違いも分からない。ブロック分けは？」→ 帯をやめ、着る・脱ぐを「囲み」に分けた
+            #   ・囲み：この冊の角の丸み（2mm）と、細い線（1px）の決まりに合わせる。中は白のまま（補足・大事の色をにごらせない）
+            #   ・札：ページ上の「装備」の札と同じく、線の上に乗せる（見出しは線の上、という冊の約束をくり返す）
+            #   ・色：着る＝この冊の緑（海へ向かう、始まり）／脱ぐ＝ウェットの札と同じ青（上がったあと、水の色）。赤・青は「大事」「よい所」の意味があるので使わない
+            #   ・字：「着るとき」「脱ぐとき」だけ（番号札とまちがえないよう、場面を表す言葉に）。順番は手順の番号（2-1…）がすでに表している。足さない
+            if any(x.get("band") for x in g):
+                segs = []
+                for x in g:
+                    if x.get("band") or not segs: segs.append((x.get("band", ""), []))
+                    segs[-1][1].append(x)
+                body = '<div class="blks">' + "".join(
+                    (f'<div class="blk blk-{"on" if b == "着る" else "off"}"><span class="blkh">{b}とき</span>' if b else '<div class="blk0">')
+                    + '<div class="grid2">' + "".join(stepbox(x) for x in xs) + "</div></div>" for b, xs in segs) + "</div>"
+            else:
+                body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
         # 10/27 夜 まーく様「ワクワクして読み進めたくなる作りか」→ ページの一番上に「このページで何がうれしいか」を1行（各ページの最初の数秒で、自分に役立つと分かるように）
         HOOK[len(pages) + 1] = sec.get("hook2", sec.get("hook", "")) if gi else sec.get("hook", "")   # 題の右に置く（高さを増やさない）
         for x in g: SUBPG[x["id"]] = len(pages) + 1   # このあと作るページの番号
@@ -572,7 +586,7 @@ CSS += """
 .sn{height:calc(13.5pt * 1.5)!important;font-size:11pt!important}
 .sh3 .t{font-size:12.5pt!important}
 .grid2 .photos img{height:var(--ph,50mm)!important;aspect-ratio:auto!important}
-/* 10/26 サンライズのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
+/* 10/26 SunraIZUさんのスーツの図（2-1）だけは、横いっぱいで 16:9 のまま見せる（段の高さに合わせて切ると、名札が欠ける） */
 .grid2 .photos img[data-k=d_cat]{height:auto!important;aspect-ratio:__ASP_d_cat__!important;width:100%!important}
 .grid2 .photos img[data-k=w_cat]{height:auto!important;aspect-ratio:__ASP_w_cat__!important;width:100%!important}
 /* 10/27 検査役：2-1（横いっぱい）の下で、2-3 だけに区切り線が付き、2-2 より下がっていた → 2-2・2-3 の両方に同じ区切り線を付けて、高さをそろえる */
@@ -583,7 +597,7 @@ CSS += """
 /* 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」：比べる2つを横に並べた表。左の列＝何を比べるか */
 .cmpw{padding:1.2mm 0 .6mm}
 /* 10/28 図の字を小さくして図を大きくしたぶん、図のあるページは手順の間・表の行を少し詰める */
-.grid2:has(img[data-k=w_cat]),.grid2:has(img[data-k=d_cat]){row-gap:3.2mm!important}
+.grid2:has(img[data-k=w_cat]),.grid2:has(img[data-k=d_cat]){row-gap:2.6mm!important}
 .grid2:has(img[data-k=d_cat]) .photos img:not([data-k=d_cat]){height:33mm!important}
 .grid2:has(img[data-k=d_cat])>.step,.grid2:has(img[data-k=w_cat])>.step{padding-bottom:1mm!important}
 .grid2:has(img[data-k=d_cat])>.step.wide+.step,.grid2:has(img[data-k=d_cat])>.step.wide+.step+.step{padding-top:2.4mm!important}
@@ -591,21 +605,35 @@ CSS += """
 .grid2:has(img[data-k=d_cat])>.step.wide>.notes{margin-bottom:0!important;padding-bottom:0!important}
 .grid2:has(img[data-k=d_cat])>.step:not(.wide){padding-bottom:0!important}
 .grid2:has(img[data-k=d_cat]) .srows{line-height:1.35!important}
-.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.5mm 1.6mm!important}
+.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.2mm 1.6mm!important}   /* 11/2 目立たせる言葉を大きくした分、上下のすき間を詰める */
 /* 10/28 まーく様「ブーツやファスナーと、その右の間に：を」→ 手順の表は「場所：やること」。場所は太く目立たせる（どの表も同じ） */
 .srows .sp2{font-weight:900!important;color:#1f2a37!important;display:flex!important;justify-content:space-between;padding-right:1.2mm}
 .srows .sp2::after{content:"：";font-weight:900}
 /* 10/28 表の色：左の列は黒・中央そろえ、良い方は青、悪い方は赤、ふつうは濃いグレー */
 table.cmp td{color:#5f6b73!important}
-table.cmp td.pos{color:#1565c0!important}
-table.cmp td.neg{color:#c8372d!important}
+/* 11/2 まーく様「遠目に見て、色の違いが分かりますか？目立たせる所を目立たせて」
+   → この冊の本文の字は、もともと太い（800）。太字（900）にしても、ほとんど差が出ない。灰色と黒の差も、遠目には消える。
+   → 目立たせる言葉（**…**）だけを「1段大きく＋はっきりした色」にし、説明の部分はぜんぶ灰色に下げる。
+     大きさの差は、遠目でも残る。色の意味（青＝よい所・赤＝手間のかかる所）は、目立たせる言葉が受けもつ */
+table.cmp td.pos .em{color:#1565c0!important}
+table.cmp td.neg .em{color:#c8372d!important}
+table.cmp td.pos:not(:has(.em)){color:#1565c0!important}
+table.cmp td.neg:not(:has(.em)){color:#c8372d!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
-table.cmp .em{font-weight:900;color:inherit}   .grid2>.band{grid-column:1/-1;display:block;font-size:10.5pt;line-height:1.35;font-weight:900;color:#fff;background:#1565c0;border-radius:1mm;padding:.3mm 3mm;margin:0}
-.grid2>.band+section.step,.grid2>.band+section.step+section.step{border-top:0!important;padding-top:1.6mm!important}
-.grid2:has(>.band)>section.step{padding-bottom:1.2mm!important}
-.grid2:has(>.band)>section.step:nth-of-type(n+3){padding-top:1.6mm!important}
-.grid2:has(>.band)>.band+section.step,.grid2:has(>.band)>.band+section.step+section.step{padding-top:1.2mm!important}   /* 帯のすぐ下は、帯が区切りになる */
+table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
+.notes table.cmp .em.em{line-height:0!important}
+.notes table.cmp .g3 .em.em{line-height:1.25!important}   /* スーツの列は小さな格子の中なので、行の高さ0だと字が上にずれる */   /* .notes の中は行の高さを1.6に決めているので、それより強く指定する */   /* 行の高さは増やさない（大きな字だけが上下にふくらまないように） */
+.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
+.blks>.blk>.grid2{flex:none}
+.blk>.grid2{row-gap:0}
+.blk>.grid2>section.step{padding-bottom:1.2mm!important}
+.blk>.grid2>section.step:nth-of-type(-n+2){border-top:0!important;padding-top:0!important}   /* 囲みの1段目：上の線は囲みの線が受けもつ */
+.blk>.grid2>section.step:nth-of-type(n+3){padding-top:2mm!important}
+.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:4mm 3mm 1.2mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
+.blk-on{--bl:#ade3c8;--bh:#3f9a73}
+.blk-off{--bl:#8cc4ef;--bh:#1b5a8e}   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
+.blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:#fff;color:var(--bh);border:1px solid var(--bh);font-size:10.5pt;line-height:1.45;font-weight:900;letter-spacing:.1em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .1em);box-shadow:0 0 0 1mm #fff}   /* 11/2 まーく様「着る・脱ぐと、番号札のデザインが一緒で見分けにくい」→ 番号札は「塗りつぶし＋矢じり」。囲みの札は「白地＋線」にして、形でも分ける。字は「着るとき」と、場面を表す言葉に */
 /* 11/2 まーく様「黄色のラインはいらない。色が多すぎる」→ 太字だけ */
 table.cmp td:not(.pos):not(.neg) .em{color:#1f2a37}
 table.cmp td{font-weight:700}
@@ -613,9 +641,9 @@ table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-it
 table.cmp .g2>span:nth-child(1){text-align:right}
 table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月の月の位置がずれる。半角2文字分も考えて合わせて」→ 月・℃ の字の位置を右でそろえる */   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
 table.cmp .g2>span:nth-child(2){text-align:center}
-table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 2.6em;align-items:baseline}
+table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 3.2em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
-.tnote{margin:1mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.5mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
+.tnote{margin:.6mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
@@ -1306,11 +1334,12 @@ function vis(el){let m=-1e9;const w=document.createTreeWalker(el,NodeFilter.SHOW
  [el,...el.querySelectorAll('*')].forEach(c=>{const r=c.getBoundingClientRect();if(!r.height)return;const s=getComputedStyle(c);
   if(c.tagName==='IMG'||c.tagName==='svg'||parseFloat(s.borderBottomWidth)>0||(s.backgroundColor!=='rgba(0, 0, 0, 0)'&&c!==el))m=Math.max(m,r.bottom);});return m;}
 function frame(pg){const P=pg.getBoundingClientRect(),cs=getComputedStyle(pg);return {P,L:P.left+parseFloat(cs.paddingLeft),R:P.right-parseFloat(cs.paddingRight),lim:P.bottom-parseFloat(cs.paddingBottom)};}
-function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *')].map(c=>c.getBoundingClientRect().bottom))-1;
+function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *,.blk')].map(c=>c.getBoundingClientRect().bottom))-1;
  let lo=30,hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
- g.querySelectorAll('.step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
+ pg.querySelectorAll('.blk').forEach(k=>{const v=k.getBoundingClientRect().bottom+GAP;cols.forEach(c=>c.t=Math.max(c.t,v));});   /* 11/2 着る・脱ぐの囲みがあるページは、囲みの下だけを空きとする */
+ pg.querySelectorAll('.grid2 .step').forEach(st=>{const r=st.getBoundingClientRect(),v=vis(st)+GAP;if(st.classList.contains('wide')){cols.forEach(c=>c.t=Math.max(c.t,v));return;}cols[r.left<L+W/2?0:1].t=Math.max(cols[r.left<L+W/2?0:1].t,v);});
  cols.forEach(c=>c.b=lim);return cols;}
 function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m.className='memo';
  Object.assign(m.style,{left:(q.l-P.left)+'px',top:(q.t-P.top)+'px',width:(q.r-q.l)+'px',height:(q.b-q.t)+'px'});
