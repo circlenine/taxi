@@ -248,7 +248,7 @@ def notes(s):
             if not m_: a_, b_ = "", a_
             return f'<span class="g2"><span>{T(a_)}</span><span>{m_}</span><span>{T(b_)}</span></span>'
         def _td(x, i):
-            c = "pos" if x.startswith("+") else "neg" if x.startswith("-") else "ok" if x.startswith("~") else ""   # ~＝快適な気温・水温（11/3 赤・青だと暑い寒いと混ざるので、色の地で見せる）
+            c = "pos" if x.startswith("+") else "neg" if x.startswith("-") else "ok" if x.startswith("~") else "cold" if x.startswith("_") else ""   # ~＝快適な気温・水温（11/3 赤・青だと暑い寒いと混ざるので、色の地で見せる）
             x = x[1:] if c else x
             if i in _rng: x = _rg(x)
             elif "|" in x: x = '<span class="g3">' + "".join(f"<span>{T(v)}</span>" for v in x.split("|")) + '</span>'
@@ -616,7 +616,7 @@ CSS += """
 .grid2:has(img[data-k=d_cat])>.step.wide>.notes{margin-bottom:0!important;padding-bottom:0!important}
 .grid2:has(img[data-k=d_cat])>.step:not(.wide){padding-bottom:0!important}
 .grid2:has(img[data-k=d_cat]) .srows{line-height:1.35!important}
-.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:.2mm 1.6mm!important}   /* 11/2 目立たせる言葉を大きくした分、上下のすき間を詰める */
+.grid2:has(img[data-k=w_cat]) table.cmp th,.grid2:has(img[data-k=w_cat]) table.cmp td{padding:0 1.6mm!important}   /* 11/2 目立たせる言葉を大きくした分、上下のすき間を詰める */
 /* 10/28 まーく様「ブーツやファスナーと、その右の間に：を」→ 手順の表は「場所：やること」。場所は太く目立たせる（どの表も同じ） */
 .srows .sp2{font-weight:900!important;color:#1f2a37!important;display:flex!important;justify-content:space-between;padding-right:1.2mm}
 .srows .sp2::after{content:"：";font-weight:900}
@@ -640,6 +640,7 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 #p5 .ph h2{font-size:20pt!important;letter-spacing:-.01em}   /* 11/3 題「“長い”カチカチホースをスーツと合体？！」を1行に収める（2行だと「合体？！」だけが下に落ちる） */
 .page .notes .srows .nn2.nn2.nn2{color:#fff!important}   /* 11/3 まーく様「緑に黒文字、最悪」→ 色の地の番号札は、白い字（contrast.js が見張る） */
 .qz .a,.qz .a *,.hp{color:#2e7d5b!important}   /* 11/3 うすい緑の地に緑の字が読みにくい → 濃い緑 */
+table.cmp td.cold{background:#eceff2!important;color:#6b7785!important}   /* 11/3 まーく様「低い気温・水温の違いの付け方は？」→ 寒めの温度は、うすい灰色の地 */
 table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight:900!important}   /* 11/3 まーく様「赤青は暑い寒いのイメージと混乱する」→ 快適な温度は、うすい緑の地＋黒い字。それ以外はふつうの灰色の字 */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
