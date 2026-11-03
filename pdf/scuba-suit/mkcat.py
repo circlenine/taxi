@@ -64,8 +64,8 @@ import numpy as _np
 arr=_np.array(snap).astype(int); wh=(arr.min(axis=2)>236)
 arr[wh]=BG; fig_img=Image.fromarray(arr.astype("uint8")); out.paste(fig_img,(0,0),m)
 # 10/28 まーく様「ドライの首のゴム・手首のゴムはいらない」→ 空気の2つのボタンと、ブーツ一体（ウェットとの違い）だけ
-chest=P1(667,412); ring(chest,34); tag("胸上：空気",TX,ROWS[1],"r",(chest[0]-34,chest[1]),"入")   # 11/2 検査役「線が交わる」→ 左肩（高い所）を上の段、胸を下の段に
-sh=P1(806,376); ring(sh,34); tag("左肩：空気",TX,ROWS[0],"r",(sh[0]-30,sh[1]-18),"抜",halo=True)
+chest=P1(672,415); ring(chest,23); tag("胸上：空気",TX,ROWS[1],"r",(chest[0]-23,chest[1]),"入")   # 11/3 まーく様「ボタンのふちより気持ち大きめの正確な丸」→ 元の絵で胸のボタンを測り（中心672,415・半径20）、丸の内側がボタンより少しだけ大きい   # 11/2 検査役「線が交わる」→ 左肩（高い所）を上の段、胸を下の段に
+sh=P1(811,375); ring(sh,21); tag("左肩：空気",TX,ROWS[0],"r",(sh[0]-15,sh[1]-15),"抜",halo=True)   # 11/3 左肩のボタンを測り直した（中心811,375・半径17）
 bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]))
 zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,zp[1],"l",(zp[0]+118,zp[1]))
 for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
