@@ -645,6 +645,8 @@ table.cmp td.cold{background:#eceff2!important;color:#6b7785!important}   /* 11/
 table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight:900!important}   /* 11/3 まーく様「赤青は暑い寒いのイメージと混乱する」→ 快適な温度は、うすい緑の地＋黒い字。それ以外はふつうの灰色の字 */
 .notes .srows .sp2.sp2{padding-right:0!important}
 .notes .srows .sp2.sp2::after{margin-left:2mm}   /* 11/4 まーく様「：の右は全角1字分あいているのに、左は無い」→ ：の左にも、右（列のすき間2mm）と同じすき間を */
+.page .notes>.jrow.jrow{text-align:left!important;margin-left:3mm!important}   /* 11/4 まーく様「なぜ中央？ふつうの説明文なら左ぞろえ」→ 本文のくわしくはは、上の文と同じ左はしに */
+.page .notes>.jrow.jrow .jump{display:inline!important;text-align:left!important}
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
