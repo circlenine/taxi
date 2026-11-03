@@ -1354,7 +1354,7 @@ function vis(el){let m=-1e9;const w=document.createTreeWalker(el,NodeFilter.SHOW
   if(c.tagName==='IMG'||c.tagName==='svg'||parseFloat(s.borderBottomWidth)>0||(s.backgroundColor!=='rgba(0, 0, 0, 0)'&&c!==el))m=Math.max(m,r.bottom);});return m;}
 function frame(pg){const P=pg.getBoundingClientRect(),cs=getComputedStyle(pg);return {P,L:P.left+parseFloat(cs.paddingLeft),R:P.right-parseFloat(cs.paddingRight),lim:P.bottom-parseFloat(cs.paddingBottom)};}
 function fit(pg,lim){const bot=()=>Math.max(...[...pg.querySelectorAll('.step,.step *,.blk')].map(c=>c.getBoundingClientRect().bottom))-1;
- let lo=30,hi=pg.querySelector('[data-k=strap]')?56:PHMAX;for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
+ let lo=pg.querySelector('.blks')?26:30,hi=pg.querySelector('[data-k=strap]')?56:PHMAX;   /* 11/3 着る・脱ぐの囲みのページ（3ページ）は、文が多いので写真を26mmまで縮めてよい */for(let i=0;i<20;i++){const m=(lo+hi)/2;pg.style.setProperty('--ph',m+'mm');if(bot()<=lim)lo=m;else hi=m;}pg.style.setProperty('--ph',lo+'mm');pg.dataset.ph=lo;}
 function colSpace(pg){const {L,R,lim}=frame(pg),g=pg.querySelector('.grid2'),G=parseFloat(getComputedStyle(g).columnGap),W=(R-L-G)/2;
  const cols=[{l:L,r:L+W,t:-1e9},{l:L+W+G,r:R,t:-1e9}];
  pg.querySelectorAll('.blk').forEach(k=>{const v=k.getBoundingClientRect().bottom+GAP;cols.forEach(c=>c.t=Math.max(c.t,v));});   /* 11/2 着る・脱ぐの囲みがあるページは、囲みの下だけを空きとする */
