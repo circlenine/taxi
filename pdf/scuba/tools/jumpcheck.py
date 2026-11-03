@@ -10,7 +10,7 @@ bad, n = [], 0
 for href, body in re.findall(r'<a class="jump" href="#p([^"]*)">(.*?)</a>', h, flags=re.S):
     n += 1
     txt = re.sub(r"<[^>]+>", "", body)
-    m = re.search(r"くわしくは(.*?)（(\d+)ページ）", txt)
+    m = re.search(r"(?:くわしくは|詳しくは)(.*?)（(\d+)ページ）", txt)
     if not m: bad.append(f"ページ番号が書いていない：{txt}"); continue
     sid, pg = m.group(1), m.group(2)
     if pg != href: bad.append(f"{txt}：書いてあるのは{pg}ページ、飛ぶ先は{href}ページ"); continue
