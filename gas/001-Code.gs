@@ -1,7 +1,20 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C079ver  （2026/11/3）  ★★★   ← もとは version 232
+ *  ★★★  C080ver  （2026/11/3）  ★★★   ← もとは version 232
+ *
+ *  [C080ver]
+ *   ・🚑 止まっているときは、開いた瞬間に「なおすボタン」を出す
+ *     ★まーく様のご指示：
+ *       「Safari →【…】→【🚑】が そもそもできないので、
+ *         別の手段がないか、考えられる全てのパターンで考えてください」
+ *     ★iPhoneでは、メニューが【…】に隠れ、作られるまで数秒かかります。
+ *       走る前の忙しい時間に探させるのは、無理があります。
+ *     ★だから「探させない」形にしました。
+ *       止まっているときだけ、まん中に箱を出し、
+ *       大きなボタンを1つだけ置きます。押せば その場で直ります。
+ *     ★ふだん（動いているとき）は、何も出しません。
+ *     ★箱が出せない機種でも落ちません。帯とメニューが残ります。
  *
  *  [C079ver]
  *   ・🩺 LINEが届いたら「まるごと診る」ようにした
@@ -806,7 +819,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C079ver";
+const CODE_VERSION = "C080ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -4162,6 +4175,76 @@ function openWarnIfStale_(ss, now) {
   } catch (e) { return false; }
 }
 
+/* ================================================================
+ *  🚑 止まっているときは、開いた瞬間に「なおすボタン」を出す
+ *
+ *  ★まーく様のご指示（2026/11/3）
+ *    「Safari →【…】→【🚑】が そもそもできないので、
+ *      別の手段がないか、考えられる全てのパターンで考えてください」
+ *
+ *  ★なぜメニューがだめなのか
+ *    iPhoneのSafariでは、メニューが【ヘルプ】の右の【…】に隠れます。
+ *    さらに、作られるまで数秒かかります。
+ *    走る前の忙しい時間に、これを探させるのは 無理があります。
+ *
+ *  ★だから「探させない」形にします。
+ *    止まっているときだけ、開いた瞬間に まん中へ箱を出し、
+ *    大きなボタンを1つだけ置きます。押せば その場で直ります。
+ *
+ *  ★ここ（onOpen）は、承認が切れていても動きます。
+ *    箱を出すだけなら許可は要りません。
+ *    ボタンを押したときだけ、ふつうの許可の下で なおす係が動きます。
+ *
+ *  ★ふだん（動いているとき）は、何も出しません。
+ *    毎回 出ると、ただの邪魔になります。
+ * ================================================================ */
+function openHealHtml_() {
+  return '<div style="font-family:-apple-system,system-ui,sans-serif;padding:16px;line-height:1.8">' +
+    '<div style="font-size:16px;font-weight:700;color:#b00020">止まっています</div>' +
+    '<div style="font-size:13px;margin:8px 0 16px;color:#333">' +
+    '下のボタンを 1回だけ押してください。<br>' +
+    '見張り（ひとりでに動くしかけ）を入れ直します。</div>' +
+    '<button id="b" style="width:100%;padding:16px;font-size:17px;font-weight:700;' +
+    'background:#b00020;color:#fff;border:0;border-radius:10px">🚑 いますぐ なおす</button>' +
+    '<div id="m" style="font-size:12px;margin-top:14px;white-space:pre-wrap;color:#333"></div>' +
+    '<script>' +
+    'document.getElementById("b").onclick=function(){' +
+    'this.disabled=true;this.textContent="なおしています…";' +
+    'var m=document.getElementById("m");m.textContent="";' +
+    'google.script.run' +
+    '.withSuccessHandler(function(t){m.textContent=t||"✅ 終わりました";})' +
+    '.withFailureHandler(function(e){m.textContent="❌ "+((e&&e.message)?e.message:e);})' +
+    '.fixAll();};' +
+    '<\/script></div>';
+}
+
+/**
+ * 止まっていれば、箱を出す。出したら true。
+ *
+ * ★「止まっている」の見分け方は、警告の帯と同じです（B1の最終更新）。
+ *   2か所で別々に決めると、片方だけ出て わけが分からなくなります。
+ */
+function openHealDialog_(ss, now) {
+  try {
+    const sh = ss && ss.getSheetByName(INFO_TAB);
+    if (!sh) return false;
+    const cur = String(sh.getRange("B1").getValue() || "");
+    const at = openStampAt_(cur);
+    // 読めないときは出しません（出しっぱなしで うるさくなるのを防ぐ）
+    if (!at) return false;
+    const hours = ((now || new Date()).getTime() - at.getTime()) / 3600000;
+    if (hours < OPEN_WARN_H) return false;
+
+    const html = HtmlService.createHtmlOutput(openHealHtml_())
+      .setWidth(330).setHeight(280);
+    SpreadsheetApp.getUi().showModalDialog(html, "🚑 止まっています");
+    return true;
+  } catch (e) {
+    // ★箱が出せない機種もあります。そのときは、帯とメニューが残ります
+    return false;
+  }
+}
+
 function onOpen() {
   /*
    * ★開いたついでに、見張りが消えていないか見ます。
@@ -4169,6 +4252,11 @@ function onOpen() {
    */
   try { if (typeof panelHealWatch_ === "function") panelHealWatch_(); } catch (e) {}
   try { openWarnIfStale_(SpreadsheetApp.getActiveSpreadsheet(), new Date()); } catch (e) {}
+  /*
+   * ★止まっているときだけ、まん中に「なおすボタン」を出します。
+   *   メニューを探させないためです（iPhoneでは【…】に隠れます）。
+   */
+  try { openHealDialog_(SpreadsheetApp.getActiveSpreadsheet(), new Date()); } catch (e) {}
   /*
    * ★いまの調子の信号（「説明」タブ 1行目F〜G）を、開いた瞬間に作り直します。
    *   ★ここが肝心です。見張りが全部止まると、だれも書けません。
