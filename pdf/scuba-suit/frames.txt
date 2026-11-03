@@ -13,7 +13,7 @@ d_gel dry_papa 230
 d_bone dry_papa 290
 d_squat dry_bcd 144
 d_bcd dry_bcd 168
-d_wash dry_ocean 360
+d_wash dry_ocean 352
 d_heel dry_papa 870
 d_susoff dry_ocean 438
 d_shv dry_bcd 290
