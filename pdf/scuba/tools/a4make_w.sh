@@ -13,8 +13,8 @@ cd $S/build_w
 # 不安にさせる言い回しが無いか（10/15 ご指示・全資料共通）
 ck python3 -I $S/tools/phrasecheck.py $S/tools/content_w.py
 python3 $S/tools/a4w.py $S/build_w
-# 10/20 まーく様「最大でも10ページ」：10ページを超えたら止める
-n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_w/a4.html | wc -l); if [ "$n" -gt 10 ]; then echo "NG 10ページを超えた（$n ページ）"; exit 1; fi
+# 10/20 まーく様「最大でも10ページ」→ 10/29 まーく様の了承で11ページまで（ホースと空気の1ページを足した）
+n=$(grep -o '<div class="page" id="p[0-9]*"' $S/build_w/a4.html | wc -l); if [ "$n" -gt 11 ]; then echo "NG 11ページを超えた（$n ページ）"; exit 1; fi
 # 表紙の数字が、わくの中で「左右まん中・上下は気持ち上」か（10/15 ご指示）
 ck python3 -I $S/tools/numcheck.py $S/build_w/num.png $(node $S/tools/numcheck.js $S/build_w/a4.html $S/build_w/num.png)
 # 1ページ目（まとめ＋もくじ）がページからはみ出していないか（10/16）
@@ -31,6 +31,7 @@ ck python3 $S/tools/notecheck.py   # 10/27 夜 補足・写真の説明の長さ
 ck python3 $S/tools/figcheck.py   # 10/27 夜 図の何もない帯・前後の枠
 ck python3 $S/tools/posecheck.py img/s   # 10/27 その動作で使う体の部位が、全部・大きく写っているか（姿勢を読む道具で測る）
 ck python3 -I $S/tools/ringcheck.py img/s   # 10/26 写真の赤丸と説明が合っているか・赤丸が大きく写っているか・出どころがあるか
+ck python3 -I $S/tools/ringcenter.py img/s   # 11/3 丸が写真のまん中にあるか（3-2左が下に寄っていた）
 python3 $S/tools/ringsheet.py img/s $S/shw/rings.jpg   # 10/27 赤丸の中身を1枚に並べて、目で確かめる
 python3 -I $S/tools/badgeset.py $S/build_w/a4.html img/s/badge.json   # ▶ の印を置くすみ（見せたい部分・赤い印にかからない所。10/21）
 SIDE=14 node $S/tools/mcheck.js $S/build_w/a4.html | tee $S/mcheck_last.txt

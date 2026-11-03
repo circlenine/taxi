@@ -31,6 +31,7 @@ ck python3 $S/tools/notecheck.py   # 10/27 夜 補足・写真の説明の長さ
 ck python3 $S/tools/figcheck.py   # 10/27 夜 図の何もない帯・前後の枠
 ck python3 $S/tools/posecheck.py img/s   # 10/27 その動作で使う体の部位が、全部・大きく写っているか（姿勢を読む道具で測る）
 ck python3 -I $S/tools/ringcheck.py img/s   # 10/26 写真の赤丸と説明が合っているか・赤丸が大きく写っているか・出どころがあるか
+ck python3 -I $S/tools/ringcenter.py img/s   # 11/3 丸が写真のまん中にあるか（3-2左が下に寄っていた）
 python3 $S/tools/ringsheet.py img/s $S/shw/rings.jpg   # 10/27 赤丸の中身を1枚に並べて、目で確かめる
 python3 -I $S/tools/badgeset.py $S/build_w/a4.html img/s/badge.json   # ▶ の印を置くすみ（見せたい部分・赤い印にかからない所。10/21）
 SIDE=14 node $S/tools/mcheck.js $S/build_w/a4.html | tee $S/mcheck_last.txt
