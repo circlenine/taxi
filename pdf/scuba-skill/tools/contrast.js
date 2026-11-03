@@ -19,7 +19,7 @@ let bad=await p.evaluate(()=>{
   const darkOnMid=a<0.1&&c<0.4&&c>0.05;   // 濃い字を、濃さが中くらいの色の地にのせる（緑に黒など）。数字の比より見えにくい
   if(r<3||darkOnMid)out.add(`${e.closest('.page').id} ${e.className||e.tagName} 比${r.toFixed(1)} 字${st.color} 地rgb(${bg.r},${bg.g},${bg.b})「${e.textContent.trim().slice(0,12)}」`);
  });return [...out];});
-const circ=await p.evaluate(()=>[...document.querySelectorAll('.page .nn2,.page .nn,.page .sn,.page .mtn')].filter(e=>/[①-⑳❶-❿]/.test(e.textContent)).map(e=>e.closest('.page').id+' 「'+e.textContent+'」'));
-circ.forEach(x=>bad.push('札の中に丸数字（札で囲んでいるので、ただの数字に） '+x));   // 11/3 まーく様「緑で囲んでいるのに、さらに丸で囲む必要はない」
+const circ=await p.evaluate(()=>[...document.querySelectorAll('.page .nn2,.page .nn,.page .sn,.page .mtn,.page .cap3')].filter(e=>/[①-⑳❶-❿]/.test(e.textContent)).map(e=>e.closest('.page').id+' 「'+e.textContent+'」'));
+circ.forEach(x=>bad.push('札・写真の名前に丸数字（11/4 まーく様「写真の下の番号は分からなくなる」） '+x));   // 11/3 まーく様「緑で囲んでいるのに、さらに丸で囲む必要はない」
 console.log(bad.length?bad.map(x=>'NG 字が読みにくい（コントラスト不足） '+x).join('\n'):'字と地のコントラスト OK');
 await b.close();process.exit(bad.length?1:0);})();
