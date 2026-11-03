@@ -236,7 +236,7 @@ def notes(s):
         # 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」→ 横に並べた表（左の列＝何を比べるか、上の行＝比べる2つ）
         tb = s["table"]
         # 10/28 まーく様「★オススメより おすすめ。名前のカタカナと続くと見づらい」→ [おすすめ] は、補足・大事と同じ形の小さな札にする（* はタップの印なので使わない）
-        th = "".join(f'<th>{T(c.replace("[おすすめ]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "")}</th>' for c in tb["cols"])
+        th = "".join(f'<th>{T(c.replace("[おすすめ]", "").replace("[難しい]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "") + ("<span class=\"rec hard\">難しい</span>" if "[難しい]" in c else "")}</th>' for c in tb["cols"])   # 11/3 ロックは「むずかしい」（赤）
         # 10/28 まーく様「いちばん左の列は黒、良い方は青・悪い方は赤・ふつうは濃いグレー」→ 中身の頭の + は青、- は赤
         #   「a|b|c」は3つの枠に分けて、同じ字が各行で同じ位置に来るようにする。align で右そろえ（月・℃）
         # 10/29 まーく様「表は全て中央位置。ただし月や℃など合わせられるところは合わせて」
@@ -325,7 +325,15 @@ def jump(sid):
     return f'<a class="jump" href="#p__PG_{sid}__"><span class="tapm scr">*</span>くわしくは{lab}（__PG_{sid}__ページ）</a>'
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s["id"] in SIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
-            f'{photos(s)}{_nj(notes(s), s.get("jump"))}</section>')
+            f'{_olink(photos(s), s.get("olink"))}{_nj(notes(s), s.get("jump"))}</section>')
+def _olink(ph, ol):
+    # 11/2 夜 まーく様「公式マニュアルのリンクも、全体画像の下に」→ 11/3「画像の右下あたりの方が目に入りやすい」
+    #   → 図の右下（写真の名前と同じ行の右はし）に置く。名前はまん中なので、右はしは空いている
+    if not ol: return ph
+    lab, url = ol
+    j = f'<a class="olink" href="{url}"><span class="tapm scr">*</span>{T(lab)}</a>'
+    i = ph.rindex("</figure>")
+    return ph[:i] + j + ph[i:]
 def _nj(nt, sid):
     # 10/22 まーく様「1-3の画像と補足の間の変な高さの隙間はなに？」→ 「くわしくは」を写真のかたまりの中に入れると、
     #   となりの手順の写真の段まで高くなり、となりの補足が下へ押されていた。札の段の頭（写真のすぐ下）に置く
@@ -465,7 +473,7 @@ mt = "".join(
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、元のページへ</b><span class="rn">動画・お店のブログ・カタログ</span></span></div><p class="src mtcred"><span class="nw">写真：海人商店ブログ・</span><br><span class="nw">ワールドダイブのカタログ・</span><br><span class="nw">動画から（最後のページ）</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">ドライの着方・脱ぎ方で、いちばん参考にした動画：「初心者の9割が知らない！プロが教えるドライスーツの着脱のコツとは？」（パパラギ先生のまるごとダイビングTV）<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※他の写真は、ダイビングショップ（海人商店・シーサー那覇）のブログ、ワールドダイブのカタログ、ウィキメディア・コモンズ（自由に使える写真）、いくつかの動画から集めたもの。厚さと水温の表は、ダイビングのお店3つの目安と気象庁（網代の平年値）から<span class="scr">。元のページは、写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">ドライの着方・脱ぎ方で、いちばん参考にした動画：「初心者の9割が知らない！プロが教えるドライスーツの着脱のコツとは？」（パパラギ先生のまるごとダイビングTV）<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※他の写真は、ダイビングショップ（海人商店・シーサー那覇・伊豆高原ダイビング）・ダイビングのウェブマガジン（オーシャナ）のブログ、ワールドダイブのカタログ、ウィキメディア・コモンズ（自由に使える写真）、いくつかの動画から集めたもの。厚さと水温の表は、ダイビングのお店3つの目安と気象庁（網代の平年値）から<span class="scr">。元のページは、写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -624,13 +632,18 @@ table.cmp td,table.cmp th{text-align:center!important}
 table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 .notes table.cmp .em.em{line-height:0!important}
 .notes table.cmp .g3 .em.em{line-height:1.25!important}   /* スーツの列は小さな格子の中なので、行の高さ0だと字が上にずれる */   /* .notes の中は行の高さを1.6に決めているので、それより強く指定する */   /* 行の高さは増やさない（大きな字だけが上下にふくらまないように） */
-.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
+.grid2 .photos figure:has(>.olink){position:relative}
+.olink{position:absolute;right:0;bottom:0;font-size:9.5pt;font-weight:900;line-height:1.5;color:#1c6ea4!important;text-decoration:underline;text-underline-offset:.2em;white-space:nowrap}
+#p5 .ph h2{font-size:20pt!important;letter-spacing:-.01em}   /* 11/3 題「“長い”カチカチホースをスーツと合体？！」を1行に収める（2行だと「合体？！」だけが下に落ちる） */
+.page .notes .srows .nn2.nn2.nn2{color:#fff!important}   /* 11/3 まーく様「緑に黒文字、最悪」→ 色の地の番号札は、白い字（contrast.js が見張る） */
+.qz .a,.qz .a *,.hp{color:#2e7d5b!important}   /* 11/3 うすい緑の地に緑の字が読みにくい → 濃い緑 */
+.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
-.blk>.grid2>section.step{padding-bottom:1.2mm!important}
+.blk>.grid2>section.step{padding-bottom:.8mm!important}
 .blk>.grid2>section.step:nth-of-type(-n+2){border-top:0!important;padding-top:0!important}   /* 囲みの1段目：上の線は囲みの線が受けもつ */
-.blk>.grid2>section.step:nth-of-type(n+3){padding-top:2mm!important}
-.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:4mm 3mm 1.2mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
+.blk>.grid2>section.step:nth-of-type(n+3){padding-top:1.4mm!important}
+.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:3.6mm 3mm .6mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
 .blk-on{--bl:#ade3c8;--bh:#3f9a73}
 .blk-off{--bl:#8cc4ef;--bh:#1b5a8e}   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
 .blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:#fff;color:var(--bh);border:1px solid var(--bh);font-size:10.5pt;line-height:1.45;font-weight:900;letter-spacing:.1em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .1em);box-shadow:0 0 0 1mm #fff}   /* 11/2 まーく様「着る・脱ぐと、番号札のデザインが一緒で見分けにくい」→ 番号札は「塗りつぶし＋矢じり」。囲みの札は「白地＋線」にして、形でも分ける。字は「着るとき」と、場面を表す言葉に */
@@ -641,10 +654,11 @@ table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-it
 table.cmp .g2>span:nth-child(1){text-align:right}
 table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月の月の位置がずれる。半角2文字分も考えて合わせて」→ 月・℃ の字の位置を右でそろえる */   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
 table.cmp .g2>span:nth-child(2){text-align:center}
-table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 3.2em;align-items:baseline}
+table.cmp .g3{display:inline-grid;white-space:nowrap;grid-template-columns:3.8em 3.4em 7.6em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:.6mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
-table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
+table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#1565c0;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
+table.cmp th .rec.hard{background:#c8372d}   /* 11/3 まーく様「LOCK は赤。デメリット（難易度が高い）の位置づけに」 */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
@@ -1398,7 +1412,8 @@ function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const 
 document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();eqQuiz();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
-COLORS = {"#1c6ea4": "#4fae84", "#16466b": "#3f9a73", "#d7eef9": "#dcf4e8", "#a9d8ef": "#ade3c8", "#cfe5f2": "#cdeedd",
+COLORS = {"#1c6ea4": "#2e7d5b",   # 11/3 字に使う青→緑は、濃い緑に（うすい緑の字は、白地で読みにくかった）
+           "#16466b": "#3f9a73", "#d7eef9": "#dcf4e8", "#a9d8ef": "#ade3c8", "#cfe5f2": "#cdeedd",
           "#f1f8fc": "#f2fbf6", "#c9e8f8": "#ccefdd", "%23eaf6fd": "%23eaf8f1", "%23e3f3fb": "%23e0f5ea", "#bfe3f4": "#c3ebd6",
           "#d4ecfa": "#d4f2e3", "#b8def5": "#b8e8cf", "#f4fafe": "#f5fcf8", "rgba(212,236,250,.9)": "rgba(212,242,227,.9)"}   # 10/24 スーツ編は緑（4冊を色で見分ける）。同じ日 まーく様「パステル風のグリーンに」→ 濃い緑をやめ、やわらかい緑に
 def recolor(h):

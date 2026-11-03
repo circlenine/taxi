@@ -27,7 +27,7 @@ OK['#e0507f']='表紙のピンク（題の S・D・G・s の頭文字と、副�
 // 洗浄編のオレンジ（a4s.py の COLORS と同じ）
 ['#c2571a','#6b3410','#ffe6d2','#f6c095','#f6d9c2','#fff6ef','#fddcc4','#fcd8bd','#ffe2cc','#fccca6','#fff7f1','#f6f9fb','#cfdde7','#a8d3ea'].forEach(c=>OK[c]='洗浄編のオレンジ');
 // スーツ編の緑（a4w.py の COLORS と同じ。10/24）
-['#4fae84','#3f9a73','#dcf4e8','#ade3c8','#cdeedd','#f2fbf6','#ccefdd','#eaf8f1','#e0f5ea','#c3ebd6','#d4f2e3','#b8e8cf','#f5fcf8'].forEach(c=>OK[c]='スーツ編のパステルの緑');
+['#2e7d5b','#4fae84','#3f9a73','#dcf4e8','#ade3c8','#cdeedd','#f2fbf6','#ccefdd','#eaf8f1','#e0f5ea','#c3ebd6','#d4f2e3','#b8e8cf','#f5fcf8'].forEach(c=>OK[c]='スーツ編のパステルの緑');
 // ウェット・ドライの札（10/24）
 ['#d6ecfd','#1b5a8e','#8cc4ef','#ffefc4','#7a5200','#f0cf74'].forEach(c=>OK[c]='ウェット・ドライの札');
 const bad=Object.entries(r).filter(([k])=>!OK[k]);

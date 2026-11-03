@@ -59,6 +59,7 @@ ck python3 -I $S/tools/pageorder.py $S/build_w/a4.html   # くわしくはのペ
 ck env HIRA_MIN=7 HIRA_ALLOW='【くわえるところを】|【くわえるところも】|【ができないときもあるから】|【ぶこともあるよ】|【のふちにそろえる】|【らなくなるまで】|【らへんにあるよ】|【ぶらぶらさせない】|【てくることもあるよ】|【がないこともあるよ】|【わせてくれるよ】|【いたままにしておけば】|【けにくいときは】|【になっているので】|【すぐやることは】|【さずにおくのは】|【をふくらませる】' node $S/tools/hiracheck.js $S/build_w/a4.html   # ひらがなが長く続く所（10/22 見直し済みのものだけ通す）
 ck node $S/tools/relcheck.js $S/build_w/a4.html
 ck node $S/tools/palette.js $S/build_w/a4.html
+ck node $S/tools/contrast.js $S/build_w/a4.html   # 11/3 色の札・帯の上の字が読めるか（緑に黒い字だった）
 ck node $S/tools/borders.js $S/build_w/a4.html
 ck node $S/tools/chipalign.js $S/build_w/a4.html   # 札の字が箱のまん中にあるか（10/19）
 ck node $S/tools/kerncheck.js $S/build_w/a4.html   # 題・見出しの字のすき間（10/20）

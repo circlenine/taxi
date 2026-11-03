@@ -635,6 +635,8 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 .grid2 .photos figure:has(>.olink){position:relative}
 .olink{position:absolute;right:0;bottom:0;font-size:9.5pt;font-weight:900;line-height:1.5;color:#1c6ea4!important;text-decoration:underline;text-underline-offset:.2em;white-space:nowrap}
 #p5 .ph h2{font-size:20pt!important;letter-spacing:-.01em}   /* 11/3 題「“長い”カチカチホースをスーツと合体？！」を1行に収める（2行だと「合体？！」だけが下に落ちる） */
+.page .notes .srows .nn2.nn2.nn2{color:#fff!important}   /* 11/3 まーく様「緑に黒文字、最悪」→ 色の地の番号札は、白い字（contrast.js が見張る） */
+.qz .a,.qz .a *,.hp{color:#2e7d5b!important}   /* 11/3 うすい緑の地に緑の字が読みにくい → 濃い緑 */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
@@ -1410,7 +1412,8 @@ function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const 
 document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();eqQuiz();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
-COLORS = {"#1c6ea4": "#4fae84", "#16466b": "#3f9a73", "#d7eef9": "#dcf4e8", "#a9d8ef": "#ade3c8", "#cfe5f2": "#cdeedd",
+COLORS = {"#1c6ea4": "#2e7d5b",   # 11/3 字に使う青→緑は、濃い緑に（うすい緑の字は、白地で読みにくかった）
+           "#16466b": "#3f9a73", "#d7eef9": "#dcf4e8", "#a9d8ef": "#ade3c8", "#cfe5f2": "#cdeedd",
           "#f1f8fc": "#f2fbf6", "#c9e8f8": "#ccefdd", "%23eaf6fd": "%23eaf8f1", "%23e3f3fb": "%23e0f5ea", "#bfe3f4": "#c3ebd6",
           "#d4ecfa": "#d4f2e3", "#b8def5": "#b8e8cf", "#f4fafe": "#f5fcf8", "rgba(212,236,250,.9)": "rgba(212,242,227,.9)"}   # 10/24 スーツ編は緑（4冊を色で見分ける）。同じ日 まーく様「パステル風のグリーンに」→ 濃い緑をやめ、やわらかい緑に
 def recolor(h):

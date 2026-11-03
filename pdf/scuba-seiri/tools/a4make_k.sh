@@ -50,6 +50,7 @@ python3 -I $S/tools/pageorder.py $S/build_k/a4.html   # くわしくはのペー
 HIRA_MIN=7 node $S/tools/hiracheck.js $S/build_k/a4.html   # ひらがなが長く続いて読みにくい所がないか（10/21）
 node $S/tools/relcheck.js $S/build_k/a4.html
 node $S/tools/palette.js $S/build_k/a4.html
+ck node $S/tools/contrast.js $S/build_k/a4.html   # 11/3 色の札・帯の上の字が読めるか（緑に黒い字だった）
 node $S/tools/borders.js $S/build_k/a4.html
 node $S/tools/chipalign.js $S/build_k/a4.html   # 札の字が箱のまん中にあるか（10/19）
 node $S/tools/rubycheck.js $S/build_k/a4.html   # ルビで行がずれていないか（10/20）
