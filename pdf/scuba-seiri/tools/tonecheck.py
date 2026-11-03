@@ -6,7 +6,9 @@ h = re.sub(r'<rt>.*?</rt>|<span class="rt">[^<]*</span>', '', h)   # 10/20 ル�
 h = re.sub(r'<script.*?</script>|<style.*?</style>', '', h, flags=re.S)
 t = html.unescape(re.sub(r'<[^>]+>', '', h))
 ng = []
+OK_MARKS = ('スーツと合体？！',)   # 11/3 まーく様がご指定の題（5ページ）。ほかは、これまでどおり止める
 for m in re.finditer(r'.{0,10}[！？!?]{2,}', t):
+    if any(k in m.group(0) for k in OK_MARKS): continue
     ng.append('「！」「？」が続いている：' + m.group(0))
 # 10/22 まーく様「やる前・やった後 はぶっきらぼう。スマートな言い方に」→ 写真の名前などに使わない（①②の手順の形にする）
 for m in re.finditer(r'.{0,10}(やる前|やった後|引く前|引いた後).{0,6}', t):

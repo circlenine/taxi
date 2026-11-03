@@ -634,6 +634,7 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 .notes table.cmp .g3 .em.em{line-height:1.25!important}   /* スーツの列は小さな格子の中なので、行の高さ0だと字が上にずれる */   /* .notes の中は行の高さを1.6に決めているので、それより強く指定する */   /* 行の高さは増やさない（大きな字だけが上下にふくらまないように） */
 .grid2 .photos figure:has(>.olink){position:relative}
 .olink{position:absolute;right:0;bottom:0;font-size:9.5pt;font-weight:900;line-height:1.5;color:#1c6ea4!important;text-decoration:underline;text-underline-offset:.2em;white-space:nowrap}
+#p5 .ph h2{font-size:20pt!important;letter-spacing:-.01em}   /* 11/3 題「“長い”カチカチホースをスーツと合体？！」を1行に収める（2行だと「合体？！」だけが下に落ちる） */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
@@ -651,7 +652,7 @@ table.cmp .g2{display:inline-grid;grid-template-columns:1.5em 1em 2.5em;align-it
 table.cmp .g2>span:nth-child(1){text-align:right}
 table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月の月の位置がずれる。半角2文字分も考えて合わせて」→ 月・℃ の字の位置を右でそろえる */   /* 〜のすぐ後ろから書く（右そろえだと「11〜 3月」とすき間があく） */
 table.cmp .g2>span:nth-child(2){text-align:center}
-table.cmp .g3{display:inline-grid;grid-template-columns:3.6em 3.6em 3.2em;align-items:baseline}
+table.cmp .g3{display:inline-grid;white-space:nowrap;grid-template-columns:3.8em 3.4em 7.6em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:.6mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#c2571a;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
