@@ -640,6 +640,7 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 #p5 .ph h2{font-size:20pt!important;letter-spacing:-.01em}   /* 11/3 題「“長い”カチカチホースをスーツと合体？！」を1行に収める（2行だと「合体？！」だけが下に落ちる） */
 .page .notes .srows .nn2.nn2.nn2{color:#fff!important}   /* 11/3 まーく様「緑に黒文字、最悪」→ 色の地の番号札は、白い字（contrast.js が見張る） */
 .qz .a,.qz .a *,.hp{color:#2e7d5b!important}   /* 11/3 うすい緑の地に緑の字が読みにくい → 濃い緑 */
+table.cmp th,table.cmp td{border-color:#a8b8c4!important}   /* 11/4 まーく様「区切りの枠線が見えない」→ 緑・灰色の地の上でも見える、濃いめの灰色の線に */
 table.cmp td.cold{background:#eceff2!important;color:#6b7785!important}   /* 11/3 まーく様「低い気温・水温の違いの付け方は？」→ 寒めの温度は、うすい灰色の地 */
 table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight:900!important}   /* 11/3 まーく様「赤青は暑い寒いのイメージと混乱する」→ 快適な温度は、うすい緑の地＋黒い字。それ以外はふつうの灰色の字 */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
