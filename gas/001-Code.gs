@@ -1,7 +1,13 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C078ver  （2026/11/3）  ★★★   ← もとは version 232
+ *  ★★★  C079ver  （2026/11/3）  ★★★   ← もとは version 232
+ *
+ *  [C079ver]
+ *   ・🩺 LINEが届いたら「まるごと診る」ようにした
+ *     ★見張りが全部 消えても、ここは外から叩かれるので動きます。
+ *       LINEは1日に何度も届くので、いちばん丈夫な戻り道です。
+ *     ★1時間に1回までしか中身は動きません。
  *
  *  [C078ver]
  *   ・📱 「止まっています」の案内を、iPhoneで押せる場所に直した
@@ -800,7 +806,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C078ver";
+const CODE_VERSION = "C079ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -1881,6 +1887,15 @@ function doPost(e) {
     try {
       if (typeof panelHealWatch_ === "function") panelHealWatch_();
     } catch (e4) { logErr_("doPostHeal", e4); }
+    /*
+     * ★LINEが届くたびに、まるごと診ます（2026/11/3）。
+     *   見張りが全部 消えていても、ここは外から叩かれるので動きます。
+     *   LINEは1日に何度も届くので、これが いちばん丈夫な戻り道です。
+     *   1時間に1回までしか中身は動きません。
+     */
+    try {
+      if (typeof updDoctorTick_ === "function") updDoctorTick_();
+    } catch (e4b) { logErr_("doPostDoctor", e4b); }
 
     (body.events || []).forEach(function (ev) {
       try { handleEvent_(ev); } catch (err) { logErr_("handleEvent", err); }
