@@ -231,7 +231,7 @@ def notes(s):
         p_ = s["steps"]
         _sk = p_.get("kind", "pk")   # 10/27 スーツ編：脱ぐ順番は「補足」の札で出す（大事は、そのあとの一言だけ）
         # 留める順番は、表の形にする：番号／場所／やること の3列。やることが2行になっても、書き出しの位置はそろう
-        n(_sk, f'<b>{p_["head"]}</b>', ['<div class="srows">' + "".join(f'<span class="nn2">{_plain(a)}</span><span class="sp2">{b}</span><span class="sd2">{c}</span>' for a, b, c in p_["rows"]) + '</div>'])
+        n(_sk, f'<b>{p_["head"]}</b>', ['<div class="srows">' + "".join(f'{_badge(a)}<span class="sp2">{b}</span><span class="sd2">{c}</span>' for a, b, c in p_["rows"]) + '</div>'])
     if s.get("table"):
         # 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」→ 横に並べた表（左の列＝何を比べるか、上の行＝比べる2つ）
         tb = s["table"]
@@ -326,6 +326,9 @@ def jump(sid):
 def _plain(a):
     # 11/3 まーく様「緑の札で囲んでいるのに、さらに丸で囲む必要はない。見づらい」→ 札の中は ①② ではなく、ただの数字
     return "".join(str("①②③④⑤⑥⑦⑧⑨".index(ch) + 1) if ch in "①②③④⑤⑥⑦⑧⑨" else ch for ch in a)
+def _badge(a):
+    # 11/4 まーく様「無意味な番号はないか」→ 順番のない並び（場面ごとの注意など）は「・」にし、番号の札を付けない
+    return '<span class="nn2 dot">・</span>' if a == "・" else f'<span class="nn2">{_plain(a)}</span>'
 def stepbox(s):
     return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s["id"] in SIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
             f'{_olink(photos(s), s.get("olink"))}{_nj(notes(s), s.get("jump"))}</section>')
@@ -647,6 +650,8 @@ table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight
 .notes .srows .sp2.sp2::after{margin-left:2mm}   /* 11/4 まーく様「：の右は全角1字分あいているのに、左は無い」→ ：の左にも、右（列のすき間2mm）と同じすき間を */
 .page .notes>.jrow.jrow{text-align:left!important;margin-left:3mm!important}   /* 11/4 まーく様「なぜ中央？ふつうの説明文なら左ぞろえ」→ 本文のくわしくはは、上の文と同じ左はしに */
 .page .notes>.jrow.jrow .jump{display:inline!important;text-align:left!important}
+.page .notes .srows .nn2.dot.dot{background:none!important;color:#1f2a37!important;width:auto;padding:0;border-radius:0!important}
+table.cmp .em{font-size:11.5pt!important}   /* 11/4 まーく様「表の最大の字は説明文と同じ大きさに。ほかの字は気持ち小さめ」→ 目立たせる字＝本文と同じ11.5pt、ほかは10pt */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
