@@ -1,3 +1,4 @@
+import re
 """文の長さと、選択肢のオススメを止める（10/27 夜 まーく様「長文は読む気が失せる」「選択肢には、どちらが良いかを付ける」）
    根拠：人はページを「読む」より「拾い読み」する（NN/g：79% が拾い読み）。一度に覚えられるのは4つほど（Cowan 2001）。
    選択肢が多い・決め手がないと、選べなくなる（Iyengar & Lepper 2000）。
@@ -28,6 +29,7 @@ for s in c.STEPS:
         ks = u.get("key", [])
         for i, k in enumerate(ks):
             cap = c.CAPS.get((u["id"], k), "")
+            cap = re.sub(r"<small>（正式名称：[^<]*）</small>", "", cap)   # 11/3 正式名称は名前の下に小さく別の行で出すので、長さに数えない
             if L(cap) > (30 if k in ("d_cat", "w_cat") else 18):   # 図の説明は出どころを書くので長くてよい
                 ng.append(f"NG {u['id']} {k}：写真の説明が長い（{L(cap)}字・18字まで）「{cap}」")
 print("\n".join(ng) if ng else "文の長さ・オススメ OK"); sys.exit(1 if ng else 0)
