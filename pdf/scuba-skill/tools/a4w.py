@@ -473,7 +473,7 @@ mt = "".join(
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、元のページへ</b><span class="rn">動画・お店のブログ・カタログ</span></span></div><p class="src mtcred"><span class="nw">写真：海人商店ブログ・</span><br><span class="nw">ワールドダイブのカタログ・</span><br><span class="nw">動画から（最後のページ）</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">ドライの着方・脱ぎ方で、いちばん参考にした動画：「初心者の9割が知らない！プロが教えるドライスーツの着脱のコツとは？」（パパラギ先生のまるごとダイビングTV）<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※他の写真は、ダイビングショップ（海人商店・シーサー那覇・伊豆高原ダイビング）・ダイビングのウェブマガジン（オーシャナ）のブログ、ワールドダイブのカタログ、ウィキメディア・コモンズ（自由に使える写真）、いくつかの動画から集めたもの。厚さと水温の表は、ダイビングのお店3つの目安と気象庁（網代の平年値）から<span class="scr">。元のページは、写真をタップすると開くよ</span></p></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">いちばん参考にした動画：まるごとダイビングTV「ドライスーツの着脱のコツ」<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※写真は、お店のブログ・カタログ・動画・ウィキメディア・コモンズから。写真をタップすると元のページへ</p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）

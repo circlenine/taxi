@@ -7,7 +7,9 @@ const ALLOW = ['【あわてないように】','【だからこまめに】','�
   // 10/22 まーく様ご自身の言葉（こんな時・ポイント・始めの1行）。言い換えない
   '【がつってしまった】','【くところにある】','【かにぶつかった】','【づいていないか】','【づいていないかで】',
   // まとめの「くわしくは」の後ろは、札の字（その1）で区切られている
-  '【くわしくはその】'].concat((process.env.HIRA_ALLOW || '').split('|').filter(Boolean));
+  '【くわしくはその】',
+  // 11/3 まーく様ご指定の言い方（6-3）
+  '【めのものもあるよ】'].concat((process.env.HIRA_ALLOW || '').split('|').filter(Boolean));
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const p=await b.newPage();await p.emulateMedia({media:'print'});await p.goto('file://'+process.argv[2],{waitUntil:'networkidle'});await p.waitForFunction(()=>window.__laid===true,{timeout:30000});
 const r=await p.evaluate(m=>{const o=[];document.querySelectorAll('.page').forEach(pg=>{let t0=pg.innerText;pg.querySelectorAll('.umsg,.umsg2').forEach(u=>{t0=t0.replace(u.innerText,'')});const t=t0.replace(/\s+/g,'｜');   /* 10/22 まーく様ご自身の言葉（まとめの下）は見ない */const re=new RegExp('[ぁ-ゖー]{'+m+',}','g');let x;while(x=re.exec(t)){o.push(pg.id+'｜'+t.slice(Math.max(0,x.index-6),x.index)+'【'+x[0]+'】'+t.slice(x.index+x[0].length,x.index+x[0].length+6));}});return o;},MIN);

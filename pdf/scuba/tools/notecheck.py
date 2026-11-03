@@ -22,6 +22,7 @@ for s in c.STEPS:
         if len([t for t in ex if not t.startswith("※")]) > 3: ng.append(f"NG {u['id']}：補足が{len(ex)}つ。3つまで（多いときは表に）")
         for t in ex:
             if t.startswith("※"): continue   # 表の下の注意書きは数えない（目安の注意は必ず書く：10/28）
+            if t in getattr(c, "USER_WORDS", ()): continue   # 11/3 まーく様がその言い方で、とご指定の文は長さを数えない
             if L(t) > lim: ng.append(f"NG {u['id']}：補足が長い（{L(t)}字・{lim}字まで）「{t}」")
         tb = u.get("table")
         if tb and len(tb["cols"]) == 2 and all(tb["cols"]) and not any("[おすすめ]" in x for x in tb["cols"]):
