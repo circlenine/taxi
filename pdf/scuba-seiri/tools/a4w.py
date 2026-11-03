@@ -643,6 +643,8 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 table.cmp th,table.cmp td{border-color:#a8b8c4!important}   /* 11/4 まーく様「区切りの枠線が見えない」→ 緑・灰色の地の上でも見える、濃いめの灰色の線に */
 table.cmp td.cold{background:#eceff2!important;color:#6b7785!important}   /* 11/3 まーく様「低い気温・水温の違いの付け方は？」→ 寒めの温度は、うすい灰色の地 */
 table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight:900!important}   /* 11/3 まーく様「赤青は暑い寒いのイメージと混乱する」→ 快適な温度は、うすい緑の地＋黒い字。それ以外はふつうの灰色の字 */
+.notes .srows .sp2.sp2{padding-right:0!important}
+.notes .srows .sp2.sp2::after{margin-left:2mm}   /* 11/4 まーく様「：の右は全角1字分あいているのに、左は無い」→ ：の左にも、右（列のすき間2mm）と同じすき間を */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
