@@ -168,3 +168,9 @@
   - フル装備でレギュレーターから胸のボタンまでホースがつながって見える写真：見つからず（マリンダイビング・オーシャナ・ZERO・owd・bucho-diver・シーサー・マレア・伊豆高原・net-diver ほか）。
 | 首が薄いゴム（ラテックス）のタイプは、折らずに首に平らにそわせる。厚いゴム（ネオプレン）は内側に折りこむ | DTM「Diving Dry: How to Don A Dry Suit」https://dtmag.com/thelibrary/diving-dry-don-dry-suit/（latex neck seal lies flat／neoprene neck seal is folded under）／WD「ソリッドネック：内側に折り返す」標準仕様（SunraIZUさんのドライは WD） |
 - 11/2 夜 公式マニュアル：World Dive のドライスーツ取扱説明書・給排気バルブ説明書は、スーツの付属品（04-Drysuits.pdf の付属品の欄）。ネットには公開されていない（11/2 夜 もう一度さがした）。3-1 の図の下には、公式に公開されている説明 https://www.worlddive.co.jp/product/data/04-Drysuits.pdf （開いて中身を確かめた）へのリンクを置いた。
+- 11/4 1-3 の表を 2025年の実測に（まーく様「去年のデータで、より正確に。2025年と分かるように」）。
+  - 気温：気象庁「過去の気象データ」網代（静岡県）2025年の月別値（日平均の月平均）https://www.data.jma.go.jp/stats/etrn/view/monthly_s1.php?prec_no=50&block_no=47668&year=2025
+    1月7.8 2月7.0 3月11.3 4月15.5 5月18.9 6月24.0 7月27.4 8月28.9 9月26.1 10月19.1 11月14.1 12月10.6
+  - 水温：静岡県水産・海洋技術研究所 伊豆分場「海況月報」2025年1〜12月号（gepo2501〜2512.pdf）の定地水温 伊東の月平均 https://fish-exp.pref.shizuoka.jp/05wait/gepo_pdf/gepo2501.pdf ほか
+    1月14.9 2月13.7 3月14.4 4月15.9 5月18.0 6月21.8 7月26.0 8月25.5 9月25.3 10月23.2 11月19.5 12月17.9
+  - SunraIZUさんは伊東市川奈なので、水温は伊東の値を使った。2か月ずつの欄は、2つの月平均の低い方〜高い方（四捨五入）。
