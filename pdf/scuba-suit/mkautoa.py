@@ -1,4 +1,5 @@
 # 3-3 オート／ロックの矢印と札（11/3 おすすめを青に）
+# 11/3 まーく様「LOCK は赤（デメリット・難易度が高い）」→ LOCK 側（GRAY という名前のまま）を、表の赤 #c8372d に
 import math
 from PIL import Image, ImageDraw, ImageFont
 F='/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf'
@@ -6,7 +7,7 @@ base=Image.open('kfw4/d_auto.jpg').convert('RGBA')
 K=4; Wd,Ht=base.size
 ov=Image.new('RGBA',(Wd*K,Ht*K),(0,0,0,0)); d=ImageDraw.Draw(ov)
 cx,cy,rx,ry=743,510,352,368
-RED=(21,101,192,255); GRAY=(55,63,72,255); WH=(255,255,255,255)   # 11/3 まーく様「おすすめの枠を青に。青字の説明とそろえる」
+RED=(21,101,192,255); GRAY=(200,55,45,255); WH=(255,255,255,255)   # 11/3 まーく様「おすすめの枠を青に。青字の説明とそろえる」
 def P(a,dr=0):
     t=math.radians(a); return ((cx+(rx+dr)*math.cos(t))*K,(cy+(ry+dr)*math.sin(t))*K)
 def band(a0,a1,col,w):

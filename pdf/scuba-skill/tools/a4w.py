@@ -236,7 +236,7 @@ def notes(s):
         # 10/27 まーく様「比較の書き方は、もっとわかりやすい比較として」→ 横に並べた表（左の列＝何を比べるか、上の行＝比べる2つ）
         tb = s["table"]
         # 10/28 まーく様「★オススメより おすすめ。名前のカタカナと続くと見づらい」→ [おすすめ] は、補足・大事と同じ形の小さな札にする（* はタップの印なので使わない）
-        th = "".join(f'<th>{T(c.replace("[おすすめ]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "")}</th>' for c in tb["cols"])
+        th = "".join(f'<th>{T(c.replace("[おすすめ]", "").replace("[難しい]", "")) + ("<span class=rec>おすすめ</span>" if "[おすすめ]" in c else "") + ("<span class=\"rec hard\">難しい</span>" if "[難しい]" in c else "")}</th>' for c in tb["cols"])   # 11/3 ロックは「むずかしい」（赤）
         # 10/28 まーく様「いちばん左の列は黒、良い方は青・悪い方は赤・ふつうは濃いグレー」→ 中身の頭の + は青、- は赤
         #   「a|b|c」は3つの枠に分けて、同じ字が各行で同じ位置に来るようにする。align で右そろえ（月・℃）
         # 10/29 まーく様「表は全て中央位置。ただし月や℃など合わせられるところは合わせて」
@@ -635,13 +635,13 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 .grid2 .photos figure:has(>.olink){position:relative}
 .olink{position:absolute;right:0;bottom:0;font-size:9.5pt;font-weight:900;line-height:1.5;color:#1c6ea4!important;text-decoration:underline;text-underline-offset:.2em;white-space:nowrap}
 #p5 .ph h2{font-size:20pt!important;letter-spacing:-.01em}   /* 11/3 題「“長い”カチカチホースをスーツと合体？！」を1行に収める（2行だと「合体？！」だけが下に落ちる） */
-.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:4.4mm;padding-top:2.4mm}
+.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
-.blk>.grid2>section.step{padding-bottom:1.2mm!important}
+.blk>.grid2>section.step{padding-bottom:.8mm!important}
 .blk>.grid2>section.step:nth-of-type(-n+2){border-top:0!important;padding-top:0!important}   /* 囲みの1段目：上の線は囲みの線が受けもつ */
-.blk>.grid2>section.step:nth-of-type(n+3){padding-top:2mm!important}
-.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:4mm 3mm 1.2mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
+.blk>.grid2>section.step:nth-of-type(n+3){padding-top:1.4mm!important}
+.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:3.6mm 3mm .6mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
 .blk-on{--bl:#ade3c8;--bh:#3f9a73}
 .blk-off{--bl:#8cc4ef;--bh:#1b5a8e}   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
 .blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:#fff;color:var(--bh);border:1px solid var(--bh);font-size:10.5pt;line-height:1.45;font-weight:900;letter-spacing:.1em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .1em);box-shadow:0 0 0 1mm #fff}   /* 11/2 まーく様「着る・脱ぐと、番号札のデザインが一緒で見分けにくい」→ 番号札は「塗りつぶし＋矢じり」。囲みの札は「白地＋線」にして、形でも分ける。字は「着るとき」と、場面を表す言葉に */
@@ -656,6 +656,7 @@ table.cmp .g3{display:inline-grid;white-space:nowrap;grid-template-columns:3.8em
 table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:.6mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#1565c0;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
+table.cmp th .rec.hard{background:#c8372d}   /* 11/3 まーく様「LOCK は赤。デメリット（難易度が高い）の位置づけに」 */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
