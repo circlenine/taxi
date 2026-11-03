@@ -2,7 +2,27 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U147ver  （2026/11/2）  ★★★
+ *  ★★★  U148ver  （2026/11/3）  ★★★
+ *
+ *  [U148ver]
+ *   ・🚪 玄関（受け口）の住所を、外から読める所に置くようにした
+ *     ★まーく様のご指示：
+ *       「仕組みづくりから見直して、クロちゃん側で
+ *         ほぼ全自動で修正できる形にできませんか」
+ *     ★いちばんの弱点は「止まったとき、外から入る道が1本も無い」こと。
+ *       見張りが全部 消えると、中からも直せず、外からも触れません。
+ *     ★Apps Script で、見張りに頼らない入口は **ウェブの受け口だけ**です。
+ *       外から叩かれたときに動くので、見張りが0個でも生きています。
+ *     ★足りなかったのは「その住所をこちらが知らない」ことだけでした。
+ *       だから、住所を2か所に置きます。
+ *         ① ドライブの「受け口の住所.txt」
+ *         ② 「説明」タブの CB1
+ *       どちらも、止まっていても読めます。
+ *     ★住所が変わったときだけ書きます。共有の設定は触りません。
+ *   ・🩺 外から叩かれたら「まるごと診る」ようにした
+ *     ★doGet（ページを開く）と doPost（LINEが届く）の両方から、
+ *       お医者さん（updDoctorTick_）を呼びます。
+ *       LINEは1日に何度も届くので、これが いちばん丈夫な戻り道です。
  *
  *  [U147ver]
  *   ・🩺 自動のお医者さんを置いた（ご指示）
@@ -1625,7 +1645,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U147ver";
+const UPD_VERSION = "U148ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9552,6 +9572,101 @@ function fixAll() {
  *    使う許可は、いま持っている9つの中に収まっています。
  * ================================================================ */
 
+/* ================================================================
+ *  \U0001f6aa 玄関（LINEの受け口）の住所を、外から読める所に置く
+ *
+ *  ★まーく様のご指示（2026/11/3）
+ *    「仕組みづくりから見直して、クロちゃん側で
+ *      ほぼ全自動で修正できる形にできませんか」
+ *
+ *  ★いちばんの弱点は、ここでした。
+ *    止まったとき、**外から入る道が1本も無い**ことです。
+ *    中のしかけ（見張り）が全部 消えると、
+ *    中からも直せず、外からも触れません。
+ *    だから まーく様に手で押していただくしかありませんでした。
+ *
+ *  ★ところが、Apps Script には1つだけ、
+ *    見張りに頼らない入口があります。**ウェブの受け口**です。
+ *    これは「外から叩かれたとき」に動くので、
+ *    見張りが全部 消えていても生きています。
+ *    叩けば、その場で見張りを入れ直せます。
+ *
+ *  ★足りなかったのは「その住所を、こちらが知らない」ことだけでした。
+ *    だから、住所を次の2か所に置きます。
+ *      ① ドライブの「受け口の住所.txt」
+ *      ② 「説明」タブの右のほう（CB1）
+ *    どちらも、止まっていても読めます。
+ *    住所さえ分かれば、こちらから叩いて、全部 戻せます。
+ *
+ *  ★住所が変わったときだけ書きます（毎回書くと持ち時間を食います）。
+ *  ★共有の設定は いっさい触りません。まーく様だけが見られます。
+ * ================================================================ */
+
+const DOOR_FILE  = "受け口の住所.txt";    // ドライブに置く名前
+const DOOR_CELL  = "CB1";                  // 「説明」タブの置き場
+const DOOR_KEY   = "UPD_DOOR_URL";         // 前に書いた住所
+
+/** 住所の中身（人が読んでも分かる形にしておく） */
+function updDoorText_(url) {
+  const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm");
+  let sid = "";
+  try { sid = ScriptApp.getScriptId(); } catch (e) {}
+  return [
+    "＝＝ 受け口（LINEの窓口）の住所 ＝＝",
+    "書いた日：" + now + "（日本時間）",
+    "",
+    "住所：" + url,
+    "スクリプトID：" + sid,
+    "",
+    "※この住所をブラウザで開くと、見張り（ひとりでに動くしかけ）が",
+    "　その場で入り直します。止まったときの戻り道です。",
+    "※共有はしていません。まーく様だけが見られます。"
+  ].join("\n");
+}
+
+/**
+ * 住所を、ドライブと「説明」タブに置く。
+ * 返すのは「書いたかどうか」。
+ */
+function updDoorPublish_(urlIn) {
+  let url = String(urlIn || "");
+  if (!url) {
+    try { url = String(ScriptApp.getService().getUrl() || ""); } catch (e) { url = ""; }
+  }
+  if (!url) return false;
+
+  const pr = updProps_();
+  let before = "";
+  try { before = String(pr.getProperty(DOOR_KEY) || ""); } catch (e) {}
+  if (before === url) return false;            // 変わっていない。書かない
+
+  const text = updDoorText_(url);
+
+  // ① ドライブに置く（同じ名前があれば、中身だけ入れ替える）
+  try {
+    let f = null;
+    const it = DriveApp.getFilesByName(DOOR_FILE);
+    if (it.hasNext()) f = it.next();
+    if (f) f.setContent(text);
+    // ★共有の設定は触りません（売上の記録ではありませんが、決まりは同じにします）
+    else DriveApp.createFile(DOOR_FILE, text, MimeType.PLAIN_TEXT);
+  } catch (e) { try { logErr_("doorDrive", e); } catch (e2) {} }
+
+  // ② 「説明」タブの右のほうにも置く（スプシしか開けないときのため）
+  try {
+    const sh = mainSS_().getSheetByName(PANEL_TAB);
+    if (sh) {
+      const rg = sh.getRange(DOOR_CELL);
+      rg.setValue(url);
+      rg.setNote("LINEの受け口の住所です。消さないでください。\n" +
+                 "止まったとき、ここを開けば入り直します。");
+    }
+  } catch (e) { try { logErr_("doorCell", e); } catch (e2) {} }
+
+  try { pr.setProperty(DOOR_KEY, url); } catch (e) {}
+  return true;
+}
+
 const DR_EVERY_MIN   = 60;              // 何分おきに診るか
 const DR_AT_KEY      = "UPD_DR_AT";     // 前に診た時刻
 const DR_TELL_KEY    = "UPD_DR_TELL";   // 前に知らせた日と中身
@@ -9713,12 +9828,24 @@ function updDoctorTick_() {
   } catch (e) { try { logErr_("doctorTriggers", e); } catch (e2) {} }
 
   // ② LINEの受け口を診て、死んでいたら公開し直す
+  let url2 = "";
   try {
     if (typeof updWebAppFix_ === "function") {
       const r = updWebAppFix_();
       if (r && r.text) say.push(r.text);
+      if (r && r.url) url2 = r.url;
     }
   } catch (e) { try { logErr_("doctorWebApp", e); } catch (e2) {} }
+
+  /*
+   * ③ 玄関の住所を、外から読める所に置き直す。
+   *    ★これが「こちらから直せる」の土台です。
+   *      住所さえ分かっていれば、止まっていても こちらから叩いて戻せます。
+   *    ★変わっていなければ、何も書きません。
+   */
+  try {
+    if (typeof updDoorPublish_ === "function") updDoorPublish_(url2);
+  } catch (e) { try { logErr_("doctorDoor", e); } catch (e2) {} }
 
   if (say.length) updDrTell_(say.join("\n\n"));
   return true;
