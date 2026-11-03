@@ -424,7 +424,7 @@ def load(frame):
 PAD = 0.06
 NOCROP = {"d_cat", "w_cat", "d_ba"}   # SunraIZUさんのスーツの図（mkcat.py で作った完成図）・3-5 のつなぐ前／後（上下2段で作った完成図）
 # わざと大写しにする写真（ringcheck の「寄りすぎ」から外す）。どれも、同じ部分を 2-1 の図や となりの写真で、体ごと見せている
-CLOSEUP = {"d_frin", "rx420", "w_bag", "d_sock", "w_hair", "d_auto", "d_seal", "d_frex"}   # d_frex：10/27 夜 説明の男性の顔を外すと幅が狭くなる。体のどこかは 3-1 の図で見せている
+CLOSEUP = {"o_heel", "d_frin", "rx420", "w_bag", "d_sock", "w_hair", "d_auto", "d_seal", "d_frex"}   # d_frex：10/27 夜 説明の男性の顔を外すと幅が狭くなる。体のどこかは 3-1 の図で見せている
 # 10/27 まーく様「女性目線での資料ファースト」：男性が写っている写真と、男性のままにしている理由（理由がない男性の写真は ringcheck が止める）
 MALE = {"d_push", "u28w", "d_conn3", "d_conn2", "d_conn", "p_bcdh", "p_bcduse", "d_frin", "d_frex", "m_valves", "d_cat", "p_heel"}
 MALE_OK = {
