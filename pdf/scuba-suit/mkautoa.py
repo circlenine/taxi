@@ -17,7 +17,7 @@ def head(a,sign,col,grow=0):
     x,y=P(a); x2,y2=P(a+sign*0.3); tx,ty=x2-x,y2-y; n=math.hypot(tx,ty); tx,ty=tx/n,ty/n; nx,ny=-ty,tx
     L,B=(80+grow*1.8)*K,(46+grow)*K; bx,by=x-tx*grow*0.9*K,y-ty*grow*0.9*K
     d.polygon([(bx+tx*L,by+ty*L),(bx+nx*B,by+ny*B),(bx-nx*B,by-ny*B)],fill=col)
-A_AUTO,A_MID,A_LOCK=108,141,170   # 11/4 矢印の先が札にかからないよう、少し短く
+A_AUTO,A_MID,A_LOCK=118,144,170   # 11/4 矢印の先が札にかからないよう、少し短く。さらに右下の ▶ から離す（108→118）
 band(A_AUTO-0.3,A_LOCK+0.3,WH,36); head(A_AUTO,-1,WH,9); head(A_LOCK,1,WH,9)
 band(A_MID,A_LOCK,GRAY,22); band(A_AUTO,A_MID+0.2,RED,22)
 head(A_AUTO,-1,RED); head(A_LOCK,1,GRAY)

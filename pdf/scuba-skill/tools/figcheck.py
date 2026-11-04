@@ -18,4 +18,14 @@ for k in ("d_cat", "w_cat"):
 _sz = {k: Image.open(f"/tmp/claude-0/kfw4/{k}.jpg").size for k in ("d_cat", "w_cat")}
 # 10/28 まーく様「フル装備のイメージ写真を、ドライの全体写真と一緒に」→ ドライは3枠で横に長い。高さはそろえ、ドライが短くなることだけを止める
 if _sz["d_cat"][1] != _sz["w_cat"][1] or _sz["d_cat"][0] < _sz["w_cat"][0]: ng.append(f"NG ウェットとドライの図の大きさがちがう（{_sz}）。字の大きさ・図の高さがそろわない")
+# 11/4 まーく様「前と丸が被ってる（繋がってる）。ドライの画像や全てのページも見直して」
+#   → 丸（線の太さこみ）と、字の箱（タグ・前・後）の間を、8px（ページで約1mm）以上あける。丸どうしも同じ
+import json
+for k in ("d_cat", "w_cat"):
+    try: bx = json.load(open(f"/tmp/claude-0/kfw4/{k}.boxes.json"))
+    except Exception: ng.append(f"NG {k}：丸と字の位置の控え（{k}.boxes.json）がない。mkcat.py / mkwet.py を動かし直す"); continue
+    gap = lambda a, b: max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3])   # 0以下＝重なり
+    for r in bx["rings"]:
+        for l in bx["labels"]:
+            if gap(r, l[1:]) < 8: ng.append(f"NG {k}：丸と「{l[0]}」が近すぎる・重なる（すき間 {gap(r, l[1:]):.0f}px。8px以上）")
 print("\n".join(ng) if ng else "図の余白 OK（何もない帯なし・前後の枠あり）"); sys.exit(1 if ng else 0)

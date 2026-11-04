@@ -4,6 +4,7 @@
 # こうすると、枠の形がどうであっても、見せたい器材が真ん中に大きく入り、字幕や枠の外は入らない。
 # 座標はどれも、画面を 1280x720 に縮めたときの位置。
 import sys, os, json
+LASTMASK = None
 from PIL import Image
 
 UP = "/root/.claude/uploads/647c6673-e0d4-50d5-a1f6-0c9285b7952c"
@@ -29,7 +30,7 @@ F = {
  "w_fold2": ("w_fold2", (0, 0, 1280, 720),  (520, 220, 820, 720)),   # 11/3 まーく様「手がブレている。似ているものでもっと良いのは？」→ 68.2秒：両手で裏返したスーツの口を持ち、足を入れている（ぶれが少ないコマを、0.1秒ごとに比べて選んだ）
  "w_front": ("w_front", (0, 0, 1280, 610),  (420, 100, 860, 600)),   # 10/27 ウェットの特徴（体にぴったりの形）。下の字幕は入れない
  "w_side":  ("w_side",  (0, 0, 1280, 610),  (480, 120, 820, 600)),   # 背中のファスナーとひも
- "w_bag2": ("w_bag2", (0, 0, 1280, 560), (440, 285, 670, 465)),   # 11/2 検査役（4回目）：右上の頭の端を外す（袖と袋の丸(555,375)は真ん中のまま）
+ "w_bag2": ("w_bag2", (0, 0, 1280, 560), (375, 235, 735, 515)),   # 11/4 丸が右下の ▶ にかかる → 少し引いて写す。 11/2 検査役（4回目）：右上の頭の端を外す（袖と袋の丸(555,375)は真ん中のまま）
  "w_hair":  ("w_hair",  (520, 105, 815, 350),  (520, 105, 815, 350)),   # 10/28 まーく様の赤い四角（2:04 のスクショ）のとおり：頭・持ち上げた髪・首の後ろだけ。遠目でも分かる大きさ
  "w_velc":  ("w_velc", (0, 0, 1280, 550), (360, 170, 840, 550)),   # 11/2 夜 まーく様「折り返された三角っぽい部分に丸を」→ 指の下の、三角に折り返したテープ(615,352)を真ん中に   # 11/2 まーく様「首のテープはここ（丸の所）。丸を真ん中に、首元が見えるように」→ 指で押さえている水色のテープ(650,345)を真ん中に
  "rx386":   ("rx386",   (220, 60, 1000, 720), (235, 300, 790, 700)),   # 10/29 まーく様「説明に指とあるので、左腕と指先が見えないと」→ ひじから指先（袖口に指を入れる所）まで。左はしの葉の絵は入れない
@@ -256,6 +257,7 @@ def mark(im, key, box, sx, sy, ppx):
     """ppx = 写真1pxあたりではなく、CSS 1px が写真の何pxにあたるか"""
     import math
     from PIL import Image, ImageDraw, ImageFont
+    global LASTMASK; LASTMASK = None
     if key in NODRAW: return im   # 10/28 まーく様「丸は、ふだん知らないピンポイントの部品だけ。画像がいちばん見えること」
     if key not in MARK and key not in MARKR and key not in MARKE and key not in MARKQ and key not in MARKP and key not in MARKS and key not in MARKW and key not in MARKL: return im
     # 印は、透明な紙に描いてから、少しすかして写真に重ねる（10/13 ご指示：写真も印も見やすいように）
@@ -382,6 +384,7 @@ def mark(im, key, box, sx, sy, ppx):
         dl.rounded_rectangle((bx - o, by - o, bx + bw + o, by + bh + o), radius=TAG["radius_mm"] * mm + o, fill=(255, 255, 255))
         dl.rounded_rectangle((bx, by, bx + bw, by + bh), radius=TAG["radius_mm"] * mm, fill=RED)
         dl.text((bx + TAG["pad_x_mm"] * mm, by + bh / 2), text, font=f, fill=(255, 255, 255), anchor="lm")
+    from PIL import ImageChops; LASTMASK = ImageChops.lighter(im.getchannel("A"), labl.getchannel("A"))   # 11/4 丸・札の形を控える（▶ や写真のふちに かからないかを playring.py が見る）
     a = im.getchannel("A").point(lambda v: round(v * MARK_ALPHA))
     im.putalpha(a)
     out = base.convert("RGBA"); out.alpha_composite(im); out.alpha_composite(labl)
@@ -474,6 +477,7 @@ import content_w as _cw
 _pushcap = sorted(k for (_sid, k), v in _cw.CAPS.items() if ("押す" in v or "戻るか" in v) and k in MARK and k not in NODRAW and k not in PUSH)
 if _pushcap: raise SystemExit(f"NG 「押す」写真なのに、押す所だけを囲む丸（PUSH）になっていない：{_pushcap}")   # 11/2 ボタン全体を囲んでいた
 RING_H = 0.84
+RING_HK = {"w_pad": 0.74}   # 11/4 まーく様「丸が ▶ と被ってる」→ 右下の ▶ にかかる写真だけ、少し引いて写す（playring.py が測る）
 # 10/29 まーく様「なんで左肩のボタンが中心にくるように調整してないのですか」→ 赤丸を描く写真は、かならず丸を真ん中に置く。
 #   「真ん中でなくてよい」に入れてよいのは、まーく様に見ていただいた3枚だけ。ここに勝手に足すと、組み立てが止まる
 _CENTER_SEEN = {"d_frin", "r345", "m_valves", "d_toilet", "p_heel", "u15", "d_nip2", "d_nip3", "d_conn3"}   # 11/2 まーく様「接続部の角度も、比較対象としてそろえて」
@@ -562,13 +566,13 @@ if __name__ == "__main__":
         #     場面を見せる写真（CTX）・図（NOCROP）・赤丸が2つ以上の写真は別。ringcheck.py が、そろっているかを測る
         if key not in CTX and key not in NOCROP and len(MARK.get(key, [])) == 1:
             _cx, _cy, _r = MARK[key][0][:3]
-            _bh = 2 * _r * OV / RING_H; _bw = _bh * (w / h)
+            _bh = 2 * _r * OV / RING_HK.get(key, RING_H); _bw = _bh * (w / h)
             _s = min(1.0, (allowed[2] - allowed[0]) / _bw, (allowed[3] - allowed[1]) / _bh)
             _bw, _bh = _bw * _s, _bh * _s
             # 画面のはしで赤丸が真ん中に来ないときは、真ん中から1割以内に入るまで寄る（そのぶん赤丸も小さくして、大きさの割合は保つ）
             _hw, _hh = min(_cx - allowed[0], allowed[2] - _cx), min(_cy - allowed[1], allowed[3] - _cy)
             _s2 = min(1.0, _hw / (0.4 * _bw), _hh / (0.4 * _bh)); _bw, _bh = _bw * _s2, _bh * _s2
-            _r2 = min(_r, RING_H * _bh / (2 * OV)); MARK[key] = [(_cx, _cy, _r2, *MARK[key][0][3:])]
+            _r2 = min(_r, RING_HK.get(key, RING_H) * _bh / (2 * OV)); MARK[key] = [(_cx, _cy, _r2, *MARK[key][0][3:])]
             x0 = min(max(_cx - _bw / 2, allowed[0]), allowed[2] - _bw); y0 = min(max(_cy - _bh / 2, allowed[1]), allowed[3] - _bh)
             x1, y1 = x0 + _bw, y0 + _bh
         # 10/27 CTX の写真も「赤丸は真ん中から10%以内」は守る：まず枠ごと赤丸の方へずらし、
@@ -653,6 +657,8 @@ if __name__ == "__main__":
         _ff = _bp.focus_frac(focus, (x0, y0, x1, y1), pad_to, None, rot) if not isinstance(focus, list) else [0, 0, 0, 0]
         _c, _s, _ = _bp.corners(im, _ff, *( (h, w) if rot else (w, h) )); BADGE[slot] = f"{_c}:{_s}"
         im.save(os.path.join(out, f"{slot}.jpg"), quality=88)
+        if LASTMASK is not None: LASTMASK.save(os.path.join(out, f"{slot}.ring.png"))   # 11/4 丸と ▶ の重なりの点検用
+        elif os.path.exists(os.path.join(out, f"{slot}.ring.png")): os.remove(os.path.join(out, f"{slot}.ring.png"))
     json.dump(BOXES, open(os.path.join(out, "boxes.json"), "w")); json.dump(QUAL, open(os.path.join(out, "quality.json"), "w")); json.dump(sorted(set(LABHIT)), open(os.path.join(out, "labhit.json"), "w"))   # 10/26 ringcheck.py が、赤丸が写真の中に大きく入っているかを調べる
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); __import__("badgepos").save(out, BADGE)
     print("\n".join(warn) if warn else "all focus fit")

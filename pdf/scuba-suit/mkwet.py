@@ -27,8 +27,9 @@ back, bb_ = cut((4440, 1520, 4860, 3010))
 #     タグの字の見た目の大きさがドライと同じになるよう、字の大きさを図の横幅に合わせて決める（数回くり返して合わせる）
 H = 625; PAD = 30; GAP = 30; BG = (242, 245, 247); RED = (21, 101, 192)   # 11/4 まーく様「丸が赤で、スーツも赤なら視認性は？」→ 青に。「色は統一」→ 表の青字（#1565c0）と同じ青
 FP = "/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
-FH, TOP = 560, 10
-WD = 1276   # ドライの図の「前・後」2枠ぶんの横幅（字の見た目をそろえる相手）。10/28 ドライに3つ目の枠（フル装備）を足したので、決まった数にする
+FH, TOP = 540, 10   # 11/4 まーく様「前と丸が繋がってる」→ 図を少し小さくし、足もとの丸と「前・後」の字の間をあける（figcheck.py）
+WD = 1262   # 11/4 ドライの図を小さくしたので 1276→1262。 ドライの図の「前・後」2枠ぶんの横幅（字の見た目をそろえる相手）。10/28 ドライに3つ目の枠（フル装備）を足したので、決まった数にする
+RINGS = []; LBL = []   # 字の箱（タグ・前・後）。丸と重ならないかを figcheck.py が見る（11/4 まーく様「前と丸が繋がってる」）
 def draw(fs, ext=0):
     font = ImageFont.truetype(FP, round(fs)); cap = ImageFont.truetype(FP, round(fs)); k = fs / 56
     out = Image.new("RGB", (3000, H), "white"); d = ImageDraw.Draw(out)
@@ -42,14 +43,14 @@ def draw(fs, ext=0):
         r = im.resize((round(im.size[0] * sc), FH), Image.LANCZOS); out.paste(r, (ox, TOP), r)
         return lambda x, y: (ox + (x - bb[0]) * sc, TOP + (y - bb[1]) * sc)
     P1 = place(front, fb, OX1, sc1); P2 = place(back, bb_, OX2, sc2)
-    OVL = []   # 10/28 赤丸は、ドライの図と同じく すかして重ねる（スーツがいちばん良く見えるように）
+    OVL = []; LBL.clear()   # 10/28 赤丸は、ドライの図と同じく すかして重ねる（スーツがいちばん良く見えるように）
     def ring(c, r, ry=None):
         OVL.append((c, r, ry or r))
     def tag(text, x, y, anchor, to):
         bw, bh = tw(text), font.size + 30 * k
         x0 = x - bw if anchor == "r" else x; y0 = y - bh / 2
         d.line((to[0], to[1], x0 + bw if anchor == "r" else x0, y), fill=RED, width=max(3, round(6 * k)))
-        d.rounded_rectangle((x0 - 5, y0 - 5, x0 + bw + 5, y0 + bh + 5), radius=16, fill="white")
+        d.rounded_rectangle((x0 - 5, y0 - 5, x0 + bw + 5, y0 + bh + 5), radius=16, fill="white"); LBL.append((text, x0 - 5, y0 - 5, x0 + bw + 5, y0 + bh + 5))
         d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=14, fill=RED)
         d.text((x0 + 20 * k, y), text, font=font, fill="white", anchor="lm")
     # 膝パッド（黒い当て布・両ひざ）／背中のファスナー（後ろの首から腰の上まで）
@@ -59,9 +60,10 @@ def draw(fs, ext=0):
     ft = P1(270, 1965); ring(ft, 70, 34); tag("ブーツなし", TX, ft[1] - 20, "r", (ft[0] - 70, ft[1]))
     bz = P2(152, 438); ring(bz, 30, 66); tag("背中のファスナー", ZX, bz[1], "l", (bz[0] + 30, bz[1]))
     for x, w, t in ((OX1, w1, "前"), (OX2, w2, "後")):
-        d.text((x + w / 2, H - 16), t, font=cap, fill=(70, 70, 70), anchor="ms")
+        d.text((x + w / 2, H - 16), t, font=cap, fill=(70, 70, 70), anchor="ms"); LBL.append((t,) + tuple(d.textbbox((x + w / 2, H - 16), t, font=cap, anchor="ms")))
     ov = Image.new("RGBA", out.size, (0, 0, 0, 0)); dv = ImageDraw.Draw(ov)
     for (x, y), r, ry in OVL: dv.ellipse((x - r, y - ry, x + r, y + ry), outline=RED + (150,), width=7)
+    RINGS[:] = [(x - r - 4, y - ry - 4, x + r + 4, y + ry + 4) for (x, y), r, ry in OVL]
     out = Image.alpha_composite(out.convert("RGBA"), ov).convert("RGB")
     return out.crop((0, 0, W, H)), W
 # 字の大きさはドライと同じ 56。横幅をドライと同じにするため、あいた所には「アップ」の枠を置き、
@@ -71,4 +73,5 @@ def draw(fs, ext=0):
 out, W = draw(32)
 out, W = draw(32, WD - W)
 out.save("/tmp/claude-0/kfw4/w_cat.jpg", quality=92)
+import json; json.dump({"rings": RINGS, "labels": LBL}, open("/tmp/claude-0/kfw4/w_cat.boxes.json", "w"), ensure_ascii=False)
 print("ok", out.size, "ドライの横幅", WD)

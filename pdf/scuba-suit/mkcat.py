@@ -14,14 +14,14 @@ H=625; GAP=36; PAD=36; BG=(242,245,247)
 FP="/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 # 10/28 まーく様「前・後やタグの字が大きすぎる。他の文に合わせ、画像を大きく」→ 字は本文と同じ見た目の大きさ（32）に。そのぶん図が大きく出る
 font=ImageFont.truetype(FP,32); cap=ImageFont.truetype(FP,32); cf=ImageFont.truetype(FP,24)   # 10/28 3枠になって図が小さく出るぶん、字を大きくして、ページ上の見た目を本文とそろえる   # cf＝丸の中の1字（丸からはみ出さない大きさ）
-FH, TOP = 560, 10   # 図の高さ（前も後ろも同じ）
+FH, TOP = 540, 10   # 図の高さ（前も後ろも同じ）。11/4 足もとの丸と「前・後」の字が近いので 560→540
 out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(180,35,74)   # 11/4 大事の赤にそろえた（前は橙 249,54,18）
 def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
     out.paste(src.crop(box).resize((round((x1-x0)*s),FH),Image.LANCZOS),(ox,TOP))
     return (lambda x,y:(ox+(x-x0)*s, TOP+(y-y0)*s)), round((x1-x0)*s)
 # 10/28 まーく様「スーツがいちばん良く見えなければ。赤丸は補足に徹する」→ 赤丸は、ほかの写真と同じく すかした別の紙に描いて重ねる
-OVL=[]
+OVL=[]; LBL=[]   # LBL：字の箱（タグ・前・後）。丸と重ならないかを figcheck.py が見る（11/4 まーく様「前と丸が繋がってる」）
 def ring(c,r,ry=None,w=7):
     ry=ry or r; OVL.append((c,r,ry,w))
 def tagw(text,circ): return d.textlength(text,font=font)+24+(font.size+10 if circ else 0)
@@ -31,7 +31,7 @@ def tag(text,x,y,anchor,line_to,circ=None,minw=0,halo=False):
     x0=x-bw if anchor=="r" else x; y0=y-bh/2
     if halo: d.line((line_to[0],line_to[1],x0+bw if anchor=="r" else x0,y),fill="white",width=9)
     d.line((line_to[0],line_to[1],x0+bw if anchor=="r" else x0,y),fill=RED,width=4)
-    d.rounded_rectangle((x0-5,y0-5,x0+bw+5,y0+bh+5),radius=10,fill="white")
+    d.rounded_rectangle((x0-5,y0-5,x0+bw+5,y0+bh+5),radius=10,fill="white"); LBL.append((text,x0-5,y0-5,x0+bw+5,y0+bh+5))
     d.rounded_rectangle((x0,y0,x0+bw,y0+bh),radius=8,fill=RED)
     d.text((x0+12,y),text,font=font,fill="white",anchor="lm")
     if circ:
@@ -69,11 +69,12 @@ sh=P1(811,375); ring(sh,21); tag("左肩：空気",TX,ROWS[0],"r",(sh[0]-15,sh[1
 bt=P1(783,1000); ring(bt,50,44); tag("ブーツも一体",TX,ROWS[2],"r",(bt[0]-50,bt[1]))
 zp=P2(940,628); ring(zp,120,46); tag("背中のファスナー",ZX,zp[1],"l",(zp[0]+118,zp[1]))
 for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
-    d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms")
+    d.text((P+w/2,H-16),t,font=cap,fill=(70,70,70),anchor="ms"); LBL.append((t,)+tuple(d.textbbox((P+w/2,H-16),t,font=cap,anchor="ms")))
 ov=Image.new("RGBA",out.size,(0,0,0,0)); dv=ImageDraw.Draw(ov)
 for (x,y),r,ry,w in OVL: dv.ellipse((x-r,y-ry,x+r,y+ry),outline=RED+(150,),width=w)
 out=Image.alpha_composite(out.convert("RGBA"),ov).convert("RGB")
 out=out.crop((0,0,W,H))
 out.save("/tmp/claude-0/kfw3/d_cat.jpg",quality=92); out.save("/tmp/claude-0/kfw4/d_cat.jpg",quality=92)   # kfw4 が focus_w.py の読む場所
+import json; json.dump({"rings":[(x-r-w/2,y-ry-w/2,x+r+w/2,y+ry+w/2) for (x,y),r,ry,w in OVL],"labels":LBL},open("/tmp/claude-0/kfw4/d_cat.boxes.json","w"),ensure_ascii=False)
 print("ok", w1, w2)
 # 横長（2080x880）で作り、ページでは切り抜かずにそのまま見せる（a4w.py の ASPECT と CSS）

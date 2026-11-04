@@ -67,6 +67,7 @@ ck node $S/tools/arrowcheck.js $S/build_w/a4.html   # しおりの札の字が�
 ck node $S/tools/logocheck.js $S/build_w/a4.html   # にっこりカーブが smile のまん中・左右対称か（10/20）
 ck node $S/tools/barcheck.js $S/build_w/a4.html   # 左の線の太さが、左右の列・どのページでも同じか（10/20）
 ck node $S/tools/badgecheck.js $S/build_w/a4.html   # ▶ の印が全部の写真にあり、写真の中に収まっているか（10/21）
+ck sh -c "node $S/tools/playring.js $S/build_w/a4.html $S/build_w/playring.json >/dev/null && python3 -I $S/tools/playring.py $S/build_w/playring.json $S/build_w/img/s"   # 11/4 写真の丸・札が ▶ や写真のふちにかからないか
 ck node $S/tools/photocover.js $S/build_w/a4.html   # 写真の上に、何もかぶっていないか（10/21 写真が全部隠れた）
 ck node $S/tools/photoalign.js $S/build_w/a4.html   # まとめの写真が、題の行数でずれていないか（10/20）
 ck node $S/tools/latincheck.js $S/build_w/a4.html   # 英数字・記号が細くないか（10/20）
