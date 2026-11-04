@@ -651,7 +651,8 @@ table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight
 .page .notes>.jrow.jrow{text-align:left!important;margin-left:3mm!important}   /* 11/4 まーく様「なぜ中央？ふつうの説明文なら左ぞろえ」→ 本文のくわしくはは、上の文と同じ左はしに */
 .page .notes>.jrow.jrow .jump{display:inline!important;text-align:left!important}
 .page .notes .srows .nn2.dot.dot{background:none!important;color:#1f2a37!important;width:auto;padding:0;border-radius:0!important}
-table.cmp .em{font-size:11.5pt!important}   /* 11/4 まーく様「表の最大の字は説明文と同じ大きさに。ほかの字は気持ち小さめ」→ 目立たせる字＝本文と同じ11.5pt、ほかは10pt */
+table.cmp .em{font-size:10.5pt!important}   /* 11/4 まーく様「まだ本文より大きく見える」→ 太い字は同じ大きさでも大きく見えるので、見た目で本文（11.5pt）とそろう10.5ptに */
+table.cmp td{font-size:9.5pt!important}   /* 11/4 まーく様「表の最大の字は説明文と同じ大きさに。ほかの字は気持ち小さめ」→ 目立たせる字＝本文と同じ11.5pt、ほかは10pt */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
