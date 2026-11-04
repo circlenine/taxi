@@ -270,6 +270,7 @@ def notes(s):
         else: n("x", t)
     html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<p class="tnote">{text}</p>' if kind == "tn" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
                    + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>") for kind, text, subs in out)
+    html = re.sub(r'((?:<p class="tnote">.*?</p>)+)', r'<div class="tnotes">\1</div>', html)   # 11/4 まーく様「※の注釈は右寄せ。ただし※どうしは左ぞろえ」→ ※をひとまとめにして右に置き、中は左ぞろえ
     return '<div class="notes">' + html + "</div>" if out else ""
 
 def xm(k, ng):
@@ -653,6 +654,9 @@ table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight
 .page .notes .srows .nn2.dot.dot{background:none!important;color:#1f2a37!important;width:auto;padding:0;border-radius:0!important}
 table.cmp .em{font-size:10.5pt!important}   /* 11/4 まーく様「まだ本文より大きく見える」→ 太い字は同じ大きさでも大きく見えるので、見た目で本文（11.5pt）とそろう10.5ptに */
 table.cmp td{font-size:9.5pt!important}   /* 11/4 まーく様「表の最大の字は説明文と同じ大きさに。ほかの字は気持ち小さめ」→ 目立たせる字＝本文と同じ11.5pt、ほかは10pt */
+.tnotes{margin:.6mm 0 0 auto;width:fit-content;display:flex;flex-direction:column;align-items:stretch;gap:.4mm}
+.tnotes>.tnote{margin:0!important;width:auto!important;text-align:left}
+.tc .kind{display:inline-block;width:7.6em;padding:0!important;text-align:center;box-sizing:border-box;margin-right:.5em!important}   /* 11/4 まーく様「もくじの、ウェット・ドライの札のあとの字を左ぞろえに」→ 札の幅を同じにする */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
