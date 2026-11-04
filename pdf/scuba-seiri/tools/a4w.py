@@ -433,7 +433,7 @@ for sec in STEPS:
                     if x.get("band") or not segs: segs.append((x.get("band", ""), []))
                     segs[-1][1].append(x)
                 body = '<div class="blks">' + "".join(
-                    (f'<div class="blk blk-{"on" if b == "着る" else "off"}"><span class="blkh">{b}とき</span>' if b else '<div class="blk0">')
+                    (f'<div class="blk blk-{"on" if b == "着る" else "off"}"><span class="blkh">{b[0]}</span>' if b else '<div class="blk0">')
                     + '<div class="grid2">' + "".join(stepbox(x) for x in xs) + "</div></div>" for b, xs in segs) + "</div>"
             else:
                 body = '<div class="grid2">' + "".join(stepbox(x) for x in g) + "</div>"
