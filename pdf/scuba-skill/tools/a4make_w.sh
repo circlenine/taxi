@@ -70,6 +70,7 @@ ck node $S/tools/badgecheck.js $S/build_w/a4.html   # ▶ の印が全部の写�
 ck sh -c "node $S/tools/playring.js $S/build_w/a4.html $S/build_w/playring.json >/dev/null && python3 -I $S/tools/playring.py $S/build_w/playring.json $S/build_w/img/s"   # 11/4 写真の丸・札が ▶ や写真のふちにかからないか
 ck node $S/tools/rowcheck.js $S/build_w/a4.html   # 11/4 横に並ぶ手順の、大事・補足の上の位置がそろっているか
 ck python3 $S/tools/quizorder.py   # 11/4 クイズがページの順に並んでいるか
+ck python3 $S/tools/softcheck.py   # 11/4 大事・補足・写真の説明の終わりが柔らかいか
 ck node $S/tools/photocover.js $S/build_w/a4.html   # 写真の上に、何もかぶっていないか（10/21 写真が全部隠れた）
 ck node $S/tools/photoalign.js $S/build_w/a4.html   # まとめの写真が、題の行数でずれていないか（10/20）
 ck node $S/tools/latincheck.js $S/build_w/a4.html   # 英数字・記号が細くないか（10/20）

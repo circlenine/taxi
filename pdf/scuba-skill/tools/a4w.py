@@ -668,15 +668,16 @@ html body .page .tnote{background:none!important;padding:0!important;border-radi
 .tchip{display:inline-block;text-indent:0;color:#1f2a37;border-radius:1mm;padding:0 1.4mm;margin:0 .3mm;line-height:1.5}
 .tchip.ok{background:#ffe2cc}   /* 11/4 まーく様「オレンジ・灰で」→ 暖かいマス＝うすいオレンジ（洗浄編で使っている色） */.tchip.cold{background:#eceff2}   /* 表のマスと同じ地の色（td.ok・td.cold） */
 .tc .kind{display:inline-block;width:7.6em;padding:0!important;text-align:center;box-sizing:border-box;margin-right:.5em!important}   /* 11/4 まーく様「もくじの、ウェット・ドライの札のあとの字を左ぞろえに」→ 札の幅を同じにする */
-.blk>.blkh.blkh{left:50%!important;translate:-50% -50%!important;font-size:12.5pt!important;padding:0 4mm 0 calc(4mm + .1em)!important}   /* 11/4 まーく様「窮屈。着るとき・脱ぐときは中央に。気持ち大きく」→ 囲みの上の線のまん中に、一回り大きく */
-.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
+.blk>.blkh.blkh{left:50%!important;translate:-50% -28%!important;font-size:12.5pt!important;padding:0 4mm 0 calc(4mm + .1em)!important}   /* 11/4 まーく様「窮屈。着るとき・脱ぐときは中央に。気持ち大きく」→ 囲みの上の線のまん中に、一回り大きく */
+.blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:5mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
 .blk>.grid2>section.step{padding-bottom:.8mm!important}
 .blk>.grid2>section.step:nth-of-type(-n+2){border-top:0!important;padding-top:0!important}   /* 囲みの1段目：上の線は囲みの線が受けもつ */
 .blk>.grid2>section.step:nth-of-type(n+3){padding-top:1.4mm!important}
-.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:6.4mm 3mm .6mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
+.blk{position:relative;border:1.5px solid var(--bl);border-radius:2mm;padding:7.8mm 3mm .6mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
 .blk-on{--bl:#ade3c8;--bh:#3f9a73}
+/* 11/4 まーく様「着・脱は、それぞれもう少し気持ち下側に。ブロックわけが見えづらい」→ 札を少し下げ（線の上に4割ほどのせる）、囲みの線を少し太く、囲みどうしの間を広げた */
 .blk-off{--bl:#8cc4ef;--bh:#1b5a8e}
 html body .page .blk-off .sn{background:var(--bh)!important}html body .page .blk-off .sh3,html body .page .blk-off .sh3>span:not(.sn){color:var(--bh)!important}   /* 11/4 まーく様「脱を青にするなら、2-5・2-6 も同じく青に統一」→ 脱ぐの囲みの中は、番号の札と題も、囲みの青に */   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
 .blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:#fff;color:var(--bh);border:1px solid var(--bh);font-size:10.5pt;line-height:1.45;font-weight:900;letter-spacing:.1em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .1em);box-shadow:0 0 0 1mm #fff}   /* 11/2 まーく様「着る・脱ぐと、番号札のデザインが一緒で見分けにくい」→ 番号札は「塗りつぶし＋矢じり」。囲みの札は「白地＋線」にして、形でも分ける。字は「着るとき」と、場面を表す言葉に */
