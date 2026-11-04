@@ -671,7 +671,7 @@ table.cmp .g2>span:nth-child(3){text-align:right}   /* 11/2 まーく様「10月
 table.cmp .g2>span:nth-child(2){text-align:center}
 table.cmp .g3{display:inline-grid;white-space:nowrap;grid-template-columns:3.8em 3.4em 7.6em;align-items:baseline}
 table.cmp .g3>span:nth-child(2){text-align:center}
-.tnote{margin:.6mm 0 0 auto;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
+.tnote{margin:.6mm auto 0 0;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#1565c0;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
 table.cmp th .rec.hard{background:#c8372d}   /* 11/3 まーく様「LOCK は赤。デメリット（難易度が高い）の位置づけに」 */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
