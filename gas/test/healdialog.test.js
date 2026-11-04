@@ -82,7 +82,17 @@ console.log('■ 止まっているときだけ出す');
 
   const h = ctx.shown[0].h;
   ok(h.indexOf('いますぐ なおす') !== -1, '★★大きなボタンが1つ');
-  ok(h.indexOf('.fixAll();') !== -1, '★★★押したら、なおす係が動く');
+  /*
+   * ★★★押したら「まるごと救助」が動くこと。
+   *   ここが fixAll（見張りの立て直しだけ）だと、
+   *   こちらが置いた直しが **永久に届きません**。
+   *   rescueAll は、新しい中身の取り込みまで やります。
+   *   まーく様のご指示（2026/11/4）：
+   *   「今後は全てこのメッセージで指示すれば、
+   *     完全に修復可能な状態な仕組みづくりにしてください」
+   */
+  ok(h.indexOf('.rescueAll();') !== -1, '★★★押したら「まるごと救助」が動く');
+  ok(h.indexOf('新しい中身も取り込みます') !== -1, '何が起きるかを、箱にも書く');
   ok(h.indexOf('withFailureHandler') !== -1, 'しくじったときも、黙らずに出す');
   ok(h.indexOf('1回だけ押して') !== -1, '何をすればよいかが、1行で分かる');
   ok(h.indexOf('<button') !== -1, '押すものが、ちゃんとボタン');
@@ -94,12 +104,17 @@ console.log('■ 出せない機種でも、落ちない（帯とメニューが
   ok(ctx.openHealDialog_(ss, NOW) === false, '落ちずに false を返す');
 }
 
-console.log('■ 読めないときは、出さない（出しっぱなしで うるさくしない）');
+console.log('■ 最終更新が読めないときは、出す（止まりきっている場面）');
 {
+  /*
+   * ★動いていれば、B1には必ず時刻が入ります。
+   *   読めない＝一度も動いていない、か、止まりきっているかです。
+   *   いちばん箱が要る場面なので、黙って見送ってはいけません。
+   */
   const a = build({ b1: '' });
-  ok(a.ctx.openHealDialog_(a.ss, NOW) === false, '最終更新が空なら、出さない');
+  ok(a.ctx.openHealDialog_(a.ss, NOW) === true, '★最終更新が空なら、出す');
   const b = build({ b1: 'なにか別の字' });
-  ok(b.ctx.openHealDialog_(b.ss, NOW) === false, '時刻が読めなければ、出さない');
+  ok(b.ctx.openHealDialog_(b.ss, NOW) === true, '★時刻が読めなくても、出す');
   const c = build({ noTab: true });
   ok(c.ctx.openHealDialog_(c.ss, NOW) === false, '説明タブが無くても、落ちない');
   const d = build({ b1: '🔄最終更新：2026/11/03(火) 12:00' });

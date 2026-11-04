@@ -135,5 +135,31 @@ if (verNg.length) {
   console.log('ok   先頭のバージョンと 〇〇_VERSION が、どのファイルもそろっている');
 }
 
+/* ================================================================
+ *  読めない書き方（\U0001xxxx）が、1つも残っていないこと
+ *
+ *  ★JavaScript には「\U」（大文字U）の書き方がありません。
+ *    そのまま書くと、絵文字のつもりが
+ *    「U0001f4e5 新しい中身を…」という字で まーく様に届きます。
+ *    実際に、2026/11/4 に10か所 出しかけました。
+ *  ★絵文字は、そのまま貼ること。
+ * ================================================================ */
+{
+  const bad = [];
+  files.forEach(function (f) {
+    const code = fs.readFileSync(path.join(GAS, f), 'utf8');
+    const m = code.match(/\\U0001[0-9a-fA-F]{4}/g);
+    if (m) bad.push(f + '（' + m.length + '個）');
+  });
+  if (bad.length) {
+    fail++;
+    console.log('FAIL  ★★読めない書き方（バックスラッシュ＋大文字U）が残っています');
+    bad.forEach(function (b) { console.log('   ' + b); });
+    console.log('      絵文字は、そのまま貼ってください。');
+  } else {
+    console.log('ok   読めない書き方（バックスラッシュ＋大文字U）は1つも無い');
+  }
+}
+
 console.log(fail ? '\n失敗' : '\n全テスト通過');
 process.exit(fail);
