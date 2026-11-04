@@ -85,7 +85,7 @@ for w_ in ["潤滑剤", "シーラバー", "ジェル", "パウダー", "ワッ�
 for k in focus_w.MARK:
     if k not in focus_w.RINGWHAT: ng.append(f"NG {k}：赤丸で何を囲んだか（RINGWHAT）が書いていない"); continue
     word = focus_w.RINGWHAT[k]
-    if k not in cap_of_key: continue
+    if k not in cap_of_key or k in focus_w.NODRAW: continue   # 11/4 丸を描かない写真は、名前を書かなくてよい
     for sid, c in cap_of_key[k]:
         if word not in c and word not in title_of.get(sid, ""):
             ng.append(f"NG {sid} {k}：赤丸は「{word}」なのに、説明「{c}」にも題「{title_of.get(sid)}」にも出てこない")
