@@ -332,7 +332,7 @@ def _tn(x):
        → 表の下の注意書きは、頭を赤い * に（リンクの * と同じ色）。字はリンクと同じ緑・下線なし・地の色なし。
          表のマスの色の説明は、そのマスと同じ地の色の小さな札にする"""
     x = re.sub(r'^※\s*', '<span class="tapm">*</span>', x)
-    x = x.replace("緑＝おすすめ（20℃以上）", '<span class="tchip ok">緑＝おすすめ（20℃以上）</span>').replace("灰色＝寒い", '<span class="tchip cold">灰色＝寒い</span>')
+    x = x.replace("緑＝おすすめ（20℃以上）", '<span class="tchip ok">緑＝おすすめ（20℃以上）</span>').replace("灰色＝寒い（19℃以下）", '<span class="tchip cold">灰色＝寒い（19℃以下）</span>')
     return x
 def _badge(a):
     # 11/4 まーく様「無意味な番号はないか」→ 順番のない並び（場面ごとの注意など）は「・」にし、番号の札を付けない

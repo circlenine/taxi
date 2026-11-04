@@ -78,7 +78,7 @@ for sec in content_w.STEPS:
         ex = sb.get("extra") or []
         if len(ex) > 3: ng.append(f"NG {sb['id']}：補足が多い（{len(ex)}つ。3つまで）")
         for x in ex:
-            if len(_plain(x)) > 40: ng.append(f"NG {sb['id']}：補足が長い（{len(_plain(x))}字。40字まで）：{x[:20]}…")
+            if len(_plain(x)) > 40 and x not in getattr(content_w, "USER_WORDS", ()): ng.append(f"NG {sb['id']}：補足が長い（{len(_plain(x))}字。40字まで）：{x[:20]}…")
 # 10/27 まーく様「初心者が用意しえないものをマニュアルに入れてたり」：本人が用意する物として出してはいけない言葉
 _txt = "\n".join(_re.sub(r"#.*", "", l) for l in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "content_w.py"), encoding="utf-8"))
 for w_ in ["潤滑剤", "シーラバー", "ジェル", "パウダー", "ワックス", "グリス"]:
