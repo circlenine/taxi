@@ -33,7 +33,7 @@ def draw(fs, ext=0):
     font = ImageFont.truetype(FP, round(fs)); cap = ImageFont.truetype(FP, round(fs)); k = fs / 56
     out = Image.new("RGB", (3000, H), "white"); d = ImageDraw.Draw(out)
     tw = lambda t: d.textlength(t, font=font) + 40 * k
-    X1 = PAD; TX = round(X1 + PAD + max(tw(t) for t in ("空気のボタンなし", "膝パッド", "ブーツなし"))); OX1 = TX + round(40 * k) + ext * 6 // 10
+    X1 = PAD; TX = round(X1 + PAD + max(tw(t) for t in ("空気のボタンなし", "ブーツなし"))); OX1 = TX + round(40 * k) + ext * 6 // 10
     sc1 = FH / front.size[1]; w1 = round(front.size[0] * sc1); R1 = OX1 + w1 + PAD
     X2 = R1 + GAP; OX2 = X2 + PAD; sc2 = FH / back.size[1]; w2 = round(back.size[0] * sc2)
     ZX = OX2 + w2 + round(40 * k) + ext - ext * 6 // 10; R2 = round(ZX + tw("背中のファスナー") + PAD); W = R2 + PAD
@@ -55,8 +55,7 @@ def draw(fs, ext=0):
     # 膝パッド（黒い当て布・両ひざ）／背中のファスナー（後ろの首から腰の上まで）
     # 10/28 まーく様「ウェットはブーツなし、のように ドライとの比較が分かる工夫を」→ ドライの図のタグ（胸の空気・ブーツも一体）と同じ高さに、ウェットの「なし」を並べる
     ch = P1(290, 560); ring(ch, 40); tag("空気のボタンなし", TX, ch[1], "r", (ch[0] - 40, ch[1]))
-    k1, k2 = P1(170, 1452), P1(309, 1457); kc = ((k1[0] + k2[0]) / 2, (k1[1] + k2[1]) / 2)
-    ring(kc, 50, 36); tag("膝パッド", TX, kc[1], "r", (kc[0] - 50, kc[1]))
+    # 11/4 まーく様「全体の図では、膝パッドは除外」→ 膝パッドの丸と札を外した（2-2 の写真で出している）
     ft = P1(270, 1965); ring(ft, 70, 34); tag("ブーツなし", TX, ft[1] - 20, "r", (ft[0] - 70, ft[1]))
     bz = P2(152, 438); ring(bz, 30, 66); tag("背中のファスナー", ZX, bz[1], "l", (bz[0] + 30, bz[1]))
     for x, w, t in ((OX1, w1, "前"), (OX2, w2, "後")):
