@@ -693,6 +693,7 @@ table.cmp{width:100%;border-collapse:collapse;font-size:10pt;line-height:1.45;ta
 table.cmp th,table.cmp td{border:1px solid var(--line);padding:.8mm 1.6mm;vertical-align:middle;text-align:left}
 table.cmp tr:first-child th{background:var(--sea2,#e6f4ec);text-align:center;font-weight:900}
 table.cmp tr:first-child th:first-child:empty{background:none;border-top-color:transparent;border-left-color:transparent}
+html body .page table.cmp tr:first-child th:not(:empty){background:#2e7d5b!important;color:#fff!important}   /* 11/4 まーく様「緑の地には白い字。白が見やすいよう、もう少し暗い緑に」→ 見出しの行は、この冊の濃い緑（決めてある色）＋白い字（白との差 5.1）。左はしの空のマスは地なしのまま */
 table.cmp th.cr{width:24%;font-weight:900;color:var(--navy)}
 .grid2>.step.step.wide:has(table.cmp)>.notes.notes{width:100%!important;align-self:stretch!important;flex:none!important}
 .cmpw,table.cmp{width:100%}
