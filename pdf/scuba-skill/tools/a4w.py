@@ -1398,6 +1398,14 @@ function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='
  if(best.b-best.t<26*MM)return;   // 11/2 まーく様「memo が小さいなら役割を果たしにくいので取り除いて」→ 高さ 26mm（書ける行が2本以上）に満たない memo は置かない
  place(pg,best);});}
 // 左右の列を上から詰める工程（.cols）でも、同じ高さから始まる左右の手順は、題の高さをそろえて写真の上の線をそろえる（10/14 ご指摘：5-1と5-2の写真がずれていた）
+// 11/4 まーく様「大事や補足の上の位置をきちんと合わせて。他も合わせられるところは合わせて」
+//   → 横に並ぶ2つの手順で、題の高さ・写真（下の説明の字まで）の高さを、高いほうにそろえる。
+//     写真の下に説明がある手順とない手順が並んでも、大事・補足の札の上の位置がそろう（rowcheck.js が測る）
+function alignRows(){document.querySelectorAll('.grid2').forEach(g=>{const st=[...g.querySelectorAll(':scope>.step')];
+ st.forEach(x=>{const h=x.querySelector(':scope>.sh3'),p=x.querySelector(':scope>.photos');if(h)h.style.minHeight='';if(p)p.style.minHeight='';});
+ const rows=[];st.forEach(x=>{const t=x.getBoundingClientRect().top;let r=rows.find(r=>Math.abs(r.t-t)<2);if(!r){r={t,xs:[]};rows.push(r);}r.xs.push(x);});
+ rows.forEach(r=>{if(r.xs.length<2)return;for(const sel of [':scope>.sh3',':scope>.photos']){const es=r.xs.map(x=>x.querySelector(sel));if(es.some(e=>!e))continue;
+  const m=Math.max(...es.map(e=>e.getBoundingClientRect().height));es.forEach(e=>e.style.minHeight=m+'px');}});});}
 function alignCols(){document.querySelectorAll('.grid2.cols').forEach(g=>{const cs=[...g.querySelectorAll(':scope>.col')];if(cs.length<2)return;
  const n=Math.max(...cs.map(c=>c.children.length));for(let i=0;i<n;i++){const st=cs.map(c=>c.children[i]).filter(Boolean);if(st.length<2)continue;
   const tops=st.map(x=>x.getBoundingClientRect().top);if(Math.max(...tops)-Math.min(...tops)>1)continue;
@@ -1419,9 +1427,11 @@ function fitCover(){const c=document.querySelector('#p1 .cover');if(!c)return;co
   e.style.setProperty('font-size',Math.floor(lo*10)/10+'px','important');e.style.display='block';e.style.width='';});}
 // 10/22 まーく様「画像と補足の間の変な高さの隙間」：となりの手順の写真の名前が長いと、写真の段がそろって高くなり、
 //   こちらの補足が下へ押される。補足を、自分の写真のすぐ下（2.4mm）まで引き上げる
-function pullNotes(){document.querySelectorAll('.grid2>.step:not(.wide):not(.side),.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
+function pullNotes(){const it=[];document.querySelectorAll('.grid2>.step:not(.wide):not(.side),.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
  nt.style.marginTop='';let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});if(!pb)return;
- const want=2.4*96/25.4,gap=nt.getBoundingClientRect().top-pb;if(gap>want+2){const m=parseFloat(getComputedStyle(nt).marginTop)||0;nt.style.marginTop=(m-(gap-want))+'px';}});}
+ const want=2.4*96/25.4,gap=nt.getBoundingClientRect().top-pb;it.push({st,nt,pull:Math.max(0,gap-want-2>0?gap-want:0),g:st.parentElement,t:st.getBoundingClientRect().top});});
+ // 11/4 まーく様「大事や補足の上の位置を合わせて」→ 横に並ぶ手順は、引き上げる量を少ないほうにそろえる（札の上の位置がそろう）
+ it.forEach(a=>{const row=it.filter(b=>b.g===a.g&&Math.abs(b.t-a.t)<2);const pull=Math.min(...row.map(b=>b.pull));if(pull>0){const m=parseFloat(getComputedStyle(a.nt).marginTop)||0;a.nt.style.marginTop=(m-pull)+'px';}});}
 // 10/23 まーく様「ふり返り・memo・クイズの3つのかたまりに分かれて見えるように。クイズ全体をもっと下げて」
 //   → 最後のページで、クイズの下にあまっている高さの半分（最大20mm）を、クイズの上のすき間に足す
 function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();const q=pg.querySelector('.qsec,.quiz.qb');if(!q)return;const {lim}=frame(pg);
@@ -1430,7 +1440,7 @@ function spreadQuiz(){const pg=[...document.querySelectorAll('.page')].pop();con
 // 10/23 まーく様「memo、下が空いているなら、ふり返ってみようクイズと被らない位置まで伸ばして」→ クイズのかたまりの 6mm 上まで
 function stretchMemo(pg,q){const m=pg.querySelector('.memo');if(!m)return;const mr=m.getBoundingClientRect(),qt=q.getBoundingClientRect().top-6*MM;if(qt>mr.bottom)m.style.height=(qt-mr.top)+'px';
  m.querySelectorAll('.ml').forEach(l=>l.remove());const cs=getComputedStyle(m),inner=m.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-m.querySelector('.mh').offsetHeight;for(let i=0;i<Math.floor(inner/(8.5*MM));i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
-document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();eqQuiz();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
+document.fonts.ready.then(()=>{wideHeads();phraseBreak();alignTags();centerTags();eqQuiz();hangKome();fitCover();fixOrphans();markRight();alignCols();document.querySelectorAll('.page').forEach(pg=>{if(!pg.querySelector('.grid2 .photos'))return;fit(pg,frame(pg).lim);});alignRows();pullNotes();addMemos();pullNotes();spreadQuiz();window.__laid=true})</script>'''
 # ── 色：器材洗浄編は、水色のかわりにパステルオレンジ（準備編と見分けるため。10/13 ご指示）──
 # 準備編の水色・紺を、同じ明るさのオレンジ・こげ茶に置きかえる。道具の色の四角・大事の赤・memo の黄色はそのまま
 COLORS = {"#1c6ea4": "#2e7d5b",   # 11/3 字に使う青→緑は、濃い緑に（うすい緑の字は、白地で読みにくかった）

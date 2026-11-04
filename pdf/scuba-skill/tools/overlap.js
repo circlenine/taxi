@@ -21,7 +21,9 @@ const r=await p.evaluate(()=>{const out=[];
     if(q.x0<r.right-1&&q.x1>r.left+1&&q.y0<r.bottom-1&&q.y1>r.top+1){out.push(pg.id+'｜memo の欄が字にかぶさっている「'+q.c+'」｜'+q.el.textContent.slice(0,20));break}}});
   // 10/22 手順の写真と、その下の文（補足・大事）の間が、変に空いていないか（となりの手順の写真の段に引っぱられて空く）
   pg.querySelectorAll('.grid2>.step,.grid3>.step').forEach(st=>{const ph=st.querySelector(':scope>.photos'),nt=st.querySelector(':scope>.notes');if(!ph||!nt)return;
-    let pb=0;ph.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});
+    // 11/4 まーく様「大事・補足の上の位置を、横に並ぶ手順でそろえる」→ となりの手順の写真の説明の下までは、空いてよい
+    const t0=st.getBoundingClientRect().top,row=[...st.parentElement.querySelectorAll(':scope>.step')].filter(x=>Math.abs(x.getBoundingClientRect().top-t0)<2);
+    let pb=0;row.forEach(x=>{const p2=x.querySelector(':scope>.photos');if(p2)p2.querySelectorAll('img,.cap3,.jump').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0)pb=Math.max(pb,r.bottom)});});
     const f=nt.firstElementChild;if(!f||!pb)return;const gap=(f.getBoundingClientRect().top-pb)/3.78;
     if(gap>7){out.push(pg.id+'｜写真と下の文の間が空きすぎ '+gap.toFixed(1)+'mm｜'+(st.querySelector('.sn')||{}).textContent)}});
   // 10/22 memo が片方の列にだけあって、もう片方の列の下も 20mm 以上空いたままになっていないか
