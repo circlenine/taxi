@@ -31,7 +31,8 @@ const r=await p.evaluate(()=>{const out=[];
    if(g&&m&&pno){const gr=g.getBoundingClientRect(),mr=m.getBoundingClientRect(),lim=pno.getBoundingClientRect().top,mid=(gr.left+gr.right)/2;
     if(mr.right<mid+5||mr.left>mid-5){const other=mr.left>mid-5?'L':'R';let bot=0;
      g.querySelectorAll(':scope>.step').forEach(st=>{const r=st.getBoundingClientRect();if(other==='L'?r.left<mid:r.right>mid)bot=Math.max(bot,r.bottom)});
-     if(bot&&(lim-bot)/3.78>=20)out.push(pg.id+'｜memo が片方の列だけ（もう片方の列の下も '+((lim-bot)/3.78).toFixed(0)+'mm 空いている）');}}}
+     if(bot&&(lim-bot)/3.78>=20&&!pg.querySelector('.step.mu'))out.push(pg.id+'｜memo が片方の列だけ（もう片方の列の下も '+((lim-bot)/3.78).toFixed(0)+'mm 空いている）');}}}
+     // 11/5 まーく様が「この手順の下に memo」と決めたページ（.step.mu）は、片方の列だけでよい
   // 10/22 写真どうしが重なっていないか（大きすぎる写真が、となりの手順の写真の下に隠れる）
   {const im=[...pg.querySelectorAll('.grid2 img,.grid3 img')].map(e=>({e,r:e.getBoundingClientRect()})).filter(o=>o.r.width>0);
    for(let i=0;i<im.length;i++)for(let j=i+1;j<im.length;j++){const a=im[i].r,b=im[j].r;const ox=Math.min(a.right,b.right)-Math.max(a.left,b.left),oy=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);

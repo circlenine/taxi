@@ -338,7 +338,7 @@ def _badge(a):
     # 11/4 まーく様「無意味な番号はないか」→ 順番のない並び（場面ごとの注意など）は「・」にし、番号の札を付けない
     return '<span class="nn2 dot">・</span>' if a == "・" else f'<span class="nn2">{_plain(a)}</span>'
 def stepbox(s):
-    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s["id"] in SIDE else ""}{"" if s["key"] else " nophoto"}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
+    return (f'<section class="step{" wide" if s["id"] in WIDE else ""}{" side" if s["id"] in SIDE else ""}{"" if s["key"] else " nophoto"}{" mu" if s.get("memo_below") else ""}"><h3 class="sh3"><span class="sn">{s["id"]}</span><span>{T(s["title"])}</span></h3>'
             f'{_olink(photos(s), s.get("olink"))}{_nj(notes(s), s.get("jump"))}</section>')
 def _olink(ph, ol):
     # 11/2 夜 まーく様「公式マニュアルのリンクも、全体画像の下に」→ 11/3「画像の右下あたりの方が目に入りやすい」
@@ -1397,6 +1397,8 @@ function place(pg,q){const {P}=frame(pg);const m=document.createElement('div');m
  const n=Math.floor(inner/(8.5*MM));if(n<2&&pg.querySelector('.grid2')){m.remove();return;}   // 11/2 まーく様「memo が小さいなら役割を果たしにくいので取り除いて」→ 書ける行が2本に満たない memo は置かない
  for(let i=0;i<n;i++){const l=document.createElement('div');l.className='ml';m.appendChild(l);}}
 function addMemos(){document.querySelectorAll('.page').forEach(pg=>{if(pg.id==='p1')return;
+ // 11/5 まーく様「6-4 の下に memo を追加して」→ memo_below の手順があるページは、その手順の列の、その手順の下に置く
+ {const mu=pg.querySelector('.step.mu');if(mu){const r=mu.getBoundingClientRect(),{lim}=frame(pg);const bt=Math.max(...[...mu.children].map(c=>c.getBoundingClientRect().bottom));place(pg,{l:r.left,r:r.right,t:bt+3*MM,b:lim});return;}}   /* 手順の枠は行の高さまでのびるので、中身の下はしから */
  const slot=pg.querySelector('.memo-slot');if(slot){const r=slot.getBoundingClientRect(),up=slot.dataset.up&&pg.querySelector(slot.dataset.up);place(pg,{l:r.left,r:r.right,t:up?(up.closest('.ph.band')?up.closest('.ph.band').getBoundingClientRect().bottom+8:up.getBoundingClientRect().top):r.top,b:(slot.dataset.fill?frame(pg).lim:r.bottom)});return;}   /* 10/23 data-fill：ページの下まで */
  if(!pg.querySelector('.grid2 .photos'))return;const {L,R,lim}=frame(pg);
  let best=colSpace(pg).sort((a,b)=>(b.b-b.t)-(a.b-a.t))[0];
