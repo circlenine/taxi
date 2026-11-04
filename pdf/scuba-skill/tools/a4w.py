@@ -266,7 +266,7 @@ def notes(s):
     # 10/28 まーく様「補足なので、表の下に載せるべき」→ 補足は、表のあと（どの手順も同じ順：大事 → 表 → 補足）
     for t in s.get("extra") or []:
         # 10/28 まーく様「確証がない参考の数字には、目安である注意を必ず」→ ※ で始まる文は、表のすぐ下の小さな注意書きにする
-        if t.startswith("※"): out.append(("tn", T(t), []))
+        if t.startswith("※"): out.append(("tn", _tn(T(t)), []))
         else: n("x", t)
     html = "".join((f'<div class="cmpw">{text}</div>' if kind == "tb" else f'<p class="tnote">{text}</p>' if kind == "tn" else f'<div class="nt k{kind}"><span class="nk">{"大事" if kind == "pk" else "補足"}</span><span class="nx">{T(text)}</span>'
                    + "".join(f'<div class="ns{" np" if np_ else ""}">{T(x)}</div>' for x, np_ in subs) + "</div>") for kind, text, subs in out)
@@ -327,6 +327,13 @@ def jump(sid):
 def _plain(a):
     # 11/3 まーく様「緑の札で囲んでいるのに、さらに丸で囲む必要はない。見づらい」→ 札の中は ①② ではなく、ただの数字
     return "".join(str("①②③④⑤⑥⑦⑧⑨".index(ch) + 1) if ch in "①②③④⑤⑥⑦⑧⑨" else ch for ch in a)
+def _tn(x):
+    """11/4 まーく様「米印は * で統一。リンク付きだけ下線。色は基本合わせて」「緑＝〜・灰色＝〜は、表と同じ地の色＋黒字で、ぱっと見分けがつくように」
+       → 表の下の注意書きは、頭を赤い * に（リンクの * と同じ色）。字はリンクと同じ緑・下線なし・地の色なし。
+         表のマスの色の説明は、そのマスと同じ地の色の小さな札にする"""
+    x = re.sub(r'^※\s*', '<span class="tapm">*</span>', x)
+    x = x.replace("緑＝おすすめ（20℃以上）", '<span class="tchip ok">緑＝おすすめ（20℃以上）</span>').replace("灰色＝寒い", '<span class="tchip cold">灰色＝寒い</span>')
+    return x
 def _badge(a):
     # 11/4 まーく様「無意味な番号はないか」→ 順番のない並び（場面ごとの注意など）は「・」にし、番号の札を付けない
     return '<span class="nn2 dot">・</span>' if a == "・" else f'<span class="nn2">{_plain(a)}</span>'
@@ -378,7 +385,7 @@ def page(head_no, head_title, inner, toc=True):
     h = _nd.header("4", head_no, T(head_title), lg, h)   # 10/19 新しい形（NEWDESIGN=0 で前の形）
     # 手順の数が奇数のページは、最後の段の右があくので、魚の群れを泳がせる（見飽きないように。10/7 ご指示）
     # 魚のイラストは、見出しの右上だけに置く（10/7 ご指示：右下の群れはやめた）
-    pages.append(f'<div class="page" id="p{n}">{EDTAG}{h}{inner}<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
+    pages.append(f'<div class="page" id="p{n}">{EDTAG}{h}{inner}<div class="pno"><span><span class="tapm">*</span>講習で教わった内容・インストラクターさんの指示を最優先に</span><span>{n} / __TOTAL__</span></div></div>')
 
 # 1ページ目は表紙＋もくじ（あとで差しこむ）
 pages.append(None)
@@ -480,7 +487,7 @@ mt = "".join(
 page("まとめ", "集約版！サッと1ページで見返そう！", f'<div class="mtg"><div class="mtfirst"><p class="mtl"><span class="nw">迷ったら、まずこのページ！</span><br><span class="nw">写真と番号で、流れがまるごと分かるよ</span></p><div class="ref mtsrc mthow scr"><span class="play">▶</span><span><b>写真をタップすると、元のページへ</b><span class="rn">動画・お店のブログ・カタログ</span></span></div><p class="src mtcred"><span class="nw">写真：海人商店ブログ・</span><br><span class="nw">ワールドダイブのカタログ・</span><br><span class="nw">動画から（最後のページ）</span></p></div>{mt}</div>')
 
 # 10/23 まーく様「他編となるべく近い構成に」→ 準備編と同じ：上の段＝左に大事なこと・右に memo、下にクイズ（見出しは左上のマス）
-page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">いちばん参考にした動画：まるごとダイビングTV「ドライスーツの着脱のコツ」<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br>※写真は、お店のブログ・カタログ・動画・ウィキメディア・コモンズから。写真をタップすると元のページへ</p></div><div class="memo-slot" data-up=".ph h2"></div></div>
+page("最後に", "ふり返り", f"""<div class="toprow"><div class="tcol"><div class="pts">{pts}</div><p class="src">いちばん参考にした動画：まるごとダイビングTV「ドライスーツの着脱のコツ」<a href="https://youtu.be/9IG9z5nAkl0"><span class="tapm scr">*</span>https://youtu.be/9IG9z5nAkl0</a><br><span class="tapm">*</span>写真は、お店のブログ・カタログ・動画・ウィキメディア・コモンズから。写真をタップすると元のページへ</p></div><div class="memo-slot" data-up=".ph h2"></div></div>
 <div class="qsec">{QHEAD}</div><div class="quiz">{quiz}</div>""")   # 10/22 まーく様「memo は右半分を埋めてまで優先しない」→ クイズは準備編と同じ、下に横2列
 
 TOC_LB = {"最後に": "ラスト"}   # 「器材」は2文字のまま（まん中に空きは入れない。10/8 ご指示）
@@ -491,7 +498,7 @@ toc_rows = "".join(f'<a class="tc" href="#p{pn}"><span class="tl">{TOC_LB.get(lb
 pages[0] = f"""<div class="page" id="p1">{EDTAG}<div class="cover"><p class="cv-k">セーフ ダイブ フォー ア ガーリー スマイル</p><h1 class="cv-t"><span class="emj">🫧</span> <span class="g">S</span>afe <span class="g">D</span>ive for a <span class="g">G</span>irlie <span class="g">s</span>mile <span class="emj">🤿</span></h1><p class="cv-sd">〜あなたの笑顔のための、安全なダイビング（略して<span class="g">SDGs</span>）〜</p><div class="cv-f"><span class="cv-no"><span class="cvn">4</span></span><span class="cv-e"><span class="g">スーツ</span>編</span></div></div>
 <h2 class="toch">もくじ<span class="tocn scr">見たいところをタップすると、そのページへ移動するよ</span></h2><div class="toc">{toc_rows}</div>
 <div class="howto scr"><p class="hh">このPDFの使い方</p><p class="htap"><span class="tapm">*</span>は、タップできるところ</p><div class="hrows"><span class="hp">__TOTAL__ページ</span><span>出どころの一覧</span><span class="hp">memo の欄</span><span>タップで書ける</span><span class="hp">__TOTAL__ページ</span><span>□をタップで、答えが出る</span></div><p class="hw">動かなくて、右上に<span class="ckc">✓</span>があれば、1度タップしてみてね</p></div>
-<div class="pno"><span>※ 講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
+<div class="pno"><span><span class="tapm">*</span>講習で教わった内容・インストラクターさんの指示を最優先に</span><span>1 / __TOTAL__</span></div></div>"""
 pages = [x.replace("__TOTAL__", str(len(pages))) for x in pages]
 pages = [re.sub(r"__PG_([0-9A-Z-]+)__", lambda m: str(SUBPG[m.group(1)]), x) for x in pages]
 
@@ -656,6 +663,10 @@ table.cmp .em{font-size:10.5pt!important}   /* 11/4 まーく様「まだ本文�
 table.cmp td{font-size:9.5pt!important}   /* 11/4 まーく様「表の最大の字は説明文と同じ大きさに。ほかの字は気持ち小さめ」→ 目立たせる字＝本文と同じ11.5pt、ほかは10pt */
 .tnotes{margin:.6mm 0 0 auto;width:fit-content;display:flex;flex-direction:column;align-items:stretch;gap:.4mm}
 .tnotes>.tnote{margin:0!important;width:auto!important;text-align:left}
+html body .page .tnote{background:none!important;padding:0!important;border-radius:0!important;color:#2e7d5b!important;font-size:9pt!important;padding-left:1em!important;text-indent:-1em!important}   /* 11/4 まーく様「表の米印の うす緑の地は意味がない」「* で統一・色はリンクと合わせる」 */
+.tnote .tapm{text-indent:0}
+.tchip{display:inline-block;text-indent:0;color:#1f2a37;border-radius:1mm;padding:0 1.4mm;margin:0 .3mm;line-height:1.5}
+.tchip.ok{background:#d4f2e3}.tchip.cold{background:#eceff2}   /* 表のマスと同じ地の色（td.ok・td.cold） */
 .tc .kind{display:inline-block;width:7.6em;padding:0!important;text-align:center;box-sizing:border-box;margin-right:.5em!important}   /* 11/4 まーく様「もくじの、ウェット・ドライの札のあとの字を左ぞろえに」→ 札の幅を同じにする */
 .blk>.blkh.blkh{left:50%!important;translate:-50% -50%!important;font-size:12.5pt!important;padding:0 4mm 0 calc(4mm + .1em)!important}   /* 11/4 まーく様「窮屈。着るとき・脱ぐときは中央に。気持ち大きく」→ 囲みの上の線のまん中に、一回り大きく */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
