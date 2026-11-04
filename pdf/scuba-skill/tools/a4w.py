@@ -332,7 +332,7 @@ def _tn(x):
        → 表の下の注意書きは、頭を赤い * に（リンクの * と同じ色）。字はリンクと同じ緑・下線なし・地の色なし。
          表のマスの色の説明は、そのマスと同じ地の色の小さな札にする"""
     x = re.sub(r'^※\s*', '<span class="tapm">*</span>', x)
-    x = x.replace("緑＝おすすめ（20℃以上）", '<span class="tchip ok">緑＝おすすめ（20℃以上）</span>').replace("灰色＝寒い（19℃以下）", '<span class="tchip cold">灰色＝寒い（19℃以下）</span>')
+    x = x.replace("オレンジ＝暖かい（20℃以上）", '<span class="tchip ok">オレンジ＝暖かい（20℃以上）</span>').replace("灰色＝寒い（19℃以下）", '<span class="tchip cold">灰色＝寒い（19℃以下）</span>')
     return x
 def _badge(a):
     # 11/4 まーく様「無意味な番号はないか」→ 順番のない並び（場面ごとの注意など）は「・」にし、番号の札を付けない
@@ -653,7 +653,7 @@ table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
 .qz .a,.qz .a *,.hp{color:#2e7d5b!important}   /* 11/3 うすい緑の地に緑の字が読みにくい → 濃い緑 */
 table.cmp th,table.cmp td{border-color:#a8b8c4!important}   /* 11/4 まーく様「区切りの枠線が見えない」→ 緑・灰色の地の上でも見える、濃いめの灰色の線に */
 table.cmp td.cold{background:#eceff2!important;color:#6b7785!important}   /* 11/3 まーく様「低い気温・水温の違いの付け方は？」→ 寒めの温度は、うすい灰色の地 */
-table.cmp td.ok{background:#d4f2e3!important;color:#1f2a37!important;font-weight:900!important}   /* 11/3 まーく様「赤青は暑い寒いのイメージと混乱する」→ 快適な温度は、うすい緑の地＋黒い字。それ以外はふつうの灰色の字 */
+table.cmp td.ok{background:#ffe2cc!important;color:#1f2a37!important;font-weight:900!important}   /* 11/3 まーく様「赤青は暑い寒いのイメージと混乱する」→ 快適な温度は、うすい緑の地＋黒い字。それ以外はふつうの灰色の字 */
 .notes .srows .sp2.sp2{padding-right:0!important}
 .notes .srows .sp2.sp2::after{margin-left:2mm}   /* 11/4 まーく様「：の右は全角1字分あいているのに、左は無い」→ ：の左にも、右（列のすき間2mm）と同じすき間を */
 .page .notes>.jrow.jrow{text-align:left!important;margin-left:3mm!important}   /* 11/4 まーく様「なぜ中央？ふつうの説明文なら左ぞろえ」→ 本文のくわしくはは、上の文と同じ左はしに */
@@ -666,7 +666,7 @@ table.cmp td{font-size:9.5pt!important}   /* 11/4 まーく様「表の最大の
 html body .page .tnote{background:none!important;padding:0!important;border-radius:0!important;color:#2e7d5b!important;font-size:9pt!important;padding-left:1em!important;text-indent:-1em!important}   /* 11/4 まーく様「表の米印の うす緑の地は意味がない」「* で統一・色はリンクと合わせる」 */
 .tnote .tapm{text-indent:0}
 .tchip{display:inline-block;text-indent:0;color:#1f2a37;border-radius:1mm;padding:0 1.4mm;margin:0 .3mm;line-height:1.5}
-.tchip.ok{background:#d4f2e3}.tchip.cold{background:#eceff2}   /* 表のマスと同じ地の色（td.ok・td.cold） */
+.tchip.ok{background:#ffe2cc}   /* 11/4 まーく様「オレンジ・灰で」→ 暖かいマス＝うすいオレンジ（洗浄編で使っている色） */.tchip.cold{background:#eceff2}   /* 表のマスと同じ地の色（td.ok・td.cold） */
 .tc .kind{display:inline-block;width:7.6em;padding:0!important;text-align:center;box-sizing:border-box;margin-right:.5em!important}   /* 11/4 まーく様「もくじの、ウェット・ドライの札のあとの字を左ぞろえに」→ 札の幅を同じにする */
 .blk>.blkh.blkh{left:50%!important;translate:-50% -50%!important;font-size:12.5pt!important;padding:0 4mm 0 calc(4mm + .1em)!important}   /* 11/4 まーく様「窮屈。着るとき・脱ぐときは中央に。気持ち大きく」→ 囲みの上の線のまん中に、一回り大きく */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
