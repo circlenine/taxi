@@ -13,10 +13,11 @@ out = sys.argv[1]
 boxes = json.load(open(os.path.join(out, "boxes.json")))
 ng = []
 caps = content_w.CAPS
-title_of = {}; keys_of = {}
+title_of = {}; keys_of = {}; pink_of = {}
 for sec in content_w.STEPS:
     for sb in sec["subs"]:
         title_of[sb["id"]] = sb["title"]; keys_of[sb["id"]] = sb["key"]
+        pk_ = sb.get("pink") or {}; pink_of[sb["id"]] = pk_.get("head", "") + "".join(pk_.get("lines", []))   # 11/4 まーく様「見たら分かる写真の説明は外す」→ 大事の文で丸の中身を言っていれば、写真の説明は空でよい
 cap_of_key = {}
 for (sid, k), c in caps.items(): cap_of_key.setdefault(k, []).append((sid, c))
 for slot, (k, x0, y0, x1, y1, rings) in boxes.items():
@@ -87,7 +88,7 @@ for k in focus_w.MARK:
     word = focus_w.RINGWHAT[k]
     if k not in cap_of_key or k in focus_w.NODRAW: continue   # 11/4 丸を描かない写真は、名前を書かなくてよい
     for sid, c in cap_of_key[k]:
-        if word not in c and word not in title_of.get(sid, ""):
+        if word not in c and word not in title_of.get(sid, "") and word not in pink_of.get(sid, ""):
             ng.append(f"NG {sid} {k}：赤丸は「{word}」なのに、説明「{c}」にも題「{title_of.get(sid)}」にも出てこない")
 for sid, ks in keys_of.items():
     for k in ks:

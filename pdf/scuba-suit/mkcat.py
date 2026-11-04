@@ -15,7 +15,7 @@ FP="/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpa
 # 10/28 まーく様「前・後やタグの字が大きすぎる。他の文に合わせ、画像を大きく」→ 字は本文と同じ見た目の大きさ（32）に。そのぶん図が大きく出る
 font=ImageFont.truetype(FP,32); cap=ImageFont.truetype(FP,32); cf=ImageFont.truetype(FP,24)   # 10/28 3枠になって図が小さく出るぶん、字を大きくして、ページ上の見た目を本文とそろえる   # cf＝丸の中の1字（丸からはみ出さない大きさ）
 FH, TOP = 560, 10   # 図の高さ（前も後ろも同じ）
-out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(249,54,18)
+out=Image.new("RGB",(4000,H),"white"); d=ImageDraw.Draw(out); RED=(180,35,74)   # 11/4 大事の赤にそろえた（前は橙 249,54,18）
 def fig(box, ox):
     x0,y0,x1,y1=box; s=FH/(y1-y0)
     out.paste(src.crop(box).resize((round((x1-x0)*s),FH),Image.LANCZOS),(ox,TOP))

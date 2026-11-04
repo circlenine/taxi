@@ -42,7 +42,7 @@ def T(s):
 
 # ── 見た目のきまり ──
 # 色：紺 #16466b（字・札）／水色 #d7eef9（札の地）・#a9d8ef（線）・#cfe5f2（ふち）／ごく薄い水色 #f1f8fc（補足の帯）
-#     補足＝黄の札、大事＝ピンクの札、写真への書きこみ＝赤 #c8372d。道具の札は道具ごとの色
+#     補足＝黄の札、大事＝ピンクの札、写真への書きこみ＝赤 #b4234a。道具の札は道具ごとの色
 # 字：本文 11pt・太さ700／見出し 900。小さくても 9pt まで（スマホで読める大きさ）
 # 線：全部 1px。角：箱・写真 2mm／札 1mm
 # 左右：本文は紙のはしから 8mm（水色のふち 3.5mm＋白いカードの余白 4.5mm）
@@ -94,7 +94,7 @@ p{margin:0}
 .ph3{position:relative}
 .ph3 img{display:block;width:100%;border-radius:2mm;object-fit:cover}
 .pl3{position:absolute;left:1.4mm;top:1.4mm;background:var(--navy);color:#fff;font-size:8.5pt;font-weight:900;line-height:1.4;border-radius:1mm;padding:0 1.6mm;outline:1px solid #fff;white-space:nowrap}
-.pl3.red{background:#c8372d}
+.pl3.red{background:#b4234a}
 /* 補足：1行ずつ「札＋文」 */
 .notes{display:flex;flex-direction:column;gap:1.6mm}
 .nt{display:grid;grid-template-columns:9mm minmax(0,1fr);column-gap:2mm;align-items:start;background:var(--pale);border-radius:2mm;padding:1.6mm 2.4mm}
@@ -514,13 +514,13 @@ CSS += """
 /* 写真の名前は下に */
 figure.ph3{margin:0;display:flex;flex-direction:column;gap:1mm}
 .cap3{text-align:center;font-size:8.5pt;line-height:1.4;color:var(--muted)}
-.cap3.red{color:#c8372d}
+.cap3.red{color:#b4234a}
 /* 情報の帯：薄い灰色、札は紺（大事は赤） */
 .nt{background:#f3f5f7!important;padding:2mm 2.6mm!important}
 .kx .nk{background:var(--navy)!important;color:#fff!important;box-shadow:none!important}
-.kpk .nk{background:#c8372d!important;color:#fff!important;box-shadow:none!important}
+.kpk .nk{background:#b4234a!important;color:#fff!important;box-shadow:none!important}
 .lx{background:var(--navy)!important;color:#fff!important;box-shadow:none!important}
-.lp{background:#c8372d!important;color:#fff!important;box-shadow:none!important}
+.lp{background:#b4234a!important;color:#fff!important;box-shadow:none!important}
 .sasuke,.pts{background:#f3f5f7!important}
 .nmr,.qz,.tc,.ref,.bg{border:0!important;background:#f3f5f7}
 .qz .a{background:#fff!important}
@@ -631,9 +631,9 @@ table.cmp td{color:#5f6b73!important}
    → 目立たせる言葉（**…**）だけを「1段大きく＋はっきりした色」にし、説明の部分はぜんぶ灰色に下げる。
      大きさの差は、遠目でも残る。色の意味（青＝よい所・赤＝手間のかかる所）は、目立たせる言葉が受けもつ */
 table.cmp td.pos .em{color:#1565c0!important}
-table.cmp td.neg .em{color:#c8372d!important}
+table.cmp td.neg .em{color:#b4234a!important}
 table.cmp td.pos:not(:has(.em)){color:#1565c0!important}
-table.cmp td.neg:not(:has(.em)){color:#c8372d!important}
+table.cmp td.neg:not(:has(.em)){color:#b4234a!important}
 table.cmp th.cr{color:#1f2a37!important;text-align:center!important}
 table.cmp td,table.cmp th{text-align:center!important}
 table.cmp .em{font-weight:900;color:#1f2a37;font-size:1.2em;line-height:0}
@@ -679,7 +679,7 @@ table.cmp .g3{display:inline-grid;white-space:nowrap;grid-template-columns:3.8em
 table.cmp .g3>span:nth-child(2){text-align:center}
 .tnote{margin:.6mm auto 0 0;width:fit-content;font-size:8.5pt;font-weight:700;color:#1565c0;background:var(--pale);border-radius:1mm;padding:.3mm 2mm}   /* 11/2 まーく様「表の右下に。※講習と～と同じ見た目にしない」→ 右寄せ・水色の札 */
 table.cmp th .rec{display:inline-flex;align-items:center;justify-content:center;height:1.55em;line-height:1;margin-left:1.6mm;font-size:8pt;color:#fff;background:#1565c0;border-radius:1mm;padding:0 1.4mm;vertical-align:middle;position:relative;top:-.16em}   /* 10/28 まーく様「おすすめの枠を、字の中央の高さに」→ 枠の中で字を上下まん中に（行の高さ1で、上下の余白を同じに） */
-table.cmp th .rec.hard{background:#c8372d}   /* 11/3 まーく様「LOCK は赤。デメリット（難易度が高い）の位置づけに」 */
+table.cmp th .rec.hard{background:#b4234a}   /* 11/4 まーく様「色は統一。変に色数を増やさない」→ 大事と同じ赤 */   /* 11/3 まーく様「LOCK は赤。デメリット（難易度が高い）の位置づけに」 */
 table.cmp.nar tr>*:first-child{width:15%;white-space:nowrap}
 /* 10/27 夜 題の右に「このページで何がうれしいか」を1行（高さは増やさない） */
 .ph h2:has(.hookr){display:flex!important;align-items:center;flex-wrap:nowrap}
@@ -844,7 +844,7 @@ CSS += """
 CSS += """
 .ngx{position:relative;flex:1;min-height:0;display:block}
 .grid2 .photos .ngx img{position:absolute;inset:0;width:100%;height:100%!important;object-fit:cover;border-radius:2mm;display:block}
-.ngx b{position:absolute;right:1.4mm;top:-.6mm;font-size:22pt;line-height:1;font-weight:900;color:#c8372d;
+.ngx b{position:absolute;right:1.4mm;top:-.6mm;font-size:22pt;line-height:1;font-weight:900;color:#b4234a;
  -webkit-text-stroke:1.2px #fff;paint-order:stroke fill}
 """
 CSS += """

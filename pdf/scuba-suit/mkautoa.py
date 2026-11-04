@@ -7,7 +7,7 @@ base=Image.open('kfw4/d_auto.jpg').convert('RGBA')
 K=4; Wd,Ht=base.size
 ov=Image.new('RGBA',(Wd*K,Ht*K),(0,0,0,0)); d=ImageDraw.Draw(ov)
 cx,cy,rx,ry=748,500,334,350   # 11/4 弧を少し内側へ（青い札から離す）
-RED=(21,101,192,255); GRAY=(200,55,45,255); WH=(255,255,255,255)   # 11/3 まーく様「おすすめの枠を青に。青字の説明とそろえる」
+RED=(21,101,192,255); GRAY=(180,35,74,255); WH=(255,255,255,255)   # 11/3 まーく様「おすすめの枠を青に。青字の説明とそろえる」
 def P(a,dr=0):
     t=math.radians(a); return ((cx+(rx+dr)*math.cos(t))*K,(cy+(ry+dr)*math.sin(t))*K)
 def band(a0,a1,col,w):
