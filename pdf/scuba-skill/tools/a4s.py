@@ -733,6 +733,7 @@ CSS += """
 .grid2{row-gap:0!important}
 .grid2>.step{padding-bottom:4mm}
 .grid2>.step:nth-child(n+3),.grid2.tools>.step:nth-child(2){border-top:1px solid var(--line)!important;padding-top:4mm!important}
+.grid2>.step.wide+.step:not(.wide){border-top:1px solid var(--line)!important;padding-top:4mm!important}   /* 11/5 まーく様「3-2 高さずれてる」→ 横長の手順（3-1）のすぐ後の手順も、となりと同じく上に線と間をとる（番号の札の高さがそろう。rowcheck.js） */
 .grid2.tools>.step:nth-child(3){border-top:1px solid var(--line)!important;padding-top:4mm!important}
 """
 CSS += """
