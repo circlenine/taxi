@@ -657,6 +657,7 @@ table.cmp td{font-size:9.5pt!important}   /* 11/4 まーく様「表の最大の
 .tnotes{margin:.6mm 0 0 auto;width:fit-content;display:flex;flex-direction:column;align-items:stretch;gap:.4mm}
 .tnotes>.tnote{margin:0!important;width:auto!important;text-align:left}
 .tc .kind{display:inline-block;width:7.6em;padding:0!important;text-align:center;box-sizing:border-box;margin-right:.5em!important}   /* 11/4 まーく様「もくじの、ウェット・ドライの札のあとの字を左ぞろえに」→ 札の幅を同じにする */
+.blk>.blkh.blkh{left:50%!important;translate:-50% -50%!important;font-size:12.5pt!important;padding:0 4mm 0 calc(4mm + .1em)!important}   /* 11/4 まーく様「窮屈。着るとき・脱ぐときは中央に。気持ち大きく」→ 囲みの上の線のまん中に、一回り大きく */
 .blks{flex:1;min-height:0;display:flex;flex-direction:column;gap:3.4mm;padding-top:2.2mm}
 .blks>.blk>.grid2{flex:none}
 .blk>.grid2{row-gap:0}
