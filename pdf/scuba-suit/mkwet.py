@@ -28,7 +28,7 @@ back, bb_ = cut((4440, 1520, 4860, 3010))
 H = 625; PAD = 30; GAP = 30; BG = (242, 245, 247); RED = (21, 101, 192)   # 11/4 まーく様「丸が赤で、スーツも赤なら視認性は？」→ 青に。「色は統一」→ 表の青字（#1565c0）と同じ青
 FP = "/tmp/claude-0/-home-user-taxi/647c6673-e0d4-50d5-a1f6-0c9285b7952c/scratchpad/fonts/nsjp900.ttf"
 FH, TOP = 540, 10   # 11/4 まーく様「前と丸が繋がってる」→ 図を少し小さくし、足もとの丸と「前・後」の字の間をあける（figcheck.py）
-WD = 1262   # 11/4 ドライの図を小さくしたので 1276→1262。 ドライの図の「前・後」2枠ぶんの横幅（字の見た目をそろえる相手）。10/28 ドライに3つ目の枠（フル装備）を足したので、決まった数にする
+WD = 1250   # 11/4 白いふちを切った後の横幅をドライ（ふち36）とそろえるため、ふち30のぶん 12 小さく。 11/4 ドライの図を小さくしたので 1276→1262。 ドライの図の「前・後」2枠ぶんの横幅（字の見た目をそろえる相手）。10/28 ドライに3つ目の枠（フル装備）を足したので、決まった数にする
 RINGS = []; LBL = []   # 字の箱（タグ・前・後）。丸と重ならないかを figcheck.py が見る（11/4 まーく様「前と丸が繋がってる」）
 def draw(fs, ext=0):
     font = ImageFont.truetype(FP, round(fs)); cap = ImageFont.truetype(FP, round(fs)); k = fs / 56
@@ -72,6 +72,7 @@ def draw(fs, ext=0):
 # 10/28 タグがドライの図と同じ字の大きさ・同じ横幅になるよう、あまった横幅は タグの線をのばして使う（「アップ」の枠は小さくなりすぎるのでやめた）
 out, W = draw(32)
 out, W = draw(32, WD - W)
+out = out.crop((PAD, 8, W - PAD, H - 8))   # 11/4 まーく様「▶ と背景がずれている」→ 外の白いふちを切り、灰色の枠＝画像のふちに
 out.save("/tmp/claude-0/kfw4/w_cat.jpg", quality=92)
 import json; json.dump({"rings": RINGS, "labels": LBL}, open("/tmp/claude-0/kfw4/w_cat.boxes.json", "w"), ensure_ascii=False)
 print("ok", out.size, "ドライの横幅", WD)

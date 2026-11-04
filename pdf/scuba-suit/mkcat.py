@@ -73,7 +73,7 @@ for P,w,t in ((OX1,w1,"前"),(OX2,w2,"後")):
 ov=Image.new("RGBA",out.size,(0,0,0,0)); dv=ImageDraw.Draw(ov)
 for (x,y),r,ry,w in OVL: dv.ellipse((x-r,y-ry,x+r,y+ry),outline=RED+(150,),width=w)
 out=Image.alpha_composite(out.convert("RGBA"),ov).convert("RGB")
-out=out.crop((0,0,W,H))
+out=out.crop((PAD,8,W-PAD,H-8))   # 11/4 まーく様「▶ と背景がずれている」→ 外の白いふちを切り、灰色の枠＝画像のふちにする（▶ が枠の角の中に乗る）
 out.save("/tmp/claude-0/kfw3/d_cat.jpg",quality=92); out.save("/tmp/claude-0/kfw4/d_cat.jpg",quality=92)   # kfw4 が focus_w.py の読む場所
 import json; json.dump({"rings":[(x-r-w/2,y-ry-w/2,x+r+w/2,y+ry+w/2) for (x,y),r,ry,w in OVL],"labels":LBL},open("/tmp/claude-0/kfw4/d_cat.boxes.json","w"),ensure_ascii=False)
 print("ok", w1, w2)
