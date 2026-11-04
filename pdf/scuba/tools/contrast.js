@@ -21,5 +21,7 @@ let bad=await p.evaluate(()=>{
  });return [...out];});
 const circ=await p.evaluate(()=>[...document.querySelectorAll('.page .nn2,.page .nn,.page .sn,.page .mtn,.page .cap3')].filter(e=>/[①-⑳❶-❿]/.test(e.textContent)).map(e=>e.closest('.page').id+' 「'+e.textContent+'」'));
 circ.forEach(x=>bad.push('札・写真の名前に丸数字（11/4 まーく様「写真の下の番号は分からなくなる」） '+x));   // 11/3 まーく様「緑で囲んでいるのに、さらに丸で囲む必要はない」
+const hit=await p.evaluate(()=>{const o=[];document.querySelectorAll('.blkh').forEach(h=>{const a=h.getBoundingClientRect();h.closest('.blk').querySelectorAll('.sh3,.sh3 *').forEach(e=>{const b=e.getBoundingClientRect();if(b.width&&a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom+5.7)o.push(h.closest('.page').id+' 「'+h.textContent+'」が題「'+e.textContent.slice(0,10)+'」に近すぎる・重なる（1.5mm以上あける）')})});return [...new Set(o)]});
+hit.forEach(x=>bad.push('札の重なり（11/4 着るとき・脱ぐときが番号札に重なっていた） '+x));
 console.log(bad.length?bad.map(x=>'NG 字が読みにくい（コントラスト不足） '+x).join('\n'):'字と地のコントラスト OK');
 await b.close();process.exit(bad.length?1:0);})();

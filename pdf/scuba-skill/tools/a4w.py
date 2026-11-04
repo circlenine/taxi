@@ -664,7 +664,7 @@ table.cmp td{font-size:9.5pt!important}   /* 11/4 まーく様「表の最大の
 .blk>.grid2>section.step{padding-bottom:.8mm!important}
 .blk>.grid2>section.step:nth-of-type(-n+2){border-top:0!important;padding-top:0!important}   /* 囲みの1段目：上の線は囲みの線が受けもつ */
 .blk>.grid2>section.step:nth-of-type(n+3){padding-top:1.4mm!important}
-.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:3.6mm 3mm .6mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
+.blk{position:relative;border:1px solid var(--bl);border-radius:2mm;padding:6.4mm 3mm .6mm;margin:0 -3mm}   /* 線は本文の外側（左右3mm）に出す：中の手順の幅と、札の左はしを、ほかのページの本文とそろえるため */
 .blk-on{--bl:#ade3c8;--bh:#3f9a73}
 .blk-off{--bl:#8cc4ef;--bh:#1b5a8e}   /* 紺はこの冊では緑に置きかわるので、ウェットの札と同じ青を使う（上がったあと＝水の色） */
 .blkh{position:absolute;top:0;left:3mm;translate:0 -50%;background:#fff;color:var(--bh);border:1px solid var(--bh);font-size:10.5pt;line-height:1.45;font-weight:900;letter-spacing:.1em;border-radius:1mm;padding:0 2.4mm 0 calc(2.4mm + .1em);box-shadow:0 0 0 1mm #fff}   /* 11/2 まーく様「着る・脱ぐと、番号札のデザインが一緒で見分けにくい」→ 番号札は「塗りつぶし＋矢じり」。囲みの札は「白地＋線」にして、形でも分ける。字は「着るとき」と、場面を表す言葉に */
