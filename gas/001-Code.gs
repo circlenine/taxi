@@ -1,7 +1,21 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C081ver  （2026/11/4）  ★★★   ← もとは version 232
+ *  ★★★  C082ver  （2026/11/4）  ★★★   ← もとは version 232
+ *
+ *  [C082ver]
+ *   ・🧯 箱のボタンを「まるごと救助（rescueAll）」に変えた
+ *     ★まーく様のご指示：
+ *       「今後は全てこのメッセージで指示すれば、
+ *         完全に修復可能な状態な仕組みづくりにしてください」
+ *     ★タップ1回で、次の4つが ぜんぶ通ります。
+ *       ①見張りを立て直す ②**新しい中身を取り込む**
+ *       ③頼まれごとを走らせる ④受け口を直し、住所を外に置く
+ *     ★②が肝心です。これが無いと、こちらが何を直しても届きません。
+ *       「ここで指示すれば直る」は、ここで成り立ちます。
+ *   ・📦 最終更新が読めないときも、箱を出すようにした
+ *     ★読めない＝止まりきっている、です。
+ *       いちばん箱が要る場面で、黙って見送っていました。
  *
  *  [C081ver]
  *   ・📱 「止まっています」の案内に、まず「横向きに」と書いた
@@ -827,7 +841,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C081ver";
+const CODE_VERSION = "C082ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -4223,7 +4237,7 @@ function openHealHtml_() {
     '<div style="font-size:16px;font-weight:700;color:#b00020">止まっています</div>' +
     '<div style="font-size:13px;margin:8px 0 16px;color:#333">' +
     '下のボタンを 1回だけ押してください。<br>' +
-    '見張り（ひとりでに動くしかけ）を入れ直します。</div>' +
+    '見張りを入れ直し、新しい中身も取り込みます。</div>' +
     '<button id="b" style="width:100%;padding:16px;font-size:17px;font-weight:700;' +
     'background:#b00020;color:#fff;border:0;border-radius:10px">🚑 いますぐ なおす</button>' +
     '<div id="m" style="font-size:12px;margin-top:14px;white-space:pre-wrap;color:#333"></div>' +
@@ -4234,7 +4248,7 @@ function openHealHtml_() {
     'google.script.run' +
     '.withSuccessHandler(function(t){m.textContent=t||"✅ 終わりました";})' +
     '.withFailureHandler(function(e){m.textContent="❌ "+((e&&e.message)?e.message:e);})' +
-    '.fixAll();};' +
+    '.rescueAll();};' +
     '<\/script></div>';
 }
 
@@ -4249,11 +4263,17 @@ function openHealDialog_(ss, now) {
     const sh = ss && ss.getSheetByName(INFO_TAB);
     if (!sh) return false;
     const cur = String(sh.getRange("B1").getValue() || "");
+    /*
+     * ★最終更新が読めないときも、箱を出します。
+     *   動いていれば、ここには必ず時刻が入ります。
+     *   読めない＝一度も動いていない、か、止まりきっているかです。
+     *   いちばん箱が要る場面なので、黙って見送りません。
+     */
     const at = openStampAt_(cur);
-    // 読めないときは出しません（出しっぱなしで うるさくなるのを防ぐ）
-    if (!at) return false;
-    const hours = ((now || new Date()).getTime() - at.getTime()) / 3600000;
-    if (hours < OPEN_WARN_H) return false;
+    if (at) {
+      const hours = ((now || new Date()).getTime() - at.getTime()) / 3600000;
+      if (hours < OPEN_WARN_H) return false;
+    }
 
     const html = HtmlService.createHtmlOutput(openHealHtml_())
       .setWidth(330).setHeight(280);
