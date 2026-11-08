@@ -63,11 +63,28 @@ function build(o){
     ctx.calls.push(m + ' ' + p);
     if (o.apiThrows) throw new Error('権限がありません');
     if (p === '/versions' && m === 'get') return { versions: (o.versions || []) };
+    if (p === '/deployments' && m === 'get') return { deployments: (o.deps || []) };
+    if (/^\/deployments\/.+$/.test(p) && m === 'put') {
+      if (o.putThrows) throw new Error('向け直せません');
+      return { entryPoints: [{ webApp: { url: 'https://new.test/exec' } }] };
+    }
+    if (/^\/deployments\/.+$/.test(p) && m === 'delete') return {};
     if (p === '/deployments' && m === 'post') {
-      if (o.deployThrows) throw new Error('デプロイが多すぎます');
+      if (o.deployThrows) {
+        throw new Error('Scripts may only have up to 20 versioned deployments at a time.');
+      }
       return { entryPoints: [{ webApp: { url: 'https://new.test/exec' } }] };
     }
     return {};
+  };
+  /* 版つきの公開を n 個 つくる（新しい順に 100, 99, …） */
+  ctx.mkDeps = (n) => {
+    const a = [];
+    for (let i = 0; i < n; i++) {
+      a.push({ deploymentId: 'D' + i,
+               deploymentConfig: { versionNumber: 100 - i, description: 'd' + i } });
+    }
+    return a;
   };
   ctx.UrlFetchApp = { fetch: (url, opt) => {
     ctx.fetched.push({ url: url, opt: opt || {} });
@@ -100,6 +117,7 @@ console.log('■ 死んでいたら、公開し直してLINEにも登録し直�
   const r = c.updWebAppFix_();
   ok(r.fixed === true, '直した', r);
   ok(c.calls.indexOf('post /deployments') !== -1, '公開し直している', c.calls);
+  ok(c.calls.indexOf('get /deployments') !== -1, '先に、いまある公開を見る');
   ok(c.calls.indexOf('post /versions') === -1,
      '★★新しい版は作らない（200個で満杯でも通るように）', c.calls);
   ok(r.text.indexOf('版 7') !== -1, '★いちばん新しい版（7）で公開する', r.text);
@@ -151,6 +169,62 @@ console.log('■ 直せないときは、黙らない');
      '公開に失敗したら、そう言う', r3.text);
   ok(c3.fetched.filter(f => f.url.indexOf('api.line.me') !== -1).length === 0,
      '★公開できていないのに、LINEの登録を書きかえない');
+}
+
+console.log('■ 公開の枠（20）が満杯でも、直せること');
+{
+  /*
+   * ★2026/11/9、実機でこう出ました。
+   *   「Scripts may only have up to 20 versioned deployments at a time.」
+   *   新しく作ろうとしていたので、毎回そこで止まっていました。
+   *   いまある公開を「向け直す」なら、枠は増えません。
+   */
+  const c = build({ alive: false, versions: [{ versionNumber: 9 }],
+                    deps: null, props: { LINE_TOKEN: 'tok' } });
+  c.deps = null;
+  const full = build({ alive: false, versions: [{ versionNumber: 9 }],
+                       props: { LINE_TOKEN: 'tok' } });
+  // 20個 満杯の状態を作る
+  const ctxFull = build({ alive: false, versions: [{ versionNumber: 9 }],
+                          props: { LINE_TOKEN: 'tok' }, deployThrows: true });
+  ctxFull.deps = ctxFull.mkDeps(20);
+  // 偽の一覧を返すように差し替え
+  const base = ctxFull.updApi_;
+  ctxFull.updApi_ = (p, m, b) => (p === '/deployments' && m === 'get')
+    ? { deployments: ctxFull.deps } : base(p, m, b);
+  const r = ctxFull.updWebAppFix_();
+  ok(r.fixed === true, '★★満杯でも直せる（新しく作らない）', r.text);
+  ok(ctxFull.calls.some(x => x.indexOf('put /deployments/') === 0),
+     '★★★いまある公開を「向け直して」いる', ctxFull.calls);
+  ok(ctxFull.calls.indexOf('post /deployments') === -1,
+     '★★★新しくは作らない（ここで枠に当たっていた）', ctxFull.calls);
+  ok(r.text.indexOf('向け直しました') !== -1, 'どう直したかを書く', r.text);
+}
+
+console.log('■ 向け直せないときだけ、古いのを1つ消して作る');
+{
+  const c = build({ alive: false, versions: [{ versionNumber: 9 }],
+                    props: { LINE_TOKEN: 'tok' }, putThrows: true });
+  c.deps = c.mkDeps(20);
+  const base = c.updApi_;
+  c.updApi_ = (p, m, b) => (p === '/deployments' && m === 'get')
+    ? { deployments: c.deps } : base(p, m, b);
+  const r = c.updWebAppFix_();
+  const dels = c.calls.filter(x => x.indexOf('delete /deployments/') === 0);
+  ok(dels.length === 1, '★消すのは1つだけ（消しすぎない）', dels);
+  ok(dels[0].indexOf('D19') !== -1, '★消すのは いちばん古いもの', dels);
+  ok(c.calls.indexOf('post /deployments') !== -1, 'そのあと、新しく作る');
+  ok(r.fixed === true, '直った', r.text);
+}
+
+console.log('■ 公開が1つも無いときは、消さずに作る');
+{
+  const c = build({ alive: false, versions: [{ versionNumber: 9 }],
+                    props: { LINE_TOKEN: 'tok' } });
+  c.updWebAppFix_();
+  ok(c.calls.filter(x => x.indexOf('delete') === 0).length === 0,
+     '★1つも消さない', c.calls);
+  ok(c.calls.indexOf('post /deployments') !== -1, '新しく作る');
 }
 
 console.log('■ 1時間に1回だけ動く');

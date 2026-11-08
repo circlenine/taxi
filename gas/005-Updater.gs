@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U149ver  （2026/11/4）  ★★★
+ *  ★★★  U150ver  （2026/11/9）  ★★★
+ *
+ *  [U150ver]
+ *   ・🚪 公開の枠（20）が満杯でも、受け口を直せるようにした
+ *     ★実機でこう出ました（2026/11/9 00:18）。
+ *       「Scripts may only have up to 20 versioned deployments
+ *         at a time.」＝公開の枠は20までで、もう満杯、の意味です。
+ *     ★新しく作ろうとしていたので、毎回そこで止まっていました。
+ *     ★これからは、まず **いまある公開を新しい版に向け直します**。
+ *       枠は増えません。住所もそのまま残ります。
+ *     ★向け直せないときだけ、**いちばん古い公開を1つだけ**消して作ります。
+ *       消しすぎると、生きている受け口まで落とすためです。
  *
  *  [U149ver]
  *   ・🧯 まるごと救助（rescueAll）を足した
@@ -1660,7 +1671,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U149ver";
+const UPD_VERSION = "U150ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9770,6 +9781,9 @@ const DR_AT_KEY      = "UPD_DR_AT";     // 前に診た時刻
 const DR_TELL_KEY    = "UPD_DR_TELL";   // 前に知らせた日と中身
 
 /** いまの受け口（ウェブアプリ）の住所。無ければ空 */
+/** 公開（デプロイ）は、1つのコードに20までというGoogleの決まり */
+const UPD_DEPLOY_MAX = 20;
+
 function updWebAppUrl_() {
   try { return String(ScriptApp.getService().getUrl() || ""); } catch (e) { return ""; }
 }
@@ -9839,20 +9853,71 @@ function updWebAppFix_() {
              text: "❌ LINEの受け口が死んでいます。公開できる版がありません" };
   }
 
-  // ② その版で、公開し直す
-  let made = null;
-  try {
-    made = updApi_("/deployments", "post", {
-      versionNumber: ver,
-      manifestFileName: "appsscript",
-      description: "自動修復 " + new Date().toISOString()
-    });
-  } catch (e) {
-    return { fixed: false, url: url0,
-             text: "❌ LINEの受け口を公開し直せませんでした（" + ((e && e.message) || e) + "）" };
+  /* ================================================================
+   *  ② 公開し直す
+   *
+   *  ★2026/11/9、こう出ました。
+   *    「Scripts may only have up to 20 versioned deployments at a time.」
+   *    ＝公開の枠は20までで、もう満杯、という意味です。
+   *    新しく作ろうとしていたので、毎回そこで止まっていました。
+   *
+   *  ★だから、まず **いまある公開を使い回します**。
+   *    いちばん新しい公開を、新しい版に向け直すだけです。
+   *    これなら枠は増えません。住所もそのまま残ります。
+   *
+   *  ★使える公開が1つも無いときだけ、新しく作ります。
+   *    そのときに満杯なら、**いちばん古い公開を1つ消して**から作ります。
+   *    （消すのは、いちばん古い1つだけ。消しすぎません）
+   * ================================================================ */
+  let deps = [];
+  try { deps = (updApi_("/deployments", "get", null).deployments) || []; } catch (e) {}
+
+  // 版が付いている公開だけ（@HEAD＝作業中のものは触らない）
+  const live = deps.filter(function (d) {
+    return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
+  }).sort(function (a, b) {
+    return Number(b.deploymentConfig.versionNumber) - Number(a.deploymentConfig.versionNumber);
+  });
+
+  let made = null, how = "";
+  if (live.length) {
+    // ★いちばん新しい公開を、新しい版に向け直す（枠は増えない）
+    try {
+      made = updApi_("/deployments/" + live[0].deploymentId, "put", {
+        deploymentConfig: {
+          scriptId: ScriptApp.getScriptId(),
+          versionNumber: ver,
+          manifestFileName: "appsscript",
+          description: live[0].deploymentConfig.description || "自動修復"
+        }
+      });
+      how = "いまある公開を、新しい版に向け直しました";
+    } catch (e) {
+      made = null;
+    }
   }
 
-  // ③ 新しい住所を読む
+  if (!made) {
+    // ★使い回せなかったときだけ、新しく作る。満杯なら、いちばん古いのを1つ消す
+    try {
+      if (live.length >= UPD_DEPLOY_MAX) {
+        updApi_("/deployments/" + live[live.length - 1].deploymentId, "delete", null);
+      }
+    } catch (e) {}
+    try {
+      made = updApi_("/deployments", "post", {
+        versionNumber: ver,
+        manifestFileName: "appsscript",
+        description: "自動修復 " + new Date().toISOString()
+      });
+      how = "新しく公開し直しました";
+    } catch (e) {
+      return { fixed: false, url: url0,
+               text: "❌ LINEの受け口を公開し直せませんでした（" + ((e && e.message) || e) + "）" };
+    }
+  }
+
+  // ③ 住所を読む
   let url = "";
   try {
     ((made && made.entryPoints) || []).forEach(function (p) {
@@ -9869,13 +9934,14 @@ function updWebAppFix_() {
   const ng = updLineHookSet_(url);
   if (ng) {
     return { fixed: true, url: url,
-             text: "🩺 LINEの受け口を公開し直しました（版 " + ver + "）。\n" +
+             text: "🩺 " + how + "（版 " + ver + "）。\n" +
                    "ただし " + ng + "。\n" +
                    "・LINE Developers の Webhook URL に、下の住所を貼ってください\n" +
                    "・" + url };
   }
   return { fixed: true, url: url,
-           text: "🩺 LINEの受け口が死んでいたので、こちらで直しました（版 " + ver + "）。\n" +
+           text: "🩺 LINEの受け口が死んでいたので、こちらで直しました。\n" +
+                 "・" + how + "（版 " + ver + "）\n" +
                  "・LINE側の登録も、こちらで書きかえました\n" +
                  "・いままでどおり、LINEに書けば記録が入ります" };
 }
