@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U150ver  （2026/11/9）  ★★★
+ *  ★★★  U151ver  （2026/11/9）  ★★★
+ *
+ *  [U151ver]
+ *   ・📋 いまの様子を1枚にして、ドライブに置くようにした（カルテ）
+ *     ★まーく様のご指示：
+ *       「そのエラー表示も、わざわざ送る形にせず
+ *         自動でエラーを見つけ出して処理する方法にできませんか」
+ *     ★画面を写して送る、というのは「人の手が要るもの」でした。
+ *       増やしてはいけないものです。
+ *     ★「クロちゃんへの報告.txt」に、診るのに要るものを書きます。
+ *       見張りの数と名前／最後に動いた時刻／受け口の生き死にと住所／
+ *       版と公開の数（20・200で満杯）／直近のしくじり5件。
+ *     ★中身が変わったときだけ書きます。共有の設定は触りません。
  *
  *  [U150ver]
  *   ・🚪 公開の枠（20）が満杯でも、受け口を直せるようにした
@@ -1671,7 +1683,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U150ver";
+const UPD_VERSION = "U151ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9682,6 +9694,160 @@ function rescueAll() {
 }
 
 /* ================================================================
+ *  📋 クロちゃんへの報告（カルテ）を、ドライブに置く
+ *
+ *  ★まーく様のご指示（2026/11/9）
+ *    「そのエラー表示も、わざわざ送る形にせず
+ *      自動でエラーを見つけ出して処理する方法にできませんか」
+ *
+ *  ★そのとおりです。まーく様が画面を写して送る、という形は
+ *    「人の手が要るもの」です。増やしてはいけないものでした。
+ *
+ *  ★だから、いまの様子を1枚の紙にして、ドライブに置きます。
+ *    クロちゃんは、まーく様が何もしなくても これを読めます。
+ *    読んで、直せるものは直して、置き直します。
+ *
+ *  ★中身は「診るのに要るものだけ」。長くしません。
+ *    ・いつ書いたか
+ *    ・見張りはいくつ生きているか
+ *    ・最後に動いたのはいつか
+ *    ・LINEの受け口は生きているか、住所はどこか
+ *    ・版と公開は、いくつ使っているか（20で満杯になる）
+ *    ・直近のしくじり5件
+ *
+ *  ★中身が変わったときだけ書きます（毎回書くと持ち時間を食います）。
+ *  ★共有の設定は いっさい触りません。まーく様だけが見られます。
+ * ================================================================ */
+
+const KARTE_FILE = "クロちゃんへの報告.txt";
+const KARTE_KEY  = "UPD_KARTE_SIG";     // 前に書いた中身の指紋
+
+/** いまの様子を1枚にまとめる。返すのは { text, sig } */
+function updKarteBuild_() {
+  const L = [], sig = [];
+  const put = function (line, countAsChange) {
+    L.push(line);
+    if (countAsChange) sig.push(line);
+  };
+
+  put("＝＝ クロちゃんへの報告（じどうで書いています）＝＝", false);
+  try {
+    put("書いた時刻：" + Utilities.formatDate(new Date(), "Asia/Tokyo",
+        "yyyy-MM-dd HH:mm") + "（日本時間）", false);
+  } catch (e) {}
+  put("", false);
+
+  // ① 見張り（ひとりでに動くしかけ）
+  try {
+    const ts = ScriptApp.getProjectTriggers();
+    const names = ts.map(function (t) {
+      try { return String(t.getHandlerFunction() || "?"); } catch (e) { return "?"; }
+    }).sort();
+    put("■ 見張り：" + ts.length + "こ", true);
+    put("　" + (names.length ? names.join("・") : "（1つもありません）"), true);
+  } catch (e) {
+    put("■ 見張り：調べられませんでした（" + ((e && e.message) || e) + "）", true);
+  }
+
+  // ② 最後に動いた時刻
+  try {
+    const v = PropertiesService.getScriptProperties().getProperty("PANEL_WATCH_AT");
+    if (v) {
+      const d = new Date(Number(v));
+      put("■ 最後に動いた：" + Utilities.formatDate(d, "Asia/Tokyo", "MM-dd HH:mm"), false);
+      const mins = Math.round((Date.now() - Number(v)) / 60000);
+      put("　（" + mins + "分前）", false);
+      put("■ 止まっているか：" + (mins > 25 ? "はい" : "いいえ"), true);
+    } else {
+      put("■ 最後に動いた：記録がありません", true);
+    }
+  } catch (e) {}
+
+  // ③ LINEの受け口
+  let url = "";
+  try { url = updWebAppUrl_(); } catch (e) {}
+  put("", false);
+  put("■ LINEの受け口：" + (url ? (updUrlAlive_(url) ? "生きています" : "死んでいます")
+                               : "公開されていません"), true);
+  if (url) put("　" + url, true);
+
+  // ④ 版と公開（どちらも20・200で満杯になる）
+  try {
+    const vs = (updApi_("/versions", "get", null).versions) || [];
+    let top = 0;
+    vs.forEach(function (v) { if (Number(v.versionNumber) > top) top = Number(v.versionNumber); });
+    put("■ 版：いちばん新しいのは " + top + "（200で満杯）", true);
+  } catch (e) {
+    put("■ 版：調べられませんでした", true);
+  }
+  try {
+    const ds = (updApi_("/deployments", "get", null).deployments) || [];
+    const live = ds.filter(function (d) {
+      return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
+    });
+    put("■ 公開：" + live.length + "こ（" + UPD_DEPLOY_MAX + "で満杯）", true);
+  } catch (e) {
+    put("■ 公開：調べられませんでした", true);
+  }
+
+  // ⑤ いまのコード
+  try {
+    const vers = [];
+    if (typeof CODE_VERSION !== "undefined") vers.push("C:" + CODE_VERSION);
+    if (typeof UPD_VERSION  !== "undefined") vers.push("U:" + UPD_VERSION);
+    if (vers.length) put("■ いまのコード：" + vers.join("　"), true);
+  } catch (e) {}
+
+  // ⑥ 直近のしくじり
+  put("", false);
+  put("■ 直近のしくじり", false);
+  try {
+    const errs = JSON.parse(
+      PropertiesService.getScriptProperties().getProperty("LAST_ERRORS") || "[]");
+    if (!errs.length) put("　ありません", true);
+    else errs.forEach(function (e2) {
+      put("　・" + String(e2.at || "").slice(0, 16).replace("T", " ") +
+          "　[" + (e2.where || "?") + "] " + String(e2.msg || "").slice(0, 160), true);
+    });
+  } catch (e) {
+    put("　読めませんでした", true);
+  }
+
+  put("", false);
+  put("※この紙は、まーく様だけが見られます（共有していません）。", false);
+  return { text: L.join("\n"), sig: sig.join("\n") };
+}
+
+/**
+ * カルテを置く。中身が前と同じなら、書かない。
+ * 返すのは「書いたかどうか」。
+ */
+function updKartePublish_() {
+  let got = null;
+  try { got = updKarteBuild_(); } catch (e) { return false; }
+  if (!got || !got.text) return false;
+
+  const pr = updProps_();
+  try {
+    if (String(pr.getProperty(KARTE_KEY) || "") === got.sig) return false;
+  } catch (e) {}
+
+  try {
+    let f = null;
+    const it = DriveApp.getFilesByName(KARTE_FILE);
+    if (it.hasNext()) f = it.next();
+    if (f) f.setContent(got.text);
+    // ★共有の設定は触りません
+    else DriveApp.createFile(KARTE_FILE, got.text, MimeType.PLAIN_TEXT);
+  } catch (e) {
+    try { logErr_("karte", e); } catch (e2) {}
+    return false;
+  }
+  try { pr.setProperty(KARTE_KEY, got.sig); } catch (e) {}
+  return true;
+}
+
+/* ================================================================
  *  🚪 玄関（LINEの受け口）の住所を、外から読める所に置く
  *
  *  ★まーく様のご指示（2026/11/3）
@@ -10010,6 +10176,16 @@ function updDoctorTick_() {
   try {
     if (typeof updDoorPublish_ === "function") updDoorPublish_(url2);
   } catch (e) { try { logErr_("doctorDoor", e); } catch (e2) {} }
+
+  /*
+   * ④ いまの様子を1枚にして、ドライブに置き直す（カルテ）。
+   *    ★まーく様に画面を写して送らせない、ためのものです。
+   *      クロちゃんは、まーく様が何もしなくても これを読めます。
+   *    ★中身が変わったときだけ書きます。
+   */
+  try {
+    if (typeof updKartePublish_ === "function") updKartePublish_();
+  } catch (e) { try { logErr_("doctorKarte", e); } catch (e2) {} }
 
   if (say.length) updDrTell_(say.join("\n\n"));
   return true;
