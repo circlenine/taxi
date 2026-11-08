@@ -2,7 +2,22 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V078ver  （2026/11/2）  ★★★
+ *  ★★★  V079ver  （2026/11/9）  ★★★
+ *
+ *  [V079ver]
+ *   ・🚫 お守りの知らせが、グループへ出ないようにした
+ *     ★まーく様のご指示：
+ *       「これをグループの方へ送るのは絶対やめてください
+ *         こういう系は全て、lineを通さないとならないなら
+ *         公式line→ぼくの個人lineのみにしてください」
+ *     ★「読めていない会場があります」「ホテルの予定表が届いていません」
+ *       は、仕組みの調子の話です。乗務員の方々には関係がありません。
+ *       流れれば、まーく様が恥をかきます。
+ *     ★止め方を2つ重ねました。1つだと、いつか すり抜けます。
+ *       ① 控えに残さない（グループへ送るボタンは、控えを送るため）
+ *       ② グループへ出す直前に、もう一度ふるい落とす
+ *     ★見分けは「書き出しの字」（VN_ADMIN_HEADS）。
+ *       新しいお守りの知らせを作ったら、必ずここに足すこと。
  *
  *  [V078ver]
  *   ・🔄 見張りの入れ替えを「先に作ってから、古いのを消す」形にした
@@ -1110,7 +1125,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V078ver";
+const VN_VERSION = "V079ver";
 
 /**
  * 見にいく先の一覧。
@@ -1519,7 +1534,66 @@ const VN_SHARE_MAX   = 12;       // 何個まで割ってよいか（＝24,000�
                                  // ★絵を2枚まとめて控えることがあるので、多めに取る
 
 /** 絵を控えて、合言葉（鍵）を返す。大きすぎれば "" */
-function vnShareSave_(msg) {
+/* ================================================================
+ *  🚫 お守りの知らせは、グループへ出さない
+ *
+ *  ★まーく様のご指示（2026/11/9）
+ *    「これをグループの方へ送るのは絶対やめてください
+ *      こういう系は全て、lineを通さないとならないなら
+ *      公式line→ぼくの個人lineのみにしてください」
+ *
+ *  ★「お守りの知らせ」とは、仕組みの調子の話です。
+ *    ・読めていない会場があります
+ *    ・ホテルの予定表が届いていません
+ *    乗務員の方々には、何の関係もありません。
+ *    流れれば、まーく様が恥をかきます。
+ *
+ *  ★止め方は2つ重ねます。1つだと、いつか すり抜けます。
+ *    ① 控えに残さない（グループへ送るボタンは、控えを送るため）
+ *    ② グループへ出す直前に、もう一度ふるい落とす
+ *
+ *  ★見分けは「書き出しの字」でします。
+ *    新しいお守りの知らせを作ったら、必ずここに足してください。
+ * ================================================================ */
+const VN_ADMIN_HEADS = [
+  "⚠️ 読めていない会場",   // ⚠️ 読めていない会場
+  "🏨 ホテルの予定表",            // 🏨 ホテルの予定表
+  "🔎 読み取り状況",                  // 🔎 読み取り状況
+  "🩺",                                                       // 🩺 お医者さんの報告
+  "🔧 自動更新"                               // 🔧 自動更新の状態
+];
+
+/** これは「お守りの知らせ」か（グループへ出してはいけないか） */
+function vnIsAdminMsg_(m) {
+  try {
+    if (!m || m.type !== "text") return false;
+    const t = String(m.text || "");
+    for (let i = 0; i < VN_ADMIN_HEADS.length; i++) {
+      if (t.indexOf(VN_ADMIN_HEADS[i]) === 0) return true;
+    }
+    return false;
+  } catch (e) { return false; }
+}
+
+/**
+ * グループへ出す並びから、お守りの知らせを ふるい落とす。
+ * ★1つも残らなかったときは null を返します（空のまま送らないため）。
+ */
+function vnDropAdminMsgs_(msgIn) {
+  if (!msgIn) return msgIn;
+  if (!Array.isArray(msgIn)) return vnIsAdminMsg_(msgIn) ? null : msgIn;
+  const out = msgIn.filter(function (m) { return !vnIsAdminMsg_(m); });
+  return out.length ? out : null;
+}
+
+function vnShareSave_(msgIn) {
+  /*
+   * ★お守りの知らせは、控えに入れません。
+   *   控えは「グループへ送る」ボタンが読むものです。
+   *   ここに混ざっていると、ボタン1つでグループへ流れます。
+   */
+  const msg = vnDropAdminMsgs_(msgIn);
+  if (!msg) return "";
   try {
     const s = JSON.stringify(msg);
     const n = Math.ceil(s.length / VN_SHARE_CHUNK);
@@ -1773,7 +1847,14 @@ function panelShareGo() {
     try {
       // ★控えが「絵の並び」のことがあるので、どちらでも送れるようにする
       const arr = Array.isArray(msg) ? msg : [msg];
-      lrPush_(to, arr.map(function (x) { return vnShareStrip_(x); }));
+      /*
+       * ★お守りの知らせ（vnShareStrip_ が null を返したもの）は捨てます。
+       *   捨てた結果 1つも残らなければ、グループへは何も送りません。
+       */
+      const out = arr.map(function (x) { return vnShareStrip_(x); })
+                     .filter(function (x) { return !!x; });
+      if (!out.length) return "📣 グループへ出すものがありませんでした。";
+      lrPush_(to, out);
       return "📣 グループへ送りました。\n・" + title;
     } catch (e) {
       return "📣 送れませんでした：" + ((e && e.message) || e);
@@ -1792,6 +1873,12 @@ function panelShareGo() {
  * ★みんなの画面に そのボタンが出ていては、おかしいためです。
  */
 function vnShareStrip_(msg) {
+  /*
+   * ★ここが、グループへ出す直前の いちばん最後のふるいです。
+   *   控えの側でも落としていますが、2つ重ねます。
+   *   1つだと、いつか すり抜けます（まーく様のご指示・2026/11/9）。
+   */
+  if (vnIsAdminMsg_(msg)) return null;
   try {
     const clean = JSON.parse(JSON.stringify(msg));
     const bb = clean && clean.contents;
@@ -7351,7 +7438,14 @@ function vnHandlePostback_(ev) {
        */
       // ★控えが「絵の並び」のことがあるので、どちらでも送れるようにする
       const arr2 = Array.isArray(msg) ? msg : [msg];
-      lrPush_(to, arr2.map(function (x) { return vnShareStrip_(x); }));
+      /*
+       * ★お守りの知らせ（vnShareStrip_ が null を返したもの）は捨てます。
+       *   捨てた結果 1つも残らなければ、グループへは何も送りません。
+       */
+      const out2 = arr2.map(function (x) { return vnShareStrip_(x); })
+                       .filter(function (x) { return !!x; });
+      if (!out2.length) { say("📣 グループへ出すものがありませんでした。"); return true; }
+      lrPush_(to, out2);
       say("📣 グループへ送りました。");
     } catch (e) {
       say("📣 送れませんでした：" + ((e && e.message) || e));
