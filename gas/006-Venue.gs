@@ -2,7 +2,48 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V079ver  （2026/11/9）  ★★★
+ *  ★★★  V080ver  （2026/11/9）  ★★★
+ *
+ *  [V080ver]
+ *   ・🔎 読めていなかった会場のページを、読めるようにした
+ *     ★カルテに「25日間 1件も読めていない会場が16か所」と出ていたので、
+ *       1つずつ実際にページを取ってきて、読ませて確かめました。
+ *       ページは開けているのに0件、というところが いくつもありました。
+ *     ★直したのは、次の5つです。
+ *       ① 日付のあと **6行**しか見ていなかった
+ *          ライブハウスのページは、名前・出演・注意…のあとに
+ *          OPEN／START が来るので、時刻は7行目より先です。
+ *          6行で切っていたので、時刻が見つからず、
+ *          「催しではない」と捨てていました（BIGCATが丸ごと）。
+ *       ② 「2026/27シーズン」の「26/27」を日付と読み違えていた
+ *          そこでかたまりを切っていたので、15:00 が同じかたまりに
+ *          入らず、**4万人のガンバ大阪の試合が1件も出ていませんでした。**
+ *       ③ 月ごとのカレンダーの形が読めなかった
+ *          パナソニックスタジアムは「8(日)」としか書いていないので、
+ *          何月の8日か分かりませんでした。
+ *          見出しの「2026.11月」から月をもらって読みます。
+ *          一覧が先月のままのときは、その月のページを取りにいきます。
+ *       ④ 「START」「OPEN」の英語を読んでいなかった
+ *       ⑤ よく出る記号（&yen; など）を字に戻していなかった
+ *   ・🙅 出してはいけないものを、出さないようにした
+ *     ★ここは「読める」より大事なところです。
+ *       まちがったものを流すと、まーく様が恥をかきます。
+ *       ①〜③で広く読むようにしたぶん、ごみも入りやすくなるためです。
+ *       ・問い合わせ先の受付時間（平日12:00〜17:00）を開演にしない
+ *         → 昼の12時に会場へ行かせるところでした
+ *       ・チケットの一般発売日を、催しの日にしない
+ *         → 来年2月の公演の発売日を「11/14 10:00の催し」として
+ *           出しかけました。ありもしない催しです
+ *       ・名前のところに、名前でないものを出さない
+ *         「ブリーゼチケットセンター 06-6341-888」「Webでチケット購入」
+ *         「公演・イベント情報一覧へ」「開始時間：18:00～」
+ *         「出演：…」「未就学児入場不可」「月 火 水 木 金 土 日」
+ *   ・🗂 控えの名前が、ぶつからないようにした
+ *     ★同じ1000分の1秒に2つ控えると、同じ名前になっていました。
+ *       あとの控えが前の控えを上書きするので、
+ *       「グループへ送る」を押したとき、別の絵が出ます。
+ *       めったに起きませんが、起きたら みんなの前へ
+ *       ちがうものを出すことになります。
  *
  *  [V079ver]
  *   ・🚫 お守りの知らせが、グループへ出ないようにした
@@ -1125,7 +1166,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V079ver";
+const VN_VERSION = "V080ver";
 
 /**
  * 見にいく先の一覧。
@@ -1600,7 +1641,24 @@ function vnShareSave_(msgIn) {
     if (!n || n > VN_SHARE_MAX) return "";
     vnShareSweep_();                        // 先に、古い控えを片づける
     const pr = PropertiesService.getScriptProperties();
-    const key = "VNSHARE_" + Date.now().toString(36);
+    /*
+     * ★控えの名前が、ぶつかることがありました（2026/11/9 に見つけました）。
+     *   名前は「いまの時刻（1000分の1秒まで）」だけで作っていたので、
+     *   2つの控えが同じ1000分の1秒に入ると、同じ名前になります。
+     *   そうなると、あとの控えが前の控えを上書きします。
+     *   「グループへ送る」を押したとき、別の絵が出る、ということです。
+     *   めったに起きませんが、起きたら まーく様が
+     *   みんなの前へ ちがうものを出すことになります。
+     *   なので、うしろに でたらめの2文字を足し、
+     *   それでも空いていなければ、空くまで作り直します。
+     */
+    let key = "";
+    for (let t = 0; t < 20; t++) {
+      const cand = "VNSHARE_" + Date.now().toString(36) +
+                   ("0" + Math.floor(Math.random() * 1296).toString(36)).slice(-2);
+      if (!pr.getProperty(cand + "_n")) { key = cand; break; }
+    }
+    if (!key) return "";
     for (let i = 0; i < n; i++) {
       pr.setProperty(key + "_" + i, s.substr(i * VN_SHARE_CHUNK, VN_SHARE_CHUNK));
     }
@@ -4882,6 +4940,16 @@ function vnEntity_(t) {
   return String(t)
     .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#0*39;/g, "'")
+    /*
+     * ★よく出る記号も、字に戻します（2026/11/9）。
+     *   戻していなかったので、催しの名前が
+     *   「&yen;18,000 1Fスタンディング」のような形で出ていました。
+     *   まーく様には、ただの文字化けに見えます。
+     */
+    .replace(/&apos;/gi, "'").replace(/&yen;/gi, "円").replace(/&laquo;/gi, "«")
+    .replace(/&raquo;/gi, "»").replace(/&hellip;/gi, "…").replace(/&middot;/gi, "・")
+    .replace(/&mdash;/gi, "—").replace(/&ndash;/gi, "–").replace(/&times;/gi, "×")
+    .replace(/&#x([0-9a-f]+);/gi, function (_, h) { return String.fromCharCode(parseInt(h, 16)); })
     .replace(/&#(\d+);/g, function (_, n) { return String.fromCharCode(parseInt(n, 10)); });
 }
 
@@ -5076,21 +5144,116 @@ function vnDateRe_(d) {
     ")([^0-9]|$)");
 }
 
-/** 「何かの日付が書いてある行」か（次の日の始まりを見つけるため） */
+/**
+ * 「何かの日付が書いてある行」か（次の日の始まりを見つけるため）
+ *
+ * ★ここを直しました（2026/11/9）。
+ *   パナソニックスタジアムの催しの行は、こう書かれています。
+ *     「15:00 ～ 2026/27シーズン明治安田J1リーグ　ガンバ大阪　VS　セレッソ大阪」
+ *   この「2026/27」の中の「26/27」を日付だと思いこんで、
+ *   そこでかたまりを切っていました。
+ *   その結果、15:00 が同じかたまりに入らず、
+ *   **4万人の試合を1件も出せていませんでした。**
+ *   数字が前に付いているものは、日付として数えません。
+ * ★「11.10」のような点の書き方も、日付として数えます
+ *   （ライブハウスのページは、この書き方が多い）。
+ */
 function vnAnyDateRe_() {
-  return /(\d{1,2}\s*月\s*\d{1,2}\s*日|\d{1,2}\s*[\/／]\s*\d{1,2})/;
+  return /(^|[^0-9])(\d{1,2}\s*月\s*\d{1,2}\s*日|\d{1,2}\s*[\/／.]\s*\d{1,2})([^0-9]|$)/;
 }
 
-/** 行のかたまりから、催しの名前になりそうなところを拾う */
+/**
+ * ★その行の時刻を「催しの時刻」として読んではいけない行か。
+ *
+ *   なぜ要るか：
+ *   会場のページには、問い合わせ先の電話番号と、その受付時間が
+ *   いっしょに書かれています。たとえば
+ *     「0570-200-888（平日12:00 ～ 17:00）」
+ *   ここの 12:00 を開演と読んでしまうと、
+ *   昼の12時に会場へ行かせることになります。
+ *   まちがった時刻は、空振りを生みます。出さないほうがましです。
+ */
+const VN_JUNK_WORDS = /(電話|TEL|Tel|お問い?合わ?せ|問合|連絡先|窓口|受付|営業時間|平日|土日|祝日|休業|定休|チケットセンター|インフォメーション|INFORMATION|カスタマー|事務局|予約|発売|販売|手数料|料金|￥|¥|円)/;
+
+function vnJunkLine_(line) {
+  const t = String(line || "");
+  if (!t) return true;
+  if (VN_JUNK_WORDS.test(t)) return true;
+  // 電話番号の形（06-1234-5678 / 0570-200-888）が入っている行
+  if (/\d{2,4}\s*-\s*\d{2,4}\s*-\s*\d{3,4}/.test(t)) return true;
+  return false;
+}
+
+/**
+ * 行のかたまりから、催しの名前になりそうなところを拾う。
+ *
+ * ★ここを作り直しました（2026/11/9）。
+ *   日付のまわりを広く見るようにしたところ、名前のところに
+ *   こういうものが出てしまいました。
+ *     「キョードーインフォメーション 0570-200-」
+ *     「ブリーゼチケットセンター 06-6341-888」
+ *     「Webでチケット購入」「公演・イベント情報一覧へ」
+ *     「開始時間：18:00～」
+ *   どれも催しの名前ではありません。これがそのままLINEに出れば、
+ *   まーく様が流した情報で、まーく様が恥をかきます。
+ *   なので、名前になりえない行は はじめからふるい落とします。
+ */
 function vnTitleOf_(block) {
   let best = "";
-  block.join("　").split(/[　|｜/]/).forEach(function (piece) {
-    const t = piece.replace(/\s+/g, " ").trim();
-    if (t.length < 3 || t.length > 40) return;
-    if (/^\d/.test(t)) return;                                  // 日付・時刻だけの断片
-    if (/^(開場|開演|開始|終了|終演|キックオフ|試合|予定|詳細|チケット|一覧|カレンダー|お知らせ)$/.test(t)) return;
-    if (!/[ぁ-んァ-ヶ一-龥A-Za-z]/.test(t)) return;
-    if (t.length > best.length) best = t;
+  (block || []).forEach(function (line0) {
+    const ln0 = String(line0 || "");
+    if (vnJunkLine_(ln0)) return;             // 連絡先・受付時間・料金の行
+    /*
+     * ★日付の行を、まるごと捨てていました。
+     *   表の形のページでは、1行の中に
+     *     「9月15日(火)　ガンバ大阪 VS 鹿島アントラーズ　キックオフ 19:00」
+     *   と、日付と名前がならんで入っています。
+     *   行ごと捨てると、名前もいっしょに消えてしまいました（2026/11/9）。
+     *   なので、日付と時刻の部分だけを取りのぞいてから名前をさがします。
+     */
+    const ln = ln0
+      .replace(/\d{4}\s*[年\/．.\-]\s*\d{1,2}\s*[月\/．.\-]\s*\d{1,2}\s*日?/g, " ")
+      .replace(/\d{1,2}\s*月\s*\d{1,2}\s*日/g, " ")
+      // ★数字が前に付いているもの（2026/27シーズン など）は日付ではないので残す
+      .replace(/(^|[^0-9])(\d{1,2}\s*[\/／．.\-]\s*\d{1,2})(?=[^0-9]|$)/g, "$1 ")
+      .replace(/\d{1,2}:\d{2}/g, " ")
+      .replace(/[（(]\s*[日月火水木金土祝・\s]{1,6}[)）]/g, " ");
+    /*
+     * ★行をまるごと1つの候補にも入れます。
+     *   「ガンバ大阪　VS　セレッソ大阪」は、全角のあきで区切られているので、
+     *   こまかく割ると「ガンバ大阪」だけになってしまい、
+     *   だれと だれの試合か分からなくなります。
+     *   40字に収まるなら、行ごと そのまま名前にするほうが分かりやすいです。
+     * ★割るのは「あき」と「 / 」だけにします。
+     *   「/」だけで割っていたので、「2026/27シーズン」まで割れていました。
+     */
+    [ln].concat(ln.split(/[　|｜]|\s\/\s/)).forEach(function (piece) {
+      // ★日付・時刻を取りのぞいたあとに残る「～」「・」などを落とす
+      //   （「15:00 ～ ガンバ大阪…」が「～ ガンバ大阪…」になっていた）
+      const t = piece.replace(/\s+/g, " ")
+                     .replace(/^[\s～〜~\-－—‐・:：,，.。、／\/]+/, "")
+                     .replace(/[\s～〜~\-－—‐・:：,，、／\/]+$/, "")
+                     .trim();
+      if (t.length < 3 || t.length > 40) return;
+      if (/\d{1,2}:\d{2}/.test(t)) return;                        // 時刻が入っていたら、名前ではない
+      /*
+       * ★数字で始まるものを、まるごと捨てていました。
+       *   そのせいで「802 Jungle Attack Vol.13」のような
+       *   ほんものの公演名まで落としていました（2026/11/9）。
+       *   捨てるのは「日付・時刻の形のもの」と
+       *   「ほとんど数字と記号でできているもの」だけにします。
+       */
+      const letters = (t.match(/[ぁ-んァ-ヶ一-龥A-Za-z]/g) || []).length;
+      if (letters < 3 || letters * 3 < t.length) return;         // 中身が数字・記号ばかり
+      if (/(開場|開演|開始時間|開始時刻|終了時間|終演|日時|会場|座席|全席|入場料|詳細|一覧|カレンダー|お知らせ|購入|申込|公募|募集|入札|こちら)/.test(t)) return;
+      // ★「出演：…」は、だれが出るかの行で、催しの名前ではない
+      if (/(出演|ゲスト|オープニングアクト|OPENING ACT|主催|共催|企画|制作|協賛|準備|設営|撤去|休館|休場)/i.test(t)) return;
+      // ★カレンダーの見出し（月 火 水 木 金 土 日）は、催しの名前ではない
+      if (/([月火水木金土日]\s+){3,}/.test(t + " ")) return;
+      // ★どのページにも出てくる、ただの飾り・案内の文字（催しの名前ではない）
+      if (/(よくある|ご質問|READ MORE|VIEW MORE|LIVE INFO|TICKET|ACCESS|アクセス|サイトマップ|プライバシー|新着|未就学児|入場不可|注意事項|メニュー|検索|ログイン|会員|ドリンク|スタンディング|当日券|前売)/i.test(t)) return;
+      if (t.length > best.length) best = t;
+    });
   });
   return best;
 }
@@ -5107,6 +5270,110 @@ function vnGuessEnd_(venue, start) {
   const hh = Math.floor(t) % 24, mm = Math.round((t % 1) * 60);
   return ("0" + hh).slice(-2) + ":" + ("0" + mm).slice(-2);
 }
+
+/* ================================================================
+ *  📅 「月ごとのカレンダー」の形のページを読む
+ *
+ *  ★パナソニックスタジアム（吹田・4万人）が、ずっと0件でした。
+ *    理由は、ページの作りです。こうならんでいます。
+ *      2026.11月のイベントスケジュール
+ *      1(日)
+ *      2(月)
+ *      …
+ *      8(日)
+ *      15:00 ～ 明治安田J1リーグ　ガンバ大阪　VS　セレッソ大阪
+ *    日にちのところに「月」が書いてありません。
+ *    「8(日)」だけでは、何月の8日か分からないので、
+ *    こちらの読み取りは1件も見つけられませんでした。
+ *
+ *  ★月は、いちばん上の見出しに書いてあります。
+ *    そこから月をもらって、「8(日)」を「11月8日(日)」に書きかえます。
+ *    そうすれば、ふだんの読み取りがそのまま使えます。
+ *
+ *  ★もうひとつ落とし穴がありました。
+ *    一覧のページは **先月のまま** のことがあります
+ *    （11/8 に見たのに、10月の表が出ていました）。
+ *    そのときは「schedule_202611.html」のような、その月のページへの
+ *    リンクをさがして、そちらを取りにいきます。
+ * ================================================================ */
+
+/** 見出しから「何年何月の表か」を読む。分からなければ null */
+function vnMonthHead_(lines) {
+  for (let i = 0; i < lines.length && i < 60; i++) {
+    const m = String(lines[i]).match(/(20\d\d)\s*[年.\/\-]\s*(\d{1,2})\s*月/);
+    if (m) {
+      const mm = Number(m[2]);
+      if (mm >= 1 && mm <= 12) return { y: Number(m[1]), m: mm };
+    }
+  }
+  return null;
+}
+
+/** 「8(日)」「8（日 祝）」のような、日にちだけのマス目か。日にちを返す（違えば0） */
+function vnDayCell_(line) {
+  const m = String(line || "").match(/^(\d{1,2})\s*[（(]\s*[日月火水木金土祝][日月火水木金土祝・\s]{0,4}[)）]\s*$/);
+  if (!m) return 0;
+  const d = Number(m[1]);
+  return (d >= 1 && d <= 31) ? d : 0;
+}
+
+/** その月のページへのリンクをさがす（schedule_202611.html など） */
+function vnMonthLink_(html, baseUrl, day) {
+  const ym = String(day.getFullYear()) + ("0" + (day.getMonth() + 1)).slice(-2);
+  let hit = "";
+  try {
+    vnLinks_(html, baseUrl).forEach(function (a) {
+      if (hit) return;
+      if (String(a.url).indexOf(ym) !== -1) hit = a.url;
+    });
+  } catch (e) {}
+  return hit;
+}
+
+/**
+ * 月ごとのカレンダーの形なら、日にちのマス目に月を足した「行たち」を返す。
+ * その形でなければ null（ふだんの読み取りに任せる）。
+ */
+function vnMonthCalLines_(src, day, lines, html) {
+  let L = lines, H = html;
+  let head = vnMonthHead_(L);
+  if (!head) return null;
+  if (!L.some(function (x) { return vnDayCell_(x) > 0; })) return null;   // マス目が無ければ、別の作り
+
+  // 見出しの月が、ほしい月と違うときは、その月のページを取りにいく
+  if (head.y !== day.getFullYear() || head.m !== day.getMonth() + 1) {
+    const url = vnMonthLink_(H, src.url, day);
+    if (!url) return null;
+    let res;
+    try {
+      res = UrlFetchApp.fetch(url, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+      });
+    } catch (e) { return null; }
+    if (res.getResponseCode() !== 200) return null;
+    try { H = res.getContentText(); } catch (e) { return null; }
+    L = vnLines_(H);
+    head = vnMonthHead_(L);
+    if (!head || head.m !== day.getMonth() + 1) return null;
+  }
+
+  // 「8(日)」を「11月8日(日)」に書きかえる
+  const out = L.map(function (x) {
+    const d = vnDayCell_(x);
+    return d ? (head.m + "月" + d + "日" + String(x).replace(/^\d+/, "")) : x;
+  });
+  return out;
+}
+
+/*
+ * 日付の行から、何行先までをひとかたまりとして見るか。
+ * 6行では BIGCAT の時刻（7行目より先）に届かなかったので広げた。
+ */
+const VN_BLOCK_LINES = 22;
+
+/* 名前をさがすのは、日付の行から数えて何行までか（広げすぎると、下のお知らせを拾う） */
+const VN_NAME_LINES = 6;
 
 /** 1つのサイトから、その日のぶんを読む。戻り値は {events, note} */
 function vnScrapeOne_(src, day, htmlIn) {
@@ -5134,7 +5401,7 @@ function vnScrapeOne_(src, day, htmlIn) {
   out.size = html.length;
   if (out.code !== 200 || !html) { out.note = "❌ 中身が取れませんでした（" + out.code + "）"; return out; }
 
-  const lines = vnLines_(html);
+  let lines = vnLines_(html);
   const joined = lines.join("").length;
   if (joined < 500) {
     out.note = "❌ 開いたあとに中身を作る作り（JavaScript）のようで、文字が取れません（" + joined + "文字）";
@@ -5142,8 +5409,40 @@ function vnScrapeOne_(src, day, htmlIn) {
   }
 
   const dre = vnDateRe_(day), any = vnAnyDateRe_();
-  const starts = [];
-  lines.forEach(function (ln, i) { if (dre.test(ln)) starts.push(i); });
+  /*
+   * ★「チケットの発売日」を、催しの日と読んではいけません（2026/11/9）。
+   *   サンケイホールブリーゼのページには、こうならんでいます。
+   *     一般発売日
+   *     2026年11月14日（土）10:00
+   *   これは、来年2月の公演のチケットが売り出される日です。
+   *   そのまま読むと「11/14 10:00 サンケイホールブリーゼ」という
+   *   ありもしない催しを、まーく様の名前で流してしまいます。
+   *   実際にそう出かけました。ひとつ上の行を見て、ふるい落とします。
+   */
+  const VN_SALE_RE = /(発売日|発売開始|一般発売|先行|抽選|申込|受付|予約|販売)/;
+  const findStarts = function () {
+    const a = [];
+    lines.forEach(function (ln, i) {
+      if (!dre.test(ln)) return;
+      if (VN_SALE_RE.test(ln)) return;                        // その行が「発売日」の行
+      if (i > 0 && VN_SALE_RE.test(lines[i - 1])) return;     // ひとつ上が「一般発売日」
+      a.push(i);
+    });
+    return a;
+  };
+  let starts = findStarts();
+
+  /*
+   * ★日にちが見つからないとき、月ごとのカレンダーの形かどうかを見ます。
+   *   パナソニックスタジアムは「8(日)」としか書いていないので、
+   *   見出しの「2026.11月」から月をもらって書きかえてから、もう一度さがします。
+   */
+  if (!starts.length) {
+    let mc = null;
+    try { mc = vnMonthCalLines_(src, day, lines, html); } catch (e) { mc = null; }
+    if (mc) { lines = mc; starts = findStarts(); }
+  }
+
   if (!starts.length) {
     // 一覧に日付が出ない作りのところ（ニューオータニなど）は、催しのページを開いて探す
     if (src.deep) {
@@ -5155,24 +5454,72 @@ function vnScrapeOne_(src, day, htmlIn) {
   }
 
   starts.slice(0, 5).forEach(function (i) {
-    // 日付の行から、次の日付の行の手前まで（最大6行）をひとかたまりとして読む
+    /*
+     * 日付の行から、次の日付の行の手前までを ひとかたまりとして読みます。
+     *
+     * ★ここを直しました（2026/11/9）。
+     *   それまでは **6行まで** しか見ていませんでした。
+     *   ところが BIGCAT のページは、日付のあと
+     *     名前／出演／注意／OPEN／18:30／START／19:00 …
+     *   とならぶので、時刻は7行目より先に出てきます。
+     *   6行で切っていたため、時刻が1つも見つからず、
+     *   「催しではない」と判断して捨てていました。
+     *   つまり、ここは何か月も1件も読めていませんでした。
+     *
+     * ★ただ広げるだけだと、問い合わせ先の受付時間（平日12:00〜17:00）を
+     *   開演と読みかねません。なので vnJunkLine_ でふるい落とします。
+     */
     const block = [lines[i]];
-    for (let j = i + 1; j < lines.length && block.length < 6; j++) {
+    const body = [];                       // 時刻をさがしてよい行だけ
+    for (let j = i + 1; j < lines.length && block.length < VN_BLOCK_LINES; j++) {
       if (any.test(lines[j])) break;
       block.push(lines[j]);
+      if (!vnJunkLine_(lines[j])) body.push(lines[j]);
     }
-    const text = block.join("　");
+    /*
+     * ★名前は、日付の **すぐ上** に書いてあることもあります。
+     *   サンケイホールブリーゼは
+     *     公演名／サブタイトル／2026 年 11 月 1 日（日）14:00開演
+     *   の順にならびます。日付から下だけを見ていると、
+     *   名前のかわりに「伝統芸能・演芸」のような分類を拾ってしまいます。
+     *   なので、上の3行も名前のさがし先に入れます。
+     */
+    const above = [];
+    for (let k = i - 1; k >= 0 && above.length < 3; k--) {
+      if (any.test(lines[k])) break;
+      above.unshift(lines[k]);
+    }
+    /*
+     * ★名前をさがすのは、日付のまわりの **せまい範囲** だけにします。
+     *   時刻は7行先にあることもあるので、時刻は広くさがします。
+     *   でも名前まで広くさがすと、ずっと下にあるお知らせを拾います。
+     *   実際に「情報誌vol.36を発行しました。」を、催しの名前として
+     *   出しかけました（フェニーチェ堺・2026/11/9）。
+     */
+    const nameLines = above.concat(block.slice(0, VN_NAME_LINES));
+    const text = [lines[i]].concat(body).join("　");
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
+    /*
+     * ★「どの言葉も付いていない、ただの時刻」は、日付のすぐそばにあるものだけを
+     *   開演とみなします（2026/11/9）。
+     *   22行先まで見るようにしたので、そのままだと
+     *   お知らせの日付や、別の催しの時刻まで拾ってしまいます。
+     *   実際に「情報誌vol.36を発行しました。 14:00」が出かけました。
+     *   日付のそばに書いてある時刻なら、その催しのものと見てよい、という線引きです。
+     */
+    const near = ([lines[i]].concat(body.slice(0, 2))).join("　");
+    const nearTimes = (near.match(/\d{1,2}:\d{2}/g) || []);
     let start = "", end = "";
-    const kick = text.match(/(キックオフ|開演|試合開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
-    const ba2  = text.match(/(開場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
-    const fin  = text.match(/(終了|終演)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    // ★「START」「OPEN」の英語も読みます（ライブハウスはこの書き方が多い）
+    const kick = text.match(/(キックオフ|開演|試合開始|START|Start)[^0-9]{0,8}(\d{1,2}:\d{2})/);
+    const ba2  = text.match(/(開場|OPEN|Open)[^0-9]{0,8}(\d{1,2}:\d{2})/);
+    const fin  = text.match(/(終了|終演|END|End)[^0-9]{0,8}(\d{1,2}:\d{2})/);
     let startKind = "";
     if (kick) { start = kick[2]; startKind = "開演"; }
     else if (ba2) { start = ba2[2]; startKind = "開場"; }   // ★開場を開演と呼ばない
-    else if (times.length) start = times[0];
+    else if (nearTimes.length) start = nearTimes[0];
     if (fin) end = fin[2];
-    else if (times.length >= 2 && times[1] !== start) end = times[1];
+    else if (nearTimes.length >= 2 && nearTimes[1] !== start) end = nearTimes[1];
 
     // ★開演も終演も読めないかたまりは、催しとして扱わない。
     //   ページには「9月16日」という文字が、更新日や月間カレンダーの
@@ -5187,7 +5534,7 @@ function vnScrapeOne_(src, day, htmlIn) {
     out.events.push({
       venue: src.name, kind: src.kind || "event",
       icon: src.kind === "barasi" ? "🔧" : "🎤",
-      title: vnTitleOf_(block) || "（名前を読み取れませんでした）",
+      title: vnTitleOf_(nameLines) || "（名前を読み取れませんでした）",
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
       raw: text.slice(0, 400)
