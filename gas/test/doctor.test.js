@@ -59,11 +59,13 @@ function build(o){
     getService: () => ({ getUrl: () => (o.url === undefined ? 'https://old.test/exec' : o.url) }),
     getScriptId: () => 'SID'
   };
+  /* 公開の一覧（住所つき）。o.deps が無ければ空 */
+  ctx.depsList = o.deps || [];
   ctx.updApi_ = (p, m, body) => {
     ctx.calls.push(m + ' ' + p);
     if (o.apiThrows) throw new Error('権限がありません');
     if (p === '/versions' && m === 'get') return { versions: (o.versions || []) };
-    if (p === '/deployments' && m === 'get') return { deployments: (o.deps || []) };
+    if (p === '/deployments' && m === 'get') return { deployments: ctx.depsList };
     if (/^\/deployments\/.+$/.test(p) && m === 'put') {
       if (o.putThrows) throw new Error('向け直せません');
       return { entryPoints: [{ webApp: { url: 'https://new.test/exec' } }] };
@@ -169,6 +171,101 @@ console.log('■ 直せないときは、黙らない');
      '公開に失敗したら、そう言う', r3.text);
   ok(c3.fetched.filter(f => f.url.indexOf('api.line.me') !== -1).length === 0,
      '★公開できていないのに、LINEの登録を書きかえない');
+}
+
+console.log('■ 住所が変わっていたら、作らずに見つけ直す（11/9に当たった所）');
+{
+  /*
+   * ★2026/11/9、本当は生きているのに「死んでいます」と誤報していました。
+   *   スクリプトが持っている住所が、昔の死んだもののままだったためです。
+   *   そのせいで1時間おきに公開を作りつづけ、35こまで増やしました。
+   */
+  const c = build({ alive: false, versions: [{ versionNumber: 9 }],
+                    props: { LINE_TOKEN: 'tok' },
+                    deps: [{ deploymentId: 'D0',
+                             deploymentConfig: { versionNumber: 9 },
+                             entryPoints: [{ webApp: { url: 'https://new.test/exec' } }] }] });
+  const r = c.updWebAppFix_();
+  ok(r.fixed === true, '直った', r.text);
+  ok(r.url === 'https://new.test/exec', '★生きている住所を見つけた', r.url);
+  ok(c.calls.indexOf('post /deployments') === -1,
+     '★★★新しく作っていない（ここで35こまで増えた）', c.calls);
+  ok(c.calls.filter(x => x.indexOf('put /deployments/') === 0).length === 0,
+     '★向け直してもいない（作りもいじりもしない）', c.calls);
+  ok(c.props['UPD_LIVE_URL'] === 'https://new.test/exec',
+     '★見つけた住所を覚える（次から先に見る）', c.props['UPD_LIVE_URL']);
+  const line = c.fetched.filter(f => f.url.indexOf('api.line.me') !== -1)[0];
+  ok(!!line && String(line.opt.payload).indexOf('https://new.test/exec') !== -1,
+     '★★LINE側の登録も、新しい住所に書きかえる');
+}
+
+console.log('■ 覚えた住所を、次からは先に見る');
+{
+  const c = build({ alive: true, props: { UPD_LIVE_URL: 'https://new.test/exec' } });
+  const r = c.updWebAppFix_();
+  ok(r.fixed === false && r.text === '', '生きていれば、何もしない');
+  ok(c.calls.length === 0, '★公開の一覧すら見にいかない（軽い）', c.calls);
+}
+
+/*
+ * ★ここは、35こまで増えた公開を片づける係の検査です。
+ *   いちばん大事なのは「いま使っている公開を消さないこと」。
+ *   消すと受け口が落ちて、LINEが丸ごと止まります。
+ *
+ *   ★はじめに書いた検査には穴がありました（2026/11/9）。
+ *     いま使っている公開を「いちばん新しいもの」に置いていたので、
+ *     そこは そもそも消す範囲の外でした。
+ *     つまり「消さない」という守りを、1度も試していませんでした。
+ *     わざと守りを外しても、検査が通ってしまいました。
+ *   ★なので、いま使っている公開を**いちばん古いところ**に置きます。
+ *     ここは、まっ先に消される場所です。
+ */
+const manyDeps = function (liveAt) {
+  const a = [];
+  for (let i = 0; i < 35; i++) {
+    a.push({ deploymentId: 'D' + i,
+             deploymentConfig: { versionNumber: 100 - i },
+             entryPoints: [{ webApp: { url: i === liveAt ? 'https://keep.test/exec'
+                                                        : 'https://x' + i + '.test/exec' } }] });
+  }
+  return a;
+};
+
+console.log('■ 増えすぎた公開を、少しずつ片づける');
+{
+  const c = build({ alive: true, props: { UPD_LIVE_URL: 'https://keep.test/exec' } });
+  // 35こ。★いま使っている住所を、いちばん古いところ（D34）に置く
+  c.depsList = manyDeps(34);
+  const cut = c.updTrimDeployments_();
+  ok(cut === 5, '★1回に消すのは5つまで（まちがえても傷が小さい）', cut);
+  const dels = c.calls.filter(x => x.indexOf('delete /deployments/') === 0);
+  ok(dels.length === 5, '消した数が合っている', dels.length);
+  ok(dels.indexOf('delete /deployments/D34') === -1,
+     '★★★いま使っている公開は、ぜったいに消さない', dels);
+  ok(dels[0] === 'delete /deployments/D33', '★古いほうから消す', dels[0]);
+}
+
+console.log('■ 新しいほうの5こには、手を付けない');
+{
+  const c = build({ alive: true, props: { UPD_LIVE_URL: 'https://keep.test/exec' } });
+  c.depsList = manyDeps(0);          // いま使っている住所が、いちばん新しい
+  c.updTrimDeployments_();
+  const dels = c.calls.filter(x => x.indexOf('delete /deployments/') === 0);
+  ok(dels.indexOf('delete /deployments/D0') === -1,
+     '★いま使っている公開は、ここでも消さない', dels);
+  ok(['D0', 'D1', 'D2', 'D3', 'D4'].every(
+       d => dels.indexOf('delete /deployments/' + d) === -1),
+     '★新しい5こは、1つも消さない', dels);
+}
+
+console.log('■ 少ないときは、1つも消さない');
+{
+  const c = build({ alive: true, props: { UPD_LIVE_URL: 'https://keep.test/exec' } });
+  c.depsList = [1, 2, 3].map(i => ({ deploymentId: 'D' + i,
+    deploymentConfig: { versionNumber: 100 - i },
+    entryPoints: [{ webApp: { url: 'https://x' + i + '.test/exec' } }] }));
+  ok(c.updTrimDeployments_() === 0, '★5こ以下なら、手を付けない');
+  ok(c.calls.filter(x => x.indexOf('delete') === 0).length === 0, '1つも消していない');
 }
 
 console.log('■ 公開の枠（20）が満杯でも、直せること');

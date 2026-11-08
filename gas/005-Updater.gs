@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U151ver  （2026/11/9）  ★★★
+ *  ★★★  U152ver  （2026/11/9）  ★★★
+ *
+ *  [U152ver]
+ *   ・🏠 受け口の住所を「いま生きているもの」から探すようにした
+ *     ★11/9 に実際に当たりました。受け口は生きていたのに、
+ *       「死んでいます」と毎時 誤って見なしていました。
+ *     ★原因：住所を聞く係（getUrl）が、**古い死んだ住所**を
+ *       返していたためです。そこを叩けば、当然つながりません。
+ *     ★これからは、公開の一覧から**新しい順に5つ**叩いてみて、
+ *       つながった住所を本物として覚えます（次からは先にそこを見る）。
+ *     ★見つかったら、LINE側の登録も その住所に書きかえます。
+ *       ここまでやらないと、記録が入りません。
+ *   ・🧹 増えすぎた公開（35こ）を、少しずつ片づけるようにした
+ *     ★上の誤報のせいで、毎時 新しい公開を作り続けていました。
+ *       20で満杯のところ、35こまで増えていました。
+ *     ★古いほうから、1回に5つまで消します（まちがえても傷が小さい）。
+ *     ★**いま使っている公開は、ぜったいに消しません。**
+ *       消すと受け口が落ちて、LINEが丸ごと止まるためです。
  *
  *  [U151ver]
  *   ・📋 いまの様子を1枚にして、ドライブに置くようにした（カルテ）
@@ -1683,7 +1700,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U151ver";
+const UPD_VERSION = "U152ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9950,8 +9967,64 @@ const DR_TELL_KEY    = "UPD_DR_TELL";   // 前に知らせた日と中身
 /** 公開（デプロイ）は、1つのコードに20までというGoogleの決まり */
 const UPD_DEPLOY_MAX = 20;
 
+/* ================================================================
+ *  🚪 受け口の住所は「いま生きているもの」を見る
+ *
+ *  ★2026/11/9、こうなっていました。
+ *    ・本当は、受け口は生きていた（こちらから叩いて確かめました）
+ *    ・なのに「死んでいます」と出つづけ、1時間おきに直し続けていた
+ *    ・そのせいで公開が35こまで増えた（20で満杯なのに）
+ *
+ *  ★原因は、住所の調べ方です。
+ *    スクリプトが持っている住所（getService().getUrl()）は、
+ *    **昔の、もう死んだ住所のまま**でした。
+ *    公開をやり直すと住所が変わるのに、こちらは追えていませんでした。
+ *
+ *  ★だから「いま公開されているもの」から住所をさがします。
+ *    見つけたら覚えておき、次からはそれを先に見ます。
+ * ================================================================ */
+const UPD_LIVE_URL_KEY = "UPD_LIVE_URL";    // いちど見つけた、生きている住所
+
 function updWebAppUrl_() {
+  // ① いちど見つけた住所があれば、それ
+  try {
+    const u = String(updProps_().getProperty(UPD_LIVE_URL_KEY) || "");
+    if (u) return u;
+  } catch (e) {}
+  // ② 無ければ、スクリプトが持っている住所（古いことがあります）
   try { return String(ScriptApp.getService().getUrl() || ""); } catch (e) { return ""; }
+}
+
+/** 覚えておく（次から、ここを先に見ます） */
+function updLiveUrlSet_(url) {
+  try { if (url) updProps_().setProperty(UPD_LIVE_URL_KEY, String(url)); } catch (e) {}
+}
+
+/**
+ * いま公開されているものの中から、生きている住所をさがす。
+ * 見つからなければ空。
+ *
+ * ★新しい順に、5つまで叩いてみます。
+ *   全部を叩くと、公開が多いときに時間を使いすぎます。
+ */
+function updFindLiveUrl_() {
+  let ds = [];
+  try { ds = (updApi_("/deployments", "get", null).deployments) || []; } catch (e) { return ""; }
+  const live = ds.filter(function (d) {
+    return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
+  }).sort(function (a, b) {
+    return Number(b.deploymentConfig.versionNumber) - Number(a.deploymentConfig.versionNumber);
+  });
+  for (let i = 0; i < live.length && i < 5; i++) {
+    let u = "";
+    try {
+      ((live[i].entryPoints) || []).forEach(function (p) {
+        if (p && p.webApp && p.webApp.url) u = String(p.webApp.url);
+      });
+    } catch (e) {}
+    if (u && updUrlAlive_(u)) return u;
+  }
+  return "";
 }
 
 /** その住所が、ほんとうに開けるか */
@@ -10003,6 +10076,23 @@ function updLineHookSet_(url) {
 function updWebAppFix_() {
   const url0 = updWebAppUrl_();
   if (updUrlAlive_(url0)) return { fixed: false, url: url0, text: "" };   // 生きている
+
+  /*
+   * ★公開をやり直す前に、**いま生きている住所が無いか**をさがします。
+   *   2026/11/9、本当は生きているのに「死んでいます」と誤報し、
+   *   1時間おきに公開を作りつづけて35こまで増やしてしまいました。
+   *   ここでさがせば、何も作らずに済みます。
+   */
+  const found = updFindLiveUrl_();
+  if (found) {
+    updLiveUrlSet_(found);
+    const ng0 = (found === url0) ? "" : updLineHookSet_(found);
+    return { fixed: true, url: found,
+             text: ng0
+               ? ("🩺 生きている受け口が見つかりました。\n・" + ng0 + "\n・" + found)
+               : "🩺 受け口の住所が変わっていたので、こちらで見つけ直しました。\n" +
+                 "・LINE側の登録も、こちらで書きかえました" };
+  }
 
   // ① いまある版のうち、いちばん新しいものを探す
   let ver = 0;
@@ -10097,6 +10187,7 @@ function updWebAppFix_() {
   }
 
   // ④ LINE側の登録も、こちらで書きかえる（ここまでやらないと記録は入らない）
+  updLiveUrlSet_(url);                     // ★次から、この住所を先に見る
   const ng = updLineHookSet_(url);
   if (ng) {
     return { fixed: true, url: url,
@@ -10110,6 +10201,62 @@ function updWebAppFix_() {
                  "・" + how + "（版 " + ver + "）\n" +
                  "・LINE側の登録も、こちらで書きかえました\n" +
                  "・いままでどおり、LINEに書けば記録が入ります" };
+}
+
+/* ================================================================
+ *  🧹 増えすぎた公開を、少しずつ片づける
+ *
+ *  ★2026/11/9、公開が35こまで増えていました（20で満杯なのに）。
+ *    こちらが「死んでいる」と誤報し、1時間おきに作りつづけた跡です。
+ *    申し訳ありませんでした。増やしたのは こちらです。
+ *
+ *  ★満杯のままだと、本当に要るときに作れません。だから片づけます。
+ *
+ *  ★ただし、**生きている受け口は絶対に消しません**。
+ *    消すと、LINEからの記録が丸ごと止まります。
+ *    守り方は3つ重ねます。
+ *      ① いま使っている住所のものは、必ず残す
+ *      ② 新しいほうから数えて、決めた数だけは残す
+ *      ③ 1回に消すのは5つまで（まちがえても、傷を小さくする）
+ * ================================================================ */
+const UPD_DEPLOY_KEEP = 5;      // 残しておく数（新しいほうから）
+const UPD_DEPLOY_CUT  = 5;      // 1回に消す数の上限
+
+/** 返すのは「消した数」 */
+function updTrimDeployments_() {
+  let ds = [];
+  try { ds = (updApi_("/deployments", "get", null).deployments) || []; } catch (e) { return 0; }
+
+  const live = ds.filter(function (d) {
+    return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
+  }).sort(function (a, b) {
+    return Number(b.deploymentConfig.versionNumber) - Number(a.deploymentConfig.versionNumber);
+  });
+  if (live.length <= UPD_DEPLOY_KEEP) return 0;
+
+  // ★いま使っている住所（これだけは、何があっても残す）
+  let keepUrl = "";
+  try { keepUrl = String(updWebAppUrl_() || ""); } catch (e) {}
+
+  const urlOf = function (d) {
+    let u = "";
+    try {
+      ((d && d.entryPoints) || []).forEach(function (p) {
+        if (p && p.webApp && p.webApp.url) u = String(p.webApp.url);
+      });
+    } catch (e) {}
+    return u;
+  };
+
+  let n = 0;
+  // 古いほうから消す。新しい UPD_DEPLOY_KEEP こには、手を付けない
+  for (let i = live.length - 1; i >= UPD_DEPLOY_KEEP && n < UPD_DEPLOY_CUT; i--) {
+    const d = live[i];
+    if (keepUrl && urlOf(d) === keepUrl) continue;      // ★使っているものは消さない
+    try { updApi_("/deployments/" + d.deploymentId, "delete", null); n++; }
+    catch (e) { /* 消せなくても、次へ */ }
+  }
+  return n;
 }
 
 /** 1日に1回だけ、同じ中身を知らせる */
@@ -10178,7 +10325,19 @@ function updDoctorTick_() {
   } catch (e) { try { logErr_("doctorDoor", e); } catch (e2) {} }
 
   /*
-   * ④ いまの様子を1枚にして、ドライブに置き直す（カルテ）。
+   * ④ 増えすぎた公開を、少しずつ片づける。
+   *    ★満杯のままだと、本当に要るときに作れません。
+   *    ★生きている受け口は、絶対に消しません。
+   */
+  try {
+    if (typeof updTrimDeployments_ === "function") {
+      const cut = updTrimDeployments_();
+      if (cut) say.push("🧹 増えすぎた公開を " + cut + "こ 片づけました");
+    }
+  } catch (e) { try { logErr_("doctorTrim", e); } catch (e2) {} }
+
+  /*
+   * ⑤ いまの様子を1枚にして、ドライブに置き直す（カルテ）。
    *    ★まーく様に画面を写して送らせない、ためのものです。
    *      クロちゃんは、まーく様が何もしなくても これを読めます。
    *    ★中身が変わったときだけ書きます。
