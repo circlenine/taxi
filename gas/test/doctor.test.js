@@ -37,7 +37,8 @@ function build(o){
   ctx.props = Object.assign({}, o.props || {});
   ctx.updProps_ = () => ({
     getProperty: k => (k in ctx.props ? ctx.props[k] : null),
-    setProperty: (k, v) => { ctx.props[k] = String(v); }
+    setProperty: (k, v) => { ctx.props[k] = String(v); },
+    deleteProperty: k => { delete ctx.props[k]; }
   });
   ctx.PropertiesService = { getScriptProperties: () => ctx.updProps_() };
   ctx.Utilities = { formatDate: () => (o.today || '2026-11-02') };
@@ -124,7 +125,17 @@ function build(o){
         return { getResponseCode: () => code, getContentText: () => '{}' };
       }
       if (url.indexOf('/webhook/test') !== -1) {
-        // lineTestFails … 住所は生きているのに、LINEからは届かない形
+        /*
+         * lineTestTimeout … 返事が間に合わなかった形。
+         *   Apps Script は しばらく動いていないと立ち上がりに数秒かかるので、
+         *   ちゃんと動いていても よく こうなります。
+         * lineTestFails … 住所は生きているのに、はっきり届かない形。
+         */
+        if (o.lineTestTimeout) {
+          return { getResponseCode: () => code,
+                   getContentText: () => JSON.stringify({ success: false,
+                                                          reason: 'REQUEST_TIMEOUT' }) };
+        }
         const good = o.lineTestFails ? false : isAlive(ctx.lineReg);
         return { getResponseCode: () => code,
                  getContentText: () => JSON.stringify({ success: good,
@@ -435,6 +446,66 @@ console.log('■ 住所の字が同じでも、届かなければ直す（字く
      '★★★字が同じでも、届かなければ だまっていない', r);
   const tests = c.fetched.filter(f => f.url.indexOf('/webhook/test') !== -1);
   ok(tests.length >= 1, '★★かならず、ためし送りをしている', tests.length);
+}
+
+/* ================================================================
+ *  ⏳ 「返事が間に合わない」だけでは、さわがない
+ *
+ *  ★2026/11/9、1時間に1回こう出ていました。
+ *      「LINEからの記録が入らない状態です（REQUEST_TIMEOUT）」
+ *    ところが、記録はふつうに入っていました。
+ *
+ *  ★Apps Script は、しばらく動いていないと立ち上がりに数秒かかります。
+ *    LINEの「ためし送り」は、そんなに待ってくれません。
+ *    つまり **ちゃんと動いていても、よく間に合いません**。
+ *    毎回さわぐと、うそのような知らせが1時間に1回 出つづけます。
+ *    まちがった知らせは、何も言わないよりタチが悪いものです。
+ * ================================================================ */
+console.log('■ 返事が間に合わないだけなら、だまっている');
+{
+  const c = build({ alive: true, props: { LINE_TOKEN: 'tok' }, lineTestTimeout: true });
+  const r = c.updLineHookCheck_();
+  ok(r.text === '', '★★★1時間に1回、うその知らせを出さない', r);
+  ok(c.fetched.filter(f => f.opt && String(f.opt.method).toLowerCase() === 'put').length === 0,
+     '★★よけいな登録し直しも、しない');
+  ok(c.props['UPD_LINE_SLOW_AT'], '　 いつから間に合っていないかは、覚えておく');
+}
+
+console.log('■ 半日つづいて、そのあいだ1件も届いていなければ、さすがに言う');
+{
+  const c = build({ alive: true, lineTestTimeout: true,
+                    props: { LINE_TOKEN: 'tok',
+                             UPD_LINE_SLOW_AT: String(Date.now() - 13 * 3600 * 1000) } });
+  const r = c.updLineHookCheck_();
+  ok(String(r.text).indexOf('半日ずっと入っていません') !== -1,
+     '★★★半日つづいたら、1回 言う', r.text);
+  ok(String(r.text).indexOf('なおすボタン') !== -1,
+     '★どうすればよいかを書く（LINEで送れ、とは書かない）', r.text);
+}
+
+console.log('■ 半日つづいても、LINEから届いていれば だまっている');
+{
+  /*
+   * ★ただ遅いだけ、ということです。記録は入っています。
+   *   ここでさわぐと、まーく様をむだに心配させます。
+   */
+  const from = Date.now() - 13 * 3600 * 1000;
+  const c = build({ alive: true, lineTestTimeout: true,
+                    props: { LINE_TOKEN: 'tok',
+                             UPD_LINE_SLOW_AT: String(from),
+                             LAST_LINE: new Date(from + 3600 * 1000).toISOString() } });
+  const r = c.updLineHookCheck_();
+  ok(r.text === '', '★★★記録が入っているなら、何も言わない', r.text);
+  ok(!c.props['UPD_LINE_SLOW_AT'], '　 覚え書きも消す');
+}
+
+console.log('■ 住所がちがえば、返事が間に合わなくても直す');
+{
+  const c = build({ alive: true, props: { LINE_TOKEN: 'tok' },
+                    lineReg: 'https://old.dead/exec', lineTestTimeout: true });
+  const r = c.updLineHookCheck_();
+  ok(r.fixed === true, '★★★住所ちがいは、間に合わなくても直す（11/9の形）', r);
+  ok(c.lineReg === 'https://old.test/exec', '★★生きている住所に書きかえる', c.lineReg);
 }
 
 console.log('■ LINEが止まっている（active が false）ときも直す');

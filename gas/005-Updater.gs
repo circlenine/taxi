@@ -2,7 +2,24 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U156ver  （2026/11/9）  ★★★
+ *  ★★★  U157ver  （2026/11/9）  ★★★
+ *
+ *  [U157ver]
+ *   ・⏳ 「返事が間に合わない」だけでは、さわがないようにした
+ *     ★1時間に1回、こう出ていました。
+ *         「LINEからの記録が入らない状態です（REQUEST_TIMEOUT）」
+ *       ところが、記録はふつうに入っていました。**うその知らせ**でした。
+ *     ★Apps Script は、しばらく動いていないと立ち上がりに数秒かかります。
+ *       LINEの「ためし送り」は、そんなに待ってくれません。
+ *       つまり **ちゃんと動いていても、よく間に合いません**。
+ *     ★まちがった知らせは、何も言わないよりタチが悪いものです。
+ *       だから、間に合わなかっただけなら だまっています。
+ *     ★本当に止まるのは「LINEが覚えている住所がちがう」とき。
+ *       そこは、これまでどおり見ていて、見つけたら直します
+ *       （11/9 に実際に止まったのも、これでした）。
+ *     ★黙りっぱなしにもしません。「間に合わない」が半日つづき、
+ *       そのあいだ **LINEから1件も届いていない** なら、1回だけ言います。
+ *       そのときは「なおすボタンを押してください」と書きます。
  *
  *  [U156ver]
  *   ・📮 「間に合わなかった」と「届かなかった」を、分けて言うようにした
@@ -1760,7 +1777,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U156ver";
+const UPD_VERSION = "U157ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -10302,18 +10319,34 @@ function updLineHookCheck_() {
   }
 
   const now = updLineHookGet_();
-  const same = (now.ok && live && now.endpoint === live && now.active);
+  if (!now.ok) return { fixed: false, text: "" };   // LINEに聞けないときは、決めつけない
 
-  /*
-   * ★登録されている住所が、こちらの生きている住所と同じで、
-   *   しかも ためして届くなら、何もしません（ふだんはここで終わり）。
-   */
+  const same = (live && now.endpoint === live && now.active);
+
   if (same) {
     const t0 = updLineHookTest_();
-    if (t0.ok) return { fixed: false, text: "" };
+    if (t0.ok) { updLineSlowClear_(); return { fixed: false, text: "" }; }
+    /*
+     * ★「返事が間に合わなかった」だけなら、だまっています（2026/11/9）。
+     *
+     *   Apps Script は、しばらく動いていないと立ち上がりに数秒かかります。
+     *   LINEの「ためし送り」は、そんなに待ってくれません。
+     *   つまり **ちゃんと動いていても、よく間に合いません**。
+     *   ここで毎回さわぐと、1時間に1回うそのような知らせが出ます。
+     *   まちがった知らせは、何も言わないよりタチが悪いものです。
+     *
+     *   登録されている住所は正しいので、記録はふつうに入ります。
+     *   本当に止まるのは「住所がちがう」ときで、そこは上で見ています。
+     *   （11/9 に実際に止まったのも、住所がちがったからでした）
+     *
+     *   ただし、黙りっぱなしにもしません。
+     *   「間に合わない」が半日つづき、そのあいだ
+     *   **LINEから1件も届いていない**なら、さすがにおかしいので言います。
+     */
+    if (t0.slow) return updLineSlowWatch_(t0.why);
   }
 
-  // ここから下は「通っていない」とき。登録し直して、もう一度ためします
+  // ここから下は「住所がちがう／はっきり届かない」とき。登録し直します
   if (!live) {
     return { fixed: false,
              text: "📮 LINEからの記録が入らない状態ですが、受け口の住所が分かりません。" };
@@ -10322,24 +10355,51 @@ function updLineHookCheck_() {
   if (ng) return { fixed: false, text: "📮 LINEの登録を直せませんでした。\n・" + ng };
 
   const t1 = updLineHookTest_();
-  if (t1.ok) {
+  if (t1.ok || t1.slow) {
+    updLineSlowClear_();
     return { fixed: true,
              text: "📮 LINEからの記録が入らなくなっていたので、こちらで直しました。\n" +
                    "・いままでどおり、LINEに書けば記録が入ります" };
   }
-  /*
-   * ★返事が間に合わなかっただけのときは、言い方を変えます。
-   *   住所はつながっているので、記録そのものは入ることが多いです。
-   *   「入らない」と言い切ると、まちがった心配をかけます。
-   */
-  if (t1.slow) {
-    return { fixed: false,
-             text: "📮 LINEへの返事が間に合っていません。\n" +
-                   "・記録は入っていることが多いですが、遅れることがあります\n" +
-                   "・" + t1.why };
-  }
   return { fixed: false,
            text: "📮 LINEからの記録が入らない状態です。\n・" + t1.why };
+}
+
+/* 「間に合わない」が、いつから続いているかの覚え書き */
+const UPD_SLOW_KEY = "UPD_LINE_SLOW_AT";
+/* これだけ続いて、そのあいだ1件も届いていなければ、さすがに言う（12時間） */
+const UPD_SLOW_HOURS = 12;
+
+function updLineSlowClear_() {
+  try { updProps_().deleteProperty(UPD_SLOW_KEY); } catch (e) {}
+}
+
+/**
+ * 「返事が間に合わない」が続いているかを見張る。
+ * ふだんは何も言わない。半日つづき、そのあいだLINEから1件も
+ * 届いていないときだけ、1回言う。
+ */
+function updLineSlowWatch_(why) {
+  const pr = updProps_();
+  let from = 0;
+  try { from = Number(pr.getProperty(UPD_SLOW_KEY) || 0); } catch (e) {}
+  if (!from) {
+    try { pr.setProperty(UPD_SLOW_KEY, String(Date.now())); } catch (e) {}
+    return { fixed: false, text: "" };
+  }
+  const hours = (Date.now() - from) / 3600000;
+  if (hours < UPD_SLOW_HOURS) return { fixed: false, text: "" };
+
+  // ★そのあいだに、LINEから何か届いていたか。届いていれば、ただ遅いだけ
+  let last = 0;
+  try { last = Date.parse(String(pr.getProperty("LAST_LINE") || "")) || 0; } catch (e) {}
+  if (last && last > from) { updLineSlowClear_(); return { fixed: false, text: "" }; }
+
+  try { pr.setProperty(UPD_SLOW_KEY, String(Date.now())); } catch (e) {}   // 次は12時間後
+  return { fixed: false,
+           text: "📮 LINEからの記録が、半日ずっと入っていません。\n" +
+                 "・受け口の返事が間に合っていません（" + why + "）\n" +
+                 "・スプシの「説明」タブの なおすボタンを、1回 押してみてください" };
 }
 
 /**
