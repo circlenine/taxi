@@ -546,5 +546,59 @@ console.log('■ オリックス劇場が、読み先と会場の表に 両方�
      '　 大阪市西区（A地区の中）', V('VN_VENUES')['オリックス劇場'].city);
 }
 
+/* ================================================================
+ * 1つのページに、いくつもの会場がならぶとき（エヴェッサの日程表）
+ *
+ *  ★ホームもアウェイも、同じ表にならびます。
+ *      HOME 11/18(水) 19:05 Asueアリーナ大阪
+ *      AWAY 11/10(火) 19:05 LaLa arena TOKYO-BAY（千葉）
+ *    そのまま読むと、**千葉の試合を大阪の会場として出します。**
+ *    だれも来ない会場に車を着けさせることになります。
+ * ================================================================ */
+console.log('■ よその会場の試合を、大阪の会場として出さない');
+{
+  const body =
+    '<div><p>AWAY</p><p>レギュラーシーズン</p><p>2026年11月10日(火)</p>' +
+    '<p>19:05</p><p>LaLa arena TOKYO-BAY</p><p>千葉J</p></div>' +
+    '<div><p>HOME</p><p>レギュラーシーズン</p><p>2026年11月18日(水)</p>' +
+    '<p>19:05</p><p>Asueアリーナ大阪(大阪市中央体育館)</p><p>広島</p></div>';
+
+  // 11/10（アウェイ・千葉）の日を読ませる
+  const away = read(body, { name: 'Asueアリーナ大阪',
+                            must: 'Asueアリーナ|中央体育館' }, new Date(2026, 10, 10));
+  ok(away.events.length === 0,
+     '★★★アウェイ（千葉）の日は、1件も出さない', away.events.length);
+
+  // 11/18（ホーム・Asueアリーナ大阪）の日を読ませる
+  const home = read(body, { name: 'Asueアリーナ大阪',
+                            must: 'Asueアリーナ|中央体育館' }, new Date(2026, 10, 18));
+  ok(home.events.length === 1, '★★★ホームの日は、ちゃんと出す', home.events.length);
+  ok((home.events[0] || {}).start === '19:05', '★開始 19:05 を読み取る',
+     (home.events[0] || {}).start);
+
+  // must を付けないと、千葉の試合まで出てしまう（＝must が効いていることの裏）
+  const nofilter = read(body, { name: 'Asueアリーナ大阪' }, new Date(2026, 10, 10));
+  ok(nofilter.events.length === 1,
+     '　（確かめ）must が無ければ、千葉の試合まで出てしまう', nofilter.events.length);
+}
+console.log('■ 出すときの会場名を、読み先の名前と分けられる');
+{
+  const body = '<div><p>HOME</p><p>2026年11月18日(水)</p><p>19:05</p>' +
+               '<p>おおきにアリーナ舞洲</p><p>広島</p></div>';
+  const r = read(body, { name: '舞洲アリーナ（エヴェッサ）', venue: '舞洲アリーナ',
+                         must: '舞洲' }, new Date(2026, 10, 18));
+  ok(r.events.length === 1, '★★★1件 読める', r.events.length);
+  ok((r.events[0] || {}).venue === '舞洲アリーナ',
+     '★★★まーく様に出る会場名は「舞洲アリーナ」', (r.events[0] || {}).venue);
+}
+console.log('■ エヴェッサの日程表が、読み先に入っている');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(/name:\s*"Asueアリーナ大阪"/.test(src), '★★★Asueアリーナ大阪（アスエアリ）が入っている');
+  ok(/must:\s*"Asueアリーナ/.test(src), '★★★アウェイを落とす しかけが付いている');
+  ok(V('VN_VENUES')['Asueアリーナ大阪'].city === '大阪市港区',
+     '　 大阪市港区（A地区の中）', V('VN_VENUES')['Asueアリーナ大阪'].city);
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

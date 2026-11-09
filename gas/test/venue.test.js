@@ -2095,13 +2095,16 @@ console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使�
    *   読めても黙って落ちます。1つでも抜けていたら、ここで止めます。
    */
   SRC2.forEach(function (x) {
-    eq(!!V2[x.name], true, '★★「' + x.name + '」の会場情報（人数・乗り場）がある');
+    // ★出すときの会場名で見ます。1つのページから2つの会場を読むところは、
+    //   読み先の名前（x.name）と 会場の名前（x.venue）が別です。
+    const vn = x.venue || x.name;
+    eq(!!V2[vn], true, '★★「' + vn + '」の会場情報（人数・乗り場）がある');
   });
   // 近くの乗り場が空のままになっていないか（バラシの会場だけは空でよい）
   SRC2.forEach(function (x) {
-    const v = V2[x.name] || {};
+    const v = V2[x.venue || x.name] || {};
     const ok = (x.kind === 'barasi') || (v.near && v.near.length > 0);
-    eq(ok, true, '　「' + x.name + '」に 近くの乗り場がある');
+    eq(ok, true, '　「' + (x.venue || x.name) + '」に 近くの乗り場がある');
   });
   // 読み先が、どれも空でない・http で始まる
   SRC2.forEach(function (x) {
@@ -2132,11 +2135,12 @@ console.log('\n■ 夜のライブ会場を足した（ご指摘：通知が使�
    *   わたしが府だけで見ていたのが間違いでした。
    */
   SRC2.forEach(function (x) {
-    const v = V2[x.name] || {};
+    const vn = x.venue || x.name;
+    const v = V2[vn] || {};
     eq(v.pref === '大阪府', true,
-       '　「' + x.name + '」は 大阪府内（' + (v.pref || '不明') + '）');
+       '　「' + vn + '」は 大阪府内（' + (v.pref || '不明') + '）');
     eq(ctx.vnInAreaA_(v.city) === true, true,
-       '★★「' + x.name + '」は 大阪A地区（' + (v.city || '不明') + '）');
+       '★★「' + vn + '」は 大阪A地区（' + (v.city || '不明') + '）');
   });
 
   // ★A地区の外は、見にいかない
@@ -2754,13 +2758,13 @@ console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
   const S3 = JSON.parse(vm.runInContext('JSON.stringify(VN_SOURCES)', ctx));
 
   // ① 大阪タクシーA地区のものだけ
-  const outside = S3.filter(x => !ctx.vnInAreaA_((V3[x.name] || {}).city));
+  const outside = S3.filter(x => !ctx.vnInAreaA_((V3[x.venue || x.name] || {}).city));
   eq(outside.length, 0,
      '★①大阪A地区だけ' + (outside.length ? '（外：' + outside.map(x => x.name).join('・') + '）' : ''));
 
   // ② 夜勤タクシーに関係する催しは、ぜんぶ対象（種類でしぼらない）
   const kinds = {};
-  S3.forEach(x => { const t = (V3[x.name] || {}).type || '?'; kinds[t] = (kinds[t] || 0) + 1; });
+  S3.forEach(x => { const t = (V3[x.venue || x.name] || {}).type || '?'; kinds[t] = (kinds[t] || 0) + 1; });
   const kindList = Object.keys(kinds);
   eq(kindList.length >= 5, true,
      '★②催しの種類をしぼらない（' + kindList.join('・') + '）');

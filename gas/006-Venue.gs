@@ -5,6 +5,16 @@
  *  ★★★  V086ver  （2026/11/9）  ★★★
  *
  *  [V086ver]
+ *   ・🏀 Asueアリーナ大阪（「アスエアリ」・約10,000人）を、読めるようにした
+ *     ★会場のホームページは、空いているかどうかの表しか出していません。
+ *       催しの名前も時刻も載っていないので、ここからは読めません。
+ *     ★いちばん大きいのは 大阪エヴェッサのホーム戦です。
+ *       チームの日程表に、日付・開始時刻・会場が出ています。
+ *     ★その表には **アウェイの試合もならびます。**
+ *       そのまま読むと、千葉の試合を大阪の会場として出します。
+ *       だれも来ない会場に車を着けさせることになります。
+ *       なので、会場の名前が書いてあるかたまりだけを取る形にしました。
+ *     ★おおきにアリーナ舞洲のホーム戦も、同じ表から拾えます。
  *   ・🎭 オリックス劇場（2,400人）を、読めるようにした
  *     ★まーく様から、職場のLINEに毎日ならぶ「イベント』」の控えを
  *       いただきました。そこに毎日 名前が出ている会場のうち、
@@ -1445,6 +1455,33 @@ const VN_SOURCES = [
   { name: "舞洲アリーナ",           kind: "event", url: "https://human-arena.com/" },
   { name: "フェニーチェ堺",         kind: "event", url: "https://www.fenice-sacay.jp/" },
   /*
+   * ★Asueアリーナ大阪（旧・大阪市中央体育館／約10,000人・大阪市港区）
+   *   まーく様にいただいた職場のLINEの控えで「アスエアリ」と
+   *   書かれているのが、ここです。毎日の「イベント』」に出ています。
+   *
+   *   ★会場のホームページは、空いているかどうかの表しか出しておらず、
+   *     催しの名前も時刻も載っていません（実際に開いて確かめました）。
+   *   ★いちばん大きいのは **大阪エヴェッサ（バスケット）のホーム戦** です。
+   *     その日程は、チームのページに日付・開始時刻・会場つきで出ています。
+   *   ★ただし、その表には **アウェイの試合もならびます。**
+   *     そのまま読むと、千葉の試合を大阪の会場として出してしまいます。
+   *     だれも来ない会場に車を着けさせることになるので、
+   *     must で「会場の名前が書いてあるかたまり」だけを取ります。
+   */
+  { name: "Asueアリーナ大阪",       kind: "event",
+    must: "Asueアリーナ|Asue アリーナ|中央体育館",
+    url: "https://www.evessa.com/schedule/" },
+  /*
+   * ★おおきにアリーナ舞洲でも、エヴェッサのホーム戦があります。
+   *   会場のホームページ（human-arena.com）は開けるようになりましたが、
+   *   催しの日程は1つも載っていません（2026/11/9 に確かめました）。
+   *   なので、こちらからも拾います。名前が重ならないように
+   *   読み先の名前を分け、出すときの会場名は venue でそろえます。
+   */
+  { name: "舞洲アリーナ（エヴェッサ）", venue: "舞洲アリーナ", kind: "event",
+    must: "舞洲",
+    url: "https://www.evessa.com/schedule/" },
+  /*
    * ★高槻は外しました（まーく様のご指示・2026/10/15）。
    *   **大阪A地区（大阪市域交通圏）の外** だからです。
    *   府内かどうかではなく、営業できる区域かどうかで決めます。
@@ -1540,6 +1577,7 @@ const VN_VENUES = {
   "東和薬品RACTABドーム":   { cap: 10000, near: ["門真南", "鶴見緑地"],                type: "アリーナ",   city: "門真市",   pref: "大阪府" },
   "エディオンアリーナ大阪": { cap: 8000,  near: ["なんば", "難波", "大国町"],          type: "アリーナ",   city: "大阪市浪速区", pref: "大阪府" },
   "舞洲アリーナ":           { cap: 7000,  near: ["舞洲", "桜島"],                      type: "アリーナ",   city: "大阪市此花区", pref: "大阪府" },
+  "Asueアリーナ大阪":       { cap: 10000, near: ["朝潮橋", "弁天町", "八幡屋"],          type: "アリーナ",   city: "大阪市港区", pref: "大阪府" },
   "フェニーチェ堺":         { cap: 2000,  near: ["堺東", "堺市"],                      type: "ホール",     city: "堺市堺区", pref: "大阪府" },
   "高槻城公園芸術文化劇場": { cap: 1500,  near: ["高槻市", "高槻"],                    type: "ホール",     city: "高槻市",   pref: "大阪府" }
 };
@@ -5557,7 +5595,7 @@ function vnScrapeDeep_(src, day, html) {
     let guessed = false;
     if (!end) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
     out.push({
-      venue: src.name, kind: src.kind || "event", icon: "🎤",
+      venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
       // ★名前の先頭に日付のならびが付くことがあるので、取りのぞきます
       title: (String(links[i].text)
                 .replace(/^\s*\d{4}年\d{1,2}月\d{1,2}日[^\s]*\s*[～〜~-]\s*\d{0,4}年?\d{1,2}月\d{1,2}日[^\s]*\s*/, "")
@@ -6068,6 +6106,23 @@ function vnScrapeOne_(src, day, htmlIn) {
      */
     const nameLines = above.concat(block.slice(0, VN_NAME_LINES));
     const text = [lines[i]].concat(body).join("　");
+    /*
+     * ★must … 「この言葉が無いかたまりは、この会場のものではない」
+     *
+     *   なぜ要るか：1つのページに、いくつもの会場がならぶことがあります。
+     *   大阪エヴェッサの試合日程は、ホームもアウェイも同じ表にあります。
+     *     HOME 11/18(水) 19:05 Asueアリーナ大阪
+     *     AWAY 11/10(火) 19:05 LaLa arena TOKYO-BAY（千葉）
+     *   そのまま読むと、**千葉の試合を大阪の会場として出します。**
+     *   だれも来ない会場に車を着けさせることになります。
+     *   なので「会場の名前が書いてあるかたまり」だけを取ります。
+     */
+    if (src.must) {
+      const hay = above.concat(block).join("　");
+      let re2 = null;
+      try { re2 = new RegExp(src.must); } catch (e) { re2 = null; }
+      if (re2 && !re2.test(hay)) return;
+    }
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
     /*
      * ★「どの言葉も付いていない、ただの時刻」は、日付のすぐそばにあるものだけを
@@ -6121,7 +6176,7 @@ function vnScrapeOne_(src, day, htmlIn) {
     if (!end && start) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
 
     out.events.push({
-      venue: src.name, kind: src.kind || "event",
+      venue: src.venue || src.name, kind: src.kind || "event",
       icon: src.kind === "barasi" ? "🔧" : "🎤",
       title: vnTitleOf_(nameLines) || "（名前を読み取れませんでした）",
       start: start, startKind: startKind,
