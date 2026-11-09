@@ -2,7 +2,27 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V090ver  （2026/11/9）  ★★★
+ *  ★★★  V091ver  （2026/11/9）  ★★★
+ *
+ *  [V091ver]
+ *   ・🎤 アーティストの情報を、どの会場でも出すようにした
+ *     ★まーく様のご指示：
+ *       「城ホール以外でも、アーティストがわかるものは、
+ *         必ずアーティストに関する情報をまとめてください」
+ *     ★出なかった訳は、名前の取り出しにありました（009-Shiryo.gs で直した）。
+ *     ★ここでは3つ直しました。
+ *       ・公演名ではなく **素のアーティスト名** を持ち回るようにした
+ *         （バラシの行は「会場／名前（役目）…」の形なので、
+ *         　そのままでは名前が取り出せなかった）
+ *       ・同じ人は、1通の中で1回しか調べない
+ *         （2日公演は同じ人が2回出てくる。そのぶん待たせない）
+ *       ・いちど調べた人は6時間おぼえておく
+ *         （毎日おなじ人を調べ直さない）
+ *     ★そのうえで、1通あたりの人数を4人から12人に増やしました。
+ *       「必ず」とのご指示なので、4人では足りません。
+ *       上の3つを入れたので、増やしても案内は遅くなりません。
+ *     ★つながらないときは、これまでどおり何も出しません。
+ *       イベント通知そのものは、絶対に止めません。
  *
  *  [V090ver]
  *   ・📅 「○日中の○日目」が抜けていたのを直した
@@ -1386,7 +1406,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V090ver";
+const VN_VERSION = "V091ver";
 
 /**
  * 見にいく先の一覧。
@@ -3399,7 +3419,16 @@ const VN_COLOR_SUB  = "#7b1fa2";
  *   イベントが10件あれば、それだけで20秒。
  *   案内そのものが遅れては、本末転倒です。
  */
-const VN_ARTIST_MAX = 4;
+/*
+ * ★1通あたり、何人まで調べに出るか。
+ *   まーく様のご指示（2026/11/9）：
+ *     「城ホール以外でも、アーティストがわかるものは、
+ *       必ずアーティストに関する情報をまとめてください」
+ *   「必ず」なので、4人では足りません。
+ *   同じ名前は1回しか調べない・いちど調べた人は6時間おぼえておく、
+ *   の2つを入れたので、増やしても案内が遅くなりません。
+ */
+const VN_ARTIST_MAX = 12;
 const VN_COLOR_TEXT = "#4a148c";
 
 /** 「9/16(水)」 */
@@ -3439,14 +3468,43 @@ function vnArtistRows_(ev, budget) {
     if (budget && budget.left <= 0) return rows;        // 1通あたりの回数を使い切った
     if (typeof shArtistName_ !== "function") return rows;
 
-    const name = shArtistName_(ev.title);
+    /*
+     * ★公演名そのものではなく、**素のアーティスト名**から探します。
+     *   バラシの行は「会場／名前（役目）📅…」の形なので、
+     *   そのまま渡すと 名前が取り出せません。
+     */
+    const name = shArtistName_(ev.artist || ev.title);
     if (!name || name.length < 2) return rows;
 
-    if (budget) budget.left--;
+    /*
+     * ★同じ名前は、1通の中で1回だけ調べます。
+     *   2日公演は同じ人が2回出てくるので、そのぶん待たせないためです。
+     */
+    if (budget) {
+      budget.seen = budget.seen || {};
+      if (budget.seen[name]) return budget.seen[name].slice();
+    }
+
+    // ★いちど調べた人は、6時間おぼえておきます（毎日おなじ人を調べ直さない）
+    let cached = null;
+    try {
+      const c = CacheService.getScriptCache().get("VN_ART_" + name);
+      if (c) cached = JSON.parse(c);
+    } catch (e) { cached = null; }
+
+    if (!cached && budget && budget.left <= 0) return rows;
+    if (!cached && budget) budget.left--;
 
     let wd = null, mb = null;
-    try { if (typeof shWdArtist_ === "function") wd = shWdArtist_(name); } catch (e) {}
-    try { if (typeof shMbArtist_ === "function") mb = shMbArtist_(name); } catch (e) {}
+    if (cached) { wd = cached.wd; mb = cached.mb; }
+    else {
+      try { if (typeof shWdArtist_ === "function") wd = shWdArtist_(name); } catch (e) {}
+      try { if (typeof shMbArtist_ === "function") mb = shMbArtist_(name); } catch (e) {}
+      try {
+        CacheService.getScriptCache().put("VN_ART_" + name,
+          JSON.stringify({ wd: wd, mb: mb }), 21600);
+      } catch (e) {}
+    }
     if (!wd && !mb) return rows;
 
     // ① 公式リンクを集める
@@ -3484,6 +3542,7 @@ function vnArtistRows_(ev, budget) {
     if (!src.length) return [];                         // 出せるものが無ければ、何も出さない
     rows.push({ "type": "text", "text": "　📖 出典：" + src.join("／"),
                 "size": "xxs", "color": "#6a1b9a", "wrap": true });
+    if (budget) { budget.seen = budget.seen || {}; budget.seen[name] = rows.slice(); }
   } catch (e) {
     return [];
   }
@@ -6645,7 +6704,7 @@ function vnScrapeIcs_(src, day) {
                     (calName ? "［" + calName + "］" : "");
       out.events.push({
         venue: src.venue || src.name, kind: "barasi", icon: "🔧",
-        title: title,
+        title: title, artist: sum,
         start: "", startKind: "", end: "", endGuess: false, endSure: false,
         people: 0, url: src.url || "",
         raw: (sum + " / " + loc).slice(0, 400)
@@ -6877,7 +6936,7 @@ function vnScrapeOne_(src, day, htmlIn) {
     out.events.push({
       venue: src.venue || src.name, kind: src.kind || "event",
       icon: src.kind === "barasi" ? "🔧" : "🎤",
-      title: theTitle, runText: runPage,
+      title: theTitle, artist: theTitle, runText: runPage,
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
       raw: text.slice(0, 400)

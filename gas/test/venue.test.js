@@ -3435,6 +3435,36 @@ console.log('\n■ 🎤 アーティストの公式リンクと、その出ど�
      '★★回数を使い切ったら、外に聞きにいかない（案内が遅れては本末転倒）');
   eq(over.indexOf('🎤') !== -1, false, '　そのときは、何も足さない');
 
+  /*
+   * ★同じ人は、1通の中で1回しか調べません（2026/11/9 から）。
+   *   2日公演は同じ人が2回出てくるので、そのぶん待たせないためです。
+   */
+  Object.keys(cache).forEach(k => { if (k.indexOf('VN_ART_') === 0) delete cache[k]; });
+  vm.runInContext('var asked2 = 0;', ctx);
+  vm.runInContext('function shWdArtist_(n){ asked2++; return { site:"https://example.com/" }; }', ctx);
+  vm.runInContext('function shMbArtist_(n){ return { name:n, begin:"2005" }; }', ctx);
+  {
+    const b = { left: 12 };
+    // ★この検査では、名前を取り出す係は「ロック」を含むときだけ名前を返す作り
+    const e1 = { venue: '京セラドーム', title: 'ロックな夜 2026',
+                 artist: 'ロックな夜 2026',
+                 start: '18:00', end: '20:00', endSure: true };
+    const c1 = JSON.stringify(ctx.vnCard_(e1, 0, day, true, b));
+    const c2 = JSON.stringify(ctx.vnCard_(e1, 1, day, true, b));
+    eq(c1.indexOf('🎤') !== -1, true, '★★★アーティストの行が出る（城ホール以外でも）');
+    eq(c2.indexOf('🎤') !== -1, true, '★★★2日目の枠にも、ちゃんと出る');
+    eq(vm.runInContext('asked2', ctx), 1,
+       '★★同じ人は1回しか調べない（案内を遅らせない）', vm.runInContext('asked2', ctx));
+  }
+
+  /*
+   * ★いちど調べた人は、6時間おぼえておきます（2026/11/9 から）。
+   *   同じ人を毎日 調べ直すと、そのぶん案内が遅れるためです。
+   *   ここは「つながらないときの話」なので、おぼえているぶんを
+   *   先に忘れさせてから試します。
+   */
+  Object.keys(cache).forEach(k => { if (k.indexOf('VN_ART_') === 0) delete cache[k]; });
+
   // 調べに出られなくても、イベント通知そのものは止めない
   vm.runInContext('function shWdArtist_(n){ throw new Error("つながりません"); }', ctx);
   vm.runInContext('function shMbArtist_(n){ throw new Error("つながりません"); }', ctx);
