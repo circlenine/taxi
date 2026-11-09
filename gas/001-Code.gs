@@ -1,7 +1,24 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C083ver  （2026/11/9）  ★★★   ← もとは version 232
+ *  ★★★  C084ver  （2026/11/9）  ★★★   ← もとは version 232
+ *
+ *  [C084ver]
+ *   ・⚡ LINEの「届きますか」に、すぐ返事するようにした
+ *     ★LINEは、ちゃんと届くかを確かめるとき、
+ *       中身の無い知らせを1つ送ってきます。
+ *     ★こちらは、それにも
+ *         ・順番待ちを最大20秒
+ *         ・そのあと、まるごと診る
+ *       をやってから返事をしていました。LINEは待ってくれません。
+ *       実際に「受け取れませんでした（REQUEST_TIMEOUT）」と出ました。
+ *     ★中身が無いなら、やることはありません。すぐ返します。
+ *       ここが速くないと、「届くかどうか」の見張りそのものが
+ *       あてにならなくなります。見張りの土台の話です。
+ *   ・🔀 記録を入れるのを、まるごと診るより先にした
+ *     ★診るのに時間がかかると、LINEが待ちきれずに
+ *       同じものを送り直してきます。
+ *       先に書いてしまえば、送り直されても困りません。
  *
  *  [C083ver]
  *   ・💴 金額に「円」や「￥」が付いていても、記録を捨てないようにした
@@ -857,7 +874,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C083ver";
+const CODE_VERSION = "C084ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -1920,10 +1937,38 @@ function wrapPlace_(str) { return balancedWrap_(str, 12, true); }
 /* ============ 3. LINE受信（doPost） ============ */
 
 function doPost(e) {
+  /*
+   * ★中身の無い知らせには、**すぐ返事をします**（2026/11/9）。
+   *
+   *   LINEは「そこへちゃんと届くか」を確かめるとき、
+   *   中身の無い知らせを1つ送ってきます。
+   *   ところが、この下では
+   *     ・順番待ちを最大20秒
+   *     ・そのあと、まるごと診る（1時間に1回）
+   *   をやってから返事をしていました。
+   *   LINEは、そんなに待ってくれません。
+   *   そのため「受け取れませんでした（REQUEST_TIMEOUT）」と
+   *   言われていました。実際にそう出ました。
+   *
+   *   中身が無いなら、やることは何もありません。すぐ返します。
+   *   ここが速くないと、「届くかどうか」の見張りそのものが
+   *   あてにならなくなります。
+   */
+  let body0 = null;
+  try { body0 = JSON.parse(e.postData.contents); } catch (e0) { body0 = null; }
+  if (body0 && (!body0.events || !body0.events.length)) {
+    try {
+      PropertiesService.getScriptProperties()
+        .setProperty("LAST_LINE_PING", new Date().toISOString());
+    } catch (e1) {}
+    return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
-    const body = JSON.parse(e.postData.contents);
+    const body = body0 || JSON.parse(e.postData.contents);
     // LINEから届いた時刻を残す。「連携が生きているか」を後で確かめられるようにする
     try {
       PropertiesService.getScriptProperties()
@@ -1939,6 +1984,17 @@ function doPost(e) {
       if (typeof panelHealWatch_ === "function") panelHealWatch_();
     } catch (e4) { logErr_("doPostHeal", e4); }
     /*
+     * ★記録を入れるのが先です（2026/11/9 に順番を入れ替えました）。
+     *   前は「まるごと診る」のほうが先でした。
+     *   診るのに時間がかかると、LINEが待ちきれずに
+     *   同じものを送り直してきます。
+     *   先に書いてしまえば、送り直されても困りません。
+     */
+    (body.events || []).forEach(function (ev) {
+      try { handleEvent_(ev); } catch (err) { logErr_("handleEvent", err); }
+    });
+
+    /*
      * ★LINEが届くたびに、まるごと診ます（2026/11/3）。
      *   見張りが全部 消えていても、ここは外から叩かれるので動きます。
      *   LINEは1日に何度も届くので、これが いちばん丈夫な戻り道です。
@@ -1947,10 +2003,6 @@ function doPost(e) {
     try {
       if (typeof updDoctorTick_ === "function") updDoctorTick_();
     } catch (e4b) { logErr_("doPostDoctor", e4b); }
-
-    (body.events || []).forEach(function (ev) {
-      try { handleEvent_(ev); } catch (err) { logErr_("handleEvent", err); }
-    });
   } catch (err) {
     logErr_("doPost", err);
   } finally {
