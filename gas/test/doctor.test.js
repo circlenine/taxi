@@ -88,14 +88,52 @@ function build(o){
     }
     return a;
   };
+  /*
+   * ★LINE側の写し（テスト用）
+   *   ・lineReg … LINEが「受け口はここ」と覚えている住所
+   *   ・ためし送りは、その住所が生きているときだけ うまくいく
+   *   本物と同じで、「こちらの住所」と「LINEが覚えている住所」は
+   *   別ものとして持ちます。ここが同じだと思いこんだせいで、
+   *   11/9 に記録が入らなくなりました。
+   */
+  // ふだんは、LINEもこちらと同じ住所を覚えている（＝何も起きない状態）
+  ctx.lineReg = (o.lineReg === undefined
+                   ? (o.url === undefined ? 'https://old.test/exec' : o.url)
+                   : o.lineReg);
+  const isAlive = (u) => {
+    if (!u) return false;
+    if (String(u).indexOf('new.test') !== -1) return true;
+    if (String(u).indexOf('dead') !== -1) return false;
+    return !!o.alive;
+  };
+  ctx.isAlive = isAlive;
   ctx.UrlFetchApp = { fetch: (url, opt) => {
     ctx.fetched.push({ url: url, opt: opt || {} });
+    const m = String((opt && opt.method) || 'get').toLowerCase();
     if (url.indexOf('api.line.me') !== -1) {
-      return { getResponseCode: () => (o.lineCode === undefined ? 200 : o.lineCode) };
+      const code = (o.lineCode === undefined ? 200 : o.lineCode);
+      if (url.indexOf('/webhook/endpoint') !== -1 && m === 'get') {
+        return { getResponseCode: () => code,
+                 getContentText: () => JSON.stringify({ endpoint: ctx.lineReg,
+                                                        active: o.lineActive !== false }) };
+      }
+      if (url.indexOf('/webhook/endpoint') !== -1 && m === 'put') {
+        if (code >= 200 && code < 300) {
+          try { ctx.lineReg = JSON.parse(String(opt.payload)).endpoint; } catch (e) {}
+        }
+        return { getResponseCode: () => code, getContentText: () => '{}' };
+      }
+      if (url.indexOf('/webhook/test') !== -1) {
+        // lineTestFails … 住所は生きているのに、LINEからは届かない形
+        const good = o.lineTestFails ? false : isAlive(ctx.lineReg);
+        return { getResponseCode: () => code,
+                 getContentText: () => JSON.stringify({ success: good,
+                                                        statusCode: good ? 200 : 404 }) };
+      }
+      return { getResponseCode: () => code, getContentText: () => '{}' };
     }
-    const alive = url.indexOf('new.test') !== -1 ? true : !!o.alive;
     if (o.fetchThrows) throw new Error('つながりません');
-    return { getResponseCode: () => (alive ? 200 : 404) };
+    return { getResponseCode: () => (isAlive(url) ? 200 : 404) };
   } };
   vm.runInContext(part, ctx);
   return ctx;
@@ -331,6 +369,110 @@ console.log('■ 1時間に1回だけ動く');
   ok(c.updDoctorTick_() === false, '★すぐにもう一度 呼んでも、動かない');
   c.props['UPD_DR_AT'] = String(Date.now() - 61 * 60 * 1000);
   ok(c.updDoctorTick_() === true, '1時間たてば、また動く');
+}
+
+/* ================================================================
+ *  📮 LINEからの道が通っているか（11/9 に止まった、そのもの）
+ *
+ *  ★まーく様のご指摘：
+ *    「lineのデータをスプシへ反映する動きが止まってます」
+ *  ★止まっていたのに気づけなかったのは、
+ *    「**こちらの住所**が生きているか」しか見ていなかったからです。
+ *    LINEが古い住所を覚えていれば、記録は1件も入りません。
+ *    それでも、こちらの見張りは ぜんぶ ◯ のままでした。
+ * ================================================================ */
+console.log('■ LINEが古い住所を覚えていたら、気づいて直す');
+{
+  const c = build({ alive: true, props: { LINE_TOKEN: 'tok' },
+                    lineReg: 'https://old.dead/exec' });   // ★LINEだけ古い住所
+  const r = c.updLineHookCheck_();
+  ok(r.fixed === true, '★★★止まっているのに気づく（こちらの住所は生きている）', r);
+  ok(c.lineReg === 'https://old.test/exec',
+     '★★LINE側の登録を、生きている住所に書きかえる', c.lineReg);
+  const tests = c.fetched.filter(f => f.url.indexOf('/webhook/test') !== -1);
+  ok(tests.length >= 1, '★LINE自身に「ためしに送って」と頼んでいる', tests.length);
+  ok(String(r.text).indexOf('記録が入らなく') !== -1, '　 直したことを、ひとことで言う', r.text);
+}
+
+console.log('■ 通っているときは、何もしない・何も言わない');
+{
+  const c = build({ alive: true, props: { LINE_TOKEN: 'tok' } });
+  const r = c.updLineHookCheck_();
+  ok(r.fixed === false && r.text === '', '★ふだんは1通も出さない', r);
+  ok(c.fetched.filter(f => f.opt && String(f.opt.method).toLowerCase() === 'put').length === 0,
+     '★★登録し直したりもしない（よけいなことをしない）');
+}
+
+console.log('■ LINEが「届かなかった」と言えば、住所が同じでも直す');
+{
+  /*
+   * ★住所の字が同じでも、その公開が死んでいれば届きません。
+   *   字くらべだけでは足りない、ということです。
+   */
+  const c = build({ alive: false, url: 'https://old.dead/exec',
+                    props: { LINE_TOKEN: 'tok' },
+                    lineReg: 'https://old.dead/exec',
+                    deps: [{ deploymentId: 'D1', deploymentConfig: { versionNumber: 9 },
+                             entryPoints: [{ webApp: { url: 'https://new.test/exec' } }] }] });
+  const r = c.updLineHookCheck_();
+  ok(r.fixed === true, '★★★届かないと分かったら、直す', r);
+  ok(c.lineReg === 'https://new.test/exec',
+     '★★生きている公開をさがして、そちらに向け直す', c.lineReg);
+}
+
+console.log('■ 住所の字が同じでも、届かなければ直す（字くらべだけで済ませない）');
+{
+  /*
+   * ★ここが、11/9 に見落とした形そのものです。
+   *   こちらが叩くと生きている。LINEの登録も同じ字。
+   *   それでも、LINEからは届いていない、ということがあります。
+   *   字をくらべただけで「通っている」と決めてはいけません。
+   */
+  const c = build({ alive: true, props: { LINE_TOKEN: 'tok' },
+                    lineTestFails: true });
+  const r = c.updLineHookCheck_();
+  ok(String(r.text) !== '',
+     '★★★字が同じでも、届かなければ だまっていない', r);
+  const tests = c.fetched.filter(f => f.url.indexOf('/webhook/test') !== -1);
+  ok(tests.length >= 1, '★★かならず、ためし送りをしている', tests.length);
+}
+
+console.log('■ LINEが止まっている（active が false）ときも直す');
+{
+  const c = build({ alive: true, props: { LINE_TOKEN: 'tok' }, lineActive: false });
+  const r = c.updLineHookCheck_();
+  ok(r.fixed === true, '★「使わない」状態なら、入れ直す', r);
+}
+
+console.log('■ 鍵が無ければ、だまって何もしない');
+{
+  const c = build({ alive: true, lineReg: 'https://old.dead/exec' });
+  const r = c.updLineHookCheck_();
+  ok(r.fixed === false && r.text === '', '★鍵が無いのに、さわがない', r);
+  ok(c.fetched.filter(f => f.url.indexOf('api.line.me') !== -1).length === 0,
+     '　 LINEに聞きにもいかない');
+}
+
+console.log('■ お医者さんと「なおす」から、ちゃんと呼んでいる');
+{
+  /*
+   * ★はじめに書いた検査には穴がありました（2026/11/9）。
+   *   ファイル全体から字をさがしていたので、呼び出しを消しても
+   *   「function updLineHookCheck_」という**定義のほう**に当たって、
+   *   通ってしまいました。わざと壊しても気づけません。
+   *   なので、その関数の中身だけを切り出して見ます。
+   */
+  const part = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const bodyOf = (name) => {
+    const i = part.indexOf('\nfunction ' + name + '(');
+    if (i === -1) return '';
+    const j = part.indexOf('\nfunction ', i + 1);
+    return part.slice(i, j === -1 ? part.length : j);
+  };
+  ok(bodyOf('updDoctorTick_').indexOf('updLineHookCheck_(') !== -1,
+     '★★★1時間に1回、LINEからの道を診ている');
+  ok(bodyOf('rescueAll').indexOf('updLineHookCheck_(') !== -1,
+     '★★「まるごと救助」でも、LINEからの道を直す');
 }
 
 console.log('■ ふだんは、1通も出さない');

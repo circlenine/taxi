@@ -2,7 +2,30 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U152ver  （2026/11/9）  ★★★
+ *  ★★★  U153ver  （2026/11/9）  ★★★
+ *
+ *  [U153ver]
+ *   ・📮 LINEからの道が通っているかを、LINE自身にためしてもらう
+ *     ★まーく様のご指摘：
+ *       「lineのデータをスプシへ反映する動きが止まってます」
+ *       「これも、二度と止まらないようにしてください」
+ *     ★なぜ気づけなかったか（ここが肝心です）
+ *       それまでの見張りは「**こちらが思っている住所**が
+ *       生きているか」だけを見ていました。
+ *       ほんとうに大事なのは
+ *       「**LINEが送りつけている住所**が生きているか」です。
+ *       この2つは、ちがうことがあります。
+ *       こちらの住所が生きていても、LINEの側が古い住所を覚えていれば、
+ *       記録は1件も入りません。それでも見張りは ぜんぶ ◯ のままでした。
+ *       実際、11/9 の深夜3時すぎの1件が、そのまま消えました。
+ *     ★これからは、1時間に1回、LINEに
+ *       「そこへ試しに送ってみて」と頼みます。
+ *       LINE自身が、登録されている住所へ試しの知らせを送って、
+ *       届いたかどうかを返してくれます。こちらの思いこみが入りません。
+ *     ★届かなければ、生きている住所をさがして登録し直し、
+ *       **もう一度ためして**から「直りました」と言います。
+ *     ★ふだんは1通も出しません。直したときだけ、ひとこと言います。
+ *     ★「まるごと救助」のボタンからも、ここを通します。
  *
  *  [U152ver]
  *   ・🏠 受け口の住所を「いま生きているもの」から探すようにした
@@ -1700,7 +1723,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U152ver";
+const UPD_VERSION = "U153ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -9695,7 +9718,22 @@ function rescueAll() {
   }
 
   /*
-   * ④ 玄関（LINEの受け口）を診て、住所を外から読める所に置く。
+   * ④ LINEからの道が通っているかを、LINE自身にためしてもらう。
+   *    ★ここが通っていないと、何を直しても記録は1件も入りません。
+   *      2026/11/9、実際にここが切れていました。
+   */
+  try {
+    if (typeof updLineHookCheck_ === "function") {
+      const h = updLineHookCheck_();
+      L.push(h && h.fixed ? "📮 LINEからの道を直しました"
+                          : (h && h.text ? h.text : "📮 LINEからの道は通っています"));
+    }
+  } catch (e) {
+    L.push("📮 LINEからの道は、あとで診ます");
+  }
+
+  /*
+   * ⑤ 玄関（LINEの受け口）を診て、住所を外から読める所に置く。
    *    ★ここまで通れば、次からは こちらだけで直せます。
    */
   try {
@@ -10066,6 +10104,132 @@ function updLineHookSet_(url) {
   }
 }
 
+/* ================================================================
+ *  📮 LINEが、ほんとうに こちらへ届けられるかを確かめる
+ *
+ *  ★2026/11/9、まーく様から
+ *    「lineのデータをスプシへ反映する動きが止まってます」
+ *    とご指摘をいただきました。実際に止まっていました。
+ *
+ *  ★なぜ気づけなかったか（ここが肝心です）
+ *    それまでの見張りは「**こちらが思っている住所**が生きているか」
+ *    だけを見ていました。
+ *    ところが、ほんとうに大事なのは
+ *    「**LINEが送りつけている住所**が生きているか」です。
+ *    この2つは、ちがうことがあります。
+ *    こちらの住所が生きていても、LINEの側が古い住所を覚えていれば、
+ *    記録は1件も入りません。そして、こちらは何も気づけません。
+ *    実際、11/9の深夜3時すぎの1件が、そのまま消えました。
+ *
+ *  ★これからは、LINEに「そこへ試しに送ってみて」と頼みます。
+ *    LINE自身が、登録されている住所へ試しの知らせを送って、
+ *    届いたかどうかを返してくれます。
+ *    これなら、こちらの思いこみが入りません。
+ *    ダメなら、生きている住所をさがして登録し直し、もう一度ためします。
+ * ================================================================ */
+
+/** LINEの鍵（無ければ空） */
+function updLineTok_() {
+  try { return String(PropertiesService.getScriptProperties().getProperty("LINE_TOKEN") || ""); }
+  catch (e) { return ""; }
+}
+
+/**
+ * LINE側に、いまどの住所が登録されているかを聞く。
+ * 返すのは { ok:bool, endpoint:"", active:bool, code:0 }
+ */
+function updLineHookGet_() {
+  const tok = updLineTok_();
+  if (!tok) return { ok: false, endpoint: "", active: false, code: 0 };
+  try {
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/channel/webhook/endpoint", {
+      method: "get",
+      headers: { "Authorization": "Bearer " + tok },
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    if (code < 200 || code >= 300) return { ok: false, endpoint: "", active: false, code: code };
+    const j = JSON.parse(res.getContentText() || "{}");
+    return { ok: true, endpoint: String(j.endpoint || ""), active: j.active !== false, code: code };
+  } catch (e) {
+    return { ok: false, endpoint: "", active: false, code: 0 };
+  }
+}
+
+/**
+ * LINEに「登録してある住所へ、試しに送ってみて」と頼む。
+ * 返すのは { ok:bool, why:"" }
+ *
+ * ★これが、いちばん確かな見分けです。
+ *   こちらが叩いて生きていても、LINEから届かなければ意味がありません。
+ */
+function updLineHookTest_() {
+  const tok = updLineTok_();
+  if (!tok) return { ok: false, why: "LINEの鍵がありません" };
+  try {
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/channel/webhook/test", {
+      method: "post",
+      headers: { "Authorization": "Bearer " + tok },
+      contentType: "application/json",
+      payload: "{}",
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    if (code < 200 || code >= 300) return { ok: false, why: "LINEが断りました（" + code + "）" };
+    const j = JSON.parse(res.getContentText() || "{}");
+    // success が true、かつ 受け口が 200 を返していること。両方そろって初めて「届く」
+    const sc = Number(j.statusCode || 0);
+    if (j.success === true && sc >= 200 && sc < 300) return { ok: true, why: "" };
+    return { ok: false, why: "受け口が受け取れませんでした（" + (sc || j.reason || "理由不明") + "）" };
+  } catch (e) {
+    return { ok: false, why: "ためせませんでした（" + ((e && e.message) || e) + "）" };
+  }
+}
+
+/**
+ * LINEからの道が通っているかを診て、通っていなければ直す。
+ * 返すのは { fixed:bool, text:"ひとこと" }  ※ふだんは text は空（1通も出さない）
+ */
+function updLineHookCheck_() {
+  if (!updLineTok_()) return { fixed: false, text: "" };
+
+  // いま生きている、こちらの住所
+  let live = updWebAppUrl_();
+  if (!updUrlAlive_(live)) {
+    const found = updFindLiveUrl_();
+    if (found) { live = found; updLiveUrlSet_(found); }
+  }
+
+  const now = updLineHookGet_();
+  const same = (now.ok && live && now.endpoint === live && now.active);
+
+  /*
+   * ★登録されている住所が、こちらの生きている住所と同じで、
+   *   しかも ためして届くなら、何もしません（ふだんはここで終わり）。
+   */
+  if (same) {
+    const t0 = updLineHookTest_();
+    if (t0.ok) return { fixed: false, text: "" };
+  }
+
+  // ここから下は「通っていない」とき。登録し直して、もう一度ためします
+  if (!live) {
+    return { fixed: false,
+             text: "📮 LINEからの記録が入らない状態ですが、受け口の住所が分かりません。" };
+  }
+  const ng = updLineHookSet_(live);
+  if (ng) return { fixed: false, text: "📮 LINEの登録を直せませんでした。\n・" + ng };
+
+  const t1 = updLineHookTest_();
+  if (t1.ok) {
+    return { fixed: true,
+             text: "📮 LINEからの記録が入らなくなっていたので、こちらで直しました。\n" +
+                   "・いままでどおり、LINEに書けば記録が入ります" };
+  }
+  return { fixed: false,
+           text: "📮 LINEからの記録が入らない状態です。\n・" + t1.why };
+}
+
 /**
  * 受け口が死んでいたら、公開し直す。
  * 返すのは { fixed:bool, url:"", text:"ひとこと" }
@@ -10313,6 +10477,20 @@ function updDoctorTick_() {
       if (r && r.url) url2 = r.url;
     }
   } catch (e) { try { logErr_("doctorWebApp", e); } catch (e2) {} }
+
+  /*
+   * ②-2 LINEからの道が通っているかを、LINE自身にためしてもらう。
+   *     ★②は「こちらの住所が生きているか」しか見ていませんでした。
+   *       LINEが古い住所を覚えていると、記録は1件も入らないのに
+   *       ②は ぜんぶ ◯ のままです。実際に11/9、そうなりました。
+   *     ★ここは、ふだんは1通も出しません。直したときだけ言います。
+   */
+  try {
+    if (typeof updLineHookCheck_ === "function") {
+      const h = updLineHookCheck_();
+      if (h && h.text) say.push(h.text);
+    }
+  } catch (e) { try { logErr_("doctorLineHook", e); } catch (e2) {} }
 
   /*
    * ③ 玄関の住所を、外から読める所に置き直す。
