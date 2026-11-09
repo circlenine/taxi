@@ -2,7 +2,28 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V081ver  （2026/11/9）  ★★★
+ *  ★★★  V082ver  （2026/11/9）  ★★★
+ *
+ *  [V082ver]
+ *   ・🎫 グランキューブ大阪（2700人）を、読めるようにした
+ *     ★一覧のページに、時刻が1つも載っていません。
+ *       催しのページが、チケット屋さんのホームページにあるためです。
+ *       そのため、ずっと0件のままでした。
+ *     ★名ざしで許したホームページだけ、中まで開いて読みます。
+ *       手あたりしだいは開きません。よその会場の催しを
+ *       この会場のものとして出してしまうためです。
+ *     ★名ざしのページを**先に**開きます。あと回しにすると、
+ *       会社案内やアクセスのページで枠（5つ）を使い切ります。
+ *   ・🕐 時刻の取りちがえを、2つ直した
+ *     ★催しのページには、何日ぶんもの公演がならんでいます。
+ *         2026/11/05(木) 18:30
+ *         2026/11/06(金) 18:00
+ *       先頭から拾っていたので、6日なのに 18:30 と出ていました。
+ *       1日ちがいの時刻で車を着けさせるのは、空振りそのものです。
+ *       これからは、**その日の行から**時刻を拾います。
+ *     ★「18:30 開演 〜 18:00 終演」という、ありえない形も出ていました。
+ *       終演から15分ひいて車を着けるので、そのまま出すと
+ *       **開演より前に会場へ行かせる**ことになります。捨てます。
  *
  *  [V081ver]
  *   ・🙅 催しのページ（中のページ）でも、受付時間を時刻にしない
@@ -1177,7 +1198,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V081ver";
+const VN_VERSION = "V082ver";
 
 /**
  * 見にいく先の一覧。
@@ -1266,7 +1287,17 @@ const VN_SOURCES = [
   { name: "BIGCAT",                kind: "event", url: "http://bigcat-live.com/schedule/" },
   { name: "GORILLA HALL OSAKA",    kind: "event", url: "https://gorillahall.jp/" },
   { name: "サンケイホールブリーゼ", kind: "event", url: "https://www.sankeihallbreeze.com/schedule/" },
-  { name: "グランキューブ大阪",     kind: "event", url: "https://www.gco.co.jp/event/" },
+  /*
+   * ★グランキューブ大阪は、一覧のページに**時刻が1つも載っていません**。
+   *   催しの名前と日付だけで、開演はチケット屋さんのページにあります。
+   *   そのため、ずっと0件でした（2026/11/9 に気づきました）。
+   *   deep: true で中のページまで開き、
+   *   hosts でチケット屋さんのホームページを名ざしで許します。
+   *   （名ざしなので、知らないページを開くことはありません）
+   */
+  { name: "グランキューブ大阪",     kind: "event", deep: true,
+    hosts: ["kyodo-osaka.co.jp"],
+    url: "https://www.gco.co.jp/event/" },
   { name: "梅田芸術劇場",           kind: "event", url: "https://www.umegei.com/" },
   { name: "新歌舞伎座",             kind: "event", url: "https://www.shinkabukiza.co.jp/" },
 
@@ -5028,9 +5059,40 @@ function vnScrapeDeep_(src, day, html) {
   const out = [];
   const dre = vnDateRe_(day);
   const host = String(src.url).replace(/^(https?:\/\/[^\/]+).*$/, "$1");
+  /*
+   * ★ふだんは「同じホームページの中のリンク」しか開きません。
+   *   よそのページまで手あたりしだい開くと、
+   *   別の会場の催しを この会場のものとして出しかねないためです。
+   *
+   * ★ただ、グランキューブ大阪のように、催しのページを
+   *   チケット屋さんのホームページに置いている会場があります。
+   *   そこは一覧に時刻がまったく出ないので、
+   *   中を見ないと1件も読めません（実際にずっと0件でした）。
+   *   そういうところだけ、**名ざしで**開いてよいことにします。
+   *   名ざしなので、知らないページを開くことはありません。
+   */
+  const extra = (src.hosts || []).map(function (h) { return String(h).toLowerCase(); });
+  const okHost = function (u) {
+    if (String(u).indexOf(host) === 0) return true;
+    const m = String(u).match(/^https?:\/\/([^\/]+)/);
+    const h = m ? m[1].toLowerCase() : "";
+    for (let i = 0; i < extra.length; i++) {
+      if (h === extra[i] || h.slice(-(extra[i].length + 1)) === "." + extra[i]) return true;
+    }
+    return false;
+  };
   // 催しのページらしいリンクだけに絞る（同じ入れ物・一覧そのものは除く）
+  const isExtra = function (u) { return String(u).indexOf(host) !== 0; };
+  /*
+   * ★名ざしで許したホームページのリンクを、**先に**開きます。
+   *   開けるのは5つまでなので、あと回しにすると
+   *   会社案内やアクセスのような、催しと関係ないページで
+   *   枠を使い切ってしまいます（実際そうなって0件のままでした）。
+   */
   const links = vnLinks_(html, src.url).filter(function (l) {
-    return l.url.indexOf(host) === 0 && l.url !== src.url && l.text;
+    return okHost(l.url) && l.url !== src.url && l.text;
+  }).sort(function (a, b) {
+    return (isExtra(b.url) ? 1 : 0) - (isExtra(a.url) ? 1 : 0);
   }).slice(0, 12);
 
   let opened = 0;
@@ -5069,7 +5131,21 @@ function vnScrapeDeep_(src, day, html) {
     const kai = text.match(/(開演|スタート|開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
     const ba  = text.match(/(開場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
-    const start = kai ? kai[2] : (ba ? ba[2] : (times.length ? times[0] : ""));
+    /*
+     * ★その日の時刻を、**その日の行から**拾います（2026/11/9）。
+     *   催しのページには、何日ぶんもの公演がならんでいます。
+     *     2026/11/05(木) 18:30
+     *     2026/11/06(金) 18:00
+     *   ページの先頭から拾うと、6日なのに 18:30 と出てしまいます。
+     *   1日ちがいの時刻で車を着けさせるのは、空振りそのものです。
+     */
+    let onDay = "";
+    for (let k = 0; k < lines.length; k++) {
+      if (!dre.test(lines[k])) continue;
+      const mm = String(lines[k]).match(/(\d{1,2}:\d{2})/);
+      if (mm) { onDay = mm[1]; break; }
+    }
+    const start = kai ? kai[2] : (ba ? ba[2] : (onDay || (times.length ? times[0] : "")));
     if (!start) continue;                       // 時刻が無いなら出さない
     const startKind = kai ? "開演" : (ba ? "開場" : "");
     /*
@@ -5080,6 +5156,16 @@ function vnScrapeDeep_(src, day, html) {
      */
     const fin = text.match(/(終了|終演|閉場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
     let end = fin ? fin[2] : (times.length >= 2 && times[1] !== start ? times[1] : "");
+    /*
+     * ★終わりが始まりより前になっていたら、それは別の日の公演の時刻です。
+     *   実際に「18:30 開演 〜 18:00 終演」という、ありえない形が出ました。
+     *   終演から15分ひいて車を着けるので、そのまま出すと
+     *   開演より前に会場へ行かせることになります。捨てます。
+     */
+    if (end && !fin && vnHourOf_(end) !== null && vnHourOf_(start) !== null &&
+        vnHourOf_(end) <= vnHourOf_(start)) {
+      end = "";
+    }
     let guessed = false;
     if (!end) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
     out.push({

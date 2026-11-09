@@ -250,6 +250,96 @@ console.log('■ 中のページでも、受付時間を開演にしない');
 }
 
 /* ================================================================
+ * ⑦-3 一覧に時刻が1つも無い会場（グランキューブ大阪の形）
+ *      催しのページが、チケット屋さんのホームページにある。
+ * ================================================================ */
+console.log('■ 一覧に時刻が無く、催しのページがよそにある会場');
+{
+  const list = page([
+    '<p>コンサート</p><p>ほにゃらら公演</p><p>開催日</p>',
+    '<p>11/05 THU -</p><p>11/06 FRI -</p>',
+    '<a href="https://www.gco.co.jp/corporate/">会社案内</a>',
+    '<a href="https://www.gco.co.jp/access/">アクセス</a>',
+    '<a href="https://www.gco.co.jp/case/party/">パーティ</a>',
+    '<a href="https://www.gco.co.jp/contact/">お問い合わせ</a>',
+    '<a href="https://www.gco.co.jp/architecture/">建物</a>',
+    '<a href="https://ticket.test/detail/1">ほにゃらら公演</a>'
+  ].join(''));
+  const detail = page([
+    '<p>ほにゃらら公演</p><p>日時</p>',
+    '<p>2026/11/05(木) 18:30</p>',
+    '<p>2026/11/06(金) 18:00</p>'
+  ].join(''));
+  const src = { name: 'グランキューブ大阪', kind: 'event', deep: true,
+                hosts: ['ticket.test'], url: 'https://www.gco.co.jp/event/' };
+  reply = { 'https://www.gco.co.jp/event/': { code: 200, body: list },
+            'https://ticket.test/detail/1': { code: 200, body: detail },
+            '*': { code: 404, body: '' } };
+
+  const r5 = scrape(src, new Date(2026, 10, 5));
+  ok(r5.events.length === 1, '★★★よそのページまで開いて、1件 読める', r5.events.length);
+  ok((r5.events[0] || {}).start === '18:30', '　 5日は 18:30', (r5.events[0] || {}).start);
+
+  const r6 = scrape(src, new Date(2026, 10, 6));
+  ok((r6.events[0] || {}).start === '18:00',
+     '★★★6日は 18:00（その日の行から拾う。1日ちがいは空振りになる）',
+     (r6.events[0] || {}).start);
+  ok((r6.events[0] || {}).end !== '18:00' &&
+     (r6.events[0] || {}).end !== '18:30',
+     '★★終わりに、別の日の時刻を入れない', (r6.events[0] || {}).end);
+  const e6 = r6.events[0] || {};
+  const hh = (t) => Number(String(t).split(':')[0]);
+  ok(!e6.end || hh(e6.end) > hh(e6.start),
+     '★★★終わりが、始まりより前にならない（開演前に行かせない）',
+     e6.start + '〜' + e6.end);
+}
+
+console.log('■ 終わりが、始まりより前になったら捨てる');
+{
+  /*
+   * ★はじめに書いた検査には穴がありました（2026/11/9）。
+   *   日付が古い順にならんだページしか試していなかったので、
+   *   「終わりのほうが早い」形が、そもそも作れていませんでした。
+   *   わざと守りを外しても、検査が通ってしまいました。
+   *   新しい日が先にならぶページで試します。
+   */
+  const list = page('<p>ほにゃらら公演</p><p>11/06 FRI -</p>' +
+                    '<a href="https://ticket.test/detail/2">ほにゃらら公演</a>');
+  const detail = page([
+    '<p>ほにゃらら公演</p><p>日時</p>',
+    '<p>2026/11/06(金) 19:00</p>',
+    '<p>2026/11/05(木) 18:30</p>'
+  ].join(''));
+  const src = { name: 'グランキューブ大阪', kind: 'event', deep: true,
+                hosts: ['ticket.test'], url: 'https://www.gco.co.jp/event/' };
+  reply = { 'https://www.gco.co.jp/event/': { code: 200, body: list },
+            'https://ticket.test/detail/2': { code: 200, body: detail },
+            '*': { code: 404, body: '' } };
+  const e = (scrape(src, new Date(2026, 10, 6)).events || [])[0] || {};
+  ok(e.start === '19:00', '　 6日の始まりは 19:00', e.start);
+  ok(e.end !== '18:30',
+     '★★★前の日の 18:30 を、終わりにしない', e.end);
+  const hh = (t) => Number(String(t).split(':')[0]);
+  ok(!e.end || hh(e.end) > hh(e.start),
+     '★★★終わりが始まりより前のままなら、捨てる（開演前に行かせない）',
+     e.start + '〜' + e.end);
+}
+
+console.log('■ 名ざししていないホームページは、開かない');
+{
+  const list = page('<p>11/05 THU -</p><a href="https://yoso.test/x">よその催し</a>');
+  const src = { name: 'グランキューブ大阪', kind: 'event', deep: true,
+                hosts: ['ticket.test'], url: 'https://www.gco.co.jp/event/' };
+  reply = { 'https://www.gco.co.jp/event/': { code: 200, body: list },
+            '*': { code: 200, body: page('<p>2026/11/05(木) 18:30</p><p>よその公演</p>') } };
+  fetched = [];
+  const r = scrape(src, new Date(2026, 10, 5));
+  ok(fetched.indexOf('https://yoso.test/x') === -1,
+     '★★★知らないページは開かない（よその催しを、この会場のものにしない）', fetched);
+  ok(r.events.length === 0, '　 だから、何も出さない', r.events.length);
+}
+
+/* ================================================================
  * ⑧ よく出る記号を、字に戻す
  * ================================================================ */
 console.log('■ よく出る記号を、字に戻す');
