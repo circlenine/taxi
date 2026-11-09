@@ -159,6 +159,84 @@ console.log('■ 「なおす」のときに、ちゃんと呼んでいるか');
  *
  *  ★だから、コードに書いてある「何分おき」を ぜんぶ見ます。
  * ================================================================ */
+/* ================================================================
+ *  👯 おなじ見張りが、重なって増えていないか
+ *
+ *  ★2026/11/9、見張りが 9こ → 11こ に増えていました。
+ *    「チェックした瞬間に動く」しかけが 3つ 重なっていました。
+ *    1回チェックするたび、同じ処理が3回 動きます。
+ *    持ち時間（1日90分）のむだ遣いで、見張りの席（20こ）も食います。
+ * ================================================================ */
+console.log('■ 重なった見張りを、1つだけ残して片づける');
+{
+  const vm2 = require('vm');
+  const mk = (fn, ev) => ({
+    _fn: fn, _ev: ev, _dead: false,
+    getHandlerFunction: () => fn,
+    getEventType: () => ev
+  });
+  const build = (list) => {
+    const c = { console };
+    vm2.createContext(c);
+    c.deleted = [];
+    c.ScriptApp = {
+      EventType: { ON_EDIT: 'ON_EDIT', ON_OPEN: 'ON_OPEN', CLOCK: 'CLOCK' },
+      getProjectTriggers: () => list.filter(t => !t._dead),
+      deleteTrigger: (t) => { t._dead = true; c.deleted.push(t._fn + '/' + t._ev); }
+    };
+    c.logErr_ = () => {};
+    const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+    const i = src.indexOf('const UPD_DUP_CUT');
+    const j = src.indexOf('\nfunction updSweepDeadTriggers_');
+    vm2.runInContext(src.slice(i, j), c);
+    return c;
+  };
+
+  {
+    const list = [mk('panelOnEdit', 'ON_EDIT'), mk('panelOnEdit', 'ON_EDIT'),
+                  mk('panelOnEdit', 'ON_EDIT'), mk('panelWatch', 'CLOCK')];
+    const c = build(list);
+    const n = c.updDedupTriggers_();
+    ok(n === 2, '★★★3つ重なっていたら、2つ消す', n);
+    ok(list.filter(t => t._fn === 'panelOnEdit' && !t._dead).length === 1,
+       '★★★かならず1つは残す（0こにしない）',
+       list.filter(t => t._fn === 'panelOnEdit' && !t._dead).length);
+  }
+
+  {
+    /*
+     * ★時刻で動くものには、手を出しません。
+     *   同じ名前でも、ちがう時刻に動く別の役目かもしれません。
+     *   取りちがえると、要る見張りを消してしまいます。
+     */
+    const list = [mk('venueDailyJob', 'CLOCK'), mk('venueDailyJob', 'CLOCK')];
+    const c = build(list);
+    ok(c.updDedupTriggers_() === 0,
+       '★★★時刻で動く見張りは、重なって見えても消さない', c.deleted);
+  }
+
+  {
+    const list = [mk('panelOnEdit', 'ON_EDIT'), mk('onOpen', 'ON_OPEN')];
+    const c = build(list);
+    ok(c.updDedupTriggers_() === 0, '★重なっていなければ、1つも消さない', c.deleted);
+  }
+
+  {
+    const many = [];
+    for (let i = 0; i < 12; i++) many.push(mk('panelOnEdit', 'ON_EDIT'));
+    const c = build(many);
+    ok(c.updDedupTriggers_() === 5, '★1回に消すのは5つまで（まちがえても傷が小さい）');
+  }
+
+  {
+    const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+    const i = src.indexOf('\nfunction updDoctorTick_(');
+    const j = src.indexOf('\nfunction ', i + 1);
+    ok(src.slice(i, j).indexOf('updDedupTriggers_(') !== -1,
+       '★★1時間に1回、重なりを見ている');
+  }
+}
+
 console.log('■ 「何分おき」に、使えない値を書いていないか');
 {
   const OK = [1, 5, 10, 15, 30];

@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U154ver  （2026/11/9）  ★★★
+ *  ★★★  U155ver  （2026/11/9）  ★★★
+ *
+ *  [U155ver]
+ *   ・👯 重なって増えた見張りを、1つだけ残して片づけるようにした
+ *     ★見張りが 9こ → 11こ に増えていました（2026/11/9）。
+ *       「チェックした瞬間に動く」しかけが 3つ 重なっていました。
+ *     ★1回チェックするたびに、同じ処理が3回 動きます。
+ *       無料で使える持ち時間は1日90分までなので、むだ遣いです。
+ *       見張りの席（20こ）も食いつぶします。
+ *     ★消してよいのは「チェックした瞬間」「開いた瞬間」のものだけ。
+ *       **時刻で動くもの（毎日○時・○分おき）には手を出しません。**
+ *       同じ名前でも、ちがう時刻に動く別の役目かもしれないためです。
+ *     ★かならず1つは残します。1回に消すのは5つまでにしました。
  *
  *  [U154ver]
  *   ・⏱ 見張りを立て直せなかったのを直した（根元の話です）
@@ -1741,7 +1753,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U154ver";
+const UPD_VERSION = "U155ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -5790,6 +5802,62 @@ function updFnAlive_(name) {
 }
 
 /** 中身の無い見張りを消す。返すのは { gone:[名前], text:"ひとこと" } */
+/* ================================================================
+ *  👯 おなじ見張りが、重なって増えていないか
+ *
+ *  ★2026/11/9、見張りが 9こ → 11こ に増えていました。
+ *    「チェックした瞬間に動く」しかけ（panelOnEdit）が、
+ *    3つも重なっていました。
+ *
+ *  ★何が困るか
+ *    ① 1回チェックするたびに、同じ処理が3回 動きます。
+ *       無料で使える持ち時間は **1日90分まで**。むだ遣いです。
+ *    ② 見張りは1つのコードに **20こまで**。
+ *       重なりで席が埋まると、本当に要るものが作れなくなります。
+ *
+ *  ★消してよいのは「チェックした瞬間」「開いた瞬間」のものだけ。
+ *    この2つは、2つあっても1つぶんの意味しかありません。
+ *    **時刻で動くもの（毎日○時、○分おき）には手を出しません。**
+ *    同じ名前でも、ちがう時刻に動く、別の役目かもしれないためです。
+ *    ここを取りちがえると、要る見張りを消してしまいます。
+ * ================================================================ */
+
+/* 1回に消す数の上限（まちがえても、傷を小さくするため） */
+const UPD_DUP_CUT = 5;
+
+function updDedupTriggers_() {
+  let n = 0;
+  try {
+    let list = [];
+    try { list = ScriptApp.getProjectTriggers() || []; } catch (e) { return 0; }
+    if (!list.length) return 0;
+
+    const kindOf = function (t) {
+      // 「チェックした瞬間」「開いた瞬間」だけを見分ける
+      try {
+        const ev = String(t.getEventType());
+        if (ev === String(ScriptApp.EventType.ON_EDIT)) return "edit";
+        if (ev === String(ScriptApp.EventType.ON_OPEN)) return "open";
+      } catch (e) {}
+      return "";                       // 時刻で動くものは、手を出さない
+    };
+
+    const seen = {};
+    for (let i = 0; i < list.length && n < UPD_DUP_CUT; i++) {
+      const t = list[i];
+      let fn = "";
+      try { fn = String(t.getHandlerFunction() || ""); } catch (e) { continue; }
+      if (!fn) continue;
+      const k = kindOf(t);
+      if (!k) continue;                // 時刻で動くものは、そのまま
+      const key = k + ":" + fn;
+      if (!seen[key]) { seen[key] = 1; continue; }   // 1つめは、かならず残す
+      try { ScriptApp.deleteTrigger(t); n++; } catch (e) { /* 消せなくても次へ */ }
+    }
+  } catch (e) { return n; }
+  return n;
+}
+
 function updSweepDeadTriggers_() {
   const gone = [];
   const NG = { gone: gone, text: "中身の無い見張り：調べられませんでした" };
@@ -10495,6 +10563,19 @@ function updDoctorTick_() {
       if (r && r.url) url2 = r.url;
     }
   } catch (e) { try { logErr_("doctorWebApp", e); } catch (e2) {} }
+
+  /*
+   * ①-2 おなじ見張りが重なっていたら、1つだけ残して片づける。
+   *     ★重なっていると、1回のチェックで同じ処理が何度も動きます。
+   *       持ち時間（1日90分）のむだ遣いであり、
+   *       見張りの席（20こ）も食いつぶします。
+   */
+  try {
+    if (typeof updDedupTriggers_ === "function") {
+      const dup = updDedupTriggers_();
+      if (dup) say.push("👯 重なっていた見張りを " + dup + "こ 片づけました");
+    }
+  } catch (e) { try { logErr_("doctorDedup", e); } catch (e2) {} }
 
   /*
    * ②-2 LINEからの道が通っているかを、LINE自身にためしてもらう。
