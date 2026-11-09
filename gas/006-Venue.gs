@@ -2,7 +2,30 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V088ver  （2026/11/9）  ★★★
+ *  ★★★  V089ver  （2026/11/9）  ★★★
+ *
+ *  [V089ver]
+ *   ・🔧 バラシ（片づけ）の予定を、ちゃんと読めるようにした
+ *     ★まーく様のご指示：
+ *       「それ以外に、載ってない部分を、まとめられるようにしてほしいです
+ *         特に、ワントゥワン情報など
+ *         バラシ情報は必ず載せて欲しいところです」
+ *     ★ワントゥワンは **ずっと0件** でした。読み先にしていたページには
+ *       予定が1文字も書かれていません（中身はカレンダーの貼りつけ）。
+ *       公開されているカレンダーを読む形に変えました。
+ *     ★ここで分かるもの … 日付・公演名・会場・その日の役目
+ *       毎日グループに流れてくる15会場に **入っていない会場** まで入ります
+ *       （森ノ宮ピロティホール／SkyシアターMBS／クールジャパンパーク大阪 など）。
+ *     ★**搬入だけの日は出しません。** 夜の片づけが無いので、
+ *       出すと だれも来ない会場へ行かせることになります。
+ *       「搬入日：13日（金）／公演日：14日（土）・15日（日）」を読み分けます。
+ *     ★予定は搬入の日から始まるので、公演日の数字は中に出てきません。
+ *       30日前までさかのぼって集め、その日が中に入っているかで見ます。
+ *       （ここを手ぬきすると、いちばん欲しい公演日を丸ごと落とします）
+ *     ★大阪A地区の外（神戸・京都）は、その場で落とします。
+ *     ★時刻が書いていなくても、バラシは落としません（ご指示）。
+ *       公演のあと＝かならず夜なので、時間帯の決まりでも落としません。
+ *     ★読むのは公開されているページなので、新しい許可は要りません。
  *
  *  [V088ver]
  *   ・🗣 「終演は未発表。公式で確かめて」という文言を、やめた
@@ -1330,7 +1353,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V088ver";
+const VN_VERSION = "V089ver";
 
 /**
  * 見にいく先の一覧。
@@ -1363,7 +1386,30 @@ const VN_SOURCES = [
   //   詳細に「徹夜」と書かれていることがあり、そうなると
   //   こちらの営業時間内にバラシが終わらず、待つ意味がなくなる。
   //   detail: true を付けると、必ず詳細のページまで開いて中を見る
-  { name: "ワントゥワン",         kind: "barasi", detail: true,
+  /*
+   * ★ワントゥワン（バラシ＝片づけ）
+   *   まーく様のご指示（2026/11/9）：
+   *     「特に、ワントゥワン情報など
+   *       バラシ情報は必ず載せて欲しいところです」
+   *
+   *   ★それまで、ここは **ずっと0件** でした。
+   *     読み先にしていたページ（schedule.php）には、予定が
+   *     1文字も書かれていません。中身はGoogleカレンダーの貼りつけで、
+   *     開いたあとに作られるので、何も取れませんでした。
+   *   ★そのカレンダーは、だれでも見られる形で公開されています。
+   *     予定そのものを置いてある場所を読むと、
+   *     日付・公演名・会場・その日の役目まで分かります。
+   *   ★ここで読むのは公開されているページなので、新しい許可は要りません。
+   *   ★大阪A地区の外（神戸・京都など）は、その場で落とします。
+   */
+  { name: "ワントゥワン",         kind: "barasi",
+    ics: [
+      "n96udhksk1r7gp6cfg0jjbmb9g@group.calendar.google.com",   // コンサート
+      "4771h8oon6dqdjs3umtsau73u0@group.calendar.google.com",   // 舞台
+      "5jdpmu8cj6vgkrbak1j46nbfr4@group.calendar.google.com",   // イベント
+      "3ni11emcov6l0jhehdm6ubc7f4@group.calendar.google.com",   // コンサート／グッズ販売
+      "clnir39ffu6t0h9frrdcd8vj9o@group.calendar.google.com"    // グッズ販売
+    ],
     url: "https://onetoone-jp.com/schedule.php" },
   // ★ニューオータニは、一覧のページに時刻が載っていない。
   //   deep: true を付けると、一覧から催しのページを開いて、そこで時刻を探す。
@@ -2486,6 +2532,20 @@ function vnHourOf_(hhmm) {
  *   分からないものを出すのは、間違いを出すのと同じ。だから出さない。
  */
 function vnHasTime_(ev) {
+  /*
+   * ★バラシ（片づけ）は、時刻が出ていなくても出します（ご指示・2026/11/9）。
+   *
+   *   まーく様のご指示：
+   *     「特に、ワントゥワン情報など
+   *       バラシ情報は必ず載せて欲しいところです」
+   *
+   *   バラシは「公演が終わったあと」に かならず起きます。
+   *   つまり、夜勤の時間帯そのものです。
+   *   時刻が書いていないからといって落とすと、
+   *   いちばん欲しいものが1件も出ません。
+   *   時刻は言い切らないので、嘘にはなりません。
+   */
+  if (ev && ev.kind === "barasi") return true;
   return vnHourOf_(ev && ev.start) !== null || vnHourOf_(ev && ev.end) !== null;
 }
 
@@ -2496,6 +2556,8 @@ function vnHasTime_(ev) {
  * ★時刻が分からないものは、ここで落とす（前は残していた。上の vnHasTime_ 参照）。
  */
 function vnInTimeRange_(ev) {
+  // ★バラシは公演のあと＝かならず夜なので、時間帯で落としません（ご指示・2026/11/9）
+  if (ev && ev.kind === "barasi") return true;
   const end = vnHourOf_(ev.end);
   const start = vnHourOf_(ev.start);
   if (end === null && start === null) return false;       // 時刻が無いものは出さない
@@ -3041,6 +3103,29 @@ function vnProbeAll() {
 /** 1つぶんを調べる。戻り値は行の配列 */
 function vnProbeOne_(src, now) {
   const L = [];
+  /*
+   * ★公開カレンダーから読む会場（ワントゥワン）は、
+   *   ページを見ても予定が1文字もありません。
+   *   実際に読ませてみた結果だけを書きます。
+   */
+  if (src && src.ics && src.ics.length) {
+    L.push("公開カレンダー " + src.ics.length + "つ から読みます（ページには予定がありません）");
+    let n = 0, note = "";
+    for (let i = 0; i < 8; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      let r = null;
+      try { r = vnScrapeIcs_(src, d); } catch (e) { r = null; }
+      if (!r) continue;
+      if (r.note && !note) note = r.note;
+      if (r.events.length) {
+        if (n < 3) L.push("　" + vnDateLabel_(d) + "　" + r.events[0].title);
+        n += r.events.length;
+      }
+    }
+    if (n) L.push("✅ 実際に読ませてみた結果：8日ぶんで " + n + "件");
+    else { L.push("❌ 実際に読ませてみた結果：8日ぶんで 0件"); if (note) L.push("　" + note); }
+    return L;
+  }
   let res;
   try {
     res = UrlFetchApp.fetch(src.url, {
@@ -6077,7 +6162,316 @@ function vnStageTime_(lines, day) {
 }
 
 /** 1つのサイトから、その日のぶんを読む。戻り値は {events, note} */
+/* ================================================================
+ *  🔧 公開カレンダーから、バラシ（片づけ）の予定を読む
+ *
+ *  ★まーく様のご指示（2026/11/9）
+ *    「数年間分のメッセージを送ったグループ情報は
+ *      毎日、送られてきてるような情報を載せてもらえるので
+ *      それ以外に、載ってない部分を、まとめられるようにしてほしいです
+ *      特に、ワントゥワン情報など
+ *      バラシ情報は必ず載せて欲しいところです」
+ *
+ *  ★それまで、ワントゥワンは **ずっと0件** でした。
+ *    読み先にしていたページ（schedule.php）には、
+ *    予定が1文字も書かれていません。中身はGoogleカレンダーの
+ *    貼りつけで、開いたあとに作られます。だから何も取れませんでした。
+ *
+ *  ★そのカレンダーは、だれでも見られる形で公開されています。
+ *    予定そのものを置いてある場所（.ics）を読めば、
+ *    日付・公演名・会場・その日の役目（搬入／公演日）まで分かります。
+ *
+ *  ★ここで読むのは「公開されているページ」です。
+ *    まーく様のGoogleカレンダーを見にいくのとは違うので、
+ *    新しい許可は要りません（いまの9つの中に収まります）。
+ *
+ *  ★大阪A地区の外（神戸・京都など）は、その場で落とします。
+ *    行けない場所を知らせても、邪魔になるだけです。
+ * ================================================================ */
+
+/** ICSの「折り返した行」を元に戻す（長い行は次の行に続く決まり） */
+function vnIcsUnfold_(t) {
+  return String(t || "").replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "");
+}
+
+/** 「2026-11-13」の日を「20261113」にする */
+function vnIcsYmd_(d) {
+  const x = (d && typeof d.getTime === "function") ? d : new Date();
+  return "" + x.getFullYear() + ("0" + (x.getMonth() + 1)).slice(-2) +
+         ("0" + x.getDate()).slice(-2);
+}
+
+/** ICSの1件から、名札（SUMMARY など）の中身を取り出す */
+function vnIcsField_(ev, key) {
+  const m = String(ev || "").match(new RegExp("\\n" + key + "[^:\\n]*:([^\\n]*)"));
+  if (!m) return "";
+  /*
+   * ★説明のところには、ホームページのしるし（<br> や <u></u>）が
+   *   そのまま入っています。落としておかないと、
+   *   まーく様に「<u></u>」という字が そのまま届きます。
+   */
+  return m[1]
+    .replace(/\\n/g, "\n")
+    .replace(/<\s*br[^>]*>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\\,/g, "、")
+    .replace(/\;/g, "；")
+    .replace(/[ \t　]+/g, " ")
+    .trim();
+}
+
+/**
+ * 「14日（土）・15日（日）」「11月24日（火）～26日（木）」のような書き方を、
+ * 日にちの一覧（"20261124" の形）にひらく。
+ *
+ * ★なぜ要るか（2026/11/9）
+ *   ワントゥワンのカレンダーは、1件の中に
+ *     搬入日：13日（金）
+ *     公演日：14日（土）・15日（日）
+ *   と書かれています。予定そのものは 13日から始まっているので、
+ *   そのまま読むと **搬入の日を「バラシあり」として出します。**
+ *   搬入の日に、夜の片づけはありません。だれも出てきません。
+ *   公演日だけを取り出す必要があります。
+ */
+function vnIcsDaySet_(t, baseY, baseM) {
+  const out = {};
+  const str = String(t || "");
+  if (!str) return out;
+  const re = /(?:(\d{1,2})\s*月\s*)?(\d{1,2})\s*日/g;
+  const toks = [];
+  let m;
+  while ((m = re.exec(str)) !== null) {
+    toks.push({ mo: m[1] ? Number(m[1]) : 0, d: Number(m[2]), at: m.index });
+  }
+  const key = function (y, mo, d) {
+    return "" + y + ("0" + mo).slice(-2) + ("0" + d).slice(-2);
+  };
+  // 月が もとの月より小さければ、年をまたいでいる（12月 → 1月）
+  const yearOf = function (mo) { return mo < baseM ? baseY + 1 : baseY; };
+  let curM = baseM;
+  for (let i = 0; i < toks.length; i++) {
+    const a = toks[i];
+    if (a.mo) curM = a.mo;
+    const mo = a.mo || curM;
+    out[key(yearOf(mo), mo, a.d)] = 1;
+    // ひとつ前との間が「～」なら、あいだの日も ぜんぶ入れる
+    if (i > 0) {
+      const gap = str.slice(toks[i - 1].at, a.at);
+      if (/[～〜~\-－‐]/.test(gap)) {
+        const pm = toks[i - 1].mo || curM;
+        const from = new Date(yearOf(pm), pm - 1, toks[i - 1].d);
+        const to = new Date(yearOf(mo), mo - 1, a.d);
+        let guard = 0;
+        const x = new Date(from.getTime());
+        while (x <= to && guard++ < 60) {
+          out[key(x.getFullYear(), x.getMonth() + 1, x.getDate())] = 1;
+          x.setDate(x.getDate() + 1);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * その日が「バラシのある日（公演日）」かどうかを見分ける。
+ *
+ * ★搬入だけの日は出しません。夜の片づけが無いので、
+ *   出すと だれも来ない会場へ行かせることになります。
+ *
+ * @return {Object} { ok: 出してよいか, role: その日の役目 }
+ */
+function vnIcsRole_(desc, day, baseY, baseM) {
+  const t = String(desc || "");
+  const ymd = vnIcsYmd_(day);
+  const pick = function (label) {
+    const m = t.match(new RegExp("(?:" + label + ")\\s*[：:]\\s*([^\\n<]{0,60})"));
+    return m ? m[1] : "";
+  };
+  const show = pick("公演日|本番日");
+  const load = pick("搬入日|設営日");
+  if (show) {
+    if (vnIcsDaySet_(show, baseY, baseM)[ymd]) return { ok: true, role: "公演日" };
+    if (load && vnIcsDaySet_(load, baseY, baseM)[ymd]) return { ok: false, role: "搬入" };
+    return { ok: false, role: "" };
+  }
+  if (load && vnIcsDaySet_(load, baseY, baseM)[ymd]) return { ok: false, role: "搬入" };
+
+  // ★むかしの書き方（「13日(日):公演日」）にも合わせる
+  const dd = day.getDate();
+  const old2 = t.match(new RegExp("(?:^|[^0-9])" + dd +
+                "\\s*日\\s*[（(][^）)]{1,3}[）)]\\s*[：:]\\s*([^ \\n]{1,6})"));
+  if (old2) {
+    if (/搬入|設営/.test(old2[1])) return { ok: false, role: "搬入" };
+    return { ok: true, role: old2[1] };
+  }
+  return { ok: true, role: "" };          // 何も書いていないときは、そのまま出す
+}
+
+/**
+ * その会場が、大阪A地区かどうか。
+ * 住所つきの会場名（「フェスティバルホール、日本、〒530-0005 大阪府大阪市北区…」）
+ * から見ます。住所が無いときは、会場の表に名前があればそこから見ます。
+ */
+function vnIcsInAreaA_(location) {
+  const t = String(location || "");
+  if (!t) return false;
+  // ① 住所に、A地区の市の名前が入っているか
+  for (let i = 0; i < VN_AREA_A.length; i++) {
+    if (t.indexOf(VN_AREA_A[i]) !== -1) return true;
+  }
+  // ② 住所が無くても、こちらの会場の表に名前があれば、そこから見る
+  for (const name in VN_VENUES) {
+    if (!Object.prototype.hasOwnProperty.call(VN_VENUES, name)) continue;
+    if (t.indexOf(name) === -1) continue;
+    if (vnInAreaA_((VN_VENUES[name] || {}).city)) return true;
+  }
+  return false;
+}
+
+/** 住所つきの会場名から、会場の名前だけを取り出す */
+function vnIcsPlace_(location) {
+  let t = String(location || "");
+  t = t.split("、")[0].split(",")[0];          // 「ホール、日本、〒…」の1つめ
+  return t.replace(/\s+/g, " ").trim().slice(0, 40);
+}
+
+/**
+ * 公開カレンダー（1つぶん）から、その日の予定を取り出す。
+ *
+ * ★大きいカレンダー（何千件）もあるので、
+ *   全部を切りきざまずに「その日の数字がある所」だけを見ます。
+ */
+function vnIcsPick_(text, day) {
+  const t = String(text || "");
+  const out = [], seen = {};
+  const want = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+
+  /*
+   * ★その日の数字だけをさがしては、いけません（2026/11/9 に直しました）。
+   *
+   *   ワントゥワンの予定は、搬入の日から始まって何日も続きます。
+   *     始まり 11/13 ／ 終わり 11/16 ／ 公演日 14日・15日
+   *   この中に「20261114」という字は、どこにも出てきません。
+   *   その日の数字だけをさがすと、**公演の日を まるごと落とします。**
+   *   いちばん欲しい日を落とすので、これでは意味がありません。
+   *
+   *   なので「その日から30日前まで」に始まった予定を集めて、
+   *   そのあと、その日が中に入っているかを見ます。
+   */
+  for (let back = 0; back <= 30; back++) {
+    const x = new Date(day.getFullYear(), day.getMonth(), day.getDate() - back);
+    const ymd = vnIcsYmd_(x);
+    let pos = 0, guard = 0;
+    while (guard++ < 200) {
+      const i = t.indexOf(ymd, pos);
+      if (i === -1) break;
+      pos = i + 8;
+      const b = t.lastIndexOf("BEGIN:VEVENT", i);
+      const e = t.indexOf("END:VEVENT", i);
+      if (b === -1 || e === -1 || e < b) continue;
+      if (seen[b]) continue;
+      seen[b] = 1;
+      const ev = "\n" + vnIcsUnfold_(t.slice(b, e));
+      const ds = ev.match(/\nDTSTART[^:\n]*:(\d{8})/);
+      const de = ev.match(/\nDTEND[^:\n]*:(\d{8})/);
+      if (!ds) continue;
+      const toDate = function (y) {
+        return new Date(Number(y.slice(0, 4)), Number(y.slice(4, 6)) - 1,
+                        Number(y.slice(6, 8))).getTime();
+      };
+      const from = toDate(ds[1]);
+      // 終わりは「次の日の0時」で書かれる決まりなので、1日ひいて見る
+      const to = de ? toDate(de[1]) - 86400000 : from;
+      if (want < from || want > to) continue;        // その日は、この予定の中ではない
+      out.push(ev);
+    }
+  }
+  return out;
+}
+
+/**
+ * 公開カレンダーを読んで、催し（バラシ）の一覧にする。
+ *
+ * ★1つこけても、残りのカレンダーは続けます
+ *   （途中で止めると、全部が0件になってしまうため）。
+ */
+function vnScrapeIcs_(src, day) {
+  const out = { events: [], note: "", size: 0, code: 0 };
+  const ids = src.ics || [];
+  let okCount = 0, ng = [];
+
+  ids.forEach(function (id) {
+    const url = "https://calendar.google.com/calendar/ical/" +
+                encodeURIComponent(id) + "/public/basic.ics";
+    let res;
+    try {
+      res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+    } catch (e) { ng.push(String(id).slice(0, 8)); return; }
+    if (res.getResponseCode() !== 200) { ng.push(String(id).slice(0, 8)); return; }
+    let text = "";
+    try { text = res.getContentText(); } catch (e) { text = ""; }
+    if (!text) { ng.push(String(id).slice(0, 8)); return; }
+    okCount++;
+    out.size += text.length;
+    out.code = 200;
+
+    // そのカレンダーの名前（「コンサート」「舞台」など）
+    let calName = "";
+    const cm = text.match(/X-WR-CALNAME:([^\r\n]*)/);
+    if (cm) calName = cm[1].trim();
+
+    vnIcsPick_(text, day).forEach(function (ev) {
+      const loc = vnIcsField_(ev, "LOCATION");
+      if (!vnIcsInAreaA_(loc)) return;                   // 大阪A地区の外は出さない
+      const sum = vnIcsField_(ev, "SUMMARY");
+      const place = vnIcsPlace_(loc);
+      /*
+       * ★その日の役目（搬入／公演日）が、説明に書かれています。
+       *     「13日(金):公演日」「12日(木):搬入」
+       *   バラシがあるのは公演日の夜なので、分かるときは添えます。
+       */
+      const desc = vnIcsField_(ev, "DESCRIPTION");
+      const ds0 = ev.match(/\nDTSTART[^:\n]*:(\d{8})/);
+      const baseY = ds0 ? Number(ds0[1].slice(0, 4)) : day.getFullYear();
+      const baseM = ds0 ? Number(ds0[1].slice(4, 6)) : (day.getMonth() + 1);
+      const r = vnIcsRole_(desc, day, baseY, baseM);
+      if (!r.ok) return;                 // 搬入だけの日は出さない（夜の片づけが無い）
+      const role = r.role;
+
+      const title = (place ? place + "／" : "") + (sum || "（名前なし）") +
+                    (role ? "（" + role + "）" : "") +
+                    (calName ? "［" + calName + "］" : "");
+      out.events.push({
+        venue: src.venue || src.name, kind: "barasi", icon: "🔧",
+        title: title,
+        start: "", startKind: "", end: "", endGuess: false, endSure: false,
+        people: 0, url: src.url || "",
+        raw: (sum + " / " + loc).slice(0, 400)
+      });
+    });
+  });
+
+  if (!okCount) {
+    out.note = "❌ 公開カレンダーが1つも読めませんでした";
+    return out;
+  }
+  if (!out.events.length) {
+    out.note = "⚠️ その日は、大阪A地区のバラシがありません";
+  } else if (ng.length) {
+    out.note = "（" + ng.length + "つのカレンダーは読めませんでした）";
+  }
+  return out;
+}
+
 function vnScrapeOne_(src, day, htmlIn) {
+  // ★公開カレンダーから読む会場（ワントゥワンなど）は、こちらで読みます
+  if (src && src.ics && src.ics.length) {
+    try { return vnScrapeIcs_(src, day); }
+    catch (e) {
+      return { events: [], note: "❌ 公開カレンダーの読み取りでつまずきました", size: 0, code: 0 };
+    }
+  }
   const out = { events: [], note: "", size: 0, code: 0 };
   let html = "";
   if (htmlIn) {
