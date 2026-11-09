@@ -2,7 +2,29 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V085ver  （2026/11/9）  ★★★
+ *  ★★★  V086ver  （2026/11/9）  ★★★
+ *
+ *  [V086ver]
+ *   ・🎭 オリックス劇場（2,400人）を、読めるようにした
+ *     ★まーく様から、職場のLINEに毎日ならぶ「イベント』」の控えを
+ *       いただきました。そこに毎日 名前が出ている会場のうち、
+ *       **オリックス劇場だけが、まるごと抜けていました**。
+ *       毎日 公演がある会場です。入れていなかった私の落ち度です。
+ *     ★ここは、ページを開いたあとに中身を作る作りなので、
+ *       そのままでは文字が1つも取れません。
+ *       月ごとの中身が置いてある場所を見つけたので、そこを読みます。
+ *       住所に月が入るので、{Y}（年）{M}（月）と書けるようにしました。
+ *   ・⏰ 「18:00開演」の書き方が、読めていませんでした
+ *     ★これまでは「開演 18:00」の順しか見ていませんでした。
+ *       日本のページは「18:00開演」と書くほうが多く、
+ *       この形だと**開演と分からないまま**時刻だけを拾っていました。
+ *     ★もっと悪いのは、2回公演の日です。
+ *         13:30開演 ／ 17:30開演
+ *       1つめを開演、**2つめを終演**として読んでいました。
+ *       17:15に車を着けさせることになります。本当の終演は20時ごろです。
+ *       これは空振りそのもので、1日の売上が変わります。
+ *     ★直し：時刻の前に書いてある言葉も読みます。
+ *       2つめの時刻にも「開演」と書いてあれば、終演には使いません。
  *
  *  [V085ver]
  *   ・🏟 おおきにアリーナ舞洲の住所が、死んでいました
@@ -1265,7 +1287,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V085ver";
+const VN_VERSION = "V086ver";
 
 /**
  * 見にいく先の一覧。
@@ -1366,6 +1388,20 @@ const VN_SOURCES = [
     hosts: ["kyodo-osaka.co.jp"],
     url: "https://www.gco.co.jp/event/" },
   { name: "梅田芸術劇場",           kind: "event", url: "https://www.umegei.com/" },
+  /*
+   * ★オリックス劇場（2,400人・大阪市西区）
+   *   まーく様にいただいた職場のLINEの控えでは、毎日の「イベント』」に
+   *   かならず名前が出ています。それなのに、こちらには入っていませんでした。
+   *
+   *   ★ここは、ページを開いたあとに中身を作る作り（JavaScript）なので、
+   *     ふつうに開いても文字が1つも取れません（実際に0件でした）。
+   *     月ごとの中身が、別の場所に置いてあるのを見つけました。
+   *     住所に年と月が入るので、{Y}{M} と書いて、その日の年月を入れます。
+   *   ★中身には「2026年11月1日(日) 13:30開演 / 17:30開演」の形で
+   *     日付と開演が入っています。だから時刻まで読み取れます。
+   */
+  { name: "オリックス劇場",         kind: "event",
+    url: "https://www.orixtheater.jp/update/event/{Y}/{Y}{M}event.json" },
   /*
    * ★新歌舞伎座は、一覧に「11月14日(土)～11月23日(月・祝)」としか無く、
    *   何時に始まるかは、公演のページの「昼の部／夜の部」の表にあります。
@@ -1497,6 +1533,7 @@ const VN_VENUES = {
   "グランキューブ大阪":     { cap: 2700,  near: ["中之島", "肥後橋", "福島"],          type: "ホール", city: "大阪市北区", pref: "大阪府" },
   "梅田芸術劇場":           { cap: 1900,  near: ["中津", "梅田", "茶屋町"],            type: "ホール", city: "大阪市北区", pref: "大阪府" },
   "新歌舞伎座":             { cap: 1600,  near: ["上本町", "谷町九丁目"],              type: "ホール", city: "大阪市天王寺区", pref: "大阪府" },
+  "オリックス劇場":         { cap: 2400,  near: ["西大橋", "四ツ橋", "本町"],            type: "ホール", city: "大阪市西区", pref: "大阪府" },
 
   /* ---- 2026/10/15 に足した、大阪市外・大阪府内の会場 ---- */
   "花園ラグビー場":         { cap: 26000, near: ["東花園", "瓢箪山"],                  type: "スタジアム", city: "東大阪市", pref: "大阪府" },
@@ -5142,8 +5179,158 @@ function vnEntity_(t) {
 }
 
 /** HTMLを「行のならんだ文字」にする。表の1行＝1件のことが多いので、行を残す */
+/**
+ * JSON（中身だけの置き場）なら、中の言葉を1行ずつにして返す。
+ * JSON でなければ null を返す（＝ふつうのページとして読む）。
+ *
+ * ★会場ごとの決め打ちにはしていません。
+ *   「文字のところを、出てきた順に行にする」だけです。
+ *   だから、ほかの会場が同じ作りに変わっても、そのまま読めます。
+ */
+function vnJsonLines_(text) {
+  const t = String(text || "").trim();
+  if (!t || (t.charAt(0) !== "[" && t.charAt(0) !== "{")) return null;
+  let data;
+  try { data = JSON.parse(t); } catch (e) { return null; }   // ページなら ここで終わり
+  const out = [];
+  const walk = function (v, depth) {
+    if (depth > 8 || out.length > 4000) return;              // 底なしに深く行かない
+    if (v === null || v === undefined) return;
+    if (typeof v === "string") {
+      // <br> は改行に、しるしは消す（中に HTML が入っていることがある）
+      String(v).replace(/<\s*br[^>]*>/gi, "\n").replace(/<[^>]+>/g, " ")
+        .split("\n").forEach(function (x) {
+          const y = vnEntity_(x).replace(/[ \t　]+/g, " ").trim();
+          if (y) out.push(y);
+        });
+      return;
+    }
+    if (typeof v === "number" || typeof v === "boolean") return;  // 旗や番号は要らない
+    if (Object.prototype.toString.call(v) === "[object Array]") {
+      v.forEach(function (x) { walk(x, depth + 1); });
+      return;
+    }
+    for (const k in v) { if (Object.prototype.hasOwnProperty.call(v, k)) walk(v[k], depth + 1); }
+  };
+  walk(data, 0);
+  return out.length ? out : null;
+}
+
+/**
+ * 読み先の住所に、その日の年と月を入れる。
+ *
+ * ★なぜ要るか：オリックス劇場は、月ごとに置き場が分かれています。
+ *   　https://…/update/event/2026/202611event.json
+ *   毎月こちらが書きかえる形にすると、書きかえ忘れた月は
+ *   黙って0件になります。それでは「クロちゃんがいないと止まる」作りです。
+ *   なので住所に {Y}（年）{M}（月・頭の0なし）と書いておき、
+ *   見にいくときに、その日の年月を入れます。
+ */
+function vnSrcUrl_(src, day) {
+  const u = String((src && src.url) || "");
+  if (u.indexOf("{") === -1) return u;                 // ふつうの住所は そのまま
+  const d = (day && typeof day.getTime === "function") ? day : new Date();
+  return u.replace(/\{Y\}/g, String(d.getFullYear()))
+          .replace(/\{M\}/g, String(d.getMonth() + 1))
+          .replace(/\{MM\}/g, ("0" + (d.getMonth() + 1)).slice(-2));
+}
+
+/**
+ * 「言葉のついた時刻」をさがす。
+ *
+ * ★なぜ両方の順番を見るか（2026/11/9・直し）
+ *   これまでは「開演 18:00」の順しか見ていませんでした。
+ *   ところが日本のページは **「18:00開演」** と書くほうが多いのです。
+ *   この形だと、開演と分からないまま時刻だけを拾っていました。
+ *   さらに2回公演の日は
+ *     13:30開演 ／ 17:30開演
+ *   となるので、2つめを **終演** として読んでいました。
+ *   17:15に車を着けさせることになります（本当は20時ごろ終わり）。
+ *   空振りそのもので、1日の売上が変わります。
+ *
+ * @param {string} text  さがす文
+ * @param {string} words 「開演|スタート」のような、縦棒でつないだ言葉
+ * @return {Array} 見つかった時刻の一覧（出てきた順・重なりなし）
+ */
+function vnTimesByWord_(text, words) {
+  const t = String(text || "");
+  const list = String(words || "").split("|").filter(function (x) { return x; });
+  if (!t || !list.length) return [];
+
+  // 文の中の時刻を、場所つきで ぜんぶ拾う
+  const times = [];
+  const tre = /\d{1,2}:\d{2}/g;
+  let m;
+  while ((m = tre.exec(t)) !== null) times.push({ v: m[0], at: m.index, to: m.index + m[0].length });
+  if (!times.length) return [];
+
+  const jpOnly = {};
+  list.forEach(function (w) { jpOnly[w] = !/[A-Za-z]/.test(w); });
+
+  const out = [];
+  const push = function (x) { if (x && out.indexOf(x) === -1) out.push(x); };
+
+  // 言葉のあるところを1つずつ見て、その言葉の時刻を決める
+  const wre = new RegExp("(" + list.join("|") + ")", "g");
+  while ((m = wre.exec(t)) !== null) {
+    const w = m[1], ws = m.index, we = ws + w.length;
+
+    /*
+     * ① 時刻が すぐ前：「18:00開演」
+     *   ★あいだは1文字も空けません。
+     *     空白を許すと「OPEN 18:00 開演 19:00」で、
+     *     18:00（開場）を開演として拾ってしまいます。
+     *     1時間早く車を着けさせることになります。
+     *   ★英語（START・OPEN）には使いません。
+     *     英語は、ふつう言葉を先に書きます。
+     */
+    let got = "";
+    if (jpOnly[w]) {
+      for (let i = 0; i < times.length; i++) {
+        if (times[i].to === ws) { got = times[i].v; break; }
+      }
+    }
+
+    /*
+     * ② 言葉が先：「開演 18:00」「START 19:00」
+     *   ★あいだに「/」「・」「、」が入っていたら、使いません。
+     *     「13:30開演 / 17:30開演」で、1つめの「開演」が
+     *     2つめの 17:30 をつかんでしまいます。
+     *     昼の公演なのに夜の時刻を出す形になります。
+     */
+    if (!got) {
+      for (let i = 0; i < times.length; i++) {
+        if (times[i].at < we) continue;
+        const gap = t.slice(we, times[i].at);
+        if (gap.length > 8) break;
+        if (/[0-9\/／、，・\n]/.test(gap)) break;
+        got = times[i].v;
+        break;
+      }
+    }
+    push(got);
+  }
+  return out;
+}
+/** 言葉のついた時刻を1つだけ返す（無ければ空） */
+function vnTimeByWord_(text, words) {
+  const a = vnTimesByWord_(text, words);
+  return a.length ? a[0] : "";
+}
+
 function vnLines_(html) {
   let t = String(html || "");
+  /*
+   * ★ページではなく「中身だけの置き場」（JSON）を読むところがあります。
+   *   オリックス劇場は、ページを開いても文字が1つも取れません。
+   *   その代わり、月ごとの中身が JSON で置いてあります。
+   *   JSON は < > のしるしが無いので、このあとの処理では
+   *   まるごと1行になってしまい、日付も時刻も読み取れません。
+   *   なので、先に中の言葉を1つずつ行に分けておきます。
+   *   （JSON でなければ、ここは何もしません）
+   */
+  const js = vnJsonLines_(t);
+  if (js) return js;
   t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
        .replace(/<style[\s\S]*?<\/style>/gi, " ")
        .replace(/<!--[\s\S]*?-->/g, " ");
@@ -5307,8 +5494,9 @@ function vnScrapeDeep_(src, day, html) {
      *   開演が読めたときだけ「開演」と言い、
      *   開場しか読めないときは「開場」と正直に書きます。
      */
-    const kai = text.match(/(開演|スタート|開始)[^0-9]{0,6}(\d{1,2}:\d{2})/);
-    const ba  = text.match(/(開場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    // ★「18:00開演」の順も読みます（2026/11/9・直し。上と同じ理由）
+    const kai = vnTimeByWord_(text, "開演|スタート|開始");
+    const ba  = vnTimeByWord_(text, "開場");
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
     /*
      * ★その日の時刻を、**その日の行から**拾います（2026/11/9）。
@@ -5325,7 +5513,7 @@ function vnScrapeDeep_(src, day, html) {
       if (mm) { onDay = mm[1]; break; }
     }
     const start = stage ? stage
-                        : (kai ? kai[2] : (ba ? ba[2] : (onDay || (times.length ? times[0] : ""))));
+                        : (kai ? kai : (ba ? ba : (onDay || (times.length ? times[0] : ""))));
     if (!start) continue;                       // 時刻が無いなら出さない
     const startKind = kai ? "開演" : (ba ? "開場" : "");
     /*
@@ -5334,7 +5522,7 @@ function vnScrapeDeep_(src, day, html) {
      *   確かではありません（endSure: false）。
      *   確かでない終わりは、案内には出しません（ご指示）。
      */
-    const fin = text.match(/(終了|終演|閉場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
+    const fin = vnTimeByWord_(text, "終了|終演|閉場");
     /*
      * ★表から始まりを取ったときは、終わりを よそから拾いません。
      *   公演のページには、チケットの発売の時刻（…23:59 など）が
@@ -5344,8 +5532,18 @@ function vnScrapeDeep_(src, day, html) {
      *   はっきり「終演」と書いてあるときだけ使い、
      *   それ以外は見積もりにします。
      */
-    let end = fin ? fin[2]
-                  : (stage ? "" : (times.length >= 2 && times[1] !== start ? times[1] : ""));
+    /*
+     * ★2つめの時刻を終演と見てよいのは、そこに「開演」「開場」と
+     *   書いて *いない* ときだけです（2026/11/9・直し）。
+     *   2回公演の日（13:30開演／17:30開演）で2つめを終演にすると、
+     *   17:15に車を着けさせることになります。本当は20時ごろ終わりです。
+     */
+    const kais2 = vnTimesByWord_(text, "開演|スタート|開始");
+    const bas2  = vnTimesByWord_(text, "開場");
+    let end = fin ? fin
+                  : (stage ? "" : (times.length >= 2 && times[1] !== start &&
+                                   kais2.indexOf(times[1]) === -1 &&
+                                   bas2.indexOf(times[1]) === -1 ? times[1] : ""));
     /*
      * ★終わりが始まりより前になっていたら、それは別の日の公演の時刻です。
      *   実際に「18:30 開演 〜 18:00 終演」という、ありえない形が出ました。
@@ -5757,7 +5955,8 @@ function vnScrapeOne_(src, day, htmlIn) {
   } else {
     let res;
     try {
-      res = UrlFetchApp.fetch(src.url, {
+      // ★住所に {Y}{M} が入っている会場は、その日の年と月を入れてから開く
+      res = UrlFetchApp.fetch(vnSrcUrl_(src, day), {
         muteHttpExceptions: true, followRedirects: true,
         headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
       });
@@ -5882,15 +6081,34 @@ function vnScrapeOne_(src, day, htmlIn) {
     const nearTimes = (near.match(/\d{1,2}:\d{2}/g) || []);
     let start = "", end = "";
     // ★「START」「OPEN」の英語も読みます（ライブハウスはこの書き方が多い）
-    const kick = text.match(/(キックオフ|開演|試合開始|START|Start)[^0-9]{0,8}(\d{1,2}:\d{2})/);
-    const ba2  = text.match(/(開場|OPEN|Open)[^0-9]{0,8}(\d{1,2}:\d{2})/);
-    const fin  = text.match(/(終了|終演|END|End)[^0-9]{0,8}(\d{1,2}:\d{2})/);
+    /*
+     * ★「18:00開演」の順も読みます（2026/11/9・直し）。
+     *   それまでは「開演 18:00」の順だけでした。日本のページは
+     *   時刻を先に書くほうが多く、この形だと開演と分からないまま
+     *   ただの時刻として拾っていました。
+     */
+    const kicks = vnTimesByWord_(text, "キックオフ|開演|試合開始|START|Start");
+    const bas   = vnTimesByWord_(text, "開場|OPEN|Open");
+    const fins  = vnTimesByWord_(text, "終了|終演|END|End");
+    const kick = kicks.length ? kicks[0] : "";
+    const ba2  = bas.length   ? bas[0]   : "";
+    const fin  = fins.length  ? fins[0]  : "";
     let startKind = "";
-    if (kick) { start = kick[2]; startKind = "開演"; }
-    else if (ba2) { start = ba2[2]; startKind = "開場"; }   // ★開場を開演と呼ばない
+    if (kick) { start = kick; startKind = "開演"; }
+    else if (ba2) { start = ba2; startKind = "開場"; }   // ★開場を開演と呼ばない
     else if (nearTimes.length) start = nearTimes[0];
-    if (fin) end = fin[2];
-    else if (nearTimes.length >= 2 && nearTimes[1] !== start) end = nearTimes[1];
+    if (fin) end = fin;
+    else if (nearTimes.length >= 2 && nearTimes[1] !== start &&
+             kicks.indexOf(nearTimes[1]) === -1 && bas.indexOf(nearTimes[1]) === -1) {
+      /*
+       * ★2つめの時刻を終演と見てよいのは、
+       *   そこに「開演」「開場」と書いて *いない* ときだけです。
+       *   2回公演の日は「13:30開演 ／ 17:30開演」とならぶので、
+       *   2つめを終演にすると17:15に車を着けさせます。
+       *   本当の終演は20時ごろ。まるで逆の案内になります。
+       */
+      end = nearTimes[1];
+    }
 
     // ★開演も終演も読めないかたまりは、催しとして扱わない。
     //   ページには「9月16日」という文字が、更新日や月間カレンダーの

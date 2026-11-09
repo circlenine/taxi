@@ -1,7 +1,24 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C084ver  （2026/11/9）  ★★★   ← もとは version 232
+ *  ★★★  C085ver  （2026/11/9）  ★★★   ← もとは version 232
+ *
+ *  [C085ver]
+ *   ・🙅 情報あつめ用のグループへ、うっかり送る道をふさいだ
+ *     ★まーく様のご指示：
+ *       「このグループはあくまで情報収集用ですので、
+ *         このグループにこちらからなにか送信することは絶対にやめてください」
+ *     ★危なかったところ：送り先のグループを、**あとから届いた
+ *       グループで上書き**していました。公式アカウントが
+ *       情報あつめ用のグループに入れられて、そこで1回しゃべられたら、
+ *       その日の16:30のお知らせは **そのグループへ飛びます**。
+ *       しかも、こちらも まーく様も、気づけません。
+ *       「絶対に送らない」と言われたところへ、黙って送る形でした。
+ *     ★直し（止め方を2つ重ねました）
+ *       ① いちど決まった送り先は、ひとりでに変えない。
+ *          別のグループから届いたら、控えるだけ（黙らない）。
+ *       ② 送る手前で、名ざしで止める（NG_GROUP_IDS）。
+ *     ★わざと壊して確かめる検査 … gas/test/nosend.test.js
  *
  *  [C084ver]
  *   ・⚡ LINEの「届きますか」に、すぐ返事するようにした
@@ -874,7 +891,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C084ver";
+const CODE_VERSION = "C085ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -2031,10 +2048,66 @@ function rememberGroupId_(ev) {
     if (!id) return;
 
     const props = PropertiesService.getScriptProperties();
-    if (props.getProperty("GROUP_ID") !== id) props.setProperty("GROUP_ID", id);
+    const now = props.getProperty("GROUP_ID") || "";
+
+    /*
+     * ★ここを直しました（2026/11/9・まーく様のご指示から）
+     *
+     *   まーく様のご指示：
+     *     「このグループはあくまで情報収集用ですので、
+     *       このグループにこちらからなにか送信することは絶対にやめてください」
+     *
+     *   それまでは、**あとから届いたグループで上書き**していました。
+     *   公式アカウントが別のグループ（たとえば情報あつめ用のグループ）に
+     *   入れられて、そこで1回しゃべられたら、
+     *   **その日の16:30のお知らせは、そのグループへ飛びます。**
+     *   しかも、こちらも まーく様も、気づけません。
+     *   「絶対に送らない」と言われたところへ、黙って送る形でした。
+     *
+     *   ★直し：いちど決まった送り先は、**ひとりでに変えません。**
+     *     別のグループから届いたら、送り先は変えずに
+     *     「こういうグループからも届いています」とだけ控えます。
+     *     （控えは、1時間ごとの報告に出るので、黙ったままにはなりません）
+     *   ★送り先を変えるのは、まーく様が
+     *     メニュー「👥 グループIDを設定」で入れたときだけです。
+     */
+    if (!now) {
+      props.setProperty("GROUP_ID", id);
+    } else if (now !== id) {
+      try {
+        const key = "GROUP_ID_OTHER";
+        const seen = String(props.getProperty(key) || "").split(",")
+          .filter(function (x) { return x; });
+        if (seen.indexOf(id) === -1 && seen.length < 20) {
+          seen.push(id);
+          props.setProperty(key, seen.join(","));
+        }
+      } catch (e2) {}
+      return;                      // ★送り先は変えない
+    }
 
     if (!infoGet_(INFO_ROW.GROUP)) infoSet_(INFO_ROW.GROUP, id, "グループID");
   } catch (e) { logErr_("rememberGroupId", e); }
+}
+
+/**
+ * 「ここへは送ってはいけない」グループかどうか。
+ *
+ * ★まーく様のご指示（2026/11/9）
+ *   情報あつめ用のグループには、こちらから1文字も出しません。
+ *   ＝そのグループのIDを NG_GROUP_IDS（スクリプトの控え）に
+ *     入れておけば、送る手前で必ず止まります。
+ *   ★止め方を2つ重ねる決まりなので、
+ *     ①送り先をひとりでに変えない（上）と
+ *     ②送る手前で名ざしで止める（ここ）の2段にしてあります。
+ */
+function lineBlockedTo_(id) {
+  const to = String(id || "");
+  if (!to) return false;
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty("NG_GROUP_IDS") || "";
+    return raw.split(/[,\s]+/).some(function (x) { return x && x === to; });
+  } catch (e) { return false; }
 }
 
 function handleEvent_(ev) {
