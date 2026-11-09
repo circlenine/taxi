@@ -142,5 +142,52 @@ console.log('■ 「なおす」のときに、ちゃんと呼んでいるか');
   ok(/updWebAppCheck_\(\)/.test(fx), '「なおす」で、受け口も確かめる');
 }
 
+/* ================================================================
+ *  ⏱ 「何分おき」に、Googleが受け取らない値を書いていないか
+ *
+ *  ★2026/11/9、実際にこう出ていました。
+ *      「見張りを立て直せませんでした
+ *        （everyMinutes に渡した値は無効です。
+ *          1、5、10、15、30 のいずれかを指定してください。）」
+ *    3分おき、と書いてあったためです。
+ *
+ *  ★ふだんは、何ごともないように見えます。
+ *    いまある見張りは前からのもので、ちゃんと動いているからです。
+ *    こわいのは「**見張りが消えたときに、立て直せない**」こと。
+ *    そうなると新しい中身も取り込めず、こちらからも直せません。
+ *    「ここで指示すれば必ず直る」が、根元から成り立ちません。
+ *
+ *  ★だから、コードに書いてある「何分おき」を ぜんぶ見ます。
+ * ================================================================ */
+console.log('■ 「何分おき」に、使えない値を書いていないか');
+{
+  const OK = [1, 5, 10, 15, 30];
+  const dir = path.join(__dirname, '..');
+  const files = fs.readdirSync(dir).filter(f => /\.gs$/.test(f));
+  const bad = [];
+  const seen = [];
+  files.forEach(f => {
+    const txt = fs.readFileSync(path.join(dir, f), 'utf8');
+    // 定数の中身を先にひろう（everyMinutes(PANEL_WATCH_MIN) のような書き方のため）
+    const consts = {};
+    let c;
+    const cre = /^\s*(?:const|let|var)\s+([A-Z_][A-Z0-9_]*)\s*=\s*(\d+)\s*;/gm;
+    while ((c = cre.exec(txt)) !== null) consts[c[1]] = Number(c[2]);
+
+    let m;
+    const re = /\.everyMinutes\(\s*([A-Za-z_][A-Za-z0-9_]*|\d+)\s*\)/g;
+    while ((m = re.exec(txt)) !== null) {
+      const raw = m[1];
+      const v = /^\d+$/.test(raw) ? Number(raw)
+                                  : (raw in consts ? consts[raw] : null);
+      seen.push(f + ' … ' + raw + (v === null ? '（値を追えません）' : '＝' + v + '分'));
+      if (v === null || OK.indexOf(v) === -1) bad.push(f + ' … ' + raw + '＝' + v);
+    }
+  });
+  ok(seen.length > 0, '　 「何分おき」の書き場所が見つかる（' + seen.length + 'か所）', seen);
+  ok(bad.length === 0,
+     '★★★Googleが受け取れない「何分おき」が、1つも無い（1・5・10・15・30だけ）', bad);
+}
+
 console.log(fail ? `\n☓ ${fail}件 こけました` : '\n✓ ぜんぶ通りました');
 process.exit(fail ? 1 : 0);
