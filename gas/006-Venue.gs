@@ -2,7 +2,36 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V083ver  （2026/11/9）  ★★★
+ *  ★★★  V084ver  （2026/11/9）  ★★★
+ *
+ *  [V084ver]
+ *   ・🎭 新歌舞伎座（1,600人）を、読めるようにした
+ *     ★一覧には「11月14日(土)～11月23日(月・祝)」としか無く、
+ *       何時に始まるかは、公演のページの表にあります。
+ *         日付／曜日／昼の部／夜の部
+ *         11/14／土／11:30／16:30
+ *         15／日／11:30／-
+ *     ★**タクシーに関わるのは夜の部です。**
+ *       先頭から拾うと昼の部（11:30）になり、お昼に終わる公演に
+ *       なってしまいます。夜の部があれば、そちらを使います。
+ *     ★月が書いてあるのは いちばん上の行だけなので、
+ *       下の行（「15」「18」）には、上から月をもらいます。
+ *     ★「-」だけの日は、公演がありません。出しません。
+ *   ・🌙 真夜中に車を着けさせるところでした
+ *     ★公演のページには、チケットの発売の時刻（…23:59）が
+ *       ならんでいます。これを終演として拾っていました。
+ *       「23:59に終わる芝居」になり、真夜中に行かせることになります。
+ *     ★表から始まりを取ったときは、終わりを よそから拾いません。
+ *   ・🔗 長いリンクを、見落としていた
+ *     ★リンクの中身を200字までしか見ていませんでした。
+ *       新歌舞伎座のトップページは、リンクの中に
+ *       写真＋日付＋公演名 が入っていて、200字を超えます。
+ *       そのため **そのリンクが丸ごと見えていません**でした。
+ *   ・🚪 どのページから開くかを、選ぶようにした
+ *     ★開けるのは5つまでです。ふつうに上から開くと
+ *       「チケット購入方法」「劇場案内」「お食事」で枠を使い切ります。
+ *       催しのページらしいもの（住所にその月が入っているもの）から
+ *       開きます。案内のページは、はじめから外します。
  *
  *  [V083ver]
  *   ・📄 調べた結果を、クロちゃんからも読める所に置くようにした
@@ -1220,7 +1249,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V083ver";
+const VN_VERSION = "V084ver";
 
 /**
  * 見にいく先の一覧。
@@ -1321,7 +1350,13 @@ const VN_SOURCES = [
     hosts: ["kyodo-osaka.co.jp"],
     url: "https://www.gco.co.jp/event/" },
   { name: "梅田芸術劇場",           kind: "event", url: "https://www.umegei.com/" },
-  { name: "新歌舞伎座",             kind: "event", url: "https://www.shinkabukiza.co.jp/" },
+  /*
+   * ★新歌舞伎座は、一覧に「11月14日(土)～11月23日(月・祝)」としか無く、
+   *   何時に始まるかは、公演のページの「昼の部／夜の部」の表にあります。
+   *   そのため、ずっと0件でした（2026/11/9 に気づきました）。
+   */
+  { name: "新歌舞伎座",             kind: "event", deep: true,
+    url: "https://www.shinkabukiza.co.jp/" },
 
   /* ============================================================
    *  ここから下は 2026/10/15 に足した、大阪市外・大阪府内の会場
@@ -5109,7 +5144,14 @@ function vnLinks_(html, baseUrl) {
     const m = base.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
     origin = m ? m[1] : base;
   } catch (e) {}
-  const re = /<a[^>]+href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,200}?)<\/a>/gi;
+  /*
+   * ★中身を200字までしか見ていませんでした（2026/11/9）。
+   *   新歌舞伎座のトップページは、リンクの中に
+   *   写真＋日付＋公演名 が入っていて、200字を超えます。
+   *   そのため **そのリンクが丸ごと見えていません**でした。
+   *   公演のページに行けないので、ずっと0件でした。
+   */
+  const re = /<a[^>]+href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,1200}?)<\/a>/gi;
   let m2;
   while ((m2 = re.exec(String(html || ""))) !== null) {
     let href = vnEntity_(m2[1]).trim();
@@ -5168,15 +5210,32 @@ function vnScrapeDeep_(src, day, html) {
   // 催しのページらしいリンクだけに絞る（同じ入れ物・一覧そのものは除く）
   const isExtra = function (u) { return String(u).indexOf(host) !== 0; };
   /*
-   * ★名ざしで許したホームページのリンクを、**先に**開きます。
-   *   開けるのは5つまでなので、あと回しにすると
-   *   会社案内やアクセスのような、催しと関係ないページで
-   *   枠を使い切ってしまいます（実際そうなって0件のままでした）。
+   * ★開けるのは5つまでです。どれから開くかが、そのまま結果になります。
+   *   ふつうに上から開くと、
+   *   「公演情報」「チケット購入方法」「劇場案内」「お食事」「客席表」
+   *   のような案内のページで枠を使い切ります。
+   *   実際、新歌舞伎座はこれで0件のままでした（2026/11/9）。
+   *
+   * ★だから、催しのページらしいものから開きます。
+   *   ① 名ざしで許したホームページ（グランキューブ大阪のチケット屋さん）
+   *   ② 住所にその月（202611 など）が入っているもの
+   *      ＝ 新歌舞伎座の perf_info/20261114.html のような形
+   *   ③ そのほか
+   *   案内のページだと分かるものは、はじめから外します。
    */
+  const ym = String(day.getFullYear()) + ("0" + (day.getMonth() + 1)).slice(-2);
+  const NAVI = /(チケット|購入|アクセス|交通|客席|座席|お食事|土産|劇場案内|会社|採用|プライバシー|サイトマップ|サイトポリシー|お知らせ|一覧|よくある|ご質問|会員|フロア)/;
+  const score = function (l) {
+    if (isExtra(l.url)) return 3;
+    if (String(l.url).indexOf(ym) !== -1) return 2;
+    return 1;
+  };
   const links = vnLinks_(html, src.url).filter(function (l) {
-    return okHost(l.url) && l.url !== src.url && l.text;
+    if (!okHost(l.url) || l.url === src.url || !l.text) return false;
+    if (NAVI.test(l.text)) return false;          // 案内のページは、はじめから開かない
+    return true;
   }).sort(function (a, b) {
-    return (isExtra(b.url) ? 1 : 0) - (isExtra(a.url) ? 1 : 0);
+    return score(b) - score(a);
   }).slice(0, 12);
 
   let opened = 0;
@@ -5193,8 +5252,17 @@ function vnScrapeDeep_(src, day, html) {
     let h2 = "";
     try { h2 = res.getContentText(); } catch (e) { continue; }
     const lines = vnLines_(h2);
+    /*
+     * ★芝居小屋の「昼の部／夜の部」の表を、先に見ます。
+     *   表には「15」「18」としか書いていない日があります。
+     *   ページ全体から日付をさがすやり方では、その日は見つかりません。
+     *   表でその日の時刻が取れたなら、その日は公演がある、ということです。
+     */
+    let stage = "";
+    try { stage = vnStageTime_(lines, day); } catch (e) { stage = ""; }
+
     // そのページに「今日」が書いてあり、かつ時刻もあること。両方そろって初めて出す
-    const hasDay = lines.some(function (x) { return dre.test(x); });
+    const hasDay = stage || lines.some(function (x) { return dre.test(x); });
     if (!hasDay) continue;
     /*
      * ★問い合わせ先の受付時間を、開演と読まないようにします（2026/11/9）。
@@ -5229,7 +5297,8 @@ function vnScrapeDeep_(src, day, html) {
       const mm = String(lines[k]).match(/(\d{1,2}:\d{2})/);
       if (mm) { onDay = mm[1]; break; }
     }
-    const start = kai ? kai[2] : (ba ? ba[2] : (onDay || (times.length ? times[0] : "")));
+    const start = stage ? stage
+                        : (kai ? kai[2] : (ba ? ba[2] : (onDay || (times.length ? times[0] : ""))));
     if (!start) continue;                       // 時刻が無いなら出さない
     const startKind = kai ? "開演" : (ba ? "開場" : "");
     /*
@@ -5239,7 +5308,17 @@ function vnScrapeDeep_(src, day, html) {
      *   確かでない終わりは、案内には出しません（ご指示）。
      */
     const fin = text.match(/(終了|終演|閉場)[^0-9]{0,6}(\d{1,2}:\d{2})/);
-    let end = fin ? fin[2] : (times.length >= 2 && times[1] !== start ? times[1] : "");
+    /*
+     * ★表から始まりを取ったときは、終わりを よそから拾いません。
+     *   公演のページには、チケットの発売の時刻（…23:59 など）が
+     *   ならんでいます。それを終演にすると
+     *   「23:59に終わる芝居」になり、真夜中に車を着けさせます。
+     *   実際にそう出ました（2026/11/9）。
+     *   はっきり「終演」と書いてあるときだけ使い、
+     *   それ以外は見積もりにします。
+     */
+    let end = fin ? fin[2]
+                  : (stage ? "" : (times.length >= 2 && times[1] !== start ? times[1] : ""));
     /*
      * ★終わりが始まりより前になっていたら、それは別の日の公演の時刻です。
      *   実際に「18:30 開演 〜 18:00 終演」という、ありえない形が出ました。
@@ -5254,7 +5333,11 @@ function vnScrapeDeep_(src, day, html) {
     if (!end) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
     out.push({
       venue: src.name, kind: src.kind || "event", icon: "🎤",
-      title: links[i].text.slice(0, 60) || "（名前を読み取れませんでした）",
+      // ★名前の先頭に日付のならびが付くことがあるので、取りのぞきます
+      title: (String(links[i].text)
+                .replace(/^\s*\d{4}年\d{1,2}月\d{1,2}日[^\s]*\s*[～〜~-]\s*\d{0,4}年?\d{1,2}月\d{1,2}日[^\s]*\s*/, "")
+                .replace(/^\s*\d{4}[\/．.]\d{1,2}[\/．.]\d{1,2}[^\s]*\s*[～〜~-]\s*[^\s]*\s*/, "")
+                .trim().slice(0, 60)) || "（名前を読み取れませんでした）",
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: links[i].url,
       raw: text.slice(0, 400)
@@ -5563,6 +5646,78 @@ const VN_BLOCK_LINES = 22;
 
 /* 名前をさがすのは、日付の行から数えて何行までか（広げすぎると、下のお知らせを拾う） */
 const VN_NAME_LINES = 6;
+
+/* ================================================================
+ *  🎭 芝居小屋の「昼の部／夜の部」の表を読む
+ *
+ *  ★新歌舞伎座（1,600人）が、ずっと0件でした。
+ *    一覧には「2026年11月14日(土)～11月23日(月・祝)」としか無く、
+ *    何時に始まるかは、公演のページの表に書いてあります。
+ *
+ *      日付  曜日  昼の部  夜の部
+ *      11/14  土   11:30   16:30
+ *      15     日   11:30     -
+ *      17     火     -       -
+ *
+ *  ★2つ、気をつけるところがあります。
+ *    ① 月が書いてあるのは、**いちばん上の行だけ**です。
+ *       下の行は「15」「16」としか書いていません。
+ *       上から月をもらわないと、何月の15日か分かりません。
+ *    ② タクシーに関わるのは **夜の部** です。
+ *       昼の部（11:30）を拾うと、お昼に終わる公演になり、
+ *       夕方に出る私たちには関係がなくなります。
+ *       夜の部があれば、そちらを使います。
+ *    ③ 「-」の日は、公演がありません。出しません。
+ * ================================================================ */
+function vnStageTime_(lines, day) {
+  const m0 = day.getMonth() + 1, d0 = day.getDate();
+
+  /*
+   * ★表のマス目は、1行ずつに分かれて出てきます。
+   *     日付／曜日／昼の部／夜の部
+   *     11/14／土／11:30／16:30
+   *     15／日／11:30／-
+   *   なので「日にちの行」を見つけ、そのあとに続く
+   *   曜日・時刻を、次の日にちが来るまで ひとまとめにします。
+   *   （マス目が1つ欠けても、ずれないようにするためです）
+   */
+  const dayLine = function (t) {
+    // 「11/14」または「15」。うしろに何も付かないこと
+    const m = String(t).match(/^(?:(\d{1,2})\s*[\/／]\s*)?(\d{1,2})$/);
+    if (!m) return null;
+    const dd = Number(m[2]);
+    if (dd < 1 || dd > 31) return null;
+    return { mon: m[1] ? Number(m[1]) : 0, day: dd };
+  };
+  const isWeek = function (t) { return /^[日月火水木金土](・?祝)?$/.test(String(t).trim()); };
+
+  let mon = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const d = dayLine(lines[i]);
+    if (!d) continue;
+    // すぐ下が曜日でなければ、表の行ではない（ただの数字）
+    if (!(i + 1 < lines.length && isWeek(lines[i + 1]))) continue;
+    if (d.mon) mon = d.mon;
+    if (!mon) continue;                        // まだ月が分かっていない
+
+    // 次の日にちの行まで（最大5行）を、この日のマス目として見る
+    const times = [];
+    for (let k = i + 2; k < lines.length && k < i + 7; k++) {
+      if (dayLine(lines[k]) && k + 1 < lines.length && isWeek(lines[k + 1])) break;
+      const mm = String(lines[k]).match(/^(\d{1,2}:\d{2})$/);
+      if (mm) times.push(mm[1]);
+    }
+    if (mon !== m0 || d.day !== d0) continue;  // その日ではない
+    if (!times.length) return "";              // 「-」だけの日＝公演なし
+    /*
+     * ★タクシーに関わるのは **夜の部** です。
+     *   昼の部（11:30）を拾うと、お昼に終わる公演になり、
+     *   夕方に出る私たちには関係がなくなります。
+     */
+    return times[times.length - 1];
+  }
+  return "";
+}
 
 /** 1つのサイトから、その日のぶんを読む。戻り値は {events, note} */
 function vnScrapeOne_(src, day, htmlIn) {
