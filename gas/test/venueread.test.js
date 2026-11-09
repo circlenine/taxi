@@ -373,5 +373,33 @@ console.log('■ 控えの名前が、ぶつからない');
   ok(allOk, '★★どの控えも、上書きされずに読み出せる');
 }
 
+/* ================================================================
+ * ⑩ 調べた結果を、こちらから読める所に置く
+ *
+ *  ★まーく様から「おおきにアリーナの情報などは読めてますか？」と
+ *    聞かれて、答えられませんでした（2026/11/9）。
+ *    結果が まーく様のLINEにしか出ていなかったためです。
+ *    それでは「画面を写して送ってください」になってしまいます。
+ * ================================================================ */
+console.log('■ 調べた結果を、ドライブにも置く');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const i = src.indexOf('\nfunction vnProbeAll(');
+  const j = src.indexOf('\nfunction ', i + 1);
+  ok(src.slice(i, j).indexOf('vnProbePublish_(') !== -1,
+     '★★★調べたら、かならずドライブにも置く');
+
+  const k = src.indexOf('\nfunction vnProbePublish_(');
+  const l = src.indexOf('\nfunction ', k + 1);
+  const body = src.slice(k, l);
+  ok(body.indexOf('会場の読み取り状況') !== -1 || src.indexOf('VN_PROBE_FILE') !== -1,
+     '　 置き場の名前が決まっている');
+  ok(body.indexOf('setSharing') === -1 && body.indexOf('addEditor') === -1 &&
+     body.indexOf('addViewer') === -1,
+     '★★★共有の設定は、ぜったいに触らない（売上の記録のため）');
+  ok(body.indexOf('getFilesByName') !== -1,
+     '　 すでにあれば、作り直さずに書きかえる');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

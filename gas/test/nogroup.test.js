@@ -111,6 +111,45 @@ console.log('■ 新しいお守りの知らせを足したときの、取りこ
   ok(heads.length >= 2, '少なくとも、今回の2つは入っている', heads.length);
   ok(heads.some(h => DEAD.text.indexOf(h) === 0), '読めていない会場が入っている');
   ok(heads.some(h => HOTEL.text.indexOf(h) === 0), 'ホテルの予定表が入っている');
+
+  /*
+   * ★ここまでの検査には、穴がありました（2026/11/9）。
+   *   「今回の2つが入っているか」しか見ていなかったので、
+   *   **新しく足したお守りの知らせの取りこぼしを、見つけられません**。
+   *   実際、出ているのは「🔎 イベント情報のページを調べました」なのに、
+   *   書いてあったのは「🔎 読み取り状況」だけで、すり抜ける形でした。
+   *
+   * ★なので、コードの中の「仕組みの調子の話」の文を ぜんぶ拾って、
+   *   1つ残らず止まるかを見ます。
+   */
+  const marks = vm.runInContext('VN_ADMIN_MARKS', ctx);
+  ok(marks && marks.length >= 5, '止める目じるしが、まとめてある', marks);
+
+  const files = ['005-Updater.gs', '006-Venue.gs'];
+  const miss = [];
+  const found = [];
+  files.forEach(f => {
+    const t = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    marks.forEach(mk => {
+      // 「"🔎 …」のように、その目じるしで始まる文をさがす
+      const re = new RegExp('["\'`](' + mk + '[^"\'`\n]{0,40})', 'g');
+      let m;
+      while ((m = re.exec(t)) !== null) {
+        const text = m[1];
+        found.push(text);
+        if (!ctx.vnIsAdminMsg_({ type: 'text', text: text })) miss.push(f + ' … ' + text);
+      }
+    });
+  });
+  ok(found.length > 0, '　 仕組みの調子の文が見つかる（' + found.length + '本）');
+  ok(miss.length === 0,
+     '★★★お守りの知らせで、止まらないものが1つも無い', miss.slice(0, 5));
+
+  /* ★ふつうの知らせまで止めていないか（止めすぎも、同じくらい困る） */
+  ok(ctx.vnIsAdminMsg_({ type: 'text', text: '🎪 11/9(月)イベント等情報' }) === false,
+     '★★グループへのイベント通知は、止めない');
+  ok(ctx.vnIsAdminMsg_({ type: 'text', text: '⚠️ 詳細に「徹夜」と書かれています' }) === false,
+     '★★乗務員の方への注意は、止めない');
 }
 
 console.log(fail ? `\n☓ ${fail}件 こけました` : '\n✓ ぜんぶ通りました');
