@@ -2,7 +2,40 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V089ver  （2026/11/9）  ★★★
+ *  ★★★  V090ver  （2026/11/9）  ★★★
+ *
+ *  [V090ver]
+ *   ・📅 「○日中の○日目」が抜けていたのを直した
+ *     ★まーく様のご指示：
+ *       「大阪城ホールだったり、公演が連続するものについて
+ *         (○日目／○日間)というのが、イベント情報に抜けています」
+ *     ★これまでは「10/14〜16」のように、**期間が1行に書いてある**
+ *       ときしか数えられませんでした。大阪城ホールのような会場は
+ *       1日ずつ別々にならべるので、どこにも「2日間」と書いてありません。
+ *       だから、ずっと出せていませんでした。
+ *     ★同じ公演名が、そのページの何日に出てくるかで数えます。
+ *       推し量りではありません。書いてある日だけを数えます。
+ *     ★初日と最終日では、待つ場所も行き先も変わります。
+ *       最終日は打ち上げが増え、遠くまで行く車も出ます。
+ *   ・🚚 搬入（初日）も、必ず出すようにした
+ *     ★まーく様のご指示：
+ *       「複数日のイベントに対して搬入(初日)のお知らせも抜けてます
+ *         これらは全て大事なので、必ず含めてください」
+ *     ★はじめ「搬入の日は夜の片づけが無いから出さない」としていました。
+ *       ですが、搬入の日にも人は動きますし、「あすから何日間の催しが
+ *       始まる」と分かること自体が、待つ場所を決める材料になります。
+ *       出したうえで「搬入（初日）」とはっきり書き、
+ *       「公演は 11/14 から2日間」も添えます。
+ *   ・🎬 赤くするところを、入れ替えた
+ *     ★まーく様のご指示：
+ *       「終演の時間がまだ分かってませんというのを
+ *         赤字にする必要性はまったくありません
+ *         それなら、開演時間(開場はカッコ表示)を赤字にして、
+ *         もっと目立つようにしてください」
+ *     ★分かっていないことを赤く目立たせても、何の役にも立ちません。
+ *       終演が分からないときは、**開演を大きく赤く**出します。
+ *       開場しか分からないときは、カッコに入れます
+ *       （開場は客が入る時刻なので、開演と同じ顔にすると取りちがえます）。
  *
  *  [V089ver]
  *   ・🔧 バラシ（片づけ）の予定を、ちゃんと読めるようにした
@@ -1353,7 +1386,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V089ver";
+const VN_VERSION = "V090ver";
 
 /**
  * 見にいく先の一覧。
@@ -2923,6 +2956,76 @@ function vnRunDayNo_(range, day) {
 }
 
 /**
+ * 同じページの中で、同じ公演が何日ならんでいるかを数える。
+ *
+ * ★まーく様のご指示（2026/11/9）
+ *   「大阪城ホールだったり、公演が連続するものについて
+ *     (○日目／○日間)というのが、イベント情報に抜けています
+ *     これらは全て大事なので、必ず含めてください」
+ *
+ * ★なぜ抜けていたか
+ *   いままでは「10月14日〜16日」のように、**期間が1行に書いてある**
+ *   ときしか数えられませんでした。
+ *   ところが大阪城ホールのような会場は、1日ずつ別々にならべます。
+ *     11月18日　米津玄師
+ *     11月19日　米津玄師
+ *   これだと、どこにも「2日間」とは書いてありません。
+ *   だから、ずっと出せていませんでした。
+ *
+ * ★数え方：同じ公演名が出てくる日を、ページ全体から拾って数えます。
+ *   推し量りではありません。ページに書いてある日だけを数えます。
+ *
+ * @param {Array}  lines ページの行
+ * @param {string} title 公演の名前
+ * @param {Date}   day   その日
+ * @return {string} 「2日中の初日」など。数えられなければ ""
+ */
+function vnRunFromPage_(lines, title, day) {
+  const name = String(title || "").trim();
+  if (name.length < 3) return "";                 // 短すぎる名前は、別の催しと混ざる
+  // ありふれた言葉は、名前として使わない（どの日にも出てくるため）
+  if (/^(コンサート|イベント|公演|ライブ|試合|その他|музык)$/.test(name)) return "";
+
+  const dre = /(\d{1,2})\s*月\s*(\d{1,2})\s*日|(\d{1,2})\s*[\/／.]\s*(\d{1,2})(?![\/／.:\d])/;
+  const found = {};
+  const Y = day.getFullYear();
+  const want = new Date(Y, day.getMonth(), day.getDate()).getTime();
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = String(lines[i]).match(dre);
+    if (!m) continue;
+    const mo = Number(m[1] || m[3]), dd = Number(m[2] || m[4]);
+    if (!(mo >= 1 && mo <= 12 && dd >= 1 && dd <= 31)) continue;
+    // その日付の行から数行のうちに、同じ名前があるか
+    let hit = false;
+    for (let j = i; j < lines.length && j <= i + 6; j++) {
+      if (j > i && dre.test(String(lines[j]))) break;   // 次の日付まで
+      if (String(lines[j]).indexOf(name) !== -1) { hit = true; break; }
+    }
+    if (!hit) continue;
+    let y = Y;
+    const t0 = new Date(y, mo - 1, dd).getTime();
+    // 半年以上むかしに見えるなら、来年のこと（12月のページで1月を見たとき）
+    if (t0 < want - 180 * 86400000) y = Y + 1;
+    const key = "" + y + ("0" + mo).slice(-2) + ("0" + dd).slice(-2);
+    found[key] = 1;
+  }
+
+  const keys = [];
+  for (const k in found) {
+    if (Object.prototype.hasOwnProperty.call(found, k)) keys.push(k);
+  }
+  if (keys.length < 2) return "";
+  keys.sort();
+  const ymd = "" + Y + ("0" + (day.getMonth() + 1)).slice(-2) + ("0" + day.getDate()).slice(-2);
+  const n = keys.indexOf(ymd) + 1;
+  if (!n) return "";
+  if (n === keys.length) return "📅 " + keys.length + "日中の最終日";
+  if (n === 1) return "📅 " + keys.length + "日中の初日";
+  return "📅 " + keys.length + "日中の" + n + "日目";
+}
+
+/**
  * 「3日中の2日目」「3日中の最終日」の形にする。出せなければ ""。
  *
  * ★最終日だけは、はっきり分かるようにします。
@@ -3448,8 +3551,39 @@ function vnCard_(ev, idx, day, noBells, budget) {
    */
   const arrive = vnArriveText_(ev);
   if (arrive) {
-    rows.push({ "type": "text", "text": arrive, "size": "sm", "weight": "bold",
-                "color": "#b00020", "wrap": true, "margin": "xs" });
+    /*
+     * ★赤くするのは「着ける時刻が分かっているとき」だけです
+     *   （まーく様のご指示・2026/11/9）。
+     *     「終演の時間がまだ分かってませんというのを
+     *       赤字にする必要性はまったくありません」
+     *   分かっていないことを赤く目立たせても、何の役にも立ちません。
+     *   目立つ色は、役に立つ情報のために取っておきます。
+     */
+    const sure = (ev.end && ev.endSure);
+    rows.push({ "type": "text", "text": arrive, "size": "sm",
+                "weight": sure ? "bold" : "regular",
+                "color": sure ? "#b00020" : "#5f6368",
+                "wrap": true, "margin": "xs" });
+  }
+  /*
+   * ★終演が分からないときは、**開演を目立たせます**（ご指示・2026/11/9）。
+   *     「それなら、開演時間(開場はカッコ表示)を赤字にして、
+   *       もっと目立つようにしてください」
+   *
+   *   終演が分からなくても、開演が分かれば だいたいの見当はつきます。
+   *   いちばん役に立つ数字を、いちばん目立つところに置きます。
+   *   開場しか分からないときは、カッコに入れて出します
+   *   （開場は客が入る時刻なので、開演と同じ顔で出すと取りちがえます）。
+   */
+  if (ev.start && !ev.whenHide) {
+    const isBa = (ev.startKind === "開場");
+    const txt = isBa ? "🎬 （開場 " + ev.start + "）"
+                     : "🎬 " + ev.start + " 開演";
+    rows.push({ "type": "text", "text": txt,
+                "size": (ev.end && ev.endSure) ? "xs" : "md",
+                "weight": "bold",
+                "color": (ev.end && ev.endSure) ? "#5f6368" : "#b00020",
+                "wrap": true, "margin": "xs" });
   }
   /*
    * ★催しの時刻は、着ける時刻の「下」に、小さく置く。
@@ -3500,7 +3634,12 @@ function vnCard_(ev, idx, day, noBells, budget) {
    *   ページに期間が書いてあるときだけ出します。推し量りません。
    */
   try {
-    const run = vnRunText_(ev, day);
+    /*
+     * ★「何日中の何日目か」は、まず読み取りのときに数えたものを使います。
+     *   ページに期間（10/14〜16）が書いてあるときは、そちらでも数えられます。
+     *   どちらかが分かれば出します（ご指示・かならず出す）。
+     */
+    const run = (ev && ev.runText) ? ev.runText : vnRunText_(ev, day);
     if (run) {
       const last = run.indexOf("最終日") !== -1;
       rows.push({ "type": "text", "text": run, "size": "xs", "margin": "xs",
@@ -6274,12 +6413,49 @@ function vnIcsDaySet_(t, baseY, baseM) {
 }
 
 /**
- * その日が「バラシのある日（公演日）」かどうかを見分ける。
+ * その日が「何日目か」を数える。
  *
- * ★搬入だけの日は出しません。夜の片づけが無いので、
- *   出すと だれも来ない会場へ行かせることになります。
+ * ★まーく様のご指示（2026/11/9）
+ *   「大阪城ホールだったり、公演が連続するものについて
+ *     (○日目／○日間)というのが、イベント情報に抜けています」
  *
- * @return {Object} { ok: 出してよいか, role: その日の役目 }
+ *   初日と最終日では、待つ場所も、行き先も変わります。
+ *   最終日は打ち上げが増え、遠くまで行く車も出ます。
+ *   何日あるうちの何日目かは、待つ側の判断そのものです。
+ *
+ * @return {string} 「3日中の2日目」など。数えられなければ ""
+ */
+function vnIcsRunText_(daySet, day) {
+  const keys = [];
+  for (const k in daySet) {
+    if (Object.prototype.hasOwnProperty.call(daySet, k)) keys.push(k);
+  }
+  if (keys.length < 2) return "";
+  keys.sort();
+  const ymd = vnIcsYmd_(day);
+  const n = keys.indexOf(ymd) + 1;
+  if (!n) return "";
+  if (n === keys.length) return keys.length + "日中の最終日";
+  if (n === 1) return keys.length + "日中の初日";
+  return keys.length + "日中の" + n + "日目";
+}
+
+/**
+ * その日が「バラシのある日（公演日）」か「搬入の日」かを見分ける。
+ *
+ * ★まーく様のご指示（2026/11/9）
+ *   「複数日のイベントに対して搬入(初日)のお知らせも抜けてます
+ *     これらは全て大事なので、必ず含めてください」
+ *
+ *   はじめ、搬入の日は出さない形にしていました。
+ *   夜の片づけが無いので、空振りになると考えたためです。
+ *   ですが、搬入の日にも人は動きますし、
+ *   「あすから何日間の催しが始まる」と分かること自体が、
+ *   待つ場所を決める材料になります。
+ *   **出したうえで、搬入だとはっきり書きます。**
+ *   読んだ方が、ご自分で判断できる形にします。
+ *
+ * @return {Object} { ok: 出してよいか, role: その日の役目, run: 何日目か }
  */
 function vnIcsRole_(desc, day, baseY, baseM) {
   const t = String(desc || "");
@@ -6290,22 +6466,42 @@ function vnIcsRole_(desc, day, baseY, baseM) {
   };
   const show = pick("公演日|本番日");
   const load = pick("搬入日|設営日");
-  if (show) {
-    if (vnIcsDaySet_(show, baseY, baseM)[ymd]) return { ok: true, role: "公演日" };
-    if (load && vnIcsDaySet_(load, baseY, baseM)[ymd]) return { ok: false, role: "搬入" };
-    return { ok: false, role: "" };
+  const showSet = show ? vnIcsDaySet_(show, baseY, baseM) : null;
+  const loadSet = load ? vnIcsDaySet_(load, baseY, baseM) : null;
+  const run = showSet ? vnIcsRunText_(showSet, day) : "";
+
+  if (showSet && showSet[ymd]) return { ok: true, role: "公演日", run: run };
+  if (loadSet && loadSet[ymd]) {
+    /*
+     * ★搬入の日は「このあと何日間あるか」を添えます。
+     *   いつから本番かが分かると、次の日の支度ができます。
+     */
+    let when = "";
+    if (showSet) {
+      const keys = [];
+      for (const k in showSet) {
+        if (Object.prototype.hasOwnProperty.call(showSet, k)) keys.push(k);
+      }
+      keys.sort();
+      if (keys.length) {
+        const f = keys[0];
+        const md = Number(f.slice(4, 6)) + "/" + Number(f.slice(6, 8));
+        // ★1日だけの催しに「1日間」と書くと、かえって読みにくい
+        when = (keys.length >= 2)
+             ? "公演は " + md + " から" + keys.length + "日間"
+             : "公演は " + md;
+      }
+    }
+    return { ok: true, role: "搬入（初日）", run: when };
   }
-  if (load && vnIcsDaySet_(load, baseY, baseM)[ymd]) return { ok: false, role: "搬入" };
+  if (showSet) return { ok: false, role: "", run: "" };   // 公演日が書いてあって、その日ではない
 
   // ★むかしの書き方（「13日(日):公演日」）にも合わせる
   const dd = day.getDate();
   const old2 = t.match(new RegExp("(?:^|[^0-9])" + dd +
                 "\\s*日\\s*[（(][^）)]{1,3}[）)]\\s*[：:]\\s*([^ \\n]{1,6})"));
-  if (old2) {
-    if (/搬入|設営/.test(old2[1])) return { ok: false, role: "搬入" };
-    return { ok: true, role: old2[1] };
-  }
-  return { ok: true, role: "" };          // 何も書いていないときは、そのまま出す
+  if (old2) return { ok: true, role: old2[1], run: "" };
+  return { ok: true, role: "", run: "" };   // 何も書いていないときは、そのまま出す
 }
 
 /**
@@ -6436,11 +6632,16 @@ function vnScrapeIcs_(src, day) {
       const baseY = ds0 ? Number(ds0[1].slice(0, 4)) : day.getFullYear();
       const baseM = ds0 ? Number(ds0[1].slice(4, 6)) : (day.getMonth() + 1);
       const r = vnIcsRole_(desc, day, baseY, baseM);
-      if (!r.ok) return;                 // 搬入だけの日は出さない（夜の片づけが無い）
+      if (!r.ok) return;                 // その予定の中だが、その日は何も無い日
       const role = r.role;
 
+      /*
+       * ★何日中の何日目か、搬入ならいつから何日間かを、かならず添えます
+       *   （まーく様のご指示・2026/11/9）。
+       */
       const title = (place ? place + "／" : "") + (sum || "（名前なし）") +
                     (role ? "（" + role + "）" : "") +
+                    (r.run ? "　📅 " + r.run : "") +
                     (calName ? "［" + calName + "］" : "");
       out.events.push({
         venue: src.venue || src.name, kind: "barasi", icon: "🔧",
@@ -6664,10 +6865,19 @@ function vnScrapeOne_(src, day, htmlIn) {
     let guessed = false;
     if (!end && start) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
 
+    const theTitle = vnTitleOf_(nameLines) || "（名前を読み取れませんでした）";
+    /*
+     * ★同じ公演が、このページに何日ならんでいるかを数えます
+     *   （まーく様のご指示・2026/11/9）。
+     *   大阪城ホールのように1日ずつ別々にならぶ会場では、
+     *   どこにも「2日間」と書いていないので、こう数えるしかありません。
+     */
+    let runPage = "";
+    try { runPage = vnRunFromPage_(lines, theTitle, day); } catch (e) { runPage = ""; }
     out.events.push({
       venue: src.venue || src.name, kind: src.kind || "event",
       icon: src.kind === "barasi" ? "🔧" : "🎤",
-      title: vnTitleOf_(nameLines) || "（名前を読み取れませんでした）",
+      title: theTitle, runText: runPage,
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
       raw: text.slice(0, 400)

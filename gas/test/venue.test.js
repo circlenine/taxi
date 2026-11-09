@@ -2734,8 +2734,16 @@ console.log('\n■ 📅 何日中の何日目か・最終日か');
 
   // ⑥ 絵（カード）に出ているか
   const src6 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
-  eq(src6.indexOf('const run = vnRunText_(ev, day);') !== -1, true,
+  /*
+   * ★ここは書き方が変わりました（2026/11/9・ご指示）。
+   *   いまは、読み取りのときに数えた「何日中の何日目か」を
+   *   先に使い、無ければ期間（10/14〜16）から数えます。
+   *   どちらかが分かれば、かならず出します。
+   */
+  eq(src6.indexOf('vnRunText_(ev, day)') !== -1, true,
      '★★カードに出している');
+  eq(src6.indexOf('ev.runText') !== -1, true,
+     '★★★1日ずつならぶ会場（大阪城ホール）でも出す');
 }
 
 console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
@@ -3791,6 +3799,28 @@ console.log('\n■ 🚕 何時に、クルマを着けるか（いちばん大�
   has(a1, '終演 21:00', '　 何を根拠にした時刻かも出す');
   eq(a1.indexOf('18:30') === -1, true,
      '★★★開演（18:30）を 着ける時刻にしない');
+
+  /*
+   * ★終演が分からないときは、開演を目立たせます（ご指示・2026/11/9）。
+   *     「終演の時間がまだ分かってませんというのを
+   *       赤字にする必要性はまったくありません
+   *       それなら、開演時間(開場はカッコ表示)を赤字にして、
+   *       もっと目立つようにしてください」
+   */
+  const card2 = (ev) => JSON.stringify(ctx.vnCard_(ev, 0, new Date(2026, 10, 10), true, { left: 4 }));
+  {
+    const c = card2({ venue: '大阪城ホール', title: 'どこかの公演',
+                     start: '18:30', startKind: '開演', end: '', endSure: false });
+    eq(c.indexOf('🎬 18:30 開演') !== -1, true, '★★★開演の時刻を、はっきり出す');
+    eq(/🎬 18:30 開演[^}]*#b00020/.test(c) || c.indexOf('"#b00020"') !== -1, true,
+       '★★★開演を赤くする（終演が分からないとき）');
+  }
+  {
+    const c = card2({ venue: '大阪城ホール', title: 'どこかの公演',
+                     start: '17:30', startKind: '開場', end: '', endSure: false });
+    eq(c.indexOf('（開場 17:30）') !== -1, true,
+       '★★★開場はカッコに入れる（開演と取りちがえさせない）');
+  }
 
   // ② 終演が分からないとき … 時刻を言い切らない
   const a2 = ARR({ start: '18:30', end: '', endSure: false });
