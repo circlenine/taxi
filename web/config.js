@@ -5,5 +5,5 @@
 //  データは RLS（schema.sql）で守っている。
 //  ※ service_role key は絶対にここに書かない。
 // ============================================================
-window.SUPABASE_URL      = "https://xxxxxxxxxxxxxxxx.supabase.co";
-window.SUPABASE_ANON_KEY = "ここに anon / publishable キーを貼る";
+window.SUPABASE_URL      = "https://kazrozdgjihwjntfjvbo.supabase.co";
+window.SUPABASE_ANON_KEY = "sb_publishable_NQGPyeprpK8PFNpT56mkHA_Yyvwmf-f";
