@@ -2,7 +2,33 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V103ver  （2026/11/10）  ★★★
+ *  ★★★  V104ver  （2026/11/10）  ★★★
+ *
+ *  [V104ver]
+ *   ★GAS側が置いてくれた「会場の読み取り状況」を読んで、
+ *     こちらで2つの間違いを見つけて直しました（まーく様の指は要りません）。
+ *
+ *   ・🏛 オリックス劇場が、ずっと読めていなかったのを直した
+ *     ★「つながりませんでした」と出ていました。
+ *         無効な引数: .../event/{Y}/{Y}{M}event.json
+ *       読み先の住所に「その年・その月」を入れるところを、
+ *       組み立てずに そのまま開こうとしていました。
+ *       ほんものの住所は、ちゃんと開きます（実際に確かめました）。
+ *     ★組み立ててから開くように直した。台帳づくりのほうも直した
+ *       （月がわりで取りちがえないよう、日ごとに取りにいかせる）。
+ *
+ *   ・🚫 「ページの名前」を、催しの名前として出すのをやめた
+ *     ★梅田芸術劇場で、こう出ていました。
+ *         11/10　公演スケジュール　開始11:00〜13:30（予想）
+ *       「公演スケジュール」は 一覧のページの名前で、催しではありません。
+ *       11:00 も、そのページに載っていた別の時刻でした。
+ *       ありもしない催しに、車を向かわせることになります。
+ *       まーく様のご指示は「正しい情報のみに徹底してください」。
+ *     ★「公演スケジュール」「イベント情報」「チケット」のような
+ *       ページの名前だと分かるものは、出さないようにした。
+ *     ★ただし「（名前を読み取れませんでした）」は落としません。
+ *       それは「読めていないこと」を正直に書いたものなので、
+ *       台帳には必ず残します（読めていない会場に気づけなくなるため）。
  *
  *  [V103ver]
  *   ・🚚 「搬出」と「搬入」を、べつの枠に分けた
@@ -1656,7 +1682,33 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V103ver";
+const VN_VERSION = "V104ver";
+
+/*
+ * ★催しの名前ではなく「ページの名前」だと分かる言葉
+ *
+ *   会場のホームページには、催しのページと、案内のページが混ざっています。
+ *   案内のページの題を催しの名前として出すと、
+ *   ありもしない催しを知らせることになります。
+ *   （実際に「公演スケジュール」を催しとして出していました・2026/11/10）
+ *   新しく気づいたものは、ここに足していきます。
+ */
+const VN_NOT_TITLE = new RegExp(
+  "^(" +
+  "公演スケジュール|公演情報|公演一覧|公演カレンダー|スケジュール|" +
+  "イベントスケジュール|イベント情報|イベント一覧|イベントカレンダー|" +
+  "カレンダー|年間スケジュール|月別スケジュール|今月のイベント|" +
+  "トップページ|ホーム|ホームページ|お知らせ|新着情報|" +
+  "チケット情報|チケット|アクセス|施設案内|館内案内|ご利用案内" +
+  ")$"
+);
+/*
+ * ★「（名前を読み取れませんでした）」は、ここに入れません。
+ *   それは **読めていないこと** を正直に書いたものです。
+ *   台帳（会場の中身）には必ず残します。読めていないことこそ、
+ *   いちばん見たいものだからです。
+ *   LINEに出す・出さないは、あとの らんで分けています。
+ */
 
 /**
  * 見にいく先の一覧。
@@ -3982,7 +4034,15 @@ function vnProbeOne_(src, now) {
   }
   let res;
   try {
-    res = UrlFetchApp.fetch(src.url, {
+    /*
+     * ★読み先の住所には「その年・その月」を入れるところがあります。
+     *   　https://www.orixtheater.jp/update/event/{Y}/{Y}{M}event.json
+     *   ここで組み立てずに そのまま開こうとしていたので、
+     *   オリックス劇場は ずっと「つながりませんでした」でした
+     *   （2026/11/10 に気づいて直しました）。
+     *   ほんものの住所は、ちゃんと開きます。
+     */
+    res = UrlFetchApp.fetch(vnSrcUrl_(src, now), {
       muteHttpExceptions: true,
       followRedirects: true,
       headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
@@ -6075,18 +6135,26 @@ function vnLedgerFromWeb_(days, deadline) {
   const today = new Date();
   VN_SOURCES.forEach(function (src) {
     let html = "";
-    try {
-      const res = UrlFetchApp.fetch(src.url, {
-        muteHttpExceptions: true, followRedirects: true,
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
-      });
-      if (res.getResponseCode() !== 200) { notes.push("❌ " + src.name + "：開けません（" + res.getResponseCode() + "）"); return; }
-      try { html = res.getContentText(); }
-      catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
-    } catch (e) {
-      notes.push("❌ " + src.name + "：つながりません"); return;
+    /*
+     * ★読み先の住所に「その年・その月」が入るところ（オリックス劇場）は、
+     *   ここで1回だけ取りにいっても、月がわりで取りちがえます。
+     *   日ごとに取りにいく係にまかせます（そこは正しく組み立てます）。
+     */
+    const byDay = /\{[YM]+\}/.test(String(src.url || ""));
+    if (!byDay) {
+      try {
+        const res = UrlFetchApp.fetch(vnSrcUrl_(src, today), {
+          muteHttpExceptions: true, followRedirects: true,
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+        });
+        if (res.getResponseCode() !== 200) { notes.push("❌ " + src.name + "：開けません（" + res.getResponseCode() + "）"); return; }
+        try { html = res.getContentText(); }
+        catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
+      } catch (e) {
+        notes.push("❌ " + src.name + "：つながりません"); return;
+      }
+      if (!html) { notes.push("❌ " + src.name + "：中身が空です"); return; }
     }
-    if (!html) { notes.push("❌ " + src.name + "：中身が空です"); return; }
 
     let hit = 0, seen = 0;
     for (let i = 0; i < n; i++) {
@@ -6096,7 +6164,7 @@ function vnLedgerFromWeb_(days, deadline) {
       if (Date.now() > until) { cut = Math.max(cut, n - i); break; }
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       let got = [];
-      try { got = vnScrapeOne_(src, d, (src.deep && i > 0) ? html : (src.deep ? null : html)).events || []; }
+      try { got = vnScrapeOne_(src, d, byDay ? null : ((src.deep && i > 0) ? html : (src.deep ? null : html))).events || []; }
       catch (e) { got = []; }
       seen++;
       // ★台帳では、時刻が読めなかったものも落とさずに残します。
@@ -6870,6 +6938,19 @@ function vnScrapeDeep_(src, day, html) {
              .trim();
     }
     nm = nm.slice(0, 60) || "（名前を読み取れませんでした）";
+    /*
+     * ★「ページの名前」を、催しの名前として出さないようにします
+     *   （2026/11/10 に気づいて直しました）。
+     *
+     *   梅田芸術劇場で、こう出ていました。
+     *       11/10　公演スケジュール　開始11:00〜13:30（予想）
+     *   「公演スケジュール」は 一覧のページの名前で、催しではありません。
+     *   11:00 も、そのページに載っていた別の時刻です。
+     *   これを知らせに出すと、ありもしない催しに車を向かわせます。
+     *   まーく様のご指示は「正しい情報のみに徹底してください」。
+     *   名前が読めないものは、**出さない** のが正しいふるまいです。
+     */
+    if (VN_NOT_TITLE.test(nm)) continue;
 
     out.push({
       venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
@@ -8063,6 +8144,14 @@ function vnScrapeOne_(src, day, htmlIn) {
      *   だれも来ない会場へ車を着けさせることになるためです。
      */
     if (vnNoCrowd_(theTitle, text)) return;
+    /*
+     * ★「ページの名前」を催しの名前として出さないようにします（2026/11/10）。
+     *   中のページを開く形（梅田芸術劇場）で起きていた間違いですが、
+     *   一覧から読む形でも同じことが起きます。
+     *   名前が読めていないものを出すと、
+     *   「何の催しなのか分からないもの」に車を向かわせます。
+     */
+    if (VN_NOT_TITLE.test(theTitle)) return;
     /*
      * ★タクシー需要の手がかり（入場料・種別）を、ページから取ります。
      *   こちらで「ある・ない」を決めつけず、書いてある事実を渡します。
