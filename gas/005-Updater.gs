@@ -2,8 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U164ver  （2026/11/10）  ★★★
+ *  ★★★  U165ver  （2026/11/11）  ★★★
  *
+ *
+ *  [U165ver]
+ *   ・🔄 スプシ → TAXI NOTE へ、ひとりでに移す仕組みを作った
+ *     ★まーく様のご指示：
+ *       「スプシのURLを一回共有すれば、以後、自動反映できるような形で」
+ *     ★まーく様のアカウントで台帳に入り、記録を送ります。
+ *       秘密の鍵（service_role）は使いません。守りはそのまま効きます。
+ *     ★名義は、スプシのタブの名前から台帳の名前に結びつけます。
+ *     ★「営業日・乗せた時刻・金額」が同じものは送りません（水増し防止）。
+ *     ★はじめは「下見」だけ。何件入るかを控えに書くだけで、入れません。
+ *       中身を確かめてから、入れる側に切りかえます。
+ *     ★1回だけ、まーく様の手が要ります（スクリプトプロパティに
+ *       TAXINOTE_EMAIL と TAXINOTE_PASS）。
+ *   ・📡 イベント情報を、TAXI NOTE に渡す仕組みを作った（web-events）
  *
  *  [U164ver]
  *   ・📒 スプシの記録を書き出す頼まれごと（ledger-export）を足した
@@ -1850,7 +1864,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U164ver";
+const UPD_VERSION = "U165ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11441,6 +11455,188 @@ function sbWakeTick_() {
 }
 const UPD_ERRAND_LOG_LINES = 40;        // 新しいものから40行だけ残す
 
+/* ================================================================
+ *  🔄 スプシ → TAXI NOTE（ウェブ）へ、ひとりでに移す
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *      「スプシからの反映をもっと手っ取り早くできるように
+ *        かいぜんしてください、例えば、スプシのURLを一回共有すれば、
+ *        以後、自動反映できるような形で、web上でも、スプシ上でも
+ *        見られる形にしてほしいです」
+ *
+ *  ★どうやるか
+ *    GASが、まーく様のアカウントで台帳に入り、記録を送ります。
+ *    名義は、スプシのタブの名前（ﾀﾞｲｽｹ・ｼｭﾝ…）から、
+ *    台帳の名前（ダイスケ・シュン…）に結びつけます。
+ *
+ *  ★秘密の鍵（service_role）は使いません。
+ *    あれを使うと、守り（RLS）を丸ごと素通りします。
+ *    まーく様のアカウントで入れば、守りはそのまま効きます。
+ *
+ *  ★1回だけ、まーく様の手が要ります
+ *    スクリプトプロパティに次の2つを入れてください。
+ *      TAXINOTE_EMAIL … 台帳に入るときのメール
+ *      TAXINOTE_PASS  … そのパスワード
+ *    入っていなければ、何もしません（黙って終わります）。
+ *
+ *  ★二重に入れません
+ *    「営業日・乗せた時刻・金額」がそろって同じものは送りません。
+ *    売上の水増しは、いちばん重い事故です。
+ *
+ *  ★はじめは「下見」だけです
+ *    何件入るかを控えに書くだけで、実際には入れません。
+ *    中身を確かめてから、入れる側に切りかえます。
+ * ================================================================ */
+
+/** 半角カナを、きちんと全角に直す（ウェブ側と同じ決まり） */
+function sbNkey_(v) {
+  let s = String(v == null ? "" : v).replace(/[\s　]/g, "");
+  const H  = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝｧｨｩｪｫｬｭｮｯｰ";
+  const Z  = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンァィゥェォャュョッー";
+  const DK = "カキクケコサシスセソタチツテトハヒフヘホウ";
+  const DZ = "ガギグゲゴザジズゼゾダヂヅデドバビブベボヴ";
+  const PK = "ハヒフヘホ", PZ = "パピプペポ";
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    let c = s[i];
+    const j = H.indexOf(c);
+    if (j >= 0) c = Z[j];
+    const nx = s[i + 1];
+    if (nx === "ﾞ" || nx === "゛") { const k = DK.indexOf(c); if (k >= 0) { c = DZ[k]; i++; } }
+    else if (nx === "ﾟ" || nx === "゜") { const k = PK.indexOf(c); if (k >= 0) { c = PZ[k]; i++; } }
+    out += c;
+  }
+  return out.toLowerCase();
+}
+
+/** 台帳に入って、合いことば（トークン）をもらう。50分おぼえる */
+function sbToken_() {
+  try {
+    const cc = CacheService.getScriptCache();
+    const hit = cc ? cc.get("SB_TOKEN") : null;
+    if (hit) return hit;
+  } catch (e) {}
+  const conf = sbWakeConf_();
+  if (!conf) return "";
+  const pr = PropertiesService.getScriptProperties();
+  const mail = pr.getProperty("TAXINOTE_EMAIL") || "";
+  const pass = pr.getProperty("TAXINOTE_PASS") || "";
+  if (!mail || !pass) return "";            // まだ入れていない。何もしない
+  try {
+    const res = UrlFetchApp.fetch(conf.url + "/auth/v1/token?grant_type=password", {
+      method: "post",
+      headers: { "apikey": conf.key },
+      contentType: "application/json",
+      payload: JSON.stringify({ email: mail, password: pass }),
+      muteHttpExceptions: true
+    });
+    if (res.getResponseCode() !== 200) return "";
+    const tok = (JSON.parse(res.getContentText()) || {}).access_token || "";
+    try { const cc2 = CacheService.getScriptCache(); if (cc2 && tok) cc2.put("SB_TOKEN", tok, 3000); } catch (e) {}
+    return tok;
+  } catch (e) { return ""; }
+}
+
+/** 台帳に聞く（読むだけ） */
+function sbGet_(path) {
+  const conf = sbWakeConf_(), tok = sbToken_();
+  if (!conf || !tok) return null;
+  try {
+    const res = UrlFetchApp.fetch(conf.url + "/rest/v1/" + path, {
+      headers: { "apikey": conf.key, "Authorization": "Bearer " + tok },
+      muteHttpExceptions: true
+    });
+    if (res.getResponseCode() !== 200) return null;
+    return JSON.parse(res.getContentText());
+  } catch (e) { return null; }
+}
+
+/**
+ * スプシの記録を、台帳へ移す。
+ * go が false のあいだは「下見」だけ（実際には入れません）。
+ */
+function webSyncPush_(go) {
+  try {
+    if (typeof expLedgerCsv_ !== "function") return "書き出しの係がありません。";
+    const conf = sbWakeConf_();
+    if (!conf) return "台帳の住所と鍵が、まだ入っていません。";
+    const tok = sbToken_();
+    if (!tok) return "台帳に入れません（TAXINOTE_EMAIL / TAXINOTE_PASS を入れてください）。";
+
+    // だれが だれか
+    const ps = sbGet_("profiles?select=id,display_name");
+    if (!ps) return "台帳の名前を読めませんでした。";
+    const byName = {};
+    ps.forEach(function (p) { byName[sbNkey_(p.display_name)] = p.id; });
+
+    // すでに入っているもの（二重に入れないため）
+    const have = sbGet_("rides?select=work_date,dep,fare&limit=20000") || [];
+    const seen = {};
+    have.forEach(function (r) {
+      seen[r.work_date + "|" + Number(r.dep).toFixed(2) + "|" + Number(r.fare)] = 1;
+    });
+
+    const got = expLedgerCsv_();
+    const lines = String(got.text || "").split("\n").slice(1);
+    const rows = [], miss = {}, by = {};
+    let dup = 0, ng = 0;
+
+    lines.forEach(function (ln) {
+      if (!ln) return;
+      const c = ln.split(",").map(function (x) { return String(x).replace(/^"|"$/g, ""); });
+      const d = c[0], tm = c[2], w = c[3], rd = c[4], f = c[5], me = c[6], no = c[7], who = c[8];
+      if (!d || !tm || !f) { ng++; return; }
+      const hm = String(tm).match(/(\d{1,2})\D(\d{2})/);
+      if (!hm) { ng++; return; }
+      let dep = Number(hm[1]) + Number(hm[2]) / 60;
+      if (dep < 12) dep += 24;                       // 0〜11時は、その夜の続き
+      if (dep >= 36) { ng++; return; }
+      const fare = Number(String(f).replace(/\D/g, ""));
+      if (!fare) { ng++; return; }
+      const key = d + "|" + dep.toFixed(2) + "|" + fare;
+      if (seen[key]) { dup++; return; }
+      seen[key] = 1;
+      const uid = byName[sbNkey_(who)];
+      if (!uid) { miss[who] = (miss[who] || 0) + 1; return; }   // だれのか分からないものは入れない
+      by[who] = (by[who] || 0) + 1;
+      rows.push({ user_id: uid, work_date: d, place: c[1] || "",
+                  dep: Number(dep.toFixed(2)),
+                  wait_min: Number(String(w).replace(/\D/g, "")) || 0,
+                  ride_min: Number(String(rd).replace(/\D/g, "")) || 0,
+                  fare: fare, method: me || "", note: no || "" });
+    });
+
+    const who2 = Object.keys(by).map(function (k) { return k + " " + by[k] + "件"; }).join("／") || "なし";
+    const miss2 = Object.keys(miss).map(function (k) { return k + " " + miss[k] + "件"; }).join("／");
+    const head = (go ? "🔄 移しました：" : "👀 下見：") + rows.length + "件" +
+                 "／すでにある " + dup + "件／読めない " + ng + "件" +
+                 "／名義 " + who2 + (miss2 ? "／名前が合わない " + miss2 : "");
+
+    if (!go) { updErrandLog_(head + "（まだ入れていません）"); return head + "\n※まだ入れていません。"; }
+
+    for (let i = 0; i < rows.length; i += 200) {
+      const res = UrlFetchApp.fetch(conf.url + "/rest/v1/rides", {
+        method: "post",
+        headers: { "apikey": conf.key, "Authorization": "Bearer " + tok, "Prefer": "return=minimal" },
+        contentType: "application/json",
+        payload: JSON.stringify(rows.slice(i, i + 200)),
+        muteHttpExceptions: true
+      });
+      const code = res.getResponseCode();
+      if (code < 200 || code >= 300) {
+        const msg = "🔄 途中で断られました（" + code + "）。入ったのは " + i + "件まで。";
+        updErrandLog_(msg);
+        return msg;
+      }
+    }
+    updErrandLog_(head);
+    return head;
+  } catch (e) {
+    try { updErrandLog_("🔄 移せませんでした：" + ((e && e.message) || e)); } catch (e2) {}
+    return "移せませんでした：" + ((e && e.message) || e);
+  }
+}
+
 /** おつかいの控えに、1行 足す。失敗しても、頼まれごとは止めない */
 function updErrandLog_(line) {
   try {
@@ -11542,6 +11738,8 @@ const UPD_ERRAND_OK = {
    */
   "ledger-export": "スプシの記録を書き出して、ドライブに置く",
   "web-events":  "イベント情報を、TAXI NOTE（ウェブ）に渡す",
+  "web-sync-try": "スプシ→台帳の下見（入れずに、件数だけ数える）",
+  "web-sync-go":  "スプシ→台帳へ、ほんとうに移す",
   "ping":        "動いているかどうかの返事だけ"
 };
 
@@ -11972,6 +12170,10 @@ function updErrandTick_() {
   try {
     if (task === "ping") {
       out = "うごいています。";
+    } else if (task === "web-sync-try") {
+      out = webSyncPush_(false);
+    } else if (task === "web-sync-go") {
+      out = webSyncPush_(true);
     } else if (task === "web-events") {
       if (typeof vnFeedPush_ === "function") {
         out = vnFeedPush_() ? "📡 イベント情報を台帳へ渡しました。"
