@@ -87,7 +87,15 @@ console.log('■ 公演日は出す／搬入だけの日は出さない');
   ok(d14.events.length === 1,
      '★★★公演日（14日）は出す … 予定の中に「20261114」の字は無い', d14.events.length);
   const e = d14.events[0] || {};
-  ok(String(e.title).indexOf('京セラドーム大阪') !== -1, '★会場の名前が出る', e.title);
+  /*
+   * ★見出しを「実際の会場の名前」にしました
+   *   （まーく様のご指摘・2026/11/10）。
+   *     「何を参考にしたら良いのか全く分かりません」
+   *   それまでは見出しが どれも「ワントゥワン」でした。
+   *   3件ならぶと ぜんぶ同じ見出しになり、どこの話か分かりません。
+   */
+  ok(String(e.venue).indexOf('京セラドーム大阪') !== -1,
+     '★★★見出しが、実際の会場の名前になる', e.venue);
   ok(String(e.title).indexOf('INI') !== -1, '★公演の名前が出る', e.title);
   ok(String(e.title).indexOf('公演日') !== -1, '　 その日の役目も出る', e.title);
   ok(String(e.title).indexOf('<u>') === -1 && String(e.title).indexOf('<br>') === -1,
@@ -140,8 +148,8 @@ console.log('■ 大阪A地区の外は、1件も出さない');
   ]);
   const r = read(body, 2026, 10, 14);
   ok(r.events.length === 1, '★★★大阪A地区の1件だけが出る', r.events.length);
-  ok(String((r.events[0] || {}).title).indexOf('フェニーチェ堺') !== -1,
-     '★残るのは堺（A地区）', (r.events[0] || {}).title);
+  ok(String((r.events[0] || {}).venue).indexOf('フェニーチェ堺') !== -1,
+     '★残るのは堺（A地区）', (r.events[0] || {}).venue);
 }
 
 console.log('■ 時刻が書いていなくても、バラシは落とさない');
@@ -187,6 +195,26 @@ console.log('■ ワントゥワンが、公開カレンダーを読む形にな
      '★★★公開カレンダーを読む形になっている（ページには予定が1文字も無い）', (one.ics || []).length);
   ok(src.indexOf('calendar.google.com/calendar/ical/') !== -1,
      '　 公開されている置き場を読んでいる（新しい許可は要らない）');
+}
+
+console.log('■ バラシに「終演が分かりません」と書かない');
+{
+  const body = ics([vevent({
+    from: '20261111', to: '20261112', name: 'Jason Mraz',
+    place: 'フェスティバルホール\\, 日本、〒530-0005 大阪府大阪市北区中之島',
+    desc: '公演日：11日（水）'
+  })]);
+  const e = (read(body, 2026, 10, 11).events[0]) || {};
+  ok(e.venue === 'フェスティバルホール', '★★★見出しは会場の名前', e.venue);
+  ok(String(e.title).indexOf('Jason Mraz') !== -1, '　 本文は公演の名前', e.title);
+  ok(String(e.title).indexOf('ワントゥワン') === -1,
+     '　 会社の名前は、見出しにも本文にも出さない', e.title);
+  /*
+   * ★まーく様のご指示（2026/11/10）
+   *     「終演の情報がわかっていないという文言はいらない」
+   */
+  const line = V('vnArriveText_')(e);
+  ok(line === '', '★★★「終演が分かりません」の行を、まるごと出さない', line);
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
