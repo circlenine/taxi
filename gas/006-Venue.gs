@@ -2,7 +2,36 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V098ver  （2026/11/10）  ★★★
+ *  ★★★  V099ver  （2026/11/10）  ★★★
+ *
+ *  [V099ver]
+ *   ・🔍 「読めていない」の見分けが、まちがっていた
+ *     ★まーく様のご指摘：
+ *       「直近ではまだイベントが出てないものもあるので」
+ *     ★それまでは **4日先まで** しか見ていませんでした。
+ *       1か月先まで何も無い会場は、ふつうにあります。
+ *         ・東和薬品RACTABドーム … 次は1月23日
+ *         ・長居スタジアム … 次は12月5日
+ *         ・新歌舞伎座 … 次は11月26日
+ *       どれも ちゃんと読めているのに「読めていない」と並べていました。
+ *       そのせいで、本当に読めていない会場が埋もれていました。
+ *       **60日先まで** 見るようにしました。
+ *   ・🔁 ページの中身の控えを、1日1回 ひとりでに作り直すようにした
+ *     ★まーく様のご指示：
+ *       「控えも読んでください、これも自動化できるようにしてください」
+ *     ★こちらから毎回 頼まなくても、いつでも最新の中身が置いてあります。
+ *       夜中の3時台だけ（会場のページに迷惑をかけないため）。
+ *   ・🎄 イルミネーションを、知らせの最後に1行だけ出すようにした
+ *     ★まーく様のご指示：
+ *       「大阪イベント情報(ライブ関係、イルミネーション関係)に絞り
+ *         定期的に自動チェックできる仕組み作りも行ってください」
+ *     ★ライブとは性質が違います。何日も続き、毎日おなじ時刻に点いて消え、
+ *       「終演」がありません。人が出てくるのは **消灯の時刻** です。
+ *       催しと同じ枠で出すと、毎日おなじものがならび、
+ *       肝心のライブが埋もれます。だから1行だけにします。
+ *     ★大阪A地区の外（羽曳野市など）は出しません。行けないためです。
+ *     ★市の名前が書かれていない置き場（御堂筋など）もあります。
+ *       大阪市内と決まっている場所だけ、名前で拾います（推し量りません）。
  *
  *  [V098ver]
  *   ・🏉 死んでいた住所を、まーく様に教えていただいて入れ替えた
@@ -1533,7 +1562,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V098ver";
+const VN_VERSION = "V099ver";
 
 /**
  * 見にいく先の一覧。
@@ -3481,6 +3510,17 @@ const VN_DUMP_FILE = "会場の中身.txt";
 /** 1会場あたり、何字まで置くか */
 const VN_DUMP_CHARS = 6000;
 
+/*
+ * 「読めていない」と見なすまでに、何日先まで見るか。
+ *
+ * ★まーく様のご指摘（2026/11/10）
+ *     「直近ではまだイベントが出てないものもあるので」
+ *   4日先までしか見ていなかったので、
+ *   ちゃんと読めている会場まで「読めていない」と並べていました。
+ *   1か月先まで何も無い会場は、ふつうにあります。
+ */
+const VN_DUMP_DAYS = 60;
+
 /** ドライブに書く（共有の設定は触らない） */
 function vnDumpPublish_(text) {
   try {
@@ -3501,6 +3541,197 @@ function vnDumpPublish_(text) {
   }
 }
 
+
+/* ================================================================
+ *  🎄 イルミネーション（まーく様のご指示・2026/11/10）
+ *
+ *  ★ご指示
+ *    「大阪イベント情報(ライブ関係、イルミネーション関係)に絞り
+ *      定期的に自動チェックできる仕組み作りも行ってください」
+ *
+ *  ★ライブとは、性質がまるで違います。
+ *    ・何日も続く（11/3〜12/31 のように、ひと月以上）
+ *    ・毎日おなじ時刻に点いて、おなじ時刻に消える
+ *    ・「終演」が無い。人が出てくるのは **消灯の時刻**
+ *
+ *  ★だから、催しと同じ枠で出しません。
+ *    毎日おなじ枠が何個もならぶと、肝心のライブが埋もれます
+ *    （「毎回おなじ説明を出さない」の決まり）。
+ *    知らせの終わりに **1行だけ** 出します。
+ *
+ *  ★大阪A地区の外（羽曳野市など）は出しません。行けないためです。
+ *  ★読み先は「OSAKA光の饗宴」の公式ページ。
+ *    大阪じゅうのイルミネーションが、1か所にまとまっています。
+ * ================================================================ */
+
+/** イルミネーションの読み先（公式のまとめ） */
+const VN_ILLUMI_URL = "https://www.hikari-kyoen.com/";
+
+/** 何時より後に消えるものを出すか（夜勤に関わるのは、ここから） */
+const VN_ILLUMI_FROM = 20;
+
+/**
+ * ページから、イルミネーションの一覧を取り出す。
+ *
+ * ★ページの中に、場所・期間・点灯時間が、1つずつ きれいに入っています。
+ *   そこだけを読むので、見た目が変わっても崩れにくい作りです。
+ */
+function vnIllumiParse_(html, day) {
+  const t = String(html || "");
+  const out = [];
+  const re = /data-modal-title="([^"]{1,80})"[\s\S]{0,400}?data-modal-period="([^"]{1,160})"[\s\S]{0,200}?data-modal-place="([^"]{1,120})"/g;
+  let m, guard = 0;
+  while ((m = re.exec(t)) !== null && guard++ < 80) {
+    const title = vnEntity_(m[1]).trim();
+    const period = vnEntity_(m[2]).trim();
+    const place = vnEntity_(m[3]).trim();
+    if (!title) continue;
+
+    // ★大阪A地区のものだけ（行けない場所を知らせるのは、ただの邪魔）
+    if (!vnIllumiInAreaA_(place + " " + title)) continue;
+
+    // ★いまの日が、その期間の中に入っているか
+    if (!vnIllumiOn_(period, day)) continue;
+
+    // ★消える時刻。「17:00頃〜25:00まで」の、うしろのほう
+    const times = period.match(/\d{1,2}:\d{2}/g) || [];
+    const off = times.length >= 2 ? times[times.length - 1] : "";
+    const offH = off ? vnHourOf_(off) : null;
+    // 夜に人が出るものだけ（夕方に消えるものは、夜勤に関わらない）
+    if (offH !== null && offH < VN_ILLUMI_FROM) continue;
+
+    out.push({ title: title, place: place, off: off });
+  }
+  return out;
+}
+
+/*
+ * ★大阪市内の通り・地区の名前。
+ *   イルミネーションの置き場には、市の名前が書かれていないことがあります。
+ *     「御堂筋（阪神前交差点～難波西口交差点）」
+ *   これでは「大阪市」の字がないので、A地区かどうかを決められません。
+ *   ですが、ここに並べたものは **どれも大阪市内にあると決まっています**。
+ *   推し量りではなく、はっきりした事実だけを並べます。
+ */
+const VN_OSAKA_SPOTS = [
+  "御堂筋", "中之島", "梅田", "難波", "なんば", "心斎橋", "天王寺",
+  "大阪城", "天保山", "本町", "淀屋橋", "新世界", "大阪市"
+];
+
+/** イルミネーションの置き場が、大阪A地区かどうか */
+function vnIllumiInAreaA_(text) {
+  const t = String(text || "");
+  if (!t) return false;
+  // ① 市の名前が書いてあるか（堺市・八尾市・大東市 など）
+  for (let i = 0; i < VN_AREA_A.length; i++) {
+    if (t.indexOf(VN_AREA_A[i]) !== -1) return true;
+  }
+  // ② 市の名前が無くても、大阪市内と決まっている場所か
+  for (let i = 0; i < VN_OSAKA_SPOTS.length; i++) {
+    if (t.indexOf(VN_OSAKA_SPOTS[i]) !== -1) return true;
+  }
+  return false;
+}
+
+/** その期間の中に、その日が入っているか（「2026.11.3（火・祝）〜12.31（木）」の形） */
+function vnIllumiOn_(period, day) {
+  const t = String(period || "");
+  const d = (day && typeof day.getTime === "function") ? day : new Date();
+  const want = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  // 「2026.11.3」「11.3」「11/3」「11月3日」のどれでも拾う
+  const re = /(?:(\d{4})[.\/])?(\d{1,2})[.\/月](\d{1,2})/g;
+  const pts = [];
+  let m, guard = 0;
+  while ((m = re.exec(t)) !== null && guard++ < 10) {
+    // 時刻（17:00）を日付と読まないよう、区切りが「:」のものは入らない形にしてある
+    pts.push({ y: m[1] ? Number(m[1]) : d.getFullYear(), yGiven: !!m[1],
+               mo: Number(m[2]), d: Number(m[3]) });
+  }
+  if (pts.length < 2) return false;            // 期間が読めないものは、出さない
+  const a = pts[0], b = pts[1];
+  if (!(a.mo >= 1 && a.mo <= 12 && b.mo >= 1 && b.mo <= 12)) return false;
+  /*
+   * ★終わりの年は、**始まりの年から数えます**（2026/11/10 に直しました）。
+   *   はじめ「その日の年」を当てはめていたので、
+   *   「2026.12.11〜12.25」が、2027年2月でも“点灯中”になっていました。
+   *   とうに終わったイルミネーションを「いま点いています」と
+   *   出すところでした。
+   */
+  let by = pts[1].yGiven ? b.y : a.y;
+  if (b.mo < a.mo) by = (pts[1].yGiven ? b.y : a.y) + 1;   // 12月→1月の年またぎ
+  const from = new Date(a.y, a.mo - 1, a.d).getTime();
+  const to = new Date(by, b.mo - 1, b.d).getTime();
+  return want >= from && want <= to;
+}
+
+/**
+ * 知らせの終わりに足す「1行」を作る。出すものが無ければ ""。
+ *
+ * ★ここで止まっても、イベントの知らせそのものは絶対に止めません。
+ */
+function vnIllumiLine_(day) {
+  try {
+    let res = null;
+    try {
+      res = UrlFetchApp.fetch(VN_ILLUMI_URL, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+      });
+    } catch (e) { return ""; }
+    if (!res || res.getResponseCode() !== 200) return "";
+    let html = "";
+    try { html = res.getContentText(); } catch (e) { return ""; }
+
+    const list = vnIllumiParse_(html, day);
+    if (!list.length) return "";
+    /*
+     * ★1行は全角42文字まで、という決まりがあります。
+     *   名前が長いものは短く切り、3つまでにします。
+     *   走りながら読むものなので、長いと読めません。
+     */
+    const bits = list.slice(0, 3).map(function (x) {
+      let name = String(x.title)
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s*20\d\d\s*$/, "")
+        .replace(/[〜～].*$/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (name.length > 12) name = name.slice(0, 12) + "…";
+      return name + (x.off ? "（〜" + x.off + "）" : "");
+    });
+    const rest = list.length - bits.length;
+    return "🎄 点灯中：" + bits.join("／") + (rest > 0 ? " ほか" + rest + "か所" : "");
+  } catch (e) {
+    try { logErr_("vnIllumiLine", e); } catch (e2) {}
+    return "";
+  }
+}
+
+/**
+ * 1日1回だけ、ページの中身を作り直す。
+ *
+ * ★見張りは15分おきに動くので、そのたびに作り直すと
+ *   会場のホームページに迷惑がかかりますし、
+ *   GASの持ち時間（1日90分）も食いつぶします。
+ *   1日1回で十分です。
+ *
+ * ★夜中（3時台）にやります。会場のページがいちばん空いている時間で、
+ *   こちらの見張りもほかに用事がないためです。
+ */
+function vnDumpTick_() {
+  const now = new Date();
+  if (now.getHours() !== 3) return false;            // 夜中の3時台だけ
+  const key = "VN_DUMP_DONE";
+  const today = Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd");
+  const pr = PropertiesService.getScriptProperties();
+  try { if (pr.getProperty(key) === today) return false; } catch (e) {}
+  try { pr.setProperty(key, today); } catch (e) {}   // 先に印を付ける（二度やらない）
+  try { vnDumpAll(); } catch (e) {
+    try { logErr_("vnDumpAll", e); } catch (e2) {}
+  }
+  return true;
+}
+
 /**
  * 読めていない会場のページを取りにいって、中身を置く。
  *
@@ -3516,10 +3747,24 @@ function vnDumpAll(only) {
     if (src.ics) return;                       // カレンダーから読むところは、調べる必要がない
     if (typeof updBeat_ === "function") updBeat_("中身 " + src.name);
 
-    // ★読めていない会場だけにします（ぜんぶ置くと、置き場を食いつぶすため）
+    /*
+     * ★読めていない会場だけにします（ぜんぶ置くと、置き場を食いつぶすため）。
+     *
+     * ★ここを直しました（2026/11/10・まーく様のご指摘）。
+     *     「直近ではまだイベントが出てないものもあるので」
+     *   それまでは **4日先まで** しか見ていませんでした。
+     *   ところが会場には、1か月先まで何も無いところがあります。
+     *     ・東和薬品RACTABドーム … 次は1月23日
+     *     ・長居スタジアム … 次は12月5日
+     *     ・新歌舞伎座 … 次は11月26日
+     *   どれも ちゃんと読めているのに「読めていない」と見なしていました。
+     *   そのせいで、直す必要のない会場を並べ、
+     *   本当に読めていない会場が埋もれていました。
+     *   **60日先まで** 見るようにします。
+     */
     if (!want) {
       let n = 0;
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < VN_DUMP_DAYS; i++) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
         try { n += (vnScrapeOne_(src, d).events || []).length; } catch (e) {}
         if (n) break;
@@ -4263,6 +4508,21 @@ function vnBuildMessages_(day, events, note, noBells) {
     contents.push({ "type": "text", "text": "この日に、18:00〜翌04:00 で拾えるイベントは見つかりませんでした。",
       "size": "sm", "color": "#666666", "wrap": true, "margin": "lg" });
   }
+  /*
+   * ★イルミネーションを、いちばん最後に1行だけ出します
+   *   （まーく様のご指示・2026/11/10）。
+   *   何日も続くものなので、催しと同じ枠で出すと
+   *   毎日おなじものがならび、肝心のライブが埋もれます。
+   *   ★ここで止まっても、イベントの知らせそのものは絶対に止めません。
+   */
+  try {
+    const il = vnIllumiLine_(day);
+    if (il) {
+      contents.push({ "type": "text", "text": il, "size": "xxs",
+                      "color": "#6a1b9a", "wrap": true, "margin": "md" });
+    }
+  } catch (e) {}
+
   if (note) {
     contents.push({ "type": "separator", "margin": "lg" },
       { "type": "text", "text": note, "size": "xxs", "color": "#b71c1c", "wrap": true, "margin": "md" });
@@ -10536,6 +10796,15 @@ function venueDailyJob() {
     //   忘れたときに黙って動かなくなるので、やり方として間違っている。
     //   1日1回だけ確かめて、足りないものがあれば自分で作る。
     try { vnSelfHeal_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnSelfHeal", e); }
+
+    /*
+     * ★読めていない会場の「ページの中身」を、1日1回 ひとりでに作り直します
+     *   （まーく様のご指示・2026/11/10）。
+     *     「控えも読んでください、これも自動化できるようにしてください」
+     *   こちらから毎回 頼まなくても、いつでも最新の中身が置いてあります。
+     *   読めている会場が1つも無ければ、何も書きません（静かなまま）。
+     */
+    try { vnDumpTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
 
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。

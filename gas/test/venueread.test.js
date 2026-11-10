@@ -844,5 +844,66 @@ console.log('■ 「2027.01.23 [土]」の書き方も読める（スポカレ�
   ok((r.events[0] || {}).start === '13:00', '　 時刻も取れる', (r.events[0] || {}).start);
 }
 
+/* ================================================================
+ * イルミネーション（まーく様のご指示・2026/11/10）
+ *   「大阪イベント情報(ライブ関係、イルミネーション関係)に絞り
+ *     定期的に自動チェックできる仕組み作りも行ってください」
+ * ================================================================ */
+console.log('■ イルミネーションは、期間の中の日だけ「点灯中」にする');
+{
+  const on = V('vnIllumiOn_');
+  ok(on('2026.12.11（金）〜12.25（金）', new Date(2026, 11, 20)) === true,
+     '★期間の中なら 点灯中');
+  ok(on('2026.12.11（金）〜12.25（金）', new Date(2027, 1, 15)) === false,
+     '★★★とうに終わったものを「いま点いています」と出さない', );
+  ok(on('2026.11.3（火・祝）〜12.31（木）17:00頃〜25:00まで', new Date(2026, 10, 20)) === true,
+     '　 時刻が混じっていても、期間を読みまちがえない');
+  ok(on('2026.12.20（日）〜2027.1.12（火）', new Date(2027, 0, 5)) === true,
+     '★年をまたぐ期間（12月→1月）も読める');
+  ok(on('時間は未定', new Date(2026, 10, 20)) === false,
+     '　 期間が読めないものは、出さない');
+}
+console.log('■ 大阪A地区の外は、出さない');
+{
+  const f = V('vnIllumiInAreaA_');
+  ok(f('御堂筋（阪神前交差点～難波西口交差点）') === true,
+     '★★★市の名前が無くても、大阪市内と決まっている場所は出す');
+  ok(f('JR住道駅前2階デッキ 大東市') === true, '　 大東市（A地区）は出す');
+  ok(f('LICはびきの 交流広場 羽曳野市') === false,
+     '★★★羽曳野市（A地区の外）は出さない … 行けない場所を知らせても邪魔');
+  ok(f('高槻城公園') === false, '　 高槻（A地区の外）も出さない');
+}
+console.log('■ 1行にまとめる（催しの枠にはしない）');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const i = src.indexOf('function vnIllumiLine_');
+  const j = src.indexOf('\nfunction ', i + 1);
+  const body = src.slice(i, j);
+  ok(body.indexOf('slice(0, 3)') !== -1,
+     '★★3つまでにする（1行は全角42文字までの決まり）');
+  ok(body.indexOf('name.slice(0, 12)') !== -1, '　 長い名前は短く切る');
+  ok(src.indexOf('vnIllumiLine_(day)') !== -1, '★★★知らせの中で、ちゃんと呼んでいる');
+  ok(src.indexOf('try {\n    const il = vnIllumiLine_(day);') !== -1,
+     '★★★ここで止まっても、イベントの知らせは止めない');
+}
+console.log('■ 「読めていない」と見なすまでに、60日先まで見る');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(/const VN_DUMP_DAYS = 60;/.test(src),
+     '★★★4日では短すぎた … 1か月先まで何も無い会場は、ふつうにある');
+  ok(src.indexOf('VN_DUMP_DAYS') !== -1 && /for \(let i = 0; i < VN_DUMP_DAYS; i\+\+\)/.test(src),
+     '　 その日数を、ちゃんと使っている');
+}
+console.log('■ 控えは、1日1回 ひとりでに作り直す');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(/function vnDumpTick_\(/.test(src), '★★★1日1回の係がある');
+  ok(src.indexOf('vnDumpTick_();') !== -1, '★★★毎日の見張りから呼んでいる（指は要らない）');
+  const i = src.indexOf('function vnDumpTick_');
+  const j = src.indexOf('\nfunction ', i + 1);
+  ok(src.slice(i, j).indexOf('getHours() !== 3') !== -1,
+     '　 夜中の3時台だけ（会場のページに迷惑をかけない）');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
