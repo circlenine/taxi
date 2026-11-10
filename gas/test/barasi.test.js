@@ -217,5 +217,55 @@ console.log('■ バラシに「終演が分かりません」と書かない');
   ok(line === '', '★★★「終演が分かりません」の行を、まるごと出さない', line);
 }
 
+/* ================================================================
+ * 搬出と搬入は、別のもの（まーく様のご指摘・2026/11/10）
+ *   「搬出と搬入もいっしょくたになって、めちゃくちゃじゃないですか…」
+ *
+ *  ★搬出（バラシ）… 公演が終わったあと。深夜に人が出る。
+ *  ★搬入（設営）　… 公演の前の昼の作業。夜に人は出ない。
+ *    同じ見出しに混ぜると、搬入の日に夜の車を向けさせる。
+ * ================================================================ */
+console.log('■ 搬出と搬入を、別のまとまりにする');
+{
+  const body = ics([vevent({
+    from: '20261113', to: '20261116', name: 'INI',
+    place: '京セラドーム大阪\\, 日本、〒550-0023 大阪府大阪市西区千代崎',
+    desc: '搬入日：13日（金）<br>公演日：14日（土）・15日（日）'
+  })]);
+  const load = (read(body, 2026, 10, 13).events[0]) || {};
+  const out  = (read(body, 2026, 10, 14).events[0]) || {};
+  ok(load.kind === 'hanyu', '★★★搬入の日は「搬入」として出す', load.kind);
+  ok(load.icon === '🚚', '　 しるしも分ける', load.icon);
+  ok(out.kind === 'barasi', '★★★公演日は「バラシ（搬出）」のまま', out.kind);
+  ok(out.icon === '🔧', '　 しるしも そのまま', out.icon);
+
+  const L = V('VN_KIND_LABEL');
+  ok(String(L['hanyu']).indexOf('搬入') !== -1, '★見出しが分かれている', L['hanyu']);
+  ok(String(L['hanyu']).indexOf('夜の人出なし') !== -1,
+     '★★★見出しだけで「夜は出ない」と分かる', L['hanyu']);
+  ok(String(L['barasi']).indexOf('搬出') !== -1, '　 搬出のほうも分かる', L['barasi']);
+  ok(V('VN_KIND_ORDER').indexOf('hanyu') > V('VN_KIND_ORDER').indexOf('barasi'),
+     '★搬入は、いちばん下に置く（その日の夜に動く話ではない）');
+}
+console.log('■ 搬入に、よその公演の時刻をくっつけない');
+{
+  const f = V('vnLinkBarasiTime_');
+  const list = [
+    { venue: '京セラドーム大阪', kind: 'event', start: '18:00', end: '20:30' },
+    { venue: '京セラドーム大阪', kind: 'hanyu', start: '', end: '' }
+  ];
+  f(list);
+  ok(list[1].start === '',
+     '★★★搬入には、公演の時刻を入れない（その日は公演がない）', list[1].start);
+}
+console.log('■ 搬入に「本日かぎり」と書かない');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(src.indexOf('if (!run && ev.kind !== "hanyu")') !== -1,
+     '★その日は公演がないので「本日かぎり」はおかしな話になる');
+  ok(src.indexOf('🚚 この日は 設営だけ。夜の人出は ありません') !== -1,
+     '★★★枠の中にも、はっきり書く');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

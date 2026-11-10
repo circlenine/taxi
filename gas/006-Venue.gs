@@ -2,7 +2,28 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V102ver  （2026/11/10）  ★★★
+ *  ★★★  V103ver  （2026/11/10）  ★★★
+ *
+ *  [V103ver]
+ *   ・🚚 「搬出」と「搬入」を、べつの枠に分けた
+ *     ★まーく様のご指摘：
+ *       「搬出と搬入もいっしょくたになって、めちゃくちゃじゃないですか…」
+ *     ★まったく逆のものを、同じ枠に入れていました。
+ *       ・搬出（バラシ）… 公演が終わったあと。**お客が出てくる＝乗る**
+ *       ・搬入（設営）  … 公演の前の日。**お客は1人も来ない**
+ *       搬入の日に会場へ向かっても、1本も乗れません。
+ *       これは、売上をまるごと落とす間違いでした。
+ *     ★直したところ
+ *       ・枠を2つに分けた。
+ *           【🔧 バラシ（搬出・公演のあと）】
+ *           【🚚 搬入（設営・この日は夜の人出なし）】
+ *       ・搬入の枠は、いちばん下に置く（先に見るものではないため）。
+ *       ・搬入の行には
+ *         「🚚 この日は 設営だけ。夜の人出は ありません」と書く。
+ *       ・搬入に、公演の時刻を結びつけない
+ *         （その日は公演が無いので、時刻を書くと嘘になる）。
+ *       ・搬入に「📅 本日かぎり」と書かない
+ *         （搬入は1日だけなのが当たり前。公演の日付のほうを出す）。
  *
  *  [V102ver]
  *   ・🚕 「何時に向かえばよいか」が、かならず分かるようにした
@@ -1635,7 +1656,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V102ver";
+const VN_VERSION = "V103ver";
 
 /**
  * 見にいく先の一覧。
@@ -2914,7 +2935,7 @@ function vnHasTime_(ev) {
    *   いちばん欲しいものが1件も出ません。
    *   時刻は言い切らないので、嘘にはなりません。
    */
-  if (ev && ev.kind === "barasi") return true;
+  if (ev && (ev.kind === "barasi" || ev.kind === "hanyu")) return true;
   return vnHourOf_(ev && ev.start) !== null || vnHourOf_(ev && ev.end) !== null;
 }
 
@@ -2925,8 +2946,8 @@ function vnHasTime_(ev) {
  * ★時刻が分からないものは、ここで落とす（前は残していた。上の vnHasTime_ 参照）。
  */
 function vnInTimeRange_(ev) {
-  // ★バラシは公演のあと＝かならず夜なので、時間帯で落としません（ご指示・2026/11/9）
-  if (ev && ev.kind === "barasi") return true;
+  // ★バラシ・搬入は、時間帯で落としません（ご指示・2026/11/9）
+  if (ev && (ev.kind === "barasi" || ev.kind === "hanyu")) return true;
   const end = vnHourOf_(ev.end);
   const start = vnHourOf_(ev.start);
   if (end === null && start === null) return false;       // 時刻が無いものは出さない
@@ -4409,6 +4430,18 @@ function vnCard_(ev, idx, day, noBells, budget) {
                 "size": "xs", "color": "#5f6368", "wrap": true, "margin": "xs" });
   }
   /*
+   * ★搬入（設営）は、**その日の夜に人が出ません**
+   *   （まーく様のご指摘・2026/11/10）。
+   *   公演が始まるのは、次の日からです。
+   *   そうと書いておかないと、搬入の日に夜の車を向けさせます。
+   */
+  if (ev.kind === "hanyu") {
+    rows.push({ "type": "text",
+                "text": "🚚 この日は 設営だけ。夜の人出は ありません",
+                "size": "xs", "weight": "bold", "color": "#5f6368",
+                "wrap": true, "margin": "xs" });
+  }
+  /*
    * ★「（催し 18:00 開演）」の行は、やめました
    *   （まーく様のご指摘・2026/11/10）。
    *     「開演時間あるのに、開始時間だったり、()内にも開演があったり、
@@ -4508,8 +4541,13 @@ function vnCard_(ev, idx, day, noBells, budget) {
      *   1日だけなら、そう書きます。
      */
     let run = (ev && ev.runText) ? ev.runText : vnRunText_(ev, day);
-    // ★バラシにも出します。いちばん重要とのご指示（2026/11/10）
-    if (!run) run = "📅 本日かぎり（1日だけ）";
+    /*
+     * ★バラシにも出します。いちばん重要とのご指示（2026/11/10）。
+     *   ただし搬入（設営）には出しません。
+     *   その日は公演がないので「本日かぎり」はおかしな話になります
+     *   （いつから何日間かは、公演の名前のところに書いてあります）。
+     */
+    if (!run && ev.kind !== "hanyu") run = "📅 本日かぎり（1日だけ）";
     if (run) {
       const last = run.indexOf("最終日") !== -1;
       rows.push({ "type": "text", "text": run, "size": "xs", "margin": "xs",
@@ -5884,6 +5922,7 @@ function vnLedYmdToDate_(y, m, d) { return new Date(Number(y), Number(m) - 1, Nu
  */
 function vnCategory_(ev) {
   const v = VN_VENUES[ev.venue] || {};
+  if ((ev.kind || "") === "hanyu")  return "搬入（設営）";
   if ((ev.kind || "") === "barasi") return "バラシ（搬出）";
   if ((ev.kind || "") === "hotel" || v.type === "ホテル") return "ホテル宴会・催事";
   const t = String(ev.title || "");
@@ -7745,9 +7784,20 @@ function vnScrapeIcs_(src, day) {
                     (role ? "（" + role + "）" : "") +
                     (r.run ? "　📅 " + r.run : "") +
                     (calName ? "［" + calName + "］" : "");
+      /*
+       * ★搬出（バラシ）と搬入（設営）を、別のものとして出します
+       *   （まーく様のご指摘・2026/11/10）。
+       *     「搬出と搬入もいっしょくたになって、めちゃくちゃじゃないですか…」
+       *   搬出は公演のあとで、深夜に人が出ます。
+       *   搬入は公演の前の昼の作業で、夜に人は出ません。
+       *   同じ見出しに混ぜると、搬入の日に夜の車を向けさせます。
+       */
+      const isLoad = /搬入|設営/.test(role);
       out.events.push({
         // ★見出しは、実際の会場の名前（分からないときだけ、会社の名前）
-        venue: place || src.venue || src.name, kind: "barasi", icon: "🔧",
+        venue: place || src.venue || src.name,
+        kind: isLoad ? "hanyu" : "barasi",
+        icon: isLoad ? "🚚" : "🔧",
         title: title, artist: sum,
         start: "", startKind: "", end: "", endGuess: false, endSure: false,
         people: 0, url: src.url || "",
@@ -10694,6 +10744,11 @@ function vnLinkBarasiTime_(list) {
 
   // ② バラシに結びつける
   a.forEach(function (e) {
+    /*
+     * ★搬入（設営）には、公演の時刻を結びつけません。
+     *   その日は、まだ公演がありません（あすからのことが多い）。
+     *   よその公演の時刻をくっつけると、嘘になります。
+     */
     if (!e || e.kind !== "barasi") return;
     if (e.start || e.end) return;                    // すでに時刻があるなら、さわらない
     const v = String(e.venue || "").trim();
@@ -10850,8 +10905,29 @@ function vnNoParse_(text) {
  * ★番号を振るところと、絵を組み立てるところで別々に持つと、
  *   片方だけ直したときに、番号と見た目がずれてしまうため。
  */
-const VN_KIND_ORDER = ["event", "barasi", "hotel"];
-const VN_KIND_LABEL = { "event": "🎤 イベント", "barasi": "🔧 バラシ（搬出）", "hotel": "🍽 ホテル宴会" };
+/*
+ * ★搬出と搬入を、別のまとまりにしました
+ *   （まーく様のご指摘・2026/11/10）。
+ *     「搬出と搬入もいっしょくたになって、めちゃくちゃじゃないですか…」
+ *
+ *   おっしゃるとおりでした。まるで別のものです。
+ *     ・**搬出（バラシ）** … 公演が終わったあと。**深夜に人が出ます**。
+ *     ・**搬入（設営）**　 … 公演の前の日などの昼の作業。
+ *       　　　　　　　　　　 夜に人が出ることは、ふつうありません。
+ *   それを同じ「バラシ（搬出）」の見出しに混ぜていました。
+ *   見た人は、搬入の日に夜の車を向けてしまいます。
+ *
+ *   ★搬入は、いちばん下に置きます。
+ *     「あすから何日間の催しが始まる」という下ごしらえの話なので、
+ *     その日の夜に動くための情報ではありません。
+ */
+const VN_KIND_ORDER = ["event", "barasi", "hotel", "hanyu"];
+const VN_KIND_LABEL = {
+  "event":  "🎤 イベント",
+  "barasi": "🔧 バラシ（搬出・公演のあと）",
+  "hotel":  "🍽 ホテル宴会",
+  "hanyu":  "🚚 搬入（設営・この日は夜の人出なし）"
+};
 
 /** 画面に出てくる順に並べ直す（種類の順。同じ種類の中は、もらった順のまま） */
 function vnSortForShow_(list) {
