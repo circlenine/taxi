@@ -696,7 +696,7 @@ function paneRank(){
 function paneList(){
   return `<div class="card"><h2>一覧（${visible().length}件）</h2>
     ${filterChips()}
-    ${visible().length ? tableHTML(sorted()) : `<div class="empty">記録がない。</div>`}
+    ${visible().length ? tableHTML(sorted()) : `<div class="empty">該当データがありません</div>`}
   </div>
   <div class="card"><h2>書き出し</h2>
     <p class="note">いま表示している${onlyMine?'自分の':'全員の'}記録をCSVに。スプレッドシートで集計したいとき、控えを残したいときに。</p>
