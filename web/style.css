@@ -249,7 +249,21 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
  *  ★細い画面では、ひとことは下へまわり込みます。
  *    題を押しのけて読めなくなる方が困るためです。
  * ============================================================ */
+.saymount{display:flex;align-items:center;gap:9px;flex:none}
 .saybox{display:flex;align-items:center;gap:8px;flex:none}
+.saymount .face{color:var(--paper);opacity:.92;flex:none;
+  filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
+.saymount .bubble{position:relative;background:#17171A;border:1px solid var(--line);
+  color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
+  max-width:190px;letter-spacing:.02em}
+.saymount .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
+  width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
+.saymount .bubble:after{content:"";position:absolute;left:-4.5px;top:50%;margin-top:-4px;
+  width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
+/* ★入れ替わるときだけ、ふわっと。6秒に1回なので、目が休まります */
+.saymount.pop .face,.saymount.pop .bubble{animation:sayin .4s ease-out}
+@media(prefers-reduced-motion:reduce){.saymount.pop .face,.saymount.pop .bubble{animation:none}}
+@media(max-width:560px){.saymount .bubble{max-width:150px;font-size:11.5px}}
 .saybox .face{color:var(--paper);opacity:.92;flex:none;
   filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
 .saybox .bubble{position:relative;background:#17171A;border:1px solid var(--line);

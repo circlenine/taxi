@@ -70,34 +70,6 @@ function jaError(e){
 }
 
 
-/* ================================================================
- *  🚕 行灯（あんどん）を、バスのスーパーサインのように回す
- *
- *  ★まーく様のご指示（2026/11/10）
- *      「自動でバスのスーパーサインのように、文字が上へと消え、
- *        下から違う文字が現れる感じの、遊び心の入ったデザインに
- *        できないのでしょうか」
- *
- *  ★台帳の画面の行灯は、回しません。
- *    あちらは「空車／賃走」を**本当に表している**ので、
- *    遊びで変えると、画面が嘘をつくことになります。
- *    回すのは data-roll と書いた、飾りの行灯だけです。
- *
- *  ★色は、その言葉に合わせて変えます（実車は緑、空車は赤）。
- * ================================================================ */
-const ANDON_ROLL = [
-  { t: '空車',   c: '#E4573D' },
-  { t: '回走',   c: '#8A99B5' },
-  { t: '予約',   c: '#F0A33B' },
-  { t: '迎車',   c: '#F0A33B' },
-  { t: '貸切',   c: '#1E7A4E' },
-  { t: '賃走',   c: '#1E7A4E' },
-  { t: '割増',   c: '#E4573D' },
-  { t: '７７７', c: '#F0A33B' }
-];
-const ANDON_WAIT = 2400;   // 1つの言葉を出しておく長さ（ミリ秒）
-const ANDON_SLIDE = 340;   // 上へ消えるのにかかる長さ
-
 /* ------------------------------------------------------------
  *  😈 変顔と、嫌なお客さんのひとこと
  *
@@ -173,72 +145,40 @@ function faceSvg(){
     pick(FACE_EYES) + pick(FACE_MOUTH) + '</g></svg>';
 }
 
-function andonRoll() {
-  /* ★画面の無いところ（検査など）でも落ちないようにします。
-     1か所の飾りのために、ほかが止まってはいけません。 */
-  if (typeof document === 'undefined' || !document.querySelectorAll) return;
-  const boxes = document.querySelectorAll('.andon[data-roll]');
-  if (!boxes || !boxes.length) return;
-  let soft = true;
-  try { soft = !window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+/* ------------------------------------------------------------
+ *  変顔とひとことを、6秒ごとに入れ替える
+ *
+ *  ★行灯（空車・賃走…）は外しました（まーく様のご指示・2026/11/10）
+ *      「賃走～とかのロゴもあると目が痛くなるので、
+ *        これは除外してください」
+ *    動くものが2つあると、目が休まりません。顔だけにします。
+ *  ★入れ替えは6秒ごと（ご指示）。2.4秒は早すぎました。
+ * ---------------------------------------------------------- */
+const SAY_WAIT = 6000;   // 1つを出しておく長さ（ミリ秒）
 
-  boxes.forEach(function (box) {
-    const span = box.querySelector('span');
-    if (!span || box.querySelector('.roll')) return;   // 二重に作らない
-    const win = document.createElement('div');
-    win.className = 'roll';
-    box.insertBefore(win, span);
-    win.appendChild(span);
+function sayRoll() {
+  /* ★画面の無いところ（検査など）でも落ちないようにします */
+  if (typeof document === 'undefined' || !document.getElementById) return;
+  const mount = document.getElementById('saymount');
+  if (!mount) return;
 
-    /* ★行灯のとなりに、変顔とひとことを置きます。
-       画面ごとに書き足すのではなく、ここで作ります
-       （書き足し忘れが起きないため）。 */
-    let say = null;
+  const draw = function (first) {
     try {
-      say = document.createElement('div');
-      say.className = 'saybox';
-      say.innerHTML = faceSvg() + '<div class="bubble"></div>';
-      if (box.parentNode) box.parentNode.insertBefore(say, box.nextSibling);
-      say.querySelector('.bubble').textContent = pick(SAY_LINES);
-    } catch (e) { say = null; }
-
-    let i = 0;
-    span.textContent = ANDON_ROLL[0].t;
-    span.style.color = ANDON_ROLL[0].c;
-
-    setInterval(function () {
-      i = (i + 1) % ANDON_ROLL.length;
-      const w = ANDON_ROLL[i];
-      /* ★行灯が変わるたびに、顔とひとことも入れ替えます */
-      if (say) {
-        try {
-          const b = say.querySelector('.bubble');
-          say.innerHTML = faceSvg() + '<div class="bubble"></div>';
-          say.querySelector('.bubble').textContent = pick(SAY_LINES);
-          say.classList.remove('pop');
-          void say.offsetWidth;          // いったん止めてから、もう一度
-          say.classList.add('pop');
-        } catch (e) {}
+      mount.innerHTML = faceSvg() + '<div class="bubble"></div>';
+      mount.querySelector('.bubble').textContent = pick(SAY_LINES);
+      if (!first) {
+        mount.classList.remove('pop');
+        void mount.offsetWidth;        // いったん止めてから、もう一度
+        mount.classList.add('pop');
       }
-      if (!soft) { span.textContent = w.t; span.style.color = w.c; return; }
-      span.classList.add('up');                       // 上へ消える
-      setTimeout(function () {
-        span.textContent = w.t;
-        span.style.color = w.c;
-        span.classList.remove('up');
-        span.classList.add('down');                   // 下に置き直す（一瞬で）
-        /* ★2回ぶん待ってから外します。すぐ外すと、
-           ブラウザが「下に置いた」ことに気づかないまま戻すので、
-           せり上がって見えません。 */
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () { span.classList.remove('down'); });
-        });
-      }, ANDON_SLIDE);
-    }, ANDON_WAIT);
-  });
+    } catch (e) {}
+  };
+
+  draw(true);
+  setInterval(function () { draw(false); }, SAY_WAIT);
 }
 
 if (typeof document !== 'undefined' && document.addEventListener) {
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', andonRoll);
-  else andonRoll();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sayRoll);
+  else sayRoll();
 }
