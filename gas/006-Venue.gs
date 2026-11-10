@@ -2,7 +2,39 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V092ver  （2026/11/10）  ★★★
+ *  ★★★  V093ver  （2026/11/10）  ★★★
+ *
+ *  [V093ver]
+ *   ・🗓 0を付けた日付（11月01日）を、まるごと読み落としていた
+ *     ★いちばん重いしくじりです。
+ *       京セラドームのページは「2026年11月01日（日）」と書きます。
+ *       こちらは「11月1日」しかさがしていなかったので、
+ *       **1日から9日までを、まるごと落としていました。**
+ *       月の3分の1が、ずっと見えていなかったことになります。
+ *       しかも「その日は催しが無い」と見分けがつかないので、
+ *       だれも気づけませんでした。
+ *   ・⏰ 「開始時間：18:00〜」を読めるようにした
+ *     ★京セラドームはこの書き方です。拾えていなかったので、
+ *       社会人野球の日は「時刻が読み取れません」として捨てていました。
+ *   ・🕕 1日に何回も公演がある日は、いちばん遅い回を使う
+ *     ★「開始時間：10:00〜、14:00〜、18:00〜」のような日に、
+ *       1つめ（10:00）を拾い、2つめ（14:00）を終演と読んでいました。
+ *       終わりが昼になるので、「17:30より後」の決まりで
+ *       **その日が丸ごと落ちていました。**
+ *       夜勤に関わるのは最後の回です。そちらを使います。
+ *   ・🎟 タクシー需要の手がかりを出すようにした（ご指示）
+ *     ★まーく様のご指示：
+ *       「アーティストイベント以外の場合は、果たしてタクシー需要が
+ *         あるのかどうかも、載せる前にチェックしてください」
+ *     ★こちらで「ある・ない」を決めつけると、外したときに
+ *       空振りさせるか、大きい日を落とすかの どちらかになります。
+ *       ですので **ページに書いてある事実** を そのまま出します。
+ *       ・入場料 … お金を払って来る人がいるかの、いちばん確かな手がかり
+ *       ・種別　 … 「野球」「展示会」など、ページの言葉
+ *       入場無料のときは、そのことも添えます。
+ *   ・🚫 人が出てこない日は、出さない
+ *     ★設備点検・休館・仕込み・無観客の日には、だれも出てきません。
+ *       出すと、だれも来ない会場へ車を着けさせることになります。
  *
  *  [V092ver]
  *   ・🔕 枠の中の「🔔通知設定」の列を、出すのをやめた
@@ -1418,7 +1450,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V092ver";
+const VN_VERSION = "V093ver";
 
 /**
  * 見にいく先の一覧。
@@ -3001,6 +3033,59 @@ function vnRunDayNo_(range, day) {
 }
 
 /**
+ * その催しに、ほんとうにタクシーの需要があるかを見分ける手がかりを取る。
+ *
+ * ★まーく様のご指示（2026/11/10）
+ *   「アーティストイベント以外の場合は、果たしてタクシー需要が
+ *     あるのかどうかも、載せる前にチェックしてください」
+ *
+ * ★こちらで「ある・ない」を決めつけることはしません。
+ *   決めつけると、外したときに空振りさせるか、
+ *   大きい日を落とすかの、どちらかになります。
+ *   代わりに **ページに書いてある事実** を取り出して、そのまま出します。
+ *   判断の材料を渡すのが、いちばん確かです。
+ *
+ * ★取り出すもの
+ *   ・入場料　… お金を払って来る人がいるかどうかの、いちばん確かな手がかり
+ *   ・種別　　… 「野球」「展示会」など、ページに書いてある言葉
+ *
+ * ★「入場無料」とだけ書いてある催しは、お金を払わずに来る人が中心です。
+ *   関係者だけの大会・発表会のこともあります。そのことを添えます。
+ */
+function vnDemandInfo_(text) {
+  const t = String(text || "");
+  const out = { fee: "", free: false, kind: "" };
+
+  // ① 入場料。「入場料(円) 3,300～1,650」「入場料：無料」などの形
+  const free = /入場\s*(?:料|無料)[^0-9]{0,8}無料|入場無料|無料公開/.test(t);
+  if (free) { out.free = true; out.fee = "無料"; }
+  else {
+    const m = t.match(/入場料[^0-9]{0,12}([0-9][0-9,，]{2,}(?:\s*[～〜~\-]\s*[0-9][0-9,，]{2,})?)/);
+    if (m) out.fee = m[1].replace(/，/g, ",") + "円";
+  }
+
+  // ② 種別（ページに書いてある言葉だけを拾う。こちらで決めつけない）
+  const kinds = ["野球", "サッカー", "ラグビー", "バスケット", "バレーボール",
+                 "格闘技", "プロレス", "展示会", "見本市", "学会", "大会",
+                 "コンサート", "ライブ", "舞台", "演劇", "式典", "講演"];
+  for (let i = 0; i < kinds.length; i++) {
+    if (t.indexOf(kinds[i]) !== -1) { out.kind = kinds[i]; break; }
+  }
+  return out;
+}
+
+/**
+ * その催しが「人が出てこない日」かどうか。
+ *
+ * ★設備点検・休館・仕込み・搬入だけの日には、だれも出てきません。
+ *   出すと、だれも来ない会場へ車を着けさせることになります。
+ */
+function vnNoCrowd_(title, raw) {
+  const t = String(title || "") + " " + String(raw || "");
+  return /設備点検|休館|休園|閉館|仕込み|準備日|撤去日|リハーサル(?:のみ)?|無観客|非公開/.test(t);
+}
+
+/**
  * 同じページの中で、同じ公演が何日ならんでいるかを数える。
  *
  * ★まーく様のご指示（2026/11/9）
@@ -3717,6 +3802,32 @@ function vnCard_(ev, idx, day, noBells, budget) {
    *   初日と最終日では、待つ場所も時間も変わります。
    *   ページに期間が書いてあるときだけ出します。推し量りません。
    */
+  /*
+   * ★タクシー需要があるかどうかの手がかりを出します
+   *   （まーく様のご指示・2026/11/10）。
+   *     「アーティストイベント以外の場合は、果たしてタクシー需要が
+   *       あるのかどうかも、載せる前にチェックしてください」
+   *
+   *   こちらで「ある・ない」を決めつけると、外したときに
+   *   空振りさせるか、大きい日を落とすかの どちらかになります。
+   *   ですので、**ページに書いてある事実**を そのまま出します。
+   *   いちばん確かなのは入場料です。お金を払って来る人がいるかが分かります。
+   */
+  if (ev.fee || ev.genre) {
+    const bits = [];
+    if (ev.genre) bits.push(ev.genre);
+    if (ev.fee) bits.push("入場料 " + ev.fee);
+    rows.push({ "type": "text", "text": "🎟 " + bits.join("／"), "size": "xxs",
+                "color": ev.feeFree ? "#5f6368" : "#2e7d32",
+                "weight": ev.feeFree ? "regular" : "bold",
+                "wrap": true, "margin": "xs" });
+    if (ev.feeFree) {
+      rows.push({ "type": "text",
+                  "text": "　お金を払わずに来られる催しです（関係者が中心のこともあります）",
+                  "size": "xxs", "color": "#5f6368", "wrap": true });
+    }
+  }
+
   try {
     /*
      * ★「何日中の何日目か」は、まず読み取りのときに数えたものを使います。
@@ -5717,6 +5828,26 @@ function vnTimesByWord_(text, words) {
         if (gap.length > 8) break;
         if (/[0-9\/／、，・\n]/.test(gap)) break;
         got = times[i].v;
+        /*
+         * ★時刻がならべて書いてあるときは、ぜんぶ拾います
+         *   （2026/11/10 に足しました）。
+         *     開始時間：10:00～、14:00～、18:00～
+         *   1つめだけを拾うと、2つめの 14:00 を「終演」と読んでしまい、
+         *   **夜の試合が落ちます**（終わりが17:30より前になるため）。
+         *   実際に、社会人野球の日が丸ごと消えていました。
+         *
+         * ★ならんだ順のまま入れます。あとで「いちばん遅い回」を
+         *   選ぶので、順番が狂うと 昼の回を選んでしまいます。
+         */
+        push(got);
+        got = "";
+        for (let j = i + 1; j < times.length; j++) {
+          const g2 = t.slice(times[j - 1].to, times[j].at);
+          if (g2.length > 6) break;
+          if (/[0-9]/.test(g2)) break;
+          if (!/^[\s　～〜~\-、，・,／\/]*$/.test(g2)) break;
+          push(times[j].v);
+        }
         break;
       }
     }
@@ -6045,10 +6176,22 @@ function vnDetailNote_(src, day, html) {
 function vnDateRe_(d) {
   const m = d.getMonth() + 1, day = d.getDate();
   const p2 = function (n) { return ("0" + n).slice(-2); };
+  /*
+   * ★0を付けた書き方（11月01日）も読みます（2026/11/10 に直しました）。
+   *
+   *   京セラドームのページは「2026年11月01日（日）」と書きます。
+   *   こちらは「11月1日」しかさがしていなかったので、
+   *   **1日から9日までを、まるごと読み落としていました。**
+   *   月の3分の1が、ずっと見えていなかったことになります。
+   *   しかも「その日は催しが無い」と見分けがつかないので、
+   *   だれも気づけませんでした。
+   */
+  const d2 = (day < 10) ? "0?" + day : String(day);
+  const mm2 = (m < 10) ? "0?" + m : String(m);
   return new RegExp(
     "(^|[^0-9])(" +
-    m + "\\s*月\\s*" + day + "\\s*日" + "|" +
-    m + "\\s*[\\/／.]\\s*" + day + "|" +
+    mm2 + "\\s*月\\s*" + d2 + "\\s*日" + "|" +
+    mm2 + "\\s*[\\/／.]\\s*" + d2 + "|" +
     p2(m) + "\\s*[\\/／.\\-]\\s*" + p2(day) +
     ")([^0-9]|$)");
 }
@@ -6111,6 +6254,14 @@ function vnRangeHit_(line, day) {
  */
 function vnAnyDateRe_() {
   return /(^|[^0-9])(\d{1,2}\s*月\s*\d{1,2}\s*日|\d{1,2}\s*[\/／.]\s*\d{1,2})([^0-9]|$)/;
+}
+
+/**
+ * 「0を付けた日付」も読めるか、ここで必ず確かめる。
+ * （vnDateRe_ の中だけで直すと、気づかないうちに戻ってしまうため）
+ */
+function vnDateHit_(line, day) {
+  try { return vnDateRe_(day).test(String(line || "")); } catch (e) { return false; }
 }
 
 /**
@@ -6930,19 +7081,36 @@ function vnScrapeOne_(src, day, htmlIn) {
      *   時刻を先に書くほうが多く、この形だと開演と分からないまま
      *   ただの時刻として拾っていました。
      */
-    const kicks = vnTimesByWord_(text, "キックオフ|開演|試合開始|START|Start");
+    /*
+     * ★「開始時間：18:00〜」も読みます（2026/11/10 に足しました）。
+     *   京セラドームのページは、この書き方です。
+     *   拾えていなかったので、社会人野球の日は
+     *   「時刻が読み取れません」として、まるごと捨てていました。
+     *   （「受付開始」を取りちがえないよう、言葉は「開始時間」で見ます）
+     */
+    const kicks = vnTimesByWord_(text, "キックオフ|開演|試合開始|開始時間|START|Start");
     const bas   = vnTimesByWord_(text, "開場|OPEN|Open");
     const fins  = vnTimesByWord_(text, "終了|終演|END|End");
     const kick = kicks.length ? kicks[0] : "";
     const ba2  = bas.length   ? bas[0]   : "";
     const fin  = fins.length  ? fins[0]  : "";
     let startKind = "";
-    if (kick) { start = kick; startKind = "開演"; }
+    /*
+     * ★何回も公演がある日は、**いちばん遅い回**を使います
+     *   （2026/11/10・ご指示の考え方に沿って）。
+     *     開始時間：10:00～、14:00～、18:00～
+     *   夜勤のタクシーに関わるのは、最後の回が終わるときです。
+     *   1つめ（10:00）を使うと、終わりが昼になり、
+     *   「17:30より後」の決まりで その日が丸ごと落ちます。
+     */
+    const kickLast = kicks.length ? kicks[kicks.length - 1] : "";
+    if (kick) { start = kickLast || kick; startKind = "開演"; }
     else if (ba2) { start = ba2; startKind = "開場"; }   // ★開場を開演と呼ばない
     else if (nearTimes.length) start = nearTimes[0];
     if (fin) end = fin;
     else if (nearTimes.length >= 2 && nearTimes[1] !== start &&
-             kicks.indexOf(nearTimes[1]) === -1 && bas.indexOf(nearTimes[1]) === -1) {
+             kicks.indexOf(nearTimes[1]) === -1 && bas.indexOf(nearTimes[1]) === -1 &&
+             !(kicks.length > 1)) {
       /*
        * ★2つめの時刻を終演と見てよいのは、
        *   そこに「開演」「開場」と書いて *いない* ときだけです。
@@ -6972,10 +7140,23 @@ function vnScrapeOne_(src, day, htmlIn) {
      */
     let runPage = "";
     try { runPage = vnRunFromPage_(lines, theTitle, day); } catch (e) { runPage = ""; }
+    /*
+     * ★人が出てこない日（設備点検・休館・仕込み）は、出しません
+     *   （まーく様のご指示・2026/11/10）。
+     *   だれも来ない会場へ車を着けさせることになるためです。
+     */
+    if (vnNoCrowd_(theTitle, text)) return;
+    /*
+     * ★タクシー需要の手がかり（入場料・種別）を、ページから取ります。
+     *   こちらで「ある・ない」を決めつけず、書いてある事実を渡します。
+     */
+    let dem = { fee: "", free: false, kind: "" };
+    try { dem = vnDemandInfo_([lines[i]].concat(block).join("　")); } catch (e) {}
     out.events.push({
       venue: src.venue || src.name, kind: src.kind || "event",
       icon: src.kind === "barasi" ? "🔧" : "🎤",
       title: theTitle, artist: theTitle, runText: runPage,
+      fee: dem.fee, feeFree: dem.free, genre: dem.kind,
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
       raw: text.slice(0, 400)
