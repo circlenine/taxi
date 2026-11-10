@@ -362,3 +362,35 @@ footer{font-size:12px;line-height:2}
   color:var(--muted)}
 .howlist li.joke b{color:var(--paper)}
 @media(max-width:560px){.howto{padding:14px 15px 16px}.howlist{font-size:12.5px}}
+
+
+/* ============================================================
+ *  顔とふきだしを、右に固定する（まーく様のご指示・2026/11/11）
+ *    「顔とふきだしは、右に固定にして、顔を1番右にしてください」
+ *    「タイトルがいちいちズレるのが気になります」
+ *
+ *  ★題がずれていたのは、ふきだしが左にあって、
+ *    中の字の長さで幅が変わっていたためです。
+ *    ・右へ寄せる（題は、いつも左のはしから始まる）
+ *    ・ふきだしの幅と高さを、決め打ちにする（伸び縮みしない）
+ *    この2つで、ぴたりと止まります。
+ * ============================================================ */
+header .who{order:2}
+header .saymount,.login .head .saymount{order:3;margin-left:auto}
+
+/* 顔をいちばん右に。ふきだしは、その左 */
+.saymount{flex-direction:row-reverse}
+
+/* ★幅と高さを決め打ちにする。伸び縮みすると、まわりが動きます */
+.saymount .bubble{width:196px;max-width:46vw;min-height:48px;
+  display:flex;align-items:center;max-height:none}
+
+/* ふきだしの、とんがりを右向きに（顔のほうを指す） */
+.saymount .bubble:before{left:auto;right:-6px;
+  border-right-color:transparent;border-left-color:var(--line)}
+.saymount .bubble:after{left:auto;right:-4.5px;
+  border-right-color:transparent;border-left-color:#17171A}
+
+@media(max-width:560px){
+  .saymount .bubble{width:150px;min-height:44px;font-size:11.5px}
+}
