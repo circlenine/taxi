@@ -1,4 +1,4 @@
-/* つけ待ち台帳 本体 */
+/* TAXI NOTE 本体 */
 const $ = s => document.querySelector(s);
 
 let ME = null, records = [], names = {}, tab = 'in', form = {}, editId = null, msg = '', msgBad = false;

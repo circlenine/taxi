@@ -1,14 +1,33 @@
+/* ============================================================
+ *  色と字（まーく様のご指示・2026/11/10）
+ *    「つけまち台帳じゃなくて、「TAXI NOTE」にしてください、
+ *      そして、全体の雰囲気をもっとデスノートっぽくしてください」
+ *
+ *  ★ねらい：黒い紙に、骨色の字。差し色は血の赤。
+ *    夜の車内で見るものなので、明るい色で光らせない。
+ *  ★名前（--andon など）は、そのまま使います。
+ *    名前を変えると、直すところが何十か所にも散るためです。
+ *    中身の色だけを入れ替えています。
+ * ============================================================ */
 :root{
-  --ink:#101A2B; --ink2:#17233A; --ink3:#20304C; --line:#2C3F60;
-  --andon:#F0A33B; --kusha:#E4573D; --meter:#6FD8A8; --paper:#EDE6D8; --muted:#8A99B5;
+  --ink:#0A0A0B; --ink2:#131315; --ink3:#1C1C1F; --line:#32323A;
+  --andon:#B3161D;      /* 差し色（血の赤）。前は山吹色でした */
+  --kusha:#D4323A;      /* 強い赤（雨・注意） */
+  --meter:#9A9A8F;      /* 落ちついた灰。前は明るい緑でした */
+  --paper:#E8E3D9;      /* 骨色の字 */
+  --muted:#7A7A78;
   --disp:'Zen Antique',serif;
+  --goth:'UnifrakturMaguntia','Zen Antique',serif;   /* 題だけに使う */
   --body:'Zen Kaku Gothic New',system-ui,-apple-system,sans-serif;
   --mono:'Share Tech Mono',ui-monospace,monospace;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--ink);color:var(--paper);font-family:var(--body);min-height:100vh;
-  background-image:radial-gradient(120% 60% at 50% -10%, #1B2A45 0%, transparent 60%);
+  /* ★古い紙のような、ざらついた黒。上から薄あかりが落ちる */
+  background-image:
+    radial-gradient(130% 70% at 50% -15%, #1A1A1D 0%, transparent 62%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.013) 0 1px, transparent 1px 3px);
   -webkit-text-size-adjust:100%}
 a{color:var(--andon)}
 button{font-family:inherit}
@@ -59,6 +78,11 @@ button{font-family:inherit}
 
 header{display:flex;align-items:center;gap:14px;padding:6px 2px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
+/* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
+h1.dn{font-family:var(--goth);font-size:34px;letter-spacing:.03em;line-height:1.15;
+  color:var(--paper);text-shadow:0 0 18px rgba(179,22,29,.28)}
+h1.dn2{font-family:var(--disp);letter-spacing:.08em}
+@media(max-width:640px){h1.dn{font-size:27px}}
 .sub{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.5}
 .who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .who b{color:var(--paper);font-weight:500}
@@ -187,3 +211,34 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .plan .pl b.thin{color:var(--muted)}
 .plan .pl span{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
 @media(max-width:640px){.hot,.plan{grid-template-columns:1fr}}
+
+
+/* ============================================================
+ *  デスノートらしさ（2026/11/10）
+ *  ★やりすぎない。夜に、走る前に見るものなので、
+ *    読みにくくなったら本末転倒。
+ * ============================================================ */
+
+/* 枠は、紙に引いた罫のように細く */
+.card{border-color:#2A2A30;box-shadow:0 0 0 1px rgba(0,0,0,.5) inset}
+.card h2{color:var(--paper);letter-spacing:.09em}
+.card h2:before{content:"— ";color:var(--andon)}
+
+/* 4つの数は、赤で書きつける */
+.kpi{border-color:#2A2A30}
+.kpi b{color:var(--paper);text-shadow:0 0 12px rgba(179,22,29,.22)}
+.kpi.gr b{color:var(--kusha)}
+
+/* 選んでいるタブは、赤く塗る */
+nav{border-color:#2A2A30}
+nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
+
+/* 押しボタン */
+.btn{background:var(--andon);color:#F2EDE4;letter-spacing:.06em}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+.chip.on{background:var(--andon);color:#F2EDE4;border-color:var(--andon)}
+
+/* いちばん下の名前 */
+.copy{letter-spacing:.12em;color:#6E6E6C}
+
+/* 行灯だけは、本物の色のまま残す（タクシーのものなので） */
