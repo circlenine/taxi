@@ -905,5 +905,63 @@ console.log('■ 控えは、1日1回 ひとりでに作り直す');
      '　 夜中の3時台だけ（会場のページに迷惑をかけない）');
 }
 
+/* ================================================================
+ * ホテルのディナーショー（まーく様のご指示・2026/11/10）
+ *   「時刻があるはずがないので、他サイトや詳細ページも参考にして、
+ *     時間を導き出してください、他のイベントも同様です」
+ *   「宴会ではなく、ディナーショーという点は
+ *     タクシーにとってとても重要なので」
+ * ================================================================ */
+console.log('■ 「・」でならべた日も読む（ホテルの書き方）');
+{
+  const f = V('vnDayListHit_');
+  const line = '2026/12/22（火）～24（木）・26（土）';
+  ok(f(line, new Date(2026, 11, 22)) === true, '★22日（はじめ）');
+  ok(f(line, new Date(2026, 11, 24)) === true, '★24日（幅の終わり）');
+  ok(f(line, new Date(2026, 11, 26)) === true,
+     '★★★26日（・でならべた日）… ここを落としていた');
+  ok(f(line, new Date(2026, 11, 25)) === false,
+     '★★★25日は入っていない（やっていない日に行かせない）');
+}
+console.log('■ 月の書いていない「8(日)」だけの行は、数えない');
+{
+  const f = V('vnDayListHit_');
+  ok(f('8(日)', new Date(2026, 10, 8)) === false,
+     '★★★月間カレンダーの日にちだけでは数えない … 先月の表を今月と思いこむ');
+  ok(f('11月8日(日)', new Date(2026, 10, 8)) === true, '　 月が書いてあれば数える');
+}
+console.log('■ 「ショー 19:30〜」を開演として読む');
+{
+  const body = '<p>2026年12月22日(火)</p><p>松田聖子クリスマスディナー＆コンサート</p>' +
+               '<p>お食事 18:00～／ショー 19:30～</p>';
+  const e = (read(body, {}, new Date(2026, 11, 22)).events[0]) || {};
+  ok(e.start === '19:30',
+     '★★★ショーの始まりを開演にする（お食事の18:00ではない）', e.start);
+  ok(e.startKind === '開演', '　 開演として扱う', e.startKind);
+}
+console.log('■ ディナーショーだと、はっきり書く');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(src.indexOf('🍽 ディナーショー') !== -1,
+     '★★★ディナーショーだと書く（宴会とは、人の出方がまるで違う）');
+  ok(/dinner: \/ディナーショー/.test(src), '　 見分けるしかけがある');
+  ok(src.indexOf('shArtistName_(ev.artist || ev.title)') !== -1,
+     '★★アーティストの名前を、そこに出す');
+}
+console.log('■ 1日だけの催しにも、そう書く');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(src.indexOf('📅 本日かぎり（1日だけ）') !== -1,
+     '★★★何も書かないと、調べ忘れなのか1日だけなのか分からない');
+}
+console.log('■ 中のページの題を、公演の名前にする');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const i = src.indexOf('function vnScrapeDeep_');
+  const j = src.indexOf('\nfunction ', i + 1);
+  ok(src.slice(i, j).indexOf('<title') !== -1,
+     '★★★リンクの字ではなく、ページの題を使う … 「館内案内」が公演名になっていた');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

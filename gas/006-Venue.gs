@@ -2,7 +2,36 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V100ver  （2026/11/10）  ★★★
+ *  ★★★  V101ver  （2026/11/10）  ★★★
+ *
+ *  [V101ver]
+ *   ・🍽 ホテルのディナーショーを、読めるようにした（ご指示）
+ *     ★まーく様のご指示：
+ *       「時刻があるはずがないので、他サイトや詳細ページも参考にして、
+ *         時間を導き出してください、他のイベントも同様です」
+ *       「宴会ではなく、ディナーショーという点は
+ *         タクシーにとってとても重要なので」
+ *     ★中のページには、ちゃんと書いてありました。
+ *         2026/12/22（火）～24（木）・26（土）
+ *         お食事 18:00～／ショー 19:30～
+ *       こちらが読めていなかっただけです。
+ *     ★直したところ
+ *       ・「・」でならべた日（・26（土））を読めるようにした。
+ *         これを落とすと、26日に だれも行きません。
+ *       ・「ショー 19:30〜」を開演として読む。
+ *         お食事の18:00を開演にすると、1時間半ずれます。
+ *       ・公演の名前を、中のページの **題** から取る。
+ *         リンクの字を使っていたので「館内案内」が公演名になっていました。
+ *     ★宴会は三々五々 帰りますが、ディナーショーは
+ *       ショーが終わった瞬間に、みんな一度に出てきます。
+ *       「🍽 ディナーショー　松田聖子」と、はっきり出します。
+ *   ・📅 1日だけの催しにも「本日かぎり」と書くようにした
+ *     ★まーく様のご指摘：
+ *       「いちばん重要な(○日目／○日間)も掲載がありません」
+ *     ★何も書かないと、調べ忘れなのか1日だけなのか分かりません。
+ *   ・🧹 「👆 詳細はタップ」を、いちばん上の1件だけにした
+ *     ★どの枠にも同じ字が入っていて、場所を食っていました。
+ *       空いたところに、開演や「何日目か」が入ります。
  *
  *  [V100ver]
  *   ・🗑 「終演の時刻が、まだ分かっていません」の行を、まるごと消した
@@ -1584,7 +1613,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V100ver";
+const VN_VERSION = "V101ver";
 
 /**
  * 見にいく先の一覧。
@@ -4303,6 +4332,26 @@ function vnCard_(ev, idx, day, noBells, budget) {
   const sizeTxt = (ev.people > 0) ? ev.people.toLocaleString() + "人"
                 : (v.cap > 0)     ? "最大" + v.cap.toLocaleString() + "人の会場"
                 : "";
+  /*
+   * ★ディナーショーは、はっきりそう書きます（まーく様のご指示・2026/11/10）。
+   *     「宴会ではなく、ディナーショーという点は
+   *       タクシーにとってとても重要なので」
+   *     「○○ディナーショーの、アーティスト名は目立つようにしてください」
+   *
+   *   宴会は三々五々 帰りますが、ディナーショーは
+   *   **ショーが終わった瞬間に、みんな一度に出てきます**。
+   *   待つ場所も、着ける時刻も、まるで変わります。
+   *   だれのショーかが、いちばん知りたいところです。
+   */
+  if (ev.dinner) {
+    const who = (typeof shArtistName_ === "function")
+      ? (function () { try { return shArtistName_(ev.artist || ev.title); } catch (e) { return ""; } })()
+      : "";
+    rows.push({ "type": "text",
+                "text": "🍽 ディナーショー" + (who ? "　" + who : ""),
+                "size": "md", "weight": "bold", "color": "#ad1457",
+                "wrap": true, "margin": "xs" });
+  }
   if (ev.start && !ev.whenHide) {
     const isBa = (ev.startKind === "開場");
     const txt = (isBa ? "🎬 （開場 " + ev.start + "）" : "🎬 " + ev.start + " 開演") +
@@ -4323,7 +4372,14 @@ function vnCard_(ev, idx, day, noBells, budget) {
   //   前は枠のいちばん下に「この枠を押すと〇〇の公式ページが開きます」と
   //   書いていたが、下にボタンが並んでいるので、どれの話か紛らわしかった。
   //   見出しの真下なら、この枠のことだと ひと目で分かる
-  if (ev.url) {
+  /*
+   * ★この案内は、**いちばん上の1件だけ** にしました（2026/11/10）。
+   *   どの枠にも同じ字が入っていて、そのぶん場所を食っていました。
+   *   「毎回おなじ説明を出さない」の決まりどおりにします。
+   *   空いたところに、開演や「何日目か」が入ります。
+   *   （会場の名前には下線が引いてあるので、押せることは分かります）
+   */
+  if (ev.url && idx === 0) {
     rows.push({ "type": "text", "text": "👆 詳細はタップ（該当ページに移ります）",
                 "size": "xxs", "color": VN_COLOR_HEAD, "weight": "bold", "margin": "xs", "wrap": true });
   }
@@ -4395,7 +4451,15 @@ function vnCard_(ev, idx, day, noBells, budget) {
      *   ページに期間（10/14〜16）が書いてあるときは、そちらでも数えられます。
      *   どちらかが分かれば出します（ご指示・かならず出す）。
      */
-    const run = (ev && ev.runText) ? ev.runText : vnRunText_(ev, day);
+    /*
+     * ★「何日中の何日目か」は、1日だけの催しでも書きます
+     *   （まーく様のご指摘・2026/11/10）。
+     *     「いちばん重要な(○日目／○日間)も掲載がありません」
+     *   何も書かないと「調べ忘れ」なのか「1日だけ」なのか分かりません。
+     *   1日だけなら、そう書きます。
+     */
+    let run = (ev && ev.runText) ? ev.runText : vnRunText_(ev, day);
+    if (!run && ev.kind !== "barasi") run = "📅 本日かぎり（1日だけ）";
     if (run) {
       const last = run.indexOf("最終日") !== -1;
       rows.push({ "type": "text", "text": run, "size": "xs", "margin": "xs",
@@ -6595,7 +6659,9 @@ function vnScrapeDeep_(src, day, html) {
     try { stage = vnStageTime_(lines, day); } catch (e) { stage = ""; }
 
     // そのページに「今日」が書いてあり、かつ時刻もあること。両方そろって初めて出す
-    const hasDay = stage || lines.some(function (x) { return dre.test(x); });
+    const hasDay = stage || lines.some(function (x) {
+      return dre.test(x) || vnDayListHit_(x, day);
+    });
     if (!hasDay) continue;
     /*
      * ★その公演が「この会場のもの」かを、中のページで確かめます
@@ -6628,7 +6694,8 @@ function vnScrapeDeep_(src, day, html) {
      *   開場しか読めないときは「開場」と正直に書きます。
      */
     // ★「18:00開演」の順も読みます（2026/11/9・直し。上と同じ理由）
-    const kai = vnTimeByWord_(text, "開演|スタート|開始");
+    // ★ホテルのディナーショーは「ショー 19:30〜」と書かれます（2026/11/10）
+    const kai = vnTimeByWord_(text, "開演|スタート|開始|ショー");
     const ba  = vnTimeByWord_(text, "開場");
     const times = (text.match(/\d{1,2}:\d{2}/g) || []);
     /*
@@ -6689,13 +6756,44 @@ function vnScrapeDeep_(src, day, html) {
     }
     let guessed = false;
     if (!end) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
+    /*
+     * ★名前は、まず **そのページの題** を使います（2026/11/10 に直しました）。
+     *   リンクの字だけを使っていたので、
+     *   ホテルのように入口がメニューに埋もれているところでは
+     *   「館内案内」「ニューオータニクラブ」が公演の名前になっていました。
+     *   これでは何の催しか分かりません。
+     *   ページの題には「松田聖子クリスマスディナー＆コンサート2026」と
+     *   ちゃんと書いてあります。
+     */
+    let nm = "";
+    try {
+      const tm = String(h2).match(/<title[^>]*>([\s\S]{1,200}?)<\/title>/i);
+      if (tm) {
+        nm = vnEntity_(tm[1])
+          .replace(/\s*[|｜]\s*[^|｜]{1,40}$/, "")   // 「… | ホテル名」のうしろを落とす
+          .replace(/\s+/g, " ").trim();
+      }
+    } catch (e) { nm = ""; }
+    if (!nm || nm.length < 3) {
+      nm = String(links[i].text)
+             .replace(/^\s*\d{4}年\d{1,2}月\d{1,2}日[^\s]*\s*[～〜~-]\s*\d{0,4}年?\d{1,2}月\d{1,2}日[^\s]*\s*/, "")
+             .replace(/^\s*\d{4}[\/．.]\d{1,2}[\/．.]\d{1,2}[^\s]*\s*[～〜~-]\s*[^\s]*\s*/, "")
+             .trim();
+    }
+    nm = nm.slice(0, 60) || "（名前を読み取れませんでした）";
+
     out.push({
       venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
-      // ★名前の先頭に日付のならびが付くことがあるので、取りのぞきます
-      title: (String(links[i].text)
-                .replace(/^\s*\d{4}年\d{1,2}月\d{1,2}日[^\s]*\s*[～〜~-]\s*\d{0,4}年?\d{1,2}月\d{1,2}日[^\s]*\s*/, "")
-                .replace(/^\s*\d{4}[\/．.]\d{1,2}[\/．.]\d{1,2}[^\s]*\s*[～〜~-]\s*[^\s]*\s*/, "")
-                .trim().slice(0, 60)) || "（名前を読み取れませんでした）",
+      title: nm, artist: nm,
+      /*
+       * ★ディナーショーかどうかを覚えておきます（まーく様のご指示・2026/11/10）。
+       *     「宴会ではなく、ディナーショーという点は
+       *       タクシーにとってとても重要なので」
+       *   宴会は三々五々 帰りますが、ディナーショーは
+       *   ショーが終わった瞬間に、みんな一度に出てきます。
+       *   待つ場所も、着ける時刻も、まるで変わります。
+       */
+      dinner: /ディナーショー|ディナー\s*[＆&]\s*コンサート|ディナーコンサート/.test(nm),
       start: start, startKind: startKind,
       end: end, endGuess: guessed, endSure: !!fin, people: 0, url: links[i].url,
       raw: text.slice(0, 400)
@@ -6784,6 +6882,110 @@ function vnDateRe_(d) {
     mm2 + "\\s*[\\/／.]\\s*" + d2 + "|" +
     p2(m) + "\\s*[\\/／.\\-]\\s*" + p2(day) +
     ")([^0-9]|$)");
+}
+
+
+/**
+ * 1行の中にならぶ日付を、ぜんぶ日にちにひらく。
+ *
+ * ★まーく様のご指示（2026/11/10）
+ *   「時刻があるはずがないので、他サイトや詳細ページも参考にして、
+ *     時間を導き出してください、他のイベントも同様です」
+ *
+ * ★ホテルニューオータニ大阪の詳細ページは、こう書かれています。
+ *     2026/12/22（火）～24（木）・26（土）
+ *     お食事 18:00～／ショー 19:30～
+ *   日付も時刻も、ちゃんとあります。
+ *   ですが こちらは「12月26日」という形しかさがしていなかったので、
+ *   **1件も読めていませんでした**。
+ *
+ * ★この係は、次のどれでも読みます。
+ *     2026/12/22 ／ 12/22 ／ 12月22日 ／ 24（木）
+ *   「～」でつないだところは、あいだの日もぜんぶ。
+ *   「・」でならべたところは、その日だけ。
+ *
+ * @return {Object} { "20261222": 1, ... } の形
+ */
+function vnDaysInLine_(line, baseY, baseM) {
+  const t = String(line || "");
+  const out = {};
+  if (!t) return out;
+
+  // ① 2026/12/22 や 2026年12月22日
+  // ② 12/22 や 12月22日
+  // ③ 24（木）… 月は前のものから引きつぐ
+  const re = /(\d{4})\s*[\/.年]\s*(\d{1,2})\s*[\/.月]\s*(\d{1,2})\s*日?|(\d{1,2})\s*[\/.月]\s*(\d{1,2})\s*日?(?!\d)|(\d{1,2})\s*日?\s*[（(][日月火水木金土][^）)]{0,3}[）)]/g;
+
+  const toks = [];
+  let m, guard = 0;
+  while ((m = re.exec(t)) !== null && guard++ < 40) {
+    let y = null, mo = null, d = null;
+    if (m[1]) { y = Number(m[1]); mo = Number(m[2]); d = Number(m[3]); }
+    else if (m[4]) { mo = Number(m[4]); d = Number(m[5]); }
+    else if (m[6]) { d = Number(m[6]); }
+    if (d === null || d < 1 || d > 31) continue;
+    if (mo !== null && (mo < 1 || mo > 12)) continue;
+    toks.push({ y: y, mo: mo, d: d, at: m.index, to: m.index + m[0].length });
+  }
+  if (!toks.length) return out;
+
+  /*
+   * ★「8(日)」だけの行は、数えません（2026/11/10）。
+   *   月間カレンダーの形のページ（パナソニックスタジアムなど）は、
+   *   日にちだけをならべます。
+   *     1(日)  2(月)  3(火 祝) …
+   *   月がどこにも書いていないので、そのまま数えると
+   *   **先月の表を今月だと思いこむ**ことになります。
+   *   実際、そういうページがあります（一覧が先月のまま出ている）。
+   *   同じ行に月が書いてあるときだけ、曜日つきの日にちを数えます。
+   */
+  const hasMonth = toks.some(function (x) { return x.mo !== null; });
+  if (!hasMonth) return out;
+
+  let curY = baseY, curM = baseM;
+  const key = function (y, mo, d) {
+    return "" + y + ("0" + mo).slice(-2) + ("0" + d).slice(-2);
+  };
+  for (let i = 0; i < toks.length; i++) {
+    const a = toks[i];
+    if (a.y !== null) curY = a.y;
+    if (a.mo !== null) {
+      // 月が前より小さくなったら、年をまたいでいる（12月→1月）
+      if (a.mo < curM && a.y === null) curY = curY + 1;
+      curM = a.mo;
+    }
+    out[key(curY, curM, a.d)] = 1;
+
+    // ひとつ前との間が「～」なら、あいだの日もぜんぶ
+    if (i > 0) {
+      const gap = t.slice(toks[i - 1].to, a.at);
+      if (/[～〜~\-－‐]/.test(gap) && !/[0-9]/.test(gap)) {
+        const p = toks[i - 1];
+        const py = (p.y !== null) ? p.y : curY;
+        const pm = (p.mo !== null) ? p.mo : curM;
+        const from = new Date(py, pm - 1, p.d);
+        const to = new Date(curY, curM - 1, a.d);
+        let g2 = 0;
+        const x = new Date(from.getTime());
+        while (x <= to && g2++ < 60) {
+          out[key(x.getFullYear(), x.getMonth() + 1, x.getDate())] = 1;
+          x.setDate(x.getDate() + 1);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** その行に、その日が入っているか（上の係を使うだけ） */
+function vnDayListHit_(line, day) {
+  try {
+    const d = (day && typeof day.getTime === "function") ? day : new Date();
+    const set = vnDaysInLine_(line, d.getFullYear(), d.getMonth() + 1);
+    const ymd = "" + d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) +
+                ("0" + d.getDate()).slice(-2);
+    return !!set[ymd];
+  } catch (e) { return false; }
 }
 
 /**
@@ -7572,7 +7774,12 @@ function vnScrapeOne_(src, day, htmlIn) {
     const a = [];
     lines.forEach(function (ln, i) {
       // ★その日ぴったりの日付か、会期（〜でつないだ幅）の中か
-      if (!dre.test(ln) && !vnRangeHit_(ln, day)) return;
+      /*
+       * ★その日ぴったりの日付／会期（〜の幅）／ならべ書き（・）のどれか。
+       *   ホテルは「2026/12/22（火）～24（木）・26（土）」と書きます。
+       *   「・26（土）」を読めないと、26日を丸ごと落とします。
+       */
+      if (!dre.test(ln) && !vnRangeHit_(ln, day) && !vnDayListHit_(ln, day)) return;
       if (VN_SALE_RE.test(ln)) return;                        // その行が「発売日」の行
       if (i > 0 && VN_SALE_RE.test(lines[i - 1])) return;     // ひとつ上が「一般発売日」
       a.push(i);
@@ -7690,7 +7897,15 @@ function vnScrapeOne_(src, day, htmlIn) {
      *   「時刻が読み取れません」として、まるごと捨てていました。
      *   （「受付開始」を取りちがえないよう、言葉は「開始時間」で見ます）
      */
-    const kicks = vnTimesByWord_(text, "キックオフ|開演|試合開始|開始時間|START|Start");
+    /*
+     * ★「ショー 19:30〜」も開演として読みます（2026/11/10 に足しました）。
+     *   ホテルのディナーショーは、こう書かれています。
+     *     お食事 18:00～／ショー 19:30～
+     *   タクシーに関わるのは **ショーの終わり** なので、
+     *   ショーの始まりを開演として読みます。
+     *   （お食事の時刻を開演にすると、1時間半ずれます）
+     */
+    const kicks = vnTimesByWord_(text, "キックオフ|開演|試合開始|開始時間|ショー|START|Start");
     const bas   = vnTimesByWord_(text, "開場|OPEN|Open");
     const fins  = vnTimesByWord_(text, "終了|終演|END|End");
     const kick = kicks.length ? kicks[0] : "";
