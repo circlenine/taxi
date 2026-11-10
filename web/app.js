@@ -197,8 +197,17 @@ function render(){
         '1日あたりではありません。';
     }
   }
-  $('#andon').classList.toggle('busy', rs.length > 0);
-  $('#andonTxt').textContent = rs.length ? '賃走' : '空車';
+  /*
+   * ★行灯は、台帳の画面でも回します（まーく様のご指摘・2026/11/10）。
+   *     「管理画面だとしっかり動きがありますが、
+   *       実際の画面だと全く動きがありません」
+   *
+   *   前は「記録が1件でもあれば賃走、無ければ空車」と出していました。
+   *   けれど、これは**本当の空車・賃走ではありません**。
+   *   台帳に記録があるかどうか、というだけのものでした。
+   *   守る値打ちがないので、ほかの画面と同じように回します。
+   *   （中身は shared.js の andonRoll）
+   */
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
   $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList, news:paneNews }[tab]();
   if (tab === 'news') newsSeen();
