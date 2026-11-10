@@ -10,20 +10,26 @@
  *    中身の色だけを入れ替えています。
  * ============================================================ */
 :root{
-  --ink:#0A0A0B; --ink2:#131315; --ink3:#1C1C1F; --line:#32323A;
-  --andon:#B3161D;      /* 差し色（血の赤）。前は山吹色でした */
-  --kusha:#D4323A;      /* 強い赤（雨・注意） */
-  --meter:#9A9A8F;      /* 落ちついた灰。前は明るい緑でした */
-  --paper:#E8E3D9;      /* 骨色の字 */
-  --muted:#7A7A78;
+  /* ★見やすさを上げました（まーく様のご指示・2026/11/11）
+       「全体が見づらいので 視覚性はもっと上げたデザインにしてください」
+     ・字をはっきりさせる（薄い灰色をやめる）
+     ・枠線を少し明るくして、どこが区切りか分かるようにする
+     ・赤は、字に使うときだけ明るいほうを使う */
+  --ink:#0A0A0B; --ink2:#151518; --ink3:#1F1F23; --line:#3E3E48;
+  --andon:#C8232B;      /* 差し色（血の赤）。塗りに使う */
+  --kusha:#FF6A60;      /* 字に使う赤。暗い地でも読める明るさ */
+  --meter:#C9C5BA;      /* 落ちついた明るい灰 */
+  --paper:#F3EFE7;      /* 骨色の字。前より明るい */
+  --muted:#A3A09A;      /* そえ字。前は暗すぎて読めなかった */
   --disp:'Zen Antique',serif;
-  --goth:'UnifrakturMaguntia','Zen Antique',serif;   /* 題だけに使う */
+  --goth:'Cinzel','Zen Antique',serif;   /* 題だけに使う（読める字に変更） */
   --body:'Zen Kaku Gothic New',system-ui,-apple-system,sans-serif;
   --mono:'Share Tech Mono',ui-monospace,monospace;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--ink);color:var(--paper);font-family:var(--body);min-height:100vh;
+  font-size:15px;line-height:1.75;
   /* ★古い紙のような、ざらついた黒。上から薄あかりが落ちる */
   background-image:
     radial-gradient(130% 70% at 50% -15%, #1A1A1D 0%, transparent 62%),
@@ -79,8 +85,8 @@ button{font-family:inherit}
 header{display:flex;align-items:center;gap:14px;padding:6px 2px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
 /* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
-h1.dn{font-family:var(--goth);font-size:34px;letter-spacing:.03em;line-height:1.15;
-  color:var(--paper);text-shadow:0 0 18px rgba(179,22,29,.28)}
+h1.dn{font-family:var(--goth);font-weight:700;font-size:32px;letter-spacing:.17em;
+  line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
 h1.dn2{font-family:var(--disp);letter-spacing:.08em}
 @media(max-width:640px){h1.dn{font-size:27px}}
 .sub{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.5}
@@ -309,3 +315,50 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
 .mchk input{width:auto;margin:0}
 .modalfoot .btn{margin-left:auto}
 @media(max-width:560px){.modalbox h2{font-size:15px}.modalfoot{gap:9px}}
+
+
+/* ============================================================
+ *  見やすさを上げる（まーく様のご指示・2026/11/11）
+ *    「全体が見づらいので 視覚性はもっと上げたデザインにしてください」
+ *  ★走る前に、暗い車内で見るものです。
+ *    細い字・薄い灰色・小さい字を、ぜんぶ やめます。
+ * ============================================================ */
+.sub{font-size:13px;color:var(--muted)}
+.card{padding:18px}
+.card h2{font-size:17.5px;margin-bottom:5px}
+.card .note{font-size:12.5px;color:var(--muted);line-height:1.85}
+.kpi{padding:12px 13px}
+.kpi small{font-size:11.5px;color:var(--muted);letter-spacing:.05em}
+.kpi b{font-size:24px}
+.kperiod{font-size:12.5px}
+nav button{font-size:13.5px;padding:10px 15px}
+label{font-size:12px;color:var(--muted)}
+input,select,textarea{font-size:16px;padding:11px 12px}   /* 16px：iPhoneで勝手に拡大されない */
+.chip{font-size:13px;padding:8px 13px}
+.btn{font-size:15px;padding:13px 24px}
+table{font-size:13.5px}
+th{font-size:12px;color:var(--muted)}
+footer{font-size:12px;line-height:2}
+.evt{font-size:14.5px}
+.evsub{font-size:12.5px}
+.evgo{font-size:16px}
+.saymount .bubble{font-size:12.5px}
+
+
+/* ============================================================
+ *  ログイン画面の「HOW TO USE IT」（ご指示・2026/11/11）
+ *  ★読めることが先。飾りで読みにくくしない。
+ * ============================================================ */
+.howto{margin-top:18px;border:1px solid var(--line);border-radius:10px;
+  background:linear-gradient(180deg,#121214 0%,#0D0D0F 100%);padding:16px 18px 18px}
+.howhead{font-family:var(--goth);font-weight:700;font-size:15px;letter-spacing:.3em;
+  color:var(--kusha);text-align:center;padding-bottom:10px;margin-bottom:12px;
+  border-bottom:1px solid var(--line)}
+.howlist{margin:0;padding-left:1.35em;font-size:13px;line-height:1.95;color:var(--paper)}
+.howlist li{margin:9px 0}
+.howlist li::marker{color:var(--kusha);font-family:var(--mono)}
+.howlist b{color:var(--kusha);font-weight:700}
+.howlist li.joke{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);
+  color:var(--muted)}
+.howlist li.joke b{color:var(--paper)}
+@media(max-width:560px){.howto{padding:14px 15px 16px}.howlist{font-size:12.5px}}
