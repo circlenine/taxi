@@ -9,7 +9,9 @@ let scOpt = { line: true, label: true }, onlyMine = false;
   const s = await requireLogin();
   if (!s) return;
   ME = s;
-  $('#me').textContent = s.profile.display_name || s.user.email;
+  /* ★右上は「称号」を出します（まーく様のご指示・2026/11/10）。
+     称号を入れていない人は、短い名前。それも無ければメールアドレス。 */
+  $('#me').textContent = s.profile.title || s.profile.display_name || s.user.email;
   if (s.profile.is_admin) { $('#meBadge').hidden = false; $('#toAdmin').hidden = false; }
   $('#out').addEventListener('click', signOut);
   $('#tabs').addEventListener('click', e => {

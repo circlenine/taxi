@@ -41,6 +41,17 @@ create table if not exists public.rides (
 alter table public.rides add column if not exists method text not null default '';
 alter table public.rides add column if not exists note   text not null default '';
 
+-- ------------------------------------------------------------
+-- 2-3. 名前を2つ持つ（まーく様のご指示・2026/11/10）
+--      display_name … 短い名前（マーク／シュン など）。
+--                     記録の「記録者」欄や、一覧に出る。
+--      title        … 称号（ポンコツ／俊足のカリスマ など）。
+--                     画面の右上、自分の名前のところに出る。
+--      ★どちらも、本人が自分で変えられる（下の grant を見る）。
+--      ★あとから足しても壊れない（無ければ空のまま動く）。
+-- ------------------------------------------------------------
+alter table public.profiles add column if not exists title text not null default '';
+
 create index if not exists rides_work_date_idx on public.rides (work_date desc);
 create index if not exists rides_user_idx      on public.rides (user_id);
 
@@ -106,9 +117,11 @@ create policy profiles_update_own on public.profiles
   using (id = auth.uid())
   with check (id = auth.uid());
 
--- 自分で自分を管理者に昇格できないよう、更新できる列を display_name だけに絞る
+-- 自分で自分を管理者に昇格できないよう、更新できる列を名前の2つだけに絞る
+-- ★is_admin は、ここに入れてはいけない。入れると、誰でも自分を
+--   管理者にできてしまい、他人の記録を消せるようになる。
 revoke update on public.profiles from authenticated;
-grant  update (display_name) on public.profiles to authenticated;
+grant  update (display_name, title) on public.profiles to authenticated;
 
 -- --- rides ---
 drop policy if exists rides_read       on public.rides;

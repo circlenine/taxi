@@ -6971,17 +6971,46 @@ console.log('■ おつかいが走ったかどうかを、こちらが自分で
    *   なっていました。それは、まーく様の手をわずらわせる形です。
    */
   const u = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
-  ok(u.indexOf('const UPD_ERRAND_LOG = "おつかいの控え.txt"') !== -1,
+  t(u.indexOf('const UPD_ERRAND_LOG = "おつかいの控え.txt"') !== -1,
      '★★★控えの置き場がある');
-  ok(u.indexOf('updErrandLog_("▶ 始めます：') !== -1,
+  t(u.indexOf('updErrandLog_("▶ 始めます：') !== -1,
      '★★★どれを始めたかを、先に控える（途中で落ちても跡が残る）');
-  ok(/updErrandLog_\(\(me \? "✔ おわり：" : "⚠ 送り先が分かりません："\)/.test(u),
+  t(/updErrandLog_\(\(me \? "✔ おわり：" : "⚠ 送り先が分かりません："\)/.test(u),
      '★★★結果も控える。送り先が無いときも、黙って終わらない');
-  ok(u.indexOf('メモが読めませんでした') !== -1,
+  t(u.indexOf('メモが読めませんでした') !== -1,
      '　 メモが読めないときも、そうと控える');
-  ok(u.indexOf('※ 共有の設定は触りません') !== -1 ||
+  t(u.indexOf('※ 共有の設定は触りません') !== -1 ||
      u.indexOf('★共有の設定は触りません') !== -1,
      '★控えの共有の設定は、ぜったいに触らない（売上の話が入るため）');
+}
+
+console.log('■ つけ待ち台帳の倉庫を、眠らせない');
+{
+  /*
+   * ★なぜ要るか（まーく様のご指示・2026/11/10）
+   *     「spabaseの停止が面倒なので、
+   *       自動で定期的に起動できるようにしてほしいのですが」
+   *   無料のままだと、7日間 使われないと ひとりでに止まります。
+   *   止まると、まーく様が手で戻すしかありません。
+   *   「人の手が要るもの」を増やさないのが、いちばんの決まりです。
+   */
+  const u = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const v = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+
+  t(u.indexOf('function sbWakeTick_()') !== -1, '★★★声をかける係が、ちゃんとある');
+  t(v.indexOf('if (typeof sbWakeTick_ === "function") sbWakeTick_();') !== -1,
+     '★★★1日1回の仕事から、ちゃんと呼ばれている（呼ばれなければ意味がない）');
+  t(u.indexOf('"apikey"') !== -1, '　 鍵をそえて声をかける');
+  t(u.indexOf('/rest/v1/profiles?select=id&limit=1') !== -1,
+     '　 1件だけ読む（書かない。余計なことをしない）');
+  t(u.indexOf('web/config.js') !== -1,
+     '★鍵は置き場から読む（コードに書かない。入れ替えても追いつく）');
+  t(u.indexOf('service_role') === -1 || u.indexOf('秘密の鍵（service_role）は、どこにも書きません') !== -1,
+     '★★★秘密の鍵は、どこにも書かない');
+  t(/if \(code >= 200 && code < 300\)/.test(u),
+     '★うまくいった日だけ「済み」にする（しくじった日に印を付けると、その日は二度と声をかけない）');
+  t(u.indexOf('lrPush_') === -1 || u.indexOf('☕ 台帳の倉庫に声をかけましたが') !== -1,
+     '　 しくじっても、LINEには出さない（控えに1行だけ）');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

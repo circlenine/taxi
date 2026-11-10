@@ -29,12 +29,15 @@
 
   <div class="card" style="margin-top:16px">
     <h2>自分の設定</h2>
-    <p class="note">表示名は、台帳の「記録者」欄に出る名前です。</p>
+    <p class="note">名前は2つあります。どちらも、いつでも自分で変えられます。<br>
+      <b>短い名前</b>… 記録の「記録者」欄や、一覧に出る名前。<br>
+      <b>称号</b>… この画面の右上、自分の名前のところに出るもの。空でもかまいません。</p>
     <div class="grid">
-      <div class="f w3"><label>表示名</label><input class="ja" id="dname" placeholder="まーく"></div>
+      <div class="f w3"><label>短い名前（一覧に出る）</label><input class="ja" id="dname" placeholder="マーク"></div>
+      <div class="f w3"><label>称号（右上に出る）</label><input class="ja" id="dtitle" placeholder="ポンコツ"></div>
       <div class="f w3"><label>メールアドレス（変更はできません）</label><input class="ja" id="email" disabled></div>
     </div>
-    <div class="actions"><button class="btn" id="saveName">表示名を保存</button><span class="msg" id="m1"></span></div>
+    <div class="actions"><button class="btn" id="saveName">名前を保存</button><span class="msg" id="m1"></span></div>
   </div>
 
   <div class="card">

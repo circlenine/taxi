@@ -11605,6 +11605,19 @@ function venueDailyJob() {
      */
     try { vnDumpTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
 
+    /*
+     * ★つけ待ち台帳（ウェブのアプリ）の倉庫を、眠らせません
+     *   （まーく様のご指示・2026/11/10）。
+     *     「spabaseの停止が面倒なので、
+     *       自動で定期的に起動できるようにしてほしいのですが」
+     *   無料のままだと、7日間 使われないと ひとりでに止まります。
+     *   1日1回ここで声をかけるので、もう止まりません。
+     *   ★ここに置いたのは、1日1回かならず通る道だからです。
+     *   ★しくじっても、ほかの仕事は止めません。
+     */
+    try { if (typeof sbWakeTick_ === "function") sbWakeTick_(); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("sbWake", e); }
+
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。
     try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }

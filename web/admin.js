@@ -5,8 +5,10 @@ let ME = null;
   const s = await requireLogin();
   if (!s) return;
   ME = s;
-  $('#me').textContent = s.profile.display_name || s.user.email;
-  $('#dname').value = s.profile.display_name || '';
+  /* ★右上は「称号」、ほかの場所は「短い名前」（ご指示・2026/11/10） */
+  $('#me').textContent = s.profile.title || s.profile.display_name || s.user.email;
+  $('#dname').value  = s.profile.display_name || '';
+  $('#dtitle').value = s.profile.title || '';
   $('#email').value = s.user.email || '';
   $('#out').addEventListener('click', signOut);
   if (s.profile.is_admin) { $('#meBadge').hidden = false; $('#adminOnly').hidden = false; await loadMembers(); }
@@ -15,14 +17,19 @@ let ME = null;
 
 const say = (el, text, bad) => { const e = $(el); e.className = 'msg' + (bad ? ' bad' : ''); e.textContent = text; };
 
-/* 表示名 */
+/* 名前（短い名前と称号）。どちらも本人が自由に変えられる */
 $('#saveName').addEventListener('click', async () => {
-  const name = $('#dname').value.trim();
-  if (!name) return say('#m1', '表示名を入れてください。', true);
-  const { error } = await db.from('profiles').update({ display_name: name }).eq('id', ME.user.id);
+  const name  = $('#dname').value.trim();
+  const title = $('#dtitle').value.trim();
+  if (!name) return say('#m1', '短い名前を入れてください。', true);
+  if (name.length  > 20) return say('#m1', '短い名前は20文字までにしてください。', true);
+  if (title.length > 20) return say('#m1', '称号は20文字までにしてください。', true);
+  const { error } = await db.from('profiles')
+    .update({ display_name: name, title: title }).eq('id', ME.user.id);
   if (error) return say('#m1', jaError(error), true);
   ME.profile.display_name = name;
-  $('#me').textContent = name;
+  ME.profile.title = title;
+  $('#me').textContent = title || name;
   say('#m1', '保存しました。');
 });
 
@@ -40,7 +47,7 @@ $('#savePw').addEventListener('click', async () => {
 /* メンバー一覧 */
 async function loadMembers(){
   const [{ data: ps }, { data: rs }] = await Promise.all([
-    db.from('profiles').select('id,display_name,is_admin,created_at'),
+    db.from('profiles').select('id,display_name,title,is_admin,created_at'),
     db.from('rides').select('user_id,fare,work_date,wait_min,ride_min').limit(5000)
   ]);
   const by = {};
@@ -52,9 +59,10 @@ async function loadMembers(){
   const rows = (ps || []).map(p => ({ ...p, ...(by[p.id] || { n:0, sum:0, last:'', mins:0 }) }))
     .sort((a,b) => b.n - a.n);
   $('#members').innerHTML = `<div class="scroll"><table><thead><tr>
-      <th>表示名</th><th class="n">記録</th><th class="n">売上</th><th class="n">時間単価</th><th>最後の記録</th><th></th>
+      <th>名前</th><th>称号</th><th class="n">記録</th><th class="n">売上</th><th class="n">時間単価</th><th>最後の記録</th><th></th>
     </tr></thead><tbody>${rows.map(r => `<tr>
       <td>${esc(r.display_name || '（未設定）')}${r.id === ME.user.id ? '<span class="badge">自分</span>' : ''}</td>
+      <td>${esc(r.title || '—')}</td>
       <td class="n">${r.n}</td>
       <td class="n">${yen(r.sum)}</td>
       <td class="n" style="color:var(--meter)">${r.mins ? yen(r.sum / r.mins * 60) : '—'}</td>

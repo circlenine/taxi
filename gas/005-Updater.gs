@@ -2,8 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U162ver  （2026/11/10）  ★★★
+ *  ★★★  U163ver  （2026/11/10）  ★★★
  *
+ *
+ *  [U163ver]
+ *   ・☕ つけ待ち台帳の倉庫（Supabase）を、眠らせないようにした
+ *     ★まーく様のご指示：
+ *       「spabaseの停止が面倒なので、
+ *         自動で定期的に起動できるようにしてほしいのですが」
+ *     ★無料のままだと、7日間 一度も使われないと止まります。
+ *       止まると、まーく様が手で戻すしかなく、
+ *       「人の手が要るもの」を1つ増やすことになります。
+ *     ★1日1回、倉庫に1件だけ読ませて、起きていてもらいます。
+ *       鍵は置き場（web/config.js）から読むので、
+ *       入れ替えても ひとりでに追いつきます。
+ *       秘密の鍵（service_role）は、どこにも書きません。
+ *     ★お金はかかりません。LINEにも1通も出しません。
  *
  *  [U162ver]
  *   ・⏱ 「始めたのに、おわっていない」を見えるようにした
@@ -1823,7 +1837,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U162ver";
+const UPD_VERSION = "U163ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11315,6 +11329,103 @@ const UPD_ERRAND_FILE = "errand.json";
  *  ★共有の設定は触りません（まーく様だけが見られます）。
  * ================================================================ */
 const UPD_ERRAND_LOG = "おつかいの控え.txt";
+
+/* ================================================================
+ *  ☕ つけ待ち台帳（ウェブのアプリ）の倉庫を、眠らせない
+ *
+ *  ★なぜ要るのか（まーく様のご指示・2026/11/10）
+ *      「spabaseの停止が面倒なので、
+ *        自動で定期的に起動できるようにしてほしいのですが」
+ *    Supabase は無料のままだと、**7日間 一度も使われないと
+ *    ひとりでに止まります**。止まると、台帳が開けません。
+ *    戻すには、まーく様が Supabase を開いてボタンを押すしかなく、
+ *    「人の手が要るもの」を1つ増やすことになります。
+ *
+ *  ★やること
+ *    1日に1回、倉庫に「1件だけ読ませて」と声をかけます。
+ *    これで「使われている」ことになり、止まりません。
+ *
+ *  ★お金はかかりません。無料の範囲（月5万人・5GB）に対して、
+ *    1日1回の問い合わせは ごくわずかです。
+ *
+ *  ★鍵について
+ *    使うのは、台帳の中に入っている**公開してよい鍵**だけです
+ *    （web/config.js のもの。ブラウザに必ず載るので、隠す意味がない）。
+ *    秘密の鍵（service_role）は、どこにも書きません。
+ *    置き場から読むので、鍵を入れ替えても ひとりでに追いつきます。
+ * ================================================================ */
+const SB_WAKE_FILE = "web/config.js";     // 住所と鍵が書いてある所
+const SB_WAKE_KEY  = "SB_WAKE_AT";        // 最後に声をかけた日
+
+/** 台帳の住所と鍵を、置き場から読む。読めなければ null */
+function sbWakeConf_() {
+  try {
+    const cc = CacheService.getScriptCache();
+    const hit = cc ? cc.get("SB_WAKE_CONF") : null;
+    if (hit) return JSON.parse(hit);
+  } catch (e) {}
+  try {
+    if (updSource_() !== "github") return null;
+    const url = "https://raw.githubusercontent.com/" + updRepo_() + "/" +
+                updRefPath_(updBranch_()) + "/" + SB_WAKE_FILE;
+    const r = updGhTry_(url);
+    if (r.code !== 200 || !r.body) return null;
+    const mu = String(r.body).match(/SUPABASE_URL\s*=\s*"([^"]+)"/);
+    const mk = String(r.body).match(/SUPABASE_ANON_KEY\s*=\s*"([^"]+)"/);
+    if (!mu || !mk) return null;
+    const conf = { url: mu[1].replace(/\/+$/, ""), key: mk[1] };
+    // まだ書きかえていない（見本のまま）なら、声をかけない
+    if (conf.url.indexOf("xxxxx") !== -1 || conf.key.indexOf("ここに") !== -1) return null;
+    try {
+      const cc2 = CacheService.getScriptCache();
+      if (cc2) cc2.put("SB_WAKE_CONF", JSON.stringify(conf), 21600);   // 6時間おぼえる
+    } catch (e) {}
+    return conf;
+  } catch (e) { return null; }
+}
+
+/**
+ * 1日に1回だけ、倉庫に声をかける。
+ * 返すのは「声をかけたかどうか」。ふだんは何も言いません。
+ */
+function sbWakeTick_() {
+  try {
+    const pr = updProps_();
+    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd");
+    if (String(pr.getProperty(SB_WAKE_KEY) || "") === today) return false;   // 今日はもう済み
+
+    const conf = sbWakeConf_();
+    if (!conf) return false;                 // まだ住所と鍵が入っていない
+
+    /*
+     * ★1件だけ読ませます。書きません。
+     *   ついでに、倉庫がちゃんと生きているかも分かります。
+     */
+    const res = UrlFetchApp.fetch(conf.url + "/rest/v1/profiles?select=id&limit=1", {
+      method: "get",
+      muteHttpExceptions: true,
+      headers: { "apikey": conf.key, "Authorization": "Bearer " + conf.key }
+    });
+    const code = res.getResponseCode();
+
+    // ★うまくいった日だけ「今日は済み」にします。
+    //   しくじった日に印を付けると、その日はもう声をかけません。
+    if (code >= 200 && code < 300) {
+      try { pr.setProperty(SB_WAKE_KEY, today); } catch (e) {}
+      return true;
+    }
+    /*
+     * ★しくじったときは、控えに1行だけ残します。
+     *   LINEには出しません（乗務には関わらない話なので）。
+     *   止まっていれば、ここに同じ行が毎日ならびます。
+     */
+    try { updErrandLog_("☕ 台帳の倉庫に声をかけましたが、返事は " + code + " でした"); } catch (e) {}
+    return false;
+  } catch (e) {
+    try { logErr_("sbWake", e); } catch (e2) {}
+    return false;
+  }
+}
 const UPD_ERRAND_LOG_LINES = 40;        // 新しいものから40行だけ残す
 
 /** おつかいの控えに、1行 足す。失敗しても、頼まれごとは止めない */

@@ -14,8 +14,9 @@ async function requireLogin() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) { location.replace('/login'); return null; }
   const { data: profile } = await db
-    .from('profiles').select('id,display_name,is_admin').eq('id', session.user.id).maybeSingle();
-  return { session, user: session.user, profile: profile || { display_name: session.user.email, is_admin: false } };
+    .from('profiles').select('id,display_name,title,is_admin').eq('id', session.user.id).maybeSingle();
+  return { session, user: session.user,
+           profile: profile || { display_name: session.user.email, title: '', is_admin: false } };
 }
 
 async function signOut() {
