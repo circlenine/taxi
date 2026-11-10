@@ -2,7 +2,50 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V104ver  （2026/11/10）  ★★★
+ *  ★★★  V105ver  （2026/11/10）  ★★★
+ *
+ *  [V105ver]
+ *   ★まーく様のご指摘：
+ *       「だから、詳細の時間が全て載ってません、時間ですよ、
+ *         何度言ったらわかるんですか」
+ *     申し訳ありませんでした。何度も同じことを言わせてしまいました。
+ *     原因は4つありました。どれも こちらの作りの問題です。
+ *
+ *   ・⏰ 長すぎるときに、開演の時刻を真っ先に消していた（いちばんの原因）
+ *     ★「1通に入りきらないときは、開演・終演の行を落とす」という
+ *       仕組みを、私が入れていました。
+ *       そのせいで 11/11 の知らせは、**時刻が1つもない紙**になりました。
+ *       会場と公演名だけ見せられても、何時に向かえばよいか分かりません。
+ *     ★時刻は、どこまで詰めても落とさないようにした。
+ *       先に落とすのは、こちらです。
+ *         ① アーティストの公式リンクと出典（走りながら押しません）
+ *         ② アーティストの名前の行
+ *         ③ お知らせボタン　④ 助言　⑤ 件数（省いたことは必ず書く）
+ *
+ *   ・🏢 フェスティバルホールが、その日の公演しか読めていなかった
+ *     ★トップのページには「きょうの公演」しか出ていません。
+ *       そのため、あしたの Jason Mraz が読めず、
+ *       バラシの枠に時刻を出せませんでした。
+ *     ★月ごとの一覧のページを見るようにした（開演時刻が載っています）。
+ *
+ *   ・🚨 Zepp Osaka Bayside が、**札幌のページ**を読んでいた
+ *     ★読み先が「osakabay」でした。そんな名前は無いので、
+ *       Zepp のホームページは だまって札幌のページを返します。
+ *       つまり **札幌の催しを、大阪の催しとして流していました**。
+ *       だれも来ない街へ、車を向かわせていたことになります。
+ *     ★正しい住所（osakabayside）に直した。
+ *     ★二度と起きないよう、
+ *       「ページに その会場の名前が書いてあるか」を必ず確かめるようにした。
+ *       書いていなければ、1件も出さずに そうと書きます。
+ *
+ *   ・📛 公演の名前が読めていなかったものを、読めるようにした
+ *     ★40字で切っていたので、長い公演名が丸ごと消えていました。
+ *         大野智 1st Birthday Event「さと島 -SATOSHI OHNO 45→46」
+ *       60字まで載せるようにした。
+ *     ★ページに置いてある「絵の名前」（confirmation_number など）を
+ *       公演名にしないようにした。
+ *     ★バスケは、相手チームが分かるようにした。
+ *         大阪エヴェッサ vs 広島（バスケ）／開演19:05
  *
  *  [V104ver]
  *   ★GAS側が置いてくれた「会場の読み取り状況」を読んで、
@@ -1682,7 +1725,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V104ver";
+const VN_VERSION = "V105ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -1806,8 +1849,18 @@ const VN_SOURCES = [
    *   つまり、ここは何か月も1件も読めていませんでした。
    *   いまの公演一覧は、トップページに出ています。
    */
-  { name: "フェスティバルホール", kind: "event", deep: true,
-    url: "https://www.festivalhall.jp/" },
+  /*
+   * ★月ごとの一覧ページを見ます（2026/11/10 に直しました）。
+   *   トップのページには **その日の公演しか出ていません**。
+   *   そのため、あしたの公演（Jason Mraz）が読めず、
+   *   バラシの枠に時刻を1つも出せませんでした。
+   *   月ごとの一覧には、公演名と開演時刻がならんでいます。
+   *     11 （水） Jason Mraz Asia 2026 開演 19:00
+   *   月がわりの住所は {Y}{M} で組み立てます（1月は /1/。0は付けません）。
+   */
+  { name: "フェスティバルホール", kind: "event",
+    page: "フェスティバルホール",
+    url: "https://www.festivalhall.jp/events/list/{Y}/{M}/" },
 
   /* ============================================================
    *  ここから下は 2026/10/15 に足した会場
@@ -1825,8 +1878,18 @@ const VN_SOURCES = [
    *  ★下の会場は、1つずつ実際に開いて「日付が文字として取れる」
    *    ことを確かめてあります（取れなかったところは足していません）。
    * ============================================================ */
-  { name: "Zepp Namba",            kind: "event", url: "https://www.zepp.co.jp/hall/namba/schedule/" },
-  { name: "Zepp Osaka Bayside",    kind: "event", url: "https://www.zepp.co.jp/hall/osakabay/schedule/" },
+  { name: "Zepp Namba",            kind: "event", page: "なんば",
+    url: "https://www.zepp.co.jp/hall/namba/schedule/" },
+  /*
+   * ★読み先をまちがえていました（2026/11/10 に気づいて直しました）。
+   *   「osakabay」は Zepp のホームページに**無い名前**で、
+   *   開くと だまって **札幌のページ** が返ってきます。
+   *   そのため、札幌の催しを「大阪ベイサイド」として流していました。
+   *   正しくは「osakabayside」です（自分で確かめました）。
+   *   うっかり気づけないよう、page（ページ全体に必ず無いといけない字）も足します。
+   */
+  { name: "Zepp Osaka Bayside",    kind: "event", page: "大阪ベイサイド",
+    url: "https://www.zepp.co.jp/hall/osakabayside/schedule/" },
   { name: "BIGCAT",                kind: "event", url: "http://bigcat-live.com/schedule/" },
   { name: "GORILLA HALL OSAKA",    kind: "event", url: "https://gorillahall.jp/" },
   { name: "サンケイホールブリーゼ", kind: "event", url: "https://www.sankeihallbreeze.com/schedule/" },
@@ -1952,7 +2015,7 @@ const VN_SOURCES = [
    *     だれも来ない会場に車を着けさせることになるので、
    *     must で「会場の名前が書いてあるかたまり」だけを取ります。
    */
-  { name: "Asueアリーナ大阪",       kind: "event",
+  { name: "Asueアリーナ大阪", sport: "大阪エヴェッサ", sportKind: "バスケ",       kind: "event",
     must: "Asueアリーナ|Asue アリーナ|中央体育館",
     url: "https://www.evessa.com/schedule/" },
   /*
@@ -1962,7 +2025,7 @@ const VN_SOURCES = [
    *   なので、こちらからも拾います。名前が重ならないように
    *   読み先の名前を分け、出すときの会場名は venue でそろえます。
    */
-  { name: "舞洲アリーナ（エヴェッサ）", venue: "舞洲アリーナ", kind: "event",
+  { name: "舞洲アリーナ（エヴェッサ）", sport: "大阪エヴェッサ", sportKind: "バスケ", venue: "舞洲アリーナ", kind: "event",
     must: "舞洲",
     url: "https://www.evessa.com/schedule/" },
   /*
@@ -4256,6 +4319,11 @@ function vnArtistRows_(ev, budget) {
   const rows = [];
   try {
     if (!ev || !ev.title) return rows;
+    /*
+     * ★長さが足りないときは、ここから落とします（2026/11/10）。
+     *   開演の時刻を落とすくらいなら、こちらを先に落とします。
+     */
+    if (ev.artNone) return rows;
     if (budget && budget.left <= 0) return rows;        // 1通あたりの回数を使い切った
     if (typeof shArtistName_ !== "function") return rows;
 
@@ -4317,6 +4385,11 @@ function vnArtistRows_(ev, budget) {
      *   2つ以上あるときは、1行に1つずつ並べます。
      *   「押したのに ちがうところへ飛んだ」がいちばん困るためです。
      */
+    if (ev.artHide) {
+      // ★名前だけ残して、リンクと出典は落とす（走りながら押さないため）
+      if (budget) { budget.seen = budget.seen || {}; }
+      return rows;
+    }
     links.forEach(function (x) {
       rows.push({ "type": "text", "text": "　🔗 " + x.l, "size": "xxs",
                   "color": "#1a73e8", "decoration": "underline", "wrap": true,
@@ -4455,7 +4528,12 @@ function vnCard_(ev, idx, day, noBells, budget) {
                 "size": "md", "weight": "bold", "color": "#ad1457",
                 "wrap": true, "margin": "xs" });
   }
-  if (ev.start && !ev.whenHide) {
+  /*
+   * ★開演の時刻は、必ず出します（まーく様のご指示・2026/11/10）。
+   *     「開演時間は必須なので必ず載せてください」
+   *   長さを詰めるときにも、ここは絶対に落としません。
+   */
+  if (ev.start) {
     const isBa = (ev.startKind === "開場");
     const txt = (isBa ? "🎬 （開場 " + ev.start + "）" : "🎬 " + ev.start + " 開演") +
                 (sizeTxt ? "　／　" + sizeTxt : "");
@@ -4538,7 +4616,7 @@ function vnCard_(ev, idx, day, noBells, budget) {
    *   開演の行に出せなかったとき（時刻が無いとき）だけ、ここに出します。
    */
   const size = [];
-  if (!(ev.start && !ev.whenHide) && sizeTxt) size.push(sizeTxt);
+  if (!ev.start && sizeTxt) size.push(sizeTxt);
   if (ev.title || size.length) {
     // 催しの名前にも下線を引く。ここを押しても、同じページへ飛ぶ
     /*
@@ -4854,17 +4932,51 @@ function vnFitMessages_(day, events, note, reserve) {
   if (size(msgs[0]) <= LIMIT) return msgs;
 
   /*
-   * ①' 催しの時刻（開演・終演）の行を落とす。
+   * ★★★ 時刻は、どこまで詰めても落としません（2026/11/10・ご指摘）。
    *
-   *   ★「何時に着けるか」は、どんなに詰めても必ず残します。
-   *     乗務員がいちばん先に知りたいのは、そこだからです。
-   *     開演・終演は、その根拠として添えているだけなので、
-   *     場所が足りないときは、こちらを先に落とします。
+   *   まーく様のご指摘：
+   *     「だから、詳細の時間が全て載ってません、時間ですよ、
+   *       何度言ったらわかるんですか」
+   *
+   *   ここには前まで「長すぎたら、開演・終演の行を落とす」が
+   *   入っていました。私が入れたものです。
+   *   そのせいで、11/11 の知らせは **時刻が1つもない紙** になりました。
+   *   会場の名前と公演名だけ見せられても、
+   *   何時に向かえばよいのか分かりません。
+   *   それでは、ただの紙くずです。
+   *
+   *   開演は、**いちばん最後まで残すもの** です。
+   *   場所が足りないときは、下のように
+   *   「無くても走れるもの」から順に落とします。
+   *     ② アーティストの公式リンクと出典（走りながら押しません）
+   *     ③ アーティストの名前の行
+   *     ④ お知らせボタン
+   *     ⑤ 助言
+   *     ⑥ 件数そのもの（省いたことは必ず書き添える）
+   */
+
+  /*
+   * ② アーティストの「公式リンク」と「出典」を落とす。
+   *   名前は残します。だれが出るかは、客層の見当につながるためです。
+   *   リンクは、走っているときに押すものではありません。
    */
   evs = evs.map(function (e) {
     const c = {};
     for (const k in e) c[k] = e[k];
-    c.whenHide = 1;
+    c.artHide = 1;
+    return c;
+  });
+  msgs = vnBuildMessages_(day, evs, note, bells);
+  if (size(msgs[0]) <= LIMIT) return msgs;
+
+  /*
+   * ③ アーティストの行ごと落とす。
+   *   ここまで来ても、開演の時刻は残っています。
+   */
+  evs = evs.map(function (e) {
+    const c = {};
+    for (const k in e) c[k] = e[k];
+    c.artNone = 1;
     return c;
   });
   msgs = vnBuildMessages_(day, evs, note, bells);
@@ -7298,7 +7410,16 @@ function vnTitleOf_(block) {
                      .replace(/^[\s～〜~\-－—‐・:：,，.。、／\/]+/, "")
                      .replace(/[\s～〜~\-－—‐・:：,，、／\/]+$/, "")
                      .trim();
-      if (t.length < 3 || t.length > 40) return;
+      /*
+       * ★長い公演名を、まるごと捨てていました（2026/11/10 に直しました）。
+       *   フェスティバルホールの
+       *     「大野智 1st Birthday Event 「さと島 -SATOSHI OHNO 45→46」」
+       *   は46字あり、40字で切っていたために
+       *   「（名前を読み取れませんでした）」になっていました。
+       *   会場と時刻だけ出ても、何の催しか分かりません。
+       *   カードは折り返して出すので、60字までは そのまま載せます。
+       */
+      if (t.length < 3 || t.length > 60) return;
       if (/\d{1,2}:\d{2}/.test(t)) return;                        // 時刻が入っていたら、名前ではない
       /*
        * ★数字で始まるものを、まるごと捨てていました。
@@ -7316,6 +7437,19 @@ function vnTitleOf_(block) {
       if (/([月火水木金土日]\s+){3,}/.test(t + " ")) return;
       // ★どのページにも出てくる、ただの飾り・案内の文字（催しの名前ではない）
       if (/(よくある|ご質問|READ MORE|VIEW MORE|LIVE INFO|TICKET|ACCESS|アクセス|サイトマップ|プライバシー|新着|未就学児|入場不可|注意事項|メニュー|検索|ログイン|会員|ドリンク|スタンディング|当日券|前売)/i.test(t)) return;
+      /*
+       * ★ページに置いてある「絵の名前」を、公演名にしないようにします
+       *   （2026/11/10 に直しました）。
+       *   近ごろのホームページは、小さな絵を
+       *     confirmation_number / location_on / sports_basketball
+       *   のような英語の名前で置いています。
+       *   目には絵に見えますが、字としては そのまま残ります。
+       *   実際に「confirmation_number チケット」が
+       *   試合の名前として出かけました。
+       */
+      if (/(^|[^a-z_])(confirmation_number|location_on|sports_[a-z_]+|calendar_month|expand_more|chevron_[a-z]+|arrow_[a-z]+|open_in_new|schedule|place|info_outline)([^a-z_]|$)/i.test(t)) return;
+      // ★「チケット」だけの行も、催しの名前ではない（押すところの字）
+      if (/^チケット(情報|購入|販売)?$/.test(t)) return;
       if (t.length > best.length) best = t;
     });
   });
@@ -7932,6 +8066,25 @@ function vnScrapeOne_(src, day, htmlIn) {
   out.size = html.length;
   if (out.code !== 200 || !html) { out.note = "❌ 中身が取れませんでした（" + out.code + "）"; return out; }
 
+  /*
+   * ★「ちがう街のページ」を、そのまま読まないようにします
+   *   （2026/11/10 に、実際に起きていました）。
+   *
+   *   Zepp のホームページは、知らない名前で開くと
+   *   **だまって札幌のページを返します**。エラーになりません。
+   *   そのため、札幌の催しを「大阪ベイサイド」として
+   *   まーく様の名前で流していました。
+   *   だれも来ない街の催しに、車を向かわせることになります。
+   *
+   *   page に書いた字がページのどこにも無ければ、
+   *   それは「別のページをつかまされた」ということなので、
+   *   1件も出さずに、そうと書いて返します。
+   */
+  if (src.page && String(html).indexOf(src.page) === -1) {
+    out.note = "❌ ちがうページが返ってきました（「" + src.page + "」が見あたりません）";
+    return out;
+  }
+
   let lines = vnLines_(html);
   const joined = lines.join("").length;
   if (joined < 500) {
@@ -8129,7 +8282,32 @@ function vnScrapeOne_(src, day, htmlIn) {
     let guessed = false;
     if (!end && start) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
 
-    const theTitle = vnTitleOf_(nameLines) || "（名前を読み取れませんでした）";
+    let theTitle = vnTitleOf_(nameLines) || "（名前を読み取れませんでした）";
+    /*
+     * ★スポーツの日程表は、対戦相手が「字」としてしか置かれていません
+     *   （2026/11/10 に足しました）。
+     *   大阪エヴェッサのページは、こうならんでいます。
+     *     HOME / レギュラーシーズン / 大阪 / 11/18 / (水) / 19:05 /
+     *     location_on / Asueアリーナ大阪 / 広島 / sports_basketball
+     *   そのままでは「Asueアリーナ大阪」が公演名になり、
+     *   **だれと だれの試合なのか分かりません**。
+     *   絵の名前（sports_…）の、ひとつ前が相手の名前です。
+     */
+    if (src.sport) {
+      let aite = "";
+      const blk = above.concat(block);
+      for (let q = 1; q < blk.length; q++) {
+        if (!/^sports_[a-z_]+(\s|$)/i.test(String(blk[q]).trim())) continue;
+        const prev = String(blk[q - 1]).trim();
+        // 会場の名前・HOME/AWAY・数字は、相手の名前ではない
+        if (!prev || prev.length > 12) break;
+        if (/^(HOME|AWAY|\d|location_on)/i.test(prev)) break;
+        if (src.must && new RegExp(src.must).test(prev)) break;
+        aite = prev; break;
+      }
+      theTitle = src.sport + (aite ? " vs " + aite : "") +
+                 (src.sportKind ? "（" + src.sportKind + "）" : "");
+    }
     /*
      * ★同じ公演が、このページに何日ならんでいるかを数えます
      *   （まーく様のご指示・2026/11/9）。

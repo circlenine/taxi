@@ -1088,5 +1088,65 @@ console.log('■ 読み先の住所に「その年・その月」が入るもの
   ok(body.indexOf('UrlFetchApp.fetch(src.url') === -1,
      '★★★組み立てずに そのまま開いているところが、1つも無い');
 }
+console.log('■ ちがう街のページを、そのまま読まない');
+{
+  /*
+   * ★なぜ要るか（2026/11/10・実際に起きていました）
+   *   Zepp のホームページは、知らない名前で開くと
+   *   **だまって札幌のページを返します**。エラーになりません。
+   *   読み先が「osakabay」（そんな名前はありません）だったので、
+   *   札幌の催しを「Zepp Osaka Bayside」として流していました。
+   *   だれも来ない街の催しに、車を向かわせるところでした。
+   */
+  const ss = (V('VN_SOURCES') || []);
+  const bay = ss.filter(function (x) { return x.name === 'Zepp Osaka Bayside'; })[0];
+  ok(!!bay, '　 読み先が、ちゃんとある');
+  if (bay) {
+    ok(bay.url.indexOf('osakabayside') !== -1,
+       '★★★大阪ベイサイドの、正しい住所を見ている', bay.url);
+    ok(bay.page === '大阪ベイサイド',
+       '★★★ページに「大阪ベイサイド」と書いてあるかを、必ず確かめる', bay.page);
+  }
+  const nam = ss.filter(function (x) { return x.name === 'Zepp Namba'; })[0];
+  ok(nam && nam.page === 'なんば',
+     '　 なんばも同じように確かめる', nam && nam.page);
+
+  // ちがう街のページが返ってきたら、1件も出さない
+  reply = { '*': { code: 200, body: '<html><p>スケジュール 札幌</p><p>2026年11月11日</p>' +
+                                   '<p>どこかのライブ 開演 19:00</p><p>' + 'あ'.repeat(600) + '</p></html>' } };
+  const got = ctx.vnScrapeOne_({ name: 'Zepp Osaka Bayside', kind: 'event',
+                                 page: '大阪ベイサイド',
+                                 url: 'https://www.zepp.co.jp/hall/osakabayside/schedule/' },
+                               new Date(2026, 10, 11));
+  ok((got.events || []).length === 0,
+     '★★★ちがうページなら、1件も出さない', (got.events || []).length);
+  ok(String(got.note).indexOf('ちがうページ') !== -1,
+     '★★そうと、はっきり書く（黙って0件にしない）', got.note);
+
+  // 正しいページなら、ちゃんと読める
+  reply = { '*': { code: 200, body: '<html><p>スケジュール 大阪ベイサイド</p><p>2026年11月11日</p>' +
+                                   '<p>どこかのライブ 開演 19:00</p><p>' + 'あ'.repeat(600) + '</p></html>' } };
+  const got2 = ctx.vnScrapeOne_({ name: 'Zepp Osaka Bayside', kind: 'event',
+                                  page: '大阪ベイサイド',
+                                  url: 'https://www.zepp.co.jp/hall/osakabayside/schedule/' },
+                                new Date(2026, 10, 11));
+  ok((got2.events || []).length >= 1,
+     '★★★正しいページなら、ちゃんと読める', (got2.events || []).length);
+}
+console.log('■ 時刻は、どこまで詰めても落とさない');
+{
+  const body = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  /*
+   * ★長すぎるときに「開演の行を落とす」仕組みが入っていました。
+   *   そのせいで、時刻が1つも無い知らせを届けてしまいました。
+   *   二度と戻らないよう、その仕組みが無いことを見張ります。
+   */
+  ok(body.indexOf('whenHide') === -1,
+     '★★★開演を落とす仕組みが、1つも残っていない');
+  ok(body.indexOf('c.artHide = 1') !== -1,
+     '　 先に落とすのは、アーティストのリンクと出典');
+  ok(body.indexOf('c.artNone = 1') !== -1,
+     '　 次に落とすのは、アーティストの行');
+}
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
