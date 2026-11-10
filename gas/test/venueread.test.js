@@ -963,5 +963,68 @@ console.log('■ 中のページの題を、公演の名前にする');
      '★★★リンクの字ではなく、ページの題を使う … 「館内案内」が公演名になっていた');
 }
 
+/* ================================================================
+ * 「何時に向かえばよいか」が、かならず分かること
+ *
+ *  ★まーく様のご指摘（2026/11/10）
+ *    「これらだけの情報で、さぁ、何時に向かおう、と、
+ *      どうやったらわかると思いますか？」
+ *    「タクシーの参考資料としての意味を成しているのか、
+ *      必ず確認してください」
+ *
+ *  ★バラシの枠には、時刻が1つもありませんでした。
+ *    会場と公演の名前だけでは、何時に向かえばよいか分かりません。
+ * ================================================================ */
+console.log('■ バラシに、同じ日・同じ会場の公演の時刻を結びつける');
+{
+  const f = V('vnLinkBarasiTime_');
+  const list = [
+    { venue: 'フェスティバルホール', kind: 'event', start: '19:00', startKind: '開演',
+      end: '21:00', endSure: true },
+    { venue: 'フェスティバルホール', kind: 'barasi', start: '', end: '' },
+    { venue: '森ノ宮ピロティホール', kind: 'barasi', start: '', end: '' }
+  ];
+  f(list);
+  ok(list[1].start === '19:00',
+     '★★★バラシに、公演の開演が入る（何時に向かうかが分かる）', list[1].start);
+  ok(list[1].end === '21:00' && list[1].endSure === true,
+     '★★★終演も入る（着ける時刻が作れる）', list[1].end);
+  ok(list[1].timeFrom === '公演', '　 どこから来た時刻かを覚えている');
+  ok(list[2].start === '',
+     '★★結びつかないものには、嘘を書かない', list[2].start);
+}
+console.log('■ 1日に何回も公演がある会場は、いちばん遅い回を結びつける');
+{
+  const f = V('vnLinkBarasiTime_');
+  const list = [
+    { venue: 'オリックス劇場', kind: 'event', start: '13:30', end: '16:00' },
+    { venue: 'オリックス劇場', kind: 'event', start: '17:30', end: '20:00' },
+    { venue: 'オリックス劇場', kind: 'barasi', start: '', end: '' }
+  ];
+  f(list);
+  ok(list[2].start === '17:30',
+     '★★★夜の回を使う（昼の回だと、搬出まで何時間も空く）', list[2].start);
+}
+console.log('■ 同じ会場が2回ならばない');
+{
+  const d = V('vnDedup_');
+  const r = d([
+    { venue: '大阪城ホール', kind: 'event', title: 'ベストヒット歌謡祭2026', start: '19:00' },
+    { venue: '大阪城ホール', kind: 'barasi', title: 'ベストヒット歌謡祭2026（公演日）', start: '19:00' }
+  ]);
+  ok(r.length === 1, '★★★1つにまとまる（2回ならぶと、どちらを見るか分からない）', r.length);
+  ok(r[0].kind === 'event', '　 残るのは公演のほう', r[0].kind);
+  ok(r[0].hasBarasi === true,
+     '★★★「このあと搬出あり」は、ちゃんと残る（バラシを落とさない）', r[0].hasBarasi);
+}
+console.log('■ 枠に、時刻の手がかりが必ずある');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(src.indexOf('🔧 搬出は、公演の終わり') !== -1,
+     '★★★搬出がいつ始まるかを書く');
+  ok(src.indexOf('🔧 この会場の公演時刻は、まだ取れていません') !== -1,
+     '★★取れないときは、そうと書く（調べ忘れと見分けがつくように）');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

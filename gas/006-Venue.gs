@@ -2,7 +2,29 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V101ver  （2026/11/10）  ★★★
+ *  ★★★  V102ver  （2026/11/10）  ★★★
+ *
+ *  [V102ver]
+ *   ・🚕 「何時に向かえばよいか」が、かならず分かるようにした
+ *     ★まーく様のご指摘：
+ *       「これらだけの情報で、さぁ、何時に向かおう、と、
+ *         どうやったらわかると思いますか？」
+ *       「タクシーの参考資料としての意味を成しているのか、
+ *         必ず確認してください」
+ *     ★バラシの枠には、時刻が1つもありませんでした。
+ *       会場と公演の名前だけでは、何時に向かえばよいか分かりません。
+ *       資料として、意味を成していませんでした。
+ *     ★直したところ
+ *       ・バラシに、**同じ日・同じ会場の公演の時刻**を結びつける。
+ *         1日に何回もあるときは、いちばん遅い回を使う。
+ *       ・「🔧 搬出は、公演の終わり（21:00ごろ）のあと」を添える。
+ *       ・結びつかないときは「まだ取れていません」と正直に書く
+ *         （調べ忘れと見分けがつくように）。
+ *   ・🧹 同じ会場が2回ならぶのを、やめた
+ *     ★大阪城ホールが、公演とバラシで2回ならんでいました。
+ *       どちらを見ればよいのか分かりません。
+ *       1つにまとめて「このあと搬出あり」と添えます。
+ *   ・📅 バラシにも「何日目か」を出すようにした（いちばん重要とのご指示）
  *
  *  [V101ver]
  *   ・🍽 ホテルのディナーショーを、読めるようにした（ご指示）
@@ -1613,7 +1635,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V101ver";
+const VN_VERSION = "V102ver";
 
 /**
  * 見にいく先の一覧。
@@ -4358,6 +4380,33 @@ function vnCard_(ev, idx, day, noBells, budget) {
                 (sizeTxt ? "　／　" + sizeTxt : "");
     rows.push({ "type": "text", "text": txt, "size": "md", "weight": "bold",
                 "color": "#b00020", "wrap": true, "margin": "xs" });
+    /*
+     * ★バラシは「公演が終わってから」始まります
+     *   （まーく様のご指摘・2026/11/10）。
+     *     「これらだけの情報で、さぁ、何時に向かおう、と、
+     *       どうやったらわかると思いますか？」
+     *   開演だけでは、搬出の人が出てくる時刻が分かりません。
+     *   公演の終わりを手がかりに、だいたいの見当を添えます。
+     */
+    if (ev.kind === "barasi" || ev.hasBarasi) {
+      const owari = ev.end || vnGuessEnd_(ev.venue, ev.start);
+      rows.push({ "type": "text",
+                  "text": owari
+                    ? "🔧 搬出は、公演の終わり（" + owari + "ごろ）のあと"
+                    : "🔧 搬出は、公演の終わりのあと",
+                  "size": "xs", "weight": "bold", "color": "#00695c",
+                  "wrap": true, "margin": "xs" });
+    }
+  }
+  /*
+   * ★時刻が1つも分からない枠は、そうと分かるように書きます。
+   *   何も書かないと「調べ忘れ」と見分けがつきません。
+   *   ★バラシだけに出ます（ふつうの催しは、時刻が無ければ出しません）。
+   */
+  if (!ev.start && !ev.end && ev.kind === "barasi") {
+    rows.push({ "type": "text",
+                "text": "🔧 この会場の公演時刻は、まだ取れていません",
+                "size": "xs", "color": "#5f6368", "wrap": true, "margin": "xs" });
   }
   /*
    * ★「（催し 18:00 開演）」の行は、やめました
@@ -4459,7 +4508,8 @@ function vnCard_(ev, idx, day, noBells, budget) {
      *   1日だけなら、そう書きます。
      */
     let run = (ev && ev.runText) ? ev.runText : vnRunText_(ev, day);
-    if (!run && ev.kind !== "barasi") run = "📅 本日かぎり（1日だけ）";
+    // ★バラシにも出します。いちばん重要とのご指示（2026/11/10）
+    if (!run) run = "📅 本日かぎり（1日だけ）";
     if (run) {
       const last = run.indexOf("最終日") !== -1;
       rows.push({ "type": "text", "text": run, "size": "xs", "margin": "xs",
@@ -10605,6 +10655,60 @@ function vnDecorate_(e) {
   return c;
 }
 
+
+/**
+ * バラシに、同じ日・同じ会場の公演の時刻を結びつける。
+ *
+ * ★まーく様のご指摘（2026/11/10）
+ *     「これらだけの情報で、さぁ、何時に向かおう、と、
+ *       どうやったらわかると思いますか？」
+ *     「タクシーの参考資料としての意味を成しているのか、
+ *       必ず確認してください」
+ *
+ *   おっしゃるとおりでした。バラシの枠には、時刻が1つもありませんでした。
+ *   会場の名前と公演の名前だけでは、何時に向かえばよいのか分かりません。
+ *   資料として、意味を成していませんでした。
+ *
+ * ★バラシの予定そのものには、時刻が書かれていません（終日の予定のため）。
+ *   ですが **同じ日・同じ会場の公演** は、別に読めていることがあります。
+ *   その開演・終演を、バラシにも結びつけます。
+ *   公演が終わってから搬出が始まるので、同じ時刻を手がかりにできます。
+ *
+ * ★結びつかないバラシは、時刻が無いままです。嘘は書きません。
+ */
+function vnLinkBarasiTime_(list) {
+  const a = list || [];
+  // ① まず、時刻の分かっている公演を、会場ごとに集める
+  const byVenue = {};
+  a.forEach(function (e) {
+    if (!e || e.kind === "barasi") return;
+    if (!e.start && !e.end) return;
+    const v = String(e.venue || "").trim();
+    if (!v) return;
+    // いちばん遅い回を残す（夜に車が要るのは、最後の回のあと）
+    const old = byVenue[v];
+    if (!old) { byVenue[v] = e; return; }
+    const h1 = vnHourOf_(e.start || e.end), h2 = vnHourOf_(old.start || old.end);
+    if (h1 !== null && h2 !== null && h1 > h2) byVenue[v] = e;
+  });
+
+  // ② バラシに結びつける
+  a.forEach(function (e) {
+    if (!e || e.kind !== "barasi") return;
+    if (e.start || e.end) return;                    // すでに時刻があるなら、さわらない
+    const v = String(e.venue || "").trim();
+    const src = byVenue[v];
+    if (!src) return;
+    e.start = src.start;
+    e.startKind = src.startKind;
+    e.end = src.end;
+    e.endSure = src.endSure;
+    e.endGuess = src.endGuess;
+    e.timeFrom = "公演";                              // どこから来た時刻かを覚えておく
+  });
+  return a;
+}
+
 /**
  * その日に出すイベントをそろえる。
  *
@@ -10619,6 +10723,17 @@ function vnTodayEvents_(day) {
   try { out = out.concat(vnHallForDay_(day)); } catch (e) { if (typeof logErr_ === "function") logErr_("vnHall", e); }
   if (typeof vnScrapeAll_ === "function") {
     try { out = out.concat(vnScrapeAll_(day) || []); } catch (e) { if (typeof logErr_ === "function") logErr_("vnScrape", e); }
+  }
+  /*
+   * ★バラシに、同じ日・同じ会場の公演の時刻を結びつけます
+   *   （まーく様のご指摘・2026/11/10）。
+   *   時刻が1つも無い枠は、何時に向かえばよいか分からず、
+   *   資料として意味を成しません。
+   *   ★ふるいにかける前にやります。結びついた時刻で、
+   *     時間帯の決まりも見られるようにするためです。
+   */
+  try { out = vnLinkBarasiTime_(out); } catch (e) {
+    if (typeof logErr_ === "function") logErr_("vnLinkBarasi", e);
   }
   // 時刻の関所は2回通す。集める側で1回はじくだけでは、取りこぼしが出る
   return vnDedup_(out.filter(vnHasTime_).filter(vnInTimeRange_).filter(vnBigEnough_).map(vnDecorate_));
@@ -10645,6 +10760,14 @@ function vnDedup_(list) {
   const seen = {};
   const score = function (e) {
     let n = 0;
+    /*
+     * ★公演の枠を残し、バラシの枠は そちらへ合わせます
+     *   （まーく様のご指摘・2026/11/10）。
+     *   同じ会場が2回ならぶと、どちらを見ればよいのか分かりません。
+     *   実際、大阪城ホールが2回ならんでいました。
+     *   1つにまとめて「このあと搬出あり」と添えるほうが、ずっと読めます。
+     */
+    if (e.kind !== "barasi") n += 200;
     if (e.end && e.endSure) n += 100;                         // ① 終わりがはっきり
     const t = String(e.title || "");
     if (t && t.indexOf("読み取れません") < 0) n += 50;        // ② 名前が読めている
@@ -10658,7 +10781,11 @@ function vnDedup_(list) {
     if (!key) { keep.push(e); return; }
     if (!(key in seen)) { seen[key] = keep.length; keep.push(e); return; }
     const i = seen[key];
+    // ★どちらかがバラシなら、残ったほうに「このあと搬出あり」を覚えさせる
+    const bara = (e.kind === "barasi") || (keep[i].kind === "barasi") ||
+                 e.hasBarasi || keep[i].hasBarasi;
     if (score(e) > score(keep[i])) keep[i] = e;               // 濃いほうに入れ替える
+    if (bara) keep[i].hasBarasi = true;
   });
   return keep;
 }
