@@ -99,8 +99,11 @@ const ANDON_WAIT = 2400;   // 1つの言葉を出しておく長さ（ミリ秒�
 const ANDON_SLIDE = 340;   // 上へ消えるのにかかる長さ
 
 function andonRoll() {
+  /* ★画面の無いところ（検査など）でも落ちないようにします。
+     1か所の飾りのために、ほかが止まってはいけません。 */
+  if (typeof document === 'undefined' || !document.querySelectorAll) return;
   const boxes = document.querySelectorAll('.andon[data-roll]');
-  if (!boxes.length) return;
+  if (!boxes || !boxes.length) return;
   let soft = true;
   try { soft = !window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
@@ -137,8 +140,7 @@ function andonRoll() {
   });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', andonRoll);
-} else {
-  andonRoll();
+if (typeof document !== 'undefined' && document.addEventListener) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', andonRoll);
+  else andonRoll();
 }

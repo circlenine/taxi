@@ -87,17 +87,44 @@ const rowToRec = r => ({
  *   それを、このアプリの人と結びつけるために使います。
  *   半角カナ・全角・空白のちがいは気にしません。
  */
-const nkey = v => String(v == null ? '' : v)
-  .replace(/[\s　]/g, '')
-  .replace(/[\uFF61-\uFF9F]/g, c => {
-    // 半角カナ → 全角カナ（濁点はそのまま後ろに付く）
-    const H = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ';
-    const Z = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-    const i = H.indexOf(c);
-    return i >= 0 ? Z[i] : c;
-  })
-  .replace(/[ﾞ゛]/g, 'ﾞ').replace(/[ﾟ゜]/g, 'ﾟ')
-  .toLowerCase();
+/* --nkey-start-- ここから下は gas/test/webname.test.js が取り出して検査します */
+const nkey = v => {
+  /*
+   * ★半角カナを、きちんと全角に直します（2026/11/10 に直しました）。
+   *
+   *   前は「ﾀﾞｲｽｹ」が「タﾞイスケ」にしかならず、
+   *   「ダイスケ」と別の字あつかいでした。
+   *   小さい字（ｭ）と長音（ｰ）も直していませんでした。
+   *   そのため、スプシから取り込むと
+   *   **ほとんどの記録が、取り込んだ人の名義で入って**いました。
+   *   売上が人ごとに狂うので、いちばん重い間違いです。
+   */
+  let s = String(v == null ? '' : v).replace(/[\s　]/g, '');
+  const H  = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝｧｨｩｪｫｬｭｮｯｰ';
+  const Z  = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンァィゥェォャュョッー';
+  const DK = 'カキクケコサシスセソタチツテトハヒフヘホウ';
+  const DZ = 'ガギグゲゴザジズゼゾダヂヅデドバビブベボヴ';
+  const PK = 'ハヒフヘホ';
+  const PZ = 'パピプペポ';
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    let c = s[i];
+    const j = H.indexOf(c);
+    if (j >= 0) c = Z[j];
+    const nx = s[i + 1];
+    // ★濁点・半濁点は、前の字とくっつけて1文字にします
+    if (nx === 'ﾞ' || nx === '゛' || nx === '\u3099') {
+      const k = DK.indexOf(c);
+      if (k >= 0) { c = DZ[k]; i++; }
+    } else if (nx === 'ﾟ' || nx === '゜' || nx === '\u309A') {
+      const k = PK.indexOf(c);
+      if (k >= 0) { c = PZ[k]; i++; }
+    }
+    out += c;
+  }
+  return out.toLowerCase();
+};
+/* --nkey-end-- */
 
 function idByName(name){
   const k = nkey(name);
