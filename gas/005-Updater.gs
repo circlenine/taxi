@@ -11740,6 +11740,13 @@ const UPD_ERRAND_OK = {
   "web-events":  "イベント情報を、TAXI NOTE（ウェブ）に渡す",
   "web-sync-try": "スプシ→台帳の下見（入れずに、件数だけ数える）",
   "web-sync-go":  "スプシ→台帳へ、ほんとうに移す",
+  /*
+   * ★スクリプトプロパティ（GASの控え）の一覧を、ドライブに置く。
+   *   50個を超えると、画面からは読むだけになり、足せなくなります。
+   *   消す前に、何が入っているかを必ず確かめるための道です。
+   *   ★値は出しません。名前と、長さだけです（鍵が混ざっているため）。
+   */
+  "props-list":  "GASの控えの一覧を、ドライブに置く",
   "ping":        "動いているかどうかの返事だけ"
 };
 
@@ -12170,6 +12177,32 @@ function updErrandTick_() {
   try {
     if (task === "ping") {
       out = "うごいています。";
+    } else if (task === "props-list") {
+      /*
+       * ★値は1文字も出しません。鍵が混ざっているためです。
+       *   名前と、字の長さと、最後に触った見当だけを書きます。
+       */
+      try {
+        const all = PropertiesService.getScriptProperties().getProperties();
+        const keys = Object.keys(all).sort();
+        const L = ["＝＝ GASの控えの一覧（じどうで書いています）＝＝",
+                   "※ 値は出していません（鍵が混ざっているため）。名前と長さだけです。",
+                   "※ まーく様だけが見られます（共有していません）。",
+                   "全部で " + keys.length + " 個", ""];
+        keys.forEach(function (k) {
+          L.push(k + "　（" + String(all[k] == null ? "" : all[k]).length + "字）");
+        });
+        const text = L.join("\n") + "\n";
+        let f = null;
+        const it = DriveApp.getFilesByName("GASの控え一覧.txt");
+        if (it.hasNext()) f = it.next();
+        if (f) f.setContent(text);
+        else DriveApp.createFile("GASの控え一覧.txt", text, MimeType.PLAIN_TEXT);
+        updErrandLog_("🗂 GASの控え：" + keys.length + "個。一覧をドライブに置きました");
+        out = "🗂 " + keys.length + "個ありました。一覧をドライブに置きました。";
+      } catch (e) {
+        out = "🗂 一覧を作れませんでした：" + ((e && e.message) || e);
+      }
     } else if (task === "web-sync-try") {
       out = webSyncPush_(false);
     } else if (task === "web-sync-go") {
