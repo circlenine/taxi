@@ -2,7 +2,18 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L065ver  （2026/11/9）  ★★★
+ *  ★★★  L066ver  （2026/11/10）  ★★★
+ *
+ *
+ *  [L066ver]
+ *   ・📧 Googleからの「見張りがこけました」メールを、出させないようにした
+ *     ★まーく様のご指示：
+ *       「エラーメッセージをgmailに送信するのもやめてください、迷惑です」
+ *     ★あのメールは、こちらが送っているものではありません。
+ *       **Googleが自動で送っている**ものです。
+ *       止めるには、こけないようにするしかありません。
+ *     ★onOpenReport に守りがありませんでした。
+ *       スプシの画面が無いところで動くと、ここで必ずこけます。
  *
  *  [L065ver]
  *   ・🙅 送ってはいけない相手は、送る手前で必ず止める
@@ -835,7 +846,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L065ver";
+const LR_VERSION = "L066ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -1052,6 +1063,24 @@ function getGridRange(sheet, startRow, startColIndex, rowCount, colSpanArray) {
  * 同じプロジェクトに 002-Extras があれば、それも一緒に出す。
  */
 function onOpenReport() {
+  /*
+   * ★まーく様のご指示（2026/11/10）
+   *     「エラーメッセージをgmailに送信するのもやめてください、迷惑です」
+   *
+   *   あのメールは、こちらが送っているものではありません。
+   *   **Googleが「見張りがこけました」と自動で送っている**ものです。
+   *   止めるには、こけないようにするしかありません。
+   *   ここは、ひとりでに動く入口なのに、守りがありませんでした。
+   *   スプシの画面が無いところで動くと、ここで必ずこけます。
+   */
+  try {
+    onOpenReportBody_();
+  } catch (e) {
+    try { logErr_("onOpenReport", e); } catch (e2) {}
+  }
+}
+
+function onOpenReportBody_() {
   const m = SpreadsheetApp.getUi().createMenu("📈 LineReport");
   m.addItem("📤 レポートを手動送信", "showReportDialog");
   if (typeof menuStrategy === "function") m.addItem("🎯 立ち回り分析", "menuStrategy");

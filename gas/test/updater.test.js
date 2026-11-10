@@ -3914,6 +3914,28 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
     delete props['UPD_ERRAND_DONE'];
   }
 
+  /*
+   * ★LINEへの知らせを短くする（まーく様のご指示・2026/11/10）
+   *     「毎回 長文のメッセージをlineに送らないでください、迷惑です」
+   *   調べた結果が丸ごと流れていました（会場ぜんぶのぶん）。
+   *   走りながら読むものなので、長いと ただの邪魔です。
+   *   くわしい中身は、ドライブの控えに置いてあります。
+   */
+  {
+    const SAY = F('updErrandSay_');
+    const nagai = 'あ'.repeat(3000);
+    const r = SAY('venue-probe', nagai, 0, 1);
+    t(r.length <= 230, '★★★長い結果は切る（' + r.length + '字）', r.length);
+    t(r.indexOf('…') !== -1, '　 切ったことが分かる');
+    t(r.indexOf('おつかい') !== -1, '　 何の知らせかは分かる');
+
+    const みじかい = SAY('event-test', 'あすのぶんを送りました。グループには出ていません。', 0, 1);
+    t(みじかい.indexOf('グループには出ていません') !== -1,
+      '★★★短い結果は、そのまま全部のこす（大事なことを消さない）');
+    const ng = SAY('venue-probe', 'つながりませんでした', 0, 1);
+    t(ng.indexOf('⚠️') === 0, '★だめだったときは、ひと目で分かる印');
+  }
+
   // ping は、返事だけ
   gh = { raw: { 'errand.json': JSON.stringify({ id: 'x2', do: 'ping' }) } };
   ctx.pu.length = 0;
