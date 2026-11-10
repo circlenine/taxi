@@ -768,5 +768,28 @@ console.log('■ 1日に何回も公演がある日（社会人野球の形）')
   ok(e.startKind === '開演', '　 「開始時間：」も開演として読む', e.startKind);
 }
 
+/* ================================================================
+ * よその会場の公演を、この会場のものとして出さない（中のページ側）
+ *
+ *  ★梅田芸術劇場の一覧には、東京の会場の公演も混ざります
+ *    （よみうり大手町ホール など）。そのまま読むと、
+ *    東京の芝居を「梅田芸術劇場」として出すことになります。
+ * ================================================================ */
+console.log('■ 中のページでも、会場ちがいを落とす');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const i = src.indexOf('function vnScrapeDeep_');
+  const j = src.indexOf('\nfunction ', i + 1);
+  const body = src.slice(i, j);
+  ok(body.indexOf('src.must') !== -1,
+     '★★★中のページでも、会場の名前を確かめている');
+
+  const one = V('VN_SOURCES').filter(x => x.name === '梅田芸術劇場')[0] || {};
+  ok(one.deep === true,
+     '★★★梅田芸術劇場は、中のページまで開く（一覧に時刻が1行も無い）', one.deep);
+  ok(/梅田芸術劇場/.test(one.must || ''),
+     '★★会場ちがいを落とすしかけが付いている', one.must);
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
