@@ -29,6 +29,19 @@ button{font-family:inherit}
    ★文字がはみ出さないよう、内側に窓（.roll）を作って その中で動かす。
      行灯そのものに overflow:hidden を掛けると、
      下に出ている台（:before）まで消えてしまうため。 */
+/* ★版の番号（まーく様のご指示・2026/11/10）。
+   小さく、じゃまをしない大きさで、題のとなりに。 */
+.ver{font-family:var(--mono);font-size:11px;color:var(--muted);
+  letter-spacing:.06em;border:1px solid var(--line);border-radius:999px;
+  padding:1px 8px;vertical-align:3px;font-weight:400}
+/* ★まだ読んでいないお知らせがあることを、小さな点で知らせる */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--kusha);margin-left:5px;vertical-align:1px}
+.newsv{display:flex;align-items:baseline;gap:9px;margin:0 0 6px}
+.newsv b{font-family:var(--mono);font-size:13px;color:var(--andon)}
+.newsv small{color:var(--muted);font-size:11px}
+.newsl{margin:0 0 18px;padding-left:1.2em;font-size:13.5px;line-height:1.95}
+.newsl li{margin:5px 0}
 .andon .roll{position:absolute;inset:0;overflow:hidden;border-radius:3px}
 .andon .roll span{transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .34s,color .25s}
 .andon .roll span.up{transform:translateY(-118%);opacity:0}

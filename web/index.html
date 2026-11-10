@@ -18,7 +18,7 @@
   <header>
     <div class="andon" id="andon"><span id="andonTxt">空車</span></div>
     <div>
-      <h1>つけ待ち台帳</h1>
+<h1>つけ待ち台帳 <span class="ver" id="ver"></span></h1>
       <div class="sub">つけ待ち場所・待ち時間・乗車時間・金額を残して、アツい時間帯を割り出す</div>
     </div>
     <div class="who">
@@ -43,6 +43,7 @@
     <button data-t="sc" aria-selected="false">時間×金額</button>
     <button data-t="rank" aria-selected="false">集計</button>
     <button data-t="list" aria-selected="false">一覧・書き出し</button>
+    <button data-t="news" aria-selected="false">お知らせ<span class="dot" id="newsDot" hidden></span></button>
   </nav>
 
   <div id="panes"></div>
@@ -56,6 +57,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="news.js"></script>
 <script src="shared.js"></script>
 <script src="app.js"></script>
 </body>

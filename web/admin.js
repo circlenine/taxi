@@ -12,6 +12,8 @@ let ME = null;
   $('#email').value = s.user.email || '';
   $('#out').addEventListener('click', signOut);
   if (s.profile.is_admin) { $('#meBadge').hidden = false; $('#adminOnly').hidden = false; await loadMembers(); }
+  /* ★版の番号を、題のとなりに小さく出す（ご指示・2026/11/10） */
+  try { if (typeof APP_VERSION !== 'undefined') $('#ver').textContent = APP_VERSION; } catch (e) {}
   $('#boot').hidden = true; $('#app').hidden = false;
 })();
 

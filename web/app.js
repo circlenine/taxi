@@ -157,7 +157,8 @@ function render(){
   $('#andon').classList.toggle('busy', rs.length > 0);
   $('#andonTxt').textContent = rs.length ? '賃走' : '空車';
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
-  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList }[tab]();
+  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList, news:paneNews }[tab]();
+  if (tab === 'news') newsSeen();
   wire();
 }
 const msgHTML = id => `<span class="msg ${msgBad?'bad':''}" id="${id}">${esc(msg)}</span>`;
@@ -1016,3 +1017,64 @@ const tip = $('#tip');
 function showTip(e,t){ tip.innerHTML = String(t).replace(/&#10;/g,'<br>').split('\n').join('<br>'); tip.classList.add('on'); moveTip(e); }
 function moveTip(e){ tip.style.left = Math.min(e.clientX+14, innerWidth-240) + 'px'; tip.style.top = Math.max(8, e.clientY-70) + 'px'; }
 function hideTip(){ tip.classList.remove('on'); }
+
+
+/* ============================================================
+ *  📣 お知らせ（直したところの控え）
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *      「アップデート情報のお知らせ欄も追加してください、
+ *        アップデート内容は、乗務員に必要な、わかりやすい情報に
+ *        だけまとめるかたちで載せて下さい」
+ *
+ *  ★中身は news.js に書いてあります。
+ *    まだ読んでいないものがあるときだけ、タブに赤い点を出します。
+ *    「読んだかどうか」は、その人の機械にだけ残します
+ *    （ほかの人には関わらない話なので、棚には入れません）。
+ * ============================================================ */
+const NEWS_KEY = 'tsukemachi.news.seen';
+
+function newsLatest(){
+  try { return (typeof APP_NEWS !== 'undefined' && APP_NEWS[0]) ? APP_NEWS[0].v : ''; }
+  catch (e) { return ''; }
+}
+
+/** まだ読んでいないお知らせがあるか */
+function newsUnread(){
+  const v = newsLatest();
+  if (!v) return false;
+  try { return localStorage.getItem(NEWS_KEY) !== v; }
+  catch (e) { return false; }   // 使えない機械でも、落とさない
+}
+
+/** 「読んだ」と覚えて、赤い点を消す */
+function newsSeen(){
+  try { localStorage.setItem(NEWS_KEY, newsLatest()); } catch (e) {}
+  const d = document.getElementById('newsDot');
+  if (d) d.hidden = true;
+}
+
+/** 題のとなりの版の番号と、タブの赤い点をととのえる */
+function newsBoot(){
+  try {
+    const v = document.getElementById('ver');
+    if (v && typeof APP_VERSION !== 'undefined') v.textContent = APP_VERSION;
+    const d = document.getElementById('newsDot');
+    if (d) d.hidden = !newsUnread();
+  } catch (e) {}
+}
+
+function paneNews(){
+  let list = [];
+  try { list = (typeof APP_NEWS !== 'undefined' && APP_NEWS) ? APP_NEWS : []; } catch (e) { list = []; }
+  if (!list.length) return emptyCard('お知らせはまだありません。');
+  const body = list.map(n => `<div class="newsv"><b>${esc(n.v)}</b><small>${esc(n.d)}</small></div>
+    <ul class="newsl">${(n.items || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('');
+  return `<div class="card"><h2>お知らせ</h2>
+    <p class="note">直したところを、新しいものから並べています。
+      いま動いているのは <b>${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')}</b> です。</p>
+    ${body}</div>`;
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', newsBoot);
+else newsBoot();
