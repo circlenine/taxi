@@ -11976,29 +11976,31 @@ function updErrandTick_() {
        * ★スプシの記録を、台帳に貼れる形で書き出します。
        *   共有の設定は触りません（売上の記録なので、
        *   人に見える形には絶対にしません）。
+       *
+       * ★読み取りは1回だけにします（2026/11/11 に直しました）。
+       *   はじめ、書き出しと数えあげで2回読んでいて、
+       *   6分で打ち切られ、何も残りませんでした。
        */
-      if (typeof panelExportLedger === "function") {
-        out = panelExportLedger();
-        /*
-         * ★いちばん新しい記録がいつかを、控えに残します。
-         *   「どこまで入っているか」を、こちらで確かめるためです。
-         */
-        try {
-          const got = expLedgerCsv_();
-          const rows = String(got.text || "").split("\n").slice(1).filter(function (x) { return x; });
+      if (typeof expLedgerCsv_ !== "function") {
+        out = "書き出しの係が、まだ入っていません。";
+      } else {
+        const got = expLedgerCsv_();
+        if (!got.n) {
+          out = "📤 書き出せる記録がありませんでした。";
+          updErrandLog_("📒 スプシの記録：0件（書き出せるものがありません）");
+        } else {
+          const nm = "つけ待ち台帳_" + expDayKey_() + ".csv";
+          // ★先頭に見えない印（BOM）。付けないと、表計算ソフトで日本語が化ける
+          DriveApp.createFile(nm, "\ufeff" + got.text, MimeType.CSV);
+          const rows = String(got.text).split("\n").slice(1).filter(function (x) { return x; });
           const days = rows.map(function (x) { return String(x).split(",")[0]; })
                            .filter(function (x) { return /\d/.test(x); }).sort();
-          if (days.length) {
-            updErrandLog_("📒 スプシの記録：" + rows.length + "件／" +
-                          days[0] + " 〜 " + days[days.length - 1]);
-          } else {
-            updErrandLog_("📒 スプシの記録：0件（書き出せるものがありません）");
-          }
-        } catch (e) {
-          try { updErrandLog_("📒 書き出しの中身を数えられませんでした：" + ((e && e.message) || e)); } catch (e2) {}
+          const span = days.length ? (days[0] + " 〜 " + days[days.length - 1]) : "（日付なし）";
+          updErrandLog_("📒 スプシの記録：" + got.n + "件／" + span);
+          out = "📤 " + got.n + "件を書き出しました（" + nm + "）\n" +
+                "・ドライブに入っています（共有はしていません）\n" +
+                "・" + span;
         }
-      } else {
-        out = "書き出しの係が、まだ入っていません。";
       }
     } else if (task === "event-test") {
       /*
