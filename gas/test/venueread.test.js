@@ -822,5 +822,27 @@ console.log('■ ページの中身を、ドライブに置ける');
      '　 会場を名ざしでも調べられる');
 }
 
+console.log('■ 住所を入れ替えた会場（まーく様に教えていただいた）');
+{
+  const one = n => (V('VN_SOURCES').filter(x => x.name === n)[0] || {});
+  ok(one('花園ラグビー場').url === 'https://hanazono-liners.jp',
+     '★★★花園ラグビー場の住所', one('花園ラグビー場').url);
+  ok(/花園/.test(one('花園ラグビー場').must || ''),
+     '★★よその会場の試合を、花園として出さない', one('花園ラグビー場').must);
+  ok(one('東和薬品RACTABドーム').url === 'https://spocale.com/places/2644',
+     '★★★RACTABドームの住所', one('東和薬品RACTABドーム').url);
+  ok(one('インテックス大阪（ほか）').venue === 'インテックス大阪',
+     '★インテックス大阪は、2つめの読み先からも拾う',
+     one('インテックス大阪（ほか）').venue);
+}
+console.log('■ 「2027.01.23 [土]」の書き方も読める（スポカレの形）');
+{
+  const body = '<p>東和薬品RACTABドーム 2027.01.23 [土] 13:00 ハンドボール</p>' +
+               '<p>オールジャパン メダリスト・オン・アイス</p>';
+  const r = read(body, {}, new Date(2027, 0, 23));
+  ok(r.events.length === 1, '★★★点でつないだ日付も読める', r.events.length);
+  ok((r.events[0] || {}).start === '13:00', '　 時刻も取れる', (r.events[0] || {}).start);
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
