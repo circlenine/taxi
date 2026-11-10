@@ -241,10 +241,15 @@ function tableHTML(rows){
   </tbody></table></div>`;
 }
 
-/* ---- 熱いところ ---- */
+/* ---- アツい場所（時間帯 × つけ待ち場所の地図）----
+ *  ★名前を「アツい」でそろえました（まーく様のご指示・2026/11/10）。
+ *      「熱いところがアツじゃなくて、表記ゆれになってます」
+ *      「アツい時間帯、アツいで表記は必ず統一して下さい」
+ *  ★これは、人の多さを買ってくるもの（人口マップ）ではありません。
+ *    **自分たちの記録だけ**から作っている地図です。 */
 function paneHeat(){
   const R = visible();
-  if (!R.length) return emptyCard('場所と時間帯がそろうと、ここが熱さの地図になる。');
+  if (!R.length) return emptyCard('場所と時間帯がそろうと、ここがアツさの地図になる。');
   const hs = R.map(r => Math.floor(r.dep));
   const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
   const pls = [...new Set(R.map(r => r.place).filter(Boolean))]
@@ -677,7 +682,7 @@ function paneRank(){
     <p class="note">3件以上ある枠だけを並べた。薄い棒は件数が足りていない目安。</p>
     ${filterChips()}
     ${best.length ? `<div style="font-size:13px;line-height:2">
-      熱い時間帯：${best.map(b => `<b style="font-family:var(--mono);color:var(--andon)">${b.h}時台 ${yen(b.avg)}/h</b>`).join('　')}<br>
+      アツい時間帯：${best.map(b => `<b style="font-family:var(--mono);color:var(--andon)">${b.h}時台 ${yen(b.avg)}/h</b>`).join('　')}<br>
       ${worst ? `薄い時間帯：<span style="font-family:var(--mono);color:var(--kusha)">${worst.h}時台 ${yen(worst.avg)}/h</span>` : ''}
       ${p[0] && p[0].n >= 3 ? `<br>割のいい場所：<b style="color:var(--andon)">${esc(p[0].p)} ${yen(p[0].avg)}/h</b>` : ''}
     </div>` : `<div class="note">まだ3件以上そろった時間帯がない。</div>`}
