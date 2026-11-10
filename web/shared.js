@@ -155,6 +155,7 @@ function faceSvg(){
  *  ★入れ替えは6秒ごと（ご指示）。2.4秒は早すぎました。
  * ---------------------------------------------------------- */
 const SAY_WAIT = 6000;   // 1つを出しておく長さ（ミリ秒）
+const SAY_FADE = 450;    // 消えるのにかかる長さ（ミリ秒）
 
 function sayRoll() {
   /* ★画面の無いところ（検査など）でも落ちないようにします */
@@ -162,20 +163,31 @@ function sayRoll() {
   const mount = document.getElementById('saymount');
   if (!mount) return;
 
-  const draw = function (first) {
+  const put = function () {
     try {
       mount.innerHTML = faceSvg() + '<div class="bubble"></div>';
       mount.querySelector('.bubble').textContent = pick(SAY_LINES);
-      if (!first) {
-        mount.classList.remove('pop');
-        void mount.offsetWidth;        // いったん止めてから、もう一度
-        mount.classList.add('pop');
-      }
     } catch (e) {}
   };
 
-  draw(true);
-  setInterval(function () { draw(false); }, SAY_WAIT);
+  put();
+
+  /*
+   * ★すうっと消えて、すうっと出てきます（まーく様のご指示・2026/11/10）
+   *     「吹き出しと顔の表示の仕方はフェードインフェードアウトに
+   *       してください」
+   *   消えきってから中身を入れ替えます。
+   *   入れ替えてから消すと、次の顔が一瞬 見えてしまいます。
+   */
+  setInterval(function () {
+    try {
+      mount.classList.add('fade');            // 消える
+      setTimeout(function () {
+        put();                                 // 消えたあとで入れ替える
+        mount.classList.remove('fade');        // 出てくる
+      }, SAY_FADE);
+    } catch (e) { put(); }
+  }, SAY_WAIT);
 }
 
 if (typeof document !== 'undefined' && document.addEventListener) {
