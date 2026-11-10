@@ -11541,6 +11541,7 @@ const UPD_ERRAND_OK = {
    *   ★置いた紙は、そのまま台帳（ウェブ）の「取り込み」に貼れます。
    */
   "ledger-export": "スプシの記録を書き出して、ドライブに置く",
+  "web-events":  "イベント情報を、TAXI NOTE（ウェブ）に渡す",
   "ping":        "動いているかどうかの返事だけ"
 };
 
@@ -11971,6 +11972,11 @@ function updErrandTick_() {
   try {
     if (task === "ping") {
       out = "うごいています。";
+    } else if (task === "web-events") {
+      if (typeof vnFeedPush_ === "function") {
+        out = vnFeedPush_() ? "📡 イベント情報を台帳へ渡しました。"
+                            : "📡 渡せませんでした（控えを見てください）。";
+      } else out = "イベント情報を渡す係が、まだ入っていません。";
     } else if (task === "ledger-export") {
       /*
        * ★スプシの記録を、台帳に貼れる形で書き出します。

@@ -11101,6 +11101,111 @@ function vnLinkBarasiTime_(list) {
  * ホームページの読み取りは [9] の調査結果を見てから作る。
  * 作ったら vnScrapeAll_ という名前で足せば、ここが勝手に拾う。
  */
+/* ================================================================
+ *  📡 イベント情報を、TAXI NOTE（ウェブ）にも渡す
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *      「このwebサイトでも、毎日のイベント情報を見せられるように
+ *        してほしいのと、ポップアップ表示（今日はもう表示しない
+ *        という選択肢も含める）で出せる形にしてください」
+ *
+ *  ★なぜ、こういう作りにしたか
+ *    いちばん簡単なのは「ウェブからGASの受け口を叩く」形です。
+ *    けれど、そうすると**受け口の住所がホームページに載ります**。
+ *    受け口には いま署名の確かめが入っていないので、
+ *    住所を知られると、だれでも偽の記録を投げ込めます。
+ *    売上がめちゃくちゃになるので、その道は採りません。
+ *
+ *    かわりに、GASが置き場（GitHub）に小さな紙を書き、
+ *    ホームページはその紙を読むだけにします。
+ *    受け口の住所は、どこにも出ません。
+ *
+ *  ★中身は、催しの予定だけです。売上や名前は1文字も入りません。
+ * ================================================================ */
+const VN_FEED_PATH = "web/data/events.json";
+
+/** その日のぶんを、ウェブに渡す形（小さく）にまとめる */
+function vnFeedDay_(day) {
+  const out = [];
+  let list = [];
+  try { list = vnTodayEvents_(day) || []; } catch (e) { list = []; }
+  list.forEach(function (ev) {
+    try {
+      const arrive = (typeof vnArriveText_ === "function") ? vnArriveText_(ev, day) : "";
+      out.push({
+        v: String(ev.venue || "").slice(0, 40),          // 会場
+        t: String(ev.title || "").slice(0, 70),          // 催し
+        k: String(ev.kind || "event"),                   // 種類
+        s: String(ev.start || ""),                       // 開演
+        e: String(ev.end || ""),                         // 終演
+        g: !!ev.endGuess,                                // 終演が見当かどうか
+        a: String(arrive || "").replace(/^🚕\s*/, ""),   // 何時に着けるか
+        r: String(ev.runText || "")                      // 何日目か
+      });
+    } catch (e) {}
+  });
+  return out;
+}
+
+/**
+ * きょう・あすのぶんを、置き場の小さな紙に書く。
+ * ★書けなかったときは、黙って終わります（ほかの仕事は止めません）。
+ *   控えには1行だけ残すので、あとから追えます。
+ */
+function vnFeedPush_() {
+  try {
+    if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
+    const now = new Date();
+    const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const key = function (d) {
+      return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+    };
+    const body = {
+      at: Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd HH:mm"),
+      days: [
+        { d: key(d1), list: vnFeedDay_(d1) },
+        { d: key(d2), list: vnFeedDay_(d2) }
+      ]
+    };
+    const text = JSON.stringify(body, null, 1);
+
+    const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_FEED_PATH;
+    const ref  = encodeURIComponent(updBranch_());
+
+    // いま置いてある紙の「ふだ」（sha）を取る。無ければ新しく作る
+    let sha = "";
+    try {
+      const got = updGhTry_(base + "?ref=" + ref);
+      if (got.code === 200) { const j = JSON.parse(got.body); sha = j.sha || ""; }
+    } catch (e) {}
+
+    const payload = { message: "イベント情報を置き直した（じどう）",
+                      content: Utilities.base64Encode(text, Utilities.Charset.UTF_8),
+                      branch: updBranch_() };
+    if (sha) payload.sha = sha;
+
+    const res = UrlFetchApp.fetch(base, {
+      method: "put",
+      headers: updGhHeaders_(false),
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    const n = body.days[0].list.length + body.days[1].list.length;
+    if (code >= 200 && code < 300) {
+      try { if (typeof updErrandLog_ === "function") updErrandLog_("📡 イベント情報を台帳へ渡しました（" + n + "件）"); } catch (e) {}
+      return true;
+    }
+    try { if (typeof updErrandLog_ === "function") updErrandLog_("📡 イベント情報を渡せませんでした（" + code + "）"); } catch (e) {}
+    return false;
+  } catch (e) {
+    try { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); } catch (e2) {}
+    return false;
+  }
+}
+
 function vnTodayEvents_(day) {
   let out = [];
   try { out = out.concat(vnHotelForDay_(day)); } catch (e) { if (typeof logErr_ === "function") logErr_("vnHotel", e); }
@@ -11617,6 +11722,15 @@ function venueDailyJob() {
      */
     try { if (typeof sbWakeTick_ === "function") sbWakeTick_(); }
     catch (e) { if (typeof logErr_ === "function") logErr_("sbWake", e); }
+
+    /*
+     * ★イベント情報を、TAXI NOTE（ウェブ）にも渡します
+     *   （まーく様のご指示・2026/11/10）。
+     *   置き場に小さな紙を書くだけです。
+     *   受け口の住所は、どこにも出しません。
+     */
+    try { if (typeof vnFeedPush_ === "function") vnFeedPush_(); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); }
 
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。

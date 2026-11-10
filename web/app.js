@@ -209,7 +209,7 @@ function render(){
    *   （中身は shared.js の andonRoll）
    */
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
-  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList, news:paneNews }[tab]();
+  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList, news:paneNews, ev:paneEv }[tab]();
   if (tab === 'news') newsSeen();
   wire();
 }
@@ -1249,4 +1249,108 @@ function paneNews(){
 if (typeof document !== 'undefined' && document.addEventListener) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', newsBoot);
   else newsBoot();
+}
+
+
+/* ============================================================
+ *  🎤 きょう・あすのイベント（TAXI NOTE）
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *      「このwebサイトでも、毎日のイベント情報を見せられるように
+ *        してほしいのと、ポップアップ表示（今日はもう表示しない
+ *        という選択肢も含める）で出せる形にしてください」
+ *
+ *  ★中身は、GASが1日1回 置いていく小さな紙（data/events.json）です。
+ *    受け口の住所は、どこにも出していません。
+ *  ★出すのは「何時に着けるか」が先。開演はその下。
+ *    乗務員が知りたいのは、客が出てくる時刻だからです。
+ * ============================================================ */
+let evData = null;
+const EV_KEY = 'tsukemachi.ev.hide';     // 「今日はもう表示しない」を覚える所
+
+async function loadEv(){
+  try {
+    const res = await fetch('data/events.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('status ' + res.status);
+    evData = await res.json();
+  } catch (e) { evData = { at:'', days:[] }; }
+  evBoot();
+  if (tab === 'ev') render();
+}
+
+/** きょうのぶん（無ければ、いちばん上の日） */
+function evToday(){
+  if (!evData || !evData.days || !evData.days.length) return null;
+  const t = today();
+  return evData.days.filter(d => d.d === t)[0] || evData.days[0];
+}
+
+function evRows(day){
+  if (!day || !day.list || !day.list.length) return '<div class="empty">該当データがありません</div>';
+  const kind = { event:'🎤 イベント', barasi:'🔧 バラシ（搬出）',
+                 hanyu:'🚚 搬入（この日は夜の人出なし）', hotel:'🍽 ホテル宴会' };
+  return day.list.map(x => `<div class="evrow">
+    <div class="evhead">${esc(x.v || '')}<span class="evkind">${esc(kind[x.k] || '')}</span></div>
+    ${x.a ? `<div class="evgo">🚕 ${esc(x.a)}</div>` : ''}
+    <div class="evt">${esc(x.t || '')}</div>
+    ${x.s ? `<div class="evsub">🎬 ${esc(x.s)} 開演${x.e ? `　／　終演 ${esc(x.e)}${x.g ? '（見当）' : ''}` : ''}</div>` : ''}
+    ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
+  </div>`).join('');
+}
+
+function paneEv(){
+  const d = evToday();
+  const when = d ? d.d : '';
+  const at = (evData && evData.at) ? evData.at : '';
+  return `<div class="card"><h2>きょうのイベント</h2>
+    <p class="note">${when ? esc(fmtD(when)) + ' のぶん。' : ''}
+      いちばん上は<b>何時に車を着けるか</b>。開演はその下に、根拠として置いています。
+      ${at ? '（取ったのは ' + esc(at) + '）' : ''}</p>
+    ${evRows(d)}</div>` +
+    ((evData && evData.days && evData.days[1]) ?
+      `<div class="card"><h2>あすのイベント</h2>
+        <p class="note">${esc(fmtD(evData.days[1].d))} のぶん。</p>
+        ${evRows(evData.days[1])}</div>` : '');
+}
+
+/* ---- ポップアップ ---- */
+function evHiddenToday(){
+  try { return localStorage.getItem(EV_KEY) === today(); } catch (e) { return false; }
+}
+function evHideToday(){
+  try { localStorage.setItem(EV_KEY, today()); } catch (e) {}
+}
+function evBoot(){
+  try {
+    const d = evToday();
+    const n = (d && d.list) ? d.list.length : 0;
+    const dot = document.getElementById('evDot');
+    if (dot) dot.hidden = !n;
+    if (!n || evHiddenToday()) return;
+    evPopup(d);
+  } catch (e) {}
+}
+function evPopup(d){
+  const box = document.createElement('div');
+  box.className = 'modal';
+  box.innerHTML = `<div class="modalbox">
+    <h2>きょうのイベント（${d.list.length}件）</h2>
+    <div class="modalbody">${evRows(d)}</div>
+    <div class="modalfoot">
+      <label class="mchk"><input type="checkbox" id="evHide"> 今日はもう表示しない</label>
+      <button class="btn" id="evClose">閉じる</button>
+    </div>
+  </div>`;
+  document.body.appendChild(box);
+  const close = () => {
+    try { if (document.getElementById('evHide').checked) evHideToday(); } catch (e) {}
+    box.remove();
+  };
+  box.querySelector('#evClose').addEventListener('click', close);
+  box.addEventListener('click', e => { if (e.target === box) close(); });
+}
+
+if (typeof document !== 'undefined' && document.addEventListener) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadEv);
+  else loadEv();
 }
