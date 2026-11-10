@@ -112,5 +112,28 @@ console.log('■ 読み込むだけで、画面をいじらない');
   });
 }
 
+console.log('■ 変顔は100通りある');
+{
+  /*
+   * ★まーく様のご指示（2026/11/10）：「ランダムパターンは100通りいけますか」
+   *   目10通り × 口10通り で、ちょうど100通りにしてあります。
+   *   うっかり減らすと100を割るので、ここで押さえます。
+   */
+  const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const a = code.indexOf('const FACE_EYES');
+  const b = code.indexOf('/** 変顔を1つ描く');
+  ok(a !== -1 && b > a, '★顔の中身が、ちゃんと見つかる');
+  if (a !== -1 && b > a) {
+    const box = { console: { log: function(){} } };
+    vm.createContext(box);
+    vm.runInContext(code.slice(a, b) +
+      '\nglobalThis.OUT={e:FACE_EYES.length,m:FACE_MOUTH.length,p:FACE_PATTERNS,s:SAY_LINES.length};', box);
+    const o = box.OUT;
+    ok(o.p >= 100, '★★★顔が100通り以上ある', o.p);
+    ok(o.e * o.m === o.p, '　 目×口で数えている', [o.e, o.m, o.p]);
+    ok(o.s >= 10, '　 セリフも10通り以上ある', o.s);
+  }
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

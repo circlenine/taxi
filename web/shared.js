@@ -120,7 +120,11 @@ const FACE_EYES = [
   '<path d="M9 13 h7 M20 13 h7" stroke-width="2.4" fill="none"/>',                           // 線の目
   '<circle cx="12" cy="13" r="3.8"/><path d="M20 13 h7" stroke-width="2.4" fill="none"/>',   // 片目つぶり
   '<path d="M9 10 L16 13 L9 16 Z"/><path d="M27 10 L20 13 L27 16 Z"/>',                      // とがり目
-  '<circle cx="12" cy="12" r="4.4"/><circle cx="24" cy="14" r="4.4"/>'                       // ずれ目
+  '<circle cx="12" cy="12" r="4.4"/><circle cx="24" cy="14" r="4.4"/>',                       // ずれ目
+  '<circle cx="12" cy="13" r="4.2"/><circle cx="24" cy="13" r="4.2"/>' +
+    '<circle cx="12" cy="13" r="1.6" fill="#B3161D"/><circle cx="24" cy="13" r="1.6" fill="#B3161D"/>', // 赤目
+  '<path d="M8 9 L16 12 L8 15" stroke-width="2" fill="none"/>' +
+    '<path d="M28 9 L20 12 L28 15" stroke-width="2" fill="none"/>'                            // より目
 ];
 const FACE_MOUTH = [
   '<path d="M10 24 Q18 32 26 24" stroke-width="2.2" fill="none"/>',            // にやり
@@ -130,7 +134,10 @@ const FACE_MOUTH = [
   '<path d="M10 23 L14 27 L18 23 L22 27 L26 23" stroke-width="2" fill="none"/>', // ギザギザ
   '<path d="M10 23 Q18 33 26 23 Q18 27 10 23 Z"/>',                            // 大笑い
   '<path d="M13 25 Q18 21 23 25" stroke-width="2.2" fill="none"/>',            // 小さく
-  '<path d="M12 22 h12 v6 h-12 Z" stroke-width="2" fill="none"/>'              // 四角口
+  '<path d="M12 22 h12 v6 h-12 Z" stroke-width="2" fill="none"/>',             // 四角口
+  '<path d="M10 22 Q18 30 26 22" stroke-width="2.2" fill="none"/>' +
+    '<path d="M14 26 v3 M18 27 v3 M22 26 v3" stroke-width="1.6" fill="none"/>', // 歯ぎしり
+  '<path d="M11 25 Q14 21 18 25 Q22 29 25 25" stroke-width="2.2" fill="none"/>' // うねり
 ];
 const SAY_LINES = [
   'すぐそこやけど、ええ？',
@@ -153,6 +160,11 @@ const SAY_LINES = [
   'ちょっと、急いでな'
 ];
 const pick = a => a[Math.floor(Math.random() * a.length)];
+
+/* ★顔は「目 × 口」で何通りか。
+   まーく様のご指示（2026/11/10）で、ちょうど100通りにしてあります。
+   減らすと100を割るので、ここを見れば気づけます。 */
+const FACE_PATTERNS = FACE_EYES.length * FACE_MOUTH.length;
 
 /** 変顔を1つ描く（毎回ちがう組み合わせになります） */
 function faceSvg(){
