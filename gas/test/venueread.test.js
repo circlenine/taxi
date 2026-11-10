@@ -791,5 +791,36 @@ console.log('■ 中のページでも、会場ちがいを落とす');
      '★★会場ちがいを落とすしかけが付いている', one.must);
 }
 
+/* ================================================================
+ * ページの中身そのものを、クロちゃんが読める場所に置く
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *    「ページさえ開ければ、スクショなりなんなりして
+ *      別の方法で読み取る方法は行えたりしないのでしょうか」
+ *    「とにかく工夫してください」
+ *
+ *  ★クロちゃんの手元からは つなげない会場があります。
+ *    でもGASからは開けています。中身を置いておけば、原因が分かります。
+ * ================================================================ */
+console.log('■ ページの中身を、ドライブに置ける');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  ok(/function vnDumpAll\(/.test(src), '★★★中身を置く係がある');
+  ok(src.indexOf('会場の中身.txt') !== -1, '　 置き場の名前が決まっている');
+
+  const i = src.indexOf('function vnDumpPublish_');
+  const j = src.indexOf('\nfunction ', i + 1);
+  const body = src.slice(i, j);
+  ok(body.indexOf('setSharing') === -1 && body.indexOf('addEditor') === -1 &&
+     body.indexOf('addViewer') === -1,
+     '★★★共有の設定は、ぜったいに触らない（売上の記録と同じ置き場）');
+  ok(body.indexOf('getFilesByName') !== -1, '　 すでにあれば、作り直さずに書きかえる');
+
+  const upd = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  ok(/"venue-dump"/.test(upd), '★★頼みごとから呼べる（まーく様の指は要らない）');
+  ok(upd.indexOf('vnDumpAll(j && j.venue)') !== -1,
+     '　 会場を名ざしでも調べられる');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

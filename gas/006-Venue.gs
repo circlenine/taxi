@@ -2,7 +2,26 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V096ver  （2026/11/10）  ★★★
+ *  ★★★  V097ver  （2026/11/10）  ★★★
+ *
+ *  [V097ver]
+ *   ・📄 ページの中身そのものを、クロちゃんが読める場所に置くようにした
+ *     ★まーく様のご指示：
+ *       「ページさえ開ければ、スクショなりなんなりして
+ *         別の方法で読み取る方法は行えたりしないのでしょうか」
+ *       「とにかく工夫してください」
+ *     ★おっしゃるとおりでした。これまでは「開くのに0件です」としか
+ *       言えていませんでした。中身を見ていないのだから、直しようがありません。
+ *     ★クロちゃんの手元からは つなげない会場があります
+ *       （インテックス大阪など）。でも **GASからは開けています**。
+ *       ならば、GASが受け取った中身を、そのまま置いておけばよいのです。
+ *     ★写真ではなく **文字に直したもの** を置きます。
+ *       Apps Script にはページを写真にする道具がありませんが、
+ *       読み取りに使うのは文字なので、文字があれば足ります。
+ *       むしろ写真より確かです。
+ *     ★置き場 … ドライブの「会場の中身.txt」
+ *       共有の設定は ぜったいに触りません。
+ *     ★呼び出し … 頼みごと venue-dump（まーく様の指は要りません）
  *
  *  [V096ver]
  *   ・🎭 梅田芸術劇場（1,900人）を、読めるようにした
@@ -1491,7 +1510,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V096ver";
+const VN_VERSION = "V097ver";
 
 /**
  * 見にいく先の一覧。
@@ -3365,6 +3384,131 @@ function vnProbePublish_(text) {
     try { logErr_("vnProbePublish", e); } catch (e2) {}
     return false;
   }
+}
+
+
+/* ================================================================
+ *  📄 ページの中身そのものを、クロちゃんが読める場所に置く
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *    「ページさえ開ければ、スクショなりなんなりして
+ *      別の方法で読み取る方法は行えたりしないのでしょうか」
+ *    「とにかく工夫してください」
+ *
+ *  ★おっしゃるとおりでした。
+ *    これまでは「開くのに0件です」としか言えていませんでした。
+ *    中身を見ていないのだから、直しようがありません。
+ *    クロちゃんの手元からは、つなげない会場があります
+ *    （インテックス大阪など）。でも **GASからは開けています**。
+ *    ならば、GASが受け取った中身を、そのまま置いておけばよいのです。
+ *
+ *  ★写真（スクショ）ではなく、**文字に直したもの**を置きます。
+ *    Apps Script には、ページを写真にする道具がありません。
+ *    ですが、読み取りに使うのは文字なので、文字があれば足ります。
+ *    むしろ写真より確かです。
+ *
+ *  ★大きくなりすぎないよう、1会場あたり6000字までにします。
+ *    ドライブの置き場を食いつぶさないためです。
+ *  ★共有の設定は、ぜったいに触りません（売上の記録と同じ置き場のため）。
+ * ================================================================ */
+
+/** 置き場の名前 */
+const VN_DUMP_FILE = "会場の中身.txt";
+
+/** 1会場あたり、何字まで置くか */
+const VN_DUMP_CHARS = 6000;
+
+/** ドライブに書く（共有の設定は触らない） */
+function vnDumpPublish_(text) {
+  try {
+    const body = "＝＝ 会場のページの中身（じどうで書いています）＝＝\n" +
+                 "書いた時刻：" +
+                 Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm") +
+                 "（日本時間）\n" +
+                 "※ クロちゃんが原因を調べるための控えです。\n\n" + String(text || "");
+    let f = null;
+    const it = DriveApp.getFilesByName(VN_DUMP_FILE);
+    if (it.hasNext()) f = it.next();
+    if (f) f.setContent(body);
+    else DriveApp.createFile(VN_DUMP_FILE, body, MimeType.PLAIN_TEXT);
+    return true;
+  } catch (e) {
+    try { logErr_("vnDumpPublish", e); } catch (e2) {}
+    return false;
+  }
+}
+
+/**
+ * 読めていない会場のページを取りにいって、中身を置く。
+ *
+ * @param {string} only 1つだけ調べたいときの会場名（空なら 0件のところ ぜんぶ）
+ */
+function vnDumpAll(only) {
+  const want = String(only || "").trim();
+  const now = new Date();
+  const out = [];
+
+  VN_SOURCES.forEach(function (src) {
+    if (want && src.name !== want) return;
+    if (src.ics) return;                       // カレンダーから読むところは、調べる必要がない
+    if (typeof updBeat_ === "function") updBeat_("中身 " + src.name);
+
+    // ★読めていない会場だけにします（ぜんぶ置くと、置き場を食いつぶすため）
+    if (!want) {
+      let n = 0;
+      for (let i = 0; i < 4; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+        try { n += (vnScrapeOne_(src, d).events || []).length; } catch (e) {}
+        if (n) break;
+      }
+      if (n) return;                           // ちゃんと読めている会場は、置かない
+    }
+
+    out.push("■ " + src.name);
+    out.push("　読み先：" + vnSrcUrl_(src, now));
+    let res = null;
+    try {
+      res = UrlFetchApp.fetch(vnSrcUrl_(src, now), {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+      });
+    } catch (e) {
+      out.push("　❌ つながりませんでした：" + (e && e.message ? e.message : e));
+      out.push("");
+      return;
+    }
+    const code = res.getResponseCode();
+    let html = "";
+    try { html = res.getContentText(); }
+    catch (e) { try { html = res.getContentText("Shift_JIS"); } catch (e2) { html = ""; } }
+    out.push("　返事：" + code + " ／ 大きさ：" + Math.round(html.length / 1024) + "KB");
+
+    if (code !== 200 || !html) {
+      // ★断られたときは、返ってきた中身の頭も置きます。理由が書いてあることがあるためです
+      out.push("　返ってきた中身の頭：");
+      out.push("　" + String(html || "（空でした）").replace(/\s+/g, " ").slice(0, 500));
+      out.push("");
+      return;
+    }
+
+    let lines = [];
+    try { lines = vnLines_(html); } catch (e) { lines = []; }
+    out.push("　文字に直した行数：" + lines.length);
+    out.push("　――― ここから中身 ―――");
+    let n = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (n > VN_DUMP_CHARS) { out.push("　（ここから先は、長いので省きました）"); break; }
+      out.push("　" + lines[i]);
+      n += lines[i].length + 1;
+    }
+    out.push("　――― ここまで ―――");
+    out.push("");
+  });
+
+  if (!out.length) out.push("読めていない会場は、ありませんでした。");
+  const text = out.join("\n");
+  try { vnDumpPublish_(text); } catch (e) {}
+  return "📄 ページの中身を、ドライブの「" + VN_DUMP_FILE + "」に置きました。";
 }
 
 function vnProbeAll() {
