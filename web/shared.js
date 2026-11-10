@@ -98,6 +98,69 @@ const ANDON_ROLL = [
 const ANDON_WAIT = 2400;   // 1つの言葉を出しておく長さ（ミリ秒）
 const ANDON_SLIDE = 340;   // 上へ消えるのにかかる長さ
 
+/* ------------------------------------------------------------
+ *  😈 変顔と、嫌なお客さんのひとこと
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *      「毎回ランダムに デスノート風の変顔(ランダム)と
+ *        嫌な客の短文セリフ吹き出し(ランダム)を
+ *        載せることは出来ないでしょうか」
+ *
+ *  ★顔は、こちらで描いたものです。
+ *    作品の絵をそのまま使うと、人のものを勝手に使うことになります。
+ *    目と口だけの、簡単な線で作ってあります。
+ *  ★セリフは、どれも「あるある」で止めています。
+ *    だれかを下げる言い方は入れません。
+ * ---------------------------------------------------------- */
+const FACE_EYES = [
+  '<circle cx="12" cy="13" r="3.4"/><circle cx="24" cy="13" r="3.4"/>',                      // まんまる
+  '<path d="M8 13 L16 10 M20 10 L28 13" stroke-width="2.2" fill="none"/>',                  // つり目
+  '<path d="M8 11 L16 14 M20 14 L28 11" stroke-width="2.2" fill="none"/>',                  // たれ目
+  '<circle cx="12" cy="13" r="4.6"/><circle cx="24" cy="13" r="2"/>',                        // 左右ちがい
+  '<path d="M9 13 h7 M20 13 h7" stroke-width="2.4" fill="none"/>',                           // 線の目
+  '<circle cx="12" cy="13" r="3.8"/><path d="M20 13 h7" stroke-width="2.4" fill="none"/>',   // 片目つぶり
+  '<path d="M9 10 L16 13 L9 16 Z"/><path d="M27 10 L20 13 L27 16 Z"/>',                      // とがり目
+  '<circle cx="12" cy="12" r="4.4"/><circle cx="24" cy="14" r="4.4"/>'                       // ずれ目
+];
+const FACE_MOUTH = [
+  '<path d="M10 24 Q18 32 26 24" stroke-width="2.2" fill="none"/>',            // にやり
+  '<path d="M10 27 Q18 20 26 27" stroke-width="2.2" fill="none"/>',            // への字
+  '<path d="M11 24 h14" stroke-width="2.4" fill="none"/>',                     // 一文字
+  '<ellipse cx="18" cy="25" rx="5" ry="4"/>',                                  // ぽかん
+  '<path d="M10 23 L14 27 L18 23 L22 27 L26 23" stroke-width="2" fill="none"/>', // ギザギザ
+  '<path d="M10 23 Q18 33 26 23 Q18 27 10 23 Z"/>',                            // 大笑い
+  '<path d="M13 25 Q18 21 23 25" stroke-width="2.2" fill="none"/>',            // 小さく
+  '<path d="M12 22 h12 v6 h-12 Z" stroke-width="2" fill="none"/>'              // 四角口
+];
+const SAY_LINES = [
+  'すぐそこやけど、ええ？',
+  'メーター、止めてくれる？',
+  '領収書…やっぱ、ええわ',
+  'その道、ちゃうんちゃう？',
+  '一万円しかないねん',
+  'カード、あかんの？',
+  '寝てたから、分からん',
+  'さっきの信号、行けたやろ',
+  'もうちょい前、もうちょい',
+  'やっぱ、戻って',
+  'エアコン、暑いわ',
+  'クーラー、きつない？',
+  '酔うてへんて',
+  '高速は、乗らんといて',
+  'ここでええわ…あ、やっぱ次の角',
+  'ナビ、見んでも分かるやろ',
+  '近道あるんちゃうの',
+  'ちょっと、急いでな'
+];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+/** 変顔を1つ描く（毎回ちがう組み合わせになります） */
+function faceSvg(){
+  return '<svg class="face" viewBox="0 0 36 36" width="34" height="34" aria-hidden="true">' +
+    '<g stroke="currentColor" stroke-linecap="round" fill="currentColor">' +
+    pick(FACE_EYES) + pick(FACE_MOUTH) + '</g></svg>';
+}
+
 function andonRoll() {
   /* ★画面の無いところ（検査など）でも落ちないようにします。
      1か所の飾りのために、ほかが止まってはいけません。 */
@@ -115,6 +178,18 @@ function andonRoll() {
     box.insertBefore(win, span);
     win.appendChild(span);
 
+    /* ★行灯のとなりに、変顔とひとことを置きます。
+       画面ごとに書き足すのではなく、ここで作ります
+       （書き足し忘れが起きないため）。 */
+    let say = null;
+    try {
+      say = document.createElement('div');
+      say.className = 'saybox';
+      say.innerHTML = faceSvg() + '<div class="bubble"></div>';
+      if (box.parentNode) box.parentNode.insertBefore(say, box.nextSibling);
+      say.querySelector('.bubble').textContent = pick(SAY_LINES);
+    } catch (e) { say = null; }
+
     let i = 0;
     span.textContent = ANDON_ROLL[0].t;
     span.style.color = ANDON_ROLL[0].c;
@@ -122,6 +197,17 @@ function andonRoll() {
     setInterval(function () {
       i = (i + 1) % ANDON_ROLL.length;
       const w = ANDON_ROLL[i];
+      /* ★行灯が変わるたびに、顔とひとことも入れ替えます */
+      if (say) {
+        try {
+          const b = say.querySelector('.bubble');
+          say.innerHTML = faceSvg() + '<div class="bubble"></div>';
+          say.querySelector('.bubble').textContent = pick(SAY_LINES);
+          say.classList.remove('pop');
+          void say.offsetWidth;          // いったん止めてから、もう一度
+          say.classList.add('pop');
+        } catch (e) {}
+      }
       if (!soft) { span.textContent = w.t; span.style.color = w.c; return; }
       span.classList.add('up');                       // 上へ消える
       setTimeout(function () {
