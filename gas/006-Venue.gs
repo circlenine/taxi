@@ -2,7 +2,30 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V105ver  （2026/11/10）  ★★★
+ *  ★★★  V106ver  （2026/11/10）  ★★★
+ *
+ *  [V106ver]
+ *   ★まーく様のご指摘：
+ *       「明日送る用のテストlineまだきてません」
+ *     申し訳ありませんでした。二度 言わせてしまいました。
+ *
+ *   ・🔗 絵そのものが、LINEに突き返されていました（原因）
+ *     ★控えに、はっきり出ていました。
+ *         ❌ LINEに送れませんでした（400）。
+ *            A message (messages[0]) in the request body is invalid
+ *     ★会場を押したときに開く住所に、**組み立て前のもの**を
+ *       そのまま入れていました。
+ *         https://www.festivalhall.jp/events/list/{Y}/{M}/
+ *       LINEは、これを住所として受け取れません。
+ *       **会場が1つ おかしいだけで、その日の知らせが丸ごと消えます。**
+ *       フェスティバルホールの読み先を変えた、こちらの入れ忘れです。
+ *     ★直したところ
+ *       ・絵に渡す住所は、かならず組み立てたあとのものにした。
+ *       ・住所のふるい（vnOkUri_）を足した。
+ *         開けない住所は、押せなくするだけで、
+ *         **知らせそのものは必ず届ける**（壊れても止まらない）。
+ *       ・「LINEに通る形か」を丸ごと見るテストを足した
+ *         （gas/test/flexok.test.js）。
  *
  *  [V105ver]
  *   ★まーく様のご指摘：
@@ -1725,7 +1748,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V105ver";
+const VN_VERSION = "V106ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -4315,6 +4338,30 @@ function vnAltText_(d) {
  * ★調べに出られないとき・見つからないときは、何も出しません。
  *   イベント通知そのものは、絶対に止めません。
  */
+/*
+ * 押したときに開く住所が、LINEに通る形かどうかを見る。
+ *
+ * ★なぜ要るのか（2026/11/10・実際に起きました）
+ *   組み立て前の住所
+ *     https://www.festivalhall.jp/events/list/{Y}/{M}/
+ *   を そのまま絵に入れていました。
+ *   LINEは「絵の中身が正しくない（400）」として突き返し、
+ *   **その日の知らせが1通も届きませんでした**。
+ *   会場が1つでも おかしいと、ほかの会場のぶんまで消えます。
+ *
+ * ★まーく様の決まり「壊れても、止まらない」。
+ *   おかしい住所は、押せなくするだけにして、
+ *   知らせそのものは必ず届けます。
+ */
+function vnOkUri_(u) {
+  const t = String(u || "").trim();
+  if (!t) return "";
+  if (!/^(https?:\/\/|tel:|line:)/i.test(t)) return "";   // http・https・電話だけ
+  if (/[{}\s<>"'`\\^|]/.test(t)) return "";                  // 組み立て前の印や、空白が残っている
+  if (t.length > 1000) return "";                           // LINEの上限
+  return t;
+}
+
 function vnArtistRows_(ev, budget) {
   const rows = [];
   try {
@@ -4391,9 +4438,12 @@ function vnArtistRows_(ev, budget) {
       return rows;
     }
     links.forEach(function (x) {
+      // ★開けない住所は、はじめから出しません（押せないリンクは嘘と同じ）
+      const u2 = vnOkUri_(x.u);
+      if (!u2) return;
       rows.push({ "type": "text", "text": "　🔗 " + x.l, "size": "xxs",
                   "color": "#1a73e8", "decoration": "underline", "wrap": true,
-                  "action": { "type": "uri", "label": x.l.slice(0, 12), "uri": x.u } });
+                  "action": { "type": "uri", "label": x.l.slice(0, 12), "uri": u2 } });
     });
 
     // ② 出どころ。短く、しかし必ず書きます
@@ -4464,7 +4514,8 @@ function vnCard_(ev, idx, day, noBells, budget) {
    *   催しの時刻は、その下に小さく置きます。
    */
   const headRow = { "type": "text", "size": "sm", "wrap": true, "contents": head1 };
-  if (ev.url) headRow.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": ev.url };
+  const headUri = vnOkUri_(ev.url);
+  if (headUri) headRow.action = { "type": "uri", "label": vnBtnLabel_(ev.venue), "uri": headUri };
   rows.push(headRow);
   /*
    * ★見出しのすぐ下に「何時に着けるか」を出す。
@@ -4719,13 +4770,14 @@ function vnCard_(ev, idx, day, noBells, budget) {
    *   会場名に下線が引いてあるだけでは、そこが紙への入り口だと分かりません。
    *   「📄 送ってもらった紙を見る」と、そのまま書いた行を出します。
    */
-  if (ev.url && (ev.kind === "hotel" || ev.fromPhoto)) {
+  const paperUri = vnOkUri_(ev.url);
+  if (paperUri && (ev.kind === "hotel" || ev.fromPhoto)) {
     rows.push({ "type": "text", "text": "📄 送ってもらった紙を見る（タップ）",
                 "size": "xxs", "color": "#6a1b9a", "weight": "bold",
                 "decoration": "underline", "wrap": true, "margin": "xs",
-                "action": { "type": "uri", "label": "資料", "uri": ev.url } });
+                "action": { "type": "uri", "label": "資料", "uri": paperUri } });
   }
-  if (!ev.url && (ev.kind === "hotel" || ev.fromPhoto)) {
+  if (!paperUri && (ev.kind === "hotel" || ev.fromPhoto)) {
     rows.push({ "type": "text",
                 "text": "📄 資料：見返せる形になっていません（写真をもう一度送ってください）",
                 "size": "xxs", "color": "#8d6e63", "wrap": true, "margin": "xs" });
@@ -6285,7 +6337,7 @@ function vnLedgerFromWeb_(days, deadline) {
       got.forEach(function (e) {
         rows.push({ d: d, venue: e.venue, kind: e.kind || "event", title: e.title,
                     start: e.start, end: e.end, endGuess: !!e.endGuess, people: 0,
-                    url: e.url || src.url, from: "ホームページ" });
+                    url: e.url || vnSrcUrl_(src, d), from: "ホームページ" });
         hit++;
       });
     }
@@ -8015,7 +8067,7 @@ function vnScrapeIcs_(src, day) {
         icon: isLoad ? "🚚" : "🔧",
         title: title, artist: sum,
         start: "", startKind: "", end: "", endGuess: false, endSure: false,
-        people: 0, url: src.url || "",
+        people: 0, url: vnSrcUrl_(src, day) || "",
         raw: (sum + " / " + loc).slice(0, 400)
       });
     });
@@ -8342,7 +8394,18 @@ function vnScrapeOne_(src, day, htmlIn) {
       title: theTitle, artist: theTitle, runText: runPage,
       fee: dem.fee, feeFree: dem.free, genre: dem.kind,
       start: start, startKind: startKind,
-      end: end, endGuess: guessed, endSure: !!fin, people: 0, url: src.url,
+      /*
+       * ★押したときに開く住所は、**組み立てたあとのもの**にします
+       *   （2026/11/10 に気づいて直しました）。
+       *   組み立て前の
+       *     https://www.festivalhall.jp/events/list/{Y}/{M}/
+       *   を そのまま入れていたため、LINEが
+       *   「絵の中身が正しくない（400）」として突き返し、
+       *   **知らせが1通も届きませんでした**。
+       *   会場が1つでも混ざると、その日の知らせが丸ごと消えます。
+       */
+      end: end, endGuess: guessed, endSure: !!fin, people: 0,
+      url: vnSrcUrl_(src, day),
       raw: text.slice(0, 400)
     });
   });
