@@ -29,11 +29,15 @@
   </header>
 
   <div class="kpis">
-    <div class="kpi"><small>記録</small><b id="k1">0</b></div>
-    <div class="kpi"><small>売上合計</small><b id="k2">¥0</b></div>
+    <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
+    <div class="kpi"><small>売上の合計</small><b id="k2">¥0</b></div>
     <div class="kpi gr"><small>平均 時間単価</small><b id="k3">—</b></div>
     <div class="kpi"><small>アツい時間帯</small><b id="k4">—</b></div>
   </div>
+  <!-- ★この4つが「いつからいつまでの、だれのぶんか」を必ず書く
+       （まーく様のご指摘・2026/11/10）。
+       書かないと、1日ぶんなのか1か月ぶんなのか分かりません。 -->
+  <div class="kperiod" id="kperiod">—</div>
 
   <nav id="tabs">
     <button data-t="in" aria-selected="true">記録する</button>

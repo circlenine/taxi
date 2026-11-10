@@ -177,6 +177,26 @@ function render(){
   $('#k3').textContent = rt.length ? yen(rt.reduce((a,b) => a+b, 0) / rt.length) + '/h' : '—';
   const hb = hourAgg().filter(h => h.n >= 3).sort((a,b) => b.avg - a.avg)[0];
   $('#k4').textContent = hb ? hb.h + '時台' : '—';
+  /*
+   * ★この4つが「いつからいつまでの、だれのぶんか」を必ず書きます
+   *   （まーく様のご指摘・2026/11/10）。
+   *     「１日あたりの売上なのか、１月あたりの売上なのか、
+   *       そこを省略されると訳が分かりません」
+   *   出しているのは、絞り込みに合う記録の**ぜんぶ**の合計です。
+   */
+  const kp = $('#kperiod');
+  if (kp) {
+    const who = onlyMine ? '自分だけ' : '全員';
+    if (!rs.length) kp.innerHTML = '数えるものがありません（' + who + '）';
+    else {
+      const ds = rs.map(r => r.date).sort();
+      const a = ds[0], b = ds[ds.length - 1];
+      const days = new Set(ds).size;
+      kp.innerHTML = '上の4つは <b>' + esc(fmtD(a)) + '</b> 〜 <b>' + esc(fmtD(b)) +
+        '</b> の<b>ぜんぶ</b>（' + who + '・' + days + '日ぶん）の合計です。' +
+        '1日あたりではありません。';
+    }
+  }
   $('#andon').classList.toggle('busy', rs.length > 0);
   $('#andonTxt').textContent = rs.length ? '賃走' : '空車';
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
@@ -492,8 +512,34 @@ function wxRead(j, now){
       const h = new Date(ps.timeDefines[at]).getHours();
       span = h + '〜' + ((h + 6) % 24 === 0 ? 24 : (h + 6)) + '時';
     }
+    /*
+     * ★このあと崩れる時刻も出します（まーく様のご指示・2026/11/10）。
+     *     「この後に雨や台風など、天気が悪くなる予想時間も
+     *       載せてもらえるととても便利だと思います」
+     *   気象庁の降水確率は6時間ごとなので、
+     *   これから先の枠をならべ、はじめて50%以上になる枠を知らせます。
+     *   ★「何時何分から降る」は、気象庁からも出ていません。
+     *     出せないものを出すと、空振りのもとになります。
+     */
+    const next = [];
+    if (pa && pa.pops && ps.timeDefines) {
+      const nowMs2 = (now || new Date()).getTime();
+      for (let i = 0; i < ps.timeDefines.length; i++) {
+        const st = new Date(ps.timeDefines[i]);
+        if (st.getTime() + 6 * 3600000 <= nowMs2) continue;   // もう終わった枠
+        const v = +pa.pops[i];
+        if (isNaN(v)) continue;
+        const h = st.getHours();
+        const tomorrow = st.getDate() !== new Date(nowMs2).getDate();
+        next.push({ h: h, pop: v,
+          label: (tomorrow ? 'あす ' : '') + h + '〜' + ((h + 6) % 24 === 0 ? 24 : (h + 6)) + '時' });
+        if (next.length >= 4) break;
+      }
+    }
+    const worse = next.filter(function (x) { return x.pop >= 50; })[0] || null;
     const rain = /雨|雷|雪|みぞれ/.test(text) || (pop !== null && pop >= 50);
-    return { ok: true, text: text, pop: pop, rain: rain, area: area, span: span };
+    return { ok: true, text: text, pop: pop, rain: rain, area: area, span: span,
+             next: next, worse: worse };
   } catch (e) {
     return { ok: false };
   }
@@ -536,7 +582,7 @@ function paneHot(now){
     (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
              : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
     'いま何人いるかを測っているのではありません。</p>' +
-    '<div class="wx">' + esc(wxLine(hotWx)) + '</div>' +
+    '<div class="wx">' + esc(wxLine(hotWx)) + '</div>' + wxNextHTML(hotWx) + radarHTML() +
     filterChips();
 
   if (!got.rows.length) {
@@ -604,6 +650,68 @@ function hotNoteCard(got){
     '・取れない日は、その行だけ出ません。<br>' +
     '・数字は時間単価（待ち時間込み）。金額の大きい場所と、割のいい場所は別です。' +
     '</p></div>';
+}
+
+/**
+ * このあとの見通し（6時間ごと）。
+ * ★「何時何分から降る」は、気象庁からも出ていません。
+ *   出せないものを出すと、空振りのもとになるので書きません。
+ */
+function wxNextHTML(wx){
+  if (!wx || !wx.ok || !wx.next || !wx.next.length) return '';
+  const chips = wx.next.map(function (x) {
+    const hot = x.pop >= 50;
+    return '<span class="chip' + (hot ? ' on' : '') + '" style="cursor:default">' +
+      esc(x.label) + '　' + x.pop + '%</span>';
+  }).join('');
+  const head = wx.worse
+    ? '<b style="color:var(--kusha)">☔ ' + esc(wx.worse.label) + ' ごろから崩れる見込み（' +
+      wx.worse.pop + '%）</b>'
+    : '<b style="color:var(--meter)">このあと、大きく崩れる見込みはありません</b>';
+  return '<div class="card" style="margin-top:12px"><h2>このあとの空</h2>' +
+    '<p class="note">' + head + '<br>' +
+    '気象庁の「' + esc(wx.area || '大阪府') + '」の予報。6時間ごとの降水確率です。' +
+    '何時何分から降るかは、気象庁からも出ていません。</p>' +
+    '<div class="chips">' + chips + '</div></div>';
+}
+
+/**
+ * 雨雲レーダー（気象庁のナウキャスト）を、いまいる場所で開く。
+ * ★場所は、押したときに1回だけ聞きます。
+ *   断られても、大阪のまん中で開きます（止まらない）。
+ * ★こちらで場所を覚えることはありません。棚にも入れません。
+ */
+const RADAR_BASE = 'https://www.jma.go.jp/bosai/nowc/#zoom:10/lat:LAT/lon:LON/colordepth:normal/elements:hrpns';
+function radarHTML(){
+  return '<div class="card" style="margin-top:12px"><h2>雨雲レーダー（いまの雨）</h2>' +
+    '<p class="note">気象庁のナウキャスト。1時間先までの雨雲が動いて見えます。' +
+    '押すと場所を聞かれます。断っても、大阪のまん中で開きます。</p>' +
+    '<div class="actions"><button class="btn ghost" id="radar">いまいる場所の雨雲を見る</button>' +
+    '<span class="msg" id="radarMsg"></span></div></div>';
+}
+function radarOpen(){
+  const msg = document.getElementById('radarMsg');
+  const go = function (lat, lon) {
+    const u = RADAR_BASE.replace('LAT', lat.toFixed(4)).replace('LON', lon.toFixed(4));
+    window.open(u, '_blank', 'noopener');
+  };
+  // 大阪市のまん中（梅田あたり）。場所が分からないときは、ここで開きます
+  const OSAKA = [34.7025, 135.4959];
+  if (!navigator.geolocation) { if (msg) msg.textContent = '大阪のまん中で開きます。'; return go(OSAKA[0], OSAKA[1]); }
+  if (msg) msg.textContent = '場所をさがしています…';
+  navigator.geolocation.getCurrentPosition(
+    function (p) { if (msg) msg.textContent = ''; go(p.coords.latitude, p.coords.longitude); },
+    function () { if (msg) msg.textContent = '場所が取れないので、大阪のまん中で開きます。'; go(OSAKA[0], OSAKA[1]); },
+    { timeout: 8000, maximumAge: 300000 }
+  );
+}
+/* ★画面の無いところ（検査など）でも落ちないようにします。
+   1つの飾りのために、ほかが止まってはいけません。 */
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('click', function (e) {
+    const b = (e.target && e.target.closest) ? e.target.closest('#radar') : null;
+    if (b) radarOpen();
+  });
 }
 
 /* ---- 天気を読む（無料・気象庁） ---- */
@@ -1128,5 +1236,8 @@ function paneNews(){
     ${body}</div>`;
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', newsBoot);
-else newsBoot();
+/* ★ここも、画面の無いところで落ちないようにします */
+if (typeof document !== 'undefined' && document.addEventListener) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', newsBoot);
+  else newsBoot();
+}
