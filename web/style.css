@@ -24,6 +24,22 @@ button{font-family:inherit}
   font-size:19px;letter-spacing:.14em;color:var(--kusha);transition:color .25s}
 .andon.busy span{color:#1E7A4E}
 
+/* ★行灯を「バスのスーパーサイン」のように回す（まーく様のご指示・2026/11/10）
+   「文字が上へと消え、下から違う文字が現れる感じの、遊び心の入ったデザイン」
+   ★文字がはみ出さないよう、内側に窓（.roll）を作って その中で動かす。
+     行灯そのものに overflow:hidden を掛けると、
+     下に出ている台（:before）まで消えてしまうため。 */
+.andon .roll{position:absolute;inset:0;overflow:hidden;border-radius:3px}
+.andon .roll span{transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .34s,color .25s}
+.andon .roll span.up{transform:translateY(-118%);opacity:0}
+/* ★下に置き直すときは、動かさずに一瞬で（transition:none）。
+     ここを動かすと、上から下へ落ちていくように見えてしまう */
+.andon .roll span.down{transform:translateY(118%);opacity:0;transition:none}
+@media(prefers-reduced-motion:reduce){
+  .andon .roll span,.andon .roll span.up,.andon .roll span.down{
+    transition:color .25s;transform:none;opacity:1}
+}
+
 header{display:flex;align-items:center;gap:14px;padding:6px 2px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
 .sub{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.5}

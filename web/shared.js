@@ -68,3 +68,77 @@ function jaError(e){
   if (m.includes('new row violates row-level security')) return '保存できませんでした。一度ログインし直してください。';
   return (e && e.message) ? e.message : 'うまくいきませんでした。もう一度お試しください。';
 }
+
+
+/* ================================================================
+ *  🚕 行灯（あんどん）を、バスのスーパーサインのように回す
+ *
+ *  ★まーく様のご指示（2026/11/10）
+ *      「自動でバスのスーパーサインのように、文字が上へと消え、
+ *        下から違う文字が現れる感じの、遊び心の入ったデザインに
+ *        できないのでしょうか」
+ *
+ *  ★台帳の画面の行灯は、回しません。
+ *    あちらは「空車／賃走」を**本当に表している**ので、
+ *    遊びで変えると、画面が嘘をつくことになります。
+ *    回すのは data-roll と書いた、飾りの行灯だけです。
+ *
+ *  ★色は、その言葉に合わせて変えます（実車は緑、空車は赤）。
+ * ================================================================ */
+const ANDON_ROLL = [
+  { t: '空車',   c: '#E4573D' },
+  { t: '回走',   c: '#8A99B5' },
+  { t: '予約',   c: '#F0A33B' },
+  { t: '迎車',   c: '#F0A33B' },
+  { t: '貸切',   c: '#1E7A4E' },
+  { t: '貸走',   c: '#1E7A4E' },
+  { t: '割増',   c: '#E4573D' },
+  { t: '７７７', c: '#F0A33B' }
+];
+const ANDON_WAIT = 2400;   // 1つの言葉を出しておく長さ（ミリ秒）
+const ANDON_SLIDE = 340;   // 上へ消えるのにかかる長さ
+
+function andonRoll() {
+  const boxes = document.querySelectorAll('.andon[data-roll]');
+  if (!boxes.length) return;
+  let soft = true;
+  try { soft = !window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  boxes.forEach(function (box) {
+    const span = box.querySelector('span');
+    if (!span || box.querySelector('.roll')) return;   // 二重に作らない
+    const win = document.createElement('div');
+    win.className = 'roll';
+    box.insertBefore(win, span);
+    win.appendChild(span);
+
+    let i = 0;
+    span.textContent = ANDON_ROLL[0].t;
+    span.style.color = ANDON_ROLL[0].c;
+
+    setInterval(function () {
+      i = (i + 1) % ANDON_ROLL.length;
+      const w = ANDON_ROLL[i];
+      if (!soft) { span.textContent = w.t; span.style.color = w.c; return; }
+      span.classList.add('up');                       // 上へ消える
+      setTimeout(function () {
+        span.textContent = w.t;
+        span.style.color = w.c;
+        span.classList.remove('up');
+        span.classList.add('down');                   // 下に置き直す（一瞬で）
+        /* ★2回ぶん待ってから外します。すぐ外すと、
+           ブラウザが「下に置いた」ことに気づかないまま戻すので、
+           せり上がって見えません。 */
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { span.classList.remove('down'); });
+        });
+      }, ANDON_SLIDE);
+    }, ANDON_WAIT);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', andonRoll);
+} else {
+  andonRoll();
+}
