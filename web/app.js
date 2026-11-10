@@ -461,21 +461,39 @@ function wxRead(j, now){
   try {
     const t0 = j[0].timeSeries[0].areas[0];
     const text = String(t0.weathers[0] || '').replace(/　+/g, ' ').trim();
-    let pop = null;
+    /*
+     * ★どこの天気かを、かならず持ち歩きます（まーく様のご指摘・2026/11/10）。
+     *     「降水確率とかは、どこを指してるのですか？
+     *       具体的な場所が無いと分からないですし」
+     *   気象庁が出しているのは「大阪府」ひとまとまりの予報で、
+     *   市ごとの細かい差は、そもそも出ていません。
+     *   それを書かずに数字だけ出すのは、不親切でした。
+     */
+    const area = (t0.area && t0.area.name) ? String(t0.area.name) : '大阪府';
+    let pop = null, span = '';
     // ★降水確率は、timeSeries[1] の areas[0].pops に入っています
     //   （areas をはさむのを忘れると、いつまでも取れません）
     const ps = j[0].timeSeries[1];
     const pa = ps && ps.areas && ps.areas[0];
     if (pa && pa.pops && ps.timeDefines) {
       const nowMs = (now || new Date()).getTime();
+      let at = -1;
       for (let i = ps.timeDefines.length - 1; i >= 0; i--) {
-        if (new Date(ps.timeDefines[i]).getTime() <= nowMs) { pop = +pa.pops[i]; break; }
+        if (new Date(ps.timeDefines[i]).getTime() <= nowMs) { at = i; break; }
       }
-      if (pop === null || isNaN(pop)) pop = +pa.pops[0];
+      if (at < 0) at = 0;
+      pop = +pa.pops[at];
       if (isNaN(pop)) pop = null;
+      /*
+       * ★「いつの確率か」も書きます。
+       *   気象庁の降水確率は6時間ごとです（0〜6／6〜12／12〜18／18〜24）。
+       *   いま入っている枠を、そのまま書き出します。
+       */
+      const h = new Date(ps.timeDefines[at]).getHours();
+      span = h + '〜' + ((h + 6) % 24 === 0 ? 24 : (h + 6)) + '時';
     }
     const rain = /雨|雷|雪|みぞれ/.test(text) || (pop !== null && pop >= 50);
-    return { ok: true, text: text, pop: pop, rain: rain };
+    return { ok: true, text: text, pop: pop, rain: rain, area: area, span: span };
   } catch (e) {
     return { ok: false };
   }
@@ -485,7 +503,13 @@ function wxRead(j, now){
 function wxLine(wx){
   if (!wx) return '天気を読んでいます…';
   if (!wx.ok) return '天気は取れませんでした（気象庁）。ほかはそのまま使えます。';
-  const p = (wx.pop === null || wx.pop === undefined) ? '' : '（降水 ' + wx.pop + '%）';
+  /*
+   * ★「どこの」「いつの」を必ず付けます（ご指摘・2026/11/10）。
+   *   数字だけ出すと、どこの話か分からず、当てにできません。
+   */
+  const where = wx.area ? (wx.area + '／') : '';
+  const p = (wx.pop === null || wx.pop === undefined)
+    ? '' : '（' + where + (wx.span ? wx.span + 'の' : '') + '降水 ' + wx.pop + '%）';
   return (wx.rain ? '☔ ' : '　') + wx.text + p +
          (wx.rain ? '　→ 雨。ふだんより人が乗ります。乗り場・ビル前が強い。'
                   : '　→ 雨の見込みは薄い。足で稼ぐ日。');
@@ -574,7 +598,10 @@ function hotNoteCard(got){
     '・<b>いま人が何人いるか</b>は出していません。自分たちの記録からの傾向です。<br>' +
     '・' + HOT_MIN_N + '件より少ない場所は、平均と呼べないので出しません。<br>' +
     '・催し（ライブ・宴会）がある夜は、記録の傾向より催しが勝ちます。終演の15分前に着けるのが先。<br>' +
-    '・天気は気象庁の公開データ。取れない日は、その行だけ出ません。<br>' +
+    '・天気は気象庁の公開データ。出しているのは<b>大阪府ひとまとまり</b>の予報で、' +
+    '市ごと・町ごとの細かい差は、気象庁からも出ていません。<br>' +
+    '・降水確率は<b>6時間ごと</b>（0〜6／6〜12／12〜18／18〜24時）。いま入っている枠のぶんを出しています。<br>' +
+    '・取れない日は、その行だけ出ません。<br>' +
     '・数字は時間単価（待ち時間込み）。金額の大きい場所と、割のいい場所は別です。' +
     '</p></div>';
 }
