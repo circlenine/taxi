@@ -751,5 +751,30 @@ console.log('\n■ 🔧 ウェブを開いたときも、見張りを直す');
      '★係が入っていなくても落ちない');
 }
 
+console.log('■ 外から1回 叩けば、新しい中身が入り、頼まれごとも進む');
+{
+  /*
+   * ★なぜ要るか（2026/11/10・実際に起きました）
+   *   まーく様のご指示（2026/11/4）：
+   *     「今後は全てこのメッセージで指示すれば、
+   *       完全に修復可能な状態な仕組みづくりにしてください」
+   *   ところが受け口には「診て直す」しか入っておらず、
+   *   見張り（決まった時刻にひとりでに動くしかけ）が止まると、
+   *   こちらが置いた直しも頼まれごとも **永久に届きません** でした。
+   *   実際に 2026/11/10 の夕方、確認用が1通も届かず、
+   *   まーく様を待たせました。
+   */
+  const srcW2 = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '004-WebApp.gs'), 'utf8');
+  const at2 = srcW2.indexOf('function doGet');
+  const part2 = srcW2.slice(at2, at2 + 2500);
+  ok(/updAutoPullTick_\(\)/.test(part2),
+     '★★★受け口から、新しい中身の取り込みと頼まれごとが走る');
+  ok(part2.indexOf('typeof updAutoPullTick_ === "function"') !== -1,
+     '　 係が入っていなくても落ちない');
+  ok(/panelHealWatch_\(\)/.test(part2), '　 見張りの立て直しも、そのまま残っている');
+  ok(/updDoctorTick_\(\)/.test(part2), '　 自分で自分を診るのも、そのまま残っている');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
