@@ -53,6 +53,29 @@ async function reload(){
 const METHODS = ['GO', 'Uber', '無線', '付け待ち', '流し', '手上げ',
                  '乗り場', 'ホテル', '途中乗り', '呼び込み', 'エスライド', '道路'];
 
+/* ----------------------------------------------------------
+ *  入れるときに、ひと押しで選べるもの（タブ）
+ *  ★まーく様のご指示（2026/11/10）
+ *      「待ち時間や乗車時間の分数のタブですが、０～６０分まで
+ *        追加してください、また、種類のタブに「流し」は除外して、
+ *        他のところに、チケット、バラシ、関空というタブを
+ *        追加して下さい」
+ * ---------------------------------------------------------- */
+
+/* 分のタブ。0分から60分まで、5分きざみ。
+   ★1分きざみの細かい数も、欄を押せば候補として出ます（MIN_ALL）。
+     61個ぜんぶをタブにすると、画面が埋まって かえって押しにくい。 */
+const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60];
+const MIN_ALL = Array.from({ length: 61 }, (_, i) => i);
+
+/* 種類のタブ。「流し」は出しません（ご指示）。
+   ★METHODS からは消していません。
+     消すと、前に「流し」で入れた記録の書き方がそろわなくなるためです。 */
+const METHOD_CHIPS = METHODS.filter(m => m !== '流し').slice(0, 6);
+
+/* 「他」のタブ。よく書くものを、ひと押しで入れられるように。 */
+const NOTE_CHIPS = ['チケット', 'バラシ', '関空'];
+
 /** 書き方のゆれを、1つの言い方にそろえる */
 function normMethod(v){
   const t = String(v == null ? '' : v).trim();
@@ -189,11 +212,12 @@ function paneIn(){
         <div class="hint" id="depHint"></div></div>
 
       <div class="f w2"><label>待ち時間（分）</label>
-        <input id="f_wait" inputmode="numeric" placeholder="15" value="${f.wait ?? ''}">
-        <div class="chips">${[5,10,15,20,30,45].map(v => chip(v,f.wait,'wait','分')).join('')}</div></div>
+        <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
+        <div class="chips">${MIN_CHIPS.map(v => chip(v,f.wait,'wait','分')).join('')}</div></div>
       <div class="f w2"><label>乗車時間（分）</label>
-        <input id="f_ride" inputmode="numeric" placeholder="20" value="${f.ride ?? ''}">
-        <div class="chips">${[5,10,15,20,30,45].map(v => chip(v,f.ride,'ride','分')).join('')}</div></div>
+        <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
+        <div class="chips">${MIN_CHIPS.map(v => chip(v,f.ride,'ride','分')).join('')}</div></div>
+      <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
       <div class="f w2"><label>金額（円）</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
         <div class="hint" id="rateHint"></div></div>
@@ -202,10 +226,11 @@ function paneIn(){
       <div class="f w2"><label>種類</label>
         <input class="ja" id="f_method" list="mts" placeholder="GO" value="${esc(f.method || '')}">
         <datalist id="mts">${METHODS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
-        <div class="chips">${METHODS.slice(0,6).map(m => chip(m, f.method, 'method')).join('')}</div>
+        <div class="chips">${METHOD_CHIPS.map(m => chip(m, f.method, 'method')).join('')}</div>
       </div>
       <div class="f w4"><label>他（行先・ひとこと）</label>
-        <input class="ja" id="f_note" placeholder="行先：新金岡駅（堺市）" value="${esc(f.note || '')}"></div>
+        <input class="ja" id="f_note" placeholder="行先：新金岡駅（堺市）" value="${esc(f.note || '')}">
+        <div class="chips">${NOTE_CHIPS.map(n => chip(n, f.note, 'note')).join('')}</div></div>
     </div>
     <div class="actions">
       <button class="btn" id="add">${editId ? '書きかえる' : '記録する'}</button>
@@ -1070,8 +1095,8 @@ function paneNews(){
   if (!list.length) return emptyCard('お知らせはまだありません。');
   const body = list.map(n => `<div class="newsv"><b>${esc(n.v)}</b><small>${esc(n.d)}</small></div>
     <ul class="newsl">${(n.items || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('');
-  return `<div class="card"><h2>お知らせ</h2>
-    <p class="note">直したところを、新しいものから並べています。
+  return `<div class="card"><h2>お知らせ・使い方</h2>
+    <p class="note">はじめての方へ。基本的な使い方です。
       いま動いているのは <b>${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')}</b> です。</p>
     ${body}</div>`;
 }
