@@ -2,8 +2,22 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U160ver  （2026/11/10）  ★★★
+ *  ★★★  U161ver  （2026/11/10）  ★★★
  *
+ *
+ *  [U161ver]
+ *   ・🧾 頼まれごとが走ったかどうかを、クロちゃんが自分で読めるようにした
+ *     ★まーく様のご指摘：
+ *       「何も、修正(明日送る用のテスト)がlineに返ってきてないですが」
+ *     ★走ったのか、しくじったのか、そもそも拾われていないのかが、
+ *       こちらから一切 見えませんでした。
+ *       そのため、まーく様に「届きましたか」と何度も確かめることになり、
+ *       まーく様の手をわずらわせていました。
+ *     ★ドライブの「おつかいの控え.txt」に、
+ *       始めたとき・おわったときを1行ずつ書きます。
+ *       LINEは1通も増やしません。共有の設定も触りません。
+ *     ★送り先が分からないとき（me が空）、
+ *       いままでは **黙って終わって** いました。そこも書きます。
  *
  *  [U160ver]
  *   ・✂️ LINEへの知らせを、短くした（ご指示）
@@ -1801,7 +1815,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U160ver";
+const UPD_VERSION = "U161ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11273,6 +11287,55 @@ function updAutoPull_() {
  */
 const UPD_ERRAND_FILE = "errand.json";
 
+/* ================================================================
+ *  🧾 おつかいの控え ―― 走ったかどうかを、こちらが自分で読む
+ *
+ *  ★なぜ要るのか（2026/11/10）
+ *    まーく様のご指摘：
+ *      「何も、修正(明日送る用のテスト)がlineに返ってきてないですが」
+ *    頼まれごとが走ったのか、走ってしくじったのか、
+ *    そもそも拾われていないのかが、**こちらから一切 見えません**でした。
+ *    そのため、まーく様に「届きましたか」と何度も確かめることになります。
+ *    それは、まーく様の手をわずらわせる形です。
+ *
+ *  ★まーく様のご指示（2026/11/9）
+ *      「そのエラー表示も、わざわざ送る形にせず
+ *        自動でエラーを見つけ出して処理する方法にできませんか」
+ *    ならば、走った跡を こちらが読める所に置けばよい。
+ *    LINEには1通も増やしません。ドライブの控えに書くだけです。
+ *
+ *  ★共有の設定は触りません（まーく様だけが見られます）。
+ * ================================================================ */
+const UPD_ERRAND_LOG = "おつかいの控え.txt";
+const UPD_ERRAND_LOG_LINES = 40;        // 新しいものから40行だけ残す
+
+/** おつかいの控えに、1行 足す。失敗しても、頼まれごとは止めない */
+function updErrandLog_(line) {
+  try {
+    const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "MM-dd HH:mm");
+    const row = now + "　" + String(line || "").replace(/\s+/g, " ").slice(0, 300);
+
+    let f = null;
+    const it = DriveApp.getFilesByName(UPD_ERRAND_LOG);
+    if (it.hasNext()) f = it.next();
+
+    let old = "";
+    if (f) { try { old = f.getBlob().getDataAsString("UTF-8"); } catch (e) { old = ""; } }
+
+    const head = "＝＝ おつかいの控え（じどうで書いています）＝＝\n" +
+                 "※ 新しいものが上です。まーく様だけが見られます（共有していません）。\n";
+    const body = String(old).split("\n")
+      .filter(function (x) { return x && x.indexOf("＝＝") !== 0 && x.indexOf("※ ") !== 0; });
+    const next = head + [row].concat(body).slice(0, UPD_ERRAND_LOG_LINES).join("\n") + "\n";
+
+    if (f) f.setContent(next);
+    // ★共有の設定は触りません
+    else DriveApp.createFile(UPD_ERRAND_LOG, next, MimeType.PLAIN_TEXT);
+  } catch (e) {
+    try { logErr_("updErrandLog", e); } catch (e2) {}
+  }
+}
+
 /** やってよいこと。ここに無いものは、何もしない */
 const UPD_ERRAND_OK = {
   "event-test":  "イベントの確認用を、いま送る",
@@ -11704,7 +11767,22 @@ function updErrandSay_(task, out, idx, total) {
 
 function updErrandTick_() {
   const j = updErrandRead_();
-  if (!j) return false;
+  if (!j) {
+    /*
+     * ★「メモが読めなかった」ことも控えます（2026/11/10）。
+     *   読めていないのか、やり終えているのかが分からないと、
+     *   こちらから原因を追えません。
+     *   ただし毎分 書くと控えが埋まるので、1時間に1回までにします。
+     */
+    try {
+      const cc0 = CacheService.getScriptCache();
+      if (cc0 && !cc0.get("UPD_ERRAND_NONE")) {
+        cc0.put("UPD_ERRAND_NONE", "1", 3600);
+        updErrandLog_("メモが読めませんでした（置き場につながらないか、中身が違う形）");
+      }
+    } catch (e) {}
+    return false;
+  }
   const jobs = updErrandJobs_(j);
   if (!jobs.length) return false;
 
@@ -11717,6 +11795,8 @@ function updErrandTick_() {
   if (idx >= jobs.length) return false;            // ぜんぶ やり終えた
 
   const task = jobs[idx];
+  // ★「どれを、いつ始めたか」を先に控える（途中で落ちても、跡が残るように）
+  updErrandLog_("▶ 始めます：" + j.id + " の " + (idx + 1) + "番目「" + task + "」");
   if (!UPD_ERRAND_OK[task]) {                      // 知らない頼みごとは、何もしない
     // ★ただし「やった」印は進めます。そうしないと、
     //   知らない頼みごと1つで、あとの頼みごとが永遠に始まりません
@@ -11892,6 +11972,15 @@ function updErrandTick_() {
   } catch (e) {
     out = "しくじりました：" + ((e && e.message) || e);
   }
+
+  /*
+   * ★結果を、かならず控えに残します（2026/11/10）。
+   *   LINEに届かなかったときでも、ここを見れば分かります。
+   *   送り先が分からない（me が空）ときは、それも書きます。
+   *   いままでは、送り先が無いと **黙って終わって** いました。
+   */
+  updErrandLog_((me ? "✔ おわり：" : "⚠ 送り先が分かりません：") + task + " … " +
+                String(out || "").replace(/\s+/g, " ").slice(0, 160));
 
   try {
     if (me && typeof lrPush_ === "function") {
