@@ -431,7 +431,7 @@ console.log('\n■ 自動発信は、はじめから「入」');
   delete props.VN_AUTO;
 }
 
-console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:30にグループ');
+console.log('\n■ 前日16:05に確認用（まーく様だけ）、当日16:30にグループ');
 {
   props.VN_AUTO = '1';
   triggers.length = 0;
@@ -461,15 +461,22 @@ console.log('\n■ 前日05:00に確認用（まーく様だけ）、当日16:30
   };
   delete props['VNSENT_20260916_T'];
 
-  at15(4, 30);
+  /*
+   * ★16:05 に変わりました（まーく様のご指示・2026/11/10）。
+   *     「明日の予定(確認用)については
+   *       今後は前日の16:05に、送ってください」
+   *   それまでは前日の朝5時でした。グループへ出るのは16:30なので、
+   *   その25分前に目を通していただく形になります。
+   */
+  at15(15, 30);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 0, '前日の04:30 には、まだ何も送らない');
+  eq(pushed.length, 0, '前日の15:30 には、まだ何も送らない');
 
-  at15(5, 0);
+  at15(16, 5);
   pushed.length = 0;
   ctx.venueDailyJob();
-  eq(pushed.length, 1, '★前日の05:00 に、あすのぶんの確認用を1通');
+  eq(pushed.length, 1, '★前日の16:05 に、あすのぶんの確認用を1通');
   eq(pushed[0].to, 'Umark', '  宛先はまーく様だけ（グループではない）');
   eq(props['VNSENT_20260916_T'], '1', '★印は「あすの日付」で残す（9/16ぶん）');
 
@@ -1844,7 +1851,7 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   has(flat, '17:30', '「いまの条件」に、時間帯が出る（17:30から）');
   has(flat, '04:00（翌日）', '  終わりの時刻も');
   has(flat, '100人', '  人数の下限も');
-  has(flat, '5:00', '  確認用の時刻も（前日05:00）');
+  has(flat, '16:05', '  確認用の時刻も（前日16:05）');
   has(flat, '16:30', '  グループへ送る時刻も（当日16:30）');
   has(flat, '5 分前', '  リマインダーの何分前かも');
   has(flat, '大阪城ホール', '  見に行くページの名前も');
@@ -2833,11 +2840,11 @@ console.log('\n■ ★★★ まーく様の4つの条件（必ず守る）');
   eq(vm.runInContext('VN_MIN_PEOPLE', ctx) <= 100, true,
      '　 人数の下限は 100人まで（小さい催しも落とさない）');
 
-  // ③ グループへは 16:00、確認用は前日 05:00
+  // ③ グループへは 16:30、確認用は前日 16:05（ご指示・2026/11/10）
   eq(JSON.stringify(ctx.vnSendHm_()), JSON.stringify({ h: 16, m: 30 }),
      '★③グループへの発信は 16:30', JSON.stringify(ctx.vnSendHm_()));
-  eq(JSON.stringify(ctx.vnTestHm_()), JSON.stringify({ h: 5, m: 0 }),
-     '★③確認用は 前日05:00', JSON.stringify(ctx.vnTestHm_()));
+  eq(JSON.stringify(ctx.vnTestHm_()), JSON.stringify({ h: 16, m: 5 }),
+     '★③確認用は 前日16:05', JSON.stringify(ctx.vnTestHm_()));
 
   // ④ 17:00に出て間に合うものだけ
   eq(ctx.vnFromHour_(), 17.5, '★④17:30より後に終わるものだけ', String(ctx.vnFromHour_()));
@@ -2944,8 +2951,8 @@ console.log('\n■ 🕓 通知の時刻を、あとから変えられる');
   // ① 何も設定していなければ、決め打ちを使う
   eq(JSON.stringify(SEND()), JSON.stringify({ h: 16, m: 30 }),
      '★ふだんは みんなへ 16:30', JSON.stringify(SEND()));
-  eq(JSON.stringify(TEST()), JSON.stringify({ h: 5, m: 0 }),
-     '★ふだんは 確認用 前日05:00', JSON.stringify(TEST()));
+  eq(JSON.stringify(TEST()), JSON.stringify({ h: 16, m: 5 }),
+     '★ふだんは 確認用 前日16:05', JSON.stringify(TEST()));
 
   // ② 設定タブに入っていれば、そちらを使う
   const cfgVals = {};
@@ -3016,13 +3023,16 @@ console.log('\n■ 05:00（確認用）と 16:30（本番）も、時刻ぴっ�
 
   delete props[keyOf()]; delete props[keyOf() + '_T'];
 
-  // ① 04:50 … あすのぶんの確認用(05:00)まで10分。ぴったりの見張りを立てる
+  /*
+   * ① 15:55 … あすのぶんの確認用(16:05)まで10分。ぴったりの見張りを立てる
+   *   ★時刻が 05:00 から 16:05 に変わりました（ご指示・2026/11/10）。
+   */
   triggers.length = 0;
   delete props['VNSENT_20260918_T'];
-  eq(ctx.vnAimTick_(day(4, 50)), true, '★05:00 が近づいたら、見張りを立てる');
+  eq(ctx.vnAimTick_(day(15, 55)), true, '★16:05 が近づいたら、見張りを立てる');
   eq(aims().length, 1, '  立つのは1つだけ');
   eq(aims()[0]._kind, 'after', '  「〇分後に1回」の形で立てる');
-  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝05:00ぴったり）に動く');
+  eq(Math.round(aims()[0]._ms / 60000), 10, '★10分後（＝16:05ぴったり）に動く');
 
   // ② 10:00 … まだ先。立てない（次のふだんの見張りでまた考える）
   triggers.length = 0;
@@ -3049,7 +3059,7 @@ console.log('\n■ 05:00（確認用）と 16:30（本番）も、時刻ぴっ�
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 1 });
   triggers.push({ getHandlerFunction: () => AIM, _kind: 'after', _ms: 2 });
   triggers.push({ getHandlerFunction: () => 'venueDailyJob' });
-  ctx.vnAimTick_(day(4, 50));
+  ctx.vnAimTick_(day(15, 55));
   eq(aims().length, 1, '★古いものは片づけて、1つだけにする');
   eq(triggers.filter(t => t.getHandlerFunction() === 'venueDailyJob').length, 1,
      '  ふだんの見張りは、消さない');

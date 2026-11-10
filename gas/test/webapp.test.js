@@ -693,7 +693,7 @@ console.log('\n■ ⚙️ 設定タブに、足りない行を こちらで足�
   const sendRow = rows.filter(r => r[1] === 'イベントをグループへ送る時刻')[0];
   ok(sendRow && sendRow[2] === '16:30', '  はじめの値は 16:30');
   const testRow = rows.filter(r => r[1] === 'イベントの確認用を送る時刻（前日）')[0];
-  ok(testRow && testRow[2] === '05:00', '  確認用は 05:00');
+  ok(testRow && testRow[2] === '16:05', '  確認用は 16:05');
 
   vm.runInContext('_cfgCache = null; _cfgVal = {}', ctx);
   ok(F('cfgEnsureRows_')() === 0, '　 二度目は、足さない（毎回ふえたりしない）');

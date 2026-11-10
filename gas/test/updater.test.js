@@ -3889,6 +3889,31 @@ console.log('\n■ 📮 おつかい（クロちゃんに頼んだことを、�
   t(props['UPD_ERRAND_DONE'] === 'x1#0', '  印は次へ進める（1つで詰まらせない）');
   delete props['UPD_ERRAND_DONE'];
 
+  /*
+   * ★送る時刻を、こちらから変えられること（ご指示・2026/11/10）
+   *     「明日の予定(確認用)については
+   *       今後は前日の16:05に、送ってください」
+   *   ★既定の時刻を直すだけでは足りません。
+   *     「設定」タブに前の時刻が入っていると、そちらが勝つためです。
+   */
+  {
+    t(!!OK['event-time'], '★送る時刻を変える頼みごとが、一覧にある');
+    const wrote = {};
+    vm.runInContext('function cfgSet_(k, v){ wroteCfg[k] = String(v); return true; }', ctx);
+    ctx.wroteCfg = wrote;
+    delete props['UPD_ERRAND_DONE'];
+    gh = { raw: { 'errand.json': JSON.stringify({ id: 'tm1', do: 'event-time',
+                                                  test: '16:05' }) } };
+    ctx.pu.length = 0;
+    t(E() === true, '★メモのとおり、時刻を書きかえる');
+    t(wrote['イベントの確認用を送る時刻（前日）'] === '16:05',
+      '★★★確認用を 16:05 にする', wrote['イベントの確認用を送る時刻（前日）']);
+    t(wrote['イベントをグループへ送る時刻'] === undefined,
+      '　 書かれていないほうは、さわらない');
+    has(ctx.pu[0].msgs[0].text, '16:05', '　 何に変えたかを知らせる');
+    delete props['UPD_ERRAND_DONE'];
+  }
+
   // ping は、返事だけ
   gh = { raw: { 'errand.json': JSON.stringify({ id: 'x2', do: 'ping' }) } };
   ctx.pu.length = 0;
