@@ -1141,18 +1141,19 @@ console.log('■ イベントは、開演の時刻を いちばん上に（ご�
   t(/function evTimeLine/.test(app), '★★★時刻の行を作る係がある');
   t(iGo !== -1 && iCar !== -1 && iGo < iCar,
     '★★★開演のほうが、着ける目安より先に出る', [iGo, iCar]);
-  t(/'<div class="evgo">🎬 ' \+ esc\(x\.s\) \+ ' 開演/.test(row),
-    '★★★開演が、いちばん大きい字（evgo）');
+  t(/const st  = x\.s \? \(esc\(x\.s\) \+ ' 開演'\) : '開演 不明';/.test(row),
+    '★★★開演は、分かっているかぎり必ず出す');
+  t(/evgo/.test(row), '★★★いちばん大きい字（evgo）で出す');
   /* ★「見当」ではなく「予定」（ご指示・2026/11/12） */
   t(/（予定）/.test(row) && !/（見当）/.test(row), '★★★終演は「（予定）」と書く');
   t(/'終演 不明'/.test(row), '★★★どうしても分からないときだけ「不明」');
   t(!/class="evgo">🚕/.test(app), '　 着ける時刻は、大きい字ではない');
   t(/着ける目安/.test(app), '★★★着ける目安も、消さずに残している');
-  t(/の時刻が、まだ分かっていません/.test(row),
-    '★★★分からないときは、時刻を書かずに そう書く');
-  /* ★バラシは公演のあと。「開演が分かりません」では意味が通りません */
-  t(/x\.k === 'barasi'\) \? '終演' : '開演'/.test(row),
-    '★★★バラシのときは「終演」と書く');
+  t(/'終演 不明'/.test(row) && /'開演 不明'/.test(row),
+    '★★★分からないときは「終演 不明」「開演 不明」とだけ書く');
+  t(!/の時刻が、まだ分かっていません/.test(row), '　 前の長い言い方は、残っていない');
+  /* ★開演も終演も、いつも両方 出します（ご指示・2026/11/12） */
+  t(/' 開演'[\s\S]{0,200}'終演 '/.test(row), '★★★開演と終演を、いつも並べて出す');
   /* ★搬入の日は、公演がありません。時刻を1つも出しません */
   t(/x\.k === 'hanyu'\) return ''/.test(row),
     '★★★搬入（設営）の日は、時刻を1つも出さない');
@@ -1274,7 +1275,7 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   /* ---- タブの名前は短く ---- */
   const tabs = (html.match(/<button data-t="[^"]+"[^>]*>([^<]*)/g) || [])
     .map(x => x.replace(/^[\s\S]*>/, '').trim());
-  t(tabs.indexOf('記録') !== -1 && tabs.indexOf('夜の流れ') !== -1 &&
+  t(tabs.indexOf('記録') !== -1 && tabs.indexOf('一日の流れ') !== -1 &&
     tabs.indexOf('全記録') !== -1, '★★★タブの名前を短くした', tabs.join('/'));
   t(tabs.every(x => x.length <= 7), '★★★どのタブも7字まで', tabs.join('/'));
 
@@ -1282,6 +1283,32 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   t(/<th>乗り場<\/th>/.test(app), '★★★表の見出しは「乗り場」');
   t(/<td class="place">/.test(app), '★★★乗り場の欄に、目立つ印がある');
   t(/td\.place\{/.test(css), '　 その見た目も入っている');
+}
+
+
+
+console.log('■ 入力欄と、タグの言い方（ご指示・2026/11/12）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* ★見本の字は、もっと薄く */
+  t(/::placeholder\{color:var\(--chipoff\);opacity:\.4\d\}/.test(css),
+    '★★★見本の字は、もっと薄くした');
+  /* ★時刻の見本は 2530 */
+  t(/placeholder="2530"/.test(app), '★★★時刻の見本は「2530」');
+  t(!/placeholder="25:30"/.test(app), '　 前の「25:30」は残っていない');
+  /* ★入力欄の幅は、ぜんぶ同じ */
+  const form = app.slice(app.indexOf('あと35秒'), app.indexOf('<button class="btn" id="add">'));
+  const ws = (form.match(/class="f w\d/g) || []).map(x => x.slice(-1));
+  t(ws.length >= 7 && ws.every(x => x === '2'),
+    '★★★入力欄の幅が、ぜんぶそろっている', ws.join('/'));
+  /* ★幅の決まりが抜けていると、1つだけ細くなります */
+  t(/\.f\.w4\{grid-column:span 4\}/.test(css), '　 w4 の決まりも入っている');
+  t(/\.f\.w3,\.f\.w4,\.f\.w6\{grid-column:span 2\}/.test(css),
+    '　 細い画面でも、はみ出さない');
+  /* ★「この場所で覚える」は分かりにくい、とのご指摘 */
+  t(!/この場所で覚え/.test(app), '★★★「この場所で覚える」は、言いかえた');
+  t(/この地図で合っている/.test(app), '★★★「この地図で合っている」になっている');
 }
 
 

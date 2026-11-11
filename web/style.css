@@ -181,7 +181,8 @@ nav button[aria-selected=true]{background:var(--andon);color:#14100A;font-weight
      わくを押し広げ、画面の外へはみ出します（ご指摘・2026/11/11
      「営業日の枠が、はみ出てます」）。日付の欄が いちばん幅を取ります。 */
 .f{display:flex;flex-direction:column;gap:5px;min-width:0}
-.f.w2{grid-column:span 2}.f.w3{grid-column:span 3}.f.w6{grid-column:span 6}
+.f.w2{grid-column:span 2}.f.w3{grid-column:span 3}
+.f.w4{grid-column:span 4}.f.w6{grid-column:span 6}
 label{font-size:11px;color:var(--muted);letter-spacing:.05em}
 input,select,textarea{background:#0C1422;border:1px solid var(--line);color:var(--paper);
   border-radius:6px;padding:9px 10px;font-size:15px;font-family:var(--mono);
@@ -201,7 +202,10 @@ input.ja,textarea{font-family:var(--body);font-size:14px}
 /* ★まだ何も入れていない欄の見本の字。
      濃い紺だと、ほぼ見えませんでした（ご指示・2026/11/11）。
      「まだ入れていない」ものなので、タグと同じ ちょい薄グレーに。 */
-input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.85}
+/* ★見本の字は、もっと薄く（ご指示・2026/11/12
+     「記入欄のところの参考表記は、もっと薄くしてください」）。
+     入れた字と見まちがえないように、はっきり差を付けます。 */
+input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.42}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chip{background:#0C1422;border:1px solid var(--line);color:var(--chipoff);border-radius:20px;
   padding:4px 10px;font-size:11.5px;cursor:pointer}
@@ -220,7 +224,7 @@ input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.85}
 /* 画面が900pxより細いときは、営業日の欄を広めに取ります。
    6つ割りのままだと、日付の欄に要る幅ぎりぎりになります。 */
 @media(max-width:900px){.f.fdate{grid-column:span 3}}
-@media(max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.f.w3,.f.w6{grid-column:span 2}
+@media(max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.f.w3,.f.w4,.f.w6{grid-column:span 2}
   /* 営業日は、細い画面では横1列ぜんぶを使います。
      半分の幅だと、日付の欄が どうしても収まりません。 */
   .f.fdate{grid-column:1 / -1}}

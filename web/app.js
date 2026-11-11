@@ -482,11 +482,11 @@ function paneIn(){
           <a class="chip ${f.place ? '' : 'off'}" id="f_map"
              href="${f.place ? esc(mapUrl(f.place)) : '#'}" target="_blank" rel="noopener">📍 地図で見る</a>
           <button class="chip ${f.place && placeOk(f.place) ? 'on' : ''}" id="f_mapok"
-            ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ この場所で覚えた' : 'この場所で覚える'}</button>
+            ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ 地図は合っている' : 'この地図で合っている'}</button>
         </div>
       </div>
       <div class="f w2"><label>乗せた時刻（出発）</label>
-        <input id="f_dep" inputmode="numeric" placeholder="25:30" value="${esc(f.dep || '')}">
+        <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
         <div class="hint" id="depHint"></div></div>
 
       <div class="f w2"><label>待ち時間（分）</label>
@@ -506,7 +506,7 @@ function paneIn(){
         <datalist id="mts">${METHODS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
         <div class="chips">${METHOD_CHIPS.map(m => chip(m, f.method, 'method')).join('')}</div>
       </div>
-      <div class="f w4"><label>他（行先・ひとこと）</label>
+      <div class="f w2"><label>他（行先・ひとこと）</label>
         <input class="ja" id="f_note" placeholder="行先：新金岡駅（堺市）" value="${esc(f.note || '')}">
         <div class="chips">${NOTE_CHIPS.map(n => chip(n, f.note, 'note')).join('')}</div></div>
     </div>
@@ -1085,7 +1085,7 @@ function paneTl(){
     });
   });
   s += '</svg>';
-  return `<div class="card"><h2>夜ごとの流れ</h2>
+  return `<div class="card"><h2>一日の流れ</h2>
     <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。帯が明るいほど、時間単価が高くなっています。空白が長い夜は、流すか、つける場所を変える余地があります。</p>
     ${filterChips()}<div class="scroll">${s}</div>
     <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
@@ -1405,7 +1405,7 @@ function wire(){
     if (d && d.list && d.list.length) evPopup(d);
     else bad('きょうのイベントは、まだ届いていません');
   };
-  /* 「この場所で覚える」… 同じ名前なら、同じ場所として扱う印 */
+  /* 「この地図で合っている」… 同じ名前なら、同じ場所として扱う印 */
   if ($('#f_mapok')) $('#f_mapok').onclick = () => {
     grab();
     if (!form.place) { bad('先に、つけ待ち場所を入れてください'); return; }
@@ -1862,15 +1862,13 @@ function evStale(day){
  */
 function evTimeLine(x){
   if (x.k === 'hanyu') return '';
-  /* 終演は、分かっていれば そのまま。
-     過去の形から計算したものは「（予定）」と添えます（ご指示・2026/11/12）。
-     どうしても分からないときだけ「不明」と書きます。 */
-  const end = x.e ? ('終演 ' + esc(x.e) + (x.g ? '（予定）' : ''))
-                  : '終演 不明';
-  if (x.s) return '<div class="evgo">🎬 ' + esc(x.s) + ' 開演　／　' + end + '</div>';
-  if (x.e) return '<div class="evgo">🎬 ' + end + '</div>';
-  const w = (x.k === 'barasi') ? '終演' : '開演';
-  return '<div class="evgo evnone">🎬 ' + w + 'の時刻が、まだ分かっていません</div>';
+  /* ★開演は、分かっているかぎり必ず出します（ご指示・2026/11/12）。
+     終演は、分かっていればその時刻。計算したものは「（予定）」。
+     分からないときは「終演 不明」とだけ書きます。 */
+  const st  = x.s ? (esc(x.s) + ' 開演') : '開演 不明';
+  const end = x.e ? ('終演 ' + esc(x.e) + (x.g ? '（予定）' : '')) : '終演 不明';
+  const dim = (!x.s && !x.e) ? ' evnone' : '';
+  return '<div class="evgo' + dim + '">🎬 ' + st + '　／　' + end + '</div>';
 }
 
 function evRows(day){
