@@ -1,5 +1,7 @@
 {
-  "id": "2026-11-12-list",
-  "do": ["props-list"],
-  "note": "残った控えの名前だけを一覧にします（値は出しません）"
+  "id": "2026-11-12-slim2",
+  "do": ["props-tidy", "props-list"],
+  "go": true,
+  "slim": true,
+  "note": "客層の控えを1つにまとめたあとの、片づけと一覧です"
 }
