@@ -91,12 +91,17 @@ button{font-family:inherit}
 header{display:flex;align-items:center;gap:14px;padding:6px 2px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
 /* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
-h1.dn{font-family:var(--goth);font-weight:700;font-size:32px;letter-spacing:.17em;
+/* ★題の大きさは、ここ1か所で決めます。
+     ふきだしの高さも、この数から出します（ご指示・2026/11/11
+     「右上のふきだしの枠の高さ幅ですが、
+       TAXI NOTEのフォントの高さに合わせられませんか」）。 */
+:root{--logo:32px}
+h1.dn{font-family:var(--goth);font-weight:700;font-size:var(--logo);letter-spacing:.17em;
   line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
 h1.dn2{font-family:var(--disp);letter-spacing:.08em}
 /* ★題は、画面の幅に合わせて縮めます（ご指示・2026/11/11）。
      決め打ちだと、ふきだしと顔を右に置いたときに はみ出します。 */
-@media(max-width:640px){h1.dn{font-size:clamp(19px,5.2vw,27px)}}
+@media(max-width:640px){:root{--logo:clamp(19px,5.2vw,27px)}}
 /* 地図で開ける場所の名前（ご指示・2026/11/11） */
 .plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
 .plink:hover{border-bottom-color:var(--andon)}
@@ -215,7 +220,11 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .badge.adm{border-color:var(--andon);color:var(--andon)}
 
 /* ログイン画面 */
-.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+/* ★ログインの画面は、まわりの余白と箱の幅のぶん、
+     ふきだしに使える幅が少なくなります。
+     題を少しだけ小さくして、ひとことが入るようにします。 */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px;
+  --logo:clamp(19px,5.2vw,24px)}
 .login .box{width:100%;max-width:380px}
 .login .head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
 .login .card{padding:22px}
@@ -488,11 +497,12 @@ header > h1, .login .head > h1{white-space:nowrap}
    ★行の高さを px で決めています。字の大きさが画面ごとに変わっても、
      2行ぶんの高さが動かないようにするためです。 */
 .saymount .bubble{flex:1 1 auto;min-width:0;max-width:260px;
-  height:50px;min-height:50px;max-height:50px;
-  line-height:18px;display:flex;align-items:center;overflow:hidden}
-/* 字は2行まで。はみ出す長さでも、ふきだしは伸びません */
-.saymount .bubble .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-  overflow:hidden;width:100%}
+  /* ★高さは、題の字の高さ（大きさ×1.2）とぴたり同じ */
+  height:calc(var(--logo) * 1.2);
+  min-height:calc(var(--logo) * 1.2);max-height:calc(var(--logo) * 1.2);
+  padding:0 10px;line-height:1;display:flex;align-items:center;overflow:hidden}
+/* 字は1行。高さを題にそろえたので、2行は入りません */
+.saymount .bubble .t{display:block;white-space:nowrap;overflow:hidden;width:100%}
 
 /* ★顔の大きさを固定。組み合わせが変わっても、ここは動きません */
 .saymount .face{width:34px;height:34px;min-width:34px;flex:0 0 34px}
@@ -510,8 +520,7 @@ header > h1, .login .head > h1{white-space:nowrap}
 @media(max-width:560px){
   /* 細い画面でも、2行ぶんの高さで固定（行の高さ17px × 2 ＋ 余白）。
      幅は、余っているぶんを ぜんぶ使います（決め打ちにしない） */
-  .saymount .bubble{font-size:11.5px;max-width:none;
-    height:48px;min-height:48px;max-height:48px;line-height:17px}
+  .saymount .bubble{font-size:11.5px;max-width:none}
   .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
 }
 
@@ -541,8 +550,7 @@ header > h1, .login .head > h1{white-space:nowrap}
   header > .subline, .login .head > .subline{gap:6px}
   .ver{padding:1px 4px}
   header > .subline .sub, .login .head > .subline .sub{font-size:clamp(8.4px,2.55vw,12.5px)}
-  .saymount .bubble{font-size:10.5px;line-height:16px;
-    height:46px;min-height:46px;max-height:46px}
+  .saymount .bubble{font-size:10.5px}
   .saymount .face{width:24px;height:24px;min-width:24px;flex:0 0 24px}
   .saymount{gap:6px}
 }

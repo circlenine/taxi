@@ -267,24 +267,39 @@ console.log('■ ふきだしは2行ぶんの高さで固定（ご指摘・2026/
        ぜんぶ つなげて見ると、どこか1つに height があるだけで
        通ってしまい、min-height だけの書き方を見逃します
        （実際に見逃しました・2026/11/11）。 */
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「右上のふきだしの枠の高さ幅ですが
+   *       TAXI NOTEのフォントの高さに合わせられませんか」
+   *   題の大きさは --logo で1か所に決め、ふきだしの高さは
+   *   そこから計算します（大きさ × 1.2 ＝ 字の高さ）。
+   *   ★高さを題にそろえたので、中身は1行です。
+   */
+  t(/:root\{--logo:\d/.test(css), '★題の大きさを、1か所で決めている（もとの数）');
+  t(/@media\(max-width:640px\)\{:root\{--logo:clamp\(/.test(css),
+    '　 細い画面でも、同じ1か所で決めている');
+  t(/h1\.dn\{[^}]*font-size:var\(--logo\)/.test(css), '　 題は、その数を使っている');
   const bubs = css.split('.saymount .bubble{').slice(1)
                   .map(function (x) { return x.split('}')[0]; });
-  t(bubs.length >= 1, '★ふきだしの書き方が見つかる', bubs.length);
-  const ng = bubs.filter(function (x) {
-    /* 高さの話をしていない所は見ません。
-       「line-height」は字の行の高さなので、ここでは数えません。 */
-    if (!/(^|[;\s])(min-|max-)?height:/.test(x)) return false;
-    const h  = (x.match(/[^-]height:(\d+)px/)  || [])[1];
-    const mn = (x.match(/min-height:(\d+)px/) || [])[1];
-    const mx = (x.match(/max-height:(\d+)px/) || [])[1];
-    return !(h && mn && mx && h === mn && h === mx); // 3つそろって、同じ数でないと ダメ
-  });
-  t(ng.length === 0,
-    '★★★高さを決めている所は、ぜんぶ「同じ数で3つそろって」いる' +
-    '（min-height だけだと、1行と2行で高さが変わります）', ng);
-  t(bubs.some(function (x) { return /height:\d+px/.test(x); }),
-    '　 高さを決めている所が、ちゃんとある');
-  t(/-webkit-line-clamp:2/.test(css), '★★★字は2行までで止める');
+  const hs = bubs.filter(function (x) { return /(^|[;\s])height:/.test(x); });
+  t(hs.length >= 1, '★ふきだしの高さを決めている所がある', hs.length);
+  t(hs.every(function (x) {
+      return /[^-]height:calc\(var\(--logo\) \* 1\.2\)/.test(x)
+          && /min-height:calc\(var\(--logo\) \* 1\.2\)/.test(x)
+          && /max-height:calc\(var\(--logo\) \* 1\.2\)/.test(x); }),
+    '★★★ふきだしの高さは、題の字の高さとぴたり同じ（3つそろえて動かない）');
+  t(/\.saymount \.bubble \.t\{[^}]*white-space:nowrap/.test(css),
+    '★★★中身は1行（高さを題にそろえたので、2行は入らない）');
+  const sh2 = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  t(/function sayFit\(mount\)\{|function sayFit\(mount\) \{/.test(sh2),
+    '★★★字の大きさを、入る大きさに合わせる係がある');
+  t(/\n\s*sayFit\(mount\);/.test(sh2),
+    '★★★ひとことを入れ替えたら、ちゃんと呼んでいる（作っただけでは効かない）');
+  t(/_sayWidest/.test(sh2),
+    '★★★いちばん「太い」ひとことで合わせる（字数が多い＝太い ではない）');
+  t(/addEventListener\('resize'/.test(sh2),
+    '　 画面の向きを変えたら、測り直す');
+  t(!/-webkit-line-clamp:2/.test(css), '　 2行で止める古い書き方は残っていない');
   const face = css.split('.saymount .face{').slice(1)
                   .map(function (x) { return x.split('}')[0]; }).join(';');
   t(/width:\d+px/.test(face) && /height:\d+px/.test(face),
@@ -332,7 +347,10 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
         return { bad: SAY_BAD.length, good: SAY_GOOD.length, alt: okAlt,
                  first: seq[0], kindsB: Object.keys(badSeen).length,
                  kindsG: Object.keys(goodSeen).length,
-                 dup: SAY_BAD.filter(function(x){ return SAY_GOOD.indexOf(x) !== -1; }).length };
+                 dup: SAY_BAD.filter(function(x){ return SAY_GOOD.indexOf(x) !== -1; }).length,
+                 maxlen: Math.max.apply(null, SAY_BAD.concat(SAY_GOOD).map(function(x){ return x.length; })),
+                 sameLen: SAY_BAD.concat(SAY_GOOD).length -
+                          Object.keys(SAY_BAD.concat(SAY_GOOD).reduce(function(o,x){o[x]=1;return o;},{})).length };
       })();`, box);
     const S = box.S;
     t(S.good === 100, '★★★ありがとうのひとことが、ちょうど100通りある', S.good);
@@ -340,6 +358,12 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
     t(S.alt === true, '★★★かならず「ぼやき→ありがとう」の交互になる');
     t(S.first === 'B', '　 はじめは ぼやきから', S.first);
     t(S.dup === 0, '　 同じ文が、両方に入っていない', S.dup);
+    /*
+     * ★ふきだしの高さを題にそろえたので、中身は1行です（2026/11/11）。
+     *   長いひとことは、1行に入りません。12字までにそろえてあります。
+     */
+    t(S.maxlen <= 12, '★★★ひとことは12字まで（1行に収めるため）', S.maxlen);
+    t(S.sameLen === 0, '　 同じ文が、同じ側にも入っていない', S.sameLen);
     t(S.kindsB > 60 && S.kindsG > 60, '　 どちらも、ちゃんと散らばる', [S.kindsB, S.kindsG]);
   }
 }
@@ -612,7 +636,7 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
   });
   t(/header > h1[^{]*\{[^}]*white-space:nowrap/.test(css),
     '★★★題は折り返さない（折り返すと、絵との段がずれる）');
-  t(/h1\.dn\{font-size:clamp\(/.test(css),
+  t(/--logo:clamp\(/.test(css),
     '★★★題は、画面の幅に合わせて縮む（決め打ちだと はみ出す）');
   /* ★いちばん細い画面のきまりは、ファイルのいちばん下にあること。
        上に書くと 560px のきまりに上書きされて効きません（実際そうなりました） */
