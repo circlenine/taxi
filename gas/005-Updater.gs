@@ -2,8 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U168ver  （2026/11/11）  ★★★
+ *  ★★★  U169ver  （2026/11/11）  ★★★
  *
+ *
+ *  [U169ver]
+ *   ・🔁 新しい係を足した「同じ回」に頼んでも、ちゃんと走るようにした
+ *     ★しくじりの中身：GASはまだ古い中身で動いているので
+ *       「知らない頼まれごと」として飛ばし、新しい中身が届いても
+ *       二度と走りませんでした（biz-check が実際に そうなりました）。
+ *     ★しばらく（12分ほど）は印を進めず、新しい中身を待ちます。
  *
  *  [U168ver]
  *   ・🗂 控えを片づける前に、まるごと控えを取るようにした
@@ -1888,7 +1895,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U168ver";
+const UPD_VERSION = "U169ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -12405,9 +12412,35 @@ function updErrandTick_() {
   // ★「どれを、いつ始めたか」を先に控える（途中で落ちても、跡が残るように）
   try { pr.setProperty("UPD_ERRAND_RUN", j.id + " の " + (idx + 1) + "番目「" + task + "」"); } catch (e) {}
   updErrandLog_("▶ 始めます：" + j.id + " の " + (idx + 1) + "番目「" + task + "」");
-  if (!UPD_ERRAND_OK[task]) {                      // 知らない頼みごとは、何もしない
-    // ★ただし「やった」印は進めます。そうしないと、
-    //   知らない頼みごと1つで、あとの頼みごとが永遠に始まりません
+  if (!UPD_ERRAND_OK[task]) {
+    /*
+     * ★知らない頼まれごとでも、すぐには あきらめません（2026/11/11 に直しました）。
+     *
+     *   しくじりの中身：新しい係を足したのと「同じ回」に頼むと、
+     *   GASはまだ古い中身で動いています。そこで「知らない」と見なして
+     *   飛ばしてしまい、新しい中身が届いたあとも、二度と走りませんでした。
+     *   実際に biz-check が、そうなりました。
+     *
+     *   そこで、しばらく（4回ぶん＝だいたい12分）は、印を進めずに待ちます。
+     *   そのあいだに新しい中身が届けば、ちゃんと走ります。
+     *   それでも知らないままなら、印を進めます。
+     *   進めないと、1つのせいで あとの頼まれごとが永遠に始まりません。
+     */
+    let tries = 9;
+    try {
+      const cc = CacheService.getScriptCache();
+      const k = "UPD_ERRAND_NEW_" + String(j.id) + "#" + idx;
+      tries = Number(cc.get(k) || 0) + 1;
+      cc.put(k, String(tries), 3600);
+    } catch (e) {}
+    if (tries < 4) {
+      try { pr.deleteProperty("UPD_ERRAND_RUN"); } catch (e) {}
+      updErrandLog_("…「" + task + "」は、まだこの中身に入っていません。" +
+                    "新しい中身を待ちます（" + tries + "回目）");
+      return false;
+    }
+    updErrandLog_("✖ 「" + task + "」は、知らない頼まれごとでした。とばします");
+    try { pr.deleteProperty("UPD_ERRAND_RUN"); } catch (e) {}
     try { pr.setProperty("UPD_ERRAND_DONE", String(j.id) + "#" + idx); } catch (e) {}
     return false;
   }
