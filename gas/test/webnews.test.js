@@ -1437,14 +1437,34 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
     app.slice(app.indexOf('const ymd = d =>'), app.indexOf('const visible = () =>')) +
     app.slice(app.indexOf('function prevRange()'), app.indexOf('function diffText(')), box);
   const P = () => vm.runInContext('JSON.stringify(prevRange())', box);
-  t(JSON.parse(P()).from === '2026-09-16', '★★★今期の1つ前は、前期', P());
+  t(JSON.parse(P()).from === '2026-09-16', '★★★今期の1つ前は、前の月', P());
+  /* ★「前は」ではなく「前月は」と、何とくらべているかを書く（ご指示・2026/11/12） */
+  t(JSON.parse(P()).name === '前月', '★★★名前は「前月」', P());
   vm.runInContext('period={mode:"free",from:"2026-11-01",to:"2026-11-10"};', box);
   const f = JSON.parse(P());
   t(f.from === '2026-10-22' && f.to === '2026-10-31',
     '★★★自分で決めた期間は、同じ長さの1つ前とくらべる', P());
+  t(f.name === '前の10日間', '★★★その名前も「前の10日間」', P());
+  vm.runInContext('period={mode:"free",from:"2026-11-10",to:"2026-11-10"};', box);
+  t(JSON.parse(P()).name === '前日', '★★★1日だけなら「前日」', P());
+  vm.runInContext('period={mode:"free",from:"2026-11-04",to:"2026-11-10"};', box);
+  t(JSON.parse(P()).name === '前週', '★★★7日なら「前週」', P());
   vm.runInContext('period={mode:"all",from:"",to:""};', box);
   t(vm.runInContext('prevRange()', box) === null,
     '★★★全期間のときは、くらべる相手を作らない（嘘の数を出さない）');
+}
+
+
+
+console.log('■「前は」ではなく「前月は」（ご指示・2026/11/12）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const cmp = app.slice(app.indexOf('function compareCard()'), app.indexOf('function reportCard()'));
+  t(/const pn = pr\.name;/.test(cmp), '★★★何とくらべているかを、名前で持っている');
+  t(!/'<i>前は /.test(cmp) && !/<i>前は /.test(cmp),
+    '★★★ただの「前は」は、もう出さない');
+  t(/\+ pn \+ 'は /.test(cmp), '★★★「前月は」「前日は」の形で出す');
+  t(/とくらべています/.test(cmp), '　 いちばん上の一文も、言い方をそろえた');
 }
 
 

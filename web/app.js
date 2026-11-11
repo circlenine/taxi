@@ -1214,14 +1214,17 @@ function sumIn(from, to){
 }
 /** 1つ前の、同じ長さの期間 */
 function prevRange(){
+  /* ★「前は」ではなく「前月は」「前日は」と、何とくらべているかを
+       はっきり書きます（ご指示・2026/11/12）。 */
   const m = /^c(\d+)$/.exec(period.mode);
-  if (m) { const c = cycleOf(Number(m[1]) + 1); return { from:c.from, to:c.to, name:'前の期' }; }
+  if (m) { const c = cycleOf(Number(m[1]) + 1); return { from:c.from, to:c.to, name:'前月' }; }
   if (period.mode === 'free' && period.from && period.to) {
     const a = new Date(period.from), b = new Date(period.to);
     const len = Math.round((b - a) / 86400000) + 1;
     const pb = new Date(a); pb.setDate(pb.getDate() - 1);
     const pa = new Date(pb); pa.setDate(pa.getDate() - len + 1);
-    return { from: ymd(pa), to: ymd(pb), name: '同じ長さの、1つ前' };
+    const name = len === 1 ? '前日' : (len === 7 ? '前週' : ('前の' + len + '日間'));
+    return { from: ymd(pa), to: ymd(pb), name: name };
   }
   return null;                       /* 全期間のときは、くらべる相手がいません */
 }
@@ -1243,21 +1246,22 @@ function compareCard(){
   if (!now.n || !bef.n) return '';
   /* ★4つの列を横に並べると、スマホでは「差」が切れて見えません。
        1件ずつ、名前・いま・差 の3つにして、前の数は小さく下に置きます。 */
+  const pn = pr.name;                       /* 前月・前日・前週… */
   const row = (name, a2, b2, fmt) =>
     '<div class="cmprow"><div class="cl">' + name + '</div>' +
-    '<div class="cn">' + fmt(a2) + '<i>前は ' + fmt(b2) + '</i></div>' +
+    '<div class="cn">' + fmt(a2) + '<i>' + pn + 'は ' + fmt(b2) + '</i></div>' +
     '<div class="cd">' + diffText(a2, b2) + '</div></div>';
   const nd = now.n - bef.n;
   return '<div class="card"><h2>前の期間とくらべる</h2>' +
-    '<p class="note">くらべているのは <b>' + esc(fmtD(pr.from)) + ' 〜 ' +
-    esc(fmtD(pr.to)) + '</b>（' + esc(pr.name) + '）です。' +
+    '<p class="note"><b>' + esc(pr.name) + '</b>（' + esc(fmtD(pr.from)) + ' 〜 ' +
+    esc(fmtD(pr.to)) + '）とくらべています。' +
     (onlyPlace ? esc(onlyPlace) + ' だけ。' : '') + '</p>' +
     row('売上の合計', now.sum, bef.sum, yen) +
     row('1日当たり', now.days ? now.sum/now.days : 0,
                      bef.days ? bef.sum/bef.days : 0, yen) +
     row('平均 時間単価', now.rate, bef.rate, v => yen(v) + '/h') +
     '<div class="cmprow"><div class="cl">記録の数</div>' +
-    '<div class="cn">' + now.n + '件<i>前は ' + bef.n + '件</i></div>' +
+    '<div class="cn">' + now.n + '件<i>' + pn + 'は ' + bef.n + '件</i></div>' +
     '<div class="cd"><span class="cmp ' + (nd > 0 ? 'up' : (nd < 0 ? 'down' : '')) + '">' +
     (nd > 0 ? '＋' : (nd < 0 ? '−' : '±')) + Math.abs(nd) + '件</span></div></div>' +
     '</div>';
