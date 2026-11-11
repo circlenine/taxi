@@ -2,7 +2,17 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V107ver  （2026/11/11）  ★★★
+ *  ★★★  V108ver  （2026/11/12）  ★★★
+ *
+ *  [V108ver]
+ *   ・👥 客層の控えを、1つにまとめた（VNAUD_ALL）
+ *     ★公演1つにつき控えを1つ作っていたため、15分おきに走るたびに
+ *       控えが50個を超えて増え、まーく様の画面が「読むだけ」になり、
+ *       新しい鍵を足せなくなっていました（2026/11/12 にご指摘）。
+ *       片づけても、15分後にはまた増えていました。原因はここでした。
+ *     ★いくつ公演があっても、控えは1つのままです。
+ *       古いもの（3日より前）と、入れものに入りきらないぶんは落とします。
+ *     ★前の形で残っている控えは、見つけた順に片づけます。
  *
  *  [V107ver]
  *   ★申し訳ありませんでした。こちらのしくじりです。
@@ -1765,7 +1775,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V107ver";
+const VN_VERSION = "V108ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -5286,6 +5296,54 @@ function vnProbeSendToMe() {
  * 知ったかぶりをさせない。同じ公演を何度も聞かないよう、答えは覚えておく。
  */
 
+/* ------------------------------------------------------------
+ *  客層の控えは、1つにまとめて持つ（2026/11/12 に直しました）
+ *
+ *  ★何が起きていたか
+ *    公演1つにつき控えを1つ作っていたため、15分おきに走るたびに
+ *    控えが50個を超えて増え、まーく様の画面が「読むだけ」になり、
+ *    新しい鍵を足せなくなっていました（実際に、そうなりました）。
+ *    片づけても、15分後にはまた増えていました。
+ *  ★直し方
+ *    ぜんぶを「VNAUD_ALL」という1つの控えに入れます。
+ *    これで、いくつ公演があっても 控えは1つのままです。
+ *  ★入れものには限りがあるので、古いものから落とします
+ *    （3日より古いもの／それでも大きいときは、古い順に）。
+ * ---------------------------------------------------------- */
+const VN_AUD_ALL   = "VNAUD_ALL";
+const VN_AUD_MAX_B = 7000;      /* 1つの控えに入れてよい、おおよその大きさ */
+
+function vnAudAllRead_() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(VN_AUD_ALL);
+    if (!raw) return {};
+    const j = JSON.parse(raw);
+    return (j && typeof j === "object") ? j : {};
+  } catch (e) { return {}; }
+}
+
+function vnAudAllWrite_(map) {
+  try {
+    const keep = (typeof VN_TOPIC_KEEP_MS === "number") ? VN_TOPIC_KEEP_MS : 3 * 24 * 3600 * 1000;
+    const now = Date.now();
+    /* ① 古くなったものを落とす */
+    Object.keys(map).forEach(function (k) {
+      const at = map[k] && Number(map[k].at);
+      if (!at || now - at > keep) delete map[k];
+    });
+    /* ② それでも大きいときは、古い順に落とす（入れものに限りがあるため） */
+    let names = Object.keys(map).sort(function (a, b) {
+      return Number(map[a].at || 0) - Number(map[b].at || 0);
+    });
+    let text = JSON.stringify(map);
+    while (text.length > VN_AUD_MAX_B && names.length) {
+      delete map[names.shift()];
+      text = JSON.stringify(map);
+    }
+    PropertiesService.getScriptProperties().setProperty(VN_AUD_ALL, text);
+  } catch (e) {}
+}
+
 /** 覚えておくための名札（公演名から作る） */
 function vnAudKey_(title) {
   const t = String(title || "").trim();
@@ -5334,9 +5392,11 @@ function vnTopicInfo_(title, venue) {
    */
   const key = vnAudKey_(t);
   const pr = PropertiesService.getScriptProperties();
+  /* ★控えは1つにまとめて持ちます（増えつづけないようにするため） */
+  const all = vnAudAllRead_();
   if (key) {
-    const hit = pr.getProperty(key);
-    if (hit !== null) {
+    const hit = (all[key] !== undefined) ? JSON.stringify(all[key]) : pr.getProperty(key);
+    if (hit !== null && hit !== undefined) {
       try {
         const j = JSON.parse(hit);
         // 新しい形（いつ聞いたかを持っている）
@@ -5396,7 +5456,16 @@ function vnTopicInfo_(title, venue) {
   } catch (e) { if (typeof logErr_ === "function") logErr_("vnTopic", e); }
 
   // ★いつ聞いたかも いっしょに覚えておく（古くなったら、たずね直すため）
-  if (key) { try { pr.setProperty(key, JSON.stringify({ at: Date.now(), v: out })); } catch (e) {} }
+  /* ★1つにまとめた控えへ入れます。
+       ばらばらに作ると、控えが増えつづけて画面が読むだけになります。 */
+  if (key) {
+    try {
+      all[key] = { at: Date.now(), v: out };
+      vnAudAllWrite_(all);
+      /* 前の形（公演ごとの控え）が残っていれば、その場で片づけます */
+      try { if (pr.getProperty(key) !== null) pr.deleteProperty(key); } catch (e2) {}
+    } catch (e) {}
+  }
   return out;
 }
 
