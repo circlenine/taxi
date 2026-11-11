@@ -3,6 +3,42 @@ const $ = s => document.querySelector(s);
 
 let ME = null, records = [], names = {}, tab = 'in', form = {}, editId = null, msg = '', msgBad = false;
 let scOpt = { line: true, label: true }, onlyMine = false;
+/*
+ * しぼり込み（まーく様のご指示・2026/11/12）
+ *   「各乗り場だけをピンポイントで絞る機能」
+ *   「1ヶ月おきのレポート機能(期間設定も自由変更可能)」
+ *
+ * ★onlyPlace … 1つの乗り場だけに絞る（空なら ぜんぶ）
+ * ★period    … いつからいつまでを数えるか
+ *      mode:'all'  … ぜんぶ
+ *      mode:'c0'   … 今期（16日〜翌月15日）。c1 は前期、c2 はその前…
+ *      mode:'free' … from と to を、自分で決める
+ * ★その端末に覚えます。開き直しても、絞ったままです。
+ *   絞っていることを忘れると、数字を読みちがえます。
+ *   だから、4つの数の下に「何で絞っているか」を必ず書きます。
+ */
+let onlyPlace = '', period = { mode: 'all', from: '', to: '' };
+const FILT_KEY = 'tsukemachi.filter';
+
+function filtLoad(){
+  try {
+    const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}') || {};
+    if (typeof o.place === 'string') onlyPlace = o.place;
+    if (typeof o.mine === 'boolean') onlyMine = o.mine;
+    if (o.period && typeof o.period.mode === 'string') {
+      period = { mode: o.period.mode,
+                 from: String(o.period.from || ''), to: String(o.period.to || '') };
+    }
+  } catch (e) {}
+}
+function filtSave(){
+  try {
+    localStorage.setItem(FILT_KEY,
+      JSON.stringify({ place: onlyPlace, mine: onlyMine, period: period }));
+  } catch (e) {}
+}
+function filtClear(){ onlyPlace = ''; period = { mode:'all', from:'', to:'' }; filtSave(); }
+const filtOn = () => !!onlyPlace || period.mode !== 'all';
 
 /* ---------- 起動 ---------- */
 (async () => {
@@ -18,6 +54,7 @@ let scOpt = { line: true, label: true }, onlyMine = false;
     const b = e.target.closest('button'); if (!b) return;
     grab(); tab = b.dataset.t; msg = ''; render();
   });
+  filtLoad();                      /* 前に絞ったままの形を思い出す */
   $('#boot').hidden = true; $('#app').hidden = false;
   await reload();
   /*
@@ -213,7 +250,72 @@ function idByName(name){
   return '';
 }
 
-const visible = () => onlyMine ? records.filter(r => r.user_id === ME.user.id) : records;
+/* ------------------------------------------------------------
+ *  1か月ざんまいの「期」（まーく様のご指示・2026/11/12）
+ *
+ *  ★16日から、翌月の15日まで を1つの期として数えます。
+ *    スプシのレポートと、まったく同じ区切りです。
+ *    ちがう区切りにすると、同じ月なのに数が合わなくなります。
+ * ---------------------------------------------------------- */
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+
+/** その日が入っている期の、はじまりの日（16日） */
+function cycleStart(d){
+  return (d.getDate() >= 16) ? new Date(d.getFullYear(), d.getMonth(), 16)
+                             : new Date(d.getFullYear(), d.getMonth()-1, 16);
+}
+/** n期まえの「はじまり〜おわり」 */
+function cycleOf(n){
+  const [y,m,dd] = today().split('-').map(Number);
+  const s = cycleStart(new Date(y, m-1, dd));
+  s.setMonth(s.getMonth() - n);
+  const e = new Date(s.getFullYear(), s.getMonth()+1, 15);
+  return { from: ymd(s), to: ymd(e) };
+}
+/** えらべる期を、新しい順に。記録のある所までしか出しません */
+function cycleList(){
+  const ds = records.map(r => r.date).filter(Boolean).sort();
+  const oldest = ds[0] || today();
+  const out = [];
+  for (let n = 0; n < 36; n++) {
+    const c = cycleOf(n);
+    out.push(c);
+    if (c.from <= oldest) break;
+  }
+  return out;
+}
+/** いま数えている「いつからいつまで」 */
+function periodRange(){
+  if (period.mode === 'free') return { from: period.from || '', to: period.to || '' };
+  const m = /^c(\d+)$/.exec(period.mode);
+  if (m) return cycleOf(Number(m[1]));
+  return { from: '', to: '' };
+}
+/** 画面に出す、期間の言い方 */
+function periodLabel(){
+  if (period.mode === 'all') return 'ためたぶん ぜんぶ';
+  const r = periodRange();
+  if (!r.from && !r.to) return 'ためたぶん ぜんぶ';
+  const a = r.from ? fmtD(r.from) : 'はじめ';
+  const b = r.to   ? fmtD(r.to)   : 'いま';
+  return a + ' 〜 ' + b;
+}
+
+const inPeriod = r => {
+  const p = periodRange();
+  if (p.from && r.date < p.from) return false;
+  if (p.to   && r.date > p.to)   return false;
+  return true;
+};
+/*
+ * ★ここが、ぜんぶの画面のもとになる「数える記録」です。
+ *   人・乗り場・期間、3つとも ここで1回だけ絞ります。
+ *   画面ごとに別々に絞ると、どこかで必ず取りこぼします。
+ */
+const visible = () => records.filter(r =>
+  (!onlyMine  || r.user_id === ME.user.id) &&
+  (!onlyPlace || r.place === onlyPlace) &&
+  inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
 const sorted  = () => [...visible()].sort((a,b) => a.date === b.date ? b.dep - a.dep : (a.date < b.date ? 1 : -1));
 const places  = () => [...new Set(records.map(r => r.place).filter(Boolean))];
@@ -238,15 +340,30 @@ function render(){
    */
   const kp = $('#kperiod');
   if (kp) {
+    /*
+     * ★絞っているときは、必ず「何で絞っているか」を書きます
+     *   （ご指示・2026/11/12で、乗り場と期間を絞れるようにしたため）。
+     *   絞ったまま忘れると、売上をまるごと読みちがえます。
+     */
     const who = onlyMine ? '自分だけ' : '全員';
-    if (!rs.length) kp.innerHTML = '数えるものがありません（' + who + '）';
-    else {
+    const pl  = onlyPlace ? '<b class="fnow">' + esc(onlyPlace) + ' だけ</b>・' : '';
+    const pd  = (period.mode !== 'all')
+              ? '<b class="fnow">' + esc(periodLabel()) + '</b>' : '';
+    if (!rs.length) {
+      kp.innerHTML = '数えるものがありません（' + pl + pd + who + '）' +
+        (filtOn() ? '<br>※しぼり込みを外すと、出てくるかもしれません。' : '');
+    } else {
       const ds = rs.map(r => r.date).sort();
       const a = ds[0], b = ds[ds.length - 1];
       const days = new Set(ds).size;
-      kp.innerHTML = '上の4つは <b>' + esc(fmtD(a)) + '</b> 〜 <b>' + esc(fmtD(b)) +
-        '</b> の<b>ぜんぶ</b>（' + who + '・' + days + '日ぶん）の合計です。' +
-        '1日あたりではありません。';
+      /* ★日付のならびを2つ続けて書くと、どちらが何だか分かりません。
+           期間を決めているときは「そのうち、記録のある◯日ぶん」と書きます。 */
+      kp.innerHTML = (period.mode !== 'all')
+        ? '上の4つは ' + pl + pd + 'のうち、記録のある <b>' + days + '日ぶん</b>（' +
+          who + '・' + rs.length + '件）の合計です。1日あたりではありません。'
+        : '上の4つは ' + pl + '<b>' + esc(fmtD(a)) + '</b> 〜 <b>' +
+          esc(fmtD(b)) + '</b> の<b>ぜんぶ</b>（' + who + '・' + days + '日ぶん）の合計です。' +
+          '1日あたりではありません。';
     }
   }
   /*
@@ -340,9 +457,54 @@ function paneIn(){
     ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
   </div>`;
 }
-const filterChips = () => `<div class="chips" style="margin-bottom:12px">
-  <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
-  <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button></div>`;
+/* ------------------------------------------------------------
+ *  しぼり込みの操作（まーく様のご指示・2026/11/12）
+ *    「各乗り場だけをピンポイントで絞る機能」
+ *    「1ヶ月おきのレポート機能(期間設定も自由変更可能)」
+ *
+ *  ★走りながら片手で触るので、**押す回数を増やしません**。
+ *    乗り場も期間も、1回タップで選べる形（プルダウン）にします。
+ *  ★絞っているときは、赤い「ぜんぶに戻す」を必ず出します。
+ *    絞ったまま忘れると、数字をまるごと読みちがえます。
+ * ---------------------------------------------------------- */
+function placeOptions(){
+  const n = {};
+  records.forEach(r => { if (r.place) n[r.place] = (n[r.place] || 0) + 1; });
+  const list = Object.keys(n).sort((a,b) => n[b] - n[a] || (a < b ? -1 : 1));
+  return ['<option value="">乗り場：ぜんぶ</option>'].concat(
+    list.map(p => '<option value="' + esc(p) + '"' +
+      (p === onlyPlace ? ' selected' : '') + '>' + esc(p) + '（' + n[p] + '件）</option>')
+  ).join('');
+}
+function periodOptions(){
+  const o = ['<option value="all"' + (period.mode === 'all' ? ' selected' : '') +
+             '>期間：ためたぶん ぜんぶ</option>'];
+  cycleList().forEach(function (c, i) {
+    const name = i === 0 ? '今期' : (i === 1 ? '前期' : (i + '期まえ'));
+    o.push('<option value="c' + i + '"' + (period.mode === 'c' + i ? ' selected' : '') +
+           '>' + name + '（' + fmtD(c.from) + '〜' + fmtD(c.to) + '）</option>');
+  });
+  o.push('<option value="free"' + (period.mode === 'free' ? ' selected' : '') +
+         '>自分で決める…</option>');
+  return o.join('');
+}
+const filterChips = () => `<div class="filt">
+  <div class="chips">
+    <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
+    <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
+    ${filtOn() ? '<button class="chip warn" id="fClear">ぜんぶに戻す</button>' : ''}
+  </div>
+  <div class="filt2">
+    <select class="fsel ${onlyPlace?'on':''}" data-filt="place">${placeOptions()}</select>
+    <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
+  </div>
+  ${period.mode === 'free' ? `<div class="filt2 fdate">
+    <label><span>はじめの日</span>
+      <input type="date" data-filt="from" value="${esc(period.from)}"></label>
+    <label><span>おわりの日</span>
+      <input type="date" data-filt="to" value="${esc(period.to)}"></label>
+  </div>` : ''}
+</div>`;
 
 /** 場所の名前を、地図で開けるようにして返す（押すと新しいタブ） */
 function placeLink(p){
@@ -893,10 +1055,8 @@ function paneSc(){
     <div class="toolbar">
       <button class="chip ${scOpt.line?'on':''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label?'on':''}" data-opt="label">金額を出す</button>
-      <span style="width:8px"></span>
-      <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
-      <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
     </div>
+    ${filterChips()}
     <div class="scroll">${s}</div>
     <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div></div>`;
 }
@@ -928,12 +1088,72 @@ function bars(rows, label, fmt){
       <td class="n">${yen(r.sum)}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
+/* ------------------------------------------------------------
+ *  この期間のまとめ（まーく様のご指示・2026/11/12）
+ *    「1ヶ月おきのレポート機能(期間設定も自由変更可能)」
+ *
+ *  ★「不明」は、1つも数に入れません。
+ *    0円・0分として数えると、平均も時間単価も下がって嘘になります。
+ *    数えたぶんと、外したぶんを、はっきり書きます。
+ *  ★1件しかないものを「平均」と呼びません。
+ * ---------------------------------------------------------- */
+function reportCard(){
+  const R = visible();
+  if (!R.length) return '';
+  const ds    = [...new Set(R.map(r => r.date))].sort();
+  const days  = ds.length;
+  const fares = R.filter(hasFare);
+  const sum   = fares.reduce((a,r) => a + (+r.fare || 0), 0);
+  const rts   = R.map(rate).filter(v => v > 0);
+  const avgRt = rts.length ? rts.reduce((a,b) => a+b, 0) / rts.length : 0;
+  /* 1日あたりは「記録のある日」で割ります。走っていない日で割ると下がります */
+  const perDay = days ? sum / days : 0;
+  /* いちばん良かった日 */
+  const byDay = {};
+  fares.forEach(r => { byDay[r.date] = (byDay[r.date] || 0) + (+r.fare || 0); });
+  const bestDay = Object.keys(byDay).sort((a,b) => byDay[b] - byDay[a])[0] || '';
+  /* いちばん多かった乗り場（3件以上あるときだけ） */
+  const byPl = {};
+  R.forEach(r => { if (r.place) byPl[r.place] = (byPl[r.place] || 0) + 1; });
+  const topPl = Object.keys(byPl).sort((a,b) => byPl[b] - byPl[a])[0] || '';
+  const unk   = R.length - fares.length;
+
+  const cell = (t, v, sub) =>
+    '<div class="rcell"><small>' + t + '</small><b>' + v + '</b>' +
+    (sub ? '<i>' + sub + '</i>' : '') + '</div>';
+
+  return '<div class="card"><h2>この期間のまとめ</h2>' +
+    '<p class="note"><b class="fnow">' + esc(periodLabel()) + '</b>' +
+    (onlyPlace ? '／<b class="fnow">' + esc(onlyPlace) + ' だけ</b>' : '') +
+    '／' + (onlyMine ? '自分だけ' : '全員') + '　' +
+    '記録のある日 ' + days + '日。' +
+    (unk ? '金額が「不明」の ' + unk + '件は、合計にも平均にも入れていません。' : '') +
+    '</p>' +
+    '<div class="rgrid">' +
+      cell('売上の合計', yen(sum), fares.length + '本ぶん') +
+      cell('1日あたり', days ? yen(perDay) : '—', days + '日で割った') +
+      cell('1本あたり', fares.length ? yen(sum / fares.length) : '—', '平均の金額') +
+      cell('時間単価', rts.length >= 3 ? yen(avgRt) + '/h' : '—',
+           rts.length >= 3 ? ('数えた ' + rts.length + '本の平均')
+                           : ('数えられたのは ' + rts.length + '本だけ')) +
+    '</div>' +
+    '<p class="note" style="margin-top:12px">' +
+      (bestDay ? 'いちばん良かった日：<b>' + esc(fmtD(bestDay)) + '</b>（' +
+                 yen(byDay[bestDay]) + '）<br>' : '') +
+      (topPl && byPl[topPl] >= 3
+        ? 'いちばん多く着けた所：<b>' + esc(topPl) + '</b>（' + byPl[topPl] + '件）' : '') +
+    '</p></div>';
+}
+
 function paneRank(){
-  if (!visible().length) return emptyCard('3件たまったところから、数字は当てになりはじめる。');
+  if (!visible().length) {
+    return '<div class="card">' + filterChips() +
+      '<div class="empty">この絞り込みでは、1件もありません。</div></div>';
+  }
   const h = hourAgg(), p = placeAgg();
   const best = h.filter(x => x.n >= 3).sort((a,b) => b.avg - a.avg).slice(0,3);
   const worst = h.filter(x => x.n >= 3).sort((a,b) => a.avg - b.avg)[0];
-  return `<div class="card"><h2>読みどころ</h2>
+  return reportCard() + `<div class="card"><h2>読みどころ</h2>
     <p class="note">3件以上ある枠だけを並べた。薄い棒は件数が足りていない目安。</p>
     ${filterChips()}
     ${best.length ? `<div style="font-size:13px;line-height:2">
@@ -1044,7 +1264,32 @@ function wire(){
     render();
   });
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { scOpt[b.dataset.opt] = !scOpt[b.dataset.opt]; render(); });
-  document.querySelectorAll('[data-mine]').forEach(b => b.onclick = () => { grab(); onlyMine = b.dataset.mine === '1'; render(); });
+  document.querySelectorAll('[data-mine]').forEach(b => b.onclick = () => {
+    grab(); onlyMine = b.dataset.mine === '1'; filtSave(); render(); });
+  /*
+   * ★しぼり込み（乗り場・期間）。ご指示・2026/11/12
+   *   選んだら、その場で画面ぜんぶが そのぶんだけになります。
+   */
+  document.querySelectorAll('[data-filt]').forEach(function (el) {
+    el.onchange = function () {
+      grab();
+      const k = el.dataset.filt, v = el.value;
+      if (k === 'place')  onlyPlace = v;
+      if (k === 'period') {
+        period.mode = v;
+        if (v === 'free' && !period.from && !period.to) {
+          /* はじめて「自分で決める」をえらんだときは、今期を入れておきます。
+             空のままだと、何も絞られず「ぜんぶ」と同じに見えてしまいます。 */
+          const c = cycleOf(0); period.from = c.from; period.to = c.to;
+        }
+      }
+      if (k === 'from') period.from = v;
+      if (k === 'to')   period.to   = v;
+      filtSave(); render();
+    };
+  });
+  const fc = document.getElementById('fClear');
+  if (fc) fc.onclick = function () { grab(); filtClear(); render(); };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delRec(b.dataset.del));
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
     const r = records.find(x => x.id === b.dataset.edit); if (!r) return;

@@ -989,5 +989,90 @@ console.log('■ 台帳の営業曜日も 16:00 にそろえる（ご指示・20
 }
 
 
+
+console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「各乗り場だけをピンポイントで絞る機能」
+   *     「1ヶ月おきのレポート機能(期間設定も自由変更可能)」
+   *
+   *   ★いちばん こわいのは「絞ったまま忘れて、数字を読みちがえる」ことです。
+   *     40万円が4万円に見えます。だから、絞っているときは
+   *     4つの数のすぐ下に、何で絞っているかを必ず書きます。
+   *   ★期の区切りは、スプシのレポートと同じ「16日〜翌月15日」。
+   *     ちがう区切りにすると、同じ月なのに数が合わなくなります。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+
+  /* ---- 操作するところが、ちゃんとある ---- */
+  t(/data-filt="place"/.test(app), '★★★乗り場をえらぶところがある');
+  t(/data-filt="period"/.test(app), '★★★期間をえらぶところがある');
+  t(/data-filt="from"/.test(app) && /data-filt="to"/.test(app),
+    '★★★期間は、自分で決めることもできる');
+  t(/id="fClear"/.test(app), '★★★絞っているときは「ぜんぶに戻す」が出る');
+  t(/filtOn\(\) \? '<button class="chip warn" id="fClear"/.test(app),
+    '　 絞っていないときは出さない（よけいなものを増やさない）');
+
+  /* ---- 絞り込みは、1か所でまとめて効く ---- */
+  const vis = (app.match(/const visible = \(\) => records\.filter\([\s\S]*?\);/) || [''])[0];
+  t(/onlyMine/.test(vis),  '★★★人で絞れる', vis.slice(0, 40));
+  t(/onlyPlace/.test(vis), '★★★乗り場で絞れる');
+  t(/inPeriod/.test(vis),  '★★★期間で絞れる');
+
+  /* ---- 絞っていることが、画面に出る ---- */
+  t(/fnow/.test(app) && /だけ/.test(app), '★★★何で絞っているかを、数のすぐ下に出す');
+  t(/\.fnow\{/.test(css), '　 その見た目も入っている');
+
+  /* ---- 覚えておく ---- */
+  t(/localStorage\.setItem\(FILT_KEY/.test(app), '　 絞った形を、その端末に覚える');
+
+  /* ---- まとめ（1か月のレポート） ---- */
+  t(/function reportCard\(\)/.test(app), '★★★この期間のまとめが出る');
+  t(/reportCard\(\) \+ `<div class="card"><h2>読みどころ/.test(app),
+    '★★★「集計」の いちばん上に出る');
+  const rep = app.slice(app.indexOf('function reportCard'), app.indexOf('function paneRank'));
+  t(/R\.filter\(hasFare\)/.test(rep),
+    '★★★金額が「不明」のものは、合計にも平均にも入れない');
+  t(/rts\.length >= 3/.test(rep), '★★★3本より少ないものを「平均」と呼ばない');
+  t(/不明/.test(rep), '　 外したぶんが何件かも、ことばで出す');
+
+  /* ---- 期の区切りを、実際に動かして確かめる ---- */
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(
+    'const pad=n=>String(n).padStart(2,"0");' +
+    'const WD=["日","月","火","水","木","金","土"];' +
+    'function fmtD(s){const[y,m,d]=s.split("-").map(Number);' +
+    ' return m+"/"+d+"("+WD[new Date(y,m-1,d).getDay()]+")";}' +
+    'let _T="2026-11-12"; function today(){return _T;}' +
+    'let records=[]; let period={mode:"all",from:"",to:""};' +
+    app.slice(app.indexOf('const ymd = d =>'), app.indexOf('const visible = () =>')), box);
+  const C = n => vm.runInContext('JSON.stringify(cycleOf(' + n + '))', box);
+
+  /* 11/12 は「10/16〜11/15」の期の中 */
+  t(C(0) === '{"from":"2026-10-16","to":"2026-11-15"}', '★★★今期は 10/16〜11/15', C(0));
+  t(C(1) === '{"from":"2026-09-16","to":"2026-10-15"}', '★★★前期は 9/16〜10/15', C(1));
+  /* 16日ちょうどは、その日から新しい期 */
+  vm.runInContext('_T="2026-11-16";', box);
+  t(C(0) === '{"from":"2026-11-16","to":"2026-12-15"}', '★★★16日から、新しい期', C(0));
+  /* 15日は、まだ前の期の最後の日 */
+  vm.runInContext('_T="2026-11-15";', box);
+  t(C(0) === '{"from":"2026-10-16","to":"2026-11-15"}', '★★★15日は、まだ同じ期', C(0));
+
+  /* 自分で決めた日でも、ちゃんと外れる・入る */
+  vm.runInContext('period={mode:"free",from:"2026-10-20",to:"2026-10-25"};', box);
+  const IN = d => vm.runInContext('inPeriod({date:"' + d + '"})', box);
+  t(IN('2026-10-20') === true,  '★★★はじめの日は、入る');
+  t(IN('2026-10-25') === true,  '★★★おわりの日も、入る');
+  t(IN('2026-10-19') === false, '★★★1日まえは、入らない');
+  t(IN('2026-10-26') === false, '★★★1日あとも、入らない');
+  /* 「ぜんぶ」なら、どの日も入る */
+  vm.runInContext('period={mode:"all",from:"",to:""};', box);
+  t(IN('2020-01-01') === true && IN('2030-12-31') === true, '　「ぜんぶ」なら、何も外さない');
+}
+
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

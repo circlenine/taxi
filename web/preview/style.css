@@ -603,6 +603,41 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* 入れものの側も、たて まん中にそろえます */
 .who, .who .whoR, .chips, .actions{align-items:center}
 
+
+/* ============================================================
+ *  しぼり込み（乗り場・期間）とまとめ（ご指示・2026/11/12）
+ *    「各乗り場だけをピンポイントで絞る機能」
+ *    「1ヶ月おきのレポート機能(期間設定も自由変更可能)」
+ *
+ *  ★走りながら片手で触るので、押す所は大きくします。
+ *  ★絞っているものは、赤いふちで ひと目で分かるようにします。
+ *    絞ったまま忘れると、売上をまるごと読みちがえます。
+ * ============================================================ */
+.filt{margin-bottom:12px}
+.filt2{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.filt2 > *{min-width:0}
+.fsel{flex:1 1 150px;max-width:100%;font-size:13px;padding:8px 10px;
+  border-radius:8px;color:#FFFFFF}
+/* えらんでいる所は、赤いふちで はっきりさせます */
+.fsel.on{border-color:var(--andon);color:#FFFFFF}
+/* 日を2つ決めるところ。細い画面では、上下に1つずつ並びます。
+   「〜」だけが行の端に取り残されないよう、ことばで見出しを付けます。 */
+.fdate label{flex:1 1 140px;display:block;min-width:0}
+.fdate label span{display:block;font-size:11px;color:#FFFFFF;margin-bottom:3px}
+.filt2 input[type=date]{width:100%;font-size:13px;padding:8px 10px;color:#FFFFFF}
+/* 「ぜんぶに戻す」。絞っているときだけ出ます */
+.chip.warn{border-color:var(--andon);color:#FFFFFF;background:rgba(200,35,43,.22)}
+/* いま何で絞っているか。4つの数のすぐ下にも出ます */
+.fnow{color:var(--kusha);font-weight:700}
+/* この期間のまとめ */
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.rcell{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;
+  padding:10px 11px}
+.rcell small{display:block;color:#FFFFFF;font-size:11px;letter-spacing:.04em}
+.rcell b{display:block;font-family:var(--mono);font-size:19px;color:var(--andon);
+  line-height:1.25;margin-top:3px}
+.rcell i{display:block;font-style:normal;color:#FFFFFF;font-size:10.5px;margin-top:3px}
+
 /* ============================================================
  *  題の「X」が、ときどき光る（ご指示・2026/11/11）
  *    「TAXINOTEのXは、たまに、ランダムに光を入れることはできますか」
