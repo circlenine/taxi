@@ -7046,6 +7046,12 @@ console.log('■ 古くなった控えの片づけ（props-tidy）');
 
   Object.keys(props).forEach(k => delete props[k]);
   MUST.concat(JUNK, NEAR).forEach(k => { props[k] = 'あたい'; });
+  /* まだ生きている客層の控え（3日たっていない）は、残さないといけません。
+     消すと、AIにもう一度たずねることになり、無料枠を食います。 */
+  const ALIVE = 'VNAUD_aaaaaaaaaaaa';
+  props[ALIVE] = JSON.stringify({ at: Date.now(), v: { audience: 'あ' } });
+  /* 古いもの（3日より前）は、もう使われないので消してよい */
+  props['VNAUD_bbbbbbbbbbbb'] = JSON.stringify({ at: Date.now() - 9 * 24 * 3600 * 1000, v: {} });
   const before = Object.keys(props).length;
 
   // ① 下見では、1つも消さない
@@ -7064,7 +7070,10 @@ console.log('■ 古くなった控えの片づけ（props-tidy）');
   t(lostNear.length === 0, '★★★きのう・きょう・あしたのぶんは残す', lostNear.join('/'));
   const keptJunk = JUNK.filter(k => left.indexOf(k) !== -1);
   t(keptJunk.length === 0, '★★★古くなったぶんは、ちゃんと消える', keptJunk.join('/'));
-  t(left.length === MUST.length + NEAR.length,
+  t(left.indexOf(ALIVE) !== -1,
+    '★★★まだ生きている客層の控えは残す（消すとAIの無料枠を食う）');
+  t(left.indexOf('VNAUD_bbbbbbbbbbbb') === -1, '　 3日より前の客層の控えは消える');
+  t(left.length === MUST.length + NEAR.length + 1,
     '　 残ったのは、残すはずのものだけ', left.length);
 
   Object.keys(props).forEach(k => delete props[k]);

@@ -11733,8 +11733,23 @@ function updPropsTidy_(go) {
 
     const gone = [];
     keys.forEach(function (k) {
-      // ① 会場のページの控え（日付は無いが、また読めば作り直せる）
-      if (k.indexOf("VNAUD_") === 0) { gone.push(k); return; }
+      /*
+       * ① 公演ごとの「客層のあたり」の控え。
+       *    ★3日で使えなくなる決まりなので、古いものは
+       *      置いてあるだけで、もう使われません。
+       *    ★まだ生きているものは残します。消すと、AIに
+       *      もう一度 たずねることになり、無料枠を食います。
+       */
+      if (k.indexOf("VNAUD_") === 0) {
+        let alive = false;
+        try {
+          const j = JSON.parse(all[k]);
+          const keepMs = (typeof VN_TOPIC_KEEP_MS === "number") ? VN_TOPIC_KEEP_MS : 3 * 24 * 3600 * 1000;
+          if (j && j.at && (Date.now() - Number(j.at) < keepMs)) alive = true;
+        } catch (e) {}
+        if (!alive) gone.push(k);
+        return;
+      }
       // ② 「グループへ送る」ボタンの控え（その場かぎりのもの）
       if (k.indexOf("VNSHARE_") === 0) { gone.push(k); return; }
       // ③ 月ごとのLINEの通数（いまの月は残す）
