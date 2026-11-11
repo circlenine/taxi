@@ -7272,5 +7272,49 @@ console.log('■ 営業曜日の区切りは 16:00（ご指示・2026/11/12）')
 }
 
 
+
+console.log('■ 50個の壁を越える片づけ（ご指摘・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指摘（2026/11/12）：「結局、これ５０のままですが」
+   *   控えが50個を超えると、画面は読むだけになり、新しい鍵を
+   *   足せません。鍵を1つ入れていただくために、ここを越えます。
+   *
+   * ★いちばん こわいのは、鍵や住所を消してしまうことです。
+   *   消すと、LINEが丸ごと止まります。名前で必ず見分けます。
+   */
+  const M = F('updMustKeep_');
+  ['LINE_TOKEN', 'GEMINI_API_KEY', 'GH_TOKEN', 'SUPABASE_PAT',
+   'GROUP_ID', 'GROUP_ID_OTHER', 'NG_GROUP_IDS', 'DASHBOARD_ID',
+   'MAIN_SS_ID', 'SH_SHIRYO_SS', 'UPD_DOOR_URL', 'UPD_LIVE_URL',
+   'TAXINOTE_EMAIL', 'TAXINOTE_PASS'].forEach(function (k) {
+    t(M(k) === true, '★★★消さない：' + k);
+  });
+  ['UPD_DR_AT', 'UPD_KARTE_SIG', 'TK_LAST_YMD', 'SB_WAKE_AT',
+   'UPD_RESUME_CNT', 'UPD_RESUME_DAY', 'PANEL_WATCH_AT',
+   'VN_SEEN', 'UPD_ERRAND_DONE', 'LAST_OPENCHECK'].forEach(function (k) {
+    t(M(k) === false, '　 片づけてよい：' + k);
+  });
+
+  /* 実際に走らせて、鍵が残り、ほかが消えること */
+  Object.keys(props).forEach(function (k) { delete props[k]; });
+  props['LINE_TOKEN']   = 'x';
+  props['GROUP_ID']     = 'C1';
+  props['UPD_DOOR_URL'] = 'https://x';
+  props['UPD_DR_AT']    = '1';
+  props['TK_LAST_YMD']  = '2026-11-11';
+  props['VN_SEEN']      = 'a';
+  dfiles['GASの控えの控え.txt'] = undefined;
+  const out = String(F('updPropsTidy_')(true, false, true));
+  t(props['LINE_TOKEN'] === 'x',   '★★★鍵は残っている');
+  t(props['GROUP_ID'] === 'C1',    '★★★送り先も残っている');
+  t(props['UPD_DOOR_URL'] !== undefined, '★★★受け口の住所も残っている');
+  t(props['UPD_DR_AT'] === undefined,  '★★★作り直せるものは片づいた');
+  t(props['TK_LAST_YMD'] === undefined, '　 日付の覚え書きも片づいた');
+  t(props['VN_SEEN'] === undefined,     '　 見分け札も片づいた');
+  t(/3/.test(out), '　 何個 片づけたかを返す', out);
+}
+
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

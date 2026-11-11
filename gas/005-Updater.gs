@@ -2,8 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U172ver  （2026/11/12）  ★★★
+ *  ★★★  U173ver  （2026/11/12）  ★★★
  *
+ *
+ *   [U173ver]
+ *   ・🗂 いちばん深い片づけ（props-tidy の slim:true）を用意した
+ *     ★控えが50個を超えると、まーく様の画面は読むだけになり、
+ *       新しい鍵を足せません（2026/11/12 に実際に そうなりました）。
+ *     ★鍵・住所・送り先・番号だけを残し、ほかは片づけます。
+ *       ほかは、次に動いたときに作り直されるものだけです。
+ *     ★消す前に まるごと控えを取るので、いつでも戻せます。
  *
  *   [U172ver]
  *   ・🕓 営業曜日の区切りを、こちらから変えられるようにした
@@ -1920,7 +1928,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U172ver";
+const UPD_VERSION = "U173ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11997,7 +12005,25 @@ const UPD_DEEP_KEYS = [
   "VN_SEEN", "VN_ALIVE", "LR_TELL_COUNT", "RPFIX_SPAN"
 ];
 
-function updPropsTidy_(go, deep) {
+/*
+ * ★どうしても残さないといけない控え（名前で見分けます）
+ *
+ *   まーく様の画面は、控えが50個を超えると読むだけになり、
+ *   新しい控えを足せません（実際に、そうなりました・2026/11/12）。
+ *   そこで「これだけは残す」ものを決めて、ほかを片づけます。
+ *   残すのは、作り直せないものだけです。
+ *     ・鍵（LINE・Gemini・GitHub・Supabase）
+ *     ・住所（受け口のURL）
+ *     ・送り先（グループのID）
+ *     ・スプシやドライブの番号（…_SS / …_ID）
+ *   ほかは、次に動いたときに作り直されるものです。
+ *   消す前に必ず まるごと控えを取るので、いつでも戻せます。
+ */
+function updMustKeep_(k) {
+  return /TOKEN|KEY|SECRET|PASS|MAIL|PAT$|_PAT|URL|_SS$|_ID$|_IDS$|GROUP|DASHBOARD|MAIN_SS|SHIRYO/i.test(k);
+}
+
+function updPropsTidy_(go, deep, slim) {
   try {
     const pr = PropertiesService.getScriptProperties();
     const all = pr.getProperties();
@@ -12017,6 +12043,12 @@ function updPropsTidy_(go, deep) {
 
     const gone = [];
     keys.forEach(function (k) {
+      /*
+       * ★いちばん深い片づけ（slim）。
+       *   「残さないといけないもの」以外を、ぜんぶ片づけます。
+       *   50個の壁を越えて、新しい鍵を足せるようにするためです。
+       */
+      if (slim) { if (!updMustKeep_(k)) gone.push(k); return; }
       /*
        * ① 公演ごとの「客層のあたり」の控え。
        *    ★3日で使えなくなる決まりなので、古いものは
@@ -12201,6 +12233,8 @@ const UPD_ERRAND_OK = {
    */
   "props-tidy":  "古くなったGASの控えを片づける",
   /* { "do": ["props-tidy"], "go": true, "deep": true } で、もう一段 深く片づける */
+  /* { "do": ["props-tidy"], "go": true, "slim": true } で、
+     「残さないといけないもの」以外を ぜんぶ片づける（50個の壁を越えるため） */
   "props-restore": "片づけた控えを、まるごと戻す",
   "biz-check":   "営業曜日の区切りが何時かを、控えに書く",
   /*
@@ -12698,7 +12732,7 @@ function updErrandTick_() {
         out = "🗂 一覧を作れませんでした：" + ((e && e.message) || e);
       }
     } else if (task === "props-tidy") {
-      out = updPropsTidy_(j && j.go === true, j && j.deep === true);
+      out = updPropsTidy_(j && j.go === true, j && j.deep === true, j && j.slim === true);
     } else if (task === "props-restore") {
       out = updPropsRestore_();
     } else if (task === "biz-check") {
