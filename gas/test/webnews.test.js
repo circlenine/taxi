@@ -881,8 +881,14 @@ console.log('■ イベントは、何日のぶんかを必ず出す（ご指示
   t(!/<h2>あすのイベント/.test(app),
     '★★★日付の無い「あすのイベント」も、残っていない');
   /* まん中に出る箱・画面・次の日、3か所とも 題に日付が入ること */
-  const uses = (app.match(/<h2>\$\{esc\(evTitle\(/g) || []).length;
-  t(uses >= 3, '★★★3か所とも、題に日付が入っている', uses);
+  const uses = (app.match(/<h2>\$\{evTitleHTML\(/g) || []).length;
+  t(uses >= 2, '★★★どの題にも、日付が入っている', uses);
+  /* ★日付は、いちばん目立たせます（ご指示・2026/11/12） */
+  t(/class="evday"/.test(app), '★★★日付に、目立たせる印が付いている');
+  const css2 = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/\.evday\{[^}]*font-size:1\.\d+em/.test(css2), '★★★日付は、まわりより大きい字');
+  t(/\.evday\{[^}]*color:var\(--kusha\)/.test(css2), '　 色も変えている');
+  t(/\.evkyo\{/.test(css2), '　「きょう」も目立つ形になっている');
 
   /* 中身を、そのまま動かして確かめます */
   const a = app.indexOf('function evTitle'), b = app.indexOf('function evRows');

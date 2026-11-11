@@ -1829,6 +1829,17 @@ function evTitle(day){
   return kyo + fmtD(day.d) + ' のイベント（' + n + '件）';
 }
 
+/* ★日付は、いちばん目立たせます（ご指示・2026/11/12
+     「〇〇のイベントの日付部分は、もっと目立たせてください」）。
+     どの日のぶんかを取りちがえると、空振りになるためです。 */
+function evTitleHTML(day){
+  const n = (day && day.list) ? day.list.length : 0;
+  if (!day || !day.d) return 'イベント（' + n + '件）';
+  const kyo = (day.d === evNight()) ? '<span class="evkyo">きょう</span> ' : '';
+  return kyo + '<span class="evday">' + esc(fmtD(day.d)) + '</span>' +
+         '<span class="evcnt">のイベント（' + n + '件）</span>';
+}
+
 /*
  * 古いまま止まっていたら、黙らずに そう書く。
  * （日付を出すようにしたので、止まっていることにも気づけます）
@@ -1894,7 +1905,7 @@ function paneEv(){
        （ご指示・2026/11/11「今日のお知らせをオフにした人も
          再度見れる形にしてください」）。 */
   const hid = evHiddenToday();
-  return `<div class="card"><h2>${esc(evTitle(d))}</h2>
+  return `<div class="card"><h2>${evTitleHTML(d)}</h2>
     <p class="note">${evStale(d) ? '<b class="evold">' + esc(evStale(d)) + '</b><br>' : ''}
       いちばん上は<b>開演の時刻</b>（分かっていれば終演も）。
       車を着ける時刻の目安は、その下に小さく置いています。
@@ -1906,7 +1917,7 @@ function paneEv(){
     </div>
     ${evRows(d)}</div>` +
     ((evData && evData.days && evData.days[1]) ?
-      `<div class="card"><h2>${esc(evTitle(evData.days[1]))}</h2>
+      `<div class="card"><h2>${evTitleHTML(evData.days[1])}</h2>
         ${evRows(evData.days[1])}</div>` : '');
 }
 
@@ -1984,7 +1995,7 @@ function evPopup(d){
   const box = document.createElement('div');
   box.className = 'modal';
   box.innerHTML = `<div class="modalbox">
-    <h2>${esc(evTitle(d))}</h2>
+    <h2>${evTitleHTML(d)}</h2>
     ${evStale(d) ? `<p class="note evold">${esc(evStale(d))}</p>` : ''}
     <div class="modalbody">${evRows(d)}</div>
     <div class="modalfoot">

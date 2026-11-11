@@ -686,6 +686,14 @@ header > h1, .login .head > h1{white-space:nowrap}
 .ktsum{min-width:0}
 .ktsum b{font-size:clamp(16px,5.4vw,23px)}
 
+/* ★イベントの日付は、いちばん目立たせます（ご指示・2026/11/12） */
+.evday{font-family:var(--mono);font-size:1.22em;font-weight:700;
+  color:var(--kusha);letter-spacing:.02em}
+.evkyo{display:inline-block;background:var(--andon);color:#FFFFFF;
+  font-size:.74em;font-weight:700;border-radius:4px;padding:2px 6px;
+  vertical-align:.18em;margin-right:5px}
+.evcnt{font-size:.82em;margin-left:5px;color:#FFFFFF}
+
 /* ★分数のタグ。0〜60分を2行に収めるため、小さく・字は数字だけ
      （ご指示・2026/11/12「2行分に収まりませんか」）。 */
 .chips.mins{gap:3px}
