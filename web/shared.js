@@ -499,6 +499,41 @@ function sayRoll() {
   }, SAY_WAIT);
 }
 
+/*
+ * 題の「X」を、たまに光らせる（まーく様のご指示・2026/11/11）
+ *   「TAXINOTEのXは、たまに、ランダムに光を入れることはできますか」
+ *
+ * ★「たまに」なので、決まった間かくでは光らせません。
+ *   7〜25秒のあいだで、毎回ちがう待ち時間をくじ引きします。
+ * ★動きが苦手な方の設定のときは、1回も光らせません。
+ * ★光っても、字の大きさも位置も変わりません（光の輪だけ）。
+ *   動かすと、となりの顔とふきだしの段がずれてしまいます。
+ */
+const XG_MIN_MS = 7000;      /* いちばん短い待ち時間 */
+const XG_MAX_MS = 25000;     /* いちばん長い待ち時間 */
+const XG_ON_MS  = 1250;      /* 光っている長さ（CSSの 1.15秒より少し長く） */
+
+function xGleam() {
+  try {
+    if (typeof document === 'undefined') return;
+    const x = document.querySelector('h1.dn .xg');
+    if (!x) return;                       /* 題が無いページでは何もしない */
+    /* 「視差効果を減らす」を入れている方には、光らせません */
+    if (window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const wait = XG_MIN_MS + Math.random() * (XG_MAX_MS - XG_MIN_MS);
+    setTimeout(function () {
+      try {
+        x.classList.add('on');
+        setTimeout(function () {
+          try { x.classList.remove('on'); } catch (e) {}
+          xGleam();                        /* また、次のくじを引く */
+        }, XG_ON_MS);
+      } catch (e) {}
+    }, wait);
+  } catch (e) {}
+}
+
 if (typeof document !== 'undefined' && document.addEventListener) {
   /* 画面の向きが変わったら、ふきだしの字を測り直します */
   let _fitTimer = null;
@@ -530,7 +565,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   /* 取り寄せに失敗したときの用心に、少し待ってからも1回 */
   setTimeout(refit, 1500);
 
-  const boot = function(){ sayRoll(); subRoll(); };
+  const boot = function(){ sayRoll(); subRoll(); xGleam(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 }

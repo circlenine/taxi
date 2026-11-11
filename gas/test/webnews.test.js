@@ -643,7 +643,11 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
   ['index.html', 'admin.html', 'login.html'].forEach(function (f) {
     const h = fs.readFileSync(path.join(W, f), 'utf8');
     const head = h.slice(h.indexOf('<h1'), h.indexOf('<h1') + 700);
-    t(/<h1[^>]*>[^<]*<\/h1>/.test(head), '★' + f + '：題だけの行になっている');
+    /* ★題の中にあってよいのは「X」を光らせるための印だけです
+         （ご指示・2026/11/11）。それを外してから、ほかに札が
+         まぎれ込んでいないかを見ます。 */
+    const bare = head.replace(/<span class="xg">|<\/span>/g, '');
+    t(/<h1[^>]*>[^<]*<\/h1>/.test(bare), '★' + f + '：題だけの行になっている');
     t(!/<h1[^>]*>[\s\S]{0,40}class="ver"/.test(h),
       '　 ' + f + '：版（v1.0）は、題の中に入っていない');
     t(/class="subline"/.test(h), '★★★' + f + '：版と一文が、同じ段にある');
@@ -771,6 +775,87 @@ console.log('■ ならびは 題 → 顔 → ふきだし（ご指示・2026/11
   t(/\.saymount \.bubble \.t\{[^}]*overflow:hidden/.test(css),
     '　 字のはみ出しは、中の字のほうで止めている');
 }
+
+
+console.log('■ 版の番号は、白地に黒字（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「v1.0も、他の文字と同じサイズにして
+   *       白背景、黒文字で、差別化してください」
+   *
+   *   まわりの字は ぜんぶ真っ白です（これも まーく様のご指示）。
+   *   同じ真っ白のままだと、版の番号が ただの字にうもれます。
+   *   白地に黒字にして、ひと目で見分けられるようにします。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const v = (css.match(/\n\.ver\{[^}]*\}/) || [''])[0];
+  t(v !== '', '★版の番号の見た目が見つかる');
+  t(/background:#FFFFFF/i.test(v), '★★★白い地になっている', v);
+  t(/color:var\(--ink\)/.test(v), '★★★字は黒になっている', v);
+  t(!/color:var\(--muted\)/.test(v), '　 前の「真っ白な字」は残っていない', v);
+  /* ★大きさは、となりの一文（.sub）と ぴったり同じにします。
+       小さいままだと「他の文字と同じサイズ」になりません。 */
+  t(/font-size:clamp\(10px,2\.9vw,13px\)/.test(v),
+    '★★★大きさは、となりの一文と同じ', v);
+  t(!/font-size:11px/.test(v), '　 前の 11px は残っていない', v);
+  /* 細い画面でも、一文と同じ大きさで縮むこと（別々に縮むとチグハグになる） */
+  t(/header > \.subline \.sub[\s\S]{0,120}\.ver\{font-size:clamp\(9px,2\.55vw,12\.5px\)\}/.test(css),
+    '★★★640px以下でも、一文と同じ大きさ');
+  t(/header > \.subline \.sub[\s\S]{0,120}\.ver\{font-size:clamp\(8\.4px,2\.55vw,12\.5px\)\}/.test(css),
+    '★★★380px以下でも、一文と同じ大きさ');
+  t(!/\.ver\{padding:1px 5px;font-size:10px/.test(css),
+    '　 版だけ小さくする古い書き方は、消えている');
+}
+
+
+console.log('■ 題の「X」が、たまに光る（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「TAXINOTEのXは、たまに、ランダムに光を入れることは
+   *       できますか」
+   *
+   *   ★いちばん こわいのは「光らせたら、まわりがズレる」ことです。
+   *     題の幅が変わると、となりの顔とふきだしの段がずれます。
+   *     だから、字の大きさも位置も変えず、光の輪（text-shadow）
+   *     だけを一瞬 出します。
+   *   ★「たまに」なので、決まった間かくでは光らせません。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+
+  ['index.html', 'login.html', path.join('preview', 'index.html')].forEach(function (f) {
+    const h = fs.readFileSync(path.join(W, f), 'utf8');
+    t(/<h1 class="dn">TA<span class="xg">X<\/span>I NOTE<\/h1>/.test(h),
+      '★★★' + f + '：Xだけに印が付いていて、題は TAXI NOTE のまま');
+  });
+
+  t(/h1\.dn \.xg\.on\{animation:xgleam/.test(css), '★★★光らせる動きがある');
+  t(/@keyframes xgleam\{/.test(css), '　 その動きの中身も書いてある');
+  const kf = (css.match(/@keyframes xgleam\{[\s\S]*?\n\}/) || [''])[0];
+  t(/text-shadow:0 0 \d+px/.test(kf), '★★★光るのは、まわりの輪（text-shadow）');
+  /* ★大きさ・位置を変えるものが混ざっていないか。
+       混ざると、題の幅が変わって、顔とふきだしがずれます。 */
+  t(!/font-size|letter-spacing|transform|padding|margin|width/.test(kf),
+    '★★★光っても、字の大きさも位置も変わらない', kf.slice(0, 80));
+  t(/@media\(prefers-reduced-motion:reduce\)\{[\s\S]{0,120}h1\.dn \.xg\.on\{animation:none\}/.test(css),
+    '★★★動きが苦手な方の設定では、光らせない');
+
+  t(/function xGleam\s*\(/.test(sh), '★★★光らせる係が、台帳の中にある');
+  t(/boot = function\(\)\{[^}]*xGleam\(\);/.test(sh), '★★★開いたときに、ちゃんと動き出す');
+  t(/Math\.random\(\)/.test(sh.slice(sh.indexOf('function xGleam'),
+                                    sh.indexOf('function xGleam') + 1200)),
+    '★★★待ち時間は、毎回くじ引き（決まった間かくでは光らない）');
+  t(/prefers-reduced-motion: reduce/.test(sh),
+    '★★★台帳の側でも、動きが苦手な方には光らせない');
+  /* 光りっぱなしにならないこと（消す指示があること） */
+  t(/classList\.remove\('on'\)/.test(sh), '★★★光ったあと、ちゃんと消える');
+  /* 何秒に1回か。短すぎると「たまに」になりません */
+  const mn = (sh.match(/XG_MIN_MS = (\d+)/) || [])[1];
+  t(mn && +mn >= 5000, '★★★いちばん短い待ちでも5秒以上（「たまに」を守る）', mn);
+}
+
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
