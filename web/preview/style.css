@@ -443,8 +443,13 @@ header > .saymount, .login .head > .saymount{grid-column:2;grid-row:1;justify-se
 /* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
 header > .subline, .login .head > .subline{
   grid-column:1 / -1;grid-row:2;display:flex;align-items:center;gap:8px;min-width:0}
-header > .subline .sub{margin-top:0;min-width:0}
-.login .head > .subline .sub{margin-top:0}
+/* ★一文（近日中〜）は、右へ寄せます（ご指示・2026/11/11）
+     「サブタイトル(近日中～)は、右寄りにしてください」
+     margin-left:auto … 左の余りを ぜんぶ ここで食うので、
+     版（v1.0）は左のまま、一文だけが右へ行きます。
+     版が無い画面（ログイン）でも、同じように右へ寄ります。 */
+header > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
+.login .head > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
 /* ★称号（ポンコツ）だけ左、あとは右（ご指示・2026/11/11）
      「ポンコツ(称号)だけ、左寄せにしてください」
      段いっぱいに広げて、左右に振り分けます。 */

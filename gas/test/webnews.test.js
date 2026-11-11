@@ -565,6 +565,17 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
     '★★★ふきだしと顔は、題と同じ段（1段目）');
   t(/header > \.subline[^{]*\{[^}]*grid-row:2/.test(css),
     '★★★版と一文は、2段目');
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「サブタイトル(近日中～)は、右寄りにしてください」
+   *   版（v1.0）は左のまま、一文だけを右へ寄せます。
+   */
+  t(/header > \.subline \.sub\{[^}]*margin-left:auto/.test(css),
+    '★★★一文（近日中〜）は、右へ寄せる');
+  t(/header > \.subline \.sub\{[^}]*text-align:right/.test(css),
+    '　 字そろえも右');
+  t(/\.login \.head > \.subline \.sub\{[^}]*margin-left:auto/.test(css),
+    '　 ログインの画面も、同じ寄せ方');
   t(/header > \.who\{[^}]*grid-row:3/.test(css), '　 名前とボタンは3段目');
   /*
    * ★まーく様のご指示（2026/11/11）
