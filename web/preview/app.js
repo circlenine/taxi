@@ -532,7 +532,7 @@ function tableHTML(rows){
   </tbody></table></div>`;
 }
 
-/* ---- アツい場所（時間帯 × つけ待ち場所の地図）----
+/* ---- つけ待ちデータ（時間帯 × つけ待ち場所の表）----
  *  ★名前を「アツい」でそろえました（まーく様のご指示・2026/11/10）。
  *      「熱いところがアツじゃなくて、表記ゆれになってます」
  *      「アツい時間帯、アツいで表記は必ず統一して下さい」
@@ -566,8 +566,10 @@ function paneHeat(){
   pls.forEach((p,i) => s += row(p,p,34+i*ch));
   s += `<line x1="${lw}" x2="${w-8}" y1="${34+pls.length*ch+1}" y2="${34+pls.length*ch+1}" class="grid-l"/>`;
   s += row('ぜんぶ', null, 34+pls.length*ch+2) + '</svg>';
-  return `<div class="card"><h2>時間帯 × つけ待ち場所</h2>
-    <p class="note">数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
+  return `<div class="card"><h2>つけ待ちデータ</h2>
+    <p class="note"><b>ためた記録ぜんぶを、時間帯べつ・乗り場べつに並べた表</b>です。
+      いつでも同じものが出ます（「いまアツい」は、いまの時刻だけの話）。<br>
+      数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
     ${filterChips()}<div class="scroll">${s}</div>
     <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>うすい＝単価が低い</span>
     <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span><span>最大 ${yen(mx)}/h</span></div></div>`;
@@ -825,8 +827,18 @@ function paneHot(now){
   const plan = hotPlan(cc);
   const mx = Math.max.apply(null, got.rows.map(function (x){ return x.avg; }).concat([1]));
 
+  /*
+   * ★「いまアツい」と「つけ待ちデータ」のちがいを、はっきり書きます
+   *   （まーく様のご指摘・2026/11/12「いまアツい、とアツい場所の
+   *     違いがよく分かりません」）。
+   *   ・いまアツい　　　… いまの時刻の、いま行くべき所（時刻で変わる）
+   *   ・つけ待ちデータ … ためた記録ぜんぶの表（いつでも同じ）
+   */
   const head = '<div class="card"><h2>いまアツい</h2>' +
-    '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
+    '<p class="note"><b>いまの時刻に合わせて、いま行くとよい所</b>を出しています。' +
+    '時刻が変われば、出てくる所も変わります。' +
+    'ためたぶんぜんぶの表は【つけ待ちデータ】のほうです。<br>' +
+    'いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
     (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
              : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
     'いま何人いるかを測っているのではありません。</p>' +
@@ -1736,15 +1748,51 @@ function evStale(day){
   return (day.d < evNight()) ? '※新しいぶんが、まだ届いていません' : '';
 }
 
+/*
+ * 催しの「時刻の行」を作る（ご指示・2026/11/12）
+ *
+ *  ★いちばん大きく出すのは 開演。着ける時刻は、下に小さく。
+ *  ★バラシ（搬出）は、公演のあとの話なので「終演」を出します。
+ *    「開演が分かりません」と書いても、意味がありません。
+ *  ★搬入（設営）は、その日に公演がありません。
+ *    時刻を1つも出しません（公演の時刻をくっつけない決まり）。
+ *  ★分からないときは、時刻を1つも書きません。
+ *    あやしい時刻は、空振りを生みます。
+ */
+function evTimeLine(x){
+  if (x.k === 'hanyu') return '';
+  if (x.s) {
+    return '<div class="evgo">🎬 ' + esc(x.s) + ' 開演' +
+      (x.e ? '　／　終演 ' + esc(x.e) + (x.g ? '（見当）' : '') : '') + '</div>';
+  }
+  if (x.e) {
+    return '<div class="evgo">🎬 終演 ' + esc(x.e) + (x.g ? '（見当）' : '') + '</div>';
+  }
+  const w = (x.k === 'barasi') ? '終演' : '開演';
+  return '<div class="evgo evnone">🎬 ' + w + 'の時刻が、まだ分かっていません</div>';
+}
+
 function evRows(day){
   if (!day || !day.list || !day.list.length) return '<div class="empty">該当データがありません</div>';
   const kind = { event:'🎤 イベント', barasi:'🔧 バラシ（搬出）',
                  hanyu:'🚚 搬入（この日は夜の人出なし）', hotel:'🍽 ホテル宴会' };
+  /*
+   * ★いちばん上に出すのは「開演の時刻」です
+   *   （まーく様のご指示・2026/11/12）。
+   *     「何時に車を着けるのかはこちらで判断するので、
+   *       開演時間がいちばん重要なので、
+   *       そこを履き違えないでください」
+   *   ★前は「何時に車を着けるか」を大きく出していました。
+   *     着ける時刻は、まーく様ご自身がお決めになるものなので、
+   *     開演・終演を先に、大きく出します。
+   *   ★着ける時刻の目安は、消さずに下に残します。
+   *     判断の材料として、あったほうがよいからです。
+   */
   return day.list.map(x => `<div class="evrow">
     <div class="evhead">${esc(x.v || '')}<span class="evkind">${esc(kind[x.k] || '')}</span></div>
-    ${x.a ? `<div class="evgo">🚕 ${esc(x.a)}</div>` : ''}
+    ${evTimeLine(x)}
     <div class="evt">${esc(x.t || '')}</div>
-    ${x.s ? `<div class="evsub">🎬 ${esc(x.s)} 開演${x.e ? `　／　終演 ${esc(x.e)}${x.g ? '（見当）' : ''}` : ''}</div>` : ''}
+    ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
     ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
   </div>`).join('');
 }
@@ -1758,7 +1806,8 @@ function paneEv(){
   const hid = evHiddenToday();
   return `<div class="card"><h2>${esc(evTitle(d))}</h2>
     <p class="note">${evStale(d) ? '<b class="evold">' + esc(evStale(d)) + '</b><br>' : ''}
-      いちばん上は<b>何時に車を着けるか</b>。開演はその下に、根拠として置いています。
+      いちばん上は<b>開演の時刻</b>（分かっていれば終演も）。
+      車を着ける時刻の目安は、その下に小さく置いています。
       ${at ? '（取ったのは ' + esc(at) + '）' : ''}</p>
     <div class="actions">
       <button class="btn ghost" id="evAgain">まん中に もう一度 出す</button>
@@ -1772,7 +1821,7 @@ function paneEv(){
 }
 
 /* ============================================================
- *  ごいけん（自由に書いて送れる所）
+ *  フィードバック（自由に書いて送れる所）
  *
  *  ★まーく様のご指示（2026/11/11）
  *      「フィードバックページも導入して(自由形式)
@@ -1787,7 +1836,7 @@ function paneEv(){
 let fbText = '';
 
 function paneFb(){
-  return `<div class="card"><h2>ごいけん</h2>
+  return `<div class="card"><h2>フィードバック</h2>
     <p class="note">使っていて「ここが使いにくい」「これが欲しい」と思ったことを、
       そのまま書いてください。書き方は自由です。直したものは【お知らせ】に出ます。</p>
     <div class="grid">
@@ -1815,7 +1864,7 @@ async function fbSend(){
       /* 棚がまだ無いときは、そうと伝えます。黙って捨てません */
       const m = String(error.message || '');
       bad(/relation|does not exist|schema cache/i.test(m)
-          ? 'ごいけんの置き場が、まだ台帳にありません（まーく様に、ひと手間だけお願いします）'
+          ? 'フィードバックの置き場が、まだ台帳にありません（まーく様に、ひと手間だけお願いします）'
           : jaError(error));
       return;
     }

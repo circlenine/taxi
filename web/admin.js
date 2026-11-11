@@ -101,7 +101,7 @@ $('#dump').addEventListener('click', async () => {
 
 
 /* ------------------------------------------------------------
- *  ごいけん（乗務員の方から届いたもの）
+ *  フィードバック（乗務員の方から届いたもの）
  *
  *  ★まーく様のご指示（2026/11/11）
  *      「フィードバックページも導入して(自由形式)」
@@ -123,7 +123,7 @@ async function loadFb(){
   if (error) {
     const m = String((error && error.message) || error);
     box.innerHTML = /relation|does not exist|schema cache/i.test(m)
-      ? '<p class="note">ごいけんの置き場が、まだ台帳にありません。' +
+      ? '<p class="note">フィードバックの置き場が、まだ台帳にありません。' +
         '<br>作り方は <b>web/supabase/schema.sql</b> の「7.」です（1回だけ）。</p>'
       : '<p class="note">読めませんでした：' + esc(m) + '</p>';
     return;

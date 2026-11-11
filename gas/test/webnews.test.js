@@ -488,11 +488,11 @@ console.log('■ 記録の入口（ご指示・2026/11/11）');
   t(app.indexOf('PLACE_OK_KEY') !== -1, '★★★「同じ名前なら同じ場所」の印がある');
 }
 
-console.log('■ ごいけんと、イベントの出し直し（ご指示・2026/11/11）');
+console.log('■ フィードバックと、イベントの出し直し（ご指示・2026/11/11）');
 {
   const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-  t(/data-t="fb"/.test(html), '★★★【ごいけん】の入口がある');
+  t(/data-t="fb"/.test(html), '★★★【フィードバック】の入口がある');
   t(app.indexOf('function paneFb') !== -1, '　 その中身もある');
   t(/fb:paneFb/.test(app), '★★★押したら、ちゃんとそこが開く');
   t(app.indexOf("db.from('feedback')") !== -1, '★★★書いたものが、台帳にたまる');
@@ -501,7 +501,7 @@ console.log('■ ごいけんと、イベントの出し直し（ご指示・202
   t(/feedback_select[\s\S]{0,200}is_admin\(\)/.test(sql),
     '★★★読めるのは、自分のぶんと まーく様だけ');
   const adm = fs.readFileSync(path.join(W, 'admin.js'), 'utf8');
-  t(adm.indexOf('async function loadFb') !== -1, '★★★管理の画面で、ごいけんが読める');
+  t(adm.indexOf('async function loadFb') !== -1, '★★★管理の画面で、フィードバックが読める');
 
   t(app.indexOf('evAgain') !== -1,
     '★★★「今日はもう表示しない」にしても、イベントを出し直せる');
@@ -1071,6 +1071,78 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   /* 「ぜんぶ」なら、どの日も入る */
   vm.runInContext('period={mode:"all",from:"",to:""};', box);
   t(IN('2020-01-01') === true && IN('2030-12-31') === true, '　「ぜんぶ」なら、何も外さない');
+}
+
+
+
+console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「いまアツい、とアツい場所の違いがよく分かりません」
+   *     「アツい場所というより つけ待ちデータ の方が良いのではないですか？」
+   *     「ごいけん → フィードバック にしてください」
+   */
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const adm  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
+  const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
+
+  t(/data-t="heat"[^>]*>つけ待ちデータ</.test(html), '★★★タブは「つけ待ちデータ」');
+  t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
+  t(/data-t="fb"[^>]*>フィードバック</.test(html), '★★★タブは「フィードバック」');
+  t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
+    '★★★「ごいけん」は、どこにも残っていない');
+  t(/つけ待ちデータ/.test(pv) && /フィードバック/.test(pv),
+    '　 下見用のページも、同じ名前になっている');
+  t(/pvbar/.test(pv), '　 下見用の赤い帯も、消えていない');
+  t(/<h2>つけ待ちデータ<\/h2>/.test(app), '　 中の題も「つけ待ちデータ」');
+  t(/<h2>フィードバック<\/h2>/.test(app), '　 中の題も「フィードバック」');
+
+  /* ★2つの画面のちがいが、それぞれに書いてあること */
+  t(/ためた記録ぜんぶを[\s\S]{0,60}時間帯べつ/.test(app),
+    '★★★「つけ待ちデータ」は、ためたぶん ぜんぶの表だと書いてある');
+  t(/いまの時刻に合わせて[\s\S]{0,40}いま行くとよい所/.test(app),
+    '★★★「いまアツい」は、いまの時刻の話だと書いてある');
+  t(/つけ待ちデータ】のほう/.test(app), '　 もう一方への案内もある');
+}
+
+
+console.log('■ イベントは、開演の時刻を いちばん上に（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「何時に車を着けるのかはこちらで判断するので、
+   *       開演時間がいちばん重要なので、
+   *       そこを履き違えないでください」
+   *
+   *   ★着ける時刻は、まーく様ご自身がお決めになるものです。
+   *     こちらが大きく出すのは、開演（と終演）。
+   *   ★着ける目安は、消さずに下に残します（判断の材料になるため）。
+   *   ★開演が分かっていないときに、あやしい時刻を書きません。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const row = app.slice(app.indexOf('function evTimeLine'), app.indexOf('function paneEv'));
+  const iGo  = row.indexOf('evTimeLine(x)}');
+  const iCar = row.indexOf('🚕');
+  t(/function evTimeLine/.test(app), '★★★時刻の行を作る係がある');
+  t(iGo !== -1 && iCar !== -1 && iGo < iCar,
+    '★★★開演のほうが、着ける目安より先に出る', [iGo, iCar]);
+  t(/'<div class="evgo">🎬 ' \+ esc\(x\.s\) \+ ' 開演'/.test(row),
+    '★★★開演が、いちばん大きい字（evgo）');
+  t(!/class="evgo">🚕/.test(app), '　 着ける時刻は、大きい字ではない');
+  t(/着ける目安/.test(app), '★★★着ける目安も、消さずに残している');
+  t(/の時刻が、まだ分かっていません/.test(row),
+    '★★★分からないときは、時刻を書かずに そう書く');
+  /* ★バラシは公演のあと。「開演が分かりません」では意味が通りません */
+  t(/x\.k === 'barasi'\) \? '終演' : '開演'/.test(row),
+    '★★★バラシのときは「終演」と書く');
+  /* ★搬入の日は、公演がありません。時刻を1つも出しません */
+  t(/x\.k === 'hanyu'\) return ''/.test(row),
+    '★★★搬入（設営）の日は、時刻を1つも出さない');
+  t(/いちばん上は<b>開演の時刻<\/b>/.test(app), '　 画面の説明も、そろっている');
+  const news = fs.readFileSync(path.join(W, 'news.js'), 'utf8');
+  t(/いちばん上に出るのは「開演の時刻」/.test(news), '　 お知らせの説明も、そろっている');
 }
 
 
