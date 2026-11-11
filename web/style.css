@@ -68,7 +68,7 @@ button{font-family:inherit}
 .kperiod b{color:var(--paper);font-weight:500;font-family:var(--mono)}
 .ver{font-family:var(--mono);font-size:11px;color:var(--muted);
   letter-spacing:.06em;border:1px solid var(--line);border-radius:999px;
-  padding:1px 8px;vertical-align:3px;font-weight:400}
+  padding:1px 8px;font-weight:400}
 /* ★まだ読んでいないお知らせがあることを、小さな点で知らせる */
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
   background:var(--kusha);margin-left:5px;vertical-align:1px}
@@ -484,8 +484,14 @@ header > h1, .login .head > h1{white-space:nowrap}
   .ver{padding:1px 5px;font-size:10px;letter-spacing:.04em}
 }
 
-/* 顔をいちばん右に。ふきだしは、その左 */
-.saymount{flex-direction:row-reverse}
+/* ★ならびは「題 → 顔 → ふきだし」（ご指示・2026/11/11）
+     「ロゴ(TAXI NOTE)の右に顔、その横にふきだし」
+   ★顔の位置は、題の幅だけで決まります。
+     ひとことが入れ替わっても、顔は1ミリも動きません
+     （ふきだしのほうが、残った幅ぜんぶに伸びます）。 */
+.saymount{flex-direction:row}
+.saymount .face{order:1}
+.saymount .bubble{order:2}
 
 /* ★幅と高さを決め打ちにする。伸び縮みすると、まわりが動きます。
      まーく様のご指摘（2026/11/11）
@@ -500,18 +506,25 @@ header > h1, .login .head > h1{white-space:nowrap}
   /* ★高さは、題の字の高さ（大きさ×1.2）とぴたり同じ */
   height:calc(var(--logo) * 1.2);
   min-height:calc(var(--logo) * 1.2);max-height:calc(var(--logo) * 1.2);
-  padding:0 10px;line-height:1;display:flex;align-items:center;overflow:hidden}
+  /* ★overflow:hidden は付けません。付けると、ふきだしの外に出る
+       「しっぽ」が切り取られて、ほとんど見えなくなります
+       （実際に、そうなっていました・2026/11/11）。
+       字のはみ出しは、中の <span> のほうで止めています。 */
+  padding:0 10px;line-height:1;display:flex;align-items:center}
 /* 字は1行。高さを題にそろえたので、2行は入りません */
 .saymount .bubble .t{display:block;white-space:nowrap;overflow:hidden;width:100%}
 
 /* ★顔の大きさを固定。組み合わせが変わっても、ここは動きません */
 .saymount .face{width:34px;height:34px;min-width:34px;flex:0 0 34px}
 
-/* ふきだしの、とんがりを右向きに（顔のほうを指す） */
-.saymount .bubble:before{left:auto;right:-6px;
-  border-right-color:transparent;border-left-color:var(--line)}
-.saymount .bubble:after{left:auto;right:-4.5px;
-  border-right-color:transparent;border-left-color:#17171A}
+/* ★ふきだしの しっぽは、左向き（顔のほうを指す）。
+     前より大きくして、ひと目で分かるようにします（ご指示・2026/11/11）。
+     ・:before … ふちの色の三角（外がわ）
+     ・:after  … 中の色の三角（内がわ）。重ねて「ふちのある三角」にする */
+.saymount .bubble:before{right:auto;left:-9px;margin-top:-7px;
+  border-width:7px;border-left-color:transparent;border-right-color:#6E6E7A}
+.saymount .bubble:after{right:auto;left:-7px;margin-top:-6px;
+  border-width:6px;border-left-color:transparent;border-right-color:#17171A}
 
 /* ★「乗せてよかった」ひとことのときだけ、ふちを明るくします。
      ぼやきと、ぱっと見で見分けられるようにするためです。 */
@@ -554,3 +567,25 @@ header > h1, .login .head > h1{white-space:nowrap}
   .saymount .face{width:24px;height:24px;min-width:24px;flex:0 0 24px}
   .saymount{gap:6px}
 }
+
+/* ============================================================
+ *  枠の中の字は、ぜんぶ まん中（ご指示・2026/11/11）
+ *    「管理者っていう文字が、枠に対して、上じゃありませんか？
+ *      枠文字は全て、枠に対して中央位置中央高さで徹底してください」
+ *
+ *  ★字は、ふつう「ベースライン」という見えない線にそろいます。
+ *    そのため、枠の中では上に寄って見えます。
+ *    inline-flex にして、たて・よこ とも まん中に置きます。
+ *  ★line-height:1 にしないと、字の行の高さぶん 下がります。
+ * ============================================================ */
+.badge, .mini, .chip, .ver, .btn, .mtag, nav button, .kao small{
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:1;vertical-align:middle;text-align:center}
+/* 1文字でも つぶれないように、最低の高さをそろえます */
+.badge{min-height:16px}
+.mini{min-height:20px}
+.ver{min-height:17px;vertical-align:middle}
+.chip{min-height:22px}
+.mtag{min-height:16px}
+/* 入れものの側も、たて まん中にそろえます */
+.who, .who .whoR, .chips, .actions{align-items:center}

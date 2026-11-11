@@ -717,5 +717,60 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
     '★★★細い画面のきまりは、560pxのきまりより下にある（でないと効かない）', [i380, i560]);
 }
 
+
+console.log('■ 枠の中の字は、ぜんぶ まん中（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「管理者っていう文字が、枠に対して、上じゃありませんか？
+   *       枠文字は全て、枠に対して中央位置中央高さで徹底してください」
+   *   字は、ふつう「ベースライン」という見えない線にそろうので、
+   *   枠の中では上に寄って見えます。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const blk = (css.match(/\.badge, \.mini, \.chip, \.ver, \.btn, \.mtag, nav button, \.kao small\{[^}]*\}/) || [''])[0];
+  t(!!blk, '★枠の中の字をまん中にする、きまりがある');
+  t(/display:inline-flex/.test(blk),   '★★★枠の中の字を、たて よこ まん中に置いている');
+  t(/align-items:center/.test(blk),    '　 たて まん中');
+  t(/justify-content:center/.test(blk),'　 よこ まん中');
+  t(/line-height:1/.test(blk),
+    '★★★行の高さを1にしている（これが無いと、字が下へずれる）');
+  ['badge', 'mini', 'ver', 'chip', 'mtag'].forEach(function (k) {
+    t(new RegExp('\\.' + k + '\\{[^}]*min-height:\\d+px').test(css),
+      '　 ' + k + ' に、つぶれない高さがある');
+  });
+  t(!/vertical-align:3px/.test(css), '　 古い、ずらして合わせる書き方は残っていない');
+}
+
+console.log('■ ならびは 題 → 顔 → ふきだし（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「ロゴ(TAXI NOTE)の右に顔、その横にふきだし
+   *       (ふきだしの先っぽは左向きに、もうちょっとわかりやすく)」
+   *   ★顔の位置が動かないことが、お約束でした。
+   *     顔の場所は「題の幅」だけで決まり、ふきだしが残りを使います。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(!/\.saymount\{flex-direction:row-reverse\}/.test(css),
+    '★★★顔を右に置く古い書き方は、残っていない');
+  t(/\.saymount\{flex-direction:row\}/.test(css), '★★★顔が先、ふきだしが後ろ');
+  t(/\.saymount \.face\{order:1\}/.test(css) && /\.saymount \.bubble\{order:2\}/.test(css),
+    '　 ならびを はっきり決めている');
+  /* しっぽは左向き。大きさも前より大きく */
+  const tail1 = (css.match(/\.saymount \.bubble:before\{right:auto;[^}]*\}/) || [''])[0];
+  t(/left:-\d+px/.test(tail1), '★★★しっぽは、ふきだしの左がわ（顔のほうを指す）');
+  t(/border-right-color:#/.test(tail1), '　 左を向いた三角になっている');
+  t(/border-width:([7-9]|1\d)px/.test(tail1), '★★★しっぽを、前より大きくしている', tail1);
+  /* ふきだしに overflow:hidden を付けると、しっぽが切り取られる */
+  /* ★「書いてある説明」に出てくる字で間違えないよう、説明は先に外します */
+  const bub = (css.match(/\.saymount \.bubble\{flex:1 1 auto[^}]*\}/) || [''])[0]
+                .replace(/\/\*[\s\S]*?\*\//g, '');
+  t(!/overflow:hidden/.test(bub),
+    '★★★ふきだしで字を切らない（切ると、しっぽまで消える）', bub.slice(0, 60));
+  t(/\.saymount \.bubble \.t\{[^}]*overflow:hidden/.test(css),
+    '　 字のはみ出しは、中の字のほうで止めている');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
