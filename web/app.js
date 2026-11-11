@@ -114,7 +114,7 @@ const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
      消すと、前に「流し」で入れた記録の書き方がそろわなくなるためです。
    ★「途中乗り」を足しました（ご指示・2026/11/11）。
      タブに出すものは、ここに名前で並べます。
-     書きまちがえると出なくなるので、検査（webnews.test.js）で
+     書き間違えると出なくなるので、検査（webnews.test.js）で
      「7つ ぜんぶ METHODS にある」ことを押さえています。 */
 const METHOD_CHIP_NAMES = ['GO', 'Uber', '無線', '付け待ち', '手上げ', '乗り場', '途中乗り'];
 const METHOD_CHIPS = METHOD_CHIP_NAMES.filter(m => METHODS.indexOf(m) !== -1);
@@ -125,7 +125,7 @@ const METHOD_CHIPS = METHOD_CHIP_NAMES.filter(m => METHODS.indexOf(m) !== -1);
 const NOTE_CHIPS = ['行先：', 'チケット', 'バラシ', '関空'];
 
 /* ------------------------------------------------------------
- *  つけ待ち場所を、地図でたしかめる
+ *  つけ待ち場所を、地図で確かめる
  *
  *  ★まーく様のご指示（2026/11/11）
  *      「記録の際の乗車位置ですが、Googleマップと連携して、
@@ -148,16 +148,16 @@ const PLACE_OK_KEY = 'tsukemachi.place.ok';
  *      もしかして、○○と同じですか？ という最終確認も出してください」
  *
  *  ★同じ場所が2つの名前で入ると、どちらも件数が足りず、
- *    どちらの数字も当てになりません。いちばん静かな事故です。
+ *    どちらの数字も当てになりません。一番静かな事故です。
  * ---------------------------------------------------------- */
-/** 見くらべ用に、名前をそろえる（全角・半角・空白・記号を取る） */
+/** 見比べ用に、名前をそろえる（全角・半角・空白・記号を取る） */
 function pkey(v){
   let t = String(v == null ? '' : v).trim().toLowerCase();
   t = t.replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   t = t.replace(/[\s\u3000ー－\-・．.,、。「」（）()]/g, '');
   return t;
 }
-/** 1字ちがいまでの近さを見る（レーベンシュタイン） */
+/** 1字違いまでの近さを見る（レーベンシュタイン） */
 function pdist(a, b){
   const m = a.length, n = b.length;
   if (Math.abs(m - n) > 2) return 9;
@@ -181,7 +181,7 @@ function placeSuggest(name){
   for (const p of list) {
     const q = pkey(p);
     if (!q) continue;
-    /* 片方がもう片方を丸ごと含むときも、同じ所の言い方ちがいが多い */
+    /* 片方がもう片方を丸ごと含むときも、同じ所の言い方違いが多い */
     let dd = pdist(k, q);
     if (dd > 1 && (q.indexOf(k) === 0 || k.indexOf(q) === 0) &&
         Math.abs(q.length - k.length) <= 2) dd = 1;
@@ -248,19 +248,19 @@ const rowToRec = r => ({
  * ★記録用スプレッドシートから移すとき、「営」の欄に
  *   ﾀﾞｲｽｹ・ｼｭﾝ のような名前が入っています。
  *   それを、このアプリの人と結びつけるために使います。
- *   半角カナ・全角・空白のちがいは気にしません。
+ *   半角カナ・全角・空白の違いは気にしません。
  */
 /* --nkey-start-- ここから下は gas/test/webname.test.js が取り出して検査します */
 const nkey = v => {
   /*
    * ★半角カナを、きちんと全角に直します（2026/11/10 に直しました）。
    *
-   *   前は「ﾀﾞｲｽｹ」が「タﾞイスケ」にしかならず、
+   *   前は「ﾀﾞｲｽｹ」が「タﾞイスケ」にし必ず、
    *   「ダイスケ」と別の字あつかいでした。
    *   小さい字（ｭ）と長音（ｰ）も直していませんでした。
    *   そのため、スプシから取り込むと
    *   **ほとんどの記録が、取り込んだ人の名義で入って**いました。
-   *   売上が人ごとに狂うので、いちばん重い間違いです。
+   *   売上が人ごとに狂うので、一番重い間違いです。
    */
   let s = String(v == null ? '' : v).replace(/[\s　]/g, '');
   const H  = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝｧｨｩｪｫｬｭｮｯｰ';
@@ -306,7 +306,7 @@ function idByName(name){
  *
  *  ★16日から、翌月の15日まで を1つの期として数えます。
  *    スプシのレポートと、まったく同じ区切りです。
- *    ちがう区切りにすると、同じ月なのに数が合わなくなります。
+ *    違う区切りにすると、同じ月なのに数が合わなくなります。
  * ---------------------------------------------------------- */
 const ymd = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
 
@@ -380,7 +380,7 @@ function render(){
   /* ★合計は、すぐ上の見出しの横に大きく出しています。
        ここで同じ数をくり返しても読みどころが増えないので、
        「1日当たり」に替えました（ご指示・2026/11/12で、
-       見返すのにいちばん良い形かを見直したため）。 */
+       見返すのに一番良い形かを見直したため）。 */
   {
     const sum2 = rs.filter(hasFare).reduce((a,r) => a + (+r.fare || 0), 0);
     const d2 = new Set(rs.map(r => r.date)).size;
@@ -391,7 +391,7 @@ function render(){
   const hb = hourAgg().filter(h => h.n >= 3).sort((a,b) => b.avg - a.avg)[0];
   $('#k4').textContent = hb ? hb.h + '時台' : '—';
   /*
-   * ★いちばん上に「期間」と「合計」。下に小さく「1日当たりではありません」
+   * ★一番上に「期間」と「合計」。下に小さく「1日当たりではありません」
    *   （まーく様のご指示・2026/11/12）
    *     「上の4つは～みたいなやり方は絶対やめてください、見づらすぎます
    *       1番上に、期間と合計を入れて
@@ -442,7 +442,7 @@ function render(){
     kp.innerHTML = rs.length
       ? '※1日当たりの数字ではありません。上の期間の合計です。'
       : ('※この絞り込みでは、1件もありません。' +
-         (filtOn() ? '「絞り込みを解除」を押すと、もとに戻ります。' : ''));
+         (filtOn() ? '「絞り込みを解除」を押すと、元に戻ります。' : ''));
   }
   /*
    * ★行灯は、台帳の画面でも回します（まーく様のご指摘・2026/11/10）。
@@ -489,7 +489,7 @@ function paneIn(){
             <button class="chip on" data-psug="${esc(sug)}">${esc(sug)} にする</button>
             <button class="chip" data-pkeep="1">このままでよい</button></div>` : ''; })()}
         <div class="chips">${pl.slice(0,6).map(p => `<button class="chip ${f.place===p?'on':''}" data-set="place" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>
-        <!-- ★場所を地図でたしかめる（ご指示・2026/11/11） -->
+        <!-- ★場所を地図で確かめる（ご指示・2026/11/11） -->
         <div class="chips">
           <a class="chip ${f.place ? '' : 'off'}" id="f_map"
              href="${f.place ? esc(mapUrl(f.place)) : '#'}" target="_blank" rel="noopener">📍 地図で見る</a>
@@ -503,7 +503,7 @@ function paneIn(){
 
       <!-- ★LINEに書く順にそろえます（ご指示・2026/11/12）
              乗車場所 → 乗車時間 → 乗車金額 → 待ち時間。
-             打つ順が ちがうと、手が止まります。 -->
+             打つ順が 違うと、手が止まります。 -->
       <div class="f w2"><label>乗車時間（分）</label>
         <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
         <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.ride,'ride')).join('')}</div></div>
@@ -653,7 +653,7 @@ function paneHeat(noChips){
       いつでも同じものが出ます（「いまアツい」は、いまの時刻だけの話）。<br>
       数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
     ${noChips ? '' : filterChips()}<div class="scroll">${s}</div>
-    <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>うすい＝単価が低い</span>
+    <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>薄い＝単価が低い</span>
     <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span><span>最大 ${yen(mx)}/h</span></div></div>`;
 }
 
@@ -706,7 +706,7 @@ const HOT_FROM = 18;
  *   h     … 記録と同じ数え方（0〜6時は 24時以降）
  *   ah    … 見当を引くときに使う時刻
  *   early … まだ乗務の時間ではない（昼・朝）
- *   clock … 画面に出す、ふつうの時計の字
+ *   clock … 画面に出す、普通の時計の字
  *
  * ★昼や朝に開いたときに「記録が足りません」だけが出ると、
  *   見ても何の役にも立ちません。
@@ -728,8 +728,8 @@ function hotNow(now){
 }
 
 /**
- * 時計は回るので、23時と翌1時は「2時間ちがい」。
- * 引き算だけだと 22時間ちがいになってしまうので、短いほうを取ります。
+ * 時計は回るので、23時と翌1時は「2時間違い」。
+ * 引き算だけだと 22時間違いになってしまうので、短いほうを取ります。
  */
 function hotDist(a, b){
   let d = Math.abs(a - b);
@@ -794,7 +794,7 @@ function hotBest(c, rows){
   return last;
 }
 
-/** いまから3時間ぶん、1時間ごとの「いちばん強かった場所」 */
+/** いまから3時間ぶん、1時間ごとの「一番強かった場所」 */
 function hotPlan(c, rows){
   const out = [];
   for (let k = 0; k < 3; k++) {
@@ -814,10 +814,10 @@ function wxRead(j, now){
     const t0 = j[0].timeSeries[0].areas[0];
     const text = String(t0.weathers[0] || '').replace(/　+/g, ' ').trim();
     /*
-     * ★どこの天気かを、かならず持ち歩きます（まーく様のご指摘・2026/11/10）。
+     * ★どこの天気かを、必ず持ち歩きます（まーく様のご指摘・2026/11/10）。
      *     「降水確率とかは、どこを指してるのですか？
      *       具体的な場所が無いと分からないですし」
-     *   気象庁が出しているのは「大阪府」ひとまとまりの予報で、
+     *   気象庁が出しているのは「大阪府」一まとまりの予報で、
      *   市ごとの細かい差は、そもそも出ていません。
      *   それを書かずに数字だけ出すのは、不親切でした。
      */
@@ -910,7 +910,7 @@ function paneHot(now){
   const mx = Math.max.apply(null, got.rows.map(function (x){ return x.avg; }).concat([1]));
 
   /*
-   * ★「いまアツい」と「つけ待ちデータ」のちがいを、はっきり書きます
+   * ★「いまアツい」と「つけ待ちデータ」の違いを、はっきり書きます
    *   （まーく様のご指摘・2026/11/12「いまアツい、とアツい場所の
    *     違いがよく分かりません」）。
    *   ・いまアツい　　　… いまの時刻の、いま行くべき所（時刻で変わる）
@@ -937,7 +937,7 @@ function paneHot(now){
 
   const cards = got.rows.slice(0, 3).map(function (x, i){
     return '<div class="hotc' + (i === 0 ? ' top' : '') + '">' +
-      '<small>' + (i + 1) + '位' + (i === 0 ? '　いちばん濃い' : '') + '</small>' +
+      '<small>' + (i + 1) + '位' + (i === 0 ? '　一番濃い' : '') + '</small>' +
       '<b>' + esc(x.p) + '</b>' +
       '<div class="hv">' + yen(x.avg) + '/h</div>' +
       '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
@@ -979,14 +979,14 @@ function hotPlanCard(plan, early){
     }).join('') + '</div></div>';
 }
 
-/** 注意書き（毎回おなじ所に出す） */
+/** 注意書き（毎回同じ所に出す） */
 function hotNoteCard(got){
   return '<div class="card"><h2>この画面の読み方（大事なところ）</h2>' +
     '<p class="note" style="margin:0">' +
     '・<b>いま人が何人いるか</b>は出していません。自分たちの記録からの傾向です。<br>' +
     '・' + HOT_MIN_N + '件より少ない場所は、平均と呼べないので出しません。<br>' +
     '・催し（ライブ・宴会）がある夜は、記録の傾向より催しが勝ちます。終演の15分前に着けるのが先。<br>' +
-    '・天気は気象庁の公開データ。出しているのは<b>大阪府ひとまとまり</b>の予報で、' +
+    '・天気は気象庁の公開データ。出しているのは<b>大阪府一まとまり</b>の予報で、' +
     '市ごと・町ごとの細かい差は、気象庁からも出ていません。<br>' +
     '・降水確率は<b>6時間ごと</b>（0〜6／6〜12／12〜18／18〜24時）。いま入っている枠の分を出しています。<br>' +
     '・取れない日は、その行だけ出ません。<br>' +
@@ -1078,7 +1078,7 @@ async function loadWx(){
 function paneTl(){
   /* 時刻が不明なものは、夜の流れのどこにも置けないので外します */
   const R = visible().filter(hasDep);
-  if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見くらべられます。');
+  if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べられます。');
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,14);
   const x0 = 19, x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
   const L = 74, Rp = 16, W = 760, rowH = 34, H = 40 + ds.length*rowH + 14;
@@ -1192,11 +1192,11 @@ function bars(rows, label, fmt){
  *  ★1件しかないものを「平均」と呼びません。
  * ---------------------------------------------------------- */
 /* ------------------------------------------------------------
- *  前の期間とくらべる（ご指示・2026/11/12）
+ *  前の期間と比べる（ご指示・2026/11/12）
  *
  *  ★「今期 ¥○○」だけでは、良いのか悪いのかが分かりません。
- *    1つ前と同じ長さの期間とくらべて、差を出します。
- *  ★くらべる相手が無い（記録が無い）ときは、何も出しません。
+ *    1つ前と同じ長さの期間と比べて、差を出します。
+ *  ★比べる相手が無い（記録が無い）ときは、何も出しません。
  *    ごまかした数を出すより、黙るほうがましです。
  * ---------------------------------------------------------- */
 /** 日をまたいだ数（from〜to）を、いまの人・乗り場の絞り込みのままで数える */
@@ -1214,7 +1214,7 @@ function sumIn(from, to){
 }
 /** 1つ前の、同じ長さの期間 */
 function prevRange(){
-  /* ★「前は」ではなく「前月は」「前日は」と、何とくらべているかを
+  /* ★「前は」ではなく「前月は」「前日は」と、何と比べているかを
        はっきり書きます（ご指示・2026/11/12）。 */
   const m = /^c(\d+)$/.exec(period.mode);
   if (m) { const c = cycleOf(Number(m[1]) + 1); return { from:c.from, to:c.to, name:'前月' }; }
@@ -1226,7 +1226,7 @@ function prevRange(){
     const name = len === 1 ? '前日' : (len === 7 ? '前週' : ('前の' + len + '日間'));
     return { from: ymd(pa), to: ymd(pb), name: name };
   }
-  return null;                       /* 全期間のときは、くらべる相手がいません */
+  return null;                       /* 全期間のときは、比べる相手がいません */
 }
 /** 差を「＋¥1,200（＋8%）」の形に */
 function diffText(now, before){
@@ -1252,9 +1252,9 @@ function compareCard(){
     '<div class="cn">' + fmt(a2) + '<i>' + pn + 'は ' + fmt(b2) + '</i></div>' +
     '<div class="cd">' + diffText(a2, b2) + '</div></div>';
   const nd = now.n - bef.n;
-  return '<div class="card"><h2>前の期間とくらべる</h2>' +
+  return '<div class="card"><h2>前の期間と比べる</h2>' +
     '<p class="note"><b>' + esc(pr.name) + '</b>（' + esc(fmtD(pr.from)) + ' 〜 ' +
-    esc(fmtD(pr.to)) + '）とくらべています。' +
+    esc(fmtD(pr.to)) + '）と比べています。' +
     (onlyPlace ? esc(onlyPlace) + ' だけ。' : '') + '</p>' +
     row('売上の合計', now.sum, bef.sum, yen) +
     row('1日当たり', now.days ? now.sum/now.days : 0,
@@ -1278,11 +1278,11 @@ function reportCard(){
   const avgRt = rts.length ? rts.reduce((a,b) => a+b, 0) / rts.length : 0;
   /* 1日あたりは「記録のある日」で割ります。走っていない日で割ると下がります */
   const perDay = days ? sum / days : 0;
-  /* いちばん良かった日 */
+  /* 一番良かった日 */
   const byDay = {};
   fares.forEach(r => { byDay[r.date] = (byDay[r.date] || 0) + (+r.fare || 0); });
   const bestDay = Object.keys(byDay).sort((a,b) => byDay[b] - byDay[a])[0] || '';
-  /* いちばん多かった乗り場（3件以上あるときだけ） */
+  /* 一番多かった乗り場（3件以上あるときだけ） */
   const byPl = {};
   R.forEach(r => { if (r.place) byPl[r.place] = (byPl[r.place] || 0) + 1; });
   const topPl = Object.keys(byPl).sort((a,b) => byPl[b] - byPl[a])[0] || '';
@@ -1308,10 +1308,10 @@ function reportCard(){
                            : ('数えられたのは ' + rts.length + '本だけ')) +
     '</div>' +
     '<p class="note" style="margin-top:12px">' +
-      (bestDay ? 'いちばん良かった日：<b>' + esc(fmtD(bestDay)) + '</b>（' +
+      (bestDay ? '一番良かった日：<b>' + esc(fmtD(bestDay)) + '</b>（' +
                  yen(byDay[bestDay]) + '）<br>' : '') +
       (topPl && byPl[topPl] >= 3
-        ? 'いちばん多く着けた所：<b>' + esc(topPl) + '</b>（' + byPl[topPl] + '件）' : '') +
+        ? '一番多く着けた所：<b>' + esc(topPl) + '</b>（' + byPl[topPl] + '件）' : '') +
     '</p></div>';
 }
 
@@ -1691,7 +1691,7 @@ function detectCols(cells){
    */
   const idx = { date:-1, place:-1, dep:-1, wait:-1, ride:-1, fare:-1,
                 method:-1, note:-1, who:-1 };
-  // 「つけ待ち場所」が待ち時間と誤認されないよう、場所をいちばん先に判定する
+  // 「つけ待ち場所」が待ち時間と誤認されないよう、場所を一番先に判定する
   const rules = [
     ['place', c => /場所|地点|乗場|place/i.test(c)],
     ['wait',  c => (/待/.test(c) && !/場所/.test(c)) || /wait/i.test(c)],
@@ -1897,7 +1897,7 @@ async function loadEv(){
   if (tab === 'ev') render();
 }
 
-/** きょうのぶん（無ければ、いちばん上の日） */
+/** きょうのぶん（無ければ、一番上の日） */
 function evToday(){
   if (!evData || !evData.days || !evData.days.length) return null;
   const t = evNight();
@@ -1905,7 +1905,7 @@ function evToday(){
 }
 
 /*
- * 何日のぶんかを、かならず題に出す（まーく様のご指示・2026/11/12）
+ * 何日のぶんかを、必ず題に出す（まーく様のご指示・2026/11/12）
  *   「これ、毎回日付を入れてもらえないと、
  *     いつのイベントか分かりません」
  *
@@ -1915,7 +1915,7 @@ function evToday(){
  *   どの日のぶんなのか、まったく分からない形になっていました。
  * ★日付（曜日つき）は、どんなときも必ず出します。
  *   「きょう」と足すのは、営業日とぴったり同じときだけ。
- *   ちがう日のぶんを出しているのに「きょう」と書くのは、嘘になります。
+ *   違う日のぶんを出しているのに「きょう」と書くのは、嘘になります。
  */
 function evTitle(day){
   const n = (day && day.list) ? day.list.length : 0;
@@ -1924,9 +1924,9 @@ function evTitle(day){
   return kyo + fmtD(day.d) + ' のイベント（' + n + '件）';
 }
 
-/* ★日付は、いちばん目立たせます（ご指示・2026/11/12
+/* ★日付は、一番目立たせます（ご指示・2026/11/12
      「〇〇のイベントの日付部分は、もっと目立たせてください」）。
-     どの日のぶんかを取りちがえると、空振りになるためです。 */
+     どの日のぶんかを取り違えると、空振りになるためです。 */
 function evTitleHTML(day){
   const n = (day && day.list) ? day.list.length : 0;
   if (!day || !day.d) return 'イベント（' + n + '件）';
@@ -1947,13 +1947,13 @@ function evStale(day){
 /*
  * 催しの「時刻の行」を作る（ご指示・2026/11/12）
  *
- *  ★いちばん大きく出すのは 開演。着ける時刻は、下に小さく。
+ *  ★一番大きく出すのは 開演。着ける時刻は、下に小さく。
  *  ★バラシ（搬出）は、公演のあとの話なので「終演」を出します。
  *    「開演が分かりません」と書いても、意味がありません。
  *  ★搬入（設営）は、その日に公演がありません。
  *    時刻を1つも出しません（公演の時刻をくっつけない決まり）。
  *  ★分からないときは、時刻を1つも書きません。
- *    あやしい時刻は、空振りを生みます。
+ *    怪しい時刻は、空振りを生みます。
  */
 function evTimeLine(x){
   if (x.k === 'hanyu') return '';
@@ -1971,10 +1971,10 @@ function evRows(day){
   const kind = { event:'🎤 イベント', barasi:'🔧 バラシ（搬出）',
                  hanyu:'🚚 搬入（この日は夜の人出なし）', hotel:'🍽 ホテル宴会' };
   /*
-   * ★いちばん上に出すのは「開演の時刻」です
+   * ★一番上に出すのは「開演の時刻」です
    *   （まーく様のご指示・2026/11/12）。
    *     「何時に車を着けるのかはこちらで判断するので、
-   *       開演時間がいちばん重要なので、
+   *       開演時間が一番重要なので、
    *       そこを履き違えないでください」
    *   ★前は「何時に車を着けるか」を大きく出していました。
    *     着ける時刻は、まーく様ご自身がお決めになるものなので、
@@ -2000,7 +2000,7 @@ function paneEv(){
   const hid = evHiddenToday();
   return `<div class="card"><h2>${evTitleHTML(d)}</h2>
     <p class="note">${evStale(d) ? '<b class="evold">' + esc(evStale(d)) + '</b><br>' : ''}
-      いちばん上は<b>開演の時刻</b>（分かっていれば終演も）。
+      一番上は<b>開演の時刻</b>（分かっていれば終演も）。
       車を着ける時刻の目安は、その下に小さく置いています。
       ${at ? '（取ったのは ' + esc(at) + '）' : ''}</p>
     <div class="actions">
