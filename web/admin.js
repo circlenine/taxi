@@ -11,7 +11,11 @@ let ME = null;
   $('#dtitle').value = s.profile.title || '';
   $('#email').value = s.user.email || '';
   $('#out').addEventListener('click', signOut);
-  if (s.profile.is_admin) { $('#meBadge').hidden = false; $('#adminOnly').hidden = false; await loadMembers(); }
+  if (s.profile.is_admin) {
+    $('#meBadge').hidden = false; $('#adminOnly').hidden = false;
+    await loadMembers();
+    await loadFb();
+  }
   /* ★版の番号を、題のとなりに小さく出す（ご指示・2026/11/10） */
   try { if (typeof APP_VERSION !== 'undefined') $('#ver').textContent = APP_VERSION; } catch (e) {}
   $('#boot').hidden = true; $('#app').hidden = false;
@@ -94,3 +98,53 @@ $('#dump').addEventListener('click', async () => {
   URL.revokeObjectURL(a.href);
   say('#m3', `${(rs||[]).length}件を書き出しました。`);
 });
+
+
+/* ------------------------------------------------------------
+ *  ごいけん（乗務員の方から届いたもの）
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「フィードバックページも導入して(自由形式)」
+ *  ★置き場（feedback）がまだ台帳に無いときは、
+ *    黙って消さずに「まだ無い」と出します。
+ *    作り方は web/supabase/schema.sql の「7.」です。
+ * ---------------------------------------------------------- */
+async function loadFb(){
+  const box = $('#fbList');
+  if (!box) return;
+  let data = null, error = null;
+  try {
+    ({ data, error } = await db.from('feedback')
+      .select('id,who,body,created_at,done')
+      .order('done', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(200));
+  } catch (e) { error = e; }
+  if (error) {
+    const m = String((error && error.message) || error);
+    box.innerHTML = /relation|does not exist|schema cache/i.test(m)
+      ? '<p class="note">ごいけんの置き場が、まだ台帳にありません。' +
+        '<br>作り方は <b>web/supabase/schema.sql</b> の「7.」です（1回だけ）。</p>'
+      : '<p class="note">読めませんでした：' + esc(m) + '</p>';
+    return;
+  }
+  if (!data || !data.length) { box.innerHTML = '<p class="note">まだ届いていません。</p>'; return; }
+  box.innerHTML = '<div class="scroll"><table><thead><tr>' +
+    '<th>いつ</th><th>だれ</th><th>中身</th><th></th></tr></thead><tbody>' +
+    data.map(function (r) {
+      return '<tr' + (r.done ? ' style="opacity:.5"' : '') + '>' +
+        '<td>' + esc(String(r.created_at || '').slice(0, 16).replace('T', ' ')) + '</td>' +
+        '<td>' + esc(r.who || '—') + '</td>' +
+        '<td class="ja" style="white-space:pre-wrap">' + esc(r.body || '') + '</td>' +
+        '<td>' + (r.done ? '<span class="badge">済み</span>'
+                         : '<button class="mini" data-fbdone="' + esc(r.id) + '">済み</button>') + '</td>' +
+        '</tr>';
+    }).join('') + '</tbody></table></div>';
+  document.querySelectorAll('[data-fbdone]').forEach(function (b) {
+    b.onclick = async function () {
+      const { error } = await db.from('feedback').update({ done: true }).eq('id', b.dataset.fbdone);
+      if (error) { alert(jaError(error)); return; }
+      await loadFb();
+    };
+  });
+}

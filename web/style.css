@@ -18,9 +18,15 @@
   --ink:#0A0A0B; --ink2:#151518; --ink3:#1F1F23; --line:#3E3E48;
   --andon:#C8232B;      /* 差し色（血の赤）。塗りに使う */
   --kusha:#FF6A60;      /* 字に使う赤。暗い地でも読める明るさ */
-  --meter:#C9C5BA;      /* 落ちついた明るい灰 */
-  --paper:#F3EFE7;      /* 骨色の字。前より明るい */
-  --muted:#A3A09A;      /* そえ字。前は暗すぎて読めなかった */
+  --meter:#FFFFFF;
+  /* ★まーく様のご指示（2026/11/11）
+       「webサイトの文字は全て真っ白文字にしてください、
+         まだ視認性が悪いです
+         ただし、選択前のタグであれば、ちょい薄グレーで良いです」
+     走りながら、暗い車内で読むものです。うすい灰色は読めません。 */
+  --paper:#FFFFFF;      /* ふつうの字。真っ白 */
+  --muted:#FFFFFF;      /* そえ字も、真っ白 */
+  --chipoff:#C9C9C9;    /* まだ押していないタグだけ、ちょい薄グレー */
   --disp:'Zen Antique',serif;
   --goth:'Cinzel','Zen Antique',serif;   /* 題だけに使う（読める字に変更） */
   --body:'Zen Kaku Gothic New',system-ui,-apple-system,sans-serif;
@@ -89,7 +95,22 @@ h1.dn{font-family:var(--goth);font-weight:700;font-size:32px;letter-spacing:.17e
   line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
 h1.dn2{font-family:var(--disp);letter-spacing:.08em}
 @media(max-width:640px){h1.dn{font-size:27px}}
-.sub{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.5}
+/* 地図で開ける場所の名前（ご指示・2026/11/11） */
+.plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
+.plink:hover{border-bottom-color:var(--andon)}
+.okmark{color:var(--meter);font-weight:400}
+a.chip{text-decoration:none;display:inline-block}
+a.chip.off{opacity:.45;pointer-events:none}
+.chip[disabled]{opacity:.45}
+
+/* 見出しの横の、小さなそえ字（「記録の目安時間」） */
+.h2sub{font-family:var(--body);font-size:11.5px;color:var(--chipoff);
+  letter-spacing:.04em;margin-left:8px;font-weight:400}
+
+/* ★スマホで1行に収まるように（ご指示・2026/11/11）。
+     画面が細いほど字を小さくします。折り返すと、題の位置が下がって
+     まわりがズレます。 */
+.sub{color:var(--muted);font-size:clamp(10px,2.9vw,13px);margin-top:3px;line-height:1.5}
 .who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .who b{color:var(--paper);font-weight:500}
 
@@ -103,7 +124,7 @@ h1.dn2{font-family:var(--disp);letter-spacing:.08em}
 nav{display:flex;gap:4px;margin:18px 0 14px;background:var(--ink2);padding:4px;border-radius:9px;
   border:1px solid var(--ink3);overflow-x:auto;scrollbar-width:none}
 nav::-webkit-scrollbar{display:none}
-nav button{flex:1 0 auto;white-space:nowrap;background:none;border:0;color:var(--muted);
+nav button{flex:1 0 auto;white-space:nowrap;background:none;border:0;color:var(--chipoff);
   padding:9px 13px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
 nav button[aria-selected=true]{background:var(--andon);color:#14100A;font-weight:700}
 
@@ -135,7 +156,7 @@ input[type=date]::-webkit-calendar-picker-indicator{margin:0 0 0 auto;padding:0}
 input.ja,textarea{font-family:var(--body);font-size:14px}
 input::placeholder,textarea::placeholder{color:#4E5F7D}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{background:#0C1422;border:1px solid var(--line);color:var(--muted);border-radius:20px;
+.chip{background:#0C1422;border:1px solid var(--line);color:var(--chipoff);border-radius:20px;
   padding:4px 10px;font-size:11.5px;cursor:pointer}
 .chip:hover{border-color:var(--andon);color:var(--paper)}
 .chip.on{background:var(--andon);color:#14100A;border-color:var(--andon)}
@@ -344,7 +365,7 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
  *  ★走る前に、暗い車内で見るものです。
  *    細い字・薄い灰色・小さい字を、ぜんぶ やめます。
  * ============================================================ */
-.sub{font-size:13px;color:var(--muted)}
+.sub{font-size:clamp(10px,2.9vw,13px);color:var(--muted)}
 .card{padding:18px}
 .card h2{font-size:17.5px;margin-bottom:5px}
 .card .note{font-size:12.5px;color:var(--muted);line-height:1.85}
@@ -426,6 +447,10 @@ header .saymount,.login .head .saymount{order:3;margin-left:auto}
   border-right-color:transparent;border-left-color:var(--line)}
 .saymount .bubble:after{left:auto;right:-4.5px;
   border-right-color:transparent;border-left-color:#17171A}
+
+/* ★「乗せてよかった」ひとことのときだけ、ふちを明るくします。
+     ぼやきと、ぱっと見で見分けられるようにするためです。 */
+.saymount .bubble.good{border-color:#6E6E7A}
 
 @media(max-width:560px){
   /* 細い画面でも、2行ぶんの高さで固定（行の高さ17px × 2 ＋ 余白） */

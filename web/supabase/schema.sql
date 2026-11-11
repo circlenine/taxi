@@ -159,3 +159,42 @@ create policy rides_delete_own on public.rides
 
 -- 確認用
 -- select p.display_name, p.is_admin, u.email from public.profiles p join auth.users u on u.id = p.id;
+
+-- ============================================================
+-- 7. ごいけんの置き場（2026/11/11・まーく様のご指示）
+--      「フィードバックページも導入して(自由形式)」
+--
+--    ★ここだけを選んで Run しても、ちゃんと動きます。
+--      すでに作ってあるときは、何も起きません（こわれません）。
+--    ★書けるのは、ログインした人だけ。
+--      読めるのは「自分が書いたもの」と「管理者（まーく様）」だけです。
+-- ============================================================
+create table if not exists public.feedback (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  who        text not null default '',
+  body       text not null,
+  created_at timestamptz not null default now(),
+  done       boolean not null default false   -- 直し終わったら true
+);
+
+alter table public.feedback enable row level security;
+
+drop policy if exists feedback_insert on public.feedback;
+create policy feedback_insert on public.feedback
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists feedback_select on public.feedback;
+create policy feedback_select on public.feedback
+  for select to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists feedback_update on public.feedback;
+create policy feedback_update on public.feedback
+  for update to authenticated
+  using      (public.is_admin())
+  with check (public.is_admin());
+
+grant select, insert on public.feedback to authenticated;
+grant update (done) on public.feedback to authenticated;

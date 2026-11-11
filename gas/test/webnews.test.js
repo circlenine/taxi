@@ -301,5 +301,110 @@ console.log('■ 営業日の欄が、わくからはみ出さない（ご指摘
   t(/class="f w2 fdate"/.test(app), '　 営業日の欄に、その目じるしが付いている');
 }
 
+
+console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「ネガティブばかりだと、嫌な気分になるので
+   *       ポジティブワード(乗車して良かった言葉)も
+   *       ランダムで100通り作ってください
+   *       ネガティブ→ポジティブ→ネガティブ→ポジティブ…と、
+   *       連続するようにしてください」
+   */
+  const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const a = code.indexOf('const FACE_EYES');
+  const b = code.indexOf('/** 変顔を1つ描く');
+  t(a !== -1 && b > a, '★ひとことの中身が見つかる');
+  if (a !== -1 && b > a) {
+    const box = { console: { log: function(){} } };
+    vm.createContext(box);
+    vm.runInContext(code.slice(a, b) + `
+      globalThis.S = (function(){
+        var seq = [], badSeen = {}, goodSeen = {};
+        for (var i = 0; i < 400; i++) {
+          var v = sayNext();
+          seq.push(v.good ? 'G' : 'B');
+          (v.good ? goodSeen : badSeen)[v.t] = 1;
+        }
+        var okAlt = true;
+        for (var j = 1; j < seq.length; j++) if (seq[j] === seq[j-1]) okAlt = false;
+        return { bad: SAY_BAD.length, good: SAY_GOOD.length, alt: okAlt,
+                 first: seq[0], kindsB: Object.keys(badSeen).length,
+                 kindsG: Object.keys(goodSeen).length,
+                 dup: SAY_BAD.filter(function(x){ return SAY_GOOD.indexOf(x) !== -1; }).length };
+      })();`, box);
+    const S = box.S;
+    t(S.good === 100, '★★★ありがとうのひとことが、ちょうど100通りある', S.good);
+    t(S.bad === 100,  '★★★ぼやきも100通りある（片方だけ少ないと、すぐ同じのが戻る）', S.bad);
+    t(S.alt === true, '★★★かならず「ぼやき→ありがとう」の交互になる');
+    t(S.first === 'B', '　 はじめは ぼやきから', S.first);
+    t(S.dup === 0, '　 同じ文が、両方に入っていない', S.dup);
+    t(S.kindsB > 60 && S.kindsG > 60, '　 どちらも、ちゃんと散らばる', [S.kindsB, S.kindsG]);
+  }
+}
+
+console.log('■ 字は真っ白（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「webサイトの文字は全て真っ白文字にしてください、
+   *       まだ視認性が悪いです
+   *       ただし、選択前のタグであれば、ちょい薄グレーで良いです」
+   *   暗い車内で、走りながら読むものです。うすい灰色は読めません。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const root = css.slice(css.indexOf(':root'), css.indexOf('}', css.indexOf(':root')));
+  const v = n => { const m = root.match(new RegExp('--' + n + ':\\s*(#[0-9A-Fa-f]{3,8})')); return (m ? m[1] : '').toUpperCase(); };
+  t(v('paper') === '#FFFFFF', '★★★ふつうの字が、真っ白', v('paper'));
+  t(v('muted') === '#FFFFFF', '★★★そえ字も、真っ白（ここが灰色だと読めない）', v('muted'));
+  t(/--chipoff:/.test(root), '★まだ押していないタグ用の色がある');
+  t(/\.chip\{[^}]*color:var\(--chipoff\)/.test(css), '★★★押していないタグだけ、ちょい薄グレー');
+  t(/nav button\{[^}]*color:var\(--chipoff\)/.test(css), '　 選んでいない見出しのタブも、同じ扱い');
+}
+
+console.log('■ 題の下の一文は、スマホで1行（ご指示・2026/11/11）');
+{
+  const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  t(sh.indexOf('誰かワンメータを乗せたら') !== -1, '★★★「誰かが」ではなく「誰か」');
+  t(sh.indexOf("'近日中、誰かがワンメータ") === -1,
+    '　 古い書き方（誰かが）で組み立てていない');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/\.sub\{[^}]*font-size:clamp\(/.test(css),
+    '★★★画面が細いほど字を小さくして、1行に収める');
+}
+
+console.log('■ 記録の入口（ご指示・2026/11/11）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(app.indexOf('あと35秒…') !== -1, '★★★見出しが「あと35秒…」になっている');
+  t(app.indexOf('<h2>1回ぶんを残す</h2>') === -1, '　 古い見出しは残っていない');
+  t(/NOTE_CHIPS = \[[^\]]*行先：/.test(app), '★★★「他」のタブに「行先：」がある');
+  t(/：\$\/\.test\(val\)/.test(app), '★★★「：」で終わるタグは、続きを打てる（入れ替えない）');
+  t(app.indexOf('function mapUrl') !== -1, '★★★場所を地図で開く係がある');
+  t(app.indexOf('google.com/maps/search') !== -1, '　 Googleマップの住所を組み立てている');
+  t(app.indexOf('placeLink(r.place)') !== -1, '★★★一覧の場所を押すと、地図へ飛ぶ');
+  t(app.indexOf('PLACE_OK_KEY') !== -1, '★★★「同じ名前なら同じ場所」の印がある');
+}
+
+console.log('■ ごいけんと、イベントの出し直し（ご指示・2026/11/11）');
+{
+  const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/data-t="fb"/.test(html), '★★★【ごいけん】の入口がある');
+  t(app.indexOf('function paneFb') !== -1, '　 その中身もある');
+  t(/fb:paneFb/.test(app), '★★★押したら、ちゃんとそこが開く');
+  t(app.indexOf("db.from('feedback')") !== -1, '★★★書いたものが、台帳にたまる');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'schema.sql'), 'utf8');
+  t(/create table if not exists public\.feedback/.test(sql), '★★★置き場の作り方が書いてある');
+  t(/feedback_select[\s\S]{0,200}is_admin\(\)/.test(sql),
+    '★★★読めるのは、自分のぶんと まーく様だけ');
+  const adm = fs.readFileSync(path.join(W, 'admin.js'), 'utf8');
+  t(adm.indexOf('async function loadFb') !== -1, '★★★管理の画面で、ごいけんが読める');
+
+  t(app.indexOf('evAgain') !== -1,
+    '★★★「今日はもう表示しない」にしても、イベントを出し直せる');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

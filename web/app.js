@@ -81,8 +81,50 @@ const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
 const METHOD_CHIP_NAMES = ['GO', 'Uber', '無線', '付け待ち', '手上げ', '乗り場', '途中乗り'];
 const METHOD_CHIPS = METHOD_CHIP_NAMES.filter(m => METHODS.indexOf(m) !== -1);
 
-/* 「他」のタブ。よく書くものを、ひと押しで入れられるように。 */
-const NOTE_CHIPS = ['チケット', 'バラシ', '関空'];
+/* 「他」のタブ。よく書くものを、ひと押しで入れられるように。
+   ★「行先：」は“書き出し”なので、押すと欄に入れたうえで
+     そのまま続きを打てるようにしています（ご指示・2026/11/11）。 */
+const NOTE_CHIPS = ['行先：', 'チケット', 'バラシ', '関空'];
+
+/* ------------------------------------------------------------
+ *  つけ待ち場所を、地図でたしかめる
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「記録の際の乗車位置ですが、Googleマップと連携して、
+ *        場所の確認作業（今後、同じ名前なら同じ場所として記録する、
+ *        みたいなチェックボタンも付ける）、
+ *        一覧を見た時に場所をクリックしたら、
+ *        そこへGoogleマップへ飛ぶ形にしてください」
+ *
+ *  ★お金はかかりません。Googleマップの「検索して開くだけ」の
+ *    住所を組み立てています。地図の鍵（有料のもの）は使いません。
+ *  ★「同じ名前なら同じ場所」の印は、**その端末に覚えます**。
+ *    みんなで分け合う形にするには台帳の棚を足す必要があるので、
+ *    まずは自分の端末だけ。印が付いた場所は、一覧で ✓ が出ます。
+ * ---------------------------------------------------------- */
+const PLACE_OK_KEY = 'tsukemachi.place.ok';
+
+/** 場所の名前から、Googleマップで開く住所を作る */
+function mapUrl(place){
+  const q = String(place || '').trim();
+  if (!q) return '';
+  /* 「大阪」を添えます。「7番」のような短い名前だけだと、
+     まったく違う土地が出てしまうためです。 */
+  return 'https://www.google.com/maps/search/?api=1&query=' +
+         encodeURIComponent(/大阪|梅田|新地|難波|ミナミ/.test(q) ? q : '大阪 ' + q);
+}
+/** 「この名前は、この場所でよい」と印をつけた一覧 */
+function placeOkList(){
+  try { return JSON.parse(localStorage.getItem(PLACE_OK_KEY) || '[]') || []; }
+  catch (e) { return []; }
+}
+function placeOk(p){ return placeOkList().indexOf(String(p || '')) !== -1; }
+function placeOkToggle(p){
+  const k = String(p || ''); if (!k) return;
+  let L = placeOkList();
+  L = (L.indexOf(k) !== -1) ? L.filter(x => x !== k) : L.concat([k]);
+  try { localStorage.setItem(PLACE_OK_KEY, JSON.stringify(L)); } catch (e) {}
+}
 
 /** 書き方のゆれを、1つの言い方にそろえる */
 function normMethod(v){
@@ -217,7 +259,8 @@ function render(){
    *   （中身は shared.js の andonRoll）
    */
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
-  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc, rank:paneRank, list:paneList, news:paneNews, ev:paneEv }[tab]();
+  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc,
+    rank:paneRank, list:paneList, news:paneNews, ev:paneEv, fb:paneFb }[tab]();
   if (tab === 'news') newsSeen();
   wire();
 }
@@ -234,7 +277,11 @@ function paneIn(){
   const chip = (v,cur,fld,suf='') => `<button class="chip ${String(cur)===String(v)?'on':''}" data-set="${fld}" data-val="${v}">${v}${suf}</button>`;
   return `
   <div class="card">
-    <h2>1回ぶんを残す</h2>
+    <!-- ★まーく様のご指示（2026/11/11）
+           「1回ぶんを残す → あと35秒…(記録の目安時間)」
+         走りながら入れるものなので、「すぐ終わる」と先に分かる方が
+         手が動きます。 -->
+    <h2>あと35秒…<span class="h2sub">記録の目安時間</span></h2>
     <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで時間単価が出る。時刻は「2530」「25:30」「1:30」いずれでも可。</p>
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
@@ -243,6 +290,13 @@ function paneIn(){
         <input class="ja" id="f_place" list="pls" placeholder="新地7" value="${esc(f.place || '')}">
         <datalist id="pls">${pl.map(p => `<option value="${esc(p)}">`).join('')}</datalist>
         <div class="chips">${pl.slice(0,6).map(p => `<button class="chip ${f.place===p?'on':''}" data-set="place" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>
+        <!-- ★場所を地図でたしかめる（ご指示・2026/11/11） -->
+        <div class="chips">
+          <a class="chip ${f.place ? '' : 'off'}" id="f_map"
+             href="${f.place ? esc(mapUrl(f.place)) : '#'}" target="_blank" rel="noopener">📍 地図で見る</a>
+          <button class="chip ${f.place && placeOk(f.place) ? 'on' : ''}" id="f_mapok"
+            ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ この場所で覚えた' : 'この場所で覚える'}</button>
+        </div>
       </div>
       <div class="f w2"><label>乗せた時刻（出発）</label>
         <input id="f_dep" inputmode="numeric" placeholder="25:30" value="${esc(f.dep || '')}">
@@ -287,12 +341,21 @@ const filterChips = () => `<div class="chips" style="margin-bottom:12px">
   <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
   <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button></div>`;
 
+/** 場所の名前を、地図で開けるようにして返す（押すと新しいタブ） */
+function placeLink(p){
+  const q = String(p || '');
+  if (!q) return '';
+  const u = mapUrl(q);
+  return '<a class="plink" href="' + esc(u) + '" target="_blank" rel="noopener"' +
+         ' title="地図で開く">' + esc(q) + (placeOk(q) ? ' <b class="okmark">✓</b>' : '') + '</a>';
+}
+
 function tableHTML(rows){
   return `<div class="scroll"><table><thead><tr>
     <th>日付</th><th>場所</th><th>乗せた</th><th class="n">待ち</th><th class="n">乗車</th>
     <th class="n">金額</th><th class="n">時間単価</th><th>種類</th><th>他</th><th>記録者</th><th></th></tr></thead><tbody>
     ${rows.map(r => `<tr>
-      <td>${fmtD(r.date)}</td><td>${esc(r.place)}</td>
+      <td>${fmtD(r.date)}</td><td>${placeLink(r.place)}</td>
       <td class="n">${fmtT(r.dep)}</td><td class="n">${r.wait}分</td><td class="n">${r.ride}分</td>
       <td class="n">${yen(r.fare)}</td>
       <td class="n" style="color:var(--meter)">${rate(r) ? yen(rate(r)) : '—'}</td>
@@ -951,7 +1014,22 @@ function wire(){
   ['f_dep','f_wait','f_ride','f_fare'].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener('input', upd); });
   upd();
 
-  document.querySelectorAll('[data-set]').forEach(b => b.onclick = () => { grab(); form[b.dataset.set] = b.dataset.val; render(); });
+  document.querySelectorAll('[data-set]').forEach(b => b.onclick = () => {
+    grab();
+    const fld = b.dataset.set, val = b.dataset.val;
+    /* ★「行先：」のように「：」で終わるタグは“書き出し”です。
+         入れ替えるのではなく、前に付けて、続きを打てるようにします。 */
+    if (/：$/.test(val)) {
+      const now = String(form[fld] || '');
+      form[fld] = now.indexOf(val) === 0 ? now : (val + now);
+      render();
+      const el = $('#f_' + fld);
+      if (el) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
+      return;
+    }
+    form[fld] = val;
+    render();
+  });
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { scOpt[b.dataset.opt] = !scOpt[b.dataset.opt]; render(); });
   document.querySelectorAll('[data-mine]').forEach(b => b.onclick = () => { grab(); onlyMine = b.dataset.mine === '1'; render(); });
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delRec(b.dataset.del));
@@ -960,6 +1038,21 @@ function wire(){
     form = { date:r.date, place:r.place, dep:fmtT(r.dep), wait:r.wait, ride:r.ride, fare:r.fare };
     editId = r.id; tab = 'in'; msg = ''; render(); window.scrollTo({ top:0, behavior:'smooth' });
   });
+  /* きょうのイベントを、まん中にもう一度 出す（オフにした人も見られるように） */
+  if ($('#evAgain')) $('#evAgain').onclick = () => {
+    const d = evToday();
+    if (d && d.list && d.list.length) evPopup(d);
+    else bad('きょうのイベントは、まだ届いていません');
+  };
+  /* 「この場所で覚える」… 同じ名前なら、同じ場所として扱う印 */
+  if ($('#f_mapok')) $('#f_mapok').onclick = () => {
+    grab();
+    if (!form.place) { bad('先に、つけ待ち場所を入れてください'); return; }
+    placeOkToggle(form.place);
+    render();
+  };
+  if ($('#fb'))     $('#fb').addEventListener('input', e => { fbText = e.target.value; });
+  if ($('#fbSend')) $('#fbSend').onclick = fbSend;
   if ($('#add'))    $('#add').onclick = addRec;
   if ($('#cancel')) $('#cancel').onclick = () => { editId = null; form = {}; msg = ''; render(); };
   if ($('#csvout')) $('#csvout').onclick = () => dl(csv());
@@ -1312,15 +1405,77 @@ function paneEv(){
   const d = evToday();
   const when = d ? d.d : '';
   const at = (evData && evData.at) ? evData.at : '';
+  /* ★「今日はもう表示しない」を押した人も、ここから出し直せます
+       （ご指示・2026/11/11「今日のお知らせをオフにした人も
+         再度見れる形にしてください」）。 */
+  const hid = evHiddenToday();
   return `<div class="card"><h2>きょうのイベント</h2>
     <p class="note">${when ? esc(fmtD(when)) + ' のぶん。' : ''}
       いちばん上は<b>何時に車を着けるか</b>。開演はその下に、根拠として置いています。
       ${at ? '（取ったのは ' + esc(at) + '）' : ''}</p>
+    <div class="actions">
+      <button class="btn ghost" id="evAgain">まん中に もう一度 出す</button>
+      ${hid ? '<span class="note">※きょうは「もう表示しない」にしてあります。' +
+              '押せば、その場でもう一度 出ます。</span>' : ''}
+    </div>
     ${evRows(d)}</div>` +
     ((evData && evData.days && evData.days[1]) ?
       `<div class="card"><h2>あすのイベント</h2>
         <p class="note">${esc(fmtD(evData.days[1].d))} のぶん。</p>
         ${evRows(evData.days[1])}</div>` : '');
+}
+
+/* ============================================================
+ *  ごいけん（自由に書いて送れる所）
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「フィードバックページも導入して(自由形式)
+ *        そのフィードバックを読み取ったら、自動で改良し、
+ *        変更前に、僕に最終確認をとる形にして、
+ *        プレビュー用ページの作成も作るようにしてください」
+ *
+ *  ★書いたものは台帳の棚（feedback）にたまります。
+ *    まーく様は【管理】の画面で、ぜんぶ読めます。
+ *  ★棚がまだ無いときは、そうと出します。黙って消しません。
+ * ========================================================== */
+let fbText = '';
+
+function paneFb(){
+  return `<div class="card"><h2>ごいけん</h2>
+    <p class="note">使っていて「ここが使いにくい」「これが欲しい」と思ったことを、
+      そのまま書いてください。書き方は自由です。直したものは【お知らせ】に出ます。</p>
+    <div class="grid">
+      <div class="f w6"><label>思ったこと（自由に）</label>
+        <textarea class="ja" id="fb" rows="5"
+          placeholder="例）待ち時間のタブ、もっと細かいのが欲しい">${esc(fbText)}</textarea></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="fbSend">送る</button>
+      ${msgHTML('msg')}
+    </div>
+    <p class="note">※ 書いた人の名前も一緒に残ります（だれの困りごとか分からないと、直せないため）。</p>
+  </div>`;
+}
+
+async function fbSend(){
+  const t = String($('#fb') ? $('#fb').value : '').trim();
+  if (!t) { bad('なにか書いてから送ってください'); return; }
+  if (t.length > 2000) { bad('長すぎます。2000字までにしてください'); return; }
+  try {
+    const { error } = await db.from('feedback').insert({
+      user_id: ME.id, who: (ME.profile && ME.profile.display_name) || '', body: t
+    });
+    if (error) {
+      /* 棚がまだ無いときは、そうと伝えます。黙って捨てません */
+      const m = String(error.message || '');
+      bad(/relation|does not exist|schema cache/i.test(m)
+          ? 'ごいけんの置き場が、まだ台帳にありません（まーく様に、ひと手間だけお願いします）'
+          : jaError(error));
+      return;
+    }
+    fbText = '';
+    ok('ありがとうございます。届きました');
+  } catch (e) { bad(jaError(e)); }
 }
 
 /* ---- ポップアップ ---- */
