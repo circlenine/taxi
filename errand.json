@@ -1,5 +1,5 @@
 {
-  "id": "2026-11-12-sync1",
-  "do": ["ledger-export", "web-sync-try"],
-  "note": "スプシの記録を書き出して中身を確かめ、台帳へ移せる件数を数えます（まだ移しません）"
+  "id": "2026-11-12-syncgo",
+  "do": ["web-sync-go", "web-sync-go", "web-sync-go", "web-sync-try"],
+  "note": "スプシの記録を台帳へ移します。6分で途中までなら、次の回が続きを入れます（同じ記録は二度入りません）"
 }
