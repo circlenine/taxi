@@ -2,8 +2,20 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U169ver  （2026/11/11）  ★★★
+ *  ★★★  U170ver  （2026/11/11）  ★★★
  *
+ *
+ *   [U170ver]
+ *   ・🧱 台帳の「棚づくり」を、こちらから流せるようにした（web-sql）
+ *     ★まーく様のご指示：「これは、クロちゃんの方で自動で
+ *       追加できないのですか？」「次回以降は、webサイト修正、
+ *       全てにおいて自動修正できる仕組み作りにしてください」
+ *     ★webの見た目・動きは、もともと全自動でした。
+ *       手が要るのは「台帳の棚（表や列）を足すこと」だけ。
+ *       そこを自動にします。
+ *     ★鍵（SUPABASE_PAT）を1回だけ入れていただければ、
+ *       あとは こちらが置いた pending.sql をGASが流します。
+ *     ★表を落とす・中身を消す文は、はじきます。
  *
  *  [U169ver]
  *   ・🔁 新しい係を足した「同じ回」に頼んでも、ちゃんと走るようにした
@@ -1895,7 +1907,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U169ver";
+const UPD_VERSION = "U170ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11442,6 +11454,114 @@ function sbWakeConf_() {
   } catch (e) { return null; }
 }
 
+/* ============================================================
+ *  台帳の「棚づくり」を、こちらから直せるようにする（web-sql）
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「これは、クロちゃんの方で自動で追加できないのですか？」
+ *      「次回以降は、webサイト修正、全てにおいて
+ *        自動修正できる仕組み作りにしてください」
+ *
+ *  ★web の中身（見た目・動き）は、もともと全自動です。
+ *    こちらが置けば、そのまま台帳の画面に出ます。
+ *    手が要るのは「台帳の棚の作り（表や列を足すこと）」だけでした。
+ *  ★そこだけ、ここで自動にします。
+ *    Supabase の持ち主用の鍵（SUPABASE_PAT）を1回だけ入れていただけば、
+ *    あとは こちらが置いた web/supabase/pending.sql を、
+ *    GASが読んで流します。まーく様の手は、もう要りません。
+ *
+ *  ★お金はかかりません（Supabaseの無料のままです）。
+ *  ★鍵は、スクリプトプロパティにだけ置きます。
+ *    コードにも、スプシにも、置き場（GitHub）にも書きません。
+ *  ★こわい文（表を落とす・中身を消す）は、はじきます。
+ *    売上の記録を、まちがっても壊さないためです。
+ * ========================================================== */
+const SB_SQL_FILE = "web/supabase/pending.sql";   // こちらが置く、流したい文
+const SB_PAT_KEY  = "SUPABASE_PAT";               // 持ち主用の鍵（1回だけ入れていただく）
+const SB_SQL_DONE = "SB_SQL_DONE";                // 最後に流した文の、見分け札
+
+/** 置き場の名前（kazrozdgjihwjntfjvbo のような字）を、住所から取り出す */
+function sbRef_(url) {
+  const m = String(url || "").match(/https?:\/\/([a-z0-9]+)\.supabase\./i);
+  return m ? m[1] : "";
+}
+
+/** こわい文が混じっていないか見る。混じっていたら、その文を返す */
+function sbSqlDanger_(sql) {
+  const t = String(sql || "").toLowerCase();
+  const ng = ["drop table", "drop schema", "drop database", "truncate",
+              "delete from", "drop column", "drop role", "drop owned"];
+  for (let i = 0; i < ng.length; i++) if (t.indexOf(ng[i]) !== -1) return ng[i];
+  return "";
+}
+
+/**
+ * 台帳の棚づくりを流す（sbSqlRun_）
+ *   go が true のときだけ、ほんとうに流します。
+ *   ふだんは「何を流すか」を控えに書くだけ（下見）。
+ */
+function sbSqlRun_(go) {
+  try {
+    let pat = "";
+    try { pat = String(PropertiesService.getScriptProperties().getProperty(SB_PAT_KEY) || ""); } catch (e) {}
+    if (!pat) {
+      updErrandLog_("🧱 台帳の鍵（" + SB_PAT_KEY + "）が、まだ入っていません");
+      return "🧱 台帳の鍵が、まだ入っていません（スクリプトプロパティに1回だけ）。";
+    }
+    const conf = sbWakeConf_();
+    const ref = conf ? sbRef_(conf.url) : "";
+    if (!ref) return "🧱 台帳の住所が読めませんでした。";
+
+    if (updSource_() !== "github") return "🧱 置き場につながりません。";
+    const url = "https://raw.githubusercontent.com/" + updRepo_() + "/" +
+                updRefPath_(updBranch_()) + "/" + SB_SQL_FILE;
+    const r = updGhTry_(url);
+    if (r.code !== 200 || !r.body) return "🧱 流すものが、置かれていません。";
+    const sql = String(r.body);
+    if (!sql.replace(/\s|--[^\n]*/g, "")) return "🧱 流すものが、からっぽです。";
+
+    const ng = sbSqlDanger_(sql);
+    if (ng) {
+      updErrandLog_("🧱 こわい文（" + ng + "）が混じっていたので、流しませんでした");
+      return "🧱 こわい文（" + ng + "）が混じっていたので、流していません。";
+    }
+
+    /* 同じものを何度も流さないよう、中身で見分けます */
+    let sig = "";
+    try {
+      const b = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, sql, Utilities.Charset.UTF_8);
+      for (let i = 0; i < 8; i++) sig += ("0" + (b[i] & 255).toString(16)).slice(-2);
+    } catch (e) { sig = String(sql.length); }
+    const pr = PropertiesService.getScriptProperties();
+    if (pr.getProperty(SB_SQL_DONE) === sig) return "🧱 その中身は、もう流してあります。";
+
+    if (!go) {
+      updErrandLog_("🧱 下見：" + sql.split("\n").length + "行ぶん 流せます（go:true で流します）");
+      return "🧱 下見だけしました。流すときは go:true を書いてください。";
+    }
+
+    const res = UrlFetchApp.fetch("https://api.supabase.com/v1/projects/" + ref + "/database/query", {
+      method: "post",
+      headers: { Authorization: "Bearer " + pat },
+      contentType: "application/json",
+      payload: JSON.stringify({ query: sql }),
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    const body = String(res.getContentText() || "").slice(0, 300);
+    if (code >= 200 && code < 300) {
+      try { pr.setProperty(SB_SQL_DONE, sig); } catch (e) {}
+      updErrandLog_("🧱 台帳の棚づくりを流しました（" + code + "）");
+      return "🧱 流しました。台帳の棚ができました。";
+    }
+    updErrandLog_("🧱 流せませんでした（" + code + "）" + body);
+    return "🧱 流せませんでした（" + code + "）。";
+  } catch (e) {
+    try { logErr_("sbSqlRun", e); } catch (e2) {}
+    return "🧱 流せませんでした：" + ((e && e.message) || e);
+  }
+}
+
 /**
  * 1日に1回だけ、倉庫に声をかける。
  * 返すのは「声をかけたかどうか」。ふだんは何も言いません。
@@ -11996,6 +12116,12 @@ const UPD_ERRAND_OK = {
   "props-tidy":  "古くなったGASの控えを片づける",
   "props-restore": "片づけた控えを、まるごと戻す",
   "biz-check":   "営業曜日の区切りが何時かを、控えに書く",
+  /*
+   * ★台帳の棚づくり（表や列を足すこと）を、こちらから流します。
+   *   { "do": ["web-sql"] }             … 下見（流さない）
+   *   { "do": ["web-sql"], "go": true } … ほんとうに流す
+   */
+  "web-sql":     "台帳の棚づくりを、こちらから流す",
   "ping":        "動いているかどうかの返事だけ"
 };
 
@@ -12484,6 +12610,8 @@ function updErrandTick_() {
       out = updPropsRestore_();
     } else if (task === "biz-check") {
       out = updBizCheck_();
+    } else if (task === "web-sql") {
+      out = sbSqlRun_(j && j.go === true);
     } else if (task === "web-sync-try") {
       out = webSyncPush_(false);
     } else if (task === "web-sync-go") {

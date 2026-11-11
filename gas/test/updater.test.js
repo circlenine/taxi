@@ -7150,5 +7150,49 @@ console.log('■ 古くなった控えの片づけ（props-tidy）');
   Object.keys(dfiles).forEach(k => delete dfiles[k]);
 }
 
+
+console.log('■ 台帳の棚づくりを、こちらから流す（web-sql）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「これは、クロちゃんの方で自動で追加できないのですか？」
+   *     「次回以降は、webサイト修正、全てにおいて
+   *       自動修正できる仕組み作りにしてください」
+   *
+   *   ★いちばん怖いのは、まちがって売上の記録を消すことです。
+   *     「表を落とす」「中身を消す」文は、必ずはじきます。
+   */
+  const D = n => F('sbSqlDanger_(' + JSON.stringify(n) + ')');
+  t(D('alter table public.rides alter column fare drop not null;') === '',
+    '★ふつうの棚づくりは、通る');
+  t(D('create table if not exists public.feedback (id uuid);') === '',
+    '　 表を足すのも、通る');
+  t(D('drop policy if exists x on public.rides;') === '', '　 守りの入れ替えも、通る');
+  t(D('DROP TABLE public.rides;') === 'drop table', '★★★表を落とす文は、はじく');
+  t(D('delete from public.rides;') === 'delete from', '★★★中身を消す文は、はじく');
+  t(D('TRUNCATE rides;') === 'truncate', '★★★まとめて空にする文も、はじく');
+  t(D('alter table rides drop column fare;') === 'drop column',
+    '★★★列を落とす文も、はじく（記録が消えるため）');
+
+  t(F('sbRef_("https://kazrozdgjihwjntfjvbo.supabase.co")') === 'kazrozdgjihwjntfjvbo',
+    '★台帳の住所から、置き場の名前を取り出せる');
+  t(F('sbRef_("")') === '', '　 読めないときは、空で返す（落ちない）');
+
+  /* 鍵が無いときは、黙って終わらない */
+  delete props['SUPABASE_PAT'];
+  const out = F('sbSqlRun_(true)');
+  t(/鍵/.test(out), '★★★鍵が無いときは、そうと言う（黙って終わらない）', out);
+
+  t(!!F('UPD_ERRAND_OK')['web-sql'], '★おつかいの一覧に入っている');
+
+  /* 置いてある文そのものが、こわくないこと */
+  const sql = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'web', 'supabase', 'pending.sql'), 'utf8');
+  t(F('sbSqlDanger_(' + JSON.stringify(sql) + ')') === '',
+    '★★★いま置いてある文に、こわい文は入っていない');
+  t(/create table if not exists public\.feedback/.test(sql), '　 ごいけんの置き場が入っている');
+  t(/alter column fare\s+drop not null/.test(sql), '　 「不明」を受けられる直しも入っている');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);
