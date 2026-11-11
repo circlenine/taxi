@@ -534,6 +534,9 @@ header > h1, .login .head > h1{white-space:nowrap}
  * ---------------------------------------------------------- */
 @media(max-width:380px){
   h1.dn{letter-spacing:.1em}
+  /* ログインの画面は、まわりの余白が広いぶん、ふきだしが狭くなります。
+     細い画面では余白を詰めて、ひとことが切れないようにします。 */
+  .login{padding:14px}
   /* 版と一文は、ここでも1行に収めます（ご指示・2026/11/11） */
   header > .subline, .login .head > .subline{gap:6px}
   .ver{padding:1px 4px}
