@@ -699,6 +699,24 @@ header > h1, .login .head > h1{white-space:nowrap}
   vertical-align:.18em;margin-right:5px}
 .evcnt{font-size:.82em;margin-left:5px;color:#FFFFFF}
 
+/* ★期間の切り替えは、上の区切りの中（ご指示・2026/11/12） */
+.ktperiod{margin-top:9px}
+.ktperiod .fsel{width:100%;font-size:15px}
+
+/* ★前の期間とのくらべ（ご指示・2026/11/12）。
+     増えた／減ったが、ひと目で分かるように色を分けます。 */
+/* 1件ずつ、名前・いま・差 の3つに。横スクロールさせません */
+.cmprow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  gap:4px 10px;padding:9px 2px;border-top:1px solid var(--ink3)}
+.cmprow .cl{font-size:12.5px;color:#FFFFFF;white-space:nowrap}
+.cmprow .cn{font-family:var(--mono);font-size:15px;color:#FFFFFF;text-align:right}
+.cmprow .cn i{display:block;font-style:normal;font-family:var(--body);
+  font-size:10.5px;color:#FFFFFF;opacity:.6}
+.cmprow .cd{text-align:right;white-space:nowrap}
+.cmp{font-family:var(--mono);font-size:12px}
+.cmp.up{color:var(--meter)}
+.cmp.down{color:var(--kusha)}
+
 /* ★分数のタグ。0〜60分を2行に収めるため、小さく・字は数字だけ
      （ご指示・2026/11/12「2行分に収まりませんか」）。 */
 .chips.mins{gap:3px}

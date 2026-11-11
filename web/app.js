@@ -433,6 +433,9 @@ function render(){
     if (kpl) { kpl.innerHTML = placeOptions(); kpl.classList.toggle('on', !!onlyPlace); }
     const kcl = $('#ktClear');
     if (kcl) kcl.hidden = !onlyPlace;
+    /* 期間の切り替えも、ここに出します（ご指示・2026/11/12） */
+    const kpb = $('#ktPeriodBox');
+    if (kpb) kpb.innerHTML = periodBox();
   }
   const kp = $('#kperiod');
   if (kp) {
@@ -567,21 +570,22 @@ function periodOptions(){
          '>自分で決める…</option>');
   return o.join('');
 }
+/* 期間の切り替え（上の区切りの中に出します・ご指示・2026/11/12） */
+const periodBox = () => `
+  <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
+  ${period.mode === 'free' ? `<div class="filt2 prange">
+    <label><span>はじめの日</span>
+      <input type="date" data-filt="from" value="${esc(period.from)}"></label>
+    <label><span>おわりの日</span>
+      <input type="date" data-filt="to" value="${esc(period.to)}"></label>
+  </div>` : ''}`;
+
 const filterChips = () => `<div class="filt">
   <div class="chips">
     <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
     <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
     ${filtOn() ? '<button class="chip warn" id="fClear">絞り込みを解除</button>' : ''}
   </div>
-  <div class="filt2">
-    <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
-  </div>
-  ${period.mode === 'free' ? `<div class="filt2 prange">
-    <label><span>はじめの日</span>
-      <input type="date" data-filt="from" value="${esc(period.from)}"></label>
-    <label><span>おわりの日</span>
-      <input type="date" data-filt="to" value="${esc(period.to)}"></label>
-  </div>` : ''}
 </div>`;
 
 /** 場所の名前を、地図で開けるようにして返す（押すと新しいタブ） */
@@ -616,7 +620,7 @@ function tableHTML(rows){
  *      「アツい時間帯、アツいで表記は必ず統一して下さい」
  *  ★これは、人の多さを買ってくるもの（人口マップ）ではありません。
  *    **自分たちの記録だけ**から作っている地図です。 */
-function paneHeat(){
+function paneHeat(noChips){
   /* 時刻が不明なものは、時間帯の地図には出せません（どこに置けないため） */
   const R = visible().filter(hasDep);
   if (!R.length) return emptyCard('場所と時間帯がそろうと、ここが「どこが濃いか」の表になります。');
@@ -648,7 +652,7 @@ function paneHeat(){
     <p class="note"><b>全期間の記録を、時間帯・乗り場ごとに並べた表</b>です。
       いつでも同じものが出ます（「いまアツい」は、いまの時刻だけの話）。<br>
       数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
-    ${filterChips()}<div class="scroll">${s}</div>
+    ${noChips ? '' : filterChips()}<div class="scroll">${s}</div>
     <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>うすい＝単価が低い</span>
     <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span><span>最大 ${yen(mx)}/h</span></div></div>`;
 }
@@ -1187,6 +1191,78 @@ function bars(rows, label, fmt){
  *    数えたぶんと、外したぶんを、はっきり書きます。
  *  ★1件しかないものを「平均」と呼びません。
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  前の期間とくらべる（ご指示・2026/11/12）
+ *
+ *  ★「今期 ¥○○」だけでは、良いのか悪いのかが分かりません。
+ *    1つ前と同じ長さの期間とくらべて、差を出します。
+ *  ★くらべる相手が無い（記録が無い）ときは、何も出しません。
+ *    ごまかした数を出すより、黙るほうがましです。
+ * ---------------------------------------------------------- */
+/** 日をまたいだ数（from〜to）を、いまの人・乗り場の絞り込みのままで数える */
+function sumIn(from, to){
+  const rs = records.filter(r =>
+    (!onlyMine  || r.user_id === ME.user.id) &&
+    (!onlyPlace || r.place === onlyPlace) &&
+    (!from || r.date >= from) && (!to || r.date <= to));
+  const f = rs.filter(hasFare);
+  const days = new Set(rs.map(r => r.date)).size;
+  const rts = rs.map(rate).filter(v => v > 0);
+  return { n: rs.length, days: days,
+           sum: f.reduce((a,r) => a + (+r.fare || 0), 0),
+           rate: rts.length ? rts.reduce((a,b)=>a+b,0) / rts.length : 0 };
+}
+/** 1つ前の、同じ長さの期間 */
+function prevRange(){
+  const m = /^c(\d+)$/.exec(period.mode);
+  if (m) { const c = cycleOf(Number(m[1]) + 1); return { from:c.from, to:c.to, name:'前の期' }; }
+  if (period.mode === 'free' && period.from && period.to) {
+    const a = new Date(period.from), b = new Date(period.to);
+    const len = Math.round((b - a) / 86400000) + 1;
+    const pb = new Date(a); pb.setDate(pb.getDate() - 1);
+    const pa = new Date(pb); pa.setDate(pa.getDate() - len + 1);
+    return { from: ymd(pa), to: ymd(pb), name: '同じ長さの、1つ前' };
+  }
+  return null;                       /* 全期間のときは、くらべる相手がいません */
+}
+/** 差を「＋¥1,200（＋8%）」の形に */
+function diffText(now, before){
+  if (!before) return '';
+  const d = now - before;
+  const pc = before ? Math.round(d / before * 100) : 0;
+  const sign = d > 0 ? '＋' : (d < 0 ? '−' : '±');
+  const cls  = d > 0 ? 'up' : (d < 0 ? 'down' : '');
+  return '<span class="cmp ' + cls + '">' + sign + yen(Math.abs(d)) +
+         '（' + sign + Math.abs(pc) + '%）</span>';
+}
+function compareCard(){
+  const pr = prevRange();
+  if (!pr) return '';
+  const now = sumIn(periodRange().from, periodRange().to);
+  const bef = sumIn(pr.from, pr.to);
+  if (!now.n || !bef.n) return '';
+  /* ★4つの列を横に並べると、スマホでは「差」が切れて見えません。
+       1件ずつ、名前・いま・差 の3つにして、前の数は小さく下に置きます。 */
+  const row = (name, a2, b2, fmt) =>
+    '<div class="cmprow"><div class="cl">' + name + '</div>' +
+    '<div class="cn">' + fmt(a2) + '<i>前は ' + fmt(b2) + '</i></div>' +
+    '<div class="cd">' + diffText(a2, b2) + '</div></div>';
+  const nd = now.n - bef.n;
+  return '<div class="card"><h2>前の期間とくらべる</h2>' +
+    '<p class="note">くらべているのは <b>' + esc(fmtD(pr.from)) + ' 〜 ' +
+    esc(fmtD(pr.to)) + '</b>（' + esc(pr.name) + '）です。' +
+    (onlyPlace ? esc(onlyPlace) + ' だけ。' : '') + '</p>' +
+    row('売上の合計', now.sum, bef.sum, yen) +
+    row('1日当たり', now.days ? now.sum/now.days : 0,
+                     bef.days ? bef.sum/bef.days : 0, yen) +
+    row('平均 時間単価', now.rate, bef.rate, v => yen(v) + '/h') +
+    '<div class="cmprow"><div class="cl">記録の数</div>' +
+    '<div class="cn">' + now.n + '件<i>前は ' + bef.n + '件</i></div>' +
+    '<div class="cd"><span class="cmp ' + (nd > 0 ? 'up' : (nd < 0 ? 'down' : '')) + '">' +
+    (nd > 0 ? '＋' : (nd < 0 ? '−' : '±')) + Math.abs(nd) + '件</span></div></div>' +
+    '</div>';
+}
+
 function reportCard(){
   const R = visible();
   if (!R.length) return '';
@@ -1243,7 +1319,7 @@ function paneRank(){
   const h = hourAgg(), p = placeAgg();
   const best = h.filter(x => x.n >= 3).sort((a,b) => b.avg - a.avg).slice(0,3);
   const worst = h.filter(x => x.n >= 3).sort((a,b) => a.avg - b.avg)[0];
-  return reportCard() + `<div class="card"><h2>大事なところ</h2>
+  return reportCard() + compareCard() + `<div class="card"><h2>大事なところ</h2>
     <p class="note">3件以上ある枠だけを並べています。薄い棒は、件数が足りていない目安です。</p>
     ${filterChips()}
     ${best.length ? `<div style="font-size:13px;line-height:2">
@@ -1253,7 +1329,8 @@ function paneRank(){
     </div>` : `<div class="note">まだ3件以上そろった時間帯がありません。</div>`}
   </div>
   <div class="card"><h2>時間帯ごと</h2><p class="note">乗せた時刻で分けています。</p>${bars(h,'時間帯',r => r.h+'時台')}</div>
-  <div class="card"><h2>つけ待ち場所ごと</h2><p class="note">時間単価の高い順です。</p>${bars(p,'場所',r => r.p)}</div>`;
+  <div class="card"><h2>つけ待ち場所ごと</h2><p class="note">時間単価の高い順です。</p>${bars(p,'場所',r => r.p)}</div>
+  ${paneHeat(true)}`;
 }
 
 /* ---- 一覧・書き出し ---- */

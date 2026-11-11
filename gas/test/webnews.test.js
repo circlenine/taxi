@@ -1043,8 +1043,8 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
 
   /* ---- まとめ（1か月のレポート） ---- */
   t(/function reportCard\(\)/.test(app), '★★★この期間のまとめが出る');
-  t(/reportCard\(\) \+ `<div class="card"><h2>大事なところ/.test(app),
-    '★★★「集計」の いちばん上に出る');
+  t(/reportCard\(\) \+ compareCard\(\) \+ `<div class="card"><h2>大事なところ/.test(app),
+    '★★★「集計」の いちばん上に出る（まとめ → くらべる → 大事なところ）');
   const rep = app.slice(app.indexOf('function reportCard'), app.indexOf('function paneRank'));
   t(/R\.filter\(hasFare\)/.test(rep),
     '★★★金額が「不明」のものは、合計にも平均にも入れない');
@@ -1396,6 +1396,55 @@ console.log('■ 入力の見出し（ご指示・2026/11/12）');
   t(/<h2>乗車データ<\/h2>/.test(app), '★★★見出しは「乗車データ」');
   t(!/あと35秒/.test(app), '　「あと35秒…」は残っていない');
   t(!/記録の目安時間/.test(app), '　「記録の目安時間」も残っていない');
+}
+
+
+
+console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部やって下さい」）');
+{
+  const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const css  = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+
+  /* ① 期間の切り替えも、上の区切りの中に */
+  t(/id="ktPeriodBox"/.test(html), '★★★期間の切り替えが、上の区切りの中にある');
+  t(html.indexOf('id="ktPeriodBox"') < html.indexOf('<nav id="tabs">'),
+    '★★★タブより上にある（いつの・どこのが1か所でそろう）');
+  t(/const periodBox = /.test(app), '　 その中身も入っている');
+  t(!/const filterChips = [\s\S]{0,400}data-filt="period"/.test(app),
+    '　 下の方には、二重に出していない');
+  t(/\.ktperiod\{/.test(css), '　 その見た目も入っている');
+
+  /* ② 集計の1画面で足りる形に */
+  const rank = app.slice(app.indexOf('function paneRank()'), app.indexOf('/* ---- 全記録'));
+  t(/paneHeat\(true\)/.test(rank), '★★★「集計」に、つけ待ちの表もいっしょに出る');
+  t(/function paneHeat\(noChips\)/.test(app), '　 二重に絞り込みを出さない作りになっている');
+
+  /* ③ 前の期間とくらべる */
+  t(/function compareCard\(\)/.test(app), '★★★前の期間とくらべる所がある');
+  t(/function prevRange\(\)/.test(app) && /function sumIn\(/.test(app),
+    '　 くらべる中身も入っている');
+  t(/\.cmp\.up\{/.test(css) && /\.cmp\.down\{/.test(css),
+    '★★★増えた／減ったで、色が分かれる');
+
+  /* 実際に動かして、1つ前の期を正しく引けるか */
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(
+    'const pad=n=>String(n).padStart(2,"0");' +
+    'let records=[]; let period={mode:"c0",from:"",to:""};' +
+    'let _T="2026-11-12"; function today(){return _T;}' +
+    app.slice(app.indexOf('const ymd = d =>'), app.indexOf('const visible = () =>')) +
+    app.slice(app.indexOf('function prevRange()'), app.indexOf('function diffText(')), box);
+  const P = () => vm.runInContext('JSON.stringify(prevRange())', box);
+  t(JSON.parse(P()).from === '2026-09-16', '★★★今期の1つ前は、前期', P());
+  vm.runInContext('period={mode:"free",from:"2026-11-01",to:"2026-11-10"};', box);
+  const f = JSON.parse(P());
+  t(f.from === '2026-10-22' && f.to === '2026-10-31',
+    '★★★自分で決めた期間は、同じ長さの1つ前とくらべる', P());
+  vm.runInContext('period={mode:"all",from:"",to:""};', box);
+  t(vm.runInContext('prevRange()', box) === null,
+    '★★★全期間のときは、くらべる相手を作らない（嘘の数を出さない）');
 }
 
 
