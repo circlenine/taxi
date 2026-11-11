@@ -12020,6 +12020,13 @@ const UPD_DEEP_KEYS = [
  *   消す前に必ず まるごと控えを取るので、いつでも戻せます。
  */
 function updMustKeep_(k) {
+  /*
+   * ★おつかいの「済み印」だけは、絶対に消しません（2026/11/12 のしくじり）。
+   *   これを消すと、走り終わった片づけが「まだ走っていない」ことになり、
+   *   4分おきに何度も走りつづけました（止まらないループ）。
+   *   1日90分しか動けないので、これは重い事故です。
+   */
+  if (k === "UPD_ERRAND_DONE" || k === "UPD_ERRAND_RUN") return true;
   return /TOKEN|KEY|SECRET|PASS|MAIL|PAT$|_PAT|URL|_SS$|_ID$|_IDS$|GROUP|DASHBOARD|MAIN_SS|SHIRYO/i.test(k);
 }
 

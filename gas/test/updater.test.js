@@ -7290,9 +7290,13 @@ console.log('■ 50個の壁を越える片づけ（ご指摘・2026/11/12）');
    'TAXINOTE_EMAIL', 'TAXINOTE_PASS'].forEach(function (k) {
     t(M(k) === true, '★★★消さない：' + k);
   });
+  /* ★おつかいの済み印は、絶対に消さない（2026/11/12 のしくじり）。
+       消すと、走り終わった片づけが何度も走りつづけます。 */
+  t(M('UPD_ERRAND_DONE') === true, '★★★消さない：UPD_ERRAND_DONE（止まらなくなる）');
+  t(M('UPD_ERRAND_RUN') === true,  '★★★消さない：UPD_ERRAND_RUN');
   ['UPD_DR_AT', 'UPD_KARTE_SIG', 'TK_LAST_YMD', 'SB_WAKE_AT',
    'UPD_RESUME_CNT', 'UPD_RESUME_DAY', 'PANEL_WATCH_AT',
-   'VN_SEEN', 'UPD_ERRAND_DONE', 'LAST_OPENCHECK'].forEach(function (k) {
+   'VN_SEEN', 'LAST_OPENCHECK'].forEach(function (k) {
     t(M(k) === false, '　 片づけてよい：' + k);
   });
 
