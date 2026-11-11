@@ -308,7 +308,7 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
   filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
 .saymount .bubble{position:relative;background:#17171A;border:1px solid var(--line);
   color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
-  max-width:190px;letter-spacing:.02em}
+  letter-spacing:.02em}
 .saymount .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
   width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
 .saymount .bubble:after{content:"";position:absolute;left:-4.5px;top:50%;margin-top:-4px;
@@ -318,7 +318,6 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
 .saymount{transition:opacity .45s ease}
 .saymount.fade{opacity:0}
 @media(prefers-reduced-motion:reduce){.saymount{transition:none}}
-@media(max-width:560px){.saymount .bubble{max-width:150px;font-size:11.5px}}
 .saybox .face{color:var(--paper);opacity:.92;flex:none;
   filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
 .saybox .bubble{position:relative;background:#17171A;border:1px solid var(--line);
@@ -439,7 +438,13 @@ header, .login .head{
   display:grid;grid-template-columns:auto 1fr;
   align-items:center;column-gap:12px;row-gap:5px}
 header > h1, .login .head > h1{grid-column:1;grid-row:1;margin:0}
-header > .saymount, .login .head > .saymount{grid-column:2;grid-row:1;justify-self:end}
+/* ★ふきだしは、題の右に余っている幅を ぜんぶ使います（ご指示・2026/11/11）
+     「ふきだしって、13文字分くらいは、ロゴにはみ出さずに入れるんじゃないですか？」
+     幅を決め打ちしていたので、右に余白が残っていました。
+   ★広さが決まるのは「題の幅」だけです。中の字では変わらないので、
+     ひとことが入れ替わっても、ふきだしの大きさは動きません。 */
+header > .saymount, .login .head > .saymount{
+  grid-column:2;grid-row:1;justify-self:stretch;min-width:0}
 /* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
 header > .subline, .login .head > .subline{
   grid-column:1 / -1;grid-row:2;display:flex;align-items:center;gap:8px;min-width:0}
@@ -482,7 +487,7 @@ header > h1, .login .head > h1{white-space:nowrap}
      min-height だと、1行のときと2行のときで高さが変わります。
    ★行の高さを px で決めています。字の大きさが画面ごとに変わっても、
      2行ぶんの高さが動かないようにするためです。 */
-.saymount .bubble{width:196px;max-width:46vw;
+.saymount .bubble{flex:1 1 auto;min-width:0;max-width:260px;
   height:50px;min-height:50px;max-height:50px;
   line-height:18px;display:flex;align-items:center;overflow:hidden}
 /* 字は2行まで。はみ出す長さでも、ふきだしは伸びません */
@@ -503,8 +508,9 @@ header > h1, .login .head > h1{white-space:nowrap}
 .saymount .bubble.good{border-color:#6E6E7A}
 
 @media(max-width:560px){
-  /* 細い画面でも、2行ぶんの高さで固定（行の高さ17px × 2 ＋ 余白） */
-  .saymount .bubble{width:150px;font-size:11.5px;
+  /* 細い画面でも、2行ぶんの高さで固定（行の高さ17px × 2 ＋ 余白）。
+     幅は、余っているぶんを ぜんぶ使います（決め打ちにしない） */
+  .saymount .bubble{font-size:11.5px;max-width:none;
     height:48px;min-height:48px;max-height:48px;line-height:17px}
   .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
 }
@@ -532,7 +538,7 @@ header > h1, .login .head > h1{white-space:nowrap}
   header > .subline, .login .head > .subline{gap:6px}
   .ver{padding:1px 4px}
   header > .subline .sub, .login .head > .subline .sub{font-size:clamp(8.4px,2.55vw,12.5px)}
-  .saymount .bubble{width:106px;font-size:10.5px;line-height:16px;
+  .saymount .bubble{font-size:10.5px;line-height:16px;
     height:46px;min-height:46px;max-height:46px}
   .saymount .face{width:24px;height:24px;min-width:24px;flex:0 0 24px}
   .saymount{gap:6px}
