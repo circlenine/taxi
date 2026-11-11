@@ -2,8 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U170ver  （2026/11/11）  ★★★
+ *  ★★★  U171ver  （2026/11/11）  ★★★
  *
+ *
+ *   [U171ver]
+ *   ・🗂 もう一段 深い片づけを用意した（props-tidy の deep:true）
+ *     ★ふつうの片づけでも 103個 残り、スクリプトの画面では
+ *       新しい控えを足せないままのため。
+ *     ★消すのは「また作り直せるもの」だけ。
+ *       鍵・住所・送り先は、1つも入れていません。
  *
  *   [U170ver]
  *   ・🧱 台帳の「棚づくり」を、こちらから流せるようにした（web-sql）
@@ -1907,7 +1914,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U170ver";
+const UPD_VERSION = "U171ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11916,7 +11923,34 @@ function updBizCheck_() {
   }
 }
 
-function updPropsTidy_(go) {
+/*
+ * ★もう一段 深く片づけるときに、消してよいもの（ご指示・2026/11/11）
+ *
+ *   スクリプトの画面は、控えが多いと新しいものを足せません。
+ *   ふつうの片づけ（194個）でも 103個 残ったので、
+ *   頼まれたときだけ、ここまで消せるようにしておきます。
+ *
+ *   ★ここに並べたのは、どれも「また作り直せるもの」だけです。
+ *     ・…_AT / …_TRY … 「前にいつ見たか」の覚え書き。
+ *       消すと、次の回にもう一度 見にいくだけ。
+ *     ・…_SIG / …_SEEN / …_DONE … 「前と同じかどうか」の見分け札。
+ *       消すと、次の回に一度だけ やり直す。
+ *   ★鍵・住所・送り先（LINE_TOKEN・GEMINI_API_KEY・GH_TOKEN・
+ *     GROUP_ID・DASHBOARD_ID・…_SS）は、1つも入れていません。
+ *   ★客層の控え（VNAUD_）も、ここで消します。3日で使えなくなるもので、
+ *     消しても もう一度たずねるだけです（無料枠を少し使います）。
+ */
+const UPD_DEEP_KEYS = [
+  "AUTO_FMT_AT", "AUTO_FMT_TRY",
+  "PANEL_HEAL_AT", "PANEL_INPUT_AT", "PANEL_LAMP_AT", "PANEL_LAMP_MK",
+  "PANEL_WATCH_AT", "PANEL_TIDY_OK",
+  "UPD_DR_AT", "UPD_LINE_SLOW_AT", "UPD_WORK_SEEN", "UPD_TELL_SAME",
+  "UPD_WHY_SEEN", "UPD_KARTE_SIG", "UPD_VSAVE_DONE", "UPD_DEPLOY_TELL",
+  "UPD_DR_TELL", "LAST_OPENCHECK", "GH_SHAS", "GH_HEAD_SEEN",
+  "VN_SEEN", "VN_ALIVE", "LR_TELL_COUNT", "RPFIX_SPAN"
+];
+
+function updPropsTidy_(go, deep) {
   try {
     const pr = PropertiesService.getScriptProperties();
     const all = pr.getProperties();
@@ -11944,6 +11978,7 @@ function updPropsTidy_(go) {
        *      もう一度 たずねることになり、無料枠を食います。
        */
       if (k.indexOf("VNAUD_") === 0) {
+        if (deep) { gone.push(k); return; }   // 深く片づけるときは、まとめて消す
         let alive = false;
         try {
           const j = JSON.parse(all[k]);
@@ -11959,6 +11994,10 @@ function updPropsTidy_(go) {
       if (k.indexOf("PUSH_CNT_") === 0) {
         if (k.indexOf("PUSH_CNT_" + thisMonth) !== 0) gone.push(k);
         return;
+      }
+      /* ★深く片づけるときだけ消すもの（名ざしの一覧と、客層の控え） */
+      if (deep) {
+        if (UPD_DEEP_KEYS.indexOf(k) !== -1) { gone.push(k); return; }
       }
       // ④ 日付の付いたもの（前後3日は残す）
       for (let i = 0; i < DATED.length; i++) {
@@ -12114,6 +12153,7 @@ const UPD_ERRAND_OK = {
    *     { "do": ["props-tidy"], "go": true }  … ほんとうに消す
    */
   "props-tidy":  "古くなったGASの控えを片づける",
+  /* { "do": ["props-tidy"], "go": true, "deep": true } で、もう一段 深く片づける */
   "props-restore": "片づけた控えを、まるごと戻す",
   "biz-check":   "営業曜日の区切りが何時かを、控えに書く",
   /*
@@ -12605,7 +12645,7 @@ function updErrandTick_() {
         out = "🗂 一覧を作れませんでした：" + ((e && e.message) || e);
       }
     } else if (task === "props-tidy") {
-      out = updPropsTidy_(j && j.go === true);
+      out = updPropsTidy_(j && j.go === true, j && j.deep === true);
     } else if (task === "props-restore") {
       out = updPropsRestore_();
     } else if (task === "biz-check") {

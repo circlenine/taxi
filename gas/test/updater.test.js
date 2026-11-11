@@ -7146,6 +7146,35 @@ console.log('■ 古くなった控えの片づけ（props-tidy）');
     '★★★おつかい1つで、まるごと戻せる', Object.keys(props).length);
   t(props['VNH_20260903'] === 'あたい', '　 中身も、そのまま戻る', props['VNH_20260903']);
 
+  /*
+   * ★もう一段 深い片づけ（ご指示・2026/11/11）
+   *   スクリプトの画面は、控えが多いと新しいものを足せません。
+   *   ★それでも、鍵・住所・送り先は 1つも消しません。
+   *     ここを消すと、LINEもGeminiもGitHubも まるごと止まります。
+   */
+  Object.keys(props).forEach(k => delete props[k]);
+  Object.keys(dfiles).forEach(k => delete dfiles[k]);
+  const DEEP = F('UPD_DEEP_KEYS');
+  t(Array.isArray(DEEP) && DEEP.length > 10, '★深く消すものの一覧がある', DEEP.length);
+  const KEEPKEY = ['LINE_TOKEN','GEMINI_API_KEY','GH_TOKEN','GH_REPO','GH_BRANCH',
+                   'GROUP_ID','DASHBOARD_ID','DASHBOARD_TEST_ID','MN_MANUAL_SS',
+                   'SH_SHIRYO_SS','VN_LEDGER_SS','UPD_DOOR_URL','UPD_LIVE_URL',
+                   'SUPABASE_PAT','TAXINOTE_EMAIL','TAXINOTE_PASS','LAST_ERRORS',
+                   'PANEL_SETUP_SIG','SB_WAKE_AT'];
+  t(KEEPKEY.every(k => DEEP.indexOf(k) === -1),
+    '★★★鍵・住所・送り先は、深く片づけても消さない',
+    KEEPKEY.filter(k => DEEP.indexOf(k) !== -1).join('/'));
+
+  KEEPKEY.concat(DEEP).forEach(k => { props[k] = 'あたい'; });
+  props[ALIVE] = JSON.stringify({ at: Date.now(), v: { audience: 'あ' } });
+  F('updPropsTidy_(true, true)');
+  const left2 = Object.keys(props);
+  t(KEEPKEY.every(k => left2.indexOf(k) !== -1),
+    '★★★深く片づけても、鍵は ぜんぶ残る', KEEPKEY.filter(k => left2.indexOf(k) === -1).join('/'));
+  t(DEEP.every(k => left2.indexOf(k) === -1),
+    '★★★一覧に並べたものは、ちゃんと消える', DEEP.filter(k => left2.indexOf(k) !== -1).join('/'));
+  t(left2.indexOf(ALIVE) === -1, '★深いときは、生きている客層の控えも消す');
+
   Object.keys(props).forEach(k => delete props[k]);
   Object.keys(dfiles).forEach(k => delete dfiles[k]);
 }
