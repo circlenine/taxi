@@ -7320,5 +7320,44 @@ console.log('■ 50個の壁を越える片づけ（ご指摘・2026/11/12）');
 }
 
 
+
+console.log('■ スプシ→台帳で「不明」を落とさない（2026/11/12）');
+{
+  /*
+   * ★555件は移せましたが、12件が「読めない」として落ちていました。
+   *   時刻や金額が空の行です。落とすと、その乗車が台帳から消えます。
+   *   台帳が「不明」を受けられるようになったので、そのまま移します。
+   *   ★0円は ふつうの書き方（城越さんの「0円」）。0 として入れます。
+   *     「不明」だけを 空にします。混ぜると、平均が狂います。
+   */
+  const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const fn = src.slice(src.indexOf('function webSyncPush_'), src.indexOf('function webSyncPush_') + 4500);
+  t(/if \(!d\) \{ ng\+\+; return; \}/.test(fn),
+    '★★★入れないのは、営業日が無い行だけ');
+  t(!/if \(!d \|\| !tm \|\| !f\)/.test(fn), '　 時刻や金額が無いだけでは、落とさない');
+  t(!/if \(!fare\) \{ ng\+\+; return; \}/.test(fn), '★★★0円の行を、落とさない');
+  t(/wait_min: num\(w\), ride_min: num\(rd\)/.test(fn),
+    '★★★待ち・乗車の「不明」も、そのまま移す');
+  t(/dep: \(dep == null \? null :/.test(fn), '★★★時刻の「不明」も、そのまま移す');
+  t(/dep == null \? "\?"/.test(fn),
+    '★★★「不明」と 0 を、同じ札にしない（別の乗車を同じと見なさないため）');
+
+  /* 中身を動かして、見分けを確かめます */
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext('const num = function (v) {' +
+    ' const t2 = String(v == null ? "" : v).trim();' +
+    ' if (t2 === "" || /不明|ふめい|[?？]/.test(t2)) return null;' +
+    ' const n2 = Number(t2.replace(/[^\\d]/g, ""));' +
+    ' return isFinite(n2) ? n2 : null; };', box);
+  const N = v => vm.runInContext('num(' + JSON.stringify(v) + ')', box);
+  t(N('0円') === 0,    '★★★「0円」は 0（ふつうの書き方）');
+  t(N('不明') === null, '★★★「不明」は 空');
+  t(N('') === null,     '★★★空っぽも 空');
+  t(N('15分') === 15,   '　「15分」は 15');
+  t(N('1,400円') === 1400, '　「1,400円」は 1400');
+}
+
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

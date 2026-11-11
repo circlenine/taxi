@@ -2,8 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U173ver  （2026/11/12）  ★★★
+ *  ★★★  U174ver  （2026/11/12）  ★★★
  *
+ *
+ *   [U174ver]
+ *   ・🔄 スプシ→台帳で、「不明」の欄をそのまま移すようにした
+ *     ★前は、時刻や金額が無い行を まるごと落としていました（12件）。
+ *       落とすと、その乗車が台帳から消えます。
+ *     ★0円と「不明」は別もの。0円は ふつうの書き方なので 0 として入れ、
+ *       「不明」だけ 空として入れます。
+ *     ★営業日が無い行だけは、どこにも置けないので入れません。
  *
  *   [U173ver]
  *   ・🗂 いちばん深い片づけ（props-tidy の slim:true）を用意した
@@ -1928,7 +1936,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U173ver";
+const UPD_VERSION = "U174ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11744,9 +11752,13 @@ function webSyncPush_(go) {
     // すでに入っているもの（二重に入れないため）
     const have = sbGet_("rides?select=work_date,dep,fare&limit=20000") || [];
     const seen = {};
-    have.forEach(function (r) {
-      seen[r.work_date + "|" + Number(r.dep).toFixed(2) + "|" + Number(r.fare)] = 1;
-    });
+    /* ★「不明」は null で入っています。数に直さず「?」として見分けます
+         （0 と「不明」を同じ札にすると、別の乗車を同じものと見なします）。 */
+    const sKey = function (d, dep, fare) {
+      return d + "|" + (dep == null ? "?" : Number(dep).toFixed(2)) +
+             "|" + (fare == null ? "?" : Number(fare));
+    };
+    have.forEach(function (r) { seen[sKey(r.work_date, r.dep, r.fare)] = 1; });
 
     const got = expLedgerCsv_();
     const lines = String(got.text || "").split("\n").slice(1);
@@ -11757,26 +11769,40 @@ function webSyncPush_(go) {
       if (!ln) return;
       const c = ln.split(",").map(function (x) { return String(x).replace(/^"|"$/g, ""); });
       const d = c[0], tm = c[2], w = c[3], rd = c[4], f = c[5], me = c[6], no = c[7], who = c[8];
-      if (!d || !tm || !f) { ng++; return; }
+      /*
+       * ★分からない欄は「不明」として、そのまま移します（ご指示）。
+       *   前は、時刻や金額が無い行を まるごと落としていました（12件）。
+       *   落とすと、その乗車が台帳から消えてしまいます。
+       *   ★0円と「不明」は別もの。0円は ふつうの書き方なので、
+       *     0 として入れます（「不明」だけ null）。
+       *   ★営業日が無い行だけは、どこにも置けないので入れません。
+       */
+      if (!d) { ng++; return; }
+      const num = function (v) {
+        const t2 = String(v == null ? "" : v).trim();
+        if (t2 === "" || /不明|ふめい|[?？]/.test(t2)) return null;
+        const n2 = Number(t2.replace(/[^\d]/g, ""));
+        return isFinite(n2) ? n2 : null;
+      };
+      let dep = null;
       const hm = String(tm).match(/(\d{1,2})\D(\d{2})/);
-      if (!hm) { ng++; return; }
-      let dep = Number(hm[1]) + Number(hm[2]) / 60;
-      // ★0〜6時は、その夜の続き（台帳の画面と、おなじ数え方にそろえます。
-      //   ずれると「同じ乗車」と見なせず、二重に入ります）
-      if (dep <= 6) dep += 24;
-      if (dep >= 36) { ng++; return; }
-      const fare = Number(String(f).replace(/\D/g, ""));
-      if (!fare) { ng++; return; }
-      const key = d + "|" + dep.toFixed(2) + "|" + fare;
+      if (hm) {
+        dep = Number(hm[1]) + Number(hm[2]) / 60;
+        // ★0〜6時は、その夜の続き（台帳の画面と、おなじ数え方にそろえます。
+        //   ずれると「同じ乗車」と見なせず、二重に入ります）
+        if (dep <= 6) dep += 24;
+        if (dep >= 36) dep = null;
+      }
+      const fare = num(f);
+      const key = sKey(d, dep, fare);
       if (seen[key]) { dup++; return; }
       seen[key] = 1;
       const uid = byName[sbNkey_(who)];
       if (!uid) { miss[who] = (miss[who] || 0) + 1; return; }   // だれのか分からないものは入れない
       by[who] = (by[who] || 0) + 1;
       rows.push({ user_id: uid, work_date: d, place: c[1] || "",
-                  dep: Number(dep.toFixed(2)),
-                  wait_min: Number(String(w).replace(/\D/g, "")) || 0,
-                  ride_min: Number(String(rd).replace(/\D/g, "")) || 0,
+                  dep: (dep == null ? null : Number(dep.toFixed(2))),
+                  wait_min: num(w), ride_min: num(rd),
                   fare: fare, method: me || "", note: no || "" });
     });
 
