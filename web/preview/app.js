@@ -469,7 +469,7 @@ function paneIn(){
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
         <input type="date" id="f_date" value="${f.date || today()}"></div>
-      <div class="f w2"><label>つけ待ち場所</label>
+      <div class="f w2"><label>乗車場所</label>
         <input class="ja" id="f_place" list="pls" placeholder="新地7" value="${esc(f.place || '')}">
         <datalist id="pls">${pl.map(p => `<option value="${esc(p)}">`).join('')}</datalist>
         ${(() => { const sug = placeAskOk[f.place] ? '' : placeSuggest(f.place);
@@ -489,16 +489,19 @@ function paneIn(){
         <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
         <div class="hint" id="depHint"></div></div>
 
-      <div class="f w2"><label>待ち時間（分）</label>
-        <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
-        <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.wait,'wait')).join('')}</div></div>
+      <!-- ★LINEに書く順にそろえます（ご指示・2026/11/12）
+             乗車場所 → 乗車時間 → 乗車金額 → 待ち時間。
+             打つ順が ちがうと、手が止まります。 -->
       <div class="f w2"><label>乗車時間（分）</label>
         <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
         <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.ride,'ride')).join('')}</div></div>
       <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
-      <div class="f w2"><label>金額（円）</label>
+      <div class="f w2"><label>乗車金額（円）</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
         <div class="hint" id="rateHint"></div></div>
+      <div class="f w2"><label>待ち時間（分）</label>
+        <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
+        <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.wait,'wait')).join('')}</div></div>
 
       <!-- ★記録用スプレッドシートの「種」と「他」に合わせた欄（2026/10/26 追加） -->
       <div class="f w2"><label>種類</label>

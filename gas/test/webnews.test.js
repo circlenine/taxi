@@ -1312,5 +1312,41 @@ console.log('■ 入力欄と、タグの言い方（ご指示・2026/11/12）')
 }
 
 
+
+console.log('■ 入れる順と、下の説明（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「lineと混同しないように、揃えて
+   *       乗車場所／乗車時間／乗車金額／待ち時間 の順番に」
+   *     「これも長すぎます。もっと、端的に、必要最低限に」
+   *
+   *   ★打つ順がLINEとちがうと、そのたびに手が止まります。
+   */
+  const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const form = app.slice(app.indexOf('あと35秒'), app.indexOf('<button class="btn" id="add">'));
+  const at = w => form.indexOf(w);
+  t(at('<label>乗車場所</label>') !== -1, '★★★「乗車場所」という名前になっている');
+  t(at('<label>乗車金額（円）</label>') !== -1, '★★★「乗車金額」という名前になっている');
+  t(at('<label>乗車場所</label>') < at('<label>乗車時間（分）</label>'),
+    '★★★乗車場所 → 乗車時間 の順');
+  t(at('<label>乗車時間（分）</label>') < at('<label>乗車金額（円）</label>'),
+    '★★★乗車時間 → 乗車金額 の順');
+  t(at('<label>乗車金額（円）</label>') < at('<label>待ち時間（分）</label>'),
+    '★★★乗車金額 → 待ち時間 の順');
+
+  /* ---- 下の説明は、短く ---- */
+  const ft = (html.match(/<footer>[\s\S]*?<div class="copy">/) || [''])[0];
+  const lines = ft.replace(/<footer>|<div class="copy">/g, '')
+                  .split('<br>').map(x => x.trim()).filter(Boolean);
+  t(lines.length <= 2, '★★★下の説明は2行まで', lines.length);
+  lines.forEach(function (x) {
+    t(x.length <= 30, '★★★1行は30字まで：' + x, x.length);
+  });
+  t(!/つけ待ちで潰した時間まで含めた/.test(html), '　 長い言い回しは、残っていない');
+}
+
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
