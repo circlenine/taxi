@@ -377,7 +377,15 @@ const dcol = d => { const ds = [...new Set(visible().map(r => r.date))].sort(); 
 function render(){
   const rs = visible();
   $('#k1').textContent = rs.length;
-  $('#k2').textContent = yen(rs.reduce((a,r) => a + (+r.fare || 0), 0));
+  /* ★合計は、すぐ上の見出しの横に大きく出しています。
+       ここで同じ数をくり返しても読みどころが増えないので、
+       「1日当たり」に替えました（ご指示・2026/11/12で、
+       見返すのにいちばん良い形かを見直したため）。 */
+  {
+    const sum2 = rs.filter(hasFare).reduce((a,r) => a + (+r.fare || 0), 0);
+    const d2 = new Set(rs.map(r => r.date)).size;
+    $('#k2').textContent = d2 ? yen(sum2 / d2) : '—';
+  }
   const rt = rs.map(rate).filter(v => v > 0);
   $('#k3').textContent = rt.length ? yen(rt.reduce((a,b) => a+b, 0) / rt.length) + '/h' : '—';
   const hb = hourAgg().filter(h => h.n >= 3).sort((a,b) => b.avg - a.avg)[0];
@@ -414,6 +422,7 @@ function render(){
 
     ktop.hidden = false;
     ktop.classList.toggle('on', filtOn());
+    /* 見出しは、赤い線のあとに「いつの分か」。ここが区切りの目じるしです */
     $('#ktWhen').textContent = when;
     $('#ktSum').textContent  = yen(sum);
     /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
@@ -422,6 +431,8 @@ function render(){
     /* 乗り場は、どの画面にいても ここで すぐ切り替えられます */
     const kpl = $('#ktPlace');
     if (kpl) { kpl.innerHTML = placeOptions(); kpl.classList.toggle('on', !!onlyPlace); }
+    const kcl = $('#ktClear');
+    if (kcl) kcl.hidden = !onlyPlace;
   }
   const kp = $('#kperiod');
   if (kp) {
@@ -460,11 +471,9 @@ function paneIn(){
   const chip = (v,cur,fld,suf='') => `<button class="chip ${String(cur)===String(v)?'on':''}" data-set="${fld}" data-val="${v}">${v}${suf}</button>`;
   return `
   <div class="card">
-    <!-- ★まーく様のご指示（2026/11/11）
-           「1回ぶんを残す → あと35秒…(記録の目安時間)」
-         走りながら入れるものなので、「すぐ終わる」と先に分かる方が
-         手が動きます。 -->
-    <h2>あと35秒…<span class="h2sub">記録の目安時間</span></h2>
+    <!-- ★見出しは「乗車データ」（ご指示・2026/11/12）。
+         前は所要時間を出していましたが、消すようご指示をいただきました。 -->
+    <h2>乗車データ</h2>
     <p class="note">空の欄は「不明」。平均には数えません。</p>
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
@@ -1389,6 +1398,8 @@ function wire(){
   const kpl = document.getElementById('ktPlace');
   if (kpl) kpl.onchange = function () {
     grab(); onlyPlace = kpl.value; filtSave(); render(); };
+  const kcl = document.getElementById('ktClear');
+  if (kcl) kcl.onclick = function () { grab(); onlyPlace = ''; filtSave(); render(); };
   const fc = document.getElementById('fClear');
   if (fc) fc.onclick = function () { grab(); filtClear(); render(); };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delRec(b.dataset.del));

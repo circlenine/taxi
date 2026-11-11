@@ -481,7 +481,7 @@ console.log('■ 題の下の一文は、スマホで1行（ご指示・2026/11/
 console.log('■ 記録の入口（ご指示・2026/11/11）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
-  t(app.indexOf('あと35秒…') !== -1, '★★★見出しが「あと35秒…」になっている');
+  t(app.indexOf('<h2>乗車データ</h2>') !== -1, '★★★見出しが「乗車データ」になっている');
   t(app.indexOf('<h2>1回ぶんを残す</h2>') === -1, '　 古い見出しは残っていない');
   t(/NOTE_CHIPS = \[[^\]]*行先：/.test(app), '★★★「他」のタブに「行先：」がある');
   t(/：\$\/\.test\(val\)/.test(app), '★★★「：」で終わるタグは、続きを打てる（入れ替えない）');
@@ -1192,7 +1192,19 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   t(html.indexOf('id="kperiod"') > html.indexOf('class="kpis"'),
     '★★★注意書きは、4つの数より下');
   t(/id="ktop"/.test(pv), '　 下見用のページも同じ');
-  t(/\.ktop\{/.test(css) && /\.ktsum b\{/.test(css), '　 その見た目も入っている');
+  t(/#ktop h2\{/.test(css) && /\.ktsum b\{/.test(css), '　 その見た目も入っている');
+  /* ★ひと区切りごとに、赤い線の見出し（ご指示・2026/11/12
+       「赤い線を最初に入れて、見出しとしてだしてもらわないと、
+         わけがわかりません」） */
+  t(/<section class="card blk" id="blkPlace">[\s\S]{0,80}<h2>乗り場<\/h2>/.test(html),
+    '★★★いちばん上は「乗り場」の区切り（赤い線つきの見出し）');
+  t(/<section class="card blk" id="ktop"[\s\S]{0,60}<h2 id="ktWhen">/.test(html),
+    '★★★その下は「いつの分か」の区切り（赤い線つきの見出し）');
+  t(html.indexOf('id="blkPlace"') < html.indexOf('id="ktop"'),
+    '★★★乗り場が、数字より上にある');
+  t(html.indexOf('id="ktop"') < html.indexOf('<nav id="tabs">'),
+    '★★★数字が、タブより上にある');
+  t(/\.card h2:before\{content:"— "/.test(css), '　 赤い線は、見出しの頭に付く');
 
   /* ---- 長い1文は、もう出さない ---- */
   t(!/上の4つは /.test(app), '★★★「上の4つは…」の長い1文は、消えている');
@@ -1306,7 +1318,7 @@ console.log('■ 入力欄と、タグの言い方（ご指示・2026/11/12）')
   t(/placeholder="2530"/.test(app), '★★★時刻の見本は「2530」');
   t(!/placeholder="25:30"/.test(app), '　 前の「25:30」は残っていない');
   /* ★入力欄の幅は、ぜんぶ同じ */
-  const form = app.slice(app.indexOf('あと35秒'), app.indexOf('<button class="btn" id="add">'));
+  const form = app.slice(app.indexOf('<h2>乗車データ</h2>'), app.indexOf('<button class="btn" id="add">'));
   const ws = (form.match(/class="f w\d/g) || []).map(x => x.slice(-1));
   t(ws.length >= 7 && ws.every(x => x === '2'),
     '★★★入力欄の幅が、ぜんぶそろっている', ws.join('/'));
@@ -1333,7 +1345,7 @@ console.log('■ 入れる順と、下の説明（ご指示・2026/11/12）');
    */
   const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-  const form = app.slice(app.indexOf('あと35秒'), app.indexOf('<button class="btn" id="add">'));
+  const form = app.slice(app.indexOf('<h2>乗車データ</h2>'), app.indexOf('<button class="btn" id="add">'));
   const at = w => form.indexOf(w);
   t(at('<label>乗車場所</label>') !== -1, '★★★「乗車場所」という名前になっている');
   t(at('<label>乗車金額（円）</label>') !== -1, '★★★「乗車金額」という名前になっている');
@@ -1372,6 +1384,18 @@ console.log('■ タブは、横スクロールさせない（ご指示・2026/1
   t(!/nav::-webkit-scrollbar/.test(css), '　 スクロールバーを隠す細工も、残っていない');
   const btn = (css.match(/\nnav button\{[^}]*\}/) || [''])[0];
   t(!/flex:1 0 auto/.test(btn), '　 ボタンを無理に広げない（折り返せるように）');
+}
+
+
+
+console.log('■ 入力の見出し（ご指示・2026/11/12）');
+{
+  /* ★まーく様のご指示：「あと35秒…」→「乗車データ」。
+       「記録の目安時間」は消す。 */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(/<h2>乗車データ<\/h2>/.test(app), '★★★見出しは「乗車データ」');
+  t(!/あと35秒/.test(app), '　「あと35秒…」は残っていない');
+  t(!/記録の目安時間/.test(app), '　「記録の目安時間」も残っていない');
 }
 
 

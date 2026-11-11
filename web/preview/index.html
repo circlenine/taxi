@@ -44,31 +44,34 @@
     </div>
   </header>
 
-  <!-- ★いちばん上に「期間」と「合計」を出します
+  <!-- ★ひと区切りごとに、赤い線の見出しを付けます
        （まーく様のご指示・2026/11/12）
-         「上の4つは～みたいなやり方は絶対やめてください、
-           見づらすぎます
-           1番上に、期間と合計を入れて
-           下の方に、※1日当たりのデータではありません
-           のような形にしてください」
-       長い1文を読ませず、ひと目で分かる形に並べ替えました。 -->
-  <div class="ktop" id="ktop" hidden>
-    <div class="ktwhen" id="ktWhen">—</div>
+         「赤い線を最初に入れて、見出しとしてだしてもらわないと、
+           わけがわかりません」「ブロックわけがよくわかるように」
+       ①乗り場 ②その乗り場の数字 ③タブから下の中身、の3つに分けます。 -->
+
+  <!-- ① どこの乗り場を見るか -->
+  <section class="card blk" id="blkPlace">
+    <h2>乗り場</h2>
+    <div class="ktplace">
+      <select class="fsel" id="ktPlace"></select>
+      <button class="chip" id="ktClear" hidden>すべてに戻す</button>
+    </div>
+  </section>
+
+  <!-- ② その乗り場・その期間の数字 -->
+  <section class="card blk" id="ktop" hidden>
+    <h2 id="ktWhen">—</h2>
     <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
     <div class="ktwho" id="ktWho">—</div>
-    <!-- ★どこの乗り場の記録かが、いちばん大事（ご指示・2026/11/12）。
-         どの画面にいても、ここで すぐ切り替えられます。 -->
-    <div class="ktplace"><label for="ktPlace">乗り場</label>
-      <select class="fsel" id="ktPlace"></select></div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
-    <div class="kpi"><small>売上の合計</small><b id="k2">¥0</b></div>
-    <div class="kpi gr"><small>平均 時間単価</small><b id="k3">—</b></div>
-    <div class="kpi"><small>アツい時間帯</small><b id="k4">—</b></div>
-  </div>
-  <div class="kperiod" id="kperiod">—</div>
+    <div class="kpis">
+      <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
+      <div class="kpi"><small>1日当たり</small><b id="k2">¥0</b></div>
+      <div class="kpi gr"><small>平均 時間単価</small><b id="k3">—</b></div>
+      <div class="kpi"><small>アツい時間帯</small><b id="k4">—</b></div>
+    </div>
+    <div class="kperiod" id="kperiod">—</div>
+  </section>
 
   <nav id="tabs">
     <button data-t="in" aria-selected="true">記録</button>
