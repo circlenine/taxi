@@ -497,6 +497,11 @@ console.log('■ 分からない欄は「不明」（ご指示・2026/11/11）')
   const sql = fs.readFileSync(path.join(W, 'supabase', 'schema.sql'), 'utf8');
   t(/alter column fare\s+drop not null/.test(sql),
     '★★★台帳の側も、空っぽを受け取れるようにしてある');
+  /* ★台帳のひと手間がまだのあいだも、記録が残せること（止めない） */
+  t(/not-null/.test(app) && /fellBack/.test(app),
+    '★★★台帳がまだ空欄を受け取れなくても、記録は残せる（走っている最中に止めない）');
+  t(/空の欄は、いまは 0 で入りました/.test(app),
+    '★★★そのときは、0で入ったと必ず伝える（黙って0にしない）');
 
   const login = fs.readFileSync(path.join(W, 'login.html'), 'utf8');
   t(login.indexOf('不明点は抜かしてもよい') !== -1, '★★★使い方にも、そう書いてある');

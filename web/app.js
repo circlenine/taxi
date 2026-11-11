@@ -1135,13 +1135,42 @@ async function addRec(){
     method: normMethod(form.method || ''), note: (form.note || '').trim()
   };
   const btn = $('#add'); btn.disabled = true;
-  let error;
-  if (editId) ({ error } = await db.from('rides').update(row).eq('id', editId));
-  else        ({ error } = await db.from('rides').insert(row));
+  const put = async r => editId
+    ? (await db.from('rides').update(r).eq('id', editId)).error
+    : (await db.from('rides').insert(r)).error;
+  let error = await put(row);
+
+  /*
+   * ★台帳の側が、まだ「空っぽ」を受け取れないときの逃げ道。
+   *   まーく様のひと手間（schema.sql の「8.」）が済むまでのあいだ、
+   *   空欄のまま押すと弾かれてしまいます。
+   *   それでは走っている最中に記録が残せないので、
+   *   そのときだけ 0 として入れ直し、そうと伝えます。
+   *   黙って0で入れると、あとで数字が狂うので、必ず言います。
+   */
+  /*
+   * ★台帳の側が、まだ「空っぽ」を受け取れないときの逃げ道。
+   *   まーく様のひと手間（schema.sql の「8.」）が済むまでのあいだ、
+   *   空欄のまま押すと弾かれてしまいます。
+   *   それでは走っている最中に記録が残せないので、
+   *   そのときだけ 0 として入れ直し、そうと伝えます。
+   *   黙って0で入れると、あとで数字が狂うので、必ず言います。
+   */
+  let fellBack = false;
+  if (error && /null value|not-null|violates not-null/i.test(String(error.message || ''))) {
+    const r2 = Object.assign({}, row);
+    if (r2.dep === null)      r2.dep = 0;
+    if (r2.wait_min === null) r2.wait_min = 0;
+    if (r2.ride_min === null) r2.ride_min = 0;
+    if (r2.fare === null)     r2.fare = 0;
+    const e2 = await put(r2);
+    if (!e2) { error = null; fellBack = true; Object.assign(row, r2); }
+  }
   if (error) { btn.disabled = false; return bad(jaError(error)); }
   const r = { wait: row.wait_min, ride: row.ride_min, fare: row.fare };
   msg = editId ? '書きかえた'
     : `記録した（時間単価 ${rate(r) ? yen(rate(r)) + '/h' : '不明の欄があるので出せません'}）`;
+  if (fellBack) msg += '　※空の欄は、いまは 0 で入りました（台帳のひと手間がまだです）';
   msgBad = false; editId = null;
   form = { date: row.work_date, place: row.place, dep:'', wait:'', ride:'', fare:'', method:'', note:'' };
   await reload();
