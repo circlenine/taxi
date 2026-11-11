@@ -114,29 +114,87 @@ console.log('■ 読み込むだけで、画面をいじらない');
   });
 }
 
-console.log('■ 変顔は100通りある');
+console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
 {
   /*
-   * ★まーく様のご指示（2026/11/10）：「ランダムパターンは100通りいけますか」
-   *   目10通り × 口10通り で、ちょうど100通りにしてあります。
-   *   うっかり減らすと100を割るので、ここで押さえます。
+   * ★まーく様のご指示（2026/11/11）
+   *     「ポジティブセリフ100通り／ポジティブ顔100通り
+   *       ネガティブセリフ100通り／ネガティブ顔100通り
+   *       にできませんか？」
+   *   顔も、ひとことに合わせて しかめ顔／笑い顔 に分かれます。
    */
   const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  const a = code.indexOf('const FACE_EYES');
-  const b = code.indexOf('/** 変顔を1つ描く');
-  ok(a !== -1 && b > a, '★顔の中身が、ちゃんと見つかる');
+  const a = code.indexOf('const FACE_BAD_EYES');
+  const b = code.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
+  t(a !== -1 && b > a, '★顔とひとことの中身が、ちゃんと見つかる');
   if (a !== -1 && b > a) {
     const box = { console: { log: function(){} } };
     vm.createContext(box);
-    vm.runInContext(code.slice(a, b) +
-      '\nglobalThis.OUT={e:FACE_EYES.length,m:FACE_MOUTH.length,p:FACE_PATTERNS,s:SAY_LINES.length};', box);
+    vm.runInContext(code.slice(a, b) + `
+      globalThis.OUT = { be:FACE_BAD_EYES.length, bm:FACE_BAD_MOUTH.length,
+        ge:FACE_GOOD_EYES.length, gm:FACE_GOOD_MOUTH.length,
+        bp:FACE_BAD_PATTERNS, gp:FACE_GOOD_PATTERNS,
+        sb:SAY_BAD.length, sg:SAY_GOOD.length,
+        kaoB:faceSvg(false), kaoG:faceSvg(true),
+        kasanari: FACE_BAD_EYES.filter(function(x){ return FACE_GOOD_EYES.indexOf(x)!==-1; }).length
+                + FACE_BAD_MOUTH.filter(function(x){ return FACE_GOOD_MOUTH.indexOf(x)!==-1; }).length };`, box);
     const o = box.OUT;
-    ok(o.p >= 100, '★★★顔が100通り以上ある', o.p);
-    ok(o.e * o.m === o.p, '　 目×口で数えている', [o.e, o.m, o.p]);
-    ok(o.s >= 10, '　 セリフも10通り以上ある', o.s);
+    t(o.bp === 100, '★★★ぼやきの顔が、ちょうど100通り', o.bp);
+    t(o.gp === 100, '★★★ありがとうの顔が、ちょうど100通り', o.gp);
+    t(o.sb === 100, '★★★ぼやきのひとことが、ちょうど100通り', o.sb);
+    t(o.sg === 100, '★★★ありがとうのひとことが、ちょうど100通り', o.sg);
+    t(o.be === 10 && o.bm === 10 && o.ge === 10 && o.gm === 10,
+      '　 どれも 目10 × 口10 で数えている', [o.be, o.bm, o.ge, o.gm]);
+    t(o.kasanari === 0, '★★★しかめ顔と笑い顔に、同じ部品を混ぜていない', o.kasanari);
+    t(/<svg/.test(o.kaoB) && /<svg/.test(o.kaoG), '　 どちらの顔も、ちゃんと描ける');
   }
+  /* 顔は、ひとことの気分に合わせて変える */
+  const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  t(/faceSvg\(say\.good\)/.test(sh),
+    '★★★ひとことに合わせて、顔も切りかえている（ぼやき＝しかめ顔）');
+  t(/function faceSvg\(good\)/.test(sh), '　 顔を描く係が、気分を受け取る形になっている');
 }
 
+console.log('■ 顔とひとことの一覧（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「セリフと顔の各パターンの一覧を
+   *       別ファイルか何かで見られる形にしてもらえますか」
+   *   /say で開ける紙を作ってあります。
+   *   ★中身は web/shared.js の写しです。ずれると意味が無いので、
+   *     ここで「ぴたり同じ」ことを押さえます。
+   */
+  const html = path.join(W, 'say.html');
+  t(fs.existsSync(html), '★★★一覧のページがある（/say）');
+  const faces = path.join(W, 'shared-faces.js');
+  t(fs.existsSync(faces), '★★★一覧が読む、顔とひとことの紙がある');
+  if (fs.existsSync(faces)) {
+    const src = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+    const cut = fs.readFileSync(faces, 'utf8');
+    const a2 = src.indexOf('const FACE_BAD_EYES');
+    const b2 = src.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
+    const want = src.slice(a2, b2).replace(/\s+$/, '');
+    t(cut.indexOf(want) !== -1,
+      '★★★一覧の中身は、本体（shared.js）とぴたり同じ' +
+      '（ずれたら tools/build_faces.py を走らせ直す）');
+    const box2 = { console: { log: function(){} } };
+    vm.createContext(box2);
+    let err = null;
+    try { vm.runInContext(cut, box2); } catch (e) { err = (e && e.message) || String(e); }
+    t(!err, '★★★一覧の紙だけで、ちゃんと読み込める（台帳につながなくても動く）', err);
+  }
+  if (fs.existsSync(html)) {
+    const h = fs.readFileSync(html, 'utf8');
+    t(/shared-faces\.js/.test(h), '　 一覧は、その紙を読んでいる');
+    t(!/supabase/i.test(h), '　 台帳にはつながない（見るだけの紙）');
+  }
+  {
+    /* お知らせの画面から、一覧へ行けること（URLを覚えなくてよいように） */
+    const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+    t(/href="\/say"/.test(app), '★★★【お知らせ】から、一覧を開けるようにしてある');
+  }
+}
 
 console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・2026/11/11）');
 {
@@ -147,17 +205,18 @@ console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・
    *   pick() を何百回も回して、1回でも「2回続けて同じ」が出たら こけます。
    */
   const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  const a = code.indexOf('const FACE_EYES');
-  const b = code.indexOf('/** 変顔を1つ描く');
+  const a = code.indexOf('const FACE_BAD_EYES');
+  const b = code.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
   if (a !== -1 && b > a) {
     const box = { console: { log: function(){} } };
     vm.createContext(box);
     vm.runInContext(code.slice(a, b) + `
       globalThis.OUT = (function(){
-        var bad = 0, seen = {}, arrs = [FACE_EYES, FACE_MOUTH, SAY_LINES, KIRA_NAMES];
+        var bad = 0, seen = {}, arrs = [FACE_BAD_EYES, FACE_BAD_MOUTH,
+          FACE_GOOD_EYES, FACE_GOOD_MOUTH, SAY_BAD, SAY_GOOD, KIRA_NAMES];
         for (var k = 0; k < arrs.length; k++) {
           var prev = null, kinds = {};
-          for (var i = 0; i < 400; i++) {
+          for (var i = 0; i < 2500; i++) {
             var v = pick(arrs[k]);
             if (v === prev) bad++;
             prev = v; kinds[v] = 1;
@@ -168,8 +227,11 @@ console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・
       })();`, box);
     const o = box.OUT;
     t(o.bad === 0, '★★★2回続けて同じものは、1度も出ない', o.bad);
-    t(o.kinds[0] === 10 && o.kinds[1] === 10, '　 それでも、目も口も ぜんぶ出てくる', o.kinds);
-    t(o.kinds[3] === 6 && o.kira === 6, '　 キラの名前は6人ぶん', o.kira);
+    t(o.kinds[0] === 10 && o.kinds[1] === 10 && o.kinds[2] === 10 && o.kinds[3] === 10,
+      '　 それでも、目も口も ぜんぶ出てくる（しかめ顔・笑い顔とも）', o.kinds);
+    t(o.kinds[4] === 100 && o.kinds[5] === 100,
+      '　 ひとことも、100通りぜんぶ出てくる', [o.kinds[4], o.kinds[5]]);
+    t(o.kinds[6] === 6 && o.kira === 6, '　 キラの名前は6人ぶん', o.kira);
   } else {
     t(false, '★顔の中身が見つからない');
   }
@@ -337,8 +399,8 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
    *       連続するようにしてください」
    */
   const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  const a = code.indexOf('const FACE_EYES');
-  const b = code.indexOf('/** 変顔を1つ描く');
+  const a = code.indexOf('const FACE_BAD_EYES');
+  const b = code.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
   t(a !== -1 && b > a, '★ひとことの中身が見つかる');
   if (a !== -1 && b > a) {
     const box = { console: { log: function(){} } };

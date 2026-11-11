@@ -878,5 +878,8 @@ cd gas/test && for f in *.test.js; do node "$f" >/dev/null || echo "FAIL $f"; do
 
 - `gas/002-Extras.gs` は `python3 tools/build_extras.py` で組み立てる。
 - `gas/004-WebApp.gs` は `python3 tools/build_webapp.py` で組み立てる。
+- `web/shared-faces.js`（顔とひとことの一覧用）は
+  `python3 tools/build_faces.py` で作り直す。
+  中身を直すのは `web/shared.js` のほう。ずれるとテストで落ちる。
 - どちらも `gas/parts/` の中を直してから組み立て直すこと。
   組み立て後のファイルを直しても、次の組み立てで消える。

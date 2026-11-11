@@ -1412,7 +1412,14 @@ function paneNews(){
   return `<div class="card"><h2>お知らせ・使い方</h2>
     <p class="note">はじめての方へ。基本的な使い方です。
       いま動いているのは <b>${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')}</b> です。</p>
-    ${body}</div>`;
+    ${body}
+    <!-- ★顔とひとことの一覧（ご指示・2026/11/11）
+           「セリフと顔の各パターンの一覧を
+             別ファイルか何かで見られる形にしてもらえますか」 -->
+    <div class="actions">
+      <a class="btn ghost" href="/say" target="_blank" rel="noopener"
+         style="text-decoration:none">右上の顔とひとこと、ぜんぶ見る</a>
+    </div></div>`;
 }
 
 /* ★ここも、画面の無いところで落ちないようにします */

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>顔とひとことの一覧</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Zen+Antique&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* この紙だけの見た目。本番の画面には関わりません */
+.sl{padding:18px 16px 40px;max-width:900px;margin:0 auto}
+.sl h1{font-family:var(--goth);font-size:clamp(20px,5.6vw,30px);letter-spacing:.14em;margin:0 0 4px}
+.sl .lead{color:var(--muted);font-size:13px;line-height:1.7;margin:0 0 18px}
+.sl h2{font-size:15px;margin:26px 0 10px;letter-spacing:.06em}
+.sl .cnt{color:var(--chipoff);font-size:12px;font-family:var(--mono);margin-left:8px}
+.kaos{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
+.kao{border:1px solid var(--line);border-radius:9px;padding:6px 2px 4px;text-align:center;
+  background:#17171A}
+.kao svg{color:var(--paper)}
+.kao small{display:block;color:var(--chipoff);font-size:9.5px;font-family:var(--mono);margin-top:2px}
+.kotoba{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:6px}
+.kotoba div{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12.5px;
+  background:#17171A;display:flex;gap:7px;align-items:baseline}
+.kotoba b{color:var(--chipoff);font-family:var(--mono);font-size:10.5px;font-weight:400;flex:none}
+.sl .back{display:inline-block;margin-bottom:14px;color:var(--paper);font-size:13px}
+</style>
+</head>
+<body>
+<div class="sl">
+  <a class="back" href="/">← 台帳にもどる</a>
+  <h1>顔とひとこと</h1>
+  <p class="lead">
+    画面の右上に出るものの、ぜんぶです。<br>
+    ひとことは <b>ぼやき → ありがとう</b> の順でかならず交互に出て、
+    顔も それに合わせて変わります。<br>
+    顔は「目10通り × 口10通り」の組み合わせで、
+    下に <b>100通りぜんぶ</b>を並べています。
+  </p>
+
+  <h2>😠 ぼやきの顔<span class="cnt" id="c1"></span></h2>
+  <div class="kaos" id="k1"></div>
+
+  <h2>😊 ありがとうの顔<span class="cnt" id="c2"></span></h2>
+  <div class="kaos" id="k2"></div>
+
+  <h2>😠 ぼやきのひとこと<span class="cnt" id="c3"></span></h2>
+  <div class="kotoba" id="s1"></div>
+
+  <h2>😊 ありがとうのひとこと<span class="cnt" id="c4"></span></h2>
+  <div class="kotoba" id="s2"></div>
+</div>
+
+<script src="shared-faces.js"></script>
+<script>
+(function () {
+  var esc2 = function (s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]; });
+  };
+  /* 組み合わせ（目 × 口）を、100通りぜんぶ並べます */
+  function kaos(box, eyes, mouths) {
+    var h = '', n = 0;
+    eyes.forEach(function (e, i) {
+      mouths.forEach(function (m, j) {
+        n++;
+        h += '<div class="kao"><svg viewBox="0 0 36 36" width="34" height="34">' +
+          '<g stroke="currentColor" stroke-linecap="round" fill="currentColor">' +
+          e + m + '</g></svg><small>' + n + '</small></div>';
+      });
+    });
+    document.getElementById(box).innerHTML = h;
+  }
+  function kotoba(box, arr) {
+    document.getElementById(box).innerHTML = arr.map(function (s, i) {
+      return '<div><b>' + (i + 1) + '</b>' + esc2(s) + '</div>';
+    }).join('');
+  }
+  kaos('k1', FACE_BAD_EYES,  FACE_BAD_MOUTH);
+  kaos('k2', FACE_GOOD_EYES, FACE_GOOD_MOUTH);
+  kotoba('s1', SAY_BAD);
+  kotoba('s2', SAY_GOOD);
+  document.getElementById('c1').textContent =
+    FACE_BAD_EYES.length + '×' + FACE_BAD_MOUTH.length + ' ＝ ' + FACE_BAD_PATTERNS + '通り';
+  document.getElementById('c2').textContent =
+    FACE_GOOD_EYES.length + '×' + FACE_GOOD_MOUTH.length + ' ＝ ' + FACE_GOOD_PATTERNS + '通り';
+  document.getElementById('c3').textContent = SAY_BAD.length + '通り';
+  document.getElementById('c4').textContent = SAY_GOOD.length + '通り';
+})();
+</script>
+</body>
+</html>
