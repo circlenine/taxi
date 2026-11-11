@@ -42,15 +42,26 @@
     </div>
   </header>
 
+  <!-- ★いちばん上に「期間」と「合計」を出します
+       （まーく様のご指示・2026/11/12）
+         「上の4つは～みたいなやり方は絶対やめてください、
+           見づらすぎます
+           1番上に、期間と合計を入れて
+           下の方に、※1日当たりのデータではありません
+           のような形にしてください」
+       長い1文を読ませず、ひと目で分かる形に並べ替えました。 -->
+  <div class="ktop" id="ktop" hidden>
+    <div class="ktwhen" id="ktWhen">—</div>
+    <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
+    <div class="ktwho" id="ktWho">—</div>
+  </div>
+
   <div class="kpis">
     <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
     <div class="kpi"><small>売上の合計</small><b id="k2">¥0</b></div>
     <div class="kpi gr"><small>平均 時間単価</small><b id="k3">—</b></div>
     <div class="kpi"><small>アツい時間帯</small><b id="k4">—</b></div>
   </div>
-  <!-- ★この4つが「いつからいつまでの、だれのぶんか」を必ず書く
-       （まーく様のご指摘・2026/11/10）。
-       書かないと、1日ぶんなのか1か月ぶんなのか分かりません。 -->
   <div class="kperiod" id="kperiod">—</div>
 
   <nav id="tabs">

@@ -293,9 +293,9 @@ function periodRange(){
 }
 /** 画面に出す、期間の言い方 */
 function periodLabel(){
-  if (period.mode === 'all') return 'ためたぶん ぜんぶ';
+  if (period.mode === 'all') return 'ためた分 ぜんぶ';
   const r = periodRange();
-  if (!r.from && !r.to) return 'ためたぶん ぜんぶ';
+  if (!r.from && !r.to) return 'ためた分 ぜんぶ';
   const a = r.from ? fmtD(r.from) : 'はじめ';
   const b = r.to   ? fmtD(r.to)   : 'いま';
   return a + ' 〜 ' + b;
@@ -332,39 +332,49 @@ function render(){
   const hb = hourAgg().filter(h => h.n >= 3).sort((a,b) => b.avg - a.avg)[0];
   $('#k4').textContent = hb ? hb.h + '時台' : '—';
   /*
-   * ★この4つが「いつからいつまでの、だれのぶんか」を必ず書きます
-   *   （まーく様のご指摘・2026/11/10）。
-   *     「１日あたりの売上なのか、１月あたりの売上なのか、
-   *       そこを省略されると訳が分かりません」
-   *   出しているのは、絞り込みに合う記録の**ぜんぶ**の合計です。
+   * ★いちばん上に「期間」と「合計」。下に小さく「1日当たりではありません」
+   *   （まーく様のご指示・2026/11/12）
+   *     「上の4つは～みたいなやり方は絶対やめてください、見づらすぎます
+   *       1番上に、期間と合計を入れて
+   *       下の方に、※1日当たりのデータではありません
+   *       のような形にしてください」
+   *
+   *   ★前は、4つの数の下に長い1文を置いていました。
+   *     走りながら読むものなので、1文が長いと ただの壁になります。
+   *     「いつの」「いくら」「だれの」を、3つに分けて並べます。
    */
+  const ktop = $('#ktop');
+  if (ktop) {
+    const ds   = rs.map(r => r.date).sort();
+    const days = new Set(ds).size;
+    const sum  = rs.filter(hasFare).reduce((a2, r) => a2 + (+r.fare || 0), 0);
+
+    /* ① いつの分か */
+    const when = (period.mode !== 'all')
+      ? periodLabel()
+      : (ds.length ? fmtD(ds[0]) + ' 〜 ' + fmtD(ds[ds.length - 1]) : 'ためた分 ぜんぶ');
+
+    /* ② だれの・どこの分か */
+    const who = [];
+    if (onlyPlace) who.push(onlyPlace + ' だけ');
+    who.push(onlyMine ? '自分だけ' : '全員');
+    who.push(ds.length ? ('記録のある日 ' + days + '日・' + rs.length + '件')
+                       : '記録なし');
+
+    ktop.hidden = false;
+    ktop.classList.toggle('on', filtOn());
+    $('#ktWhen').textContent = when;
+    $('#ktSum').textContent  = yen(sum);
+    /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
+         「記録のある日 9 ／ 日・10件」のような切れ方をすると、読めません。 */
+    $('#ktWho').innerHTML = who.map(x => '<span>' + esc(x) + '</span>').join('');
+  }
   const kp = $('#kperiod');
   if (kp) {
-    /*
-     * ★絞っているときは、必ず「何で絞っているか」を書きます
-     *   （ご指示・2026/11/12で、乗り場と期間を絞れるようにしたため）。
-     *   絞ったまま忘れると、売上をまるごと読みちがえます。
-     */
-    const who = onlyMine ? '自分だけ' : '全員';
-    const pl  = onlyPlace ? '<b class="fnow">' + esc(onlyPlace) + ' だけ</b>・' : '';
-    const pd  = (period.mode !== 'all')
-              ? '<b class="fnow">' + esc(periodLabel()) + '</b>' : '';
-    if (!rs.length) {
-      kp.innerHTML = '数えるものがありません（' + pl + pd + who + '）' +
-        (filtOn() ? '<br>※しぼり込みを外すと、出てくるかもしれません。' : '');
-    } else {
-      const ds = rs.map(r => r.date).sort();
-      const a = ds[0], b = ds[ds.length - 1];
-      const days = new Set(ds).size;
-      /* ★日付のならびを2つ続けて書くと、どちらが何だか分かりません。
-           期間を決めているときは「そのうち、記録のある◯日ぶん」と書きます。 */
-      kp.innerHTML = (period.mode !== 'all')
-        ? '上の4つは ' + pl + pd + 'のうち、記録のある <b>' + days + '日ぶん</b>（' +
-          who + '・' + rs.length + '件）の合計です。1日あたりではありません。'
-        : '上の4つは ' + pl + '<b>' + esc(fmtD(a)) + '</b> 〜 <b>' +
-          esc(fmtD(b)) + '</b> の<b>ぜんぶ</b>（' + who + '・' + days + '日ぶん）の合計です。' +
-          '1日あたりではありません。';
-    }
+    kp.innerHTML = rs.length
+      ? '※1日当たりのデータではありません。上の期間 ぜんぶの合計です。'
+      : ('※この絞り込みでは、1件もありません。' +
+         (filtOn() ? '「ぜんぶに戻す」で、もとに戻ります。' : ''));
   }
   /*
    * ★行灯は、台帳の画面でも回します（まーく様のご指摘・2026/11/10）。
@@ -401,7 +411,7 @@ function paneIn(){
          走りながら入れるものなので、「すぐ終わる」と先に分かる方が
          手が動きます。 -->
     <h2>あと35秒…<span class="h2sub">記録の目安時間</span></h2>
-    <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで時間単価が出る。時刻は「2530」「25:30」「1:30」いずれでも可。<br>
+    <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで、時間単価が出ます。時刻は「2530」「25:30」「1:30」のどれでも入ります。<br>
       <b>分からない欄は、空のままでかまいません</b>（「不明」として残り、平均には数えません）。</p>
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
@@ -452,7 +462,7 @@ function paneIn(){
 
   <div class="card">
     <h2>直近の記録</h2>
-    <p class="note">${records.length ? '新しい順に10件。全員ぶんが1つの台帳に入る。' : 'まだ1件もない。'}</p>
+    <p class="note">${records.length ? '新しい順に10件。全員分が1つの台帳に入ります。' : 'まだ1件も入っていません。'}</p>
     ${filterChips()}
     ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
   </div>`;
@@ -478,7 +488,7 @@ function placeOptions(){
 }
 function periodOptions(){
   const o = ['<option value="all"' + (period.mode === 'all' ? ' selected' : '') +
-             '>期間：ためたぶん ぜんぶ</option>'];
+             '>期間：ためた分 ぜんぶ</option>'];
   cycleList().forEach(function (c, i) {
     const name = i === 0 ? '今期' : (i === 1 ? '前期' : (i + '期まえ'));
     o.push('<option value="c' + i + '"' + (period.mode === 'c' + i ? ' selected' : '') +
@@ -541,7 +551,7 @@ function tableHTML(rows){
 function paneHeat(){
   /* 時刻が不明なものは、時間帯の地図には出せません（どこに置けないため） */
   const R = visible().filter(hasDep);
-  if (!R.length) return emptyCard('場所と時間帯がそろうと、ここがアツさの地図になる。');
+  if (!R.length) return emptyCard('場所と時間帯がそろうと、ここが「どこが濃いか」の表になります。');
   const hs = R.map(r => Math.floor(r.dep));
   const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
   const pls = [...new Set(R.map(r => r.place).filter(Boolean))]
@@ -807,8 +817,8 @@ function wxLine(wx){
   const p = (wx.pop === null || wx.pop === undefined)
     ? '' : '（' + where + (wx.span ? wx.span + 'の' : '') + '降水 ' + wx.pop + '%）';
   return (wx.rain ? '☔ ' : '　') + wx.text + p +
-         (wx.rain ? '　→ 雨。ふだんより人が乗ります。乗り場・ビル前が強い。'
-                  : '　→ 雨の見込みは薄い。足で稼ぐ日。');
+         (wx.rain ? '　→ 雨です。ふだんより人が乗ります。乗り場・ビル前が強くなります。'
+                  : '　→ 雨の見込みは薄いです。足で稼ぐ日になります。');
 }
 
 /** 場所の名前で地図をさがす（番地まで当てないので「さがす」と書きます） */
@@ -837,7 +847,7 @@ function paneHot(now){
   const head = '<div class="card"><h2>いまアツい</h2>' +
     '<p class="note"><b>いまの時刻に合わせて、いま行くとよい所</b>を出しています。' +
     '時刻が変われば、出てくる所も変わります。' +
-    'ためたぶんぜんぶの表は【つけ待ちデータ】のほうです。<br>' +
+    'ためた分 ぜんぶの表は【つけ待ちデータ】のほうです。<br>' +
     'いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
     (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
              : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
@@ -848,7 +858,7 @@ function paneHot(now){
   if (!got.rows.length) {
     return head + '<div class="empty">この時間の記録が、まだ ' + HOT_MIN_N + '件 たまっていません。<br>' +
       '1件は、たまたまの1本なので、出しません。</div>' +
-      (got.thin.length ? '<div class="note" style="margin:0">参考（件数が足りない）：' +
+      (got.thin.length ? '<div class="note" style="margin:0">参考（件数が足りません）：' +
         got.thin.slice(0,5).map(function (x){ return esc(x.p) + ' ' + x.n + '件'; }).join('・') + '</div>' : '') +
       '</div>' + hotPlanCard(plan, c.early) + hotNoteCard(got);
   }
@@ -877,7 +887,7 @@ function paneHot(now){
     '</div>' +
     hotPlanCard(plan, c.early) +
     '<div class="card"><h2>この時間に強い場所（' + HOT_MIN_N + '件以上）</h2>' +
-    '<p class="note">時間単価は、つけ待ちで潰した時間まで入れた1時間あたりの実入り。</p>' +
+    '<p class="note">時間単価は、つけ待ちで潰した時間まで入れた1時間当たりの実入りです。</p>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
     '<th class="n">平均 時間単価</th><th style="width:38%"></th><th class="n">平均 待ち</th>' +
     '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
@@ -887,7 +897,7 @@ function paneHot(now){
 /** これから3時間の見当 */
 function hotPlanCard(plan, early){
   return '<div class="card"><h2>このあと3時間の見当</h2>' +
-    '<p class="note">1時間ごとに、その時間 強かった場所。空いているところは、記録がまだ足りない時間です。</p>' +
+    '<p class="note">1時間ごとに、その時間 強かった場所です。空いているところは、記録がまだ足りない時間です。</p>' +
     '<div class="plan">' + plan.map(function (s, i){
       return '<div class="pl">' +
         '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>' +
@@ -899,14 +909,14 @@ function hotPlanCard(plan, early){
 
 /** 注意書き（毎回おなじ所に出す） */
 function hotNoteCard(got){
-  return '<div class="card"><h2>この画面の読み方（だいじ）</h2>' +
+  return '<div class="card"><h2>この画面の読み方（大事なところ）</h2>' +
     '<p class="note" style="margin:0">' +
     '・<b>いま人が何人いるか</b>は出していません。自分たちの記録からの傾向です。<br>' +
     '・' + HOT_MIN_N + '件より少ない場所は、平均と呼べないので出しません。<br>' +
     '・催し（ライブ・宴会）がある夜は、記録の傾向より催しが勝ちます。終演の15分前に着けるのが先。<br>' +
     '・天気は気象庁の公開データ。出しているのは<b>大阪府ひとまとまり</b>の予報で、' +
     '市ごと・町ごとの細かい差は、気象庁からも出ていません。<br>' +
-    '・降水確率は<b>6時間ごと</b>（0〜6／6〜12／12〜18／18〜24時）。いま入っている枠のぶんを出しています。<br>' +
+    '・降水確率は<b>6時間ごと</b>（0〜6／6〜12／12〜18／18〜24時）。いま入っている枠の分を出しています。<br>' +
     '・取れない日は、その行だけ出ません。<br>' +
     '・数字は時間単価（待ち時間込み）。金額の大きい場所と、割のいい場所は別です。' +
     '</p></div>';
@@ -996,7 +1006,7 @@ async function loadWx(){
 function paneTl(){
   /* 時刻が不明なものは、夜の流れのどこにも置けないので外します */
   const R = visible().filter(hasDep);
-  if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べる。');
+  if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見くらべられます。');
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,14);
   const x0 = 19, x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
   const L = 74, Rp = 16, W = 760, rowH = 34, H = 40 + ds.length*rowH + 14;
@@ -1019,8 +1029,8 @@ function paneTl(){
     });
   });
   s += '</svg>';
-  return `<div class="card"><h2>夜ごとのタイムライン</h2>
-    <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝実車。帯が明るいほど時間単価が高い。空白が長い夜は、流しかつけ場所を変える余地がある。</p>
+  return `<div class="card"><h2>夜ごとの流れ</h2>
+    <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。帯が明るいほど、時間単価が高くなっています。空白が長い夜は、流すか、つける場所を変える余地があります。</p>
     ${filterChips()}<div class="scroll">${s}</div>
     <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
 }
@@ -1063,7 +1073,7 @@ function paneSc(){
   });
   s += '</svg>';
   return `<div class="card"><h2>乗せた時刻 × 金額</h2>
-    <p class="note">日付ごとに色分け。金額ラベルは重ならない位置へ自動で逃がすので、手で動かす必要はない。</p>
+    <p class="note">日付ごとに色を変えています。金額の字は、重ならない位置へ ひとりでに逃げるので、手で動かす必要はありません。</p>
     <div class="toolbar">
       <button class="chip ${scOpt.line?'on':''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label?'on':''}" data-opt="label">金額を出す</button>
@@ -1142,9 +1152,9 @@ function reportCard(){
     (unk ? '金額が「不明」の ' + unk + '件は、合計にも平均にも入れていません。' : '') +
     '</p>' +
     '<div class="rgrid">' +
-      cell('売上の合計', yen(sum), fares.length + '本ぶん') +
-      cell('1日あたり', days ? yen(perDay) : '—', days + '日で割った') +
-      cell('1本あたり', fares.length ? yen(sum / fares.length) : '—', '平均の金額') +
+      cell('売上の合計', yen(sum), fares.length + '本分') +
+      cell('1日当たり', days ? yen(perDay) : '—', days + '日で割りました') +
+      cell('1本当たり', fares.length ? yen(sum / fares.length) : '—', '平均の金額') +
       cell('時間単価', rts.length >= 3 ? yen(avgRt) + '/h' : '—',
            rts.length >= 3 ? ('数えた ' + rts.length + '本の平均')
                            : ('数えられたのは ' + rts.length + '本だけ')) +
@@ -1165,17 +1175,17 @@ function paneRank(){
   const h = hourAgg(), p = placeAgg();
   const best = h.filter(x => x.n >= 3).sort((a,b) => b.avg - a.avg).slice(0,3);
   const worst = h.filter(x => x.n >= 3).sort((a,b) => a.avg - b.avg)[0];
-  return reportCard() + `<div class="card"><h2>読みどころ</h2>
-    <p class="note">3件以上ある枠だけを並べた。薄い棒は件数が足りていない目安。</p>
+  return reportCard() + `<div class="card"><h2>大事なところ</h2>
+    <p class="note">3件以上ある枠だけを並べています。薄い棒は、件数が足りていない目安です。</p>
     ${filterChips()}
     ${best.length ? `<div style="font-size:13px;line-height:2">
       アツい時間帯：${best.map(b => `<b style="font-family:var(--mono);color:var(--andon)">${b.h}時台 ${yen(b.avg)}/h</b>`).join('　')}<br>
       ${worst ? `薄い時間帯：<span style="font-family:var(--mono);color:var(--kusha)">${worst.h}時台 ${yen(worst.avg)}/h</span>` : ''}
       ${p[0] && p[0].n >= 3 ? `<br>割のいい場所：<b style="color:var(--andon)">${esc(p[0].p)} ${yen(p[0].avg)}/h</b>` : ''}
-    </div>` : `<div class="note">まだ3件以上そろった時間帯がない。</div>`}
+    </div>` : `<div class="note">まだ3件以上そろった時間帯がありません。</div>`}
   </div>
-  <div class="card"><h2>時間帯べつ</h2><p class="note">乗せた時刻で仕分け。</p>${bars(h,'時間帯',r => r.h+'時台')}</div>
-  <div class="card"><h2>つけ待ち場所べつ</h2><p class="note">時間単価の高い順。</p>${bars(p,'場所',r => r.p)}</div>`;
+  <div class="card"><h2>時間帯ごと</h2><p class="note">乗せた時刻で分けています。</p>${bars(h,'時間帯',r => r.h+'時台')}</div>
+  <div class="card"><h2>つけ待ち場所ごと</h2><p class="note">時間単価の高い順です。</p>${bars(p,'場所',r => r.p)}</div>`;
 }
 
 /* ---- 一覧・書き出し ---- */
@@ -1185,7 +1195,7 @@ function paneList(){
     ${visible().length ? tableHTML(sorted()) : `<div class="empty">該当データがありません</div>`}
   </div>
   <div class="card"><h2>書き出し</h2>
-    <p class="note">いま表示している${onlyMine?'自分の':'全員の'}記録をCSVに。スプレッドシートで集計したいとき、控えを残したいときに。</p>
+    <p class="note">いま出している${onlyMine?'自分の':'全員の'}記録を、CSVに書き出します。スプレッドシートで数えたいときや、控えを残したいときに使ってください。</p>
     <div class="actions">
       <button class="btn ghost" id="csvout">CSVを書き出す</button>
       <button class="btn ghost" id="copy">クリップボードにコピー</button>
@@ -1198,9 +1208,9 @@ function paneList(){
 /* ---- 取り込み（スプレッドシートから一括） ---- */
 function paneImport(){
   return `<div class="card"><h2>スプレッドシートから取り込む</h2>
-    <p class="note">シートの範囲をそのままコピーして、下に貼るだけ。見出し行があれば列の並びは自動で読む。
-    なければ「日付・場所・乗せた時刻・待ち・乗車・金額」の順とみなす。
-    <b>いきなり保存はしない</b>ので、中身を確かめてから取り込める。取り込んだ記録は${esc(ME.profile.display_name || '自分')}の名義で入る。</p>
+    <p class="note">シートの範囲をそのままコピーして、下に貼るだけです。見出しの行があれば、列の並びは ひとりでに読みます。
+    なければ「日付・場所・乗せた時刻・待ち・乗車・金額」の順とみなします。
+    <b>いきなり保存はしません</b>ので、中身を確かめてから取り込めます。取り込んだ記録は${esc(ME.profile.display_name || '自分')}の名前で入ります。</p>
     <div class="f">
       <label>ここに貼る（タブ区切り・カンマ区切りどちらでも）</label>
       <textarea id="csvin" rows="6" placeholder="日付	場所	時刻	待ち	乗車	金額
@@ -1220,7 +1230,7 @@ function paneImport(){
 function importPreview(){
   if (!impDone) return '';
   const total = impOk.length + impDup.length + impNg.length;
-  if (!total) return `<div class="empty">読める行がなかった。見出し行だけになっていないか確かめてください。</div>`;
+  if (!total) return `<div class="empty">読める行がありませんでした。見出しの行だけになっていないか、確かめてください。</div>`;
   return `<div style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
     <div style="font-size:13px;line-height:1.9;margin-bottom:12px">
       読めた <b style="color:var(--meter);font-family:var(--mono)">${impOk.length}</b> 件

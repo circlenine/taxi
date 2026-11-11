@@ -1030,7 +1030,7 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
 
   /* ---- まとめ（1か月のレポート） ---- */
   t(/function reportCard\(\)/.test(app), '★★★この期間のまとめが出る');
-  t(/reportCard\(\) \+ `<div class="card"><h2>読みどころ/.test(app),
+  t(/reportCard\(\) \+ `<div class="card"><h2>大事なところ/.test(app),
     '★★★「集計」の いちばん上に出る');
   const rep = app.slice(app.indexOf('function reportCard'), app.indexOf('function paneRank'));
   t(/R\.filter\(hasFare\)/.test(rep),
@@ -1143,6 +1143,69 @@ console.log('■ イベントは、開演の時刻を いちばん上に（ご�
   t(/いちばん上は<b>開演の時刻<\/b>/.test(app), '　 画面の説明も、そろっている');
   const news = fs.readFileSync(path.join(W, 'news.js'), 'utf8');
   t(/いちばん上に出るのは「開演の時刻」/.test(news), '　 お知らせの説明も、そろっている');
+}
+
+
+
+console.log('■ 4つの数の出し方と、ことばづかい（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「上の4つは～みたいなやり方は絶対やめてください、見づらすぎます
+   *       1番上に、期間と合計を入れて
+   *       下の方に、※1日当たりのデータではありません
+   *       のような形にしてください」
+   *     「ぶん→分」「あたり→当たり」「読みどころ→そんな日本語あるんですか？」
+   *
+   *   ★走りながら読むものなので、長い1文は ただの壁になります。
+   *     「いつの」「いくら」「だれの」を、3つに分けて並べます。
+   */
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css  = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const news = fs.readFileSync(path.join(W, 'news.js'), 'utf8');
+  const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
+
+  /* ---- いちばん上に、期間と合計 ---- */
+  t(/id="ktop"/.test(html), '★★★いちばん上の帯がある');
+  t(/id="ktWhen"/.test(html) && /id="ktSum"/.test(html),
+    '★★★そこに「期間」と「合計」が入る');
+  t(html.indexOf('id="ktop"') < html.indexOf('class="kpis"'),
+    '★★★4つの数より、上にある');
+  t(html.indexOf('id="kperiod"') > html.indexOf('class="kpis"'),
+    '★★★注意書きは、4つの数より下');
+  t(/id="ktop"/.test(pv), '　 下見用のページも同じ');
+  t(/\.ktop\{/.test(css) && /\.ktsum b\{/.test(css), '　 その見た目も入っている');
+
+  /* ---- 長い1文は、もう出さない ---- */
+  t(!/上の4つは /.test(app), '★★★「上の4つは…」の長い1文は、消えている');
+  t(/※1日当たりのデータではありません/.test(app),
+    '★★★下に「※1日当たりのデータではありません」と出る');
+
+  /* ---- ことばづかい ---- */
+  /* ★「該当データがありません」は、まーく様がお決めになった言い方なので
+       変えません（ご指示・2026/11/11）。ここでは別の言いかえだけを見ます。 */
+  const shown = app.replace(/\/\*[\s\S]*?\*\//g, '');   // 説明書きは見ない
+  ['日ぶん', '本ぶん', 'ためたぶん', '1日あたり', '1本あたり',
+   '1時間あたり', '読みどころ'].forEach(function (w) {
+    t(shown.indexOf(w) === -1, '★★★「' + w + '」は、もう出さない');
+  });
+  t(/1日当たり/.test(shown) && /1本当たり/.test(shown),
+    '★★★「当たり」と漢字で書いている');
+  t(/本分/.test(shown) && /ためた分/.test(shown), '★★★「分」と漢字で書いている');
+  t(/<h2>大事なところ<\/h2>/.test(app), '★★★「読みどころ」は言いかえた');
+
+  /* ★ふつうの言い方（だ・である）で終わる説明を、残さない */
+  ['仕分け。', '高い順。', '手で動かす必要はない。', '足りていない目安。',
+   '時間帯がない。', '台帳に入る。', 'まだ1件もない。',
+   '時間単価が高い。', '余地がある。', '名義で入る。'].forEach(function (w) {
+    t(shown.indexOf(w) === -1, '　 ていねいな言い方に直した：' + w);
+  });
+
+  /* お知らせの中にも、おかしな言い方が残っていないこと */
+  ['日ぶん', '1日あたり', '1本あたり', '読みどころ'].forEach(function (w) {
+    t(news.indexOf(w) === -1, '　 お知らせ：「' + w + '」は出さない');
+  });
 }
 
 
