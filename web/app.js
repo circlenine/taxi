@@ -105,7 +105,8 @@ const METHODS = ['GO', 'Uber', '無線', '付け待ち', '流し', '手上げ',
    ★60分までは5分きざみ、そこから先は10分きざみにしてあります。
      100個ぜんぶをタブにすると、画面が埋まって かえって押しにくい。
    ★1分きざみの細かい数も、欄を押せば候補として出ます（MIN_ALL）。 */
-const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60,70,80,90,100];
+/* ★0〜60分。2行に収めるため、タグの字は数字だけにします（ご指示・2026/11/12） */
+const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60];
 const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
 
 /* 種類のタブ。「流し」は出しません（ご指示）。
@@ -140,6 +141,56 @@ const NOTE_CHIPS = ['行先：', 'チケット', 'バラシ', '関空'];
  *    まずは自分の端末だけ。印が付いた場所は、一覧で ✓ が出ます。
  * ---------------------------------------------------------- */
 const PLACE_OK_KEY = 'tsukemachi.place.ok';
+
+/* ------------------------------------------------------------
+ *  似ている乗り場の名前に、気づく（ご指示・2026/11/12）
+ *    「乗り場名入力時、似ている乗り場名があれば
+ *      もしかして、○○と同じですか？ という最終確認も出してください」
+ *
+ *  ★同じ場所が2つの名前で入ると、どちらも件数が足りず、
+ *    どちらの数字も当てになりません。いちばん静かな事故です。
+ * ---------------------------------------------------------- */
+/** 見くらべ用に、名前をそろえる（全角・半角・空白・記号を取る） */
+function pkey(v){
+  let t = String(v == null ? '' : v).trim().toLowerCase();
+  t = t.replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  t = t.replace(/[\s\u3000ー－\-・．.,、。「」（）()]/g, '');
+  return t;
+}
+/** 1字ちがいまでの近さを見る（レーベンシュタイン） */
+function pdist(a, b){
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 9;
+  const d = [];
+  for (let i = 0; i <= m; i++) d[i] = [i];
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1,
+                       d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  }
+  return d[m][n];
+}
+/** いま打った名前に似ている、すでにある乗り場を1つ返す（無ければ空） */
+function placeSuggest(name){
+  const k = pkey(name);
+  if (k.length < 2) return '';
+  const list = places();
+  /* そのものズバリがあれば、聞く必要はありません */
+  for (const p of list) if (pkey(p) === k) return '';
+  let best = '', bd = 9;
+  for (const p of list) {
+    const q = pkey(p);
+    if (!q) continue;
+    /* 片方がもう片方を丸ごと含むときも、同じ所の言い方ちがいが多い */
+    let dd = pdist(k, q);
+    if (dd > 1 && (q.indexOf(k) === 0 || k.indexOf(q) === 0) &&
+        Math.abs(q.length - k.length) <= 2) dd = 1;
+    if (dd < bd) { bd = dd; best = p; }
+  }
+  return bd <= 1 ? best : '';
+}
+/** 「このままでよい」と言われた名前は、二度と聞きません */
+const placeAskOk = {};
 
 /** 場所の名前から、Googleマップで開く住所を作る */
 function mapUrl(place){
@@ -368,6 +419,9 @@ function render(){
     /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
          「記録のある日 9 ／ 日・10件」のような切れ方をすると、読めません。 */
     $('#ktWho').innerHTML = who.map(x => '<span>' + esc(x) + '</span>').join('');
+    /* 乗り場は、どの画面にいても ここで すぐ切り替えられます */
+    const kpl = $('#ktPlace');
+    if (kpl) { kpl.innerHTML = placeOptions(); kpl.classList.toggle('on', !!onlyPlace); }
   }
   const kp = $('#kperiod');
   if (kp) {
@@ -411,14 +465,17 @@ function paneIn(){
          走りながら入れるものなので、「すぐ終わる」と先に分かる方が
          手が動きます。 -->
     <h2>あと35秒…<span class="h2sub">記録の目安時間</span></h2>
-    <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで、時間単価が出ます。時刻は「2530」「25:30」「1:30」のどれでも入ります。<br>
-      <b>分からない欄は、空のままでかまいません</b>（「不明」として残り、平均には数えません）。</p>
+    <p class="note">空の欄は「不明」。平均には数えません。</p>
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
         <input type="date" id="f_date" value="${f.date || today()}"></div>
       <div class="f w2"><label>つけ待ち場所</label>
         <input class="ja" id="f_place" list="pls" placeholder="新地7" value="${esc(f.place || '')}">
         <datalist id="pls">${pl.map(p => `<option value="${esc(p)}">`).join('')}</datalist>
+        ${(() => { const sug = placeAskOk[f.place] ? '' : placeSuggest(f.place);
+          return sug ? `<div class="psug">もしかして、<b>${esc(sug)}</b> と同じですか？
+            <button class="chip on" data-psug="${esc(sug)}">${esc(sug)} にする</button>
+            <button class="chip" data-pkeep="1">このままでよい</button></div>` : ''; })()}
         <div class="chips">${pl.slice(0,6).map(p => `<button class="chip ${f.place===p?'on':''}" data-set="place" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>
         <!-- ★場所を地図でたしかめる（ご指示・2026/11/11） -->
         <div class="chips">
@@ -434,10 +491,10 @@ function paneIn(){
 
       <div class="f w2"><label>待ち時間（分）</label>
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
-        <div class="chips">${MIN_CHIPS.map(v => chip(v,f.wait,'wait','分')).join('')}</div></div>
+        <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.wait,'wait')).join('')}</div></div>
       <div class="f w2"><label>乗車時間（分）</label>
         <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
-        <div class="chips">${MIN_CHIPS.map(v => chip(v,f.ride,'ride','分')).join('')}</div></div>
+        <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.ride,'ride')).join('')}</div></div>
       <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
       <div class="f w2"><label>金額（円）</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
@@ -505,10 +562,9 @@ const filterChips = () => `<div class="filt">
     ${filtOn() ? '<button class="chip warn" id="fClear">ぜんぶに戻す</button>' : ''}
   </div>
   <div class="filt2">
-    <select class="fsel ${onlyPlace?'on':''}" data-filt="place">${placeOptions()}</select>
     <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
   </div>
-  ${period.mode === 'free' ? `<div class="filt2 fdate">
+  ${period.mode === 'free' ? `<div class="filt2 prange">
     <label><span>はじめの日</span>
       <input type="date" data-filt="from" value="${esc(period.from)}"></label>
     <label><span>おわりの日</span>
@@ -527,10 +583,10 @@ function placeLink(p){
 
 function tableHTML(rows){
   return `<div class="scroll"><table><thead><tr>
-    <th>日付</th><th>場所</th><th>乗せた</th><th class="n">待ち</th><th class="n">乗車</th>
+    <th>日付</th><th>乗り場</th><th>乗せた</th><th class="n">待ち</th><th class="n">乗車</th>
     <th class="n">金額</th><th class="n">時間単価</th><th>種類</th><th>他</th><th>記録者</th><th></th></tr></thead><tbody>
     ${rows.map(r => `<tr>
-      <td>${fmtD(r.date)}</td><td>${r.place ? placeLink(r.place) : UNK}</td>
+      <td>${fmtD(r.date)}</td><td class="place">${r.place ? placeLink(r.place) : UNK}</td>
       <td class="n">${showT(r.dep)}</td><td class="n">${showMin(r.wait)}</td><td class="n">${showMin(r.ride)}</td>
       <td class="n">${showYen(r.fare)}</td>
       <td class="n" style="color:var(--meter)">${rate(r) ? yen(rate(r)) : '—'}</td>
@@ -542,7 +598,7 @@ function tableHTML(rows){
   </tbody></table></div>`;
 }
 
-/* ---- つけ待ちデータ（時間帯 × つけ待ち場所の表）----
+/* ---- つけ待ち一覧（時間帯 × つけ待ち場所の表）----
  *  ★名前を「アツい」でそろえました（まーく様のご指示・2026/11/10）。
  *      「熱いところがアツじゃなくて、表記ゆれになってます」
  *      「アツい時間帯、アツいで表記は必ず統一して下さい」
@@ -576,7 +632,7 @@ function paneHeat(){
   pls.forEach((p,i) => s += row(p,p,34+i*ch));
   s += `<line x1="${lw}" x2="${w-8}" y1="${34+pls.length*ch+1}" y2="${34+pls.length*ch+1}" class="grid-l"/>`;
   s += row('ぜんぶ', null, 34+pls.length*ch+2) + '</svg>';
-  return `<div class="card"><h2>つけ待ちデータ</h2>
+  return `<div class="card"><h2>つけ待ち一覧</h2>
     <p class="note"><b>ためた記録ぜんぶを、時間帯べつ・乗り場べつに並べた表</b>です。
       いつでも同じものが出ます（「いまアツい」は、いまの時刻だけの話）。<br>
       数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
@@ -842,12 +898,12 @@ function paneHot(now){
    *   （まーく様のご指摘・2026/11/12「いまアツい、とアツい場所の
    *     違いがよく分かりません」）。
    *   ・いまアツい　　　… いまの時刻の、いま行くべき所（時刻で変わる）
-   *   ・つけ待ちデータ … ためた記録ぜんぶの表（いつでも同じ）
+   *   ・つけ待ち一覧 … ためた記録ぜんぶの表（いつでも同じ）
    */
   const head = '<div class="card"><h2>いまアツい</h2>' +
     '<p class="note"><b>いまの時刻に合わせて、いま行くとよい所</b>を出しています。' +
     '時刻が変われば、出てくる所も変わります。' +
-    'ためた分 ぜんぶの表は【つけ待ちデータ】のほうです。<br>' +
+    'ためた分 ぜんぶの表は【つけ待ち一覧】のほうです。<br>' +
     'いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
     (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
              : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
@@ -1267,6 +1323,17 @@ function wire(){
     if ($('#rateHint')) $('#rateHint').textContent = (w+r > 0 && f) ? '時間単価 ' + yen(f/(w+r)*60) + '/h' : '';
   };
   ['f_dep','f_wait','f_ride','f_fare'].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener('input', upd); });
+  /* ★乗り場の名前から手を離したところで、似た名前がないかを見ます
+       （ご指示・2026/11/12）。打っている途中で聞くと、うるさいだけです。 */
+  const fpl = document.getElementById('f_place');
+  if (fpl) fpl.addEventListener('change', function () {
+    const v = fpl.value.trim();
+    if (v !== String(form.place || '')) { grab(); msg = ''; render(); }
+  });
+  if (fpl) fpl.addEventListener('blur', function () {
+    const v = fpl.value.trim();
+    if (v !== String(form.place || '')) { grab(); msg = ''; render(); }
+  });
   upd();
 
   document.querySelectorAll('[data-set]').forEach(b => b.onclick = () => {
@@ -1310,6 +1377,15 @@ function wire(){
       filtSave(); render();
     };
   });
+  document.querySelectorAll('[data-psug]').forEach(function (b) {
+    b.onclick = function () { grab(); form.place = b.dataset.psug; msg = ''; render(); };
+  });
+  const pk = document.querySelector('[data-pkeep]');
+  if (pk) pk.onclick = function () {
+    grab(); placeAskOk[form.place] = true; msg = ''; render(); };
+  const kpl = document.getElementById('ktPlace');
+  if (kpl) kpl.onchange = function () {
+    grab(); onlyPlace = kpl.value; filtSave(); render(); };
   const fc = document.getElementById('fClear');
   if (fc) fc.onclick = function () { grab(); filtClear(); render(); };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delRec(b.dataset.del));
@@ -1388,6 +1464,10 @@ async function addRec(){
   const d = dRaw === '' ? null : parseT(dRaw);
   const fare = numOrUnk(form.fare, 1000000);
   if (!form.date) return bad('営業日を入れる');
+  /* ★似た名前の乗り場があれば、保存の前に1度だけ聞きます（ご指示・2026/11/12）。
+       同じ場所が2つの名前で入ると、どちらの数字も当てになりません。 */
+  const pSug = placeAskOk[form.place] ? '' : placeSuggest(form.place);
+  if (pSug) { render(); return bad('もしかして、' + pSug + ' と同じですか？ 上で選んでください'); }
   /* ★時刻は「書いてあるのに読めない」ときだけ はじきます。
        書いていないのは「不明」として通します（ご指示・2026/11/11）。 */
   if (dRaw !== '' && d === null) return bad('乗せた時刻が読めない（例 25:30）');
@@ -1771,13 +1851,13 @@ function evStale(day){
  */
 function evTimeLine(x){
   if (x.k === 'hanyu') return '';
-  if (x.s) {
-    return '<div class="evgo">🎬 ' + esc(x.s) + ' 開演' +
-      (x.e ? '　／　終演 ' + esc(x.e) + (x.g ? '（見当）' : '') : '') + '</div>';
-  }
-  if (x.e) {
-    return '<div class="evgo">🎬 終演 ' + esc(x.e) + (x.g ? '（見当）' : '') + '</div>';
-  }
+  /* 終演は、分かっていれば そのまま。
+     過去の形から計算したものは「（予定）」と添えます（ご指示・2026/11/12）。
+     どうしても分からないときだけ「不明」と書きます。 */
+  const end = x.e ? ('終演 ' + esc(x.e) + (x.g ? '（予定）' : ''))
+                  : '終演 不明';
+  if (x.s) return '<div class="evgo">🎬 ' + esc(x.s) + ' 開演　／　' + end + '</div>';
+  if (x.e) return '<div class="evgo">🎬 ' + end + '</div>';
   const w = (x.k === 'barasi') ? '終演' : '開演';
   return '<div class="evgo evnone">🎬 ' + w + 'の時刻が、まだ分かっていません</div>';
 }

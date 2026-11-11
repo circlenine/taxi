@@ -80,6 +80,12 @@ button{font-family:inherit}
 .ktsum small{display:block;font-size:10.5px;color:#FFFFFF;letter-spacing:.06em}
 .ktsum b{display:block;font-family:var(--mono);font-size:23px;color:var(--andon);
   line-height:1.2}
+/* ★乗り場は、いちばん大事（ご指示・2026/11/12）。
+     どの画面にいても、ここで切り替えられます。 */
+.ktplace{grid-column:1 / -1;grid-row:3;display:flex;align-items:center;gap:8px;
+  margin-top:8px;padding-top:9px;border-top:1px solid var(--ink3)}
+.ktplace label{font-size:12px;color:#FFFFFF;white-space:nowrap;font-weight:700}
+.ktplace .fsel{flex:1 1 auto;min-width:0;font-size:14px}
 .ktwho{grid-column:1;grid-row:2;font-size:11.5px;color:#FFFFFF;line-height:1.6;
   display:flex;flex-wrap:wrap;gap:0 10px}
 /* ひとかたまりの言葉は、途中で切らない */
@@ -654,8 +660,10 @@ header > h1, .login .head > h1{white-space:nowrap}
 .fsel.on{border-color:var(--andon);color:#FFFFFF}
 /* 日を2つ決めるところ。細い画面では、上下に1つずつ並びます。
    「〜」だけが行の端に取り残されないよう、ことばで見出しを付けます。 */
-.fdate label{flex:1 1 140px;display:block;min-width:0}
-.fdate label span{display:block;font-size:11px;color:#FFFFFF;margin-bottom:3px}
+/* ★名前は prange に。記録する画面の .fdate（営業日の欄）と
+     ぶつかって、ぽっかり空いてしまっていました（2026/11/12 に直した）。 */
+.prange label{flex:1 1 140px;display:block;min-width:0}
+.prange label span{display:block;font-size:11px;color:#FFFFFF;margin-bottom:3px}
 .filt2 input[type=date]{width:100%;font-size:13px;padding:8px 10px;color:#FFFFFF}
 /* 「ぜんぶに戻す」。絞っているときだけ出ます */
 .chip.warn{border-color:var(--andon);color:#FFFFFF;background:rgba(200,35,43,.22)}
@@ -669,6 +677,29 @@ header > h1, .login .head > h1{white-space:nowrap}
 .rcell b{display:block;font-family:var(--mono);font-size:19px;color:var(--andon);
   line-height:1.25;margin-top:3px}
 .rcell i{display:block;font-style:normal;color:#FFFFFF;font-size:10.5px;margin-top:3px}
+
+
+/* ★大きい金額でも、はみ出さないようにします（320pxで確かめ・2026/11/12）。
+     ¥1,477,440 のような長い数が入ると、枠からはみ出していました。 */
+.kpi{min-width:0}
+.kpi b{overflow-wrap:anywhere;font-size:clamp(16px,5.6vw,22px)}
+.ktsum{min-width:0}
+.ktsum b{font-size:clamp(16px,5.4vw,23px)}
+
+/* ★分数のタグ。0〜60分を2行に収めるため、小さく・字は数字だけ
+     （ご指示・2026/11/12「2行分に収まりませんか」）。 */
+.chips.mins{gap:3px}
+.chips.mins .chip{font-size:12px;padding:6px 0;min-width:34px;letter-spacing:0}
+@media(max-width:360px){ .chips.mins .chip{min-width:31px;font-size:11.5px} }
+
+/* ★似ている乗り場の名前に気づいたときの確認（ご指示・2026/11/12） */
+.psug{margin-top:7px;padding:8px 10px;border:1px solid var(--andon);border-radius:8px;
+  background:rgba(200,35,43,.12);font-size:12.5px;color:#FFFFFF;line-height:2}
+.psug b{color:var(--kusha)}
+.psug .chip{margin-left:6px}
+
+/* ★表の中でも、乗り場は いちばん大事（ご指示・2026/11/12） */
+td.place{color:#FFFFFF;font-weight:700}
 
 /* ============================================================
  *  題の「X」が、ときどき光る（ご指示・2026/11/11）

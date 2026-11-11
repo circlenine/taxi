@@ -290,7 +290,10 @@ console.log('■ 入れる欄のタブ（ご指示・2026/11/11）');
       globalThis.C = { chips: MIN_CHIPS, all: MIN_ALL,
                        m: METHOD_CHIPS, names: METHOD_CHIP_NAMES, ms: METHODS };`, box);
     const C = box.C;
-    t(Math.max.apply(null, C.chips) === 100, '★★★分のタブが100分まである', Math.max.apply(null, C.chips));
+    /* ★タグが多すぎると「嫌に見えてくる」とのご指示（2026/11/12）。
+       0〜60分の13個までにして、2行に収めます。 */
+    t(Math.max.apply(null, C.chips) === 60, '★★★分のタグは60分まで', Math.max.apply(null, C.chips));
+    t(C.chips.length <= 13, '★★★タグは13個まで（2行に収める）', C.chips.length);
     t(Math.max.apply(null, C.all) === 100,   '★★★欄を押したときの候補も100分まで', Math.max.apply(null, C.all));
     t(C.m.indexOf('途中乗り') !== -1,        '★★★種類のタブに「途中乗り」がある', C.m.join('/'));
     t(C.m.indexOf('流し') === -1,            '　 「流し」は出していない（ご指示）');
@@ -1005,9 +1008,13 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
    */
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   /* ---- 操作するところが、ちゃんとある ---- */
-  t(/data-filt="place"/.test(app), '★★★乗り場をえらぶところがある');
+  t(/id="ktPlace"/.test(html) && /ktPlace/.test(app),
+    '★★★乗り場をえらぶところが、いちばん上にある');
+  t(html.indexOf('id="ktPlace"') < html.indexOf('class="kpis"'),
+    '　 4つの数より上（いつでも目に入る）');
   t(/data-filt="period"/.test(app), '★★★期間をえらぶところがある');
   t(/data-filt="from"/.test(app) && /data-filt="to"/.test(app),
     '★★★期間は、自分で決めることもできる');
@@ -1088,15 +1095,15 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   const adm  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
   const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
 
-  t(/data-t="heat"[^>]*>つけ待ちデータ</.test(html), '★★★タブは「つけ待ちデータ」');
+  t(/data-t="heat"[^>]*>つけ待ち一覧</.test(html), '★★★タブは「つけ待ち一覧」');
   t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
   t(/data-t="fb"[^>]*>フィードバック</.test(html), '★★★タブは「フィードバック」');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
     '★★★「ごいけん」は、どこにも残っていない');
-  t(/つけ待ちデータ/.test(pv) && /フィードバック/.test(pv),
+  t(/つけ待ち一覧/.test(pv) && /フィードバック/.test(pv),
     '　 下見用のページも、同じ名前になっている');
   t(/pvbar/.test(pv), '　 下見用の赤い帯も、消えていない');
-  t(/<h2>つけ待ちデータ<\/h2>/.test(app), '　 中の題も「つけ待ちデータ」');
+  t(/<h2>つけ待ち一覧<\/h2>/.test(app), '　 中の題も「つけ待ち一覧」');
   t(/<h2>フィードバック<\/h2>/.test(app), '　 中の題も「フィードバック」');
 
   /* ★2つの画面のちがいが、それぞれに書いてあること */
@@ -1104,7 +1111,7 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     '★★★「つけ待ちデータ」は、ためたぶん ぜんぶの表だと書いてある');
   t(/いまの時刻に合わせて[\s\S]{0,40}いま行くとよい所/.test(app),
     '★★★「いまアツい」は、いまの時刻の話だと書いてある');
-  t(/つけ待ちデータ】のほう/.test(app), '　 もう一方への案内もある');
+  t(/つけ待ち一覧】のほう/.test(app), '　 もう一方への案内もある');
 }
 
 
@@ -1128,8 +1135,11 @@ console.log('■ イベントは、開演の時刻を いちばん上に（ご�
   t(/function evTimeLine/.test(app), '★★★時刻の行を作る係がある');
   t(iGo !== -1 && iCar !== -1 && iGo < iCar,
     '★★★開演のほうが、着ける目安より先に出る', [iGo, iCar]);
-  t(/'<div class="evgo">🎬 ' \+ esc\(x\.s\) \+ ' 開演'/.test(row),
+  t(/'<div class="evgo">🎬 ' \+ esc\(x\.s\) \+ ' 開演/.test(row),
     '★★★開演が、いちばん大きい字（evgo）');
+  /* ★「見当」ではなく「予定」（ご指示・2026/11/12） */
+  t(/（予定）/.test(row) && !/（見当）/.test(row), '★★★終演は「（予定）」と書く');
+  t(/'終演 不明'/.test(row), '★★★どうしても分からないときだけ「不明」');
   t(!/class="evgo">🚕/.test(app), '　 着ける時刻は、大きい字ではない');
   t(/着ける目安/.test(app), '★★★着ける目安も、消さずに残している');
   t(/の時刻が、まだ分かっていません/.test(row),
@@ -1206,6 +1216,66 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   ['日ぶん', '1日あたり', '1本あたり', '読みどころ'].forEach(function (w) {
     t(news.indexOf(w) === -1, '　 お知らせ：「' + w + '」は出さない');
   });
+}
+
+
+
+console.log('■ 似ている乗り場に気づく・説明を短く（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「乗り場名入力時、似ている乗り場名があれば
+   *       もしかして、○○と同じですか？ という最終確認も出してください」
+   *     「この説明長すぎです」「説明はできる限り必要最低限に、端的に」
+   *
+   *   ★同じ場所が2つの名前で入ると、どちらも件数が足りず、
+   *     どちらの数字も当てになりません。いちばん静かな事故です。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+
+  t(/function placeSuggest\(/.test(app), '★★★似ている名前を見つける係がある');
+  t(/もしかして、/.test(app), '★★★「もしかして、〜と同じですか？」と聞く');
+  t(/data-psug=/.test(app) && /data-pkeep=/.test(app),
+    '★★★「〜にする」と「このままでよい」の両方を出す');
+  t(/const pSug = placeAskOk\[form\.place\]/.test(app),
+    '★★★保存の前にも、もう一度だけ聞く');
+  t(/\.psug\{/.test(css), '　 その見た目も入っている');
+
+  /* 実際に動かして、気づけるかどうかを見ます */
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(
+    'let _PL=[]; function places(){return _PL;}' +
+    app.slice(app.indexOf('function pkey('), app.indexOf('const placeAskOk')), box);
+  const S = (v, list) => { vm.runInContext('_PL=' + JSON.stringify(list) + ';', box);
+    return vm.runInContext('placeSuggest(' + JSON.stringify(v) + ')', box); };
+  const L = ['新地7', '難波', '梅田ヒルトン'];
+  t(S('新地７', L) === '',      '★★★全角ちがいは、同じ名前として通す', S('新地７', L));
+  t(S('新地 7', L) === '',      '★★★空白ちがいも、同じ名前として通す', S('新地 7', L));
+  t(S('新地8', L) === '新地7',  '★★★1字ちがいは「もしかして」と聞く', S('新地8', L));
+  t(S('なんば', L) === '',      '　 まったく別の書き方は、むやみに聞かない', S('なんば', L));
+  t(S('梅田ヒルト', L) === '梅田ヒルトン', '★★★打ちかけの名前にも気づく', S('梅田ヒルト', L));
+  t(S('難波', L) === '',        '★★★そのものズバリなら、何も聞かない');
+  t(S('京橋', L) === '',        '★★★似ていない新しい名前は、そのまま通す', S('京橋', L));
+
+  /* ---- 説明は短く ---- */
+  t(/<p class="note">空の欄は「不明」。平均には数えません。<\/p>/.test(app),
+    '★★★記録する画面の説明は、1行だけ');
+  t(!/この4つだけで、時間単価が出ます/.test(app), '　 長い説明は、残っていない');
+
+  /* ---- タブの名前は短く ---- */
+  const tabs = (html.match(/<button data-t="[^"]+"[^>]*>([^<]*)/g) || [])
+    .map(x => x.replace(/^[\s\S]*>/, '').trim());
+  t(tabs.indexOf('記録') !== -1 && tabs.indexOf('夜の流れ') !== -1 &&
+    tabs.indexOf('全記録') !== -1, '★★★タブの名前を短くした', tabs.join('/'));
+  t(tabs.every(x => x.length <= 7), '★★★どのタブも7字まで', tabs.join('/'));
+
+  /* ---- 表でも、乗り場を目立たせる ---- */
+  t(/<th>乗り場<\/th>/.test(app), '★★★表の見出しは「乗り場」');
+  t(/<td class="place">/.test(app), '★★★乗り場の欄に、目立つ印がある');
+  t(/td\.place\{/.test(css), '　 その見た目も入っている');
 }
 
 
