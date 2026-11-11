@@ -1462,6 +1462,35 @@ function evToday(){
   return evData.days.filter(d => d.d === t)[0] || evData.days[0];
 }
 
+/*
+ * 何日のぶんかを、かならず題に出す（まーく様のご指示・2026/11/12）
+ *   「これ、毎回日付を入れてもらえないと、
+ *     いつのイベントか分かりません」
+ *
+ * ★ここは「きょう」とだけ書いていました。
+ *   ところが、夜中の0時をまわると、スプシの営業日（朝6時まわり）と
+ *   カレンダーの日付がずれます。そのため、出しているのが
+ *   どの日のぶんなのか、まったく分からない形になっていました。
+ * ★日付（曜日つき）は、どんなときも必ず出します。
+ *   「きょう」と足すのは、営業日とぴったり同じときだけ。
+ *   ちがう日のぶんを出しているのに「きょう」と書くのは、嘘になります。
+ */
+function evTitle(day){
+  const n = (day && day.list) ? day.list.length : 0;
+  if (!day || !day.d) return 'イベント（' + n + '件）';
+  const kyo = (day.d === today()) ? 'きょう ' : '';
+  return kyo + fmtD(day.d) + ' のイベント（' + n + '件）';
+}
+
+/*
+ * 古いまま止まっていたら、黙らずに そう書く。
+ * （日付を出すようにしたので、止まっていることにも気づけます）
+ */
+function evStale(day){
+  if (!day || !day.d) return '';
+  return (day.d < today()) ? '※新しいぶんが、まだ届いていません' : '';
+}
+
 function evRows(day){
   if (!day || !day.list || !day.list.length) return '<div class="empty">該当データがありません</div>';
   const kind = { event:'🎤 イベント', barasi:'🔧 バラシ（搬出）',
@@ -1477,14 +1506,13 @@ function evRows(day){
 
 function paneEv(){
   const d = evToday();
-  const when = d ? d.d : '';
   const at = (evData && evData.at) ? evData.at : '';
   /* ★「今日はもう表示しない」を押した人も、ここから出し直せます
        （ご指示・2026/11/11「今日のお知らせをオフにした人も
          再度見れる形にしてください」）。 */
   const hid = evHiddenToday();
-  return `<div class="card"><h2>きょうのイベント</h2>
-    <p class="note">${when ? esc(fmtD(when)) + ' のぶん。' : ''}
+  return `<div class="card"><h2>${esc(evTitle(d))}</h2>
+    <p class="note">${evStale(d) ? '<b class="evold">' + esc(evStale(d)) + '</b><br>' : ''}
       いちばん上は<b>何時に車を着けるか</b>。開演はその下に、根拠として置いています。
       ${at ? '（取ったのは ' + esc(at) + '）' : ''}</p>
     <div class="actions">
@@ -1494,8 +1522,7 @@ function paneEv(){
     </div>
     ${evRows(d)}</div>` +
     ((evData && evData.days && evData.days[1]) ?
-      `<div class="card"><h2>あすのイベント</h2>
-        <p class="note">${esc(fmtD(evData.days[1].d))} のぶん。</p>
+      `<div class="card"><h2>${esc(evTitle(evData.days[1]))}</h2>
         ${evRows(evData.days[1])}</div>` : '');
 }
 
@@ -1573,7 +1600,8 @@ function evPopup(d){
   const box = document.createElement('div');
   box.className = 'modal';
   box.innerHTML = `<div class="modalbox">
-    <h2>きょうのイベント（${d.list.length}件）</h2>
+    <h2>${esc(evTitle(d))}</h2>
+    ${evStale(d) ? `<p class="note evold">${esc(evStale(d))}</p>` : ''}
     <div class="modalbody">${evRows(d)}</div>
     <div class="modalfoot">
       <label class="mchk"><input type="checkbox" id="evHide"> 今日はもう表示しない</label>
