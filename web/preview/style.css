@@ -1,0 +1,473 @@
+/* ============================================================
+ *  色と字（まーく様のご指示・2026/11/10）
+ *    「つけまち台帳じゃなくて、「TAXI NOTE」にしてください、
+ *      そして、全体の雰囲気をもっとデスノートっぽくしてください」
+ *
+ *  ★ねらい：黒い紙に、骨色の字。差し色は血の赤。
+ *    夜の車内で見るものなので、明るい色で光らせない。
+ *  ★名前（--andon など）は、そのまま使います。
+ *    名前を変えると、直すところが何十か所にも散るためです。
+ *    中身の色だけを入れ替えています。
+ * ============================================================ */
+:root{
+  /* ★見やすさを上げました（まーく様のご指示・2026/11/11）
+       「全体が見づらいので 視覚性はもっと上げたデザインにしてください」
+     ・字をはっきりさせる（薄い灰色をやめる）
+     ・枠線を少し明るくして、どこが区切りか分かるようにする
+     ・赤は、字に使うときだけ明るいほうを使う */
+  --ink:#0A0A0B; --ink2:#151518; --ink3:#1F1F23; --line:#3E3E48;
+  --andon:#C8232B;      /* 差し色（血の赤）。塗りに使う */
+  --kusha:#FF6A60;      /* 字に使う赤。暗い地でも読める明るさ */
+  --meter:#FFFFFF;
+  /* ★まーく様のご指示（2026/11/11）
+       「webサイトの文字は全て真っ白文字にしてください、
+         まだ視認性が悪いです
+         ただし、選択前のタグであれば、ちょい薄グレーで良いです」
+     走りながら、暗い車内で読むものです。うすい灰色は読めません。 */
+  --paper:#FFFFFF;      /* ふつうの字。真っ白 */
+  --muted:#FFFFFF;      /* そえ字も、真っ白 */
+  --chipoff:#C9C9C9;    /* まだ押していないタグだけ、ちょい薄グレー */
+  --disp:'Zen Antique',serif;
+  --goth:'Cinzel','Zen Antique',serif;   /* 題だけに使う（読める字に変更） */
+  --body:'Zen Kaku Gothic New',system-ui,-apple-system,sans-serif;
+  --mono:'Share Tech Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ink);color:var(--paper);font-family:var(--body);min-height:100vh;
+  font-size:15px;line-height:1.75;
+  /* ★古い紙のような、ざらついた黒。上から薄あかりが落ちる */
+  background-image:
+    radial-gradient(130% 70% at 50% -15%, #1A1A1D 0%, transparent 62%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.013) 0 1px, transparent 1px 3px);
+  -webkit-text-size-adjust:100%}
+a{color:var(--andon)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--andon);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 14px 60px}
+
+/* 行灯 */
+.andon{width:74px;height:38px;flex:none;border-radius:5px;position:relative;
+  background:linear-gradient(#FFF6E2,#F3DFB4);border:2px solid #0A0F19;
+  box-shadow:0 0 22px rgba(240,163,59,.45), inset 0 -4px 8px rgba(0,0,0,.15)}
+.andon:before{content:"";position:absolute;left:8px;right:8px;bottom:-6px;height:6px;background:#0A0F19;border-radius:0 0 3px 3px}
+.andon span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--disp);
+  font-size:19px;letter-spacing:.14em;color:var(--kusha);transition:color .25s}
+.andon.busy span{color:#1E7A4E}
+
+/* ★行灯を「バスのスーパーサイン」のように回す（まーく様のご指示・2026/11/10）
+   「文字が上へと消え、下から違う文字が現れる感じの、遊び心の入ったデザイン」
+   ★文字がはみ出さないよう、内側に窓（.roll）を作って その中で動かす。
+     行灯そのものに overflow:hidden を掛けると、
+     下に出ている台（:before）まで消えてしまうため。 */
+/* ★版の番号（まーく様のご指示・2026/11/10）。
+   小さく、じゃまをしない大きさで、題のとなりに。 */
+/* ★4つの数が「いつからいつまでの、だれのぶんか」を書く行 */
+.kperiod{color:var(--muted);font-size:11.5px;letter-spacing:.03em;
+  margin:7px 2px 0;line-height:1.6}
+.kperiod b{color:var(--paper);font-weight:500;font-family:var(--mono)}
+.ver{font-family:var(--mono);font-size:11px;color:var(--muted);
+  letter-spacing:.06em;border:1px solid var(--line);border-radius:999px;
+  padding:1px 8px;vertical-align:3px;font-weight:400}
+/* ★まだ読んでいないお知らせがあることを、小さな点で知らせる */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--kusha);margin-left:5px;vertical-align:1px}
+.newsv{display:flex;align-items:baseline;gap:9px;margin:0 0 6px}
+.newsv b{font-family:var(--mono);font-size:13px;color:var(--andon)}
+.newsv small{color:var(--muted);font-size:11px}
+.newsl{margin:0 0 18px;padding-left:1.2em;font-size:13.5px;line-height:1.95}
+.newsl li{margin:5px 0}
+.andon .roll{position:absolute;inset:0;overflow:hidden;border-radius:3px}
+.andon .roll span{transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .34s,color .25s}
+.andon .roll span.up{transform:translateY(-118%);opacity:0}
+/* ★下に置き直すときは、動かさずに一瞬で（transition:none）。
+     ここを動かすと、上から下へ落ちていくように見えてしまう */
+.andon .roll span.down{transform:translateY(118%);opacity:0;transition:none}
+@media(prefers-reduced-motion:reduce){
+  .andon .roll span,.andon .roll span.up,.andon .roll span.down{
+    transition:color .25s;transform:none;opacity:1}
+}
+
+header{display:flex;align-items:center;gap:14px;padding:6px 2px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
+/* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
+h1.dn{font-family:var(--goth);font-weight:700;font-size:32px;letter-spacing:.17em;
+  line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
+h1.dn2{font-family:var(--disp);letter-spacing:.08em}
+@media(max-width:640px){h1.dn{font-size:27px}}
+/* 地図で開ける場所の名前（ご指示・2026/11/11） */
+.plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
+.plink:hover{border-bottom-color:var(--andon)}
+.okmark{color:var(--meter);font-weight:400}
+a.chip{text-decoration:none;display:inline-block}
+a.chip.off{opacity:.45;pointer-events:none}
+.chip[disabled]{opacity:.45}
+
+/* 見出しの横の、小さなそえ字（「記録の目安時間」） */
+.h2sub{font-family:var(--body);font-size:11.5px;color:var(--chipoff);
+  letter-spacing:.04em;margin-left:8px;font-weight:400}
+
+/* ★スマホで1行に収まるように（ご指示・2026/11/11）。
+     画面が細いほど字を小さくします。折り返すと、題の位置が下がって
+     まわりがズレます。 */
+.sub{color:var(--muted);font-size:clamp(10px,2.9vw,13px);margin-top:3px;line-height:1.5}
+.who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.who b{color:var(--paper);font-weight:500}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 6px}
+.kpi{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;padding:10px 11px}
+.kpi b{display:block;font-family:var(--mono);font-size:22px;color:var(--andon);line-height:1.15}
+.kpi small{color:var(--muted);font-size:10.5px;letter-spacing:.04em}
+.kpi.gr b{color:var(--meter)}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
+
+nav{display:flex;gap:4px;margin:18px 0 14px;background:var(--ink2);padding:4px;border-radius:9px;
+  border:1px solid var(--ink3);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;white-space:nowrap;background:none;border:0;color:var(--chipoff);
+  padding:9px 13px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
+nav button[aria-selected=true]{background:var(--andon);color:#14100A;font-weight:700}
+
+.card{background:var(--ink2);border:1px solid var(--ink3);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{font-family:var(--disp);font-weight:400;font-size:16px;margin:0 0 3px;letter-spacing:.05em}
+.card .note{color:var(--muted);font-size:11.5px;margin:0 0 14px;line-height:1.6}
+
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px}
+/* ★min-width:0 … これが無いと、中の欄が「本来の幅」を主張して
+     わくを押し広げ、画面の外へはみ出します（ご指摘・2026/11/11
+     「営業日の枠が、はみ出てます」）。日付の欄が いちばん幅を取ります。 */
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f.w2{grid-column:span 2}.f.w3{grid-column:span 3}.f.w6{grid-column:span 6}
+label{font-size:11px;color:var(--muted);letter-spacing:.05em}
+input,select,textarea{background:#0C1422;border:1px solid var(--line);color:var(--paper);
+  border-radius:6px;padding:9px 10px;font-size:15px;font-family:var(--mono);
+  width:100%;max-width:100%;min-width:0}
+/* ★日付の欄（営業日）が、わくからはみ出す（ご指摘・2026/11/11
+     「営業日の枠が、はみ出てます」）
+   iPhoneの日付の欄は、中の数字が「この幅はどうしても要る」と
+   主張するため、わくを押し広げて外へ出ます。
+   パソコンの画面では起きないので、ここは見た目を自前にして、
+   字を左にそろえ、わくの中へ収めます。
+   ★押したときの日付えらび（くるくる回すあれ）は、そのまま出ます。 */
+input[type=date]{-webkit-appearance:none;appearance:none;
+  width:100%;max-width:100%;min-width:0}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-width:0}
+input[type=date]::-webkit-calendar-picker-indicator{margin:0 0 0 auto;padding:0}
+input.ja,textarea{font-family:var(--body);font-size:14px}
+/* ★まだ何も入れていない欄の見本の字。
+     濃い紺だと、ほぼ見えませんでした（ご指示・2026/11/11）。
+     「まだ入れていない」ものなので、タグと同じ ちょい薄グレーに。 */
+input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.85}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:#0C1422;border:1px solid var(--line);color:var(--chipoff);border-radius:20px;
+  padding:4px 10px;font-size:11.5px;cursor:pointer}
+.chip:hover{border-color:var(--andon);color:var(--paper)}
+.chip.on{background:var(--andon);color:#14100A;border-color:var(--andon)}
+.hint{font-family:var(--mono);font-size:12px;color:var(--meter);min-height:14px}
+.actions{display:flex;gap:9px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.btn{background:var(--andon);color:#14100A;border:0;border-radius:7px;padding:11px 22px;
+  font-size:14px;font-weight:700;cursor:pointer}
+.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line);font-weight:500}
+.btn.danger{background:none;color:var(--kusha);border:1px solid var(--kusha);font-weight:500}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:active{transform:translateY(1px)}
+.msg{font-size:12px;color:var(--meter)}
+.msg.bad{color:var(--kusha)}
+/* 画面が900pxより細いときは、営業日の欄を広めに取ります。
+   6つ割りのままだと、日付の欄に要る幅ぎりぎりになります。 */
+@media(max-width:900px){.f.fdate{grid-column:span 3}}
+@media(max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.f.w3,.f.w6{grid-column:span 2}
+  /* 営業日は、細い画面では横1列ぜんぶを使います。
+     半分の幅だと、日付の欄が どうしても収まりません。 */
+  .f.fdate{grid-column:1 / -1}}
+
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg{display:block}
+.axis{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.glab{fill:var(--paper);font-family:var(--mono);font-size:10px}
+.grid-l{stroke:#243350;stroke-width:1}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:var(--muted);font-weight:500;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-size:11px;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid #1D2A42;white-space:nowrap}
+td.n{font-family:var(--mono);text-align:right}
+tbody tr:hover{background:#1B2942}
+.mini{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
+.mini:hover{color:var(--paper);border-color:var(--andon)}
+.empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:13px;line-height:1.8}
+.bar{height:7px;border-radius:4px;background:var(--andon)}
+.tip{position:fixed;pointer-events:none;background:#0A1220;border:1px solid var(--andon);
+  border-radius:6px;padding:7px 10px;font-size:11.5px;line-height:1.6;z-index:50;opacity:0;transition:opacity .12s;max-width:230px}
+.tip.on{opacity:1}
+footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;line-height:1.8}
+/* ★いちばん下の名前（まーく様のご指示・2026/11/10）。
+   ホームページでよくある形で、小さく、まん中に。 */
+.copy{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:11px;letter-spacing:.08em}
+.warn{background:#2A1C14;border:1px solid var(--kusha);color:#F0BFA8;font-size:11.5px;
+  padding:9px 12px;border-radius:7px;margin-bottom:12px;line-height:1.6}
+.badge{font-size:10px;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:1px 6px;margin-left:6px}
+.badge.adm{border-color:var(--andon);color:var(--andon)}
+
+/* ログイン画面 */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login .box{width:100%;max-width:380px}
+.login .head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.login .card{padding:22px}
+.login .btn{width:100%;padding:13px}
+.login .foot{text-align:center;margin-top:16px;font-size:11.5px;color:var(--muted);line-height:1.9}
+.login .foot a{color:var(--muted);text-decoration:underline}
+.boot{display:grid;place-items:center;min-height:100vh;color:var(--muted);font-size:13px}
+/* ★隠したものは、必ず消えること。
+ *   （.boot の display:grid が勝ってしまい、読み込みのあとも
+ *     「読み込んでいます…」が画面に残っていました） */
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ------------------------------------------------------------
+ *  種類の色分け（記録用スプレッドシートの H列と同じ考え方）
+ *  2026/10/26 追加
+ * ---------------------------------------------------------- */
+.mtag{display:inline-block;padding:1px 7px;border-radius:999px;
+      font-size:12px;line-height:1.6;white-space:nowrap;
+      background:#eceff3;color:#333}
+.mtag.go{background:#c6f6ff;color:#1155ca}
+.mtag.uber{background:#ffe086;color:#7f6000}
+.mtag.musen{background:#d9ead3;color:#274e13}
+
+/* ------------------------------------------------------------
+ *  いまアツい（2026/10/27 追加）
+ *  ★スマホの細い画面でも、横スクロールさせないこと。
+ *    幅はピクセルで決め打ちせず、割合で分けます。
+ * ---------------------------------------------------------- */
+.wx{font-size:12.5px;line-height:1.7;color:var(--paper);background:#0C1422;
+    border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin:0 0 12px}
+.hot{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hotc{background:#0C1422;border:1px solid var(--line);border-radius:9px;padding:11px 12px;
+      display:flex;flex-direction:column;gap:3px;min-width:0}
+.hotc.top{border-color:var(--andon);box-shadow:0 0 16px rgba(240,163,59,.18)}
+.hotc small{color:var(--muted);font-size:10.5px;letter-spacing:.04em}
+.hotc b{font-size:17px;line-height:1.3;word-break:break-all}
+.hotc .hv{font-family:var(--mono);font-size:21px;color:var(--andon);line-height:1.2}
+.hotc.top .hv{color:var(--meter)}
+.hotc .hs{color:var(--muted);font-size:11px;line-height:1.6}
+.hotc .mini{align-self:flex-start;margin-top:5px;text-decoration:none}
+.plan{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.plan .pl{background:#0C1422;border:1px solid var(--line);border-radius:9px;padding:10px 11px;min-width:0}
+.plan .pl small{display:block;color:var(--muted);font-size:10.5px;margin-bottom:3px}
+.plan .pl b{display:block;font-size:15px;line-height:1.35;word-break:break-all}
+.plan .pl b.thin{color:var(--muted)}
+.plan .pl span{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+@media(max-width:640px){.hot,.plan{grid-template-columns:1fr}}
+
+
+/* ============================================================
+ *  デスノートらしさ（2026/11/10）
+ *  ★やりすぎない。夜に、走る前に見るものなので、
+ *    読みにくくなったら本末転倒。
+ * ============================================================ */
+
+/* 枠は、紙に引いた罫のように細く */
+.card{border-color:#2A2A30;box-shadow:0 0 0 1px rgba(0,0,0,.5) inset}
+.card h2{color:var(--paper);letter-spacing:.09em}
+.card h2:before{content:"— ";color:var(--andon)}
+
+/* 4つの数は、赤で書きつける */
+.kpi{border-color:#2A2A30}
+.kpi b{color:var(--paper);text-shadow:0 0 12px rgba(179,22,29,.22)}
+.kpi.gr b{color:var(--kusha)}
+
+/* 選んでいるタブは、赤く塗る */
+nav{border-color:#2A2A30}
+nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
+
+/* 押しボタン */
+.btn{background:var(--andon);color:#F2EDE4;letter-spacing:.06em}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+.chip.on{background:var(--andon);color:#F2EDE4;border-color:var(--andon)}
+
+/* いちばん下の名前 */
+.copy{letter-spacing:.12em;color:#6E6E6C}
+
+/* 行灯だけは、本物の色のまま残す（タクシーのものなので） */
+
+
+/* ============================================================
+ *  変顔と、嫌なお客さんのひとこと（まーく様のご指示・2026/11/10）
+ *  ★細い画面では、ひとことは下へまわり込みます。
+ *    題を押しのけて読めなくなる方が困るためです。
+ * ============================================================ */
+.saymount{display:flex;align-items:center;gap:9px;flex:none}
+.saybox{display:flex;align-items:center;gap:8px;flex:none}
+.saymount .face{color:var(--paper);opacity:.92;flex:none;
+  filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
+.saymount .bubble{position:relative;background:#17171A;border:1px solid var(--line);
+  color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
+  max-width:190px;letter-spacing:.02em}
+.saymount .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
+  width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
+.saymount .bubble:after{content:"";position:absolute;left:-4.5px;top:50%;margin-top:-4px;
+  width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
+/* ★すうっと消えて、すうっと出す（ご指示・2026/11/10）。
+   動かさず、濃さだけを変えます。目が休まります。 */
+.saymount{transition:opacity .45s ease}
+.saymount.fade{opacity:0}
+@media(prefers-reduced-motion:reduce){.saymount{transition:none}}
+@media(max-width:560px){.saymount .bubble{max-width:150px;font-size:11.5px}}
+.saybox .face{color:var(--paper);opacity:.92;flex:none;
+  filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
+.saybox .bubble{position:relative;background:#17171A;border:1px solid var(--line);
+  color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
+  max-width:190px;letter-spacing:.02em}
+.saybox .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
+  width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
+.saybox .bubble:after{content:"";position:absolute;left:-4.5px;top:50%;margin-top:-4px;
+  width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
+/* ★入れ替わるときだけ、ふわっと出します（うるさくしない） */
+.saybox.pop .face,.saybox.pop .bubble{animation:sayin .34s ease-out}
+@keyframes sayin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.saybox.pop .face,.saybox.pop .bubble{animation:none}}
+@media(max-width:560px){.saybox .bubble{max-width:150px;font-size:11.5px}}
+
+
+/* ============================================================
+ *  イベント（きょう・あす）とポップアップ
+ * ============================================================ */
+.evrow{border-top:1px solid var(--line);padding:12px 2px}
+.evrow:first-of-type{border-top:0}
+.evhead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  font-family:var(--disp);font-size:15px;letter-spacing:.05em;color:var(--paper)}
+.evkind{font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.evgo{margin-top:5px;font-size:15px;font-weight:700;color:var(--kusha);letter-spacing:.03em}
+.evt{margin-top:4px;font-size:13.5px;line-height:1.7}
+.evsub{margin-top:3px;font-size:12px;color:var(--muted);line-height:1.7}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;
+  display:flex;align-items:center;justify-content:center;padding:18px}
+.modalbox{background:var(--ink2);border:1px solid var(--line);border-radius:12px;
+  max-width:560px;width:100%;max-height:86vh;display:flex;flex-direction:column;
+  box-shadow:0 0 50px rgba(0,0,0,.7)}
+.modalbox h2{font-family:var(--disp);font-weight:400;font-size:17px;letter-spacing:.07em;
+  margin:0;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.modalbox h2:before{content:"— ";color:var(--andon)}
+.modalbody{overflow:auto;padding:4px 18px 10px}
+.modalfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:12px 18px 16px;border-top:1px solid var(--line)}
+.mchk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.mchk input{width:auto;margin:0}
+.modalfoot .btn{margin-left:auto}
+@media(max-width:560px){.modalbox h2{font-size:15px}.modalfoot{gap:9px}}
+
+
+/* ============================================================
+ *  見やすさを上げる（まーく様のご指示・2026/11/11）
+ *    「全体が見づらいので 視覚性はもっと上げたデザインにしてください」
+ *  ★走る前に、暗い車内で見るものです。
+ *    細い字・薄い灰色・小さい字を、ぜんぶ やめます。
+ * ============================================================ */
+.sub{font-size:clamp(10px,2.9vw,13px);color:var(--muted)}
+.card{padding:18px}
+.card h2{font-size:17.5px;margin-bottom:5px}
+.card .note{font-size:12.5px;color:var(--muted);line-height:1.85}
+.kpi{padding:12px 13px}
+.kpi small{font-size:11.5px;color:var(--muted);letter-spacing:.05em}
+.kpi b{font-size:24px}
+.kperiod{font-size:12.5px}
+nav button{font-size:13.5px;padding:10px 15px}
+label{font-size:12px;color:var(--muted)}
+input,select,textarea{font-size:16px;padding:11px 12px}   /* 16px：iPhoneで勝手に拡大されない */
+.chip{font-size:13px;padding:8px 13px}
+.btn{font-size:15px;padding:13px 24px}
+table{font-size:13.5px}
+th{font-size:12px;color:var(--muted)}
+footer{font-size:12px;line-height:2}
+.evt{font-size:14.5px}
+.evsub{font-size:12.5px}
+.evgo{font-size:16px}
+.saymount .bubble{font-size:12.5px}
+
+
+/* ============================================================
+ *  ログイン画面の「HOW TO USE IT」（ご指示・2026/11/11）
+ *  ★読めることが先。飾りで読みにくくしない。
+ * ============================================================ */
+.howto{margin-top:18px;border:1px solid var(--line);border-radius:10px;
+  background:linear-gradient(180deg,#121214 0%,#0D0D0F 100%);padding:16px 18px 18px}
+.howhead{font-family:var(--goth);font-weight:700;font-size:15px;letter-spacing:.3em;
+  color:var(--kusha);text-align:center;padding-bottom:10px;margin-bottom:12px;
+  border-bottom:1px solid var(--line)}
+.howlist{margin:0;padding-left:1.35em;font-size:13px;line-height:1.95;color:var(--paper)}
+.howlist li{margin:9px 0}
+.howlist li::marker{color:var(--kusha);font-family:var(--mono)}
+.howlist b{color:var(--kusha);font-weight:700}
+.howlist li.joke{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);
+  color:var(--muted)}
+.howlist li.joke b{color:var(--paper)}
+@media(max-width:560px){.howto{padding:14px 15px 16px}.howlist{font-size:12.5px}}
+
+
+/* ============================================================
+ *  顔とふきだしを、右に固定する（まーく様のご指示・2026/11/11）
+ *    「顔とふきだしは、右に固定にして、顔を1番右にしてください」
+ *    「タイトルがいちいちズレるのが気になります」
+ *
+ *  ★題がずれていたのは、ふきだしが左にあって、
+ *    中の字の長さで幅が変わっていたためです。
+ *    ・右へ寄せる（題は、いつも左のはしから始まる）
+ *    ・ふきだしの幅と高さを、決め打ちにする（伸び縮みしない）
+ *    この2つで、ぴたりと止まります。
+ * ============================================================ */
+header .who{order:2}
+header .saymount,.login .head .saymount{order:3;margin-left:auto}
+
+/* 顔をいちばん右に。ふきだしは、その左 */
+.saymount{flex-direction:row-reverse}
+
+/* ★幅と高さを決め打ちにする。伸び縮みすると、まわりが動きます。
+     まーく様のご指摘（2026/11/11）
+       「ふきだし、2行の高さで統一してください、高さがズレて、
+         全体がその度ズレるのがイライラします、
+         顔のサイズも統一してください」
+   ★高さは「2行ぶん」ぴったり（行の高さ18px × 2 ＋ 上下の余白）。
+     min-height だと、1行のときと2行のときで高さが変わります。
+   ★行の高さを px で決めています。字の大きさが画面ごとに変わっても、
+     2行ぶんの高さが動かないようにするためです。 */
+.saymount .bubble{width:196px;max-width:46vw;
+  height:50px;min-height:50px;max-height:50px;
+  line-height:18px;display:flex;align-items:center;overflow:hidden}
+/* 字は2行まで。はみ出す長さでも、ふきだしは伸びません */
+.saymount .bubble .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;width:100%}
+
+/* ★顔の大きさを固定。組み合わせが変わっても、ここは動きません */
+.saymount .face{width:34px;height:34px;min-width:34px;flex:0 0 34px}
+
+/* ふきだしの、とんがりを右向きに（顔のほうを指す） */
+.saymount .bubble:before{left:auto;right:-6px;
+  border-right-color:transparent;border-left-color:var(--line)}
+.saymount .bubble:after{left:auto;right:-4.5px;
+  border-right-color:transparent;border-left-color:#17171A}
+
+/* ★「乗せてよかった」ひとことのときだけ、ふちを明るくします。
+     ぼやきと、ぱっと見で見分けられるようにするためです。 */
+.saymount .bubble.good{border-color:#6E6E7A}
+
+@media(max-width:560px){
+  /* 細い画面でも、2行ぶんの高さで固定（行の高さ17px × 2 ＋ 余白） */
+  .saymount .bubble{width:150px;font-size:11.5px;
+    height:48px;min-height:48px;max-height:48px;line-height:17px}
+  .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
+}
+
+/* ------------------------------------------------------------
+ *  下見用のページの、いちばん上の帯（ご指示・2026/11/11）
+ *    「変更前に、僕に最終確認をとる形にして、
+ *      プレビュー用ページの作成も作るようにしてください」
+ *  ★本番と見分けがつかないと、事故のもとです。はっきり出します。
+ * ---------------------------------------------------------- */
+.pvbar{background:var(--andon);color:#FFFFFF;font-size:13px;
+  padding:9px 16px;text-align:center;letter-spacing:.03em}
+.pvbar a{color:#FFFFFF}

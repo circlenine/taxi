@@ -154,7 +154,10 @@ input[type=date]{-webkit-appearance:none;appearance:none;
 input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-width:0}
 input[type=date]::-webkit-calendar-picker-indicator{margin:0 0 0 auto;padding:0}
 input.ja,textarea{font-family:var(--body);font-size:14px}
-input::placeholder,textarea::placeholder{color:#4E5F7D}
+/* ★まだ何も入れていない欄の見本の字。
+     濃い紺だと、ほぼ見えませんでした（ご指示・2026/11/11）。
+     「まだ入れていない」ものなので、タグと同じ ちょい薄グレーに。 */
+input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.85}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chip{background:#0C1422;border:1px solid var(--line);color:var(--chipoff);border-radius:20px;
   padding:4px 10px;font-size:11.5px;cursor:pointer}
@@ -458,3 +461,13 @@ header .saymount,.login .head .saymount{order:3;margin-left:auto}
     height:48px;min-height:48px;max-height:48px;line-height:17px}
   .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
 }
+
+/* ------------------------------------------------------------
+ *  下見用のページの、いちばん上の帯（ご指示・2026/11/11）
+ *    「変更前に、僕に最終確認をとる形にして、
+ *      プレビュー用ページの作成も作るようにしてください」
+ *  ★本番と見分けがつかないと、事故のもとです。はっきり出します。
+ * ---------------------------------------------------------- */
+.pvbar{background:var(--andon);color:#FFFFFF;font-size:13px;
+  padding:9px 16px;text-align:center;letter-spacing:.03em}
+.pvbar a{color:#FFFFFF}

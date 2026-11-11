@@ -406,5 +406,34 @@ console.log('■ ごいけんと、イベントの出し直し（ご指示・202
     '★★★「今日はもう表示しない」にしても、イベントを出し直せる');
 }
 
+
+console.log('■ 下見用のページ（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「変更前に、僕に最終確認をとる形にして、
+   *       プレビュー用ページの作成も作るようにしてください」
+   *   ★本番と見分けがつかないと事故のもとなので、
+   *     いちばん上に赤い帯が出ることを押さえます。
+   */
+  const dir = path.join(W, 'preview');
+  t(fs.existsSync(dir), '★★★下見用のページがある');
+  if (fs.existsSync(dir)) {
+    ['index.html','app.js','shared.js','style.css','news.js','config.js']
+      .forEach(function (f) {
+        t(fs.existsSync(path.join(dir, f)), '　 ' + f + ' がそろっている');
+      });
+    const h = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+    t(/pvbar/.test(h) && /下見用/.test(h), '★★★「下見用」と、はっきり出る');
+    t(/<title>TAXI NOTE（下見）<\/title>/.test(h), '　 題でも見分けられる');
+    const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/\.pvbar\{/.test(css), '　 その帯の見た目も入っている');
+  }
+  /* 見本の字（まだ入れていない欄）も、読める明るさにする */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/::placeholder\{color:var\(--chipoff\)/.test(css),
+    '★★★入れる前の見本の字も、読める明るさ');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
