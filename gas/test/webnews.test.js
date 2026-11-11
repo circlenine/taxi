@@ -1101,12 +1101,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   const adm  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
   const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
 
-  t(/data-t="heat"[^>]*>つけ待ち一覧</.test(html), '★★★タブは「つけ待ち一覧」');
+  t(/data-t="heat"[^>]*>つけ待ち</.test(html), '★★★タブは「つけ待ち」');
   t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
   t(/data-t="fb"[^>]*>フィードバック</.test(html), '★★★タブは「フィードバック」');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
     '★★★「ごいけん」は、どこにも残っていない');
-  t(/つけ待ち一覧/.test(pv) && /フィードバック/.test(pv),
+  t(/つけ待ち/.test(pv) && /フィードバック/.test(pv),
     '　 下見用のページも、同じ名前になっている');
   t(/pvbar/.test(pv), '　 下見用の赤い帯も、消えていない');
   t(/<h2>つけ待ち一覧<\/h2>/.test(app), '　 中の題も「つけ待ち一覧」');
@@ -1353,6 +1353,25 @@ console.log('■ 入れる順と、下の説明（ご指示・2026/11/12）');
     t(x.length <= 30, '★★★1行は30字まで：' + x, x.length);
   });
   t(!/つけ待ちで潰した時間まで含めた/.test(html), '　 長い言い回しは、残っていない');
+}
+
+
+
+console.log('■ タブは、横スクロールさせない（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「PCだと見切れています」
+   *     「あまり横スクロール機能は好きじゃないので、なんとかしてください」
+   *   入りきらないときは、折り返して2段にします。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const nav = (css.match(/\nnav\{[^}]*\}/) || [''])[0];
+  t(/flex-wrap:wrap/.test(nav), '★★★入りきらなければ、折り返す', nav.slice(0,70));
+  t(!/overflow-x:auto/.test(nav), '★★★横スクロールは、させない');
+  t(!/nav::-webkit-scrollbar/.test(css), '　 スクロールバーを隠す細工も、残っていない');
+  const btn = (css.match(/\nnav button\{[^}]*\}/) || [''])[0];
+  t(!/flex:1 0 auto/.test(btn), '　 ボタンを無理に広げない（折り返せるように）');
 }
 
 

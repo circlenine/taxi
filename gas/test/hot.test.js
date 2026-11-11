@@ -237,7 +237,7 @@ console.log('■ 地図は「さがす」形（番地まで当てない）');
 console.log('■ 画面への組み込み（押すところ・描くところ）');
 {
   ok(/data-t="hot"/.test(htmlSrc), 'index.html に「いまアツい」の押しどころがある');
-  ok(/いまアツい/.test(htmlSrc), '押しどころの名前が日本語');
+  ok(/今アツい/.test(htmlSrc), '押しどころの名前が日本語');
   ok(/hot\s*:\s*paneHot/.test(appSrc), 'app.js が hot のときに paneHot を描く');
   ok(/loadWx\(\)/.test(appSrc), '起動のときに天気を読む');
   ok(/setInterval\(/.test(appSrc), '時刻が変わったら描き直す');
