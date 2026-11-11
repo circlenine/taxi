@@ -7223,5 +7223,54 @@ console.log('■ 台帳の棚づくりを、こちらから流す（web-sql）')
   t(/alter column fare\s+drop not null/.test(sql), '　 「不明」を受けられる直しも入っている');
 }
 
+
+console.log('■ 営業曜日の区切りは 16:00（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）：「16:00に変えてください」
+   *   16:00〜翌15:59 が、同じ営業曜日です。15:59 までは前の日。
+   *
+   * ★いちばん こわいのは「コードだけ直して、安心してしまう」ことです。
+   *   「設定」タブに前の時刻（17）が入っていると、そちらが勝ちます。
+   *   実際に、既定を直したのに 17 のまま動いていました。
+   *   だから、既定と おつかい（biz-start）の両方を見ます。
+   */
+  const code = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+  const upd  = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const web  = fs.readFileSync(path.join(__dirname, '..', '004-WebApp.gs'), 'utf8');
+
+  t(/"営業曜日の始まり（時）",\s+def: 16,/.test(code),
+    '★★★既定の区切りが 16 になっている');
+  t(!/"営業曜日の始まり（時）",\s+def: 17,/.test(code),
+    '　 前の 17 は、どこにも残っていない');
+  t(/wbBizStart_\(\)[\s\S]{0,120}cfgBizStart_\(\) : 16;/.test(web),
+    '★★★設定が読めないときの控えも 16');
+  t(!/cfgBizStart_\(\) : 17;/.test(web), '　 控えの 17 も、残っていない');
+
+  /* ★「設定」タブに入っているほうを書きかえる道があること */
+  t(/"biz-start":\s*"/.test(upd), '★★★区切りを変えるおつかいがある');
+  t(/function updBizSet_\s*\(/.test(upd), '　 その中身も入っている');
+  t(/task === "biz-start"/.test(upd), '★★★ほんとうに呼び出されている');
+  t(/j\.hour != null\) \? j\.hour : 16/.test(upd),
+    '★★★時刻を書かなければ 16:00 になる');
+
+  /* 実際に走らせて、設定タブに 16 が書かれることを見ます */
+  const cfg = {};
+  ctx.cfgSet_ = function (k, v) { cfg[k] = v; return true; };
+  const B = F('updBizSet_');
+  const r1 = String(B(16));
+  t(cfg['営業曜日の始まり（時）'] === 16, '★★★設定タブに 16 が書かれる', cfg);
+  t(/16:00/.test(r1) && /15:59/.test(r1),
+    '★★★「15:59までが前の日」と、ことばでも出る', r1);
+  /* まちがった値は、受け取らない（ぜんぶの記録の日付がずれるため） */
+  cfg['営業曜日の始まり（時）'] = 16;
+  [25, -1, 'あ', 16.5].forEach(function (bad) {
+    B(bad);
+    t(cfg['営業曜日の始まり（時）'] === 16,
+      '　 おかしな値（' + bad + '）では、書きかえない');
+  });
+}
+
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

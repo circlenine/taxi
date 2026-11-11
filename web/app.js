@@ -1458,7 +1458,7 @@ async function loadEv(){
 /** きょうのぶん（無ければ、いちばん上の日） */
 function evToday(){
   if (!evData || !evData.days || !evData.days.length) return null;
-  const t = today();
+  const t = evNight();
   return evData.days.filter(d => d.d === t)[0] || evData.days[0];
 }
 
@@ -1478,7 +1478,7 @@ function evToday(){
 function evTitle(day){
   const n = (day && day.list) ? day.list.length : 0;
   if (!day || !day.d) return 'イベント（' + n + '件）';
-  const kyo = (day.d === today()) ? 'きょう ' : '';
+  const kyo = (day.d === evNight()) ? 'きょう ' : '';
   return kyo + fmtD(day.d) + ' のイベント（' + n + '件）';
 }
 
@@ -1488,7 +1488,7 @@ function evTitle(day){
  */
 function evStale(day){
   if (!day || !day.d) return '';
-  return (day.d < today()) ? '※新しいぶんが、まだ届いていません' : '';
+  return (day.d < evNight()) ? '※新しいぶんが、まだ届いていません' : '';
 }
 
 function evRows(day){
@@ -1581,10 +1581,10 @@ async function fbSend(){
 
 /* ---- ポップアップ ---- */
 function evHiddenToday(){
-  try { return localStorage.getItem(EV_KEY) === today(); } catch (e) { return false; }
+  try { return localStorage.getItem(EV_KEY) === evNight(); } catch (e) { return false; }
 }
 function evHideToday(){
-  try { localStorage.setItem(EV_KEY, today()); } catch (e) {}
+  try { localStorage.setItem(EV_KEY, evNight()); } catch (e) {}
 }
 function evBoot(){
   try {

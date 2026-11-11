@@ -550,7 +550,7 @@ console.log('■ 分からない欄は「不明」（ご指示・2026/11/11）')
    */
   const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
   const a = sh.indexOf('const UNK');
-  const b = sh.indexOf('/* その夜の営業日');
+  const b = sh.indexOf('function bizToday');
   t(a !== -1 && b > a, '★「不明」のあつかいが見つかる');
   if (a !== -1 && b > a) {
     const box = { console: { log: function(){} } };
@@ -892,7 +892,10 @@ console.log('■ イベントは、何日のぶんかを必ず出す（ご指示
       'const pad=n=>String(n).padStart(2,"0");' +
       'function fmtD(s){const[y,m,d]=s.split("-").map(Number);' +
       ' return m+"/"+d+"("+WD[new Date(y,m-1,d).getDay()]+")";}' +
-      'let _NOW="2026-11-11"; function today(){return _NOW;}' +
+      'let _NOW="2026-11-11"; function evNight(){return _NOW;}' +
+      /* today() にすり替わっても、ここでは落ちずに
+         「evNight を使っているか」の検査のほうで気づけるように */
+      'function today(){return "2026-11-30";}' +
       app.slice(a, b), box);
     const T = (d, n) => vm.runInContext(
       'evTitle(' + JSON.stringify({ d: d, list: new Array(n).fill(0) }) + ')', box);
@@ -918,6 +921,71 @@ console.log('■ イベントは、何日のぶんかを必ず出す（ご指示
   }
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   t(/\.evold\{/.test(css), '　 止まっているときの見た目も入っている');
+}
+
+
+
+console.log('■ 台帳の営業曜日も 16:00 にそろえる（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）：「16:00に変えてください」
+   *
+   *   ★いちばん こわいのは、スプシと台帳で数え方がずれることです。
+   *     帰ってから（たとえば朝10時に）入れた1本が、
+   *     スプシでは前の日、台帳では当日、と別の日に入ります。
+   *     そうなると、人ごとの売上が静かに狂います。
+   *   ★イベントの知らせだけは、別の数え方にしてあります。
+   *     昼に見ているときに知りたいのは「今夜」のことだからです。
+   */
+  const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+
+  t(/function bizToday\(\)[\s\S]{0,80}getHours\(\) - 16/.test(sh),
+    '★★★営業曜日は 16:00 で区切る');
+  t(!/function today\(\)[\s\S]{0,80}getHours\(\) - 6/.test(sh),
+    '　 前の「朝6時で区切る」は、残っていない');
+  t(/const today = bizToday;/.test(sh), '　 これまでどおり today() でも呼べる');
+  t(/function evNight\(\)[\s\S]{0,80}getHours\(\) - 6/.test(sh),
+    '★★★イベント用の「今夜」の数え方は、別に用意してある');
+
+  /* 実際に動かして、時刻ごとに どの日になるかを見ます */
+  const box = { console: { log: function(){} }, _Real: Date };
+  vm.createContext(box);
+  vm.runInContext(
+    'const pad=n=>String(n).padStart(2,"0");' +
+    'let _H=0;' +
+    'class FakeDate{' +
+    '  constructor(){ this._d = new _Real(2026,10,12,_H,0,0); }' +
+    '  setHours(h){ this._d.setHours(h); }' +
+    '  getHours(){ return this._d.getHours(); }' +
+    '  getFullYear(){ return this._d.getFullYear(); }' +
+    '  getMonth(){ return this._d.getMonth(); }' +
+    '  getDate(){ return this._d.getDate(); } }' +
+    'var Date = FakeDate;' +
+    sh.slice(sh.indexOf('function bizToday'), sh.indexOf('const esc =')), box);
+  const at = (h, fn) => { vm.runInContext('_H=' + h + ';', box);
+                          return vm.runInContext(fn + '()', box); };
+
+  /* 夜の最中（20時）… その日 */
+  t(at(20, 'bizToday') === '2026-11-12', '★★★20時は、その日（11/12）', at(20, 'bizToday'));
+  /* 帰ってすぐ（朝6時）… まだ前の日 */
+  t(at(6, 'bizToday') === '2026-11-11', '★★★朝6時は、まだ前の日（11/11）', at(6, 'bizToday'));
+  /* 昼すぎに入れ直すとき（15時）… ここが変わった所。まだ前の日 */
+  t(at(15, 'bizToday') === '2026-11-11',
+    '★★★15時も、まだ前の日（11/11）＝ここがスプシとそろった', at(15, 'bizToday'));
+  /* 16時ちょうどから、新しい日 */
+  t(at(16, 'bizToday') === '2026-11-12', '★★★16時から、新しい日（11/12）', at(16, 'bizToday'));
+
+  /* イベントの「今夜」は、昼のうちに その日に切りかわる */
+  t(at(15, 'evNight') === '2026-11-12', '★★★昼の15時に見ても、今夜（11/12）のぶん', at(15, 'evNight'));
+  t(at(3,  'evNight') === '2026-11-11', '★★★夜中の3時は、前の晩（11/11）の続き', at(3, 'evNight'));
+
+  /* イベントまわりは、ぜんぶ evNight() を使っていること */
+  ['const t = evNight();', "day.d === evNight()", 'day.d < evNight()',
+   "localStorage.getItem(EV_KEY) === evNight()", 'localStorage.setItem(EV_KEY, evNight())']
+    .forEach(function (x) {
+      t(app.indexOf(x) !== -1, '　 イベント：' + x.slice(0, 28));
+    });
 }
 
 

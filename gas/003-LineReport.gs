@@ -2233,7 +2233,7 @@ function sendCustomReport(targetId, customStartD, customEndD, isTestArg, opt) {
       let waitMinutes = parseInt(String(dataVals[r][3]).replace(/[^0-9]/g, ''), 10); if(isNaN(waitMinutes)) waitMinutes = 0;
       /*
        * ★その日の天気を引く。
-       *   営業日（17:00〜翌16:59）の日付で引きます。
+       *   営業日（16:00〜翌15:59）の日付で引きます。
        *   記録が無い日は「天気なし」として、どちらにも入れません
        */
       {

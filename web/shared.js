@@ -84,8 +84,29 @@ const rate = r => {
   return t > 0 ? r.fare / t * 60 : 0;
 };
 
-/* その夜の営業日（朝6時までは前日扱い） */
-function today(){ const d = new Date(); d.setHours(d.getHours() - 6);
+/*
+ * その日の営業曜日（まーく様のご指示・2026/11/12「16:00に変えてください」）
+ *
+ *   16:00〜翌15:59 を、同じ1日として数えます。
+ *   15:59 までは「前の日」のあつかいです。
+ *   ★スプシ（記録用）と、同じ数え方にそろえてあります。
+ *     ずれていると、帰ってから入れた記録が
+ *     スプシと台帳で ちがう日に入ってしまいます。
+ */
+function bizToday(){ const d = new Date(); d.setHours(d.getHours() - 16);
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+const today = bizToday;
+
+/*
+ * いま「どの夜」のことを言っているか（イベントの知らせ用）
+ *
+ *   ★こちらは、営業曜日とは分けてあります。
+ *     昼の2時に見ているときに知りたいのは「今夜」のことです。
+ *     営業曜日で数えると、昼の2時はまだ「前の日」なので、
+ *     今夜のイベントが「きょう」と出なくなってしまいます。
+ *   朝6時までは、まだ前の晩の続きとして数えます。
+ */
+function evNight(){ const d = new Date(); d.setHours(d.getHours() - 6);
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

@@ -553,7 +553,9 @@ function wbSendUrlToLine(where) {
 /** 「設定」タブがあればそれを、無ければ既定値を使う */
 function wbShortMax_() { return (typeof cfgShortMax_ === "function") ? cfgShortMax_() : 4999; }
 function wbLongMin_()  { return (typeof cfgLongMin_  === "function") ? cfgLongMin_()  : 10000; }
-function wbBizStart_() { return (typeof cfgBizStart_ === "function") ? cfgBizStart_() : 17; }
+/* ★営業曜日の区切り（ご指示・2026/11/12「16:00に変えてください」）。
+   設定が読めないときの控えも 16 にそろえます。 */
+function wbBizStart_() { return (typeof cfgBizStart_ === "function") ? cfgBizStart_() : 16; }
 
 /** 平日 / 金曜 / 土曜 / 日祝 */
 function wbDayType_(d) {
