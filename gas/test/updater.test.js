@@ -91,6 +91,7 @@ ctx.pad2_ = n => ('0' + n).slice(-2);
 const props = {};
 ctx.PropertiesService = { getScriptProperties: () => ({
   getProperty: k => (k in props ? props[k] : null),
+  getProperties: () => Object.assign({}, props),
   setProperty: (k, v) => { props[k] = String(v); },
   deleteProperty: k => { delete props[k]; } })};
 let gh = null;      // {dir:[{name,path,type}], raw:{path:内容}, fail:{code,msg}}
@@ -7011,6 +7012,62 @@ console.log('■ つけ待ち台帳の倉庫を、眠らせない');
      '★うまくいった日だけ「済み」にする（しくじった日に印を付けると、その日は二度と声をかけない）');
   t(u.indexOf('lrPush_') === -1 || u.indexOf('☕ 台帳の倉庫に声をかけましたが') !== -1,
      '　 しくじっても、LINEには出さない（控えに1行だけ）');
+}
+
+
+console.log('■ 古くなった控えの片づけ（props-tidy）');
+{
+  /*
+   * ★控えが291個たまり、スクリプトの画面では50個を超えると
+   *   足せなくなっていました（まーく様のご指摘・2026/11/11）。
+   *   ★いちばん怖いのは「消してはいけないものを消すこと」です。
+   *     鍵を1つ消すと、LINEもGeminiもGitHubも、まるごと止まります。
+   *     ここで名ざしで押さえます。
+   */
+  const d = new Date();
+  const ymd = o => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + o);
+    return '' + x.getFullYear() + ('0' + (x.getMonth() + 1)).slice(-2) + ('0' + x.getDate()).slice(-2); };
+  const thisMonth = '' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2);
+
+  // ぜったいに消してはいけないもの
+  const MUST = ['LINE_TOKEN', 'GEMINI_API_KEY', 'GH_TOKEN', 'GH_REPO', 'GH_BRANCH',
+                'GROUP_ID', 'DASHBOARD_ID', 'MN_MANUAL_SS', 'VN_LEDGER_SS',
+                'UPD_DOOR_URL', 'UPD_LIVE_URL', 'VN_ALIVE', 'VN_SEEN', 'SB_WAKE_AT',
+                'LAST_ERRORS', 'PANEL_SETUP_SIG', 'TAXINOTE_EMAIL', 'TAXINOTE_PASS'];
+  // 消してよいもの
+  const JUNK = ['VNAUD_08331592c6cd', 'VNAUD_ffffffffffff', 'VNSHARE_mval3bs2_0',
+                'VNSHARE_mval3bs2_n', 'VNH_20260903', 'VNDAY_20260916',
+                'VNEDIT_20260917', 'VNSENT_20260918', 'VNSENT_20260918_T',
+                'VNDOC_20260926', 'PUSH_CNT_202609'];
+  // 日付が近いので、残さないといけないもの
+  const NEAR = ['VNDAY_' + ymd(0), 'VNEDIT_' + ymd(0), 'VNSENT_' + ymd(1),
+                'VNSENT_' + ymd(1) + '_T', 'VNEDIT_' + ymd(-1),
+                'PUSH_CNT_' + thisMonth];
+
+  Object.keys(props).forEach(k => delete props[k]);
+  MUST.concat(JUNK, NEAR).forEach(k => { props[k] = 'あたい'; });
+  const before = Object.keys(props).length;
+
+  // ① 下見では、1つも消さない
+  const dry = F('updPropsTidy_(false)');
+  t(Object.keys(props).length === before, '★★★下見では、1つも消さない');
+  t(/下見/.test(dry), '　 下見だと分かる返事をする', dry);
+
+  // ② ほんとうに消す
+  F('updPropsTidy_(true)');
+  const left = Object.keys(props);
+  const lostMust = MUST.filter(k => left.indexOf(k) === -1);
+  t(lostMust.length === 0,
+    '★★★鍵や住所は、1つも消さない（ここを消すと、まるごと止まります）',
+    lostMust.join('/'));
+  const lostNear = NEAR.filter(k => left.indexOf(k) === -1);
+  t(lostNear.length === 0, '★★★きのう・きょう・あしたのぶんは残す', lostNear.join('/'));
+  const keptJunk = JUNK.filter(k => left.indexOf(k) !== -1);
+  t(keptJunk.length === 0, '★★★古くなったぶんは、ちゃんと消える', keptJunk.join('/'));
+  t(left.length === MUST.length + NEAR.length,
+    '　 残ったのは、残すはずのものだけ', left.length);
+
+  Object.keys(props).forEach(k => delete props[k]);
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

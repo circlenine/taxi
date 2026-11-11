@@ -2,8 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U166ver  （2026/11/11）  ★★★
+ *  ★★★  U167ver  （2026/11/11）  ★★★
  *
+ *
+ *  [U167ver]
+ *   ・🗂 古くなったGASの控えを片づける係を作った（props-tidy）
+ *     ★まーく様のご指摘：「５０個以上ある場合はどうすればよいのですか」
+ *       控えが291個たまっていて、スクリプトの画面では
+ *       50個を超えると、新しいものを足せません。
+ *     ★消すのは「日付の付いた、済んだぶん」だけです。
+ *       鍵（LINE・Gemini・GitHub）や、いまの様子を覚えている控えは
+ *       1つも触りません。
+ *     ★はじめは下見だけ（数えるだけ）。go:true と書いたときだけ消します。
  *
  *  [U166ver]
  *   ・🕕 時刻の数え方を、台帳の画面とそろえた（0〜6時が「その夜の続き」）
@@ -1870,7 +1880,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U166ver";
+const UPD_VERSION = "U167ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11673,6 +11683,91 @@ function updErrandLog_(line) {
 }
 
 /** やってよいこと。ここに無いものは、何もしない */
+/**
+ * 古くなったGASの控えを片づける（updPropsTidy_）
+ *
+ *  ★なぜ要るか
+ *    控えが291個たまっていました。スクリプトの画面では
+ *    50個を超えると、新しいものを足せなくなります。
+ *    足せないと、台帳への自動反映が始められません。
+ *
+ *  ★何を消すか … 「日付の付いた、済んだぶん」だけです。
+ *      VNAUD_…    会場のページを前に読んだときの控え（また読めば作り直せる）
+ *      VNH_…      日ごとのホテルの控え
+ *      VNDAY_…    日ごとのイベントの控え
+ *      VNEDIT_…   日ごとの、まーく様の手直し
+ *      VNSENT_…   その日に送ったという印
+ *      VNDOC_…    日ごとの資料の控え
+ *      VNSHARE_…  「グループへ送る」ボタンの控え
+ *      PUSH_CNT_… 月ごとのLINEの通数
+ *
+ *  ★何を残すか
+ *    ・きのう・きょう・あしたのぶん（手直しや「送った印」を消さないため）
+ *    ・いまの月のLINEの通数
+ *    ・名前に日付が無いもの（鍵・住所・いまの様子）は、1つも触りません
+ *
+ *  ★はじめは下見だけ。数えて控えに書くだけで、消しません。
+ *    { "do": ["props-tidy"], "go": true } と書いたときだけ消します。
+ *
+ *  ★これが壊れたら誰が気づくか
+ *    控えに「何個 消した／残った」と1行 書きます。
+ *    消しすぎていれば、残りの数で すぐ分かります。
+ */
+function updPropsTidy_(go) {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    const all = pr.getProperties();
+    const keys = Object.keys(all);
+
+    // きょうを ものさしにして、前後3日ぶんは残します
+    const now = new Date();
+    const keep = {};
+    for (let i = -1; i <= 1; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      keep[d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2)] = 1;
+    }
+    const thisMonth = now.getFullYear() + ("0" + (now.getMonth() + 1)).slice(-2);
+
+    // 日付の付いた、消してよい控えの頭文字
+    const DATED = ["VNDAY_", "VNEDIT_", "VNSENT_", "VNDOC_", "VNH_"];
+
+    const gone = [];
+    keys.forEach(function (k) {
+      // ① 会場のページの控え（日付は無いが、また読めば作り直せる）
+      if (k.indexOf("VNAUD_") === 0) { gone.push(k); return; }
+      // ② 「グループへ送る」ボタンの控え（その場かぎりのもの）
+      if (k.indexOf("VNSHARE_") === 0) { gone.push(k); return; }
+      // ③ 月ごとのLINEの通数（いまの月は残す）
+      if (k.indexOf("PUSH_CNT_") === 0) {
+        if (k.indexOf("PUSH_CNT_" + thisMonth) !== 0) gone.push(k);
+        return;
+      }
+      // ④ 日付の付いたもの（前後3日は残す）
+      for (let i = 0; i < DATED.length; i++) {
+        if (k.indexOf(DATED[i]) !== 0) continue;
+        const m = k.match(/(\d{8})/);
+        if (m && !keep[m[1]]) gone.push(k);
+        return;
+      }
+    });
+
+    if (!go) {
+      updErrandLog_("🗂 下見：" + keys.length + "個のうち " + gone.length +
+                    "個が片づけられます（残り " + (keys.length - gone.length) + "個）");
+      return "🗂 下見だけしました。" + gone.length + "個 片づけられます（残り " +
+             (keys.length - gone.length) + "個）。消すときは go:true を書いてください。";
+    }
+
+    let n = 0;
+    gone.forEach(function (k) { try { pr.deleteProperty(k); n++; } catch (e) {} });
+    const left = Object.keys(pr.getProperties()).length;
+    updErrandLog_("🗂 控えを片づけました：" + n + "個 消して、残り " + left + "個");
+    return "🗂 " + n + "個 片づけました。残り " + left + "個です。";
+  } catch (e) {
+    return "🗂 片づけられませんでした：" + ((e && e.message) || e);
+  }
+}
+
 const UPD_ERRAND_OK = {
   "event-test":  "イベントの確認用を、いま送る",
   "report-test": "レポートの確認用を、自分にだけ送る",
@@ -11755,6 +11850,19 @@ const UPD_ERRAND_OK = {
    *   ★値は出しません。名前と、長さだけです（鍵が混ざっているため）。
    */
   "props-list":  "GASの控えの一覧を、ドライブに置く",
+  /*
+   * ★古くなった控えを、片づけます。
+   *   控えが291個たまっていて、スクリプトの画面では
+   *   50個を超えると足せなくなります（まーく様のご指摘・2026/11/11
+   *   「５０個以上ある場合はどうすればよいのですか」）。
+   *   ★消すのは「日付の付いた、済んだぶん」だけです。
+   *     鍵（LINE・Gemini・GitHub）や、いまの様子を覚えている控えは
+   *     1つも触りません。名前で はっきり見分けます。
+   *   ★使い方（errand.json）
+   *     { "do": ["props-tidy"] }              … 下見（数えるだけ。消さない）
+   *     { "do": ["props-tidy"], "go": true }  … ほんとうに消す
+   */
+  "props-tidy":  "古くなったGASの控えを片づける",
   "ping":        "動いているかどうかの返事だけ"
 };
 
@@ -12211,6 +12319,8 @@ function updErrandTick_() {
       } catch (e) {
         out = "🗂 一覧を作れませんでした：" + ((e && e.message) || e);
       }
+    } else if (task === "props-tidy") {
+      out = updPropsTidy_(j && j.go === true);
     } else if (task === "web-sync-try") {
       out = webSyncPush_(false);
     } else if (task === "web-sync-go") {
