@@ -454,6 +454,27 @@ if (typeof document !== 'undefined' && document.addEventListener) {
       if (m) sayFit(m);
     }, 200);
   });
+  /*
+   * ★字（フォント）が届いてから、measure し直します（2026/11/11）。
+   *
+   *   しくじりの中身：本番では、字をインターネットから取り寄せます。
+   *   届く前に測ると、間に合わせの字で測ってしまい、
+   *   あとから本物の字に変わったときに、はみ出しました。
+   *   実際に、320pxの画面で25通りが切れていました。
+   */
+  const refit = function () {
+    _sayWidest = '';                     // 字が変わったので、測り直す
+    const m = document.getElementById('saymount');
+    if (m) sayFit(m);
+  };
+  try {
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(refit);
+    }
+  } catch (e) {}
+  /* 取り寄せに失敗したときの用心に、少し待ってからも1回 */
+  setTimeout(refit, 1500);
+
   const boot = function(){ sayRoll(); subRoll(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

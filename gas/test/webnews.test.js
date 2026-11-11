@@ -299,6 +299,15 @@ console.log('■ ふきだしは2行ぶんの高さで固定（ご指摘・2026/
     '★★★いちばん「太い」ひとことで合わせる（字数が多い＝太い ではない）');
   t(/addEventListener\('resize'/.test(sh2),
     '　 画面の向きを変えたら、測り直す');
+  /*
+   * ★しくじり（2026/11/11）：字をインターネットから取り寄せる前に測ると、
+   *   間に合わせの字で測ってしまい、本物に変わったときに はみ出しました。
+   *   実際に、320pxの画面で25通りが切れました。
+   */
+  t(/document\.fonts\.ready/.test(sh2),
+    '★★★字が届いてから、測り直す（届く前に測ると はみ出す）');
+  t(/_sayWidest = ''/.test(sh2.slice(sh2.indexOf('const refit'))),
+    '　 測り直すときは、いちばん太いひとことも選び直す');
   t(!/-webkit-line-clamp:2/.test(css), '　 2行で止める古い書き方は残っていない');
   const face = css.split('.saymount .face{').slice(1)
                   .map(function (x) { return x.split('}')[0]; }).join(';');
