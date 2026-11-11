@@ -20,7 +20,9 @@ const ok = (c, m, got) => {
   else { fail++; console.log('FAIL ' + m + (got === undefined ? '' : '　→ ' + JSON.stringify(got))); }
 };
 
+const t = ok;                                   // 書き味をそろえるための別名
 const W = path.join(__dirname, '..', '..', 'web');
+const G = path.join(__dirname, '..');            // gas/ の中（スプシ→台帳の係）
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(W, 'news.js'), 'utf8'), ctx);
@@ -133,6 +135,170 @@ console.log('■ 変顔は100通りある');
     ok(o.e * o.m === o.p, '　 目×口で数えている', [o.e, o.m, o.p]);
     ok(o.s >= 10, '　 セリフも10通り以上ある', o.s);
   }
+}
+
+
+console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「ランダム表示ですが、顔、セリフ両方とも、
+   *       続けて同じものが出てこないようにしてください」
+   *   pick() を何百回も回して、1回でも「2回続けて同じ」が出たら こけます。
+   */
+  const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const a = code.indexOf('const FACE_EYES');
+  const b = code.indexOf('/** 変顔を1つ描く');
+  if (a !== -1 && b > a) {
+    const box = { console: { log: function(){} } };
+    vm.createContext(box);
+    vm.runInContext(code.slice(a, b) + `
+      globalThis.OUT = (function(){
+        var bad = 0, seen = {}, arrs = [FACE_EYES, FACE_MOUTH, SAY_LINES, KIRA_NAMES];
+        for (var k = 0; k < arrs.length; k++) {
+          var prev = null, kinds = {};
+          for (var i = 0; i < 400; i++) {
+            var v = pick(arrs[k]);
+            if (v === prev) bad++;
+            prev = v; kinds[v] = 1;
+          }
+          seen[k] = Object.keys(kinds).length;
+        }
+        return { bad: bad, kinds: seen, kira: KIRA_NAMES.length };
+      })();`, box);
+    const o = box.OUT;
+    t(o.bad === 0, '★★★2回続けて同じものは、1度も出ない', o.bad);
+    t(o.kinds[0] === 10 && o.kinds[1] === 10, '　 それでも、目も口も ぜんぶ出てくる', o.kinds);
+    t(o.kinds[3] === 6 && o.kira === 6, '　 キラの名前は6人ぶん', o.kira);
+  } else {
+    t(false, '★顔の中身が見つからない');
+  }
+}
+
+console.log('■ 0〜6時までが「その夜の続き」（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「0時～11時ではなく、0時～06時に入力した時刻としてください」
+   *   6:00 までは翌日（24時以降）あつかい。6時すぎは そのまま朝の時刻。
+   *   ここが web と GAS でずれると、同じ乗車が二重に入ります。
+   */
+  const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const a = code.indexOf('function parseT');
+  const b = code.indexOf('/* 時間単価');
+  t(a !== -1 && b > a, '★時刻を読むところが見つかる');
+  if (a !== -1 && b > a) {
+    const box = { console: { log: function(){} } };
+    vm.createContext(box);
+    vm.runInContext(code.slice(a, b) + `
+      globalThis.P = { a: parseT('1:30'), b: parseT('600'), c: parseT('630'),
+                       d: parseT('2530'), e: parseT('1130'), f: parseT('3020') };`, box);
+    const P = box.P;
+    t(P.a === 25.5,  '★★★1:30 → 25:30（その夜の続き）', P.a);
+    t(P.b === 30,    '★★★6:00 → 30:00（まだ その夜）', P.b);
+    t(P.c === 6.5,   '★★★6:30 → 6:30（もう朝あつかい）', P.c);
+    t(P.e === 11.5,  '★★★11:30 → 11:30（24時以降にしない）', P.e);
+    t(P.d === 25.5,  '　 25:30 は そのまま', P.d);
+    t(P.f === 30 + 20 / 60, '　 30:20 の書き方も入る', P.f);
+  }
+
+  /* GAS側（スプシ→台帳）も、同じ数え方になっているか */
+  const up = fs.readFileSync(path.join(G, '005-Updater.gs'), 'utf8');
+  t(/if \(dep <= 6\) dep \+= 24;/.test(up),
+    '★★★スプシ→台帳も「0〜6時」で数えている');
+  t(!/if \(dep < 12\) dep \+= 24;/.test(up),
+    '　 古い「0〜11時」の数え方は残っていない');
+}
+
+console.log('■ 入れる欄のタブ（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「待ち時間や乗車時間は100分まで追加してください」
+   *     「種類に、途中乗り、も追加してください」
+   */
+  const code = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const a = code.indexOf("const METHODS =");
+  const b = code.indexOf("/** 書き方のゆれを");
+  t(a !== -1 && b > a, '★タブの中身が見つかる');
+  if (a !== -1 && b > a) {
+    const box = { console: { log: function(){} } };
+    vm.createContext(box);
+    vm.runInContext(code.slice(a, b) + `
+      globalThis.C = { chips: MIN_CHIPS, all: MIN_ALL,
+                       m: METHOD_CHIPS, names: METHOD_CHIP_NAMES, ms: METHODS };`, box);
+    const C = box.C;
+    t(Math.max.apply(null, C.chips) === 100, '★★★分のタブが100分まである', Math.max.apply(null, C.chips));
+    t(Math.max.apply(null, C.all) === 100,   '★★★欄を押したときの候補も100分まで', Math.max.apply(null, C.all));
+    t(C.m.indexOf('途中乗り') !== -1,        '★★★種類のタブに「途中乗り」がある', C.m.join('/'));
+    t(C.m.indexOf('流し') === -1,            '　 「流し」は出していない（ご指示）');
+    t(C.m.length === C.names.length,
+      '★★★タブに並べた名前が、ぜんぶ METHODS にある（書きまちがいなし）',
+      C.names.filter(function(x){ return C.ms.indexOf(x) === -1; }).join('/') || 'ぜんぶある');
+  }
+}
+
+console.log('■ からっぽのときの言い方（ご指示・2026/11/11）');
+{
+  const code = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(code.indexOf('該当データがありません') !== -1, '★★★「該当データがありません」と出す');
+  t(code.indexOf('まず1回ぶん入れてみる') === -1, '　 古い言い方は残っていない');
+}
+
+console.log('■ 題の下の一文（ご指示・2026/11/11）');
+{
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/id="sub"/.test(html), '★★★名前を入れ替える場所（id="sub"）がある');
+  const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  t(sh.indexOf('ワンメータを乗せたら') !== -1, '★★★ご指示の一文が入っている');
+  t(sh.indexOf('function subRoll') !== -1, '　 開くたびに書き換える係がいる');
+}
+
+console.log('■ ふきだしは2行ぶんの高さで固定（ご指摘・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指摘（2026/11/11）
+   *     「ふきだし、2行の高さで統一してください、高さがズレて、
+   *       全体がその度ズレるのがイライラします、顔のサイズも統一してください」
+   *   min-height だけだと、1行と2行で高さが変わって、まわりが動きます。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* ★高さを決めている書き方を、ひとつ ひとつ 見ます。
+       ぜんぶ つなげて見ると、どこか1つに height があるだけで
+       通ってしまい、min-height だけの書き方を見逃します
+       （実際に見逃しました・2026/11/11）。 */
+  const bubs = css.split('.saymount .bubble{').slice(1)
+                  .map(function (x) { return x.split('}')[0]; });
+  t(bubs.length >= 1, '★ふきだしの書き方が見つかる', bubs.length);
+  const ng = bubs.filter(function (x) {
+    /* 高さの話をしていない所は見ません。
+       「line-height」は字の行の高さなので、ここでは数えません。 */
+    if (!/(^|[;\s])(min-|max-)?height:/.test(x)) return false;
+    const h  = (x.match(/[^-]height:(\d+)px/)  || [])[1];
+    const mn = (x.match(/min-height:(\d+)px/) || [])[1];
+    const mx = (x.match(/max-height:(\d+)px/) || [])[1];
+    return !(h && mn && mx && h === mn && h === mx); // 3つそろって、同じ数でないと ダメ
+  });
+  t(ng.length === 0,
+    '★★★高さを決めている所は、ぜんぶ「同じ数で3つそろって」いる' +
+    '（min-height だけだと、1行と2行で高さが変わります）', ng);
+  t(bubs.some(function (x) { return /height:\d+px/.test(x); }),
+    '　 高さを決めている所が、ちゃんとある');
+  t(/-webkit-line-clamp:2/.test(css), '★★★字は2行までで止める');
+  const face = css.split('.saymount .face{').slice(1)
+                  .map(function (x) { return x.split('}')[0]; }).join(';');
+  t(/width:\d+px/.test(face) && /height:\d+px/.test(face),
+    '★★★顔の大きさが決め打ちになっている');
+}
+
+console.log('■ 営業日の欄が、わくからはみ出さない（ご指摘・2026/11/11）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(/\.f\{[^}]*min-width:0/.test(css), '★★★欄のわくが、中身に押し広げられない');
+  t(/input\[type=date\]\{[^}]*max-width:100%/.test(css), '★★★日付の欄が、わくに収まる');
+  t(/\.f\.fdate\{grid-column:1 \/ -1\}/.test(css), '★★★細い画面では、営業日を横1列ぜんぶ使う');
+  t(/class="f w2 fdate"/.test(app), '　 営業日の欄に、その目じるしが付いている');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

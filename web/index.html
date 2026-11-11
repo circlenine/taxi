@@ -19,7 +19,7 @@
     <div id="saymount" class="saymount"></div>
     <div>
 <h1 class="dn">TAXI NOTE <span class="ver" id="ver"></span></h1>
-      <div class="sub">つけ待ち場所・待ち時間・乗車時間・金額を残して、アツい時間帯を割り出す</div>
+      <div class="sub" id="sub">近日中、誰かがワンメータを乗せたら、キラが決まります</div>
     </div>
     <div class="who">
       <span><b id="me">—</b><span class="badge" id="meBadge" hidden>管理者</span></span>
@@ -55,7 +55,8 @@
 
   <footer>
     時間単価 ＝ 金額 ÷（待ち時間 ＋ 乗車時間）× 60。つけ待ちで潰した時間まで含めた、1時間あたりの実入り。<br>
-    0〜11時に入力した時刻は、その夜の続き（24時以降）として扱う。
+    0〜6時に入力した時刻は、その夜の続き（24時以降）として扱う。<br>
+    6時すぎは、そのまま朝の時刻。「3020」のように24時すぎの書き方でも入る。
     <div class="copy">©ibakuzo!!!!!! Gevanni!!!!!! ~1night done~</div>
   </footer>
 </div>

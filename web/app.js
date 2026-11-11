@@ -62,16 +62,24 @@ const METHODS = ['GO', 'Uber', '無線', '付け待ち', '流し', '手上げ',
  *        追加して下さい」
  * ---------------------------------------------------------- */
 
-/* 分のタブ。0分から60分まで、5分きざみ。
-   ★1分きざみの細かい数も、欄を押せば候補として出ます（MIN_ALL）。
-     61個ぜんぶをタブにすると、画面が埋まって かえって押しにくい。 */
-const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60];
-const MIN_ALL = Array.from({ length: 61 }, (_, i) => i);
+/* 分のタブ。0分から100分まで。
+   ★まーく様のご指示（2026/11/11）
+       「待ち時間や乗車時間は100分まで追加してください」
+   ★60分までは5分きざみ、そこから先は10分きざみにしてあります。
+     100個ぜんぶをタブにすると、画面が埋まって かえって押しにくい。
+   ★1分きざみの細かい数も、欄を押せば候補として出ます（MIN_ALL）。 */
+const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60,70,80,90,100];
+const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
 
 /* 種類のタブ。「流し」は出しません（ご指示）。
    ★METHODS からは消していません。
-     消すと、前に「流し」で入れた記録の書き方がそろわなくなるためです。 */
-const METHOD_CHIPS = METHODS.filter(m => m !== '流し').slice(0, 6);
+     消すと、前に「流し」で入れた記録の書き方がそろわなくなるためです。
+   ★「途中乗り」を足しました（ご指示・2026/11/11）。
+     タブに出すものは、ここに名前で並べます。
+     書きまちがえると出なくなるので、検査（webnews.test.js）で
+     「7つ ぜんぶ METHODS にある」ことを押さえています。 */
+const METHOD_CHIP_NAMES = ['GO', 'Uber', '無線', '付け待ち', '手上げ', '乗り場', '途中乗り'];
+const METHOD_CHIPS = METHOD_CHIP_NAMES.filter(m => METHODS.indexOf(m) !== -1);
 
 /* 「他」のタブ。よく書くものを、ひと押しで入れられるように。 */
 const NOTE_CHIPS = ['チケット', 'バラシ', '関空'];
@@ -229,7 +237,7 @@ function paneIn(){
     <h2>1回ぶんを残す</h2>
     <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで時間単価が出る。時刻は「2530」「25:30」「1:30」いずれでも可。</p>
     <div class="grid">
-      <div class="f w2"><label>営業日（夜の始まった日）</label>
+      <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
         <input type="date" id="f_date" value="${f.date || today()}"></div>
       <div class="f w2"><label>つけ待ち場所</label>
         <input class="ja" id="f_place" list="pls" placeholder="新地7" value="${esc(f.place || '')}">
@@ -272,7 +280,7 @@ function paneIn(){
     <h2>直近の記録</h2>
     <p class="note">${records.length ? '新しい順に10件。全員ぶんが1つの台帳に入る。' : 'まだ1件もない。'}</p>
     ${filterChips()}
-    ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">まず1回ぶん入れてみる。</div>`}
+    ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
   </div>`;
 }
 const filterChips = () => `<div class="chips" style="margin-bottom:12px">
@@ -382,7 +390,7 @@ const HOT_FROM = 18;
 
 /**
  * いまが、どの夜の何時か。
- *   h     … 記録と同じ数え方（0〜11時は 24時以降）
+ *   h     … 記録と同じ数え方（0〜6時は 24時以降）
  *   ah    … 見当を引くときに使う時刻
  *   early … まだ乗務の時間ではない（昼・朝）
  *   clock … 画面に出す、ふつうの時計の字
@@ -394,7 +402,8 @@ const HOT_FROM = 18;
 function hotNow(now){
   const d = now || new Date();
   let h = d.getHours() + d.getMinutes() / 60;
-  if (h < 12) h += 24;
+  /* ★0時〜6時は、その夜の続き（24時以降）。入れるときと同じ数え方です */
+  if (h <= 6) h += 24;
   // 営業日は、朝6時までは前の日
   const b = new Date(d.getTime());
   b.setHours(b.getHours() - 6);
@@ -1058,7 +1067,8 @@ function parseTimeCell(s){
     const v = parseFloat(t);
     let h = Math.floor(v), mi = Math.round((v - h) * 60);
     if (mi === 60) { h++; mi = 0; }
-    if (h < 12) h += 24;
+    /* ★入れるときと同じ数え方（0〜6時は 24時以降） */
+    if (h + mi / 60 <= 6) h += 24;
     if (h > 32 || mi > 59) return null;
     return h + mi / 60;
   }

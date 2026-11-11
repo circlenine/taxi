@@ -31,7 +31,7 @@ const fmtT = d => { const h = Math.floor(d + 1e-9); let m = Math.round((d - h) *
 const WD   = ['日','月','火','水','木','金','土'];
 function fmtD(s){ const [y,m,d] = s.split('-').map(Number); return `${m}/${d}(${WD[new Date(y,m-1,d).getDay()]})`; }
 
-/* 「2530」「25:30」「1:30」「1330」どれでも読む。0〜11時は翌日(24時以降)扱い */
+/* 「2530」「25:30」「1:30」「1330」どれでも読む。0〜6時は翌日(24時以降)扱い */
 function parseT(str){
   if (str === null || str === undefined) return null;
   let s = String(str).trim().replace(/[：.]/g, ':');
@@ -42,7 +42,13 @@ function parseT(str){
   else if (/^\d{1,2}$/.test(s))   { h = +s; m = 0; }
   else return null;
   if (isNaN(h) || isNaN(m) || m < 0 || m > 59) return null;
-  if (h < 12) h += 24;
+  /* ★0時〜6時に入れた時刻は、その夜の続き（24時以降）として数えます。
+       まーく様のご指示（2026/11/11）
+         「0時～11時ではなく、0時～06時に入力した時刻としてください」
+     乗務の終わりは朝6時なので、6時すぎは そのまま朝の時刻にします。
+     6時をまわって上がった日は「3020」のように、24時すぎの書き方で
+     そのまま入れられます（32時まで入ります）。 */
+  if (h + m / 60 <= 6) h += 24;
   if (h > 32) return null;
   return h + m / 60;
 }
@@ -131,7 +137,46 @@ const SAY_LINES = [
   '近道あるんちゃうの',
   'ちょっと、急いでな'
 ];
-const pick = a => a[Math.floor(Math.random() * a.length)];
+/* ------------------------------------------------------------
+ *  でたらめに1つ選ぶ（ただし、続けて同じものは出さない）
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「ランダム表示ですが、顔、セリフ両方とも、
+ *        続けて同じものが出てこないようにしてください」
+ *  ★ひとつ前に出したものを覚えておき、同じが出たら引き直します。
+ *    「引き直しを繰り返す」作りにすると、運が悪いと止まるので、
+ *    残りの中から選び直す形にしてあります（必ず1回で決まる）。
+ *  ★覚えるのは「どの並びか」ごとです。目と口は別に覚えます。
+ * ---------------------------------------------------------- */
+const _pickLast = (typeof Map !== 'undefined') ? new Map() : null;
+function pick(a){
+  if (!a || !a.length) return undefined;
+  if (a.length === 1) return a[0];
+  const prev = _pickLast ? _pickLast.get(a) : undefined;
+  let v = a[Math.floor(Math.random() * a.length)];
+  if (v === prev) {
+    const i = a.indexOf(prev);
+    v = a[(i + 1 + Math.floor(Math.random() * (a.length - 1))) % a.length];
+  }
+  if (_pickLast) _pickLast.set(a, v);
+  return v;
+}
+
+/* ------------------------------------------------------------
+ *  題の下の一文（開くたびに、人の名前が変わります）
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「近日中、誰かがワンメータを乗せたら、○○さんがキラです」
+ *    ○○は、開き直すたびに下の中からでたらめに1人。
+ *  ★「くん」が名前に入っているので、「さん」は重ねていません。
+ * ---------------------------------------------------------- */
+const KIRA_NAMES = ['齋藤くん', '山敷くん', '山脇くん', '城越くん', '宮下くん', '加藤くん'];
+function subRoll(){
+  if (typeof document === 'undefined' || !document.getElementById) return;
+  const el = document.getElementById('sub');
+  if (!el) return;
+  el.textContent = '近日中、誰かがワンメータを乗せたら、' + pick(KIRA_NAMES) + 'がキラです';
+}
 
 /* ★顔は「目 × 口」で何通りか。
    まーく様のご指示（2026/11/10）で、ちょうど100通りにしてあります。
@@ -165,8 +210,11 @@ function sayRoll() {
 
   const put = function () {
     try {
-      mount.innerHTML = faceSvg() + '<div class="bubble"></div>';
-      mount.querySelector('.bubble').textContent = pick(SAY_LINES);
+      /* ★中の字は <span> に入れます。
+           ふきだしの高さを2行ぶんに決め打ちするため、
+           字のほうを「2行まで」で止める必要があります。 */
+      mount.innerHTML = faceSvg() + '<div class="bubble"><span class="t"></span></div>';
+      mount.querySelector('.bubble .t').textContent = pick(SAY_LINES);
     } catch (e) {}
   };
 
@@ -191,6 +239,7 @@ function sayRoll() {
 }
 
 if (typeof document !== 'undefined' && document.addEventListener) {
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sayRoll);
-  else sayRoll();
+  const boot = function(){ sayRoll(); subRoll(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 }
