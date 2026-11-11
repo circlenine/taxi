@@ -2,7 +2,24 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V106ver  （2026/11/10）  ★★★
+ *  ★★★  V107ver  （2026/11/11）  ★★★
+ *
+ *  [V107ver]
+ *   ★申し訳ありませんでした。こちらのしくじりです。
+ *     イベント情報を台帳へ渡す係が、**5分おきに置き直して**いました。
+ *     1日に300回ちかく、台帳を作り直させていました。
+ *       ・台帳（Vercel）の、ただで作り直せる回数（1日100回）を
+ *         使い切って、直しても画面に出なくなる
+ *       ・会場ぜんぶを見に行くので、GASの90分を食いつぶす
+ *     ★防げたしくじりです。呼び先の名前（venueDailyJob）だけを見て
+ *       「日に1回」と思い込み、15分おきに動くことを確かめませんでした。
+ *
+ *   ・📡 置き直すのは、1日2回まで（朝の枠・夕の枠）にした
+ *   ・📡 中身がそっくり同じなら、置き直さないようにした
+ *     ★「作った時刻」だけが毎回ちがうので、そこは見ません。
+ *       ここを見ていなかったのが、いちばんの原因です。
+ *   ・おつかい（web-events）で頼んだときは、いつでも置き直します
+ *   ・見つけるテストを venue.test.js に足した
  *
  *  [V106ver]
  *   ★まーく様のご指摘：
@@ -1748,7 +1765,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V106ver";
+const VN_VERSION = "V107ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -11152,7 +11169,7 @@ function vnFeedDay_(day) {
  * ★書けなかったときは、黙って終わります（ほかの仕事は止めません）。
  *   控えには1行だけ残すので、あとから追えます。
  */
-function vnFeedPush_() {
+function vnFeedPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
     const now = new Date();
@@ -11161,6 +11178,27 @@ function vnFeedPush_() {
     const key = function (d) {
       return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
     };
+
+    /*
+     * ★1日に2回だけにします（朝の枠・夕の枠）。
+     *
+     *   この係を呼んでいる venueDailyJob は、名前は「日に1回」でも
+     *   実際は15分おきに動いています。そのまま置き直すと、
+     *   1日に300回ちかく置き直すことになり、
+     *     ・台帳（Vercel）が、そのたびに作り直される
+     *       ＝ 無料でできる回数（1日100回）を使い切って、止まる
+     *     ・会場ぜんぶを見に行くので、GASの90分を食いつぶす
+     *   という、二重に重い話になります。実際に、そうなっていました。
+     *
+     *   朝の枠は「きょうの分を早めに出す」ため、
+     *   夕の枠は「夜に向けて最新にする」ためです。
+     */
+    const slot = (now.getHours() < 15) ? "朝" : "夕";
+    const mark = key(now) + "/" + slot;
+    let pr = null;
+    try { pr = PropertiesService.getScriptProperties(); } catch (e) {}
+    if (!force && pr && pr.getProperty("VN_FEED_DONE") === mark) return false;
+
     const body = {
       at: Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd HH:mm"),
       days: [
@@ -11173,11 +11211,33 @@ function vnFeedPush_() {
     const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_FEED_PATH;
     const ref  = encodeURIComponent(updBranch_());
 
-    // いま置いてある紙の「ふだ」（sha）を取る。無ければ新しく作る
-    let sha = "";
+    // いま置いてある紙の「ふだ」（sha）と、中身を取る。無ければ新しく作る
+    let sha = "", prev = "";
     try {
       const got = updGhTry_(base + "?ref=" + ref);
-      if (got.code === 200) { const j = JSON.parse(got.body); sha = j.sha || ""; }
+      if (got.code === 200) {
+        const j = JSON.parse(got.body);
+        sha = j.sha || "";
+        try {
+          prev = Utilities.newBlob(
+            Utilities.base64Decode(String(j.content || "").replace(/\s/g, ""))
+          ).getDataAsString("UTF-8");
+        } catch (e) { prev = ""; }
+      }
+    } catch (e) {}
+
+    /*
+     * ★中身がそっくり同じなら、置き直しません。
+     *   「作った時刻」だけが毎回ちがうので、そこは見ません。
+     *   ここを見ないと、何も変わっていない日でも置き直してしまい、
+     *   台帳が意味もなく作り直されます。
+     */
+    try {
+      const old = JSON.parse(prev);
+      if (old && JSON.stringify(old.days) === JSON.stringify(body.days)) {
+        if (pr) pr.setProperty("VN_FEED_DONE", mark);
+        return true;
+      }
     } catch (e) {}
 
     const payload = { message: "イベント情報を置き直した（じどう）",
@@ -11195,6 +11255,9 @@ function vnFeedPush_() {
     const code = res.getResponseCode();
     const n = body.days[0].list.length + body.days[1].list.length;
     if (code >= 200 && code < 300) {
+      // うまくいった枠だけ「済み」にします。
+      // しくじった枠に印を付けると、その枠は二度と置き直せません
+      if (pr) pr.setProperty("VN_FEED_DONE", mark);
       try { if (typeof updErrandLog_ === "function") updErrandLog_("📡 イベント情報を台帳へ渡しました（" + n + "件）"); } catch (e) {}
       return true;
     }

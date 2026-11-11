@@ -12217,7 +12217,7 @@ function updErrandTick_() {
       out = webSyncPush_(true);
     } else if (task === "web-events") {
       if (typeof vnFeedPush_ === "function") {
-        out = vnFeedPush_() ? "📡 イベント情報を台帳へ渡しました。"
+        out = vnFeedPush_(true) ? "📡 イベント情報を台帳へ渡しました。"
                             : "📡 渡せませんでした（控えを見てください）。";
       } else out = "イベント情報を渡す係が、まだ入っていません。";
     } else if (task === "ledger-export") {

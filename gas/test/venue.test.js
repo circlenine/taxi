@@ -89,7 +89,9 @@ ctx.Utilities = {
   getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' + ('00000000000' + (++uuidN)).slice(-12),
   DigestAlgorithm: { MD5: 'MD5' }, Charset: { UTF_8: 'UTF_8' },
   computeDigest: (a, t) => { const o = []; for (let i = 0; i < 16; i++) o.push((t.charCodeAt(i % t.length) * (i + 7)) & 255); return o; },
-  base64Encode: () => 'x'
+  base64Encode: (t) => Buffer.from(String(t), 'utf8').toString('base64'),
+  base64Decode: (t) => Array.from(Buffer.from(String(t), 'base64')),
+  newBlob: (bytes) => ({ getDataAsString: () => Buffer.from(bytes).toString('utf8') })
 };
 // lrBytes_（003-LineReport のバイト数え）の写し
 vm.runInContext(`function lrBytes_(s){let n=0;for(let i=0;i<s.length;i++){const c=s.codePointAt(i);
@@ -4014,6 +4016,81 @@ console.log('\n■ 🚕 何時に、クルマを着けるか（いちばん大�
    */
   eq(card.indexOf('🚕') < card.indexOf('開演'), true,
      '★★★催しの時刻より上に出ている（先に目に入る）');
+}
+
+
+console.log('■ イベント情報を台帳へ渡すのは、1日2回まで（2026/11/11・直し）');
+{
+  /*
+   * ★しくじりの中身（2026/11/11）
+   *   この係を呼んでいる venueDailyJob は、名前は「日に1回」でも
+   *   実際は15分おきに動きます。中に「作った時刻」を入れていたので、
+   *   中身が同じでも毎回ちがう紙になり、1日に300回ちかく
+   *   置き直していました。
+   *     ・台帳（Vercel）が、そのたびに作り直される
+   *       ＝ 無料でできる回数（1日100回）を使い切って止まる
+   *     ・会場ぜんぶを見に行くので、GASの90分を食いつぶす
+   *   ここで「1日2回まで」「中身が同じなら置き直さない」を押さえます。
+   */
+  let put = 0, store = null;
+  vm.runInContext('function updRepo_(){ return "x/y"; }' +
+                  'function updBranch_(){ return "b"; }' +
+                  'function updGhHeaders_(){ return {}; }' +
+                  'function vnFeedDay_(){ return [{ t: "19:00", n: "テスト公演" }]; }', ctx);
+  ctx.GH = {
+    get: function (url) {
+      if (store === null) return { code: 404, body: '' };
+      return { code: 200, body: JSON.stringify({ sha: 's1',
+        content: Buffer.from(store, 'utf8').toString('base64') }) };
+    }
+  };
+  vm.runInContext('function updGhTry_(u){ return GH.get(u); }', ctx);
+  const realFetch = ctx.UrlFetchApp.fetch;
+  ctx.UrlFetchApp = { fetch: function (url, opt) {
+    put++;
+    try {
+      const pay = JSON.parse(opt.payload);
+      store = Buffer.from(pay.content, 'base64').toString('utf8');
+    } catch (e) {}
+    return { getResponseCode: () => 200, getContentText: () => '' };
+  } };
+
+  if (!ctx.Utilities.formatDate) {
+    ctx.Utilities.formatDate = (d) => String(d.getHours()) + ':' + String(d.getMinutes());
+  }
+  const run = n => vm.runInContext('vnFeedPush_(' + (n ? 'true' : '') + ')', ctx);
+
+  const r1 = run(false);
+  eq(put, 1, '★はじめの1回は、ちゃんと置く');
+  eq(r1, true, '　 置けたと答える');
+
+  run(false); run(false); run(false); run(false);
+  eq(put, 1, '★★★同じ枠で何度 呼ばれても、置き直さない（じどうの山を作らない）');
+
+  // 枠をまたいでも、中身が同じなら置き直さない
+  vm.runInContext('PropertiesService.getScriptProperties().deleteProperty("VN_FEED_DONE")', ctx);
+  run(false);
+  eq(put, 1, '★★★枠が変わっても、中身が同じなら置き直さない');
+
+  // 中身が変われば、ちゃんと置き直す
+  vm.runInContext('PropertiesService.getScriptProperties().deleteProperty("VN_FEED_DONE")', ctx);
+  vm.runInContext('function vnFeedDay_(){ return [{ t: "20:00", n: "べつの公演" }]; }', ctx);
+  run(false);
+  eq(put, 2, '★★★中身が変わったときは、ちゃんと置き直す');
+
+  // 「いま置いて」と頼んだときは、枠の印があっても置く
+  vm.runInContext('function vnFeedDay_(){ return [{ t: "21:00", n: "さらにべつ" }]; }', ctx);
+  run(true);
+  eq(put, 3, '★おつかいで頼まれたときは、枠の印があっても置く');
+
+  /* 「作った時刻」だけで置き直さないこと（いちばんの原因） */
+  const after = store;
+  vm.runInContext('PropertiesService.getScriptProperties().deleteProperty("VN_FEED_DONE")', ctx);
+  run(false);
+  eq(put, 3, '★★★「作った時刻」がちがうだけでは、置き直さない');
+  eq(store, after, '　 置いてあるものも、そのまま');
+
+  ctx.UrlFetchApp = { fetch: realFetch };
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
