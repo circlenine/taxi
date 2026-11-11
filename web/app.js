@@ -344,9 +344,9 @@ function periodRange(){
 }
 /** 画面に出す、期間の言い方 */
 function periodLabel(){
-  if (period.mode === 'all') return 'ためた分 ぜんぶ';
+  if (period.mode === 'all') return '全期間';
   const r = periodRange();
-  if (!r.from && !r.to) return 'ためた分 ぜんぶ';
+  if (!r.from && !r.to) return '全期間';
   const a = r.from ? fmtD(r.from) : 'はじめ';
   const b = r.to   ? fmtD(r.to)   : 'いま';
   return a + ' 〜 ' + b;
@@ -403,7 +403,7 @@ function render(){
     /* ① いつの分か */
     const when = (period.mode !== 'all')
       ? periodLabel()
-      : (ds.length ? fmtD(ds[0]) + ' 〜 ' + fmtD(ds[ds.length - 1]) : 'ためた分 ぜんぶ');
+      : (ds.length ? fmtD(ds[0]) + ' 〜 ' + fmtD(ds[ds.length - 1]) : '全期間');
 
     /* ② だれの・どこの分か */
     const who = [];
@@ -426,9 +426,9 @@ function render(){
   const kp = $('#kperiod');
   if (kp) {
     kp.innerHTML = rs.length
-      ? '※1日当たりのデータではありません。上の期間 ぜんぶの合計です。'
+      ? '※1日当たりの数字ではありません。上の期間の合計です。'
       : ('※この絞り込みでは、1件もありません。' +
-         (filtOn() ? '「ぜんぶに戻す」で、もとに戻ります。' : ''));
+         (filtOn() ? '「絞り込みを解除」を押すと、もとに戻ります。' : ''));
   }
   /*
    * ★行灯は、台帳の画面でも回します（まーく様のご指摘・2026/11/10）。
@@ -534,21 +534,21 @@ function paneIn(){
  *
  *  ★走りながら片手で触るので、**押す回数を増やしません**。
  *    乗り場も期間も、1回タップで選べる形（プルダウン）にします。
- *  ★絞っているときは、赤い「ぜんぶに戻す」を必ず出します。
+ *  ★絞っているときは、赤い「絞り込みを解除」を必ず出します。
  *    絞ったまま忘れると、数字をまるごと読みちがえます。
  * ---------------------------------------------------------- */
 function placeOptions(){
   const n = {};
   records.forEach(r => { if (r.place) n[r.place] = (n[r.place] || 0) + 1; });
   const list = Object.keys(n).sort((a,b) => n[b] - n[a] || (a < b ? -1 : 1));
-  return ['<option value="">乗り場：ぜんぶ</option>'].concat(
+  return ['<option value="">乗り場：すべて</option>'].concat(
     list.map(p => '<option value="' + esc(p) + '"' +
       (p === onlyPlace ? ' selected' : '') + '>' + esc(p) + '（' + n[p] + '件）</option>')
   ).join('');
 }
 function periodOptions(){
   const o = ['<option value="all"' + (period.mode === 'all' ? ' selected' : '') +
-             '>期間：ためた分 ぜんぶ</option>'];
+             '>期間：全期間</option>'];
   cycleList().forEach(function (c, i) {
     const name = i === 0 ? '今期' : (i === 1 ? '前期' : (i + '期まえ'));
     o.push('<option value="c' + i + '"' + (period.mode === 'c' + i ? ' selected' : '') +
@@ -562,7 +562,7 @@ const filterChips = () => `<div class="filt">
   <div class="chips">
     <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
     <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
-    ${filtOn() ? '<button class="chip warn" id="fClear">ぜんぶに戻す</button>' : ''}
+    ${filtOn() ? '<button class="chip warn" id="fClear">絞り込みを解除</button>' : ''}
   </div>
   <div class="filt2">
     <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
@@ -634,9 +634,9 @@ function paneHeat(){
     return o; };
   pls.forEach((p,i) => s += row(p,p,34+i*ch));
   s += `<line x1="${lw}" x2="${w-8}" y1="${34+pls.length*ch+1}" y2="${34+pls.length*ch+1}" class="grid-l"/>`;
-  s += row('ぜんぶ', null, 34+pls.length*ch+2) + '</svg>';
+  s += row('すべて', null, 34+pls.length*ch+2) + '</svg>';
   return `<div class="card"><h2>つけ待ち一覧</h2>
-    <p class="note"><b>ためた記録ぜんぶを、時間帯べつ・乗り場べつに並べた表</b>です。
+    <p class="note"><b>全期間の記録を、時間帯・乗り場ごとに並べた表</b>です。
       いつでも同じものが出ます（「いまアツい」は、いまの時刻だけの話）。<br>
       数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
     ${filterChips()}<div class="scroll">${s}</div>
@@ -901,12 +901,12 @@ function paneHot(now){
    *   （まーく様のご指摘・2026/11/12「いまアツい、とアツい場所の
    *     違いがよく分かりません」）。
    *   ・いまアツい　　　… いまの時刻の、いま行くべき所（時刻で変わる）
-   *   ・つけ待ち一覧 … ためた記録ぜんぶの表（いつでも同じ）
+   *   ・つけ待ち一覧 … 全期間の記録の表（いつでも同じ）
    */
   const head = '<div class="card"><h2>いまアツい</h2>' +
     '<p class="note"><b>いまの時刻に合わせて、いま行くとよい所</b>を出しています。' +
     '時刻が変われば、出てくる所も変わります。' +
-    'ためた分 ぜんぶの表は【つけ待ち一覧】のほうです。<br>' +
+    '全期間の表は【つけ待ち一覧】のほうです。<br>' +
     'いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
     (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
              : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
@@ -955,7 +955,7 @@ function paneHot(now){
 
 /** これから3時間の見当 */
 function hotPlanCard(plan, early){
-  return '<div class="card"><h2>このあと3時間の見当</h2>' +
+  return '<div class="card"><h2>このあと3時間の予想</h2>' +
     '<p class="note">1時間ごとに、その時間 強かった場所です。空いているところは、記録がまだ足りない時間です。</p>' +
     '<div class="plan">' + plan.map(function (s, i){
       return '<div class="pl">' +
@@ -1132,7 +1132,7 @@ function paneSc(){
   });
   s += '</svg>';
   return `<div class="card"><h2>乗せた時刻 × 金額</h2>
-    <p class="note">日付ごとに色を変えています。金額の字は、重ならない位置へ ひとりでに逃げるので、手で動かす必要はありません。</p>
+    <p class="note">日付ごとに色を変えています。金額の字は、重ならない位置へ 自動でずれるので、手で動かす必要はありません。</p>
     <div class="toolbar">
       <button class="chip ${scOpt.line?'on':''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label?'on':''}" data-opt="label">金額を出す</button>
@@ -1212,10 +1212,10 @@ function reportCard(){
     '</p>' +
     '<div class="rgrid">' +
       cell('売上の合計', yen(sum), fares.length + '本分') +
-      cell('1日当たり', days ? yen(perDay) : '—', days + '日で割りました') +
+      cell('1日当たり', days ? yen(perDay) : '—', days + '日で割った額') +
       cell('1本当たり', fares.length ? yen(sum / fares.length) : '—', '平均の金額') +
       cell('時間単価', rts.length >= 3 ? yen(avgRt) + '/h' : '—',
-           rts.length >= 3 ? ('数えた ' + rts.length + '本の平均')
+           rts.length >= 3 ? ('' + rts.length + '本の平均')
                            : ('数えられたのは ' + rts.length + '本だけ')) +
     '</div>' +
     '<p class="note" style="margin-top:12px">' +
@@ -1267,7 +1267,7 @@ function paneList(){
 /* ---- 取り込み（スプレッドシートから一括） ---- */
 function paneImport(){
   return `<div class="card"><h2>スプレッドシートから取り込む</h2>
-    <p class="note">シートの範囲をそのままコピーして、下に貼るだけです。見出しの行があれば、列の並びは ひとりでに読みます。
+    <p class="note">シートの範囲をそのままコピーして、下に貼るだけです。見出しの行があれば、列の並びは 自動で読みます。
     なければ「日付・場所・乗せた時刻・待ち・乗車・金額」の順とみなします。
     <b>いきなり保存はしません</b>ので、中身を確かめてから取り込めます。取り込んだ記録は${esc(ME.profile.display_name || '自分')}の名前で入ります。</p>
     <div class="f">
@@ -1768,7 +1768,7 @@ function paneNews(){
              別ファイルか何かで見られる形にしてもらえますか」 -->
     <div class="actions">
       <a class="btn ghost" href="/say" target="_blank" rel="noopener"
-         style="text-decoration:none">右上の顔とひとこと、ぜんぶ見る</a>
+         style="text-decoration:none">右上の顔とひとこと、すべて見る</a>
     </div></div>`;
 }
 
