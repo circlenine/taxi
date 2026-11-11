@@ -304,7 +304,7 @@ console.log('■ ふきだしは2行ぶんの高さで固定（ご指摘・2026/
    *   間に合わせの字で測ってしまい、本物に変わったときに はみ出しました。
    *   実際に、320pxの画面で25通りが切れました。
    */
-  t(/document\.fonts\.ready/.test(sh2),
+  t(/document\.fonts\.ready\.then\(refit\)/.test(sh2),
     '★★★字が届いてから、測り直す（届く前に測ると はみ出す）');
   t(/_sayWidest = ''/.test(sh2.slice(sh2.indexOf('const refit'))),
     '　 測り直すときは、いちばん太いひとことも選び直す');
