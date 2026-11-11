@@ -31,10 +31,16 @@
       <span class="ver" id="ver"></span>
       <span class="sub" id="sub">近日中、誰かがワンメータを乗せたら、キラが決まります</span>
     </div>
+    <!-- ★称号（ポンコツ）だけ左、ボタンは右（ご指示・2026/11/11）
+           右に かたまっていると、3段目だけ右に寄って見えます。
+           名前を左に置くと、段の左右が そろいます。 -->
     <div class="who">
-      <span><b id="me">—</b><span class="badge" id="meBadge" hidden>管理者</span></span>
-      <a class="mini" id="toAdmin" href="/admin" hidden style="text-decoration:none">管理</a>
-      <button class="mini" id="out">ログアウト</button>
+      <b id="me">—</b>
+      <span class="whoR">
+        <span class="badge" id="meBadge" hidden>管理者</span>
+        <a class="mini" id="toAdmin" href="/admin" hidden style="text-decoration:none">管理</a>
+        <button class="mini" id="out">ログアウト</button>
+      </span>
     </div>
   </header>
 

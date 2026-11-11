@@ -445,7 +445,15 @@ header > .subline, .login .head > .subline{
   grid-column:1 / -1;grid-row:2;display:flex;align-items:center;gap:8px;min-width:0}
 header > .subline .sub{margin-top:0;min-width:0}
 .login .head > .subline .sub{margin-top:0}
-header > .who{grid-column:1 / -1;grid-row:3;justify-self:end;margin-left:0}
+/* ★称号（ポンコツ）だけ左、あとは右（ご指示・2026/11/11）
+     「ポンコツ(称号)だけ、左寄せにしてください」
+     段いっぱいに広げて、左右に振り分けます。 */
+header > .who{grid-column:1 / -1;grid-row:3;justify-self:stretch;margin-left:0;
+  width:100%;justify-content:space-between;gap:10px}
+header > .who > .whoR{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  justify-content:flex-end}
+/* 称号は、長くても折り返さずに 1つのかたまりで */
+header > .who > b{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* 題は折り返さない。2行になると、絵との段がずれます */
 header > h1, .login .head > h1{white-space:nowrap}

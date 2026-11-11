@@ -566,6 +566,24 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
   t(/header > \.subline[^{]*\{[^}]*grid-row:2/.test(css),
     '★★★版と一文は、2段目');
   t(/header > \.who\{[^}]*grid-row:3/.test(css), '　 名前とボタンは3段目');
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「ポンコツ(称号)だけ、左寄せにしてください」
+   *   称号は左、ボタンは右。段いっぱいに広げて、左右に振り分けます。
+   */
+  t(/header > \.who\{[^}]*justify-content:space-between/.test(css),
+    '★★★称号は左、ボタンは右（段の左右に振り分ける）');
+  t(!/header > \.who\{[^}]*justify-self:end/.test(css),
+    '　 右に かためる書き方は残っていない');
+  t(/header > \.who > \.whoR\{/.test(css), '　 右がわを まとめる入れものがある');
+  ['index.html', 'admin.html'].forEach(function (f) {
+    const h = fs.readFileSync(path.join(W, f), 'utf8');
+    const w = h.slice(h.indexOf('class="who"'), h.indexOf('class="who"') + 500);
+    t(/<b id="me">[\s\S]*?<\/b>[\s\S]*?class="whoR"/.test(w),
+      '★★★' + f + '：称号が先、ボタンはそのあとの入れものの中');
+    t(/class="whoR"[\s\S]{0,400}id="out"/.test(w),
+      '　 ' + f + '：ログアウトは、右がわの入れものの中');
+  });
   t(/header > h1[^{]*\{[^}]*white-space:nowrap/.test(css),
     '★★★題は折り返さない（折り返すと、絵との段がずれる）');
   t(/h1\.dn\{font-size:clamp\(/.test(css),
