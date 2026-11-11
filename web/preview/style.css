@@ -94,7 +94,9 @@ h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-wei
 h1.dn{font-family:var(--goth);font-weight:700;font-size:32px;letter-spacing:.17em;
   line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
 h1.dn2{font-family:var(--disp);letter-spacing:.08em}
-@media(max-width:640px){h1.dn{font-size:27px}}
+/* ★題は、画面の幅に合わせて縮めます（ご指示・2026/11/11）。
+     決め打ちだと、ふきだしと顔を右に置いたときに はみ出します。 */
+@media(max-width:640px){h1.dn{font-size:clamp(19px,5.2vw,27px)}}
 /* 地図で開ける場所の名前（ご指示・2026/11/11） */
 .plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
 .plink:hover{border-bottom-color:var(--andon)}
@@ -420,8 +422,40 @@ footer{font-size:12px;line-height:2}
  *    ・ふきだしの幅と高さを、決め打ちにする（伸び縮みしない）
  *    この2つで、ぴたりと止まります。
  * ============================================================ */
-header .who{order:2}
-header .saymount,.login .head .saymount{order:3;margin-left:auto}
+/* ============================================================
+ *  ヘッダーの組み方（まーく様のご指示・2026/11/11）
+ *    「TAXI NOTE の下に v1.0
+ *      v1.0 の右に 近日中〜
+ *      TAXI NOTE の右に ふきだしと顔」
+ *    「不自然に左下の空白を開けないような作りにしてください」
+ *
+ *  ★前は、ふきだしが下の段に回り込んでいて、その左が
+ *    ぽっかり空いていました。3段に組み直して、空きを無くします。
+ *      1段目：題（左）と ふきだし・顔（右）
+ *      2段目：版（v1.0）と、その右に一文
+ *      3段目：名前とボタン（右）
+ * ============================================================ */
+header, .login .head{
+  display:grid;grid-template-columns:auto 1fr;
+  align-items:center;column-gap:12px;row-gap:5px}
+header > h1, .login .head > h1{grid-column:1;grid-row:1;margin:0}
+header > .saymount, .login .head > .saymount{grid-column:2;grid-row:1;justify-self:end}
+/* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
+header > .subline, .login .head > .subline{
+  grid-column:1 / -1;grid-row:2;display:flex;align-items:center;gap:8px;min-width:0}
+header > .subline .sub{margin-top:0;min-width:0}
+.login .head > .subline .sub{margin-top:0}
+header > .who{grid-column:1 / -1;grid-row:3;justify-self:end;margin-left:0}
+
+/* 題は折り返さない。2行になると、絵との段がずれます */
+header > h1, .login .head > h1{white-space:nowrap}
+
+/* ★スマホでは、版と一文が同じ段に収まるように、少しずつ詰めます。
+     折り返すと、まーく様がおっしゃった「1行」ではなくなります。 */
+@media(max-width:640px){
+  header > .subline .sub, .login .head > .subline .sub{font-size:clamp(9px,2.55vw,12.5px)}
+  .ver{padding:1px 5px;font-size:10px;letter-spacing:.04em}
+}
 
 /* 顔をいちばん右に。ふきだしは、その左 */
 .saymount{flex-direction:row-reverse}
@@ -471,3 +505,22 @@ header .saymount,.login .head .saymount{order:3;margin-left:auto}
 .pvbar{background:var(--andon);color:#FFFFFF;font-size:13px;
   padding:9px 16px;text-align:center;letter-spacing:.03em}
 .pvbar a{color:#FFFFFF}
+
+/* ------------------------------------------------------------
+ *  いちばん細い画面（320pxなど）では、題と ふきだしも 少し小さく
+ *
+ *  ★ここは、ファイルのいちばん下に置きます。
+ *    上に書くと、560px のきまりに上書きされて効きません
+ *    （実際に、そうなりました・2026/11/11）。
+ * ---------------------------------------------------------- */
+@media(max-width:380px){
+  h1.dn{letter-spacing:.1em}
+  /* 版と一文は、ここでも1行に収めます（ご指示・2026/11/11） */
+  header > .subline, .login .head > .subline{gap:6px}
+  .ver{padding:1px 4px}
+  header > .subline .sub, .login .head > .subline .sub{font-size:clamp(8.4px,2.55vw,12.5px)}
+  .saymount .bubble{width:106px;font-size:10.5px;line-height:16px;
+    height:46px;min-height:46px;max-height:46px}
+  .saymount .face{width:24px;height:24px;min-width:24px;flex:0 0 24px}
+  .saymount{gap:6px}
+}

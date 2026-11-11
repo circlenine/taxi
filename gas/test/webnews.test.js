@@ -531,5 +531,52 @@ console.log('■ 記録を直せるのは、本人と まーく様だけ');
     '★★★消すのも、本人と管理者だけ');
 }
 
+
+console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「TAXI NOTE の下に、v1.0
+   *       v1.0の右に、近日中〜
+   *       TAXINOTEの右に、ふきだしと顔
+   *       こういう形で 不自然に左下の空白を開けないような
+   *       作りにしてください」
+   *
+   *   ★前は、ふきだしが下の段へ回り込み、その左が ぽっかり空いていました。
+   *     3段に組み直して、空きを無くします。
+   */
+  ['index.html', 'admin.html', 'login.html'].forEach(function (f) {
+    const h = fs.readFileSync(path.join(W, f), 'utf8');
+    const head = h.slice(h.indexOf('<h1'), h.indexOf('<h1') + 700);
+    t(/<h1[^>]*>[^<]*<\/h1>/.test(head), '★' + f + '：題だけの行になっている');
+    t(!/<h1[^>]*>[\s\S]{0,40}class="ver"/.test(h),
+      '　 ' + f + '：版（v1.0）は、題の中に入っていない');
+    t(/class="subline"/.test(h), '★★★' + f + '：版と一文が、同じ段にある');
+  });
+  const idx = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const i1 = idx.indexOf('<h1'), i2 = idx.indexOf('id="saymount"'), i3 = idx.indexOf('class="subline"');
+  t(i1 !== -1 && i2 > i1 && i3 > i2,
+    '★★★並びは 題 → ふきだし → 版と一文 の順', [i1, i2, i3]);
+
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/header, \.login \.head\{[^}]*display:grid/.test(css),
+    '★★★ヘッダーは、ます目で組んでいる（回り込ませない）');
+  t(/header > \.saymount[^{]*\{[^}]*grid-row:1/.test(css),
+    '★★★ふきだしと顔は、題と同じ段（1段目）');
+  t(/header > \.subline[^{]*\{[^}]*grid-row:2/.test(css),
+    '★★★版と一文は、2段目');
+  t(/header > \.who\{[^}]*grid-row:3/.test(css), '　 名前とボタンは3段目');
+  t(/header > h1[^{]*\{[^}]*white-space:nowrap/.test(css),
+    '★★★題は折り返さない（折り返すと、絵との段がずれる）');
+  t(/h1\.dn\{font-size:clamp\(/.test(css),
+    '★★★題は、画面の幅に合わせて縮む（決め打ちだと はみ出す）');
+  /* ★いちばん細い画面のきまりは、ファイルのいちばん下にあること。
+       上に書くと 560px のきまりに上書きされて効きません（実際そうなりました） */
+  const i380 = css.lastIndexOf('@media(max-width:380px)');
+  const i560 = css.lastIndexOf('@media(max-width:560px)');
+  t(i380 > i560,
+    '★★★細い画面のきまりは、560pxのきまりより下にある（でないと効かない）', [i380, i560]);
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

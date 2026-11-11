@@ -53,8 +53,36 @@ function parseT(str){
   return h + m / 60;
 }
 
-/* 時間単価：待ち時間まで込みの1時間あたりの実入り */
-const rate = r => { const t = (+r.wait || 0) + (+r.ride || 0); return t > 0 ? r.fare / t * 60 : 0; };
+/* ------------------------------------------------------------
+ *  空いている欄は「不明」としてあつかう
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「また、不明点は抜かしてもよい。」
+ *      「空白部分は「不明」扱いにしてください」
+ *
+ *  ★0分・0円と「不明」は、まったく別ものです。
+ *    「待ち0分（即乗せ）」は立派な記録。
+ *    「不明」を0として数えると、平均も時間単価も狂います。
+ *    だから、数えるときは「不明」を外します。
+ * ---------------------------------------------------------- */
+const UNK = '不明';
+const isUnk  = v => (v === null || v === undefined || v === '');
+const showT   = v => isUnk(v) ? UNK : fmtT(v);
+const showMin = v => isUnk(v) ? UNK : (v + '分');
+const showYen = v => isUnk(v) ? UNK : yen(v);
+const showTxt = v => (v === null || v === undefined || String(v).trim() === '') ? UNK : String(v);
+/* 数えるときに使えるか（不明なものは外す） */
+const hasDep  = r => !isUnk(r.dep);
+const hasFare = r => !isUnk(r.fare);
+const hasMin  = r => !isUnk(r.wait) && !isUnk(r.ride);
+
+/* 時間単価：待ち時間まで込みの1時間あたりの実入り。
+   ★金額か分数が「不明」なら、出しません（0ではなく「—」になります） */
+const rate = r => {
+  if (!hasFare(r) || !hasMin(r)) return 0;
+  const t = (+r.wait || 0) + (+r.ride || 0);
+  return t > 0 ? r.fare / t * 60 : 0;
+};
 
 /* その夜の営業日（朝6時までは前日扱い） */
 function today(){ const d = new Date(); d.setHours(d.getHours() - 6);
@@ -284,11 +312,27 @@ function pick(a){
  *  ★「くん」が名前に入っているので、「さん」は重ねていません。
  * ---------------------------------------------------------- */
 const KIRA_NAMES = ['齋藤くん', '山敷くん', '山脇くん', '城越くん', '宮下くん', '加藤くん'];
+const KIRA_KEY = 'tsukemachi.kira';
+
+/* ★名前が変わるのは、1日に1回だけ（ご指示・2026/11/11）。
+     開き直すたびに変わると、落ち着いて読めません。
+     その日いちど決めた名前を、端末に覚えておきます。 */
+function kiraToday(){
+  const d = today();
+  try {
+    const j = JSON.parse(localStorage.getItem(KIRA_KEY) || '{}');
+    if (j && j.d === d && KIRA_NAMES.indexOf(j.n) !== -1) return j.n;
+  } catch (e) {}
+  const n = pick(KIRA_NAMES);
+  try { localStorage.setItem(KIRA_KEY, JSON.stringify({ d: d, n: n })); } catch (e) {}
+  return n;
+}
 function subRoll(){
   if (typeof document === 'undefined' || !document.getElementById) return;
   const el = document.getElementById('sub');
   if (!el) return;
-  el.textContent = '近日中、誰かワンメータを乗せたら、' + pick(KIRA_NAMES) + 'がキラです';
+  /* 〝 〞で名前をはさみます（ご指示・2026/11/11） */
+  el.textContent = '近日中、誰かがワンメータを乗せたら、〝' + kiraToday() + '〟がキラです';
 }
 
 /* ★顔は「目 × 口」で何通りか。

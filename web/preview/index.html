@@ -12,22 +12,24 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- ★下見用のページです（まーく様のご指示・2026/11/11）
-       「変更前に、僕に最終確認をとる形にして、
-         プレビュー用ページの作成も作るようにしてください」
-     直すところができたら、まずここに置きます。
-     まーく様が見て「これでいい」となってから、本番に移します。
-     いまは、本番とおなじ中身が入っています。 -->
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
   <a href="/">こちら</a>。まだ本番には反映していません。</div>
 <div id="boot" class="boot">読み込んでいます…</div>
 
 <div class="wrap" id="app" hidden>
+  <!-- ★ヘッダーの組み方（まーく様のご指示・2026/11/11）
+         「TAXI NOTE の下に v1.0 ／ v1.0 の右に 近日中〜 ／
+           TAXI NOTE の右に ふきだしと顔」
+         「不自然に左下の空白を開けないような作りにしてください」
+       1段目：題 と ふきだし・顔
+       2段目：版（v1.0）と、その右に一文
+       3段目：名前とボタン -->
   <header>
+    <h1 class="dn">TAXI NOTE</h1>
     <div id="saymount" class="saymount"></div>
-    <div>
-<h1 class="dn">TAXI NOTE <span class="ver" id="ver"></span></h1>
-      <div class="sub" id="sub">近日中、誰かがワンメータを乗せたら、キラが決まります</div>
+    <div class="subline">
+      <span class="ver" id="ver"></span>
+      <span class="sub" id="sub">近日中、誰かがワンメータを乗せたら、キラが決まります</span>
     </div>
     <div class="who">
       <span><b id="me">—</b><span class="badge" id="meBadge" hidden>管理者</span></span>
@@ -64,7 +66,7 @@
 
   <footer>
     時間単価 ＝ 金額 ÷（待ち時間 ＋ 乗車時間）× 60。つけ待ちで潰した時間まで含めた、1時間あたりの実入り。<br>
-    0〜6時に入力した時刻は、その夜の続き（24時以降）として扱う。<br>
+    0〜6時に入力した時刻は、前日の夜（営業曜日）の続き（24時以降）として扱う。<br>
     6時すぎは、そのまま朝の時刻。「3020」のように24時すぎの書き方でも入る。
     <div class="copy">©ibakuzo!!!!!! Gevanni!!!!!! ~1night done~</div>
   </footer>
