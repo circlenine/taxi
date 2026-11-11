@@ -1,7 +1,5 @@
 {
-  "id": "2026-11-12-slim",
-  "do": ["props-tidy", "props-list"],
-  "go": true,
-  "slim": true,
-  "note": "控えを50個未満まで片づけ、そのあと残った一覧を置きます"
+  "id": "2026-11-12-list",
+  "do": ["props-list"],
+  "note": "残った控えの名前だけを一覧にします（値は出しません）"
 }
