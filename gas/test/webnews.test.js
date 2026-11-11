@@ -366,9 +366,15 @@ console.log('■ 字は真っ白（ご指示・2026/11/11）');
 console.log('■ 題の下の一文は、スマホで1行（ご指示・2026/11/11）');
 {
   const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  t(sh.indexOf('誰かワンメータを乗せたら') !== -1, '★★★「誰かが」ではなく「誰か」');
-  t(sh.indexOf("'近日中、誰かがワンメータ") === -1,
-    '　 古い書き方（誰かが）で組み立てていない');
+  /* ★2026/11/11 ご指示：「誰かが、のままでも1行でしたので ここはそのままで良いです」
+       「○○くんがキラです → 〝○○くん〟がキラです」
+       「○○くんの変更回数は1日1回にしてください」 */
+  t(sh.indexOf('誰かがワンメータを乗せたら') !== -1, '★「誰かが」のまま');
+  t(/〝' \+ kiraToday\(\) \+ '〟がキラです/.test(sh),
+    '★★★名前を〝 〟ではさんでいる');
+  t(sh.indexOf('function kiraToday') !== -1, '★★★名前は、その日いちど決めたら変わらない');
+  t(/KIRA_KEY/.test(sh) && /localStorage/.test(sh.slice(sh.indexOf('function kiraToday'))),
+    '　 その日ぶんを、端末に覚えている');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   t(/\.sub\{[^}]*font-size:clamp\(/.test(css),
     '★★★画面が細いほど字を小さくして、1行に収める');
@@ -433,6 +439,91 @@ console.log('■ 下見用のページ（ご指示・2026/11/11）');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   t(/::placeholder\{color:var\(--chipoff\)/.test(css),
     '★★★入れる前の見本の字も、読める明るさ');
+}
+
+
+console.log('■ 分からない欄は「不明」（ご指示・2026/11/11）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「また、不明点は抜かしてもよい。」
+   *     「空白部分は「不明」扱いにしてください」
+   *
+   *   ★いちばん怖いのは「不明」を 0 として数えることです。
+   *     待ち0分（即乗せ）と、待ち時間が分からない、は別もの。
+   *     0として数えると、平均も時間単価も下がって、嘘の数字になります。
+   */
+  const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const a = sh.indexOf('const UNK');
+  const b = sh.indexOf('/* その夜の営業日');
+  t(a !== -1 && b > a, '★「不明」のあつかいが見つかる');
+  if (a !== -1 && b > a) {
+    const box = { console: { log: function(){} } };
+    vm.createContext(box);
+    vm.runInContext(
+      'const pad=n=>String(n).padStart(2,"0");' +
+      'const yen=n=>"¥"+Math.round(n).toLocaleString("ja-JP");' +
+      'const fmtT=d=>{const h=Math.floor(d+1e-9);let m=Math.round((d-h)*60);' +
+      'return pad(m===60?h+1:h)+":"+pad(m===60?0:m);};' +
+      sh.slice(a, b) + `
+      globalThis.U = {
+        zero:  rate({ fare: 1000, wait: 0,    ride: 10 }),
+        unkW:  rate({ fare: 1000, wait: null, ride: 10 }),
+        unkF:  rate({ fare: null, wait: 5,    ride: 10 }),
+        t:     [showT(null), showT(25.5)],
+        m:     [showMin(null), showMin(0)],
+        y:     [showYen(null), showYen(0)],
+        txt:   [showTxt(''), showTxt('新地7')],
+        has:   [hasDep({dep:null}), hasDep({dep:0}), hasFare({fare:null}), hasFare({fare:0})]
+      };`, box);
+    const U = box.U;
+    t(U.zero === 6000, '★待ち0分は、ちゃんと数える（6000円/h）', U.zero);
+    t(U.unkW === 0, '★★★待ちが不明なら、時間単価は出さない（0扱いにしない）', U.unkW);
+    t(U.unkF === 0, '★★★金額が不明でも、時間単価は出さない', U.unkF);
+    t(U.t[0] === '不明' && U.t[1] === '25:30', '★★★時刻の空欄は「不明」と出る', U.t);
+    t(U.m[0] === '不明' && U.m[1] === '0分', '★★★0分と「不明」は、別のものとして出る', U.m);
+    t(U.y[0] === '不明' && U.y[1] === '¥0', '★★★0円と「不明」も、別のものとして出る', U.y);
+    t(U.txt[0] === '不明' && U.txt[1] === '新地7', '　 場所の空欄も「不明」', U.txt);
+    t(U.has[0] === false && U.has[1] === true, '　 時刻0時は、ちゃんと数に入る', U.has);
+    t(U.has[2] === false && U.has[3] === true, '　 0円も、ちゃんと数に入る', U.has);
+  }
+
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(app.indexOf('function numOrUnk') !== -1, '★★★空っぽの欄は、0ではなく「不明」で保存する');
+  t(/wait_min: numOrUnk\(/.test(app) && /ride_min: numOrUnk\(/.test(app),
+    '　 待ちも乗車も、同じあつかい');
+  t(/const F = rs\.filter\(hasFare\)/.test(app),
+    '★★★合計・平均は、不明を外して数える');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'schema.sql'), 'utf8');
+  t(/alter column fare\s+drop not null/.test(sql),
+    '★★★台帳の側も、空っぽを受け取れるようにしてある');
+
+  const login = fs.readFileSync(path.join(W, 'login.html'), 'utf8');
+  t(login.indexOf('不明点は抜かしてもよい') !== -1, '★★★使い方にも、そう書いてある');
+  t(login.indexOf('前日の夜（営業曜日）の続き') !== -1,
+    '★★★「前日の夜（営業曜日）の続き」と書いてある');
+}
+
+console.log('■ 記録を直せるのは、本人と まーく様だけ');
+{
+  /*
+   * ★まーく様のご指示（2026/11/11）
+   *     「記録情報は、誤って送信する可能性も考慮して、
+   *       本人と管理者だけ再編集できるようにしてください」
+   *   ★画面のボタンを隠すだけでは足りません。
+   *     台帳の側（RLS）でも止まっていないと、守りになりません。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(/const canEdit = r => r\.user_id === ME\.user\.id \|\| ME\.profile\.is_admin/.test(app),
+    '★★★画面で、本人と管理者だけに「直す」を出す');
+  t(/canEdit\(r\) \?/.test(app), '　 一覧のボタンが、それを見ている');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'schema.sql'), 'utf8');
+  const up = sql.slice(sql.indexOf('create policy rides_update_own'));
+  t(/user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(up.slice(0, 400)),
+    '★★★台帳の側でも、本人と管理者だけが直せる');
+  const del = sql.slice(sql.indexOf('create policy rides_delete_own'));
+  t(/user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(del.slice(0, 300)),
+    '★★★消すのも、本人と管理者だけ');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

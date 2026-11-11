@@ -198,3 +198,20 @@ create policy feedback_update on public.feedback
 
 grant select, insert on public.feedback to authenticated;
 grant update (done) on public.feedback to authenticated;
+
+-- ============================================================
+-- 8. 分からない欄は「不明」のまま残せるようにする
+--    （2026/11/11・まーく様のご指示）
+--      「また、不明点は抜かしてもよい。」
+--      「空白部分は「不明」扱いにしてください」
+--
+--    ★いままでは「0」を入れるしかありませんでした。
+--      でも「待ち0分（即乗せ）」と「待ち時間が分からない」は
+--      まったく別ものです。0として数えると、平均が下がります。
+--    ★ここだけを選んで Run しても、ちゃんと動きます。
+--      すでに直してあるときは、何も起きません。
+-- ============================================================
+alter table public.rides alter column dep      drop not null;
+alter table public.rides alter column wait_min drop not null;
+alter table public.rides alter column ride_min drop not null;
+alter table public.rides alter column fare     drop not null;

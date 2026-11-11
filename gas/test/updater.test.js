@@ -45,9 +45,19 @@ function iter(arr) {
   let i = 0;
   return { hasNext: () => i < arr.length, next: () => arr[i++] };
 }
+/* ドライブに置いた「ただのファイル」。控え（バックアップ）に使う */
+const dfiles = {};
+let driveFails = false;
+const mkPlain = (n, t) => ({
+  _n: n, _t: t,
+  setContent: v => { if (driveFails) throw new Error('書けません'); dfiles[n]._t = v; return dfiles[n]; },
+  getBlob: () => ({ getDataAsString: () => dfiles[n]._t })
+});
 ctx.DriveApp = {
   getFoldersByName: n => iter(drive[n] ? [drive[n]] : []),
-  createFolder: n => (drive[n] = mkFolder(n))
+  createFolder: n => (drive[n] = mkFolder(n)),
+  getFilesByName: n => iter(dfiles[n] ? [dfiles[n]] : []),
+  createFile: (n, t) => { if (driveFails) throw new Error('作れません'); dfiles[n] = mkPlain(n, t); return dfiles[n]; }
 };
 // ★本物にある入れもの。無いと、ファイルを作るところで落ちる
 ctx.MimeType = { PLAIN_TEXT: 'text/plain', CSV: 'text/csv', HTML: 'text/html' };
@@ -7076,7 +7086,44 @@ console.log('■ 古くなった控えの片づけ（props-tidy）');
   t(left.length === MUST.length + NEAR.length + 1,
     '　 残ったのは、残すはずのものだけ', left.length);
 
+  /*
+   * ★消す前に、まるごと控えを取ること（ご指示・2026/11/11）
+   *     「バックアップも完璧にとって、万が一エラーが起きても、
+   *       すぐに戻せる状態で」
+   *   ★控えが取れなかったときに消してしまうのが、いちばん怖い。
+   *     そこを押さえます。
+   */
   Object.keys(props).forEach(k => delete props[k]);
+  MUST.concat(JUNK, NEAR).forEach(k => { props[k] = 'あたい'; });
+  Object.keys(dfiles).forEach(k => delete dfiles[k]);
+
+  driveFails = true;
+  F('updPropsTidy_(true)');
+  t(Object.keys(props).length === MUST.length + JUNK.length + NEAR.length,
+    '★★★控えが取れなかったら、1つも消さない', Object.keys(props).length);
+  driveFails = false;
+
+  F('updPropsTidy_(true)');
+  const bak = dfiles['GASの控えの控え.txt'];
+  t(!!bak, '★★★消したものを、ドライブに控えてある');
+  if (bak) {
+    const j = JSON.parse(bak._t.slice(bak._t.indexOf('{')));
+    t(JUNK.every(k => k in j), '★★★消したものが、ぜんぶ控えに入っている',
+      JUNK.filter(k => !(k in j)).join('/'));
+    t(MUST.every(k => !(k in j)),
+      '★★★鍵は、控えにも入れない（ドライブに鍵を置かないため）',
+      MUST.filter(k => k in j).join('/'));
+  }
+
+  /* 戻せること */
+  const after = Object.keys(props).length;
+  F('updPropsRestore_()');
+  t(Object.keys(props).length === after + JUNK.length,
+    '★★★おつかい1つで、まるごと戻せる', Object.keys(props).length);
+  t(props['VNH_20260903'] === 'あたい', '　 中身も、そのまま戻る', props['VNH_20260903']);
+
+  Object.keys(props).forEach(k => delete props[k]);
+  Object.keys(dfiles).forEach(k => delete dfiles[k]);
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

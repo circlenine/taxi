@@ -2,8 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U167ver  （2026/11/11）  ★★★
+ *  ★★★  U168ver  （2026/11/11）  ★★★
  *
+ *
+ *  [U168ver]
+ *   ・🗂 控えを片づける前に、まるごと控えを取るようにした
+ *     ★まーく様のご指示：「バックアップも完璧にとって、
+ *       万が一エラーが起きても、すぐに戻せる状態で」
+ *     ★控えが取れなかったら、1つも消しません。
+ *     ★戻すおつかい（props-restore）も作りました。
+ *   ・🕓 営業曜日の区切りを確かめる係を作った（biz-check）
  *
  *  [U167ver]
  *   ・🗂 古くなったGASの控えを片づける係を作った（props-tidy）
@@ -1880,7 +1888,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U167ver";
+const UPD_VERSION = "U168ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11713,6 +11721,74 @@ function updErrandLog_(line) {
  *    控えに「何個 消した／残った」と1行 書きます。
  *    消しすぎていれば、残りの数で すぐ分かります。
  */
+/** 日時を読める字にする。整え係がいなくても止まらないようにする */
+function updWhen_(d) {
+  try {
+    if (typeof Utilities !== "undefined" && Utilities && Utilities.formatDate) {
+      return Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd HH:mm");
+    }
+  } catch (e) {}
+  return String(d);
+}
+
+/** 片づけたものを、まるごと置いておく所（ドライブ） */
+const UPD_PROPS_BACKUP = "GASの控えの控え.txt";
+
+/**
+ * 片づけた控えを、まるごと戻す（updPropsRestore_）
+ *
+ *  ★まーく様のご指示（2026/11/11）
+ *      「万が一エラーが起きても、すぐに戻せる状態で」
+ *  ★ドライブの「GASの控えの控え.txt」から読んで、
+ *    いま無いものだけを書き戻します。
+ *    いま入っているものは、上書きしません（新しい方を守ります）。
+ */
+function updPropsRestore_() {
+  try {
+    const it = DriveApp.getFilesByName(UPD_PROPS_BACKUP);
+    if (!it.hasNext()) return "🗂 戻せる控えが、ドライブにありません。";
+    const text = it.next().getBlob().getDataAsString("UTF-8");
+    const i = text.indexOf("{");
+    if (i === -1) return "🗂 控えの中身が読めませんでした。";
+    const back = JSON.parse(text.slice(i));
+    const pr = PropertiesService.getScriptProperties();
+    const now = pr.getProperties();
+    let n = 0, skip = 0;
+    Object.keys(back).forEach(function (k) {
+      if (k in now) { skip++; return; }        // いま入っている方を守る
+      try { pr.setProperty(k, String(back[k])); n++; } catch (e) {}
+    });
+    updErrandLog_("🗂 控えを戻しました：" + n + "個（すでに有って触らなかったもの " + skip + "個）");
+    return "🗂 " + n + "個 戻しました。";
+  } catch (e) {
+    return "🗂 戻せませんでした：" + ((e && e.message) || e);
+  }
+}
+
+/**
+ * 営業曜日の区切りを確かめる（updBizCheck_）
+ *
+ *  ★まーく様のお尋ね（2026/11/11）
+ *      「15:59までは、前日扱い、16:00～翌15:59までが、
+ *        当日の営業曜日扱いのままになっていますか」
+ *  ★いま効いている値は「設定」タブのものです。
+ *    コードの既定（17）ではありません。ここで実際の値を見ます。
+ */
+function updBizCheck_() {
+  try {
+    const h = (typeof cfgBizStart_ === "function") ? Number(cfgBizStart_()) : null;
+    if (!isFinite(h)) return "🕓 区切りの時刻が読めませんでした。";
+    const prev = ("0" + (h - 1)).slice(-2) + ":59";
+    const out = "🕓 営業曜日の区切り：" + h + ":00。" +
+                "つまり " + prev + " までが前の日、" +
+                ("0" + h).slice(-2) + ":00〜翌 " + prev + " が同じ営業曜日です。";
+    updErrandLog_(out);
+    return out;
+  } catch (e) {
+    return "🕓 確かめられませんでした：" + ((e && e.message) || e);
+  }
+}
+
 function updPropsTidy_(go) {
   try {
     const pr = PropertiesService.getScriptProperties();
@@ -11773,11 +11849,44 @@ function updPropsTidy_(go) {
              (keys.length - gone.length) + "個）。消すときは go:true を書いてください。";
     }
 
+    /*
+     * ★消す前に、消すものを まるごと控えます（ご指示・2026/11/11）
+     *     「バックアップも完璧にとって、万が一エラーが起きても、
+     *       すぐに戻せる状態で」
+     *   ★控えるのは「これから消すもの」だけです。
+     *     鍵（LINE・Gemini・GitHub）は消さないので、控えにも入りません。
+     *     秘密の鍵を、ドライブに置かないための決まりです。
+     *   ★控えが置けなかったときは、1つも消しません。
+     *     戻せないまま消すのが、いちばん怖いからです。
+     */
+    const back = {};
+    gone.forEach(function (k) { back[k] = all[k]; });
+    let saved = false;
+    try {
+      const text = "＝＝ 片づけた控えの、控え（じどうで書いています）＝＝\n" +
+        "取った日時：" + updWhen_(now) + "\n" +
+        "中身：" + gone.length + "個。戻すときは おつかい props-restore。\n" +
+        "※ 鍵は1つも入っていません（消さないため）。\n\n" +
+        JSON.stringify(back);
+      let f = null;
+      const it = DriveApp.getFilesByName(UPD_PROPS_BACKUP);
+      if (it.hasNext()) f = it.next();
+      if (f) f.setContent(text);
+      else DriveApp.createFile(UPD_PROPS_BACKUP, text, MimeType.PLAIN_TEXT);
+      saved = true;
+    } catch (e) {
+      updErrandLog_("🗂 控えが取れなかったので、1つも消しませんでした：" + ((e && e.message) || e));
+      return "🗂 控え（バックアップ）が取れなかったので、消していません。";
+    }
+    if (!saved) return "🗂 控えが取れなかったので、消していません。";
+
     let n = 0;
     gone.forEach(function (k) { try { pr.deleteProperty(k); n++; } catch (e) {} });
     const left = Object.keys(pr.getProperties()).length;
-    updErrandLog_("🗂 控えを片づけました：" + n + "個 消して、残り " + left + "個");
-    return "🗂 " + n + "個 片づけました。残り " + left + "個です。";
+    updErrandLog_("🗂 控えを片づけました：" + n + "個 消して、残り " + left +
+                  "個（戻せる控えは「" + UPD_PROPS_BACKUP + "」）");
+    return "🗂 " + n + "個 片づけました。残り " + left + "個です。" +
+           "戻すときは おつかい props-restore。";
   } catch (e) {
     return "🗂 片づけられませんでした：" + ((e && e.message) || e);
   }
@@ -11878,6 +11987,8 @@ const UPD_ERRAND_OK = {
    *     { "do": ["props-tidy"], "go": true }  … ほんとうに消す
    */
   "props-tidy":  "古くなったGASの控えを片づける",
+  "props-restore": "片づけた控えを、まるごと戻す",
+  "biz-check":   "営業曜日の区切りが何時かを、控えに書く",
   "ping":        "動いているかどうかの返事だけ"
 };
 
@@ -12336,6 +12447,10 @@ function updErrandTick_() {
       }
     } else if (task === "props-tidy") {
       out = updPropsTidy_(j && j.go === true);
+    } else if (task === "props-restore") {
+      out = updPropsRestore_();
+    } else if (task === "biz-check") {
+      out = updBizCheck_();
     } else if (task === "web-sync-try") {
       out = webSyncPush_(false);
     } else if (task === "web-sync-go") {

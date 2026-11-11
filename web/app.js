@@ -148,7 +148,9 @@ function mcls(v){
 
 const rowToRec = r => ({
   id: r.id, user_id: r.user_id, date: r.work_date, place: r.place,
-  dep: +r.dep, wait: r.wait_min, ride: r.ride_min, fare: r.fare,
+  /* ★不明（空っぽ）は、0に変えずに そのまま持ちます。
+       0と不明を混ぜると、平均も時間単価も狂うためです。 */
+  dep: (r.dep == null ? null : +r.dep), wait: r.wait_min, ride: r.ride_min, fare: r.fare,
   method: r.method || '', note: r.note || '',
   get who(){ return names[this.user_id] || '—'; }
 });
@@ -282,7 +284,8 @@ function paneIn(){
          走りながら入れるものなので、「すぐ終わる」と先に分かる方が
          手が動きます。 -->
     <h2>あと35秒…<span class="h2sub">記録の目安時間</span></h2>
-    <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで時間単価が出る。時刻は「2530」「25:30」「1:30」いずれでも可。</p>
+    <p class="note">つけた場所・待った分数・乗せた分数・金額。この4つだけで時間単価が出る。時刻は「2530」「25:30」「1:30」いずれでも可。<br>
+      <b>分からない欄は、空のままでかまいません</b>（「不明」として残り、平均には数えません）。</p>
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
         <input type="date" id="f_date" value="${f.date || today()}"></div>
@@ -355,9 +358,9 @@ function tableHTML(rows){
     <th>日付</th><th>場所</th><th>乗せた</th><th class="n">待ち</th><th class="n">乗車</th>
     <th class="n">金額</th><th class="n">時間単価</th><th>種類</th><th>他</th><th>記録者</th><th></th></tr></thead><tbody>
     ${rows.map(r => `<tr>
-      <td>${fmtD(r.date)}</td><td>${placeLink(r.place)}</td>
-      <td class="n">${fmtT(r.dep)}</td><td class="n">${r.wait}分</td><td class="n">${r.ride}分</td>
-      <td class="n">${yen(r.fare)}</td>
+      <td>${fmtD(r.date)}</td><td>${r.place ? placeLink(r.place) : UNK}</td>
+      <td class="n">${showT(r.dep)}</td><td class="n">${showMin(r.wait)}</td><td class="n">${showMin(r.ride)}</td>
+      <td class="n">${showYen(r.fare)}</td>
       <td class="n" style="color:var(--meter)">${rate(r) ? yen(rate(r)) : '—'}</td>
       <td>${r.method ? `<span class="mtag ${mcls(r.method)}">${esc(r.method)}</span>` : ''}</td>
       <td class="ja">${esc(r.note || '')}</td>
@@ -374,7 +377,8 @@ function tableHTML(rows){
  *  ★これは、人の多さを買ってくるもの（人口マップ）ではありません。
  *    **自分たちの記録だけ**から作っている地図です。 */
 function paneHeat(){
-  const R = visible();
+  /* 時刻が不明なものは、時間帯の地図には出せません（どこに置けないため） */
+  const R = visible().filter(hasDep);
   if (!R.length) return emptyCard('場所と時間帯がそろうと、ここがアツさの地図になる。');
   const hs = R.map(r => Math.floor(r.dep));
   const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
@@ -514,6 +518,7 @@ function hotPick(c, win, sameKind, rows){
   const R = (rows || visible()).filter(function (r){
     if (!r.place) return false;
     if (sameKind && dayKind(r.date) !== c.kind) return false;
+    if (isUnk(r.dep)) return false;      // 時刻が不明なものは、見当に使えない
     return hotDist(+r.dep, c.h) <= win;
   });
   return hotGroup(R);
@@ -815,7 +820,8 @@ async function loadWx(){
 
 /* ---- 一夜の流れ ---- */
 function paneTl(){
-  const R = visible();
+  /* 時刻が不明なものは、夜の流れのどこにも置けないので外します */
+  const R = visible().filter(hasDep);
   if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べる。');
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,14);
   const x0 = 19, x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
@@ -830,7 +836,7 @@ function paneTl(){
     R.filter(r => r.date === d).forEach(r => {
       const a = sx(r.dep - (+r.wait||0)/60), b = sx(r.dep), c = sx(r.dep + (+r.ride||0)/60);
       const rt = rate(r), t = Math.min(1, rt/12000);
-      const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${fmtT(r.dep-(r.wait||0)/60)} → 出 ${fmtT(r.dep)}（待ち${r.wait}分）&#10;乗車 ${r.ride}分・${yen(r.fare)}&#10;時間単価 ${rt?yen(rt)+'/h':'—'}`;
+      const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}&#10;時間単価 ${rt?yen(rt)+'/h':'—'}`;
       s += `<g data-tip="${tip}">
         <rect x="${a}" y="${y+13}" width="${Math.max(1,b-a)}" height="6" rx="3" fill="#3A4B6D"/>
         <rect x="${b}" y="${y+8}" width="${Math.max(3,c-b)}" height="16" rx="4" fill="rgba(240,163,59,${.25+t*.7})"/>
@@ -847,7 +853,8 @@ function paneTl(){
 
 /* ---- 時間×金額 ---- */
 function paneSc(){
-  const R = visible();
+  /* 時刻か金額が不明なものは、この図に点を打てないので外します */
+  const R = visible().filter(r => hasDep(r) && hasFare(r));
   if (!R.length) return emptyCard('もとの折れ線グラフを、ラベルが重ならない形で。');
   const ds = [...new Set(R.map(r => r.date))].sort();
   const L = 58, Rp = 20, T = 18, B = 40, W = 760, H = 430;
@@ -870,7 +877,7 @@ function paneSc(){
       s += `<polyline fill="none" stroke="${c}" stroke-width="1.3" opacity=".55" points="${pts.map(r => sx(r.dep)+','+sy(r.fare)).join(' ')}"/>`;
     pts.forEach(r => {
       const x = sx(r.dep), y = sy(r.fare);
-      s += `<g data-tip="${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;${fmtT(r.dep)}・${yen(r.fare)}&#10;待ち${r.wait}分／乗車${r.ride}分&#10;時間単価 ${rate(r)?yen(rate(r))+'/h':'—'}">
+      s += `<g data-tip="${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;${showT(r.dep)}・${showYen(r.fare)}&#10;待ち${showMin(r.wait)}／乗車${showMin(r.ride)}&#10;時間単価 ${rate(r)?yen(rate(r))+'/h':'—'}">
         <circle cx="${x}" cy="${y}" r="4.5" fill="${c}"/><circle cx="${x}" cy="${y}" r="11" fill="transparent"/></g>`;
       if (scOpt.label) {
         const txt = yen(r.fare), w = txt.length*6.2;
@@ -895,12 +902,18 @@ function paneSc(){
 }
 
 /* ---- 集計 ---- */
-function agg(rs){ return { n: rs.length,
-  avg: rs.map(rate).reduce((a,b)=>a+b,0)/rs.length,
-  fare: rs.reduce((a,r)=>a+r.fare,0)/rs.length,
-  sum: rs.reduce((a,r)=>a+r.fare,0),
-  wait: rs.reduce((a,r)=>a+(+r.wait||0),0)/rs.length }; }
-function hourAgg(){ const m = {}; visible().forEach(r => { const h = Math.floor(r.dep); (m[h] = m[h] || []).push(r); });
+/* ★「不明」は数に入れません（0として数えると、平均が下がります）。
+     件数（n）だけは、不明もふくめた本数です。 */
+function agg(rs){
+  const F = rs.filter(hasFare), W = rs.filter(r => !isUnk(r.wait));
+  const R = rs.map(rate).filter(x => x > 0);
+  const sum = F.reduce((a,r)=>a+r.fare,0);
+  return { n: rs.length,
+    avg:  R.length ? R.reduce((a,b)=>a+b,0)/R.length : 0,
+    fare: F.length ? sum/F.length : 0,
+    sum:  sum,
+    wait: W.length ? W.reduce((a,r)=>a+(+r.wait||0),0)/W.length : 0 }; }
+function hourAgg(){ const m = {}; visible().filter(hasDep).forEach(r => { const h = Math.floor(r.dep); (m[h] = m[h] || []).push(r); });
   return Object.entries(m).map(([h,rs]) => ({ h:+h, ...agg(rs) })).sort((a,b) => a.h - b.h); }
 function placeAgg(){ const m = {}; visible().forEach(r => { const p = r.place || '（無記入）'; (m[p] = m[p] || []).push(r); });
   return Object.entries(m).map(([p,rs]) => ({ p, ...agg(rs) })).sort((a,b) => b.avg - a.avg); }
@@ -1035,7 +1048,12 @@ function wire(){
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delRec(b.dataset.del));
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
     const r = records.find(x => x.id === b.dataset.edit); if (!r) return;
-    form = { date:r.date, place:r.place, dep:fmtT(r.dep), wait:r.wait, ride:r.ride, fare:r.fare };
+    form = { date:r.date, place:r.place,
+             dep: isUnk(r.dep) ? '' : fmtT(r.dep),
+             wait: isUnk(r.wait) ? '' : r.wait,
+             ride: isUnk(r.ride) ? '' : r.ride,
+             fare: isUnk(r.fare) ? '' : r.fare,
+             method: r.method || '', note: r.note || '' };
     editId = r.id; tab = 'in'; msg = ''; render(); window.scrollTo({ top:0, behavior:'smooth' });
   });
   /* きょうのイベントを、まん中にもう一度 出す（オフにした人も見られるように） */
@@ -1087,16 +1105,33 @@ function grab(){
 const ok  = t => { msg = t; msgBad = false; render(); };
 const bad = t => { msg = t; msgBad = true;  render(); };
 
+/* ★数の欄：空っぽなら「不明」（null）。0 と混ぜません
+     （まーく様のご指示・2026/11/11「空白部分は「不明」扱いに」） */
+function numOrUnk(v, max){
+  const t = String(v == null ? '' : v).trim();
+  if (t === '') return null;
+  const n = Math.round(Number(t.replace(/[^\d.-]/g, '')));
+  if (!isFinite(n) || n < 0) return null;
+  return Math.min(n, max);
+}
+
 async function addRec(){
   grab();
-  const d = parseT(form.dep), fare = +form.fare;
-  if (!form.date)      return bad('営業日を入れる');
-  if (d === null)      return bad('乗せた時刻が読めない（例 25:30）');
-  if (!fare || fare<0) return bad('金額を入れる');
+  const dRaw = String(form.dep || '').trim();
+  const d = dRaw === '' ? null : parseT(dRaw);
+  const fare = numOrUnk(form.fare, 1000000);
+  if (!form.date) return bad('営業日を入れる');
+  /* ★時刻は「書いてあるのに読めない」ときだけ はじきます。
+       書いていないのは「不明」として通します（ご指示・2026/11/11）。 */
+  if (dRaw !== '' && d === null) return bad('乗せた時刻が読めない（例 25:30）');
+  /* 何ひとつ入っていない記録は、残しても意味がないので止めます */
+  if (d === null && fare === null && !String(form.place || '').trim())
+    return bad('場所・時刻・金額のうち、どれか1つは入れてください');
   const row = {
     user_id: ME.user.id, work_date: form.date, place: (form.place || '').trim(),
-    dep: +d.toFixed(2), wait_min: Math.max(0, Math.round(+form.wait || 0)),
-    ride_min: Math.max(0, Math.round(+form.ride || 0)), fare: Math.round(fare),
+    dep: (d === null ? null : +d.toFixed(2)),
+    wait_min: numOrUnk(form.wait, 1440),
+    ride_min: numOrUnk(form.ride, 1440), fare: fare,
     method: normMethod(form.method || ''), note: (form.note || '').trim()
   };
   const btn = $('#add'); btn.disabled = true;
@@ -1105,7 +1140,8 @@ async function addRec(){
   else        ({ error } = await db.from('rides').insert(row));
   if (error) { btn.disabled = false; return bad(jaError(error)); }
   const r = { wait: row.wait_min, ride: row.ride_min, fare: row.fare };
-  msg = editId ? '書きかえた' : `記録した（時間単価 ${rate(r) ? yen(rate(r)) + '/h' : '—'}）`;
+  msg = editId ? '書きかえた'
+    : `記録した（時間単価 ${rate(r) ? yen(rate(r)) + '/h' : '不明の欄があるので出せません'}）`;
   msgBad = false; editId = null;
   form = { date: row.work_date, place: row.place, dep:'', wait:'', ride:'', fare:'', method:'', note:'' };
   await reload();
@@ -1122,8 +1158,10 @@ async function delRec(id){
 function csv(){
   const q = v => `"${String(v == null ? '' : v).replace(/"/g,'""')}"`;
   return ['日付,場所,乗せた時刻,待ち時間(分),乗車時間(分),金額,時間単価,種類,他,記録者',
-    ...sorted().map(r => [r.date, q(r.place), fmtT(r.dep), r.wait, r.ride, r.fare,
-      Math.round(rate(r)), q(r.method), q(r.note), q(r.who)].join(','))].join('\n');
+    ...sorted().map(r => [r.date, q(showTxt(r.place)), showT(r.dep),
+      showMin(r.wait), showMin(r.ride), isUnk(r.fare) ? UNK : r.fare,
+      rate(r) ? Math.round(rate(r)) : UNK,
+      q(r.method), q(r.note), q(r.who)].join(','))].join('\n');
 }
 function dl(text){
   const b = new Blob(['\ufeff' + text], { type:'text/csv;charset=utf-8' });
