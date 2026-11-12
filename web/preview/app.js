@@ -21,7 +21,11 @@ let scOpt = { line: true, label: true }, onlyMine = false;
      混ざって、見ても意味がありません（ご指示・2026/11/12）。 */
 /* ★onlyCat … 大カテゴリー（関空・バラシ・北7…）だけに絞る（空なら すべて）。
      グラフの画面で、すぐ切り替えられるようにします（ご指示・2026/11/12）。 */
-let onlyPlace = '', onlyCat = '', onlyBig = '', onlyDay = '', period = { mode: 'c0', from: '', to: '' };
+let onlyPlace = '', onlyCat = '', onlyBig = '', period = { mode: 'c0', from: '', to: '' };
+/* ★営業曜日の絞り込みは、開いた日に当たる区分からはじめます
+     （ご指示・2026/11/13）。平日と金・祝前日では、売上の出方が違うためです。
+     ここでは空にしておき、読み込みのときに その日の区分を入れます。 */
+let onlyDay = '';
 const FILT_KEY = 'tsukemachi.filter';
 /* ★開いていたタブを覚えます（ご指示・2026/11/12）
      「更新した時に、勝手に記録に戻ってしまうので、
@@ -71,12 +75,18 @@ function handApply(){
 }
 
 function filtLoad(){
+  /* ★開いた日に当たる区分を、はじめから選んだ形にします
+       （ご指示・2026/11/13「開いた日に応じた曜日が、最初に選択されてる形に」）。 */
+  onlyDay = dayCls(today());
   try {
     const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}') || {};
     if (typeof o.place === 'string') onlyPlace = o.place;
     if (typeof o.cat === 'string') onlyCat = o.cat;
     if (typeof o.big === 'string') onlyBig = o.big;
-    if (typeof o.day === 'string') onlyDay = o.day;
+    /* ★営業日が変わったら、その日に当たる区分に戻します
+         （ご指示・2026/11/13「開いた日に応じた曜日が、最初に選択されてる形に」）。
+         同じ夜のうちは、押して選んだものを そのまま残します。 */
+    if (typeof o.day === 'string' && o.dayAt === today()) onlyDay = o.day;
     if (typeof o.mine === 'boolean') onlyMine = o.mine;
     if (o.period && typeof o.period.mode === 'string') {
       period = { mode: o.period.mode,
@@ -87,7 +97,8 @@ function filtLoad(){
 function filtSave(){
   try {
     localStorage.setItem(FILT_KEY,
-      JSON.stringify({ place: onlyPlace, cat: onlyCat, big: onlyBig, day: onlyDay, mine: onlyMine, period: period }));
+      JSON.stringify({ place: onlyPlace, cat: onlyCat, big: onlyBig, day: onlyDay,
+        dayAt: today(), mine: onlyMine, period: period }));
   } catch (e) {}
 }
 function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyBig = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
@@ -318,6 +329,36 @@ function placeOkList(){
   catch (e) { return []; }
 }
 function placeOk(p){ return placeOkList().indexOf(String(p || '')) !== -1; }
+/**
+ * この乗り場の場所が、もう分かっているか。
+ *
+ * ★まーく様のご指示（2026/11/13）
+ *   「この地図であっている、というタグがやはりよく分かりません。
+ *     場所入力時、自信を持ってピンを刺せるなら自動処理して欲しいですし、
+ *     不明であれば、ピンを刺してくださいと、各乗り場の初回だけ
+ *     誘導する形にしてください」
+ *
+ * ★「分かっている」とみなすのは、次のどれか。
+ *     ① すでに記録に出てくる名前（みんなの記録ぜんぶから見ます）
+ *     ② 一度でも地図で開いた名前
+ *   どちらかに当たれば、何も聞かずに そのまま記録します。
+ *   初めて出てきた名前のときだけ、1回だけ 地図へ誘います。
+ */
+function placeKnown(p){
+  const k = pkey(p);
+  if (!k) return true;                     // 空のときは、聞きません
+  if (placeOk(p)) return true;             // ② 一度 地図で開いた
+  for (let i = 0; i < records.length; i++) {
+    const q = records[i].place;
+    if (q && pkey(q) === k && records[i].id !== editId) return true;   // ① もう記録にある
+  }
+  return false;
+}
+/** 地図を開いた名前は、以後 聞きません */
+function placeOkAdd(p){
+  const k = String(p || '').trim(); if (!k || placeOk(k)) return;
+  try { localStorage.setItem(PLACE_OK_KEY, JSON.stringify(placeOkList().concat([k]))); } catch (e) {}
+}
 function placeOkToggle(p){
   const k = String(p || ''); if (!k) return;
   let L = placeOkList();
@@ -553,8 +594,17 @@ function render(){
     const d2 = new Set(rs.map(r => r.date)).size;
     $('#k2').textContent = d2 ? yen(sum2 / d2) : '—';
   }
-  const rt = rs.map(rate).filter(v => v > 0);
-  $('#k3').textContent = rt.length ? yen(rt.reduce((a,b) => a+b, 0) / rt.length) + '/h' : '—';
+  /* ★「時間単価」はやめました（ご指示・2026/11/13）
+       「大丸 ￥29,502/h という計算は明らかにおかしいのでやめてください。
+         場所によってコンスタントに周回できるわけが無いですし」
+       1本の金額を、待ち時間と乗車時間で1時間に伸ばした数でした。
+       その1本をずっと繰り返せる前提になっていて、現実と合いません。
+       代わりに「1本の平均金額」を出します。これは水増しのない数です。 */
+  {
+    const fr = rs.filter(hasFare);
+    $('#k3').textContent = fr.length
+      ? yen(fr.reduce((a,r) => a + (+r.fare || 0), 0) / fr.length) : '—';
+  }
   const hb = hourAgg().filter(h => h.n >= 3).sort((a,b) => b.avg - a.avg)[0];
   $('#k4').textContent = hb ? hb.h + '時台' : '—';
   /*
@@ -662,6 +712,13 @@ const iok  = t => { impMsg = t; impMsgBad = false; render(); };
 const emptyCard = t => `<div class="card"><div class="empty">${t}</div></div>`;
 
 /* ---- 記録する ---- */
+/*
+ * ★地図は、いつでも開けるようにしておきます。
+ *   「地図は合っている」という印のタグは、やめました
+ *   （ご指示・2026/11/13「やはりよく分かりません」）。
+ *   もう記録にある乗り場なら、何も聞かずに そのまま記録します。
+ *   初めて出てきた名前のときだけ、1行で地図へ誘います。
+ */
 function paneIn(){
   const f = form, pl = myPlaces();
   const chip = (v,cur,fld,suf='') => `<button class="chip ${String(cur)===String(v)?'on':''}" data-set="${fld}" data-val="${v}">${v}${suf}</button>`;
@@ -682,13 +739,15 @@ function paneIn(){
             <button class="chip on" data-psug="${esc(sug)}">${esc(sug)} にする</button>
             <button class="chip" data-pkeep="1">このままでよい</button></div>` : ''; })()}
         <div class="chips">${pl.map(p => `<button class="chip ${f.place===p?'on':''}" data-set="place" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>
-        <!-- ★場所を地図で確かめる（ご指示・2026/11/11） -->
         <div class="chips">
           <a class="chip ${f.place ? '' : 'off'}" id="f_map"
              href="${f.place ? esc(mapUrl(f.place)) : '#'}" target="_blank" rel="noopener">📍 地図</a>
-          <button class="chip ${f.place && placeOk(f.place) ? 'on' : ''}" id="f_mapok"
-            ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ 地図は合っている' : 'この地図で合っている'}</button>
+          <button class="chip rst" data-clr="place">リセット</button>
         </div>
+        ${f.place && !placeKnown(f.place) ? `<div class="pnew">
+          はじめての乗り場です。<b>📍 地図</b>を開いて、場所を確かめてください。
+          <a class="chip on" id="f_mappin" href="${esc(mapUrl(f.place))}"
+             target="_blank" rel="noopener">📍 地図でひらく</a></div>` : ''}
       </div>
       <div class="f w2"><label>発車時間<em class="req">＊必須</em></label>
         <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
@@ -698,13 +757,14 @@ function paneIn(){
           `<button class="chip ${depPart(f.dep).h===h?'on':''}" data-dh="${h}">${h}</button>`).join('')}</div>
         <div class="chips deps">${DEP_M.map(m =>
           `<button class="chip ${depPart(f.dep).m===m?'on':''}" data-dm="${m}">${m}</button>`).join('')}</div>
+        <div class="chips"><button class="chip rst" data-clr="dep">リセット</button></div>
         <div class="hint" id="depHint"></div></div>
       <div class="f w2"><label>乗車金額</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
         <!-- ★よく出る金額は、押すだけで入れられるようにします
                （ご指示・2026/11/12）。これより大きい額は、打ち込みます。 -->
         <div class="chips fares">${FARE_CHIPS.map(v => chip(v,f.fare,'fare')).join('')}</div>
-        <div class="hint" id="rateHint"></div></div>
+        <div class="chips"><button class="chip rst" data-clr="fare">リセット</button></div></div>
 
       <!-- ★欄の名前は、記録用スプレッドシートと同じ言い方にそろえます
              （ご指示・2026/11/12）。書き方がゆれると、同じものを
@@ -722,17 +782,20 @@ function paneIn(){
       <div class="f w2"><label>待ち時間</label>
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
         <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.wait,'wait')).join('')}</div>
-        <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.wait,'wait')).join('')}</div></div>
+        <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.wait,'wait')).join('')}</div>
+        <div class="chips"><button class="chip rst" data-clr="wait">リセット</button></div></div>
 
       <!-- ★記録用スプレッドシートの「種」と「他」に合わせた欄（2026/10/26 追加） -->
       <div class="f w2"><label>乗車種類</label>
         <input class="ja" id="f_method" list="mts" placeholder="GO" value="${esc(f.method || '')}">
         <datalist id="mts">${METHODS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
-        <div class="chips">${METHOD_CHIPS.map(m => chip(m, f.method, 'method')).join('')}</div>
+        <div class="chips">${METHOD_CHIPS.map(m => chip(m, f.method, 'method')).join('')}
+          <button class="chip rst" data-clr="method">リセット</button></div>
       </div>
       <div class="f w2"><label>そのほか</label>
         <input class="ja" id="f_note" placeholder="行先：新金岡駅（堺市）" value="${esc(f.note || '')}">
-        <div class="chips">${NOTE_CHIPS.map(n => chip(n, f.note, 'note')).join('')}</div></div>
+        <div class="chips">${NOTE_CHIPS.map(n => chip(n, f.note, 'note')).join('')}
+          <button class="chip rst" data-clr="note">リセット</button></div></div>
     </div>
     <div class="actions">
       <button class="btn" id="add">${editId ? '書きかえる' : '記録する'}</button>
@@ -932,9 +995,12 @@ function periodOptions(){
          '>自分で決める…</option>');
   return o.join('');
 }
-/* 営業曜日の区分（ご指示・2026/11/12）。すべて／平日／金・祝前日／土／日・祝 */
-const DAY_CHIPS = [{ k:'', n:'全曜日' }, { k:'d-wd', n:'平日' },
-  { k:'d-fri', n:'金・祝前日' }, { k:'d-sat', n:'土' }, { k:'d-sun', n:'日・祝' }];
+/* 営業曜日の区分（ご指示・2026/11/13）。
+ *   「平日を1番左にしてください」
+ *   「金・祝前日だけにして」… 金曜ひとつぶんの区分は、これ1つだけにします。
+ *   「全曜日」のタグはやめ、右端の【リセット】で すべてに戻します。 */
+const DAY_CHIPS = [{ k:'d-wd', n:'平日' }, { k:'d-fri', n:'金・祝前日' },
+  { k:'d-sat', n:'土' }, { k:'d-sun', n:'日・祝' }];
 
 /* 期間の切り替え（上の区切りの中に出します・ご指示・2026/11/12） */
 const periodBox = () => `
@@ -964,6 +1030,7 @@ const filterChips = (full) => `<div class="filt">
        平日と土日祝では、売上の出方がまるで違うためです。 -->
   <div class="chips daych">
     ${DAY_CHIPS.map(d => `<button class="chip ${onlyDay===d.k?'on':''}" data-day="${d.k}">${d.n}</button>`).join('')}
+    <button class="chip rst" data-day="">リセット</button>
   </div>
   <!-- ★いま何で絞っているかを、タグのすぐ下に出します。
        絞ったまま忘れると、数字を読み違えます。 -->
@@ -1154,7 +1221,8 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
   const w = lw + hrs.length * cw + 8, hgt = 34 + (pls.length + 1) * ch + 8;
   const cell = (p, h) => {
     const t = rows.filter(r => (p === null || r.place === p) && Math.floor(r.dep) === h);
-    return { n: t.length, avg: t.length ? t.map(rate).reduce((a,b)=>a+b,0)/t.length : 0,
+    return { n: t.length, avg: t.filter(hasFare).length
+        ? t.filter(hasFare).reduce((a,r)=>a+(+r.fare||0),0)/t.filter(hasFare).length : 0,
              fare: t.length ? t.reduce((a,r)=>a+(+r.fare||0),0)/t.length : 0 };
   };
   let s = `<svg viewBox="0 0 ${w} ${hgt}" width="${w}" height="${hgt}">`;
@@ -1162,7 +1230,7 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
   const row = (label, p, y) => {
     let o = `<text class="axis" x="${lw-8}" y="${y+ch/2+4}" text-anchor="end" style="font-family:var(--body);font-size:12px">${esc(label)}</text>`;
     hrs.forEach((h,i) => { const c = cell(p,h), x = lw+i*cw, t = c.n ? Math.min(1, c.avg/mx) : 0;
-      o += `<g data-tip="${esc(label)} ${h}時台&#10;件数 ${c.n}件&#10;平均 時間単価 ${c.n?yen(c.avg)+'/h':'—'}&#10;平均 金額 ${c.n?yen(c.fare):'—'}">
+      o += `<g data-tip="${esc(label)} ${h}時台&#10;件数 ${c.n}件&#10;1本の平均金額 ${c.n?yen(c.avg):'—'}&#10;平均 待ち ${c.n?Math.round(c.wait)+'分':'—'}">
         <rect x="${x+2}" y="${y+2}" width="${cw-4}" height="${ch-4}" rx="4" fill="${c.n?`rgba(240,163,59,${.10+t*.82})`:'rgba(255,255,255,.03)'}" stroke="#243350"/>
         ${c.n ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" fill="${t>.55?'#14100A':'#EDE6D8'}">${Math.round(c.avg/100)/10}k</text>
         <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="9" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${c.n}件</text>` : ''}
@@ -1179,7 +1247,7 @@ function paneHeat(noChips){
   const R = visible().filter(hasDep);
   const head = `<div class="card"><h2>表グラフ</h2>
     <p class="note">えらんだ期間の記録を、<b>時間帯 × 乗り場</b>で並べた表です。
-      数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割がよい枠です。
+      数字は1本の平均金額（k＝千円）。濃いマスほど、1本が大きい枠です。
       まずは3件以上そろったマスだけ信じてください。</p>
     ${noChips ? '' : filterChips(true)}</div>`;
   if (!R.length) return head + emptyCard('該当データがありません');
@@ -1194,7 +1262,8 @@ function paneHeat(noChips){
   R.forEach(r => { const p = r.place; if (p) (pl[p] = pl[p] || []).push(r); });
   Object.keys(pl).forEach(p => hrs.forEach(h => {
     const t = pl[p].filter(r => Math.floor(r.dep) === h);
-    if (t.length) mx = Math.max(mx, t.map(rate).reduce((a,b)=>a+b,0)/t.length);
+    const tf = t.filter(hasFare);
+    if (tf.length) mx = Math.max(mx, tf.reduce((a,r)=>a+(+r.fare||0),0)/tf.length);
   }));
 
   /* ★大カテゴリー（北・南・他）ごとに1枚（ご指示・2026/11/12）。
@@ -1226,7 +1295,7 @@ function paneHeat(noChips){
     `<div class="card"><div class="legend">
       <span><i style="background:rgba(240,163,59,.15)"></i>薄い＝単価が低い</span>
       <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span>
-      <span>一番濃いマス ${yen(mx)}/h</span></div></div>`;
+      <span>一番濃いマス ${yen(mx)}</span></div></div>`;
 }
 
 /* =============================================================
@@ -1319,7 +1388,7 @@ function hotGroup(rs){
   });
   return Object.keys(m).map(function (p){
     const a = m[p];
-    const rt = a.map(rate).filter(function (v){ return v > 0; });
+    const rt = a.filter(hasFare).map(function (r){ return +r.fare || 0; });
     return { p: p, n: a.length,
       avg:  rt.length ? rt.reduce(function (x,y){ return x+y; }, 0) / rt.length : 0,
       fare: a.reduce(function (x,r){ return x + (+r.fare || 0); }, 0) / a.length,
@@ -1843,7 +1912,7 @@ function paneHot(now){
       '" target="_blank" rel="noopener">' +
       '<small>' + (i + 1) + '位' + (i === 0 ? '　一番濃い' : '') + '</small>' +
       '<b>' + esc(x.p) + '</b>' +
-      '<div class="hv">' + yen(x.avg) + '/h</div>' +
+      '<div class="hv">' + yen(x.avg) + '</div>' +
       '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
       '<span class="mini">📍 地図</span></a>';
   }).join('');
@@ -1864,7 +1933,7 @@ function paneHot(now){
     hotPlanCard(plan, c.early) +
     '<div class="card"><h2>この時間に強い場所</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
-    '<th class="n">時間単価</th><th style="width:34%"></th><th class="n">待ち</th>' +
+    '<th class="n">1本の平均</th><th style="width:34%"></th><th class="n">待ち</th>' +
     '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
     hotNoteCard(got);
 }
@@ -1878,7 +1947,7 @@ function hotPlanCard(plan, early){
       const head = '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>';
       if (!s.top) return '<div class="pl">' + head + '<b class="thin">—</b><span>記録が足りない</span></div>';
       return '<a class="pl" href="' + hotMap(s.top.p) + '" target="_blank" rel="noopener">' + head +
-        '<b>' + esc(s.top.p) + '</b><span>' + yen(s.top.avg) + '/h・' + s.top.n + '件</span></a>';
+        '<b>' + esc(s.top.p) + '</b><span>' + yen(s.top.avg) + '・' + s.top.n + '件</span></a>';
     }).join('') + '</div></div></div>';
 }
 
@@ -1888,7 +1957,7 @@ function hotNoteCard(got){
     '<p class="note" style="margin:0">' +
     '・' + HOT_MIN_N + '件より少ない場所は出しません（1件は、たまたまの1本です）。<br>' +
     '・催しがある夜は、記録より催しが勝ちます。終演の15分前に着けるのが先です。<br>' +
-    '・数字は時間単価（待ち時間込み）です。金額の大きい場所と、割のいい場所は別です。' +
+    '・数字は1本の平均金額です。待ち時間は、すぐ横に分けて出しています。' +
     '</p></div>';
 }
 
@@ -2047,8 +2116,11 @@ function paneTl(){
     s += `<text class="axis" x="${L-10}" y="${y+26}" text-anchor="end" fill="${dcol(d)}">${fmtD(d)}</text>`;
     R.filter(r => r.date === d).forEach(r => {
       const a = sx(r.dep - (+r.wait||0)/60), b = sx(r.dep), c = sx(r.dep + (+r.ride||0)/60);
-      const rt = rate(r), t = Math.min(1, rt/12000);
-      const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}&#10;時間単価 ${rt?yen(rt)+'/h':'—'}`;
+      /* ★帯の明るさは「金額」で決めます（ご指示・2026/11/13）。
+             前は時間単価でしたが、短い待ち・短い乗車だと
+             とんでもない数になり、色まで嘘になっていました。 */
+      const t = Math.min(1, (hasFare(r) ? +r.fare : 0) / 8000);
+      const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}`;
       s += `<g data-tip="${tip}">
         <rect x="${a}" y="${y+18}" width="${Math.max(1,b-a)}" height="8" rx="4" fill="#3A4B6D"/>
         <rect x="${b}" y="${y+10}" width="${Math.max(3,c-b)}" height="22" rx="5" fill="rgba(240,163,59,${.25+t*.7})"/>
@@ -2059,7 +2131,7 @@ function paneTl(){
   s += '</svg>';
   return `<div class="card"><h2>横棒グラフ</h2>
     <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。
-      帯が明るいほど、時間単価が高くなっています。</p>
+      帯が明るいほど、1本の金額が大きくなっています。</p>
     ${filterChips(true)}<div class="snote">← 横にスクロールできます（横画面推奨）</div><div class="scroll fb">${s}</div>
     <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
 }
@@ -2096,7 +2168,7 @@ function paneSc(){
       s += `<polyline fill="none" stroke="${c}" stroke-width="1.3" opacity=".55" points="${pts.map(r => sx(r.dep)+','+sy(r.fare)).join(' ')}"/>`;
     pts.forEach(r => {
       const x = sx(r.dep), y = sy(r.fare);
-      s += `<g data-tip="${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;${showT(r.dep)}・${showYen(r.fare)}&#10;待ち${showMin(r.wait)}／乗車${showMin(r.ride)}&#10;時間単価 ${rate(r)?yen(rate(r))+'/h':'—'}">
+      s += `<g data-tip="${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;${showT(r.dep)}・${showYen(r.fare)}&#10;待ち${showMin(r.wait)}／乗車${showMin(r.ride)}">
         <circle cx="${x}" cy="${y}" r="4.5" fill="${c}"/><circle cx="${x}" cy="${y}" r="11" fill="transparent"/></g>`;
       if (scOpt.label) {
         const txt = yen(r.fare), w = txt.length*6.2;
@@ -2124,10 +2196,12 @@ function paneSc(){
      件数（n）だけは、不明もふくめた本数です。 */
 function agg(rs){
   const F = rs.filter(hasFare), W = rs.filter(r => !isUnk(r.wait));
-  const R = rs.map(rate).filter(x => x > 0);
   const sum = F.reduce((a,r)=>a+r.fare,0);
+  /* ★avg は「1本の平均金額」です（ご指示・2026/11/13）。
+       前は時間単価（1時間に伸ばした数）でしたが、
+       同じ場所を1時間ずっと回れる前提になっていて、嘘になりました。 */
   return { n: rs.length,
-    avg:  R.length ? R.reduce((a,b)=>a+b,0)/R.length : 0,
+    avg:  F.length ? sum/F.length : 0,
     fare: F.length ? sum/F.length : 0,
     sum:  sum,
     wait: W.length ? W.reduce((a,r)=>a+(+r.wait||0),0)/W.length : 0 }; }
@@ -2137,12 +2211,12 @@ function placeAgg(){ const m = {}; visible().forEach(r => { const p = r.place ||
   return Object.entries(m).map(([p,rs]) => ({ p, ...agg(rs) })).sort((a,b) => b.avg - a.avg); }
 function bars(rows, label, fmt){
   const mx = Math.max(...rows.map(r => r.avg), 1);
-  return `<div class="scroll"><table><thead><tr><th>${label}</th><th class="n">件</th><th class="n">平均 時間単価</th>
-    <th style="width:34%"></th><th class="n">平均 金額</th><th class="n">平均 待ち</th><th class="n">売上</th></tr></thead><tbody>
+  return `<div class="scroll"><table><thead><tr><th>${label}</th><th class="n">件</th><th class="n">1本の平均</th>
+    <th style="width:34%"></th><th class="n">平均 待ち</th><th class="n">売上</th></tr></thead><tbody>
     ${rows.map(r => `<tr><td>${esc(fmt(r))}</td><td class="n">${r.n}</td>
       <td class="n" style="color:var(--meter)">${yen(r.avg)}</td>
       <td><div class="bar" style="width:${Math.max(3, r.avg/mx*100)}%;opacity:${r.n>=3?1:.4}"></div></td>
-      <td class="n">${yen(r.fare)}</td><td class="n">${Math.round(r.wait)}分</td>
+      <td class="n">${Math.round(r.wait)}分</td>
       <td class="n">${yen(r.sum)}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
@@ -2171,10 +2245,11 @@ function sumIn(from, to){
     (!from || r.date >= from) && (!to || r.date <= to));
   const f = rs.filter(hasFare);
   const days = new Set(rs.map(r => r.date)).size;
-  const rts = rs.map(rate).filter(v => v > 0);
+
   return { n: rs.length, days: days,
            sum: f.reduce((a,r) => a + (+r.fare || 0), 0),
-           rate: rts.length ? rts.reduce((a,b)=>a+b,0) / rts.length : 0 };
+           /* ★1本の平均金額。時間単価はやめました（ご指示・2026/11/13） */
+           avg: f.length ? f.reduce((a,r) => a + (+r.fare || 0), 0) / f.length : 0 };
 }
 /** 1つ前の、同じ長さの期間 */
 function prevRange(){
@@ -2223,7 +2298,8 @@ function compareCard(){
     row('売上の合計', now.sum, bef.sum, yen) +
     row('1日当たり', now.days ? now.sum/now.days : 0,
                      bef.days ? bef.sum/bef.days : 0, yen) +
-    row('平均 時間単価', now.rate, bef.rate, v => yen(v) + '/h') +
+    row('1本の平均', now.avg, bef.avg, yen) +
+
     '<div class="cmprow"><div class="cl">記録の数</div>' +
     '<div class="cn">' + now.n + '件<i>' + pn + 'は ' + bef.n + '件</i></div>' +
     '<div class="cd"><span class="cmp ' + (nd > 0 ? 'up' : (nd < 0 ? 'down' : '')) + '">' +
@@ -2685,11 +2761,11 @@ function importPreview(){
     </div>
     ${impOk.length ? `<div class="scroll"><table><thead><tr>
       <th>行</th><th>日付</th><th>場所</th><th>乗せた</th><th class="n">待ち</th><th class="n">乗車</th>
-      <th class="n">金額</th><th class="n">時間単価</th></tr></thead><tbody>
+      <th class="n">金額</th></tr></thead><tbody>
       ${impOk.slice(0,25).map(r => `<tr><td style="color:var(--muted)">${r._ln}</td>
         <td>${fmtD(r.work_date)}</td><td>${esc(r.place)}</td><td class="n">${fmtT(r.dep)}</td>
         <td class="n">${r.wait_min}分</td><td class="n">${r.ride_min}分</td><td class="n">${yen(r.fare)}</td>
-        <td class="n" style="color:var(--meter)">${yen(rate({wait:r.wait_min,ride:r.ride_min,fare:r.fare}))}</td></tr>`).join('')}
+        </tr>`).join('')}
     </tbody></table></div>${impOk.length > 25 ? `<p class="note" style="margin:8px 0 0">ほか ${impOk.length-25} 件（省略）</p>` : ''}` : ''}
 
     ${impNg.length ? `<div class="warn" style="margin-top:14px">読めなかった行。直して貼り直すか、このまま進めれば飛ばされる。<br>
@@ -2798,7 +2874,8 @@ function wire(){
     const d = parseT(dep ? dep.value : '');
     if ($('#depHint')) $('#depHint').textContent = d !== null ? fmtT(d) + ' に出発' : (dep && dep.value ? '読めない時刻' : '');
     const w = +(($('#f_wait')||{}).value) || 0, r = 0, f = +(($('#f_fare')||{}).value) || 0;
-    if ($('#rateHint')) $('#rateHint').textContent = (w+r > 0 && f) ? '時間単価 ' + yen(f/(w+r)*60) + '/h' : '';
+    /* ★「時間単価」の案内はやめました（ご指示・2026/11/13）。
+         1本を1時間に伸ばした数で、現実と合わないためです。 */
   };
   ['f_dep','f_wait','f_fare'].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener('input', upd); });
   /* ★乗り場の名前から手を離したところで、似た名前がないかを見ます
@@ -2914,13 +2991,28 @@ function wire(){
     if (d && d.list && d.list.length) evPopup(d);
     else bad('きょうのイベントは、まだ届いていません');
   };
-  /* 「この地図で合っている」… 同じ名前なら、同じ場所として扱う印 */
-  if ($('#f_mapok')) $('#f_mapok').onclick = () => {
-    grab();
-    if (!form.place) { bad('先に、つけ待ち場所を入れてください'); return; }
-    placeOkToggle(form.place);
-    render();
-  };
+  /* ★地図を開いたら、その乗り場は「分かった」ものとして、
+       次からは聞きません（ご指示・2026/11/13）。 */
+  ['#f_map', '#f_mappin'].forEach(function (sel) {
+    const a = $(sel); if (!a) return;
+    a.addEventListener('click', function () {
+      grab(); placeOkAdd(form.place);
+      /* 地図は別のタブで開くので、こちらの画面は作り直して、
+         誘いの1行を消します（2回目からは出しません）。 */
+      setTimeout(function (){ msg = ''; render(); }, 0);
+    });
+  });
+  /* ★えらんだものを、その欄だけ 空に戻します
+       （ご指示・2026/11/13「各選択項目で、リセットボタンも追加してください」）。 */
+  document.querySelectorAll('[data-clr]').forEach(function (b) {
+    b.onclick = function () {
+      grab();
+      const k = b.dataset.clr;
+      form[k] = '';
+      if (k === 'dep') { form.dep = ''; }
+      msg = ''; render();
+    };
+  });
   if ($('#fb'))     $('#fb').addEventListener('input', e => { fbText = e.target.value; });
   if ($('#fbSend')) $('#fbSend').onclick = fbSend;
   if ($('#add'))    $('#add').onclick = addRec;
@@ -3052,7 +3144,7 @@ async function addRec(){
   if (error) { btn.disabled = false; return bad(jaError(error)); }
   const r = { wait: row.wait_min, ride: row.ride_min, fare: row.fare };
   msg = editId ? '書きかえた'
-    : `記録した（時間単価 ${rate(r) ? yen(rate(r)) + '/h' : '不明の欄があるので出せません'}）`;
+    : '記録した';
   if (fellBack) msg += '　※空の欄は、いまは 0 で入りました（台帳のひと手間がまだです）';
   msgBad = false; editId = null;
   form = { date: row.work_date, place: row.place, dep:'', wait:'', ride:'', fare:'', method:'', note:'' };
@@ -3080,10 +3172,9 @@ async function delRec(id){
 /* ---- CSV ---- */
 function csv(){
   const q = v => `"${String(v == null ? '' : v).replace(/"/g,'""')}"`;
-  return ['日付,場所,乗せた時刻,待ち時間(分),乗車時間(分),金額,時間単価,種類,他,記録者',
+  return ['日付,場所,乗せた時刻,待ち時間(分),乗車時間(分),金額,種類,他,記録者',
     ...sorted().map(r => [r.date, q(showTxt(r.place)), showT(r.dep),
       showMin(r.wait), showMin(r.ride), isUnk(r.fare) ? UNK : r.fare,
-      rate(r) ? Math.round(rate(r)) : UNK,
       q(r.method), q(r.note), q(r.who)].join(','))].join('\n');
 }
 function dl(text){

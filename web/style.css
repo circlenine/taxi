@@ -777,6 +777,16 @@ header > h1, .login .head > h1{white-space:nowrap}
 .filt2 input[type=date]{width:100%;font-size:13px;padding:8px 10px;color:#FFFFFF}
 /* 「ぜんぶに戻す」。絞っているときだけ出ます */
 .chip.warn{border-color:var(--andon);color:#FFFFFF;background:rgba(200,35,43,.22)}
+/* ★各選択項目の【リセット】（ご指示・2026/11/13）。
+     えらんだものを、その欄だけ 空に戻します。
+     押しまちがえないよう、ふつうのタグより ひとまわり小さく、枠は点線。 */
+.chip.rst{border-style:dashed;color:#FFFFFF;background:transparent;font-size:12px;padding:5px 11px}
+/* ★はじめての乗り場だけ出す1行（ご指示・2026/11/13）。
+     2回目からは出しません。 */
+.pnew{margin:6px 0 2px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(255,255,255,.05);color:#FFFFFF;font-size:13px;line-height:1.7}
+.pnew b{font-weight:700}
+.pnew .chip{margin-left:6px}
 /* いま何で絞っているか。4つの数のすぐ下にも出ます */
 .fnow{color:var(--kusha);font-weight:700}
 /* この期間のまとめ */
