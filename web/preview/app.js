@@ -2424,7 +2424,51 @@ function paneRatio(){
     }
   }
 
-  /* ④ ぜんぶの内訳 */
+  /* ④ 乗り場べつ アツい時間帯（ご指示・2026/11/12）
+       「乗り場別にも、アツいスポットを出せるようにしてください」
+       ★時間帯べつの逆です。「この乗り場は、何時台が濃いか」を出します。
+       ★ここも、乗り場ごとでは件数が少ないので 前後1時間をふくめます。 */
+  if (D.length) {
+    const pm3 = {};
+    D.forEach(function (r){ const p = r.place; if (p) (pm3[p] = pm3[p] || []).push(r); });
+    const plist = Object.keys(pm3)
+      .map(p => ({ p: p, rs: pm3[p] }))
+      .filter(x => x.rs.length >= HOT_MIN_N)
+      .sort((a2, b2) => b2.rs.length - a2.rs.length)
+      .slice(0, 12);
+    let pb = '';
+    plist.forEach(function (x){
+      const hset = [...new Set(x.rs.map(r => Math.floor(r.dep)))].sort((a2, b2) => a2 - b2);
+      const rows = hset.map(function (h){
+        const t = x.rs.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
+        const o = bandCount(t);
+        return { h: h, o: o, L: bandPct(o, 'L'), avg: bandAvg(t) };
+      }).filter(r2 => r2.o.n >= HOT_MIN_N)
+        .sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg).slice(0, 3);
+      const o2 = bandCount(x.rs);
+      pb += '<div class="hblk"><div class="hbh">' +
+        '<b class="pnm">' + esc(x.p) + '</b>' +
+        '<span>' + esc(recCat(x.rs[0])) + '・ロング ' + bandPct(o2, 'L') + '%・' + o2.n + '件</span></div>' +
+        (rows.length
+          ? '<div class="htags">' + rows.map(function (r2, i){
+              return '<a class="htag' + (i === 0 ? ' top' : '') + '" href="' + mapUrl(x.p) +
+                '" target="_blank" rel="noopener">' +
+                '<b>' + r2.h + '時台</b>' +
+                '<span class="hv">ロング ' + r2.L + '%</span>' +
+                '<span class="hm">' + yen(r2.avg) + '・' + r2.o.n + '件</span></a>';
+            }).join('') + '</div>' +
+            '<div class="hbn">前後1時間をふくめて数えています。</div>'
+          : '<div class="hbn">まだ3件そろった時間帯がありません。</div>') +
+        '</div>';
+    });
+    if (pb) {
+      out += '<div class="card"><h2>乗り場べつ アツい時間帯</h2>' +
+        '<p class="note">その乗り場で、ロングが出やすかった時間帯の上位3つです。' +
+        '件数の多い乗り場から並べています。押すと地図が開きます。</p>' + pb + '</div>';
+    }
+  }
+
+  /* ⑤ ぜんぶの内訳 */
   const tiles = BANDS.map(function (bd){
     return '<div class="kpi"><small>' + bd.n + '<i>' + bd.d + '</i></small>' +
       '<b style="color:' + bd.c + '">' + bandPct(all, bd.k) + '%</b>' +
@@ -2435,7 +2479,7 @@ function paneRatio(){
     '<p class="note">' + all.n + '件・平均 ' + yen(bandAvg(R)) + '。' +
     (all.unk ? '金額が不明な ' + all.unk + '件は、外しています。' : '') + '</p></div>';
 
-  /* ⑤ エリアごと（北・南・他 → 中カテゴリー → 乗り場） */
+  /* ⑥ エリアごと（北・南・他 → 中カテゴリー → 乗り場） */
   let pbody = '';
   BIG_CATS.forEach(function (bg){
     const rows = R.filter(r => recBig(r) === bg.k);
