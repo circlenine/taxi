@@ -160,7 +160,7 @@ console.log('■ 記録がまったく無いとき');
   ok(html.indexOf('たまたまの1本') !== -1, '1件を平均と呼ばない理由も書く');
 }
 
-console.log('■ このあと3時間の見当');
+console.log('■ 翌4時までの見当（ご指示・2026/11/12）');
 {
   set([
     rec('2026-10-27', 25.0, 'A', 9000), rec('2026-10-20', 25.0, 'A', 9000), rec('2026-10-13', 25.0, 'A', 9000),
@@ -168,7 +168,11 @@ console.log('■ このあと3時間の見当');
   ]);
   const c = H.hotNow(new Date(2026, 9, 28, 1, 0));   // 25時
   const plan = H.hotPlan(c);
-  ok(plan.length === 3, '3つ返す');
+  /* ★25時から翌4時（28時）まで。3時間だけでは、夜のうしろ半分が見えません */
+  ok(plan.length === 4, '25時から4時台まで、4つ返す', plan.length);
+  ok(plan[plan.length - 1].h === 4, '最後は4時台', plan[plan.length - 1].h);
+  const c18 = { h: 18, date: '2026-10-28', kind: '平日' };
+  ok(H.hotPlan(c18).length === 11, '18時からなら、18〜4時の11こ', H.hotPlan(c18).length);
   ok(plan[0].top && plan[0].top.p === 'A', 'いまは A', plan[0].top && plan[0].top.p);
   ok(plan[2].top && plan[2].top.p === 'D', '2時間後は D', plan[2].top && plan[2].top.p);
   ok(plan[1].h === 2, '26時は「2時台」と出す', plan[1].h);
@@ -236,8 +240,9 @@ console.log('■ 地図は「さがす」形（番地まで当てない）');
 
 console.log('■ 画面への組み込み（押すところ・描くところ）');
 {
-  ok(/data-t="hot"/.test(htmlSrc), 'index.html に「いまアツい」の押しどころがある');
-  ok(/今アツい/.test(htmlSrc), '押しどころの名前が日本語');
+  ok(/data-t="hot"/.test(htmlSrc), 'index.html に「今の狙い目」の押しどころがある');
+  ok(/data-t="hot"[^>]*>狙い目</.test(htmlSrc), '押しどころの名前は「狙い目」');
+  ok(/<h2>今の狙い目<\/h2>/.test(appSrc), '画面の題は「今の狙い目」');
   ok(/hot\s*:\s*paneHot/.test(appSrc), 'app.js が hot のときに paneHot を描く');
   ok(/loadWx\(\)/.test(appSrc), '起動のときに天気を読む');
   ok(/setInterval\(/.test(appSrc), '時刻が変わったら描き直す');
@@ -246,9 +251,110 @@ console.log('■ 画面への組み込み（押すところ・描くところ）
 console.log('■ 細い画面でも横スクロールしない（まーく様に一度ご迷惑をかけた所）');
 {
   ok(/\.hot\{[^}]*grid-template-columns/.test(cssSrc), '3つ並べる形がある');
-  ok(/@media\(max-width:640px\)\{\.hot,\.plan\{grid-template-columns:1fr\}\}/.test(cssSrc),
-     'スマホでは縦1列にする', cssSrc.indexOf('.hot,.plan'));
+  ok(/@media\(max-width:640px\)\{\.hot\{grid-template-columns:1fr\}\}/.test(cssSrc),
+     'スマホでは、1位〜3位は縦1列にする');
+  /* ★翌4時までの予想だけは、横に流して見ます（ご指示・2026/11/12） */
+  ok(/\.plan\{display:flex/.test(cssSrc), '翌4時までの予想は、横に流す形');
   ok(!/\.hotc\{[^}]*width:\d+px/.test(cssSrc), 'カードの幅をピクセルで決め打ちしない');
+}
+
+
+
+console.log('■ いちばん上の天気（ご指示・2026/11/12）');
+{
+  /* Open-Meteo（無料・鍵なし）の形をまねて渡します */
+  const j = {
+    current: { temperature_2m: 17.4, weather_code: 3 },
+    daily: { temperature_2m_max: [21.2], temperature_2m_min: [11.8] },
+    hourly: {
+      time: ['2026-10-28T16:00','2026-10-28T17:00','2026-10-28T18:00','2026-10-29T03:00','2026-10-29T05:00'],
+      temperature_2m: [19, 18.6, 17.9, 13.2, 12.9],
+      precipitation_probability: [0, 10, 70, 20, 0],
+      weather_code: [3, 3, 61, 2, 0]
+    }
+  };
+  const o = H.omRead(j, new Date(2026, 9, 28, 17, 20));
+  ok(o.ok === true, '読める');
+  ok(Math.round(o.temp) === 17, 'いまの気温を出す', o.temp);
+  ok(o.icon === '☁️' && o.name === 'くもり', '天気の記号と呼び名', o.icon + o.name);
+  ok(Math.round(o.max) === 21 && Math.round(o.min) === 12, '本日の最高・最低', [o.max, o.min]);
+  ok(o.hours.length === 3, '17時・18時・翌3時だけ拾う（16時と翌5時は外）', o.hours.map(x => x.h));
+  ok(o.hours[0].now === true, 'いまの時間に印が付く');
+  ok(o.hours[1].pop === 70 && o.hours[1].icon === '🌧', '1時間ごとの雨と記号', o.hours[1]);
+  ok(H.omRead({}, new Date()).ok === false, '形がちがっても落ちない');
+  ok(H.tmp(null) === '—' && H.tmp(0) === '0°', '不明と0度は、別もの', [H.tmp(null), H.tmp(0)]);
+
+  /* 画面に出るか */
+  ctx.OM = o;
+  vm.runInContext('hotOm = OM;', ctx);
+  set([
+    rec('2026-10-27', 18.2, 'E', 9000), rec('2026-10-20', 18.0, 'E', 9000), rec('2026-10-13', 17.9, 'E', 9000)
+  ]);
+  const html = H.paneHot(new Date(2026, 9, 28, 17, 20));
+  ok(html.indexOf('wxnow') !== -1, '★★★いちばん上に、いまの天気が出る');
+  ok(html.indexOf('最高') !== -1 && html.indexOf('最低') !== -1, '★★★最高・最低の気温が出る');
+  ok(html.indexOf('wxhs') !== -1, '★★★1時間ごとの一覧が出る');
+  ok(html.indexOf('雨雲レーダー') !== -1, '雨雲レーダーの押しどころは残っている');
+  vm.runInContext('hotOm = { ok:false };', ctx);
+  const h2 = H.paneHot(new Date(2026, 9, 28, 17, 20));
+  ok(h2.indexOf('wxnow') === -1, '読めない日は、気象庁ぶんに落ちる（止まらない）');
+}
+
+console.log('■ Open-Meteo が読めない日でも、気温は出る（止まらない形）');
+{
+  const j = [{ timeSeries: [
+    { timeDefines: ['2026-11-12T17:00:00+09:00'],
+      areas: [{ area: { name: '大阪府' }, weathers: ['くもり　のち　晴れ'] }] },
+    { timeDefines: ['2026-11-12T18:00:00+09:00'],
+      areas: [{ area: { name: '大阪府' }, pops: ['0'] }] },
+    { timeDefines: ['2026-11-13T00:00:00+09:00', '2026-11-13T09:00:00+09:00'],
+      areas: [{ area: { name: '大阪' }, temps: ['13', '22'] }] }
+  ] }];
+  const w = H.wxRead(j, new Date(2026, 10, 12, 17, 31));
+  ok(w.tmax === 22 && w.tmin === 13, '最高・最低を取る', [w.tmax, w.tmin]);
+  ok(w.tday === 'あす', '★★★その日の分が終わっていれば「あす」と書く（嘘をつかない）', w.tday);
+  ok(H.jpIcon('くもり のち 晴れ') === '⛅', 'くもり時々晴れの記号', H.jpIcon('くもり のち 晴れ'));
+  ok(H.jpIcon('雨') === '🌧' && H.jpIcon('晴れ') === '☀️', '雨と晴れの記号');
+
+  ctx.WX = w;
+  vm.runInContext('hotWx = WX; hotOm = { ok:false }; hotAmd = { ok:true, temp:17.7 };', ctx);
+  set([
+    rec('2026-11-11', 18.2, 'E', 9000), rec('2026-11-04', 18.0, 'E', 9000), rec('2026-10-28', 17.9, 'E', 9000)
+  ]);
+  const html = H.paneHot(new Date(2026, 10, 12, 17, 31));
+  ok(html.indexOf('wxnow') !== -1, '★★★Open-Meteo が×でも、天気の欄は出る');
+  ok(html.indexOf('18°') !== -1, '★★★いまの気温（アメダス）が出る');
+  ok(html.indexOf('22°') !== -1 && html.indexOf('13°') !== -1, '★★★最高・最低も出る');
+  ok(html.indexOf('あす 最高') !== -1, '　「本日」と偽らない');
+  vm.runInContext('hotWx = { ok:false }; hotOm = { ok:false }; hotAmd = { ok:false };', ctx);
+}
+
+console.log('■ カードを押すと地図が開く（ご指示・2026/11/12）');
+{
+  vm.runInContext('hotOm = { ok:false };', ctx);
+  set([
+    rec('2026-10-27', 25.0, 'A', 9000), rec('2026-10-20', 25.2, 'A', 9000), rec('2026-10-13', 24.9, 'A', 9000)
+  ]);
+  const html = H.paneHot(new Date(2026, 9, 28, 1, 0));
+  ok(/<a class="hotc[^"]*" href="https:\/\/www\.google\.com\/maps/.test(html),
+     '★★★1位〜3位のカードごと、地図につながっている');
+  ok(/<a class="pl" href="https:\/\/www\.google\.com\/maps/.test(html) ||
+     html.indexOf('記録が足りない') !== -1, '翌4時までの予想も、押せば地図が開く');
+}
+
+console.log('■ 近ごろの記録を先に見る（ご指示・2026/11/12）');
+{
+  const now = new Date(2026, 9, 28, 1, 0);
+  set([
+    rec('2026-10-27', 25.0, 'A', 9000), rec('2026-10-20', 25.0, 'A', 9000), rec('2026-10-13', 25.0, 'A', 9000),
+    rec('2025-10-05', 25.0, 'Z', 9000), rec('2025-10-12', 25.0, 'Z', 9000),
+    rec('2026-01-05', 25.0, 'Y', 9000)
+  ]);
+  const sel = H.hotSeason(now).map(r => r.place);
+  ok(sel.indexOf('A') !== -1, 'この1か月の記録は入る');
+  ok(sel.indexOf('Z') !== -1, '去年の同じ月の記録も入る');
+  ok(sel.indexOf('Y') === -1, '去年でも今月でもない記録は入らない');
+  ok(H.paneHot(now).indexOf('この1か月＋去年の同じ月') !== -1, '★★★何を見たかを画面に書く');
 }
 
 console.log(fail ? `\n☓ ${fail}件 こけました` : '\n✓ ぜんぶ通りました');

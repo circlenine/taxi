@@ -975,7 +975,7 @@ function paneHeat(noChips){
   s += row('すべて', null, 34+pls.length*ch+2) + '</svg>';
   return `<div class="card"><h2>つけ待ち一覧</h2>
     <p class="note"><b>全期間の記録を、時間帯・乗り場ごとに並べた表</b>です。
-      いつでも同じものが出ます（「いまアツい」は、いまの時刻だけの話）。<br>
+      いつでも同じものが出ます（「今の狙い目」は、いまの時刻だけの話）。<br>
       数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
     ${noChips ? '' : filterChips()}<div class="scroll">${s}</div>
     <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>薄い＝単価が低い</span>
@@ -1119,15 +1119,44 @@ function hotBest(c, rows){
   return last;
 }
 
-/** いまから3時間ぶん、1時間ごとの「一番強かった場所」 */
+/** 夜の終わり（翌4時）。記録と同じ数え方です */
+const HOT_TO = 28;
+
+/**
+ * いまから「翌4時」までの、1時間ごとの一番強かった場所。
+ * ★3時間だけでは、夜のうしろ半分が見えません（ご指示・2026/11/12）。
+ *   横に流して見る形にして、4時台まで出します。
+ */
 function hotPlan(c, rows){
   const out = [];
-  for (let k = 0; k < 3; k++) {
-    const cc = { h: c.h + k, date: c.date, kind: c.kind };
+  const s = Math.floor(c.h);
+  const n = Math.max(1, HOT_TO - s + 1);
+  for (let k = 0; k < n; k++) {
+    const cc = { h: s + k, date: c.date, kind: c.kind };
     const g = hotPick(cc, HOT_WIN, true, rows).filter(function (x){ return x.n >= HOT_MIN_N; });
-    out.push({ h: Math.floor((c.h + k) % 24), top: g[0] || null });
+    out.push({ h: Math.floor((s + k) % 24), top: g[0] || null });
   }
   return out;
+}
+
+/**
+ * 近ごろの記録だけを拾う（ご指示・2026/11/12）。
+ *   ・この1か月（45日前まで）
+ *   ・去年の同じ月
+ * ★月が変われば、人の出方も変わります。
+ *   1年ぶんを平らにならすと、いまの夜には当てはまりません。
+ * ★足りなければ、呼んだ側で全期間に広げます（広げたことは画面に書きます）。
+ */
+function hotSeason(now){
+  const d = now || new Date();
+  const a0 = d.getTime() - 45 * 864e5;
+  const ly = (d.getFullYear() - 1) + '-' + pad(d.getMonth() + 1);
+  return visible().filter(function (r){
+    const v = String(r.date || '');
+    if (v.indexOf(ly) === 0) return true;
+    const t = new Date(+v.slice(0, 4), +v.slice(5, 7) - 1, +v.slice(8, 10)).getTime();
+    return !isNaN(t) && t >= a0;
+  });
 }
 
 /**
@@ -1195,8 +1224,36 @@ function wxRead(j, now){
     }
     const worse = next.filter(function (x) { return x.pop >= 50; })[0] || null;
     const rain = /雨|雷|雪|みぞれ/.test(text) || (pop !== null && pop >= 50);
+    /*
+     * ★最高・最低の気温も取ります（ご指示・2026/11/12）。
+     *   気象庁は、その日の分が終わると out してしまい、
+     *   夕方には「あす」の分しか残りません。
+     *   だから「本日」か「あす」かを、必ず一緒に持ち歩きます。
+     *   黙って あすの気温を「本日」として出すのは、嘘になります。
+     */
+    let tmax = null, tmin = null, tday = '';
+    const tsx = j[0].timeSeries[2];
+    const ta  = tsx && tsx.areas && tsx.areas[0];
+    if (ta && ta.temps && tsx.timeDefines) {
+      const d0 = now || new Date();
+      const td = d0.getFullYear() + '-' + pad(d0.getMonth() + 1) + '-' + pad(d0.getDate());
+      const vs = [];
+      for (let i = 0; i < tsx.timeDefines.length; i++) {
+        const v = +ta.temps[i];
+        if (isNaN(v) || ta.temps[i] === '') continue;
+        vs.push({ day: String(tsx.timeDefines[i]).slice(0, 10), v: v });
+      }
+      let pick = vs.filter(function (x){ return x.day === td; });
+      tday = '本日';
+      if (!pick.length) { pick = vs; tday = 'あす'; }
+      if (pick.length) {
+        const nums = pick.map(function (x){ return x.v; });
+        tmax = Math.max.apply(null, nums);
+        tmin = (nums.length > 1) ? Math.min.apply(null, nums) : null;
+      }
+    }
     return { ok: true, text: text, pop: pop, rain: rain, area: area, span: span,
-             next: next, worse: worse };
+             next: next, worse: worse, tmax: tmax, tmin: tmin, tday: tday };
   } catch (e) {
     return { ok: false };
   }
@@ -1225,97 +1282,227 @@ function hotMap(place){
 }
 
 /* ---- 画面 ---- */
+
+/** 天気の記号と呼び名（Open-Meteo の番号から） */
+function wcIcon(c){
+  const n = +c;
+  if (n === 0) return { e: '☀️', n: '快晴' };
+  if (n === 1) return { e: '🌤', n: '晴れ' };
+  if (n === 2) return { e: '⛅', n: '晴れ時々くもり' };
+  if (n === 3) return { e: '☁️', n: 'くもり' };
+  if (n === 45 || n === 48) return { e: '🌫', n: '霧' };
+  if (n >= 51 && n <= 57) return { e: '🌦', n: '霧雨' };
+  if (n >= 61 && n <= 67) return { e: '🌧', n: '雨' };
+  if (n >= 71 && n <= 77) return { e: '🌨', n: '雪' };
+  if (n >= 80 && n <= 82) return { e: '🌦', n: 'にわか雨' };
+  if (n >= 85 && n <= 86) return { e: '🌨', n: 'にわか雪' };
+  if (n >= 95) return { e: '⛈', n: '雷雨' };
+  return { e: '🌡', n: '不明' };
+}
+
+/** 気象庁の日本語の天気から、記号をえらぶ（Open-Meteo が読めないとき用） */
+function jpIcon(t){
+  const v = String(t || '');
+  if (/雷/.test(v)) return '⛈';
+  if (/雪|みぞれ/.test(v)) return '🌨';
+  if (/雨/.test(v)) return '🌧';
+  if (/くもり|曇/.test(v)) return /晴/.test(v) ? '⛅' : '☁️';
+  if (/晴/.test(v)) return '☀️';
+  return '🌡';
+}
+
+/** 気温の字。取れないときは「—」（0度と不明は、別ものです） */
+function tmp(v){ return (v === null || v === undefined || isNaN(v)) ? '—' : (Math.round(v) + '°'); }
+
+/**
+ * 1時間ごとの天気を読む（Open-Meteo・無料・鍵なし・課金の設定なし）。
+ * ★気象庁は6時間ごとまでしか出していないので、
+ *   乗務の時間を1時間ごとに見るには足りませんでした。
+ * ★読めなくても止まりません。気象庁の予報に落とします。
+ */
+function omRead(j, now){
+  try {
+    const d  = now || new Date();
+    const hy = j.hourly || {};
+    const ts = hy.time || [];
+    /* ★中身が無いときは「読めなかった」と返します。
+         空っぽのまま出すと、気象庁ぶんにも落ちません。 */
+    if (!ts.length) throw new Error('中身なし');
+    const nowH = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime();
+    /* 営業日（朝6時までは前の日の夜） */
+    const biz  = (d.getHours() < 6) ? new Date(d.getTime() - 864e5) : d;
+    const from = Math.max(nowH, new Date(biz.getFullYear(), biz.getMonth(), biz.getDate(), 17).getTime());
+    const end  = new Date(biz.getFullYear(), biz.getMonth(), biz.getDate() + 1, 4).getTime();
+    const hours = [];
+    for (let i = 0; i < ts.length; i++) {
+      const q = String(ts[i]).split(/[-T:]/).map(Number);
+      const t = new Date(q[0], q[1] - 1, q[2], q[3]).getTime();
+      if (t < from || t > end) continue;
+      const ic = wcIcon(hy.weather_code ? hy.weather_code[i] : 0);
+      const pp = hy.precipitation_probability ? hy.precipitation_probability[i] : null;
+      hours.push({ h: q[3], icon: ic.e, name: ic.n,
+                   temp: hy.temperature_2m ? hy.temperature_2m[i] : null,
+                   pop: (pp === null || pp === undefined) ? null : Math.round(pp),
+                   now: t === nowH });
+      if (hours.length >= 14) break;
+    }
+    const cur = j.current || {};
+    const ci  = wcIcon(cur.weather_code);
+    const dl  = j.daily || {};
+    const h0  = hours[0] || null;
+    return { ok: true, icon: ci.e, name: ci.n, temp: cur.temperature_2m,
+             max: (dl.temperature_2m_max || [])[0], min: (dl.temperature_2m_min || [])[0],
+             pop: h0 ? h0.pop : null, span: h0 ? (h0.h + '時台') : '',
+             rain: /雨|雪|雷/.test(ci.n) || (h0 && h0.pop !== null && h0.pop >= 50),
+             hours: hours };
+  } catch (e) { return { ok: false }; }
+}
+
+/**
+ * いまの天気（一番上。天気アプリと同じ並べ方）。
+ * ★読み先を3つ持ち、取れたものだけで組み立てます。
+ *   1つ落ちても、残りはそのまま出ます（全部が消えない形）。
+ *   ・いまの気温 … 気象庁アメダス（大阪）
+ *   ・最高／最低 … Open-Meteo、だめなら気象庁（その場合は「あす」と書く）
+ *   ・天気と降水 … 気象庁の予報、だめなら Open-Meteo
+ */
+function wxNowHTML(){
+  const o = (hotOm && hotOm.ok) ? hotOm : null;
+  const w = (hotWx && hotWx.ok) ? hotWx : null;
+  const a = (hotAmd && hotAmd.ok) ? hotAmd : null;
+  if (!o && !w && !a) {
+    return '<div class="wx">' + esc(wxLine(hotWx)) + '</div>' + radarBtn();
+  }
+  const icon = o ? o.icon : jpIcon(w && w.text);
+  const name = w ? w.text : (o ? o.name : '天気は取れませんでした');
+  const temp = a ? a.temp : (o ? o.temp : null);
+  const tday = o ? '本日' : (w && w.tday ? w.tday : '');
+  const tmax = o ? o.max : (w ? w.tmax : null);
+  const tmin = o ? o.min : (w ? w.tmin : null);
+  const pop  = w && w.pop !== null && w.pop !== undefined ? w.pop : (o ? o.pop : null);
+  const span = w && w.span ? w.span : (o ? o.span : '');
+  const rain = w ? w.rain : (o ? o.rain : false);
+  return '<div class="wxnow">' +
+    '<div class="wxic">' + icon + '</div>' +
+    '<div class="wxmain"><b>' + tmp(temp) + '</b><span>' + esc(name) + '</span></div>' +
+    '<div class="wxside">' +
+      '<div>' + esc(tday) + ' 最高 <b class="hi">' + tmp(tmax) + '</b>' +
+      '　最低 <b class="lo">' + tmp(tmin) + '</b></div>' +
+      '<div>降水 <b>' + (pop === null || pop === undefined ? '—' : pop + '%') + '</b>' +
+      (span ? '（' + esc(span) + '）' : '') + '</div>' +
+    '</div></div>' +
+    '<div class="wxtip">' + (rain ? '☔ 雨です。乗り場とビルの前が強くなります。'
+                                  : '傘は要りません。足で稼ぐ夜になります。') + '</div>' +
+    radarBtn();
+}
+
+/** 営業時間（17時〜翌4時）の、1時間ごとの天気。横に流して見ます */
+function wxHoursHTML(){
+  const o = hotOm;
+  if (!o || !o.ok || !o.hours.length) return wxNextHTML(hotWx);
+  const cells = o.hours.map(function (x){
+    const pop = (x.pop === null) ? '—' : (x.pop + '%');
+    return '<div class="wxh' + (x.now ? ' now' : '') + '">' +
+      '<small>' + x.h + '時</small>' +
+      '<div class="wi">' + x.icon + '</div>' +
+      '<b>' + tmp(x.temp) + '</b>' +
+      '<span class="' + (x.pop !== null && x.pop >= 50 ? 'rain' : '') + '">' + pop + '</span>' +
+      '</div>';
+  }).join('');
+  return '<div class="scroll fb"><div class="wxhs">' + cells + '</div></div>' +
+         '<p class="note">翌4時まで。横にスクロールできます。</p>';
+}
+
 function paneHot(now){
-  // ★now は、テストのときだけ渡します（ふだんは「いま」）
+  // ★now は、検査のときだけ渡します（ふだんは「いま」）
   const c = hotNow(now);
   // ★見当を引くときは ah（乗務の時間でなければ18時台）を使います
   const cc = { h: c.ah, date: c.date, kind: c.kind };
-  const got = hotBest(cc);
-  const plan = hotPlan(cc);
-  const mx = Math.max.apply(null, got.rows.map(function (x){ return x.avg; }).concat([1]));
 
-  /*
-   * ★「いまアツい」と「つけ待ちデータ」の違いを、はっきり書きます
-   *   （まーく様のご指摘・2026/11/12「いまアツい、とアツい場所の
-   *     違いがよく分かりません」）。
-   *   ・いまアツい　　　… いまの時刻の、いま行くべき所（時刻で変わる）
-   *   ・つけ待ち一覧 … 全期間の記録の表（いつでも同じ）
-   */
-  const head = '<div class="card"><h2>いまアツい</h2>' +
-    '<p class="note"><b>いまの時刻に合わせて、いま行くとよい所</b>を出しています。' +
-    '時刻が変われば、出てくる所も変わります。' +
-    '全期間の表は【つけ待ち一覧】のほうです。<br>' +
-    'いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '（' + esc(c.kind) + 'の夜）。' +
-    (c.early ? '<b>まだ乗務の時間ではないので、' + HOT_FROM + '時台からの見当</b>を出しています。'
-             : '<b>自分たちの記録</b>から、この時間に強かった場所を出しています。') +
-    'いま何人いるかを測っているのではありません。</p>' +
-    '<div class="wx">' + esc(wxLine(hotWx)) + '</div>' + wxNextHTML(hotWx) + radarHTML() +
+  /* ★まず「この1か月＋去年の同じ月」の記録で見ます（ご指示・2026/11/12）。
+       足りなければ全期間に広げ、広げたことを画面に書きます。 */
+  const sel = hotSeason(now);
+  let got = hotBest(cc, sel), near = true;
+  if (!got.rows.length) { got = hotBest(cc); near = false; }
+  const plan = hotPlan(cc, near ? sel : null);
+  const mx = Math.max.apply(null, got.rows.map(function (x){ return x.avg; }).concat([1]));
+  const when = near ? 'この1か月＋去年の同じ月' : '全期間';
+
+  /* ① 一番上 … いまの天気と、営業時間ぶんの移り変わり */
+  const head = '<div class="card"><h2>今の狙い目</h2>' +
+    '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
+    '全期間の表は【つけ待ち一覧】のほうです。</p>' +
+    wxNowHTML() + wxHoursHTML() + '</div>';
+
+  /* ② いまの時刻と、その時刻の狙い目 */
+  const clock = '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
+    '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
+    '<p class="note">' +
+    (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時台の見当です。' : '') +
+    '自分たちの記録からの傾向です。いま何人いるかを測っているのではありません。</p>' +
     filterChips();
 
   if (!got.rows.length) {
-    return head + '<div class="empty">この時間の記録が、まだ ' + HOT_MIN_N + '件 たまっていません。<br>' +
+    return head + clock +
+      '<div class="empty">この時間の記録が、まだ ' + HOT_MIN_N + '件 たまっていません。<br>' +
       '1件は、たまたまの1本なので、出しません。</div>' +
       (got.thin.length ? '<div class="note" style="margin:0">参考（件数が足りません）：' +
-        got.thin.slice(0,5).map(function (x){ return esc(x.p) + ' ' + x.n + '件'; }).join('・') + '</div>' : '') +
+        got.thin.slice(0, 5).map(function (x){ return esc(x.p) + ' ' + x.n + '件'; }).join('・') + '</div>' : '') +
       '</div>' + hotPlanCard(plan, c.early) + hotNoteCard(got);
   }
 
+  /* ★カードごと押すと、地図が開きます（ご指示・2026/11/12） */
   const cards = got.rows.slice(0, 3).map(function (x, i){
-    return '<div class="hotc' + (i === 0 ? ' top' : '') + '">' +
+    return '<a class="hotc' + (i === 0 ? ' top' : '') + '" href="' + hotMap(x.p) +
+      '" target="_blank" rel="noopener">' +
       '<small>' + (i + 1) + '位' + (i === 0 ? '　一番濃い' : '') + '</small>' +
       '<b>' + esc(x.p) + '</b>' +
       '<div class="hv">' + yen(x.avg) + '/h</div>' +
       '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
-      '<a class="mini" href="' + hotMap(x.p) + '" target="_blank" rel="noopener">地図でさがす</a>' +
-      '</div>';
+      '<span class="mini">地図でさがす</span></a>';
   }).join('');
 
   const bars = got.rows.slice(0, 8).map(function (x){
-    return '<tr><td>' + esc(x.p) + '</td><td class="n">' + x.n + '</td>' +
+    return '<tr><td><a class="plink" href="' + hotMap(x.p) + '" target="_blank" rel="noopener">' +
+      esc(x.p) + '</a></td><td class="n">' + x.n + '</td>' +
       '<td class="n" style="color:var(--meter)">' + yen(x.avg) + '</td>' +
       '<td><div class="bar" style="width:' + Math.max(3, x.avg / mx * 100) + '%"></div></td>' +
       '<td class="n">' + Math.round(x.wait) + '分</td></tr>';
   }).join('');
 
-  return head +
+  return head + clock +
     '<div class="hot">' + cards + '</div>' +
-    '<div class="note" style="margin:12px 0 0">根拠：' + esc(got.basis) +
-    (got.loose ? '（この時間ぴったりの記録が足りないので、少し広げました）' : '') + '</div>' +
+    '<div class="note" style="margin:12px 0 0">根拠：' + esc(got.basis) + '（' + esc(when) + '）' +
+    (got.loose ? '／この時間ぴったりの記録が足りないので、少し広げました' : '') + '</div>' +
     '</div>' +
     hotPlanCard(plan, c.early) +
-    '<div class="card"><h2>この時間に強い場所（' + HOT_MIN_N + '件以上）</h2>' +
-    '<p class="note">時間単価は、つけ待ちで潰した時間まで入れた1時間当たりの実入りです。</p>' +
+    '<div class="card"><h2>この時間に強い場所</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
-    '<th class="n">平均 時間単価</th><th style="width:38%"></th><th class="n">平均 待ち</th>' +
+    '<th class="n">時間単価</th><th style="width:34%"></th><th class="n">待ち</th>' +
     '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
     hotNoteCard(got);
 }
 
-/** これから3時間の見当 */
+/** 翌4時までの見当（横に流して見ます） */
 function hotPlanCard(plan, early){
-  return '<div class="card"><h2>このあと3時間の予想</h2>' +
-    '<p class="note">1時間ごとに、その時間 強かった場所です。空いているところは、記録がまだ足りない時間です。</p>' +
-    '<div class="plan">' + plan.map(function (s, i){
-      return '<div class="pl">' +
-        '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>' +
-        (s.top ? '<b>' + esc(s.top.p) + '</b><span>' + yen(s.top.avg) + '/h・' + s.top.n + '件</span>'
-               : '<b class="thin">—</b><span>記録が足りない</span>') +
-        '</div>';
-    }).join('') + '</div></div>';
+  return '<div class="card"><h2>翌4時までの予想</h2>' +
+    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。' +
+    '空いている時間は、記録がまだ足りません。</p>' +
+    '<div class="scroll fb"><div class="plan">' + plan.map(function (s, i){
+      const head = '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>';
+      if (!s.top) return '<div class="pl">' + head + '<b class="thin">—</b><span>記録が足りない</span></div>';
+      return '<a class="pl" href="' + hotMap(s.top.p) + '" target="_blank" rel="noopener">' + head +
+        '<b>' + esc(s.top.p) + '</b><span>' + yen(s.top.avg) + '/h・' + s.top.n + '件</span></a>';
+    }).join('') + '</div></div></div>';
 }
 
-/** 注意書き（毎回同じ所に出す） */
+/** 注意書き（短く。長い説明は読まれません） */
 function hotNoteCard(got){
-  return '<div class="card"><h2>この画面の読み方（大事なところ）</h2>' +
+  return '<div class="card"><h2>読むときの注意</h2>' +
     '<p class="note" style="margin:0">' +
-    '・<b>いま人が何人いるか</b>は出していません。自分たちの記録からの傾向です。<br>' +
-    '・' + HOT_MIN_N + '件より少ない場所は、平均と呼べないので出しません。<br>' +
-    '・催し（ライブ・宴会）がある夜は、記録の傾向より催しが勝ちます。終演の15分前に着けるのが先。<br>' +
-    '・天気は気象庁の公開データ。出しているのは<b>大阪府一まとまり</b>の予報で、' +
-    '市ごと・町ごとの細かい差は、気象庁からも出ていません。<br>' +
-    '・降水確率は<b>6時間ごと</b>（0〜6／6〜12／12〜18／18〜24時）。いま入っている枠の分を出しています。<br>' +
-    '・取れない日は、その行だけ出ません。<br>' +
-    '・数字は時間単価（待ち時間込み）。金額の大きい場所と、割のいい場所は別です。' +
+    '・' + HOT_MIN_N + '件より少ない場所は出しません（1件は、たまたまの1本です）。<br>' +
+    '・催しがある夜は、記録より催しが勝ちます。終演の15分前に着けるのが先です。<br>' +
+    '・数字は時間単価（待ち時間込み）です。金額の大きい場所と、割のいい場所は別です。' +
     '</p></div>';
 }
 
@@ -1349,13 +1536,13 @@ function wxNextHTML(wx){
  * ★こちらで場所を覚えることはありません。棚にも入れません。
  */
 const RADAR_BASE = 'https://www.jma.go.jp/bosai/nowc/#zoom:10/lat:LAT/lon:LON/colordepth:normal/elements:hrpns';
-function radarHTML(){
-  return '<div class="card" style="margin-top:12px"><h2>雨雲レーダー（いまの雨）</h2>' +
-    '<p class="note">気象庁のナウキャスト。1時間先までの雨雲が動いて見えます。' +
-    '押すと場所を聞かれます。断っても、大阪のまん中で開きます。</p>' +
-    '<div class="actions"><button class="btn ghost" id="radar">いまいる場所の雨雲を見る</button>' +
-    '<span class="msg" id="radarMsg"></span></div></div>';
+function radarBtn(){
+  /* ★長い説明はやめて、押しボタン1つにしました（ご指示・2026/11/12） */
+  return '<div class="actions rdr"><button class="mini" id="radar">☂ 雨雲レーダー</button>' +
+    '<span class="msg" id="radarMsg"></span></div>';
 }
+/* 前の名前でも動くようにしておきます（どこかに残っていても落ちないため） */
+function radarHTML(){ return radarBtn(); }
 function radarOpen(){
   const msg = document.getElementById('radarMsg');
   const go = function (lat, lon) {
@@ -1381,9 +1568,36 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   });
 }
 
-/* ---- 天気を読む（無料・気象庁） ---- */
-let hotWx = null;
+/* ---- 天気を読む（どちらも無料・鍵なし・課金の設定なし） ---- */
+let hotWx = null;   // 気象庁（府ぜんたい・6時間ごと）
+let hotOm = null;   // Open-Meteo（1時間ごと・気温つき）
 const WX_URL = 'https://www.jma.go.jp/bosai/forecast/data/forecast/270000.json';
+/* 大阪市のまん中（梅田あたり）の天気を見ます */
+const OM_URL = 'https://api.open-meteo.com/v1/forecast?latitude=34.7025&longitude=135.4959' +
+  '&current=temperature_2m,weather_code' +
+  '&hourly=temperature_2m,precipitation_probability,weather_code' +
+  '&daily=temperature_2m_max,temperature_2m_min' +
+  '&timezone=Asia%2FTokyo&forecast_days=2';
+/* いまの気温は、気象庁のアメダス（大阪・62078）から。10分ごとに出ています */
+let hotAmd = null;
+const AMD_T = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
+const AMD_M = 'https://www.jma.go.jp/bosai/amedas/data/map/';
+const AMD_PT = '62078';   // 大阪
+async function loadAmd(){
+  try {
+    const t = await fetch(AMD_T, { cache: 'no-store' });
+    if (!t.ok) throw new Error('status ' + t.status);
+    const stamp = (await t.text()).trim().replace(/[-:T+]/g, '').slice(0, 14);
+    const r = await fetch(AMD_M + stamp + '.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('status ' + r.status);
+    const j = await r.json();
+    const v = j && j[AMD_PT] && j[AMD_PT].temp;
+    hotAmd = (v && v.length) ? { ok: true, temp: v[0] } : { ok: false };
+  } catch (e) {
+    hotAmd = { ok: false };
+  }
+}
+
 async function loadWx(){
   try {
     const res = await fetch(WX_URL, { cache: 'no-store' });
@@ -1392,6 +1606,16 @@ async function loadWx(){
   } catch (e) {
     // ★取れなくても、ほかは動かします（画面には「取れなかった」と出ます）
     hotWx = { ok: false };
+  }
+  /* ★いまの気温。取れなくても、ほかはそのまま出ます */
+  await loadAmd();
+  /* ★1時間ごとの天気。こちらが取れなくても、上の気象庁ぶんは出ます */
+  try {
+    const r2 = await fetch(OM_URL, { cache: 'no-store' });
+    if (!r2.ok) throw new Error('status ' + r2.status);
+    hotOm = omRead(await r2.json());
+  } catch (e) {
+    hotOm = { ok: false };
   }
   if (tab === 'hot') render();
 }

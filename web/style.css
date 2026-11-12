@@ -310,13 +310,41 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .hotc.top .hv{color:var(--meter)}
 .hotc .hs{color:var(--muted);font-size:11px;line-height:1.6}
 .hotc .mini{align-self:flex-start;margin-top:5px;text-decoration:none}
-.plan{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.plan .pl{background:#0C1422;border:1px solid var(--line);border-radius:9px;padding:10px 11px;min-width:0}
-.plan .pl small{display:block;color:var(--muted);font-size:10.5px;margin-bottom:3px}
-.plan .pl b{display:block;font-size:15px;line-height:1.35;word-break:break-all}
-.plan .pl b.thin{color:var(--muted)}
-.plan .pl span{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
-@media(max-width:640px){.hot,.plan{grid-template-columns:1fr}}
+/* 翌4時までの予想は、横に流して見ます（ご指示・2026/11/12） */
+.plan{display:flex;gap:9px;padding:2px 0}
+.plan .pl{flex:0 0 auto;width:132px;background:#0C1422;border:1px solid var(--line);
+  border-radius:9px;padding:10px 11px;text-decoration:none;color:inherit;display:block}
+.plan .pl small{display:block;color:var(--paper);font-size:11px;margin-bottom:3px}
+.plan .pl b{display:block;font-size:15px;line-height:1.35;word-break:break-all;color:var(--paper)}
+.plan .pl b.thin{color:var(--chipoff)}
+.plan .pl span{display:block;font-family:var(--mono);font-size:11.5px;color:var(--paper);margin-top:2px}
+@media(max-width:640px){.hot{grid-template-columns:1fr}}
+
+/* いまの天気（天気アプリと同じ並べ方・2026/11/12 ご指示） */
+.wxnow{display:flex;align-items:center;gap:12px;margin:12px 0 6px}
+.wxic{font-size:42px;line-height:1}
+.wxmain{display:flex;flex-direction:column;min-width:0}
+.wxmain b{font-family:var(--mono);font-size:34px;line-height:1.05;color:var(--paper)}
+.wxmain span{font-size:13px;color:var(--paper)}
+.wxside{margin-left:auto;text-align:right;font-size:13px;color:var(--paper);line-height:1.8;white-space:nowrap}
+.wxside .hi{color:var(--kusha)}
+.wxside .lo{color:#8FC7FF}
+.wxtip{font-size:13px;color:var(--paper);margin:0 0 10px}
+.actions.rdr{margin:0 0 12px}
+/* 1時間ごとの移り変わり */
+.wxhs{display:flex;gap:8px;padding:2px 0 4px}
+.wxh{flex:0 0 auto;width:66px;text-align:center;background:#0C1422;
+  border:1px solid var(--line);border-radius:10px;padding:8px 4px}
+.wxh.now{border-color:var(--andon);box-shadow:0 0 14px rgba(240,163,59,.18)}
+.wxh small{display:block;font-size:12px;color:var(--paper)}
+.wxh .wi{font-size:22px;line-height:1.3}
+.wxh b{display:block;font-family:var(--mono);font-size:17px;color:var(--paper)}
+.wxh span{font-size:12px;color:var(--paper)}
+.wxh span.rain{color:#8FC7FF;font-weight:700}
+/* 押すと地図が開くところ */
+a.hotc{text-decoration:none;color:inherit}
+.nowk{font-size:13px;margin-left:8px;color:var(--paper);letter-spacing:0}
+.plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--line)}
 
 
 /* ============================================================
