@@ -1254,12 +1254,18 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
        画面の広さから、1時間ぶんの幅を決めます。
        マスが小さくなりすぎないよう、下限は決めてあります。 */
   const vw   = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
-  const lw   = vw < 300 ? 64 : 76;                 /* 左の名前の欄 */
+  const lw   = vw < 300 ? 56 : vw < 340 ? 64 : 76;  /* 左の名前の欄 */
   const need = Math.max(1, Math.min(hrs.length, 22 - hrs[0] + 1));  /* 22時までの本数 */
-  const cw   = Math.max(28, Math.min(64, Math.floor((vw - lw) / need)));
-  /* マスが細いときは、中の字も小さくします（はみ出さないように） */
-  const fz1 = cw >= 50 ? 11.5 : cw >= 42 ? 10.5 : cw >= 34 ? 9.5 : 8.5;
-  const fz2 = Math.max(7, fz1 - 2);
+  /* 下限は36。これより細いと「¥11,200」が収まらず、字が切れます。
+     収まらない幅の機種では、22時までが少しだけ横にずれます。
+     読めない数字を出すより、そのほうがましです。 */
+  const cw   = Math.max(36, Math.min(64, Math.floor((vw - lw) / need)));
+  /* ★マスの中は「¥13,200」のように、そのまま出します
+       （ご指示・2026/11/13「〇〇Kって書き方は全然馴染みがないので ￥〇〇としてください」）。
+       一番大きい金額の字数に合わせて、はみ出さない大きさにします。 */
+  const dig = Math.max(4, String(yen(mx)).length);
+  const fz1 = Math.min(11.5, Math.max(7, (cw - 5) / dig / 0.72));
+  const fz2 = Math.max(6.5, fz1 - 2.5);
   const ch = 42;
   const w = lw + hrs.length * cw + 8, hgt = 34 + (pls.length + 1) * ch + 8;
   const cell = (p, h) => {
@@ -1281,8 +1287,8 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
     hrs.forEach((h,i) => { const c = cell(p,h), x = lw+i*cw, t = c.n ? Math.min(1, c.avg/mx) : 0;
       o += `<g data-tip="${esc(label)} ${h}時台&#10;件数 ${c.n}件&#10;1本の平均金額 ${c.n?yen(c.avg):'—'}&#10;平均 待ち ${c.n?Math.round(c.wait)+'分':'—'}">
         <rect x="${x+2}" y="${y+2}" width="${cw-4}" height="${ch-4}" rx="4" fill="${c.n?`rgba(240,163,59,${.10+t*.82})`:'rgba(255,255,255,.03)'}" stroke="#243350"/>
-        ${c.n ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" font-size="${fz1}" fill="${t>.55?'#14100A':'#EDE6D8'}">${Math.round(c.avg/100)/10}k</text>
-        <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="${fz2}" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${c.n}件</text>` : ''}
+        ${c.n ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" style="font-size:${fz1}px" fill="${t>.55?'#14100A':'#EDE6D8'}">${yen(c.avg)}</text>
+        <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" style="font-size:${fz2}px" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${cw >= 44 ? '平均・' + c.n + '件' : c.n + '件'}</text>` : ''}
       </g>`; });
     return o; };
   pls.forEach((p,i) => s += row(p, p, 34+i*ch));
@@ -1296,7 +1302,8 @@ function paneHeat(noChips){
   const R = visible().filter(hasDep);
   const head = `<div class="card"><h2>表グラフ</h2>
     <p class="note">えらんだ期間の記録を、<b>時間帯 × 乗り場</b>で並べた表です。
-      数字は1本の平均金額（k＝千円）。濃いマスほど、1本が大きい枠です。
+      マスの数字は、<b>その枠の平均金額（1本当たり）</b>です。下は件数。
+      濃いマスほど、1本が大きい枠です。
       まずは3件以上そろったマスだけ信じてください。</p>
     ${noChips ? '' : filterChips(true)}</div>`;
   if (!R.length) return head + emptyCard('該当データがありません');
@@ -1342,9 +1349,9 @@ function paneHeat(noChips){
 
   return head + body +
     `<div class="card"><div class="legend">
-      <span><i style="background:rgba(240,163,59,.15)"></i>薄い＝単価が低い</span>
-      <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span>
-      <span>一番濃いマス ${yen(mx)}</span></div></div>`;
+      <span><i style="background:rgba(240,163,59,.15)"></i>薄い＝1本が小さい</span>
+      <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝1本が大きい</span>
+      <span>一番濃いマスの平均 ${yen(mx)}</span></div></div>`;
 }
 
 /* =============================================================

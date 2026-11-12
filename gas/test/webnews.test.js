@@ -1992,10 +1992,44 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(!/…/.test(app.slice(app.indexOf('function heatSvg'), app.indexOf('function paneHeat'))),
     '★★★「…」で切らない（どこの乗り場か分からなくなる）');
   t(/22 - hrs\[0\] \+ 1/.test(app), '★★★22時までの本数から、1時間ぶんの幅を決める');
-  t(/const cw   = Math\.max\(28, Math\.min\(64, Math\.floor\(\(vw - lw\) \/ need\)\)\)/.test(app),
+  t(/const cw   = Math\.max\(36, Math\.min\(64, Math\.floor\(\(vw - lw\) \/ need\)\)\)/.test(app),
     '★★★画面に収まるまで、マスの幅を詰める');
   t(/window\.innerWidth/.test(app), '　 いまの画面の広さを見ている');
-  t(/const fz1 = cw >= 50/.test(app), '　 マスが細いときは、中の字も小さくする');
+  t(/const fz1 = Math\.min\(11\.5, Math\.max\(7, \(cw - 5\) \/ dig/.test(app),
+    '　 一番大きい金額に合わせて、字の大きさを決める');
+
+  /* ⑥-10 マスの中は「¥〇〇」。「k」は使わない。平均だと書く。
+          ご指示（2026/11/13）
+            「〇〇Kって書き方は全然馴染みがないので ￥〇〇としてください。
+              これは平均なのですか？ そうであれば 平均も必ず載せてください」 */
+  t(!/\}k<\/text>|\/100\)\/10\}k/.test(app), '★★★マスに「k（千円）」を使わない');
+  t(/>\$\{yen\(c\.avg\)\}<\/text>/.test(app), '★★★マスは「¥〇〇」で、そのまま出す');
+  t(/'平均・' \+ c\.n \+ '件'/.test(app), '★★★マスの下に「平均・〇件」と書く');
+  t(/その枠の平均金額（1本当たり）/.test(app), '★★★表の上にも、平均だとはっきり書く');
+  t(/一番濃いマスの平均/.test(app), '　 色の案内も「平均」と書く');
+  t(/style="font-size:\$\{fz1\}px"/.test(app),
+    '　 字の大きさは style で指定する（font-size の決まりに負けないため）');
+
+  /* ⑥-11 「¥〇〇/h」は、台帳のどこにも残さない。
+          ご指示（2026/11/13）「￥〇〇/h って計算は全部却下です、
+          これが含んでいるものは取り除いて、再見直ししてください」
+          app.js だけでなく、管理の画面・ログイン画面・マニュアルまで見ます。 */
+  ['app.js','admin.js','shared.js','index.html','login.html','say.html',
+   'docs/01_セットアップ手順書.html','docs/03_使い方マニュアル.html'].forEach(function (f) {
+    var fp = path.join(W, f);
+    if (!fs.existsSync(fp)) return;
+    var txt = fs.readFileSync(fp, 'utf8');
+    /* 字として出るところだけを見ます（説明のコメントは、残してよい） */
+    var shown2 = f.slice(-5) === '.html'
+      ? txt.replace(/<!--[\s\S]*?-->/g, '')
+      : (txt.match(/'[^'\n]*'|`[^`]*`|"[^"\n]*"/g) || []).join('\n');
+    t(!/¥[^<\s]*\/h|\d\/h(?![0-9A-Za-z])/.test(shown2), '★★★' + f + ' に「¥〇〇/h」が無い');
+    if (f !== 'docs/03_使い方マニュアル.html')
+      t(shown2.indexOf('時間単価') === -1, '　 ' + f + ' に「時間単価」と出さない');
+  });
+  var ad = fs.readFileSync(path.join(W, 'admin.js'), 'utf8');
+  t(/yen\(r\.sum \/ r\.n\)/.test(ad), '★★★管理の画面も「1本の平均」に入れ替わっている');
+  t(ad.indexOf('金額,時間単価,記録者') === -1, '　 書き出しの列からも外した');
 
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');

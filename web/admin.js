@@ -65,13 +65,15 @@ async function loadMembers(){
   const rows = (ps || []).map(p => ({ ...p, ...(by[p.id] || { n:0, sum:0, last:'', mins:0 }) }))
     .sort((a,b) => b.n - a.n);
   $('#members').innerHTML = `<div class="scroll"><table><thead><tr>
-      <th>名前</th><th>称号</th><th class="n">記録</th><th class="n">売上</th><th class="n">時間単価</th><th>最後の記録</th><th></th>
+      <th>名前</th><th>称号</th><th class="n">記録</th><th class="n">売上</th><th class="n">1本の平均</th><th>最後の記録</th><th></th>
     </tr></thead><tbody>${rows.map(r => `<tr>
       <td>${esc(r.display_name || '（未設定）')}${r.id === ME.user.id ? '<span class="badge">自分</span>' : ''}</td>
       <td>${esc(r.title || '—')}</td>
       <td class="n">${r.n}</td>
       <td class="n">${yen(r.sum)}</td>
-      <td class="n" style="color:var(--meter)">${r.mins ? yen(r.sum / r.mins * 60) : '—'}</td>
+      <!-- ★時間単価（¥○○/h）はやめました（ご指示・2026/11/13）。
+             1本を1時間に伸ばした数で、同じ場所をずっと回れる前提でした。 -->
+      <td class="n" style="color:var(--meter)">${r.n ? yen(r.sum / r.n) : '—'}</td>
       <td>${r.last ? fmtD(r.last) : '—'}</td>
       <td>${r.is_admin ? '<span class="badge adm">管理者</span>' : ''}</td>
     </tr>`).join('')}</tbody></table></div>`;
@@ -86,11 +88,10 @@ $('#dump').addEventListener('click', async () => {
   ]);
   if (error) return say('#m3', jaError(error), true);
   const nm = {}; (ps || []).forEach(p => nm[p.id] = p.display_name);
-  const lines = ['日付,場所,乗せた時刻,待ち時間(分),乗車時間(分),金額,時間単価,記録者'];
+  const lines = ['日付,場所,乗せた時刻,待ち時間(分),乗車時間(分),金額,記録者'];
   (rs || []).forEach(r => {
-    const t = r.wait_min + r.ride_min;
     lines.push([r.work_date, `"${(r.place||'').replace(/"/g,'""')}"`, fmtT(+r.dep), r.wait_min, r.ride_min, r.fare,
-      t ? Math.round(r.fare / t * 60) : 0, `"${nm[r.user_id] || ''}"`].join(','));
+      `"${nm[r.user_id] || ''}"`].join(','));
   });
   const blob = new Blob(['\ufeff' + lines.join('\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a');
