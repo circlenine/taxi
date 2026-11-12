@@ -362,6 +362,14 @@ function periodLabel(){
   return a + ' 〜 ' + b;
 }
 
+/** えらんだ乗り場（と分け方）に当てはまるか */
+function hitPlace(r){
+  const q = splitSel(onlyPlace);
+  if (q.place && pkey(r.place) !== pkey(q.place)) return false;
+  if (q.cat && recCat(r) !== q.cat) return false;
+  return true;
+}
+
 const inPeriod = r => {
   const p = periodRange();
   if (p.from && r.date < p.from) return false;
@@ -375,7 +383,7 @@ const inPeriod = r => {
  */
 const visible = () => records.filter(r =>
   (!onlyMine  || r.user_id === ME.user.id) &&
-  (!onlyPlace || pkey(r.place) === pkey(onlyPlace)) &&
+  (!onlyPlace || hitPlace(r)) &&
   (!onlyDay   || dayCls(r.date) === onlyDay) &&
   inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
@@ -426,7 +434,10 @@ function render(){
 
     /* ② だれの・どこの分か */
     const who = [];
-    if (onlyPlace) who.push(onlyPlace + ' だけ');
+    if (onlyPlace) {
+      const q = splitSel(onlyPlace);
+      who.push((q.cat ? q.cat + '／' : '') + q.place + ' だけ');
+    }
     if (onlyDay) who.push((DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n + ' だけ');
     who.push(onlyMine ? '自分だけ' : '全員');
     who.push(ds.length ? ('記録のある日 ' + days + '日・' + rs.length + '件')
@@ -588,19 +599,44 @@ function paneIn(){
  *    いちど決めた書き方（最初に入れたもの）に、そろえて出します。
  * ---------------------------------------------------------- */
 const PLACE_CATS = [
-  { k:'関空',  t:/関空|関西空港|ＫＩＸ|kix/i },
-  { k:'ﾊﾞﾗｼ',  t:/大阪城ホール|城ホール|hatch|ハッチ|オリックス劇場|京セラ|ドーム|asue|アスエ|インテックス|万博|アリーナ|スタジアム|グランキューブ|国際会議場|zepp|フェスティバルホール|バラシ/i },
   { k:'北7',   t:/新地\s*7|新地７/ },
   { k:'北4',   t:/新地\s*4|新地４/ },
   { k:'北他',  t:/新地|梅田|キタ|北新地|茶屋町|中之島|堂島|曽根崎|西天満|天満|扇町/ },
   { k:'ﾐﾅﾐ',   t:/難波|なんば|ナンバ|道頓堀|心斎橋|宗右衛門|千日前|日本橋|アメ村|島之内/ },
 ];
+/* 大きな分け方の並び（記録用スプレッドシートのタブと同じ順） */
+const CAT_ORDER = ['関空', 'ﾊﾞﾗｼ', '北7', '北4', '北他', 'ﾐﾅﾐ', 'ほか'];
+
+/*
+ * ★「関空」と「ﾊﾞﾗｼ」は、乗り場の名前ではなく
+ *   「他」の欄に そう書いてあるかどうかで決めます
+ *   （まーく様のご指示・2026/11/12
+ *     「バラシに入れるのは、lineや、スプシ情報の、他の部分に、
+ *       バラシと入っているもののみです
+ *       関空も同じく、他の部分に、関空と入っているもののみです」）。
+ *   会場の名前で決めると、ただの流しの1本まで バラシに入ってしまいます。
+ */
+function recCat(r){
+  const no = String((r && r.note) || '');
+  if (/関空|関西空港/.test(no)) return '関空';
+  if (/バラシ|ﾊﾞﾗｼ|ばらし/.test(no)) return 'ﾊﾞﾗｼ';
+  const v = String((r && r.place) || '');
+  for (let i = 0; i < PLACE_CATS.length; i++) if (PLACE_CATS[i].t.test(v)) return PLACE_CATS[i].k;
+  return 'ほか';
+}
+/* 乗り場の名前だけで決まる分け方（試すとき用） */
 function placeCat(p){
   const v = String(p || '');
   for (let i = 0; i < PLACE_CATS.length; i++) if (PLACE_CATS[i].t.test(v)) return PLACE_CATS[i].k;
   return 'ほか';
 }
-/* ★同じ所の書き方のゆれを、最初に入れた書き方にそろえます */
+/* えらんだものは「分け方＋乗り場」で覚えます */
+const CATSEP = '\u0001';
+const splitSel = v => {
+  const t = String(v || '');
+  const i = t.indexOf(CATSEP);
+  return i === -1 ? { cat: '', place: t } : { cat: t.slice(0, i), place: t.slice(i + 1) };
+};
 function placeCanonMap(){
   const first = {};
   [...records].sort((a,b) => (a.date < b.date ? -1 : 1)).forEach(function (r) {
@@ -615,30 +651,29 @@ function canonPlace(p){
   return m[pkey(p)] || String(p || '');
 }
 function placeOptions(){
-  const canon = placeCanonMap(), n = {}, cat = {};
+  const canon = placeCanonMap(), n = {};
   records.forEach(function (r) {
     if (!r.place) return;
     const name = canon[pkey(r.place)] || r.place;
-    n[name] = (n[name] || 0) + 1;
-    cat[name] = placeCat(name);
+    const key = recCat(r) + CATSEP + name;
+    n[key] = (n[key] || 0) + 1;
   });
-  const sel = pkey(onlyPlace);
-  const groups = PLACE_CATS.map(c => c.k).concat(['ほか']);
+  const sel = String(onlyPlace || '');
   let out = '<option value="">乗り場：すべて</option>';
-  groups.forEach(function (g) {
-    const list = Object.keys(n).filter(x => cat[x] === g)
+  CAT_ORDER.forEach(function (g) {
+    const list = Object.keys(n).filter(k => splitSel(k).cat === g)
       .sort((a,b) => n[b] - n[a] || (a < b ? -1 : 1));
     if (!list.length) return;
     out += '<optgroup label="' + esc(g) + '">';
-    list.forEach(function (x) {
-      out += '<option value="' + esc(x) + '"' +
-             (pkey(x) === sel ? ' selected' : '') + '>' +
-             esc(x) + '（' + n[x] + '件）</option>';
+    list.forEach(function (k) {
+      out += '<option value="' + esc(k) + '"' + (k === sel ? ' selected' : '') + '>' +
+             esc(splitSel(k).place) + '（' + n[k] + '件）</option>';
     });
     out += '</optgroup>';
   });
   return out;
 }
+
 function periodOptions(){
   const o = ['<option value="all"' + (period.mode === 'all' ? ' selected' : '') +
              '>期間：全期間</option>'];
@@ -1435,7 +1470,7 @@ function bars(rows, label, fmt){
 function sumIn(from, to){
   const rs = records.filter(r =>
     (!onlyMine  || r.user_id === ME.user.id) &&
-    (!onlyPlace || pkey(r.place) === pkey(onlyPlace)) &&
+    (!onlyPlace || hitPlace(r)) &&
     (!from || r.date >= from) && (!to || r.date <= to));
   const f = rs.filter(hasFare);
   const days = new Set(rs.map(r => r.date)).size;

@@ -1701,14 +1701,22 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   t(/const PLACE_CATS = \[/.test(app), '★★★大きな分け方がある');
-  ['関空','ﾊﾞﾗｼ','北7','北4','北他','ﾐﾅﾐ'].forEach(function (k) {
+  t(/const CAT_ORDER = \['関空', 'ﾊﾞﾗｼ', '北7', '北4', '北他', 'ﾐﾅﾐ', 'ほか'\]/.test(app),
+    '★★★並びは 関空／ﾊﾞﾗｼ／北7／北4／北他／ﾐﾅﾐ／ほか');
+  ['北7','北4','北他','ﾐﾅﾐ'].forEach(function (k) {
     t(app.indexOf("k:'" + k + "'") !== -1, '　 ' + k + ' がある');
   });
   t(/return 'ほか';/.test(app), '　 どれにも当たらないものは「ほか」');
+  /* ★関空とバラシは、乗り場の名前ではなく「他」の欄で決めます
+       （ご指示・2026/11/12）。会場の名前で決めると、ただの流しの1本まで
+       バラシに入ってしまいます。 */
+  t(/function recCat\(r\)\{[\s\S]{0,400}r\.note/.test(app.replace(/\s+/g,' ').replace(/function recCat\(r\)\{/,'function recCat(r){')) ||
+    /const no = String\(\(r && r\.note\) \|\| ''\);/.test(app),
+    '★★★関空・バラシは「他」の欄で決める');
   t(/<optgroup label="/.test(app), '★★★大きな分け方の中に、乗り場を並べる');
   t(/function canonPlace/.test(app) && /function placeCanonMap/.test(app),
     '★★★書き方のゆれを、1つにそろえる');
-  t(/pkey\(r\.place\) === pkey\(onlyPlace\)/.test(app),
+  t(/pkey\(r\.place\) !== pkey\(q\.place\)/.test(app),
     '★★★書き方がゆれていても、同じ所として絞れる');
   t(/placeLink\(canonPlace\(r\.place\)\)/.test(app),
     '★★★表でも、そろえた書き方で出す');
@@ -1724,17 +1732,21 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   vm.runInContext(
     'let records = [];' +
     app.slice(app.indexOf('function pkey('), app.indexOf('/** 1字違いまでの近さ')) +
-    app.slice(app.indexOf('const PLACE_CATS = ['), app.indexOf('function placeOptions()'))
+    app.slice(app.indexOf('const PLACE_CATS = ['), app.indexOf('function placeCanonMap()'))
        .replace(/\/\* ---[\s\S]*?--- \*\//, ''), box);
   const C = v => vm.runInContext('placeCat(' + JSON.stringify(v) + ')', box);
-  t(C('関空') === '関空',        '★★★関空 → 関空');
+  const R2 = (place, note) => vm.runInContext(
+    'recCat(' + JSON.stringify({ place: place, note: note }) + ')', box);
+  t(R2('新地7', '関空') === '関空',   '★★★他に「関空」と書いてあれば 関空');
+  t(R2('大阪城ホール', 'バラシ') === 'ﾊﾞﾗｼ', '★★★他に「バラシ」と書いてあれば ﾊﾞﾗｼ');
+  t(R2('大阪城ホール', '') === 'ほか', '★★★会場の名前だけでは、ﾊﾞﾗｼにしない');
+  t(R2('新地7', '') === '北7',        '★★★他が空なら、乗り場の名前で決める');
   t(C('新地7') === '北7',        '★★★新地7 → 北7');
   t(C('新地4') === '北4',        '★★★新地4 → 北4');
   t(C('新地8') === '北他',       '★★★新地8 → 北他', C('新地8'));
   t(C('梅田ヒルトン') === '北他','★★★梅田 → 北他');
   t(C('難波') === 'ﾐﾅﾐ',         '★★★難波 → ﾐﾅﾐ');
   t(C('道頓堀') === 'ﾐﾅﾐ',       '★★★道頓堀 → ﾐﾅﾐ');
-  t(C('大阪城ホール') === 'ﾊﾞﾗｼ','★★★大阪城ホール → ﾊﾞﾗｼ');
   t(C('天王寺') === 'ほか',      '★★★当てはまらないものは ほか', C('天王寺'));
 
   /* 書き方のゆれ … 最初に入れたほうに そろう */
