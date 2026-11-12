@@ -533,19 +533,19 @@ function paneIn(){
             ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ 地図は合っている' : 'この地図で合っている'}</button>
         </div>
       </div>
+      <div class="f w2"><label>発車時間</label>
+        <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
+        <div class="hint" id="depHint"></div></div>
       <div class="f w2"><label>乗車金額</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
         <div class="hint" id="rateHint"></div></div>
 
-      <div class="f w2"><label>発車時間</label>
-        <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
-        <div class="hint" id="depHint"></div></div>
-
       <!-- ★欄の名前は、記録用スプレッドシートと同じ言い方にそろえます
              （ご指示・2026/11/12）。書き方がゆれると、同じものを
              別のものだと思わせてしまいます。
-             営業曜日／乗車場所／乗車金額／発車時間／待ち時間／
-             乗車種類／そのほか -->
+             営業曜日／乗車場所／発車時間／乗車金額／待ち時間／
+             乗車種類／そのほか
+             （LINEに書く順と同じ・ご指示 2026/11/12） -->
       <div class="f w2"><label>乗車時間</label>
         <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
         <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.ride,'ride')).join('')}</div>
