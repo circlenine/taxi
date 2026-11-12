@@ -1015,14 +1015,21 @@ body[data-hand="l"] .fab.menu{order:-1;margin-left:0;margin-right:auto}
 /* ふきだしは、場所が足りなければ縮みます（≡ を押し出さないため） */
 header > .saymount .saybox{min-width:0}
 header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fab.done{bottom:18px;height:56px;padding:0 20px;font-size:16px;line-height:1.15;
-  background:var(--andon);color:#F2EDE4}
+/* ★きれいな楕円にします（ご指示・2026/11/13）。
+     角丸の長方形ではなく、ほんとうの楕円（50%）です。
+     字が端で切れないよう、左右の余白を広く取ります。 */
+.fab.done{bottom:18px;height:64px;padding:0 32px;font-size:16px;line-height:1;
+  background:var(--andon);color:#F2EDE4;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
 /* ★ふきだし（イベントの箱）が出ているあいだは、固定ボタンを隠します
      （ご指示・2026/11/12「ポップアップの時は表示しないでください」）。 */
 body.modalon .fab{display:none}
-/* ★「粛清完了」に「きろく」とルビを振ります（ご指示・2026/11/12） */
-.fab.done ruby{ruby-align:center}
-.fab.done rt{font-size:10px;font-weight:700;letter-spacing:.1em;opacity:.95}
+/* ★「粛清完了」に「きろく」とルビを振ります（ご指示・2026/11/12）。
+     ★離れているとルビに見えないので、すき間を詰めます
+       （ご指示・2026/11/13）。 */
+.fab.done ruby{ruby-align:center;line-height:1}
+.fab.done rt{font-size:10px;font-weight:700;letter-spacing:.08em;opacity:.95;
+  line-height:1;transform:translateY(3px)}
 body[data-hand="r"] .fab.done{right:16px}
 body[data-hand="l"] .fab.done{left:16px}
 /* ≡ を押したときに出る、行き先の一覧 */
@@ -1104,7 +1111,7 @@ input.need,textarea.need{border-color:var(--kusha)!important;
   nav button{padding:7px 1px}
   nav button b{font-size:12px}
   nav button i{font-size:8.5px}
-  .fab.done{height:46px;padding:0 16px;font-size:15px}
+  .fab.done{height:58px;padding:0 26px;font-size:15px}
 }
 
 /* 使い方のカード（ご指摘・2026/11/12「長文はダルすぎる」） */

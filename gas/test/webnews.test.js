@@ -1331,8 +1331,16 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   t(/<button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく<\/rt><\/ruby>完了<\/button>/
     .test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
     '★★★「粛清」の上に「きろく」のルビがある');
-  t(/\.fab\.done rt\{/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
-    '　 ルビの見た目も入っている');
+  {
+    const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/\.fab\.done rt\{/.test(cs), '　 ルビの見た目も入っている');
+    /* ★離れているとルビに見えません（ご指示・2026/11/13）。
+       ★形も、角丸の長方形ではなく ほんとうの楕円にします。 */
+    t(/\.fab\.done rt\{[\s\S]{0,120}line-height:1;transform:translateY\(3px\)\}/.test(cs),
+      '★★★ルビと字のすき間を、詰めている');
+    t(/\.fab\.done\{[^}]*border-radius:50%/.test(cs), '★★★きれいな楕円にしている');
+    t(!/\.fab\.done\{[^}]*border-radius:999px/.test(cs), '　 角丸の長方形は、残っていない');
+  }
 
   /* ★えらぶ欄は、▼ と太い枠ではっきり分かるように（ご指示・2026/11/12
        「プルダウンできるやつ、しっかり右際に▼みたいなのつけて
