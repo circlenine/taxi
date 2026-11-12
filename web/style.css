@@ -739,15 +739,16 @@ header > h1, .login .head > h1{white-space:nowrap}
 .scroll.tbl td.ops .mini{display:block;width:100%;min-height:18px;font-size:10.5px;
   padding:2px 0;margin:1px 0}
 .scroll.tbl td.ops .mini.del{border-color:var(--andon);color:#FFFFFF}
-.scroll.tbl th:nth-child(2),.scroll.tbl td.c-who{width:44px;min-width:44px;
+/* 並びは 名／付／待／発／金／乗／種／他／修正削除（ご指示・2026/11/12） */
+.scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:44px;min-width:44px;
   font-family:var(--mono);font-size:11px;white-space:nowrap}
-.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:44px;min-width:44px}
-.scroll.tbl th:nth-child(4){width:30px;min-width:30px}
-.scroll.tbl th:nth-child(6){width:62px;min-width:62px}
-.scroll.tbl th:nth-child(7),.scroll.tbl td.c-place{width:88px;min-width:88px;
+.scroll.tbl th:nth-child(2),.scroll.tbl th:nth-child(4){width:44px;min-width:44px}
+.scroll.tbl th:nth-child(3){width:30px;min-width:30px}
+.scroll.tbl th:nth-child(5){width:62px;min-width:62px}
+.scroll.tbl th:nth-child(6),.scroll.tbl td.c-place{width:88px;min-width:88px;
   white-space:normal;word-break:break-all;line-height:1.4}
-.scroll.tbl th:nth-child(8){width:56px;min-width:56px}
-.scroll.tbl th:nth-child(9),.scroll.tbl td.c-note{width:110px;min-width:110px;
+.scroll.tbl th:nth-child(7){width:56px;min-width:56px}
+.scroll.tbl th:nth-child(8),.scroll.tbl td.c-note{width:110px;min-width:110px;
   white-space:normal;word-break:break-all;line-height:1.4}
 
 /* 日付の見出し（変わったときだけ）。営業曜日の区分で色を分けます */

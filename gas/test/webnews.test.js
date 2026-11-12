@@ -1502,10 +1502,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ① 並びは、記録用スプレッドシートと同じ */
   const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種|他)<\/th>/g) || [])
     .map(x => x.replace(/<[^>]+>/g, '').replace('修正削除', '操作'));
-  t(th.join('/') === '操作/名/付/待/発/金/乗/種/他',
-    '★★★並びは 操作→名→付→待→発→金→乗→種→他', th.join('/'));
-  t(app.indexOf('<th class="ops">修正<br>削除</th>') < app.indexOf('<th>名</th>'),
-    '★★★修正・削除が、いちばん左');
+  t(th.join('/') === '名/付/待/発/金/乗/種/他/操作',
+    '★★★並びは 名→付→待→発→金→乗→種→他→操作', th.join('/'));
+  t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('<th>他</th>'),
+    '★★★修正・削除が、いちばん右（ご指示・2026/11/12）');
   t(/>修正</.test(app) && />削除</.test(app), '★★★「修正」「削除」という名前');
   const tbl = app.slice(app.indexOf('function tableHTML'), app.indexOf('const KANA_SHORT'));
   t(!/>直す</.test(tbl) && !/>消す</.test(tbl), '　 表に、前の「直す」「消す」は残っていない');
