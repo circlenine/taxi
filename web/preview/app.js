@@ -101,7 +101,9 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || perio
   /* ★右上は「称号」を出します（まーく様のご指示・2026/11/10）。
      称号を入れていない人は、短い名前。それも無ければメールアドレス。 */
   $('#me').textContent = s.profile.title || s.profile.display_name || s.user.email;
-  if (s.profile.is_admin) { $('#meBadge').hidden = false; $('#toAdmin').hidden = false; }
+  /* ★「管理者」の札は消しました（ご指示・2026/11/12「文字も省けるものは省いて」）。
+       【管理】のボタンが、まーく様にしか出ないので、それで足ります。 */
+  if (s.profile.is_admin) { $('#toAdmin').hidden = false; }
   $('#out').addEventListener('click', signOut);
   /* ★タブは nav の中だけとはかぎりません（フィードバックは上の行にあります）。
        どこにあっても、data-t を持つボタンなら切り替わるようにします。 */

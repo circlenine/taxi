@@ -589,6 +589,12 @@ header > .saymount, .login .head > .saymount{
 /* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
 header > .subline, .login .head > .subline{
   grid-column:1 / -1;grid-row:2;display:flex;align-items:center;gap:8px;min-width:0}
+/* ★段ごとに、薄い帯を敷いて区切ります（ご指示・2026/11/12
+     「赤く囲った部分を薄グレー背景など引いて
+       もっとそれぞれ、くぎって 視覚化しやすくしてください」）。
+     字が多いので、どこからどこまでが ひとまとまりか分かりません。 */
+header > .subline, header > .who{
+  background:rgba(255,255,255,.055);border-radius:9px;padding:6px 10px}
 /* ★一文（近日中〜）は、右へ寄せます（ご指示・2026/11/11）
      「サブタイトル(近日中～)は、右寄りにしてください」
      margin-left:auto … 左の余りを ぜんぶ ここで食うので、
