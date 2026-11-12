@@ -2288,54 +2288,58 @@ function longRank(rs){
 }
 
 /**
- * 「乗り場 × 時間帯」の組み合わせを、強い順に並べます。
+ * 時間順の狙い目（ご指示・2026/11/12）
  *
- * ★まーく様のご指摘（2026/11/12）
- *   「北、南だけだとどこ攻めて良いのか分かりません
- *     もっと具体的な乗り場でのおすすめの時間帯を導き出してください」
+ * ★まーく様のご指示
+ *   「どこを、何時に というよりも 何時は、どこ という形にしてください」
+ *   「まず、リアルタイムで 近い時間にどこを走るべきなのかが
+ *     すぐ分からないといけません
+ *     なので、時間帯順にして おすすめの乗り場を出す形にしてください」
  *
- * ★だから、まとまり（北・南）ではなく
- *   **「本町の25時台」** のような、そのまま走れる形で出します。
- * ★乗り場ごとでは件数が少ないので、前後1時間をふくめて数えます。
- * ★1つの乗り場が上位を独り占めしないよう、
- *   同じ乗り場から出すのは、強いほうから2つまでにします。
+ * ★だから、強い順ではなく **時刻の順** に並べます。
+ *   一番上がいまの枠。走り出す前に、そこだけ見れば足ります。
+ * ★3時間ずつにまとめます（1時間ずつだと、並びすぎて選べません）。
+ * ★1つの枠に出すのは3か所だけ。枠は4つまで。
  */
-function spotRank(D, perPlace){
-  const byPlace = {};
-  D.forEach(function (r){ const p = r.place; if (p) (byPlace[p] = byPlace[p] || []).push(r); });
-  const out = [];
-  Object.keys(byPlace).forEach(function (p){
-    const rs = byPlace[p];
-    const hset = [...new Set(rs.map(r => Math.floor(r.dep)))];
-    const mine = [];
-    hset.forEach(function (h){
-      const t = rs.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
-      const o = bandCount(t);
-      if (o.n < HOT_MIN_N) return;
-      mine.push({ p: p, h: h, o: o, L: bandPct(o, 'L'), M: bandPct(o, 'M'),
-                  avg: bandAvg(t), cat: recCat(rs[0]) });
-    });
-    mine.sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg)
-        .slice(0, perPlace || 2)
-        .forEach(x => out.push(x));
-  });
-  return out.sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg || b2.o.n - a2.o.n);
-}
-
-/** 「どこを、何時に」の1行。押すと地図が開きます */
-function spotRows(rank, n){
-  if (!rank.length) {
-    return '<div class="note">3件以上たまった組み合わせが、まだありません。</div>';
+function hourPlanCard(D){
+  if (!D || !D.length) return '';
+  const c = hotNow();
+  const blocks = [];
+  let st = Math.floor(c.early ? HOT_FROM : c.h);
+  while (st <= HOT_TO && blocks.length < 4) {
+    blocks.push({ a: st, b: Math.min(st + 2, HOT_TO) });
+    st += 3;
   }
-  return rank.slice(0, n || 10).map(function (x, i){
-    return '<a class="srow' + (i === 0 ? ' top' : '') + '" href="' + mapUrl(x.p) +
-      '" target="_blank" rel="noopener">' +
-      '<span class="si">' + (i + 1) + '</span>' +
-      '<span class="sp"><b>' + esc(x.p) + '</b><em>' + x.h + '時台</em>' +
-      '<i>' + esc(x.cat) + '・' + (x.h - 1) + '〜' + (x.h + 1) + '時の記録 ' + x.o.n + '件</i></span>' +
-      '<span class="sv">' + x.L + '%<i>ロング</i></span>' +
-      '<span class="sm">' + yen(x.avg) + '<i>平均</i></span></a>';
-  }).join('');
+  const NAME = ['いま', '次', 'そのあと', 'さらにあと'];
+  let bb = '';
+  blocks.forEach(function (bk, i){
+    const t = D.filter(function (r){
+      const h = Math.floor(r.dep);
+      return h >= bk.a && h <= bk.b;
+    });
+    const rk = longRank(t);
+    const o = bandCount(t);
+    const thin = [...new Set(t.map(r => r.place).filter(Boolean))]
+      .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
+      .sort((x, y) => y.n - x.n).slice(0, 5);
+    bb += '<div class="blk3' + (i === 0 ? ' now' : '') + '">' +
+      '<div class="b3h"><em>' + NAME[i] + '</em>' +
+      '<b>' + bk.a + '〜' + bk.b + '時</b>' +
+      '<span>' + (o.n ? ('ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t))) : '記録なし') + '</span>' +
+      '</div>' +
+      (rk.length ? longRows(rk, 3)
+        : (thin.length
+            ? '<div class="hbn">まだ3件そろった乗り場がありません。この枠に入っている所（件数）：' +
+              thin.map(x => esc(x.p) + ' ' + x.n).join('・') + '</div>'
+            : '<div class="hbn">この枠の記録が、まだありません。</div>')) +
+      '</div>';
+  });
+  if (!bb) return '';
+  return '<div class="card plan3"><h2>時間順の狙い目</h2>' +
+    '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '。' +
+    (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時からの枠で出しています。' : '') +
+    '<b>時間の順</b>に並べています。一番上が、いま走る枠です。押すと地図が開きます。</p>' +
+    bb + '</div>';
 }
 
 /** 並びの1行（押すと地図が開きます） */
@@ -2381,16 +2385,10 @@ function paneRatio(){
   if (hourPick !== '' && !D.some(r => Math.floor(r.dep) === +hourPick)) hourPick = '';
   const pickRs = (hourPick === '') ? R : D.filter(r => Math.floor(r.dep) === +hourPick);
 
-  /* ★一番上は「どこを、何時に」（ご指摘・2026/11/12）。
-       まとまりではなく、そのまま走れる組み合わせを出します。 */
-  let out = head;
-  if (D.length) {
-    const sr = spotRank(D, 2);
-    out += '<div class="card"><h2>狙いどころ（乗り場 × 時間帯）</h2>' +
-      '<p class="note">ロングが出やすかった<b>「乗り場 と 時間」の組み合わせ</b>を、強い順に出しています。' +
-      '件数が少ないので、前後1時間をふくめて数えています。押すと地図が開きます。</p>' +
-      spotRows(sr, 10) + '</div>';
-  }
+  /* ★一番上は「何時は、どこ」（ご指示・2026/11/12）。
+       「どこを、何時に」ではなく、**時間帯順**に並べて、
+       いま走るべき乗り場が、すぐ目に入る形にします。 */
+  let out = head + hourPlanCard(D);
 
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
   out +=
@@ -2483,52 +2481,6 @@ function paneRatio(){
         '<p class="note">その時間に、ロングが出やすかった乗り場の上位3か所です。' +
         '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
         hb + '</div>';
-    }
-  }
-
-  /* ④ これからの3時間おき（ご指摘・2026/11/12）
-       「こんなたくさんあると、どれ攻めれば良いのか分かりません
-         リアルタイム時間に合わせて 3時間おきでまとめてください」
-       ★並べすぎると、選べません。
-         いまの時刻から、3時間ずつの枠にまとめて、各枠3か所だけ出します。 */
-  if (D.length) {
-    const c = hotNow();
-    const blocks = [];
-    let st = Math.floor(c.early ? HOT_FROM : c.h);
-    while (st <= HOT_TO && blocks.length < 4) {
-      blocks.push({ a: st, b: Math.min(st + 2, HOT_TO) });
-      st += 3;
-    }
-    const NAME = ['いま', '次', 'そのあと', 'さらにあと'];
-    let bb = '';
-    blocks.forEach(function (bk, i){
-      const t = D.filter(function (r){
-        const h = Math.floor(r.dep);
-        return h >= bk.a && h <= bk.b;
-      });
-      const rk = longRank(t);
-      const o = bandCount(t);
-      const thin = [...new Set(t.map(r => r.place).filter(Boolean))]
-        .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
-        .sort((x, y) => y.n - x.n).slice(0, 5);
-      bb += '<div class="blk3' + (i === 0 ? ' now' : '') + '">' +
-        '<div class="b3h"><em>' + NAME[i] + '</em>' +
-        '<b>' + bk.a + '〜' + bk.b + '時</b>' +
-        '<span>' + (o.n ? ('ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t))) : '記録なし') + '</span>' +
-        '</div>' +
-        (rk.length ? longRows(rk, 3)
-          : (thin.length
-              ? '<div class="hbn">まだ3件そろった乗り場がありません。この枠に入っている所（件数）：' +
-                thin.map(x => esc(x.p) + ' ' + x.n).join('・') + '</div>'
-              : '<div class="hbn">この枠の記録が、まだありません。</div>')) +
-        '</div>';
-    });
-    if (bb) {
-      out += '<div class="card"><h2>これからの3時間おき</h2>' +
-        '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '。' +
-        (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時からの枠で出しています。' : '') +
-        'この先を3時間ずつに分けて、ロングが出やすかった乗り場を3か所ずつ出しています。</p>' +
-        bb + '</div>';
     }
   }
 
