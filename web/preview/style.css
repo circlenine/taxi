@@ -125,19 +125,22 @@ button{font-family:inherit}
     transition:color .25s;transform:none;opacity:1}
 }
 
-/* ★題の行は、上に貼り付けておきます（ご指摘・2026/11/12）。
-     ≡ をこの中に置くので、ふきだしとも、下の中身とも重なりません。 */
-header{display:flex;align-items:center;gap:14px;padding:6px 14px 12px;
-  border-bottom:1px solid var(--line);flex-wrap:wrap;
+/* ★上に貼り付けるのは「題・ふきだし・≡」の1行だけです。
+     ★高さは、いつも同じにします（ご指摘・2026/11/12
+       「スクロールがバグってます」）。
+       下に進むと縮む作りにしていたので、その境目で画面が
+       ガタガタしていました。高さが動かなければ、揺れません。 */
+header{display:flex;align-items:center;gap:12px;padding:8px 14px;
+  border-bottom:1px solid var(--line);flex-wrap:nowrap;
   position:sticky;top:0;z-index:50;background:var(--ink);
   /* 端まで塗って、下の中身が横からのぞかないようにします */
   margin:0 -14px;width:calc(100% + 28px)}
-/* 下に進んだら、題の行だけの細いバーにして、画面を広く使います */
-body.scrolled header{padding:6px 14px 8px}
-body.scrolled header .saymount,
-body.scrolled header .subline,
-body.scrolled header .who{display:none}
-body.scrolled h1.dn{font-size:19px}
+header > h1{flex:none}
+header > .saymount{flex:1 1 auto;min-width:0}
+header > #fabMenu{flex:none;margin-left:auto}
+body[data-hand="l"] header > #fabMenu{order:-1;margin-left:0;margin-right:auto}
+/* 版・一文・称号・ボタンは、貼り付けない（ふつうに流れる） */
+.hsub{display:flex;flex-direction:column;gap:5px;padding:9px 0 2px}
 h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
 /* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
 /* ★題の大きさは、ここ1か所で決めます。
@@ -575,42 +578,40 @@ footer{font-size:12px;line-height:2}
  *      2段目：版（v1.0）と、その右に一文
  *      3段目：名前とボタン（右）
  * ============================================================ */
-header, .login .head{
+.login .head{
   display:grid;grid-template-columns:auto 1fr;
   align-items:center;column-gap:12px;row-gap:5px}
-header > h1, .login .head > h1{grid-column:1;grid-row:1;margin:0}
+header > h1, .login .head > h1{margin:0}
 /* ★ふきだしは、題の右に余っている幅を ぜんぶ使います（ご指示・2026/11/11）
      「ふきだしって、13文字分くらいは、ロゴにはみ出さずに入れるんじゃないですか？」
      幅を決め打ちしていたので、右に余白が残っていました。
    ★広さが決まるのは「題の幅」だけです。中の字では変わらないので、
      ひとことが入れ替わっても、ふきだしの大きさは動きません。 */
-header > .saymount, .login .head > .saymount{
-  grid-column:2;grid-row:1;justify-self:stretch;min-width:0}
+.login .head > .saymount{grid-column:2;grid-row:1;justify-self:stretch;min-width:0}
 /* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
-header > .subline, .login .head > .subline{
-  grid-column:1 / -1;grid-row:2;display:flex;align-items:center;gap:8px;min-width:0}
+.hsub > .subline, .login .head > .subline{
+  display:flex;align-items:center;gap:8px;min-width:0}
 /* ★段ごとに、薄い帯を敷いて区切ります（ご指示・2026/11/12
      「赤く囲った部分を薄グレー背景など引いて
        もっとそれぞれ、くぎって 視覚化しやすくしてください」）。
      字が多いので、どこからどこまでが ひとまとまりか分かりません。 */
-header > .subline, header > .who{
+.hsub > .subline, .hsub > .who{
   background:rgba(255,255,255,.055);border-radius:9px;padding:6px 10px}
 /* ★一文（近日中〜）は、右へ寄せます（ご指示・2026/11/11）
      「サブタイトル(近日中～)は、右寄りにしてください」
      margin-left:auto … 左の余りを ぜんぶ ここで食うので、
      版（v1.0）は左のまま、一文だけが右へ行きます。
      版が無い画面（ログイン）でも、同じように右へ寄ります。 */
-header > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
+.hsub > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
 .login .head > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
 /* ★称号（ポンコツ）だけ左、あとは右（ご指示・2026/11/11）
      「ポンコツ(称号)だけ、左寄せにしてください」
      段いっぱいに広げて、左右に振り分けます。 */
-header > .who{grid-column:1 / -1;grid-row:3;justify-self:stretch;margin-left:0;
-  width:100%;justify-content:space-between;gap:10px}
-header > .who > .whoR{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+.hsub > .who{margin-left:0;width:100%;justify-content:space-between;gap:10px}
+.hsub > .who > .whoR{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   justify-content:flex-end}
 /* 称号は、長くても折り返さずに 1つのかたまりで */
-header > .who > b{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.hsub > .who > b{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* 題は折り返さない。2行になると、絵との段がずれます */
 header > h1, .login .head > h1{white-space:nowrap}
@@ -618,8 +619,8 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* ★スマホでは、版と一文が同じ段に収まるように、少しずつ詰めます。
      折り返すと、まーく様がおっしゃった「1行」ではなくなります。 */
 @media(max-width:640px){
-  header > .subline .sub, .login .head > .subline .sub,
-  header > .subline .ver, .login .head > .subline .ver{font-size:clamp(9px,2.55vw,12.5px)}
+  .hsub > .subline .sub, .login .head > .subline .sub,
+  .hsub > .subline .ver, .login .head > .subline .ver{font-size:clamp(9px,2.55vw,12.5px)}
   .ver{padding:1px 5px;letter-spacing:.04em}
 }
 
@@ -702,10 +703,10 @@ header > h1, .login .head > h1{white-space:nowrap}
      細い画面では余白を詰めて、ひとことが切れないようにします。 */
   .login{padding:14px}
   /* 版と一文は、ここでも1行に収めます（ご指示・2026/11/11） */
-  header > .subline, .login .head > .subline{gap:6px}
+  .hsub > .subline, .login .head > .subline{gap:6px}
   .ver{padding:1px 4px}
-  header > .subline .sub, .login .head > .subline .sub,
-  header > .subline .ver, .login .head > .subline .ver{font-size:clamp(8.4px,2.55vw,12.5px)}
+  .hsub > .subline .sub, .login .head > .subline .sub,
+  .hsub > .subline .ver, .login .head > .subline .ver{font-size:clamp(8.4px,2.55vw,12.5px)}
   .saymount .bubble{font-size:10.5px}
   .saymount .face{width:24px;height:24px;min-width:24px;flex:0 0 24px}
   .saymount{gap:6px}
@@ -995,12 +996,7 @@ body[data-hand="l"] .fab.menu{order:-1;margin-left:0;margin-right:auto}
      （ご指摘・2026/11/12「もっと考えてください」）。
      画面に浮かせていたので、ふきだしや下の中身と重なっていました。
      同じ組みの中に入れてしまえば、重なりようがありません。 */
-header{grid-template-columns:auto 1fr auto}
-header > #fabMenu{grid-column:3;grid-row:1;justify-self:end}
-body[data-hand="l"] header{grid-template-columns:auto auto 1fr}
-body[data-hand="l"] header > #fabMenu{grid-column:1;grid-row:1;justify-self:start}
-body[data-hand="l"] header > h1{grid-column:2}
-body[data-hand="l"] header > .saymount{grid-column:3}
+
 /* ふきだしは、場所が足りなければ縮みます（≡ を押し出さないため） */
 header > .saymount .saybox{min-width:0}
 header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

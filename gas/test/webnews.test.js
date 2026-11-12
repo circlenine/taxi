@@ -673,10 +673,13 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
     '★★★並びは 題 → ふきだし → 版と一文 の順', [i1, i2, i3]);
 
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-  t(/header, \.login \.head\{[^}]*display:grid/.test(css),
-    '★★★ヘッダーは、ます目で組んでいる（回り込ませない）');
-  t(/header > \.saymount[^{]*\{[^}]*grid-row:1/.test(css),
-    '★★★ふきだしと顔は、題と同じ段（1段目）');
+  /* ★題の行は、1行だけの横ならびにしました（ご指摘・2026/11/12
+       「スクロールがバグってます」）。高さを変えないためです。
+       版・一文・称号は、その下（.hsub）に出しています。 */
+  t(/header\{[^}]*display:flex/.test(css),
+    '★★★題の行は、横ならび（回り込ませない）');
+  t(/header\{[^}]*flex-wrap:nowrap/.test(css),
+    '★★★ふきだしと ≡ は、題と同じ行（1行で固定）');
   /*
    * ★まーく様のご指摘（2026/11/11）
    *     「ふきだしって、13文字分くらいは、
@@ -686,36 +689,36 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
    *   ★広さが決まるのは「題の幅」だけ。中の字では変わらないので、
    *     ひとことが入れ替わっても、ふきだしは動きません。
    */
-  t(/header > \.saymount[^{]*\{[^}]*justify-self:stretch/.test(css),
+  t(/header > \.saymount\{[^}]*flex:1 1 auto/.test(css),
     '★★★ふきだしは、余っている幅いっぱいまで広がる');
   t(/\.saymount \.bubble\{[^}]*flex:1 1 auto/.test(css),
     '★★★中のふきだしも、伸びる形になっている');
   t(!/\.saymount \.bubble\{[^}]*[^-]width:\d+px/.test(css),
     '★★★幅の決め打ちは、どこにも残っていない');
-  t(/header > \.subline[^{]*\{[^}]*grid-row:2/.test(css),
-    '★★★版と一文は、2段目');
+  t(/\.hsub > \.subline[^{]*\{[^}]*display:flex/.test(css),
+    '★★★版と一文は、題の行の下');
   /*
    * ★まーく様のご指示（2026/11/11）
    *     「サブタイトル(近日中～)は、右寄りにしてください」
    *   版（v1.0）は左のまま、一文だけを右へ寄せます。
    */
-  t(/header > \.subline \.sub\{[^}]*margin-left:auto/.test(css),
+  t(/\.hsub > \.subline \.sub\{[^}]*margin-left:auto/.test(css),
     '★★★一文（近日中〜）は、右へ寄せる');
-  t(/header > \.subline \.sub\{[^}]*text-align:right/.test(css),
+  t(/\.hsub > \.subline \.sub\{[^}]*text-align:right/.test(css),
     '　 字そろえも右');
   t(/\.login \.head > \.subline \.sub\{[^}]*margin-left:auto/.test(css),
     '　 ログインの画面も、同じ寄せ方');
-  t(/header > \.who\{[^}]*grid-row:3/.test(css), '　 名前とボタンは3段目');
+  t(/\.hsub > \.who\{[^}]*width:100%/.test(css), '　 名前とボタンは、一文の下');
   /*
    * ★まーく様のご指示（2026/11/11）
    *     「ポンコツ(称号)だけ、左寄せにしてください」
    *   称号は左、ボタンは右。段いっぱいに広げて、左右に振り分けます。
    */
-  t(/header > \.who\{[^}]*justify-content:space-between/.test(css),
+  t(/\.hsub > \.who\{[^}]*justify-content:space-between/.test(css),
     '★★★称号は左、ボタンは右（段の左右に振り分ける）');
   t(!/header > \.who\{[^}]*justify-self:end/.test(css),
     '　 右に かためる書き方は残っていない');
-  t(/header > \.who > \.whoR\{/.test(css), '　 右がわを まとめる入れものがある');
+  t(/\.hsub > \.who > \.whoR\{/.test(css), '　 右がわを まとめる入れものがある');
   ['index.html', 'admin.html'].forEach(function (f) {
     const h = fs.readFileSync(path.join(W, f), 'utf8');
     const w = h.slice(h.indexOf('class="who"'), h.indexOf('class="who"') + 500);
@@ -815,9 +818,9 @@ console.log('■ 版の番号は、白地に黒字（ご指示・2026/11/11）')
     '★★★大きさは、となりの一文と同じ', v);
   t(!/font-size:11px/.test(v), '　 前の 11px は残っていない', v);
   /* 細い画面でも、一文と同じ大きさで縮むこと（別々に縮むとチグハグになる） */
-  t(/header > \.subline \.sub[\s\S]{0,120}\.ver\{font-size:clamp\(9px,2\.55vw,12\.5px\)\}/.test(css),
+  t(/\.hsub > \.subline \.sub[\s\S]{0,120}\.ver\{font-size:clamp\(9px,2\.55vw,12\.5px\)\}/.test(css),
     '★★★640px以下でも、一文と同じ大きさ');
-  t(/header > \.subline \.sub[\s\S]{0,120}\.ver\{font-size:clamp\(8\.4px,2\.55vw,12\.5px\)\}/.test(css),
+  t(/\.hsub > \.subline \.sub[\s\S]{0,120}\.ver\{font-size:clamp\(8\.4px,2\.55vw,12\.5px\)\}/.test(css),
     '★★★380px以下でも、一文と同じ大きさ');
   t(!/\.ver\{padding:1px 5px;font-size:10px/.test(css),
     '　 版だけ小さくする古い書き方は、消えている');
@@ -1200,17 +1203,26 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/\.fab\.menu\{position:static/.test(cs), '★★★≡ は、題の行の中に置く（浮かせない）');
     t(/\.fabsheet\{position:absolute/.test(cs), '　 行き先の一覧も、その行にぶら下げる');
     t(!/\.saymount\{padding-right/.test(cs), '★★★ふきだしを よける余白は、もう要らない');
-    t(/body\.scrolled header/.test(cs), '★★★下に進んだら、細いバーにする');
+    /* ★高さが変わると、その境目でスクロールがガタつきます
+         （ご指摘・2026/11/12「スクロールがバグってます」）。
+       貼り付けるのは「題・ふきだし・≡」の1行だけにして、
+       版・一文・称号は、貼り付けない所（.hsub）へ出しました。 */
+    t(!/body\.scrolled/.test(cs), '★★★下に進んでも、高さは変えない');
+    t(!/classList\.toggle\('scrolled'/.test(app), '　 そのための仕掛けも、残っていない');
+    t(/\.hsub\{/.test(cs), '★★★版・一文・称号は、貼り付けない所に置く');
+    t(/header\{[^}]*flex-wrap:nowrap/.test(cs), '★★★貼り付ける行は、折り返さない（1行で固定）');
     t(/body\{padding-bottom:\d+px\}/.test(cs), '★★★下の固定ボタンに、中身が隠れない');
     const h2 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
     t(h2.indexOf('<header>') < h2.indexOf('id="fabMenu"') &&
       h2.indexOf('id="fabMenu"') < h2.indexOf('</header>'),
       '★★★≡ は、題の行の中にある');
-    t(/header > #fabMenu\{grid-column:3;grid-row:1/.test(cs),
-      '★★★題の行の1段目、いちばん右に入れる');
-    t(/body\[data-hand="l"\] header > #fabMenu\{grid-column:1/.test(cs),
+    t(/header > #fabMenu\{flex:none;margin-left:auto\}/.test(cs),
+      '★★★題の行の、いちばん右に入れる');
+    t(/body\[data-hand="l"\] header > #fabMenu\{order:-1/.test(cs),
       '★★★左利きのときは、いちばん左に入れる');
-    t(/classList\.toggle\('scrolled'/.test(app), '　 下に進んだかどうかを見ている');
+    const h5 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    t(h5.indexOf('</header>') < h5.indexOf('class="hsub"'),
+      '★★★版・一文・称号は、題の行の外にある');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
@@ -1221,9 +1233,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
     const h4 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-    t(/header > \.subline, header > \.who\{[^}]*background:rgba\(255,255,255,\.0\d+\)/.test(cs),
+    t(/\.hsub > \.subline, \.hsub > \.who\{[^}]*background:rgba\(255,255,255,\.0\d+\)/.test(cs),
       '★★★段ごとに、薄い帯を敷く');
-    t(/header > \.subline, header > \.who\{[^}]*border-radius/.test(cs), '　 角も丸める');
+    t(/\.hsub > \.subline, \.hsub > \.who\{[^}]*border-radius/.test(cs), '　 角も丸める');
     t(!/id="meBadge"/.test(h4), '★★★「管理者」の札は、省いた');
     t(!/>管理者</.test(h4), '　 その字も、どこにも残っていない');
     t(/id="toAdmin"/.test(h4), '　 【管理】のボタンは、残っている');
@@ -1248,6 +1260,8 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
        （ご指示・2026/11/12「ポップアップの時は表示しないでください」） */
   t(/classList\.add\('modalon'\)/.test(app), '★★★ふきだしを出したら、印を付ける');
   t(/classList\.remove\('modalon'\)/.test(app), '★★★閉じたら、印を外す');
+  t(/classList\.toggle\('modalon', !!document\.querySelector\('\.modal'\)\)/.test(app),
+    '★★★ふきだしが無ければ、印は必ず外れる（ボタンが消えたままにならない）');
   t(/body\.modalon \.fab\{display:none\}/
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
     '★★★そのあいだ、固定ボタンは出さない');
