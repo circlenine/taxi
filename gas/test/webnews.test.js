@@ -1201,6 +1201,13 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/classList\.toggle\('scrolled'/.test(app), '　 下に進んだかどうかを見ている');
   }
 
+  /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
+  t(/<button class="fab done" id="fabAdd" hidden><ruby>粛清完了<rt>きろく<\/rt><\/ruby><\/button>/
+    .test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
+    '★★★「粛清完了」に「きろく」のルビがある');
+  t(/\.fab\.done rt\{/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '　 ルビの見た目も入っている');
+
   /* ★えらぶ欄は、▼ と太い枠ではっきり分かるように（ご指示・2026/11/12
        「プルダウンできるやつ、しっかり右際に▼みたいなのつけて
          わかりやすくしてください それに、枠ももう気持ち太くしてください」） */

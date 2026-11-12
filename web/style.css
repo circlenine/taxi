@@ -982,8 +982,11 @@ body[data-hand="l"] header > .saymount{grid-column:3}
 /* ふきだしは、場所が足りなければ縮みます（≡ を押し出さないため） */
 header > .saymount .saybox{min-width:0}
 header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fab.done{bottom:18px;height:50px;padding:0 20px;font-size:16px;
+.fab.done{bottom:18px;height:56px;padding:0 20px;font-size:16px;line-height:1.15;
   background:var(--andon);color:#F2EDE4}
+/* ★「粛清完了」に「きろく」とルビを振ります（ご指示・2026/11/12） */
+.fab.done ruby{ruby-align:center}
+.fab.done rt{font-size:10px;font-weight:700;letter-spacing:.1em;opacity:.95}
 body[data-hand="r"] .fab.done{right:16px}
 body[data-hand="l"] .fab.done{left:16px}
 /* ≡ を押したときに出る、行き先の一覧 */
