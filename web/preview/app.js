@@ -1167,10 +1167,16 @@ function paneTl(){
   const R = visible().filter(hasDep);
   if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べられます。');
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,7);
-  const x0 = 19, x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
+  /* ★19時より前の記録が、左端に積み上がって見えていました（2026/11/12）。
+       いちばん早い記録に合わせて、横じくの始まりを決めます。 */
+  const st = R.map(r => r.dep - (+r.wait || 0) / 60);
+  const x0 = Math.min(19, Math.floor(Math.min.apply(null, st)));
+  const x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
   /* ★細かすぎて読めないとご指摘（2026/11/12）。
        1行を高くし、字も大きくして、日数は最近7日までにします。 */
-  const L = 86, Rp = 16, W = 760, rowH = 52, H = 46 + ds.length*rowH + 16;
+  /* ★まだ小さいとのご指摘（2026/11/12）。横に動かす形のまま、さらに大きく。
+       1行の高さと横幅を広げ、字も大きくします。 */
+  const L = 116, Rp = 20, W = 1180, rowH = 70, H = 56 + ds.length*rowH + 20;
   /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
        左の端より外には、はみ出させません。 */
   const sx = v => Math.max(L, Math.min(W - Rp, L + (v-x0)/(x1-x0)*(W-L-Rp)));
