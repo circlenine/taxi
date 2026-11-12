@@ -3480,9 +3480,14 @@ function evPopup(d){
     </div>
   </div>`;
   document.body.appendChild(box);
+  /* ★ふきだし（この箱）が出ているあいだは、固定ボタンを出しません
+       （ご指示・2026/11/12「ポップアップの時は表示しないでください」）。
+       箱の上に重なって、読むのも押すのも邪魔になるためです。 */
+  try { document.body.classList.add('modalon'); } catch (e) {}
   const close = () => {
     try { if (document.getElementById('evHide').checked) evHideToday(); } catch (e) {}
     box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
   };
   box.querySelector('#evClose').addEventListener('click', close);
   box.addEventListener('click', e => { if (e.target === box) close(); });

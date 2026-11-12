@@ -984,6 +984,9 @@ header > .saymount .saybox{min-width:0}
 header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fab.done{bottom:18px;height:56px;padding:0 20px;font-size:16px;line-height:1.15;
   background:var(--andon);color:#F2EDE4}
+/* ★ふきだし（イベントの箱）が出ているあいだは、固定ボタンを隠します
+     （ご指示・2026/11/12「ポップアップの時は表示しないでください」）。 */
+body.modalon .fab{display:none}
 /* ★「粛清完了」に「きろく」とルビを振ります（ご指示・2026/11/12） */
 .fab.done ruby{ruby-align:center}
 .fab.done rt{font-size:10px;font-weight:700;letter-spacing:.1em;opacity:.95}

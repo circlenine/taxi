@@ -1202,6 +1202,14 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
+  /* ★ふきだしが出ているあいだは、固定ボタンを出しません
+       （ご指示・2026/11/12「ポップアップの時は表示しないでください」） */
+  t(/classList\.add\('modalon'\)/.test(app), '★★★ふきだしを出したら、印を付ける');
+  t(/classList\.remove\('modalon'\)/.test(app), '★★★閉じたら、印を外す');
+  t(/body\.modalon \.fab\{display:none\}/
+    .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★そのあいだ、固定ボタンは出さない');
+
   /* ★ルビが乗るのは「粛清」だけです（ご指示・2026/11/12
        「粛清の上に、きろくと入れてください」）。 */
   t(/<button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく<\/rt><\/ruby>完了<\/button>/
