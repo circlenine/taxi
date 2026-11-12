@@ -949,9 +949,11 @@ nav button i{font-style:normal;font-size:10px;opacity:.78;letter-spacing:0}
 nav button[aria-selected=true] i{opacity:.95}
 
 /* ★≡ のボタンと、題の横のふきだしが重なっていました（ご指摘・2026/11/12）。
-     ボタンのぶんだけ、題の行に余白を取ります。 */
-body[data-hand="r"] header{padding-right:58px}
-body[data-hand="l"] header{padding-left:58px}
+     ★余白を取るのは **ふきだしだけ** です。
+       題の行ぜんたいに取ると、「ログアウト」や題の下の一文まで
+       右端まで使えなくなってしまいました（ご指摘・2026/11/12）。 */
+body[data-hand="r"] .saymount{padding-right:56px}
+body[data-hand="l"] .saymount{padding-left:56px}
 
 /* どこからでも押せる丸ボタン */
 .fab{position:fixed;z-index:60;border:none;border-radius:999px;cursor:pointer;

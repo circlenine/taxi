@@ -1180,10 +1180,14 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   /* ★≡ のボタンと、ふきだしが重ならないこと（ご指摘・2026/11/12） */
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-    t(/body\[data-hand="r"\] header\{padding-right:5\dpx\}/.test(cs),
-      '★★★右利きのときは、題の行の右に余白を取る');
-    t(/body\[data-hand="l"\] header\{padding-left:5\dpx\}/.test(cs),
+    t(/body\[data-hand="r"\] \.saymount\{padding-right:5\dpx\}/.test(cs),
+      '★★★右利きのときは、ふきだしの右に余白を取る');
+    t(/body\[data-hand="l"\] \.saymount\{padding-left:5\dpx\}/.test(cs),
       '★★★左利きのときは、左に余白を取る');
+    /* ★題の行ぜんたいに取ると、ログアウトや題の下の一文が
+         右端まで使えなくなります（ご指摘・2026/11/12）。 */
+    t(!/body\[data-hand="r"\] header\{padding-right/.test(cs),
+      '★★★題の行ぜんたいには、余白を取らない');
   }
 
   /* ★新着の赤丸は、名前の左（ご指示・2026/11/12） */
