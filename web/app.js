@@ -1168,7 +1168,7 @@ function paneTl(){
   if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べられます。');
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,7);
   /* ★19時より前の記録が、左端に積み上がって見えていました（2026/11/12）。
-       いちばん早い記録に合わせて、横じくの始まりを決めます。 */
+       最も早い記録に合わせて、横じくの始まりを決めます。 */
   const st = R.map(r => r.dep - (+r.wait || 0) / 60);
   const x0 = Math.min(19, Math.floor(Math.min.apply(null, st)));
   const x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
