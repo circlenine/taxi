@@ -981,6 +981,24 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 .hbh span{font-size:11.5px;color:#FFFFFF;opacity:.9}
 .hblk .lhead{display:none}
 .hbn{font-size:11.5px;color:#FFFFFF;opacity:.85;line-height:1.6;margin:2px 0 4px}
+
+/* 狙いどころ（乗り場 × 時間帯）・ご指摘 2026/11/12 */
+.srow{display:grid;grid-template-columns:24px 1fr 60px 70px;align-items:center;gap:8px;
+  padding:10px 4px;border-bottom:1px solid var(--ink3);text-decoration:none;color:#FFFFFF}
+.srow.top{background:rgba(240,163,59,.10);border-radius:10px;padding-left:8px;padding-right:8px}
+.srow .si{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--kusha);text-align:center}
+.srow .sp b{font-size:16px;font-weight:700;word-break:break-all}
+.srow .sp em{font-style:normal;font-family:var(--mono);font-size:15px;font-weight:700;
+  color:var(--andon);margin-left:7px;white-space:nowrap}
+.srow .sp i{font-style:normal;display:block;font-size:10.5px;opacity:.78;line-height:1.5}
+.srow .sv{font-family:var(--mono);font-size:17px;font-weight:700;color:#6FD8A8;text-align:right}
+.srow .sm{font-family:var(--mono);font-size:13px;font-weight:700;text-align:right}
+.srow .sv i,.srow .sm i{font-style:normal;display:block;font-size:9.5px;opacity:.7;font-weight:400}
+@media(max-width:380px){
+  .srow{grid-template-columns:20px 1fr 52px 62px;gap:6px}
+  .srow .sp b{font-size:14.5px}
+  .srow .sp em{font-size:14px;margin-left:5px}
+}
 .hbh b.pnm{font-family:var(--body);font-size:14.5px;color:#FFFFFF;word-break:break-all}
 .htags{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px}
 .htag{flex:1 1 30%;min-width:98px;background:#0C1422;border:1px solid var(--line);

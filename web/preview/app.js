@@ -2287,6 +2287,57 @@ function longRank(rs){
     .sort((a, b) => b.L - a.L || b.avg - a.avg || b.o.n - a.o.n);
 }
 
+/**
+ * 「乗り場 × 時間帯」の組み合わせを、強い順に並べます。
+ *
+ * ★まーく様のご指摘（2026/11/12）
+ *   「北、南だけだとどこ攻めて良いのか分かりません
+ *     もっと具体的な乗り場でのおすすめの時間帯を導き出してください」
+ *
+ * ★だから、まとまり（北・南）ではなく
+ *   **「本町の25時台」** のような、そのまま走れる形で出します。
+ * ★乗り場ごとでは件数が少ないので、前後1時間をふくめて数えます。
+ * ★1つの乗り場が上位を独り占めしないよう、
+ *   同じ乗り場から出すのは、強いほうから2つまでにします。
+ */
+function spotRank(D, perPlace){
+  const byPlace = {};
+  D.forEach(function (r){ const p = r.place; if (p) (byPlace[p] = byPlace[p] || []).push(r); });
+  const out = [];
+  Object.keys(byPlace).forEach(function (p){
+    const rs = byPlace[p];
+    const hset = [...new Set(rs.map(r => Math.floor(r.dep)))];
+    const mine = [];
+    hset.forEach(function (h){
+      const t = rs.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
+      const o = bandCount(t);
+      if (o.n < HOT_MIN_N) return;
+      mine.push({ p: p, h: h, o: o, L: bandPct(o, 'L'), M: bandPct(o, 'M'),
+                  avg: bandAvg(t), cat: recCat(rs[0]) });
+    });
+    mine.sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg)
+        .slice(0, perPlace || 2)
+        .forEach(x => out.push(x));
+  });
+  return out.sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg || b2.o.n - a2.o.n);
+}
+
+/** 「どこを、何時に」の1行。押すと地図が開きます */
+function spotRows(rank, n){
+  if (!rank.length) {
+    return '<div class="note">3件以上たまった組み合わせが、まだありません。</div>';
+  }
+  return rank.slice(0, n || 10).map(function (x, i){
+    return '<a class="srow' + (i === 0 ? ' top' : '') + '" href="' + mapUrl(x.p) +
+      '" target="_blank" rel="noopener">' +
+      '<span class="si">' + (i + 1) + '</span>' +
+      '<span class="sp"><b>' + esc(x.p) + '</b><em>' + x.h + '時台</em>' +
+      '<i>' + esc(x.cat) + '・' + (x.h - 1) + '〜' + (x.h + 1) + '時の記録 ' + x.o.n + '件</i></span>' +
+      '<span class="sv">' + x.L + '%<i>ロング</i></span>' +
+      '<span class="sm">' + yen(x.avg) + '<i>平均</i></span></a>';
+  }).join('');
+}
+
 /** 並びの1行（押すと地図が開きます） */
 function longRows(rank, n){
   if (!rank.length) return '<div class="note">3件以上たまった乗り場が、まだありません。</div>';
@@ -2330,8 +2381,19 @@ function paneRatio(){
   if (hourPick !== '' && !D.some(r => Math.floor(r.dep) === +hourPick)) hourPick = '';
   const pickRs = (hourPick === '') ? R : D.filter(r => Math.floor(r.dep) === +hourPick);
 
+  /* ★一番上は「どこを、何時に」（ご指摘・2026/11/12）。
+       まとまりではなく、そのまま走れる組み合わせを出します。 */
+  let out = head;
+  if (D.length) {
+    const sr = spotRank(D, 2);
+    out += '<div class="card"><h2>狙いどころ（乗り場 × 時間帯）</h2>' +
+      '<p class="note">ロングが出やすかった<b>「乗り場 と 時間」の組み合わせ</b>を、強い順に出しています。' +
+      '件数が少ないので、前後1時間をふくめて数えています。押すと地図が開きます。</p>' +
+      spotRows(sr, 10) + '</div>';
+  }
+
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
-  let out = head +
+  out +=
     '<div class="card"><h2>' +
     (hourPick === '' ? 'ロングが出やすい乗り場' : hourPick + '時台に ロングが出やすい乗り場') +
     '</h2>' +
