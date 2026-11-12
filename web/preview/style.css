@@ -657,6 +657,11 @@ header > h1, .login .head > h1{white-space:nowrap}
  *    絞ったまま忘れると、売上をまるごと読みちがえます。
  * ============================================================ */
 .filt{margin-bottom:12px}
+/* 営業曜日の区分を切り替えるタグ（ご指示・2026/11/12） */
+/* 図は、カードの端いっぱいまで使います（横画面で収めるため） */
+.scroll.fb{margin:0 -16px;width:calc(100% + 32px);padding:0 0 0 16px}
+.chips.daych{margin-top:6px}
+.chips.daych .chip{font-size:11.5px;padding:5px 9px}
 .filt2{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
 .filt2 > *{min-width:0}
 .fsel{flex:1 1 150px;max-width:100%;font-size:13px;padding:8px 10px;

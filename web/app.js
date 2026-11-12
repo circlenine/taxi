@@ -19,13 +19,14 @@ let scOpt = { line: true, label: true }, onlyMine = false;
  */
 /* ★既定は「今期」（16日〜翌月15日）。全期間だと、閑散期と繁忙期が
      混ざって、見ても意味がありません（ご指示・2026/11/12）。 */
-let onlyPlace = '', period = { mode: 'c0', from: '', to: '' };
+let onlyPlace = '', onlyDay = '', period = { mode: 'c0', from: '', to: '' };
 const FILT_KEY = 'tsukemachi.filter';
 
 function filtLoad(){
   try {
     const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}') || {};
     if (typeof o.place === 'string') onlyPlace = o.place;
+    if (typeof o.day === 'string') onlyDay = o.day;
     if (typeof o.mine === 'boolean') onlyMine = o.mine;
     if (o.period && typeof o.period.mode === 'string') {
       period = { mode: o.period.mode,
@@ -36,11 +37,11 @@ function filtLoad(){
 function filtSave(){
   try {
     localStorage.setItem(FILT_KEY,
-      JSON.stringify({ place: onlyPlace, mine: onlyMine, period: period }));
+      JSON.stringify({ place: onlyPlace, day: onlyDay, mine: onlyMine, period: period }));
   } catch (e) {}
 }
-function filtClear(){ onlyPlace = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
-const filtOn = () => !!onlyPlace || period.mode !== 'c0';
+function filtClear(){ onlyPlace = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
+const filtOn = () => !!onlyPlace || !!onlyDay || period.mode !== 'c0';
 
 /* ---------- 起動 ---------- */
 (async () => {
@@ -369,6 +370,7 @@ const inPeriod = r => {
 const visible = () => records.filter(r =>
   (!onlyMine  || r.user_id === ME.user.id) &&
   (!onlyPlace || r.place === onlyPlace) &&
+  (!onlyDay   || dayCls(r.date) === onlyDay) &&
   inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
 const sorted  = () => [...visible()].sort((a,b) => a.date === b.date ? b.dep - a.dep : (a.date < b.date ? 1 : -1));
@@ -419,6 +421,7 @@ function render(){
     /* ② だれの・どこの分か */
     const who = [];
     if (onlyPlace) who.push(onlyPlace + ' だけ');
+    if (onlyDay) who.push((DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n + ' だけ');
     who.push(onlyMine ? '自分だけ' : '全員');
     who.push(ds.length ? ('記録のある日 ' + days + '日・' + rs.length + '件')
                        : '記録なし');
@@ -577,6 +580,10 @@ function periodOptions(){
          '>自分で決める…</option>');
   return o.join('');
 }
+/* 営業曜日の区分（ご指示・2026/11/12）。すべて／平日／金・祝前日／土／日・祝 */
+const DAY_CHIPS = [{ k:'', n:'全曜日' }, { k:'d-wd', n:'平日' },
+  { k:'d-fri', n:'金・祝前日' }, { k:'d-sat', n:'土' }, { k:'d-sun', n:'日・祝' }];
+
 /* 期間の切り替え（上の区切りの中に出します・ご指示・2026/11/12） */
 const periodBox = () => `
   <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
@@ -592,6 +599,11 @@ const filterChips = () => `<div class="filt">
     <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
     <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
     ${filtOn() ? '<button class="chip warn" id="fClear">絞り込みを解除</button>' : ''}
+  </div>
+  <!-- ★営業曜日の区分でも、すぐ切り替えられるようにします（ご指示・2026/11/12）。
+       平日と土日祝では、売上の出方がまるで違うためです。 -->
+  <div class="chips daych">
+    ${DAY_CHIPS.map(d => `<button class="chip ${onlyDay===d.k?'on':''}" data-day="${d.k}">${d.n}</button>`).join('')}
   </div>
 </div>`;
 
@@ -1176,7 +1188,11 @@ function paneTl(){
        1行を高くし、字も大きくして、日数は最近7日までにします。 */
   /* ★まだ小さいとのご指摘（2026/11/12）。横に動かす形のまま、さらに大きく。
        1行の高さと横幅を広げ、字も大きくします。 */
-  const L = 116, Rp = 20, W = 1180, rowH = 70, H = 56 + ds.length*rowH + 20;
+  /* ★横画面（iPhoneを横にしたとき）で、ちょうど収まる幅にします。
+       字は小さくしません。1時間ぶんの幅から、全体の幅を決めます。 */
+  const L = 116, Rp = 20, rowH = 70;
+  const W = L + Rp + Math.max(1, (x1 - x0)) * 43;
+  const H = 56 + ds.length*rowH + 20;
   /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
        左の端より外には、はみ出させません。 */
   const sx = v => Math.max(L, Math.min(W - Rp, L + (v-x0)/(x1-x0)*(W-L-Rp)));
@@ -1202,7 +1218,7 @@ function paneTl(){
   s += '</svg>';
   return `<div class="card"><h2>一日の流れ</h2>
     <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。帯が明るいほど、時間単価が高くなっています。空白が長い夜は、流すか、つける場所を変える余地があります。</p>
-    ${filterChips()}<div class="snote">← 横にスクロールできます</div><div class="scroll">${s}</div>
+    ${filterChips()}<div class="snote">← 横にスクロールできます（横画面にすると、ぜんぶ入ります）</div><div class="scroll fb">${s}</div>
     <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
 }
 
@@ -1580,6 +1596,9 @@ function wire(){
   const kpl = document.getElementById('ktPlace');
   if (kpl) kpl.onchange = function () {
     grab(); onlyPlace = kpl.value; filtSave(); render(); };
+  document.querySelectorAll('[data-day]').forEach(function (b) {
+    b.onclick = function () { grab(); onlyDay = b.dataset.day; filtSave(); render(); };
+  });
   const kcl = document.getElementById('ktClear');
   if (kcl) kcl.onclick = function () { grab(); onlyPlace = ''; filtSave(); render(); };
   const fc = document.getElementById('fClear');

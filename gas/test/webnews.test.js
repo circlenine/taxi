@@ -1585,5 +1585,44 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
 }
 
 
+
+const W2 = W;
+console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「平日／金・祝前日／土／日・祝
+   *       これは、いまアツいのみならず、各比較のものでも、
+   *       すぐ切り替えができる形にしてください」
+   *   平日と土日祝では、売上の出方がまるで違います。
+   *   混ぜて平均すると、どの数字も当てになりません。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/const DAY_CHIPS = \[/.test(app), '★★★曜日の区分をえらぶタグがある');
+  ['全曜日','平日','金・祝前日','土','日・祝'].forEach(function (n) {
+    t(app.indexOf("n:'" + n + "'") !== -1, '　 ' + n + ' がある');
+  });
+  t(/\(!onlyDay   \|\| dayCls\(r\.date\) === onlyDay\) &&/.test(app),
+    '★★★えらぶと、どの画面でも その曜日だけになる');
+  t(/data-day=/.test(app), '　 押せるようになっている');
+  t(/onlyDay = b\.dataset\.day/.test(app), '　 押したら切り替わる');
+  t(/day: onlyDay/.test(app), '　 えらんだ形を覚える');
+  t(/filtOn = \(\) => !!onlyPlace \|\| !!onlyDay/.test(app),
+    '★★★曜日で絞っているときも「絞り込みを解除」が出る');
+  t(/DAY_CHIPS\.filter\(d => d\.k === onlyDay\)/.test(app),
+    '★★★何で絞っているかを、数のすぐ下に出す');
+  t(/\.chips\.daych/.test(css), '　 その見た目も入っている');
+
+  /* 一日の流れは、横画面で収まる幅に */
+  t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* 4\d;/.test(app),
+    '★★★一日の流れは、時間の数から幅を決める（横画面で収まる）');
+  t(/横画面にすると、ぜんぶ入ります/.test(app), '★★★横画面をすすめる案内を出す');
+  t(/<div class="scroll fb">/.test(app), '　 図は、カードの端いっぱいまで使う');
+  t(/\.scroll\.fb\{margin:0 -16px/.test(fs.readFileSync(path.join(W2,'style.css'),'utf8')),
+    '　 その見た目も入っている');
+}
+
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
