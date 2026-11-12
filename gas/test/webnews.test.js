@@ -1226,6 +1226,31 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
+  /* ★字は、いちばん見慣れたゴシックにそろえます（ご指示・2026/11/13
+       「how to use とロゴ以外、全フォントをいちばんポピュラー
+         （吉野家のメニュータッチタブレットと同じ）ゴシック体に統一」） */
+  {
+    const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/--body:-apple-system[\s\S]{0,160}Hiragino Sans/.test(cs),
+      '★★★ふつうの字は、機種にもとから入っているゴシック');
+    t(/--disp:var\(--body\)/.test(cs), '★★★見出しも、同じゴシック');
+    t(/--mono:var\(--body\)/.test(cs), '★★★数字も、同じゴシック');
+    t(/--goth:'Cinzel',serif/.test(cs), '★★★題と HOW TO USE IT だけ、前の字のまま');
+    t(!/Zen Antique/.test(cs) && !/Share Tech Mono/.test(cs) && !/Zen Kaku Gothic/.test(cs),
+      '★★★前の字は、どこにも残っていない');
+    t(/body\{font-variant-numeric:tabular-nums\}/.test(cs),
+      '★★★ゴシックでも、数字の桁はそろう');
+    ['index.html', 'login.html'].forEach(function (n) {
+      const h7 = fs.readFileSync(path.join(W, n), 'utf8');
+      t(!/Zen\+Antique|Share\+Tech\+Mono|Zen\+Kaku/.test(h7),
+        '　 ' + n + ' も、要らない字を読み込んでいない');
+      t(/family=Cinzel/.test(h7), '　 ' + n + ' は Cinzel だけ読む');
+    });
+    const lg = fs.readFileSync(path.join(W, 'login.html'), 'utf8');
+    t(/HOW TO USE IT/.test(lg), '　 HOW TO USE IT は残っている');
+    t(/\.howhead\{font-family:var\(--goth\)/.test(cs), '　 その字も、前のまま');
+  }
+
   /* ★左右を、1本の線にそろえます（ご指示・2026/11/13
        「この左右の文字だったり、枠だったりが揃ってないのは
          不格好なので、ちゃんと徹底してください」）。

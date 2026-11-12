@@ -27,13 +27,24 @@
   --paper:#FFFFFF;      /* ふつうの字。真っ白 */
   --muted:#FFFFFF;      /* そえ字も、真っ白 */
   --chipoff:#C9C9C9;    /* まだ押していないタグだけ、ちょい薄グレー */
-  --disp:'Zen Antique',serif;
-  --goth:'Cinzel','Zen Antique',serif;   /* 題だけに使う（読める字に変更） */
-  --body:'Zen Kaku Gothic New',system-ui,-apple-system,sans-serif;
-  --mono:'Share Tech Mono',ui-monospace,monospace;
+  /* ★字は、いちばん見慣れたゴシックにそろえます（ご指示・2026/11/13
+       「how to use とロゴ以外、全フォントをいちばんポピュラー
+         （吉野家のメニュータッチタブレットと同じ）ゴシック体に統一」）。
+     ★iPhone なら ヒラギノ角ゴ。機種にもとから入っている字なので、
+       読み込みを待たずに出ますし、いちばん見慣れた形です。 */
+  --body:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN',
+         'Noto Sans JP','Yu Gothic',Meiryo,system-ui,sans-serif;
+  /* 見出しも、数字も、同じゴシックにします */
+  --disp:var(--body);
+  --mono:var(--body);
+  /* 題（TAXI NOTE）と「HOW TO USE IT」だけ、前の字のまま */
+  --goth:'Cinzel',serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
+/* ★数字は、ゴシックでも桁がそろうようにします
+     （表の金額や時刻が、ガタガタ見えないため） */
+body{font-variant-numeric:tabular-nums}
 body{background:var(--ink);color:var(--paper);font-family:var(--body);min-height:100vh;
   font-size:15px;line-height:1.75;
   /* ★古い紙のような、ざらついた黒。上から薄あかりが落ちる */
