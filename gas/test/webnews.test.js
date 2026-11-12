@@ -1980,6 +1980,23 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(!zTip || Number(zTip[1]) < Number(zHead[1]),
     '　 ふきだしは、一番上の行より下', zTip && zTip[1]);
 
+  /* ⑥-9 表グラフ：乗り場の名前を切らない／22時までを1画面に。
+         ご指摘（2026/11/13）
+           「見切れてます、直してください。
+             また、22時まではしっかり1画面で見れるように
+             がんばってちょうせつしてください」
+         長い名前（天満モスバーガー前 など）が、左へはみ出して切れていた。 */
+  t(/function wrapLabel\(/.test(app), '★★★名前を、左の欄に収まる行に折り返す');
+  t(/function fitLabel\(/.test(app), '　 収まらなければ、字を小さくしていく');
+  t(/lines\.map\(\(ln,k\) =>[\s\S]{0,60}<tspan/.test(app), '　 折り返した行を、1行ずつ置く');
+  t(!/…/.test(app.slice(app.indexOf('function heatSvg'), app.indexOf('function paneHeat'))),
+    '★★★「…」で切らない（どこの乗り場か分からなくなる）');
+  t(/22 - hrs\[0\] \+ 1/.test(app), '★★★22時までの本数から、1時間ぶんの幅を決める');
+  t(/const cw   = Math\.max\(28, Math\.min\(64, Math\.floor\(\(vw - lw\) \/ need\)\)\)/.test(app),
+    '★★★画面に収まるまで、マスの幅を詰める');
+  t(/window\.innerWidth/.test(app), '　 いまの画面の広さを見ている');
+  t(/const fz1 = cw >= 50/.test(app), '　 マスが細いときは、中の字も小さくする');
+
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
   t(/scroll-snap-type:x/.test(css), '★★★区切りの良い位置で止まる');

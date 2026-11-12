@@ -1216,8 +1216,51 @@ function fareCls(v){
  *   ・並びは CAT_ORDER のまま。エリアの近い順に上から並びます
  *   ・期間と大カテゴリーは、この画面のタグで切り替えられます
  */
+/**
+ * 乗り場の名前を、左の欄に収まる行に折り返します。
+ *
+ * ★まーく様のご指摘（2026/11/13）「見切れてます、直してください」
+ *   長い名前（天満モスバーガー前 など）が、左にはみ出して切れていました。
+ * ★「…」で切ることはしません（ご指示・2026/11/12）。
+ *   どこの乗り場か分からなくなるためです。折り返して、ぜんぶ出します。
+ *
+ *   幅の見当：全角は字の大きさぶん、半角はその約55%で数えます。
+ */
+function wrapLabel(txt, maxW, fs){
+  const t = String(txt || '');
+  const wOf = c => (/[\x00-\xff\uff61-\uff9f]/.test(c) ? fs * 0.55 : fs);
+  const lines = []; let cur = '', cw2 = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i], cwid = wOf(c);
+    if (cur && cw2 + cwid > maxW) { lines.push(cur); cur = c; cw2 = cwid; }
+    else { cur += c; cw2 += cwid; }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+/** 3行に収まる字の大きさを選びます（収まらなければ、小さくしていきます） */
+function fitLabel(txt, maxW){
+  for (const fs of [12, 11, 10, 9, 8]) {
+    const L = wrapLabel(txt, maxW, fs);
+    if (L.length <= 3) return { fs: fs, lines: L };
+  }
+  const L = wrapLabel(txt, maxW, 8);
+  return { fs: 8, lines: L.slice(0, 3) };
+}
+
 function heatSvg(rows, pls, hrs, mx, sumLabel){
-  const cw = 64, ch = 42, lw = 96;
+  /* ★22時までは、横にスクロールせずに見られるようにします
+       （ご指示・2026/11/13「22時まではしっかり1画面で見れるように」）。
+       画面の広さから、1時間ぶんの幅を決めます。
+       マスが小さくなりすぎないよう、下限は決めてあります。 */
+  const vw   = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
+  const lw   = vw < 300 ? 64 : 76;                 /* 左の名前の欄 */
+  const need = Math.max(1, Math.min(hrs.length, 22 - hrs[0] + 1));  /* 22時までの本数 */
+  const cw   = Math.max(28, Math.min(64, Math.floor((vw - lw) / need)));
+  /* マスが細いときは、中の字も小さくします（はみ出さないように） */
+  const fz1 = cw >= 50 ? 11.5 : cw >= 42 ? 10.5 : cw >= 34 ? 9.5 : 8.5;
+  const fz2 = Math.max(7, fz1 - 2);
+  const ch = 42;
   const w = lw + hrs.length * cw + 8, hgt = 34 + (pls.length + 1) * ch + 8;
   const cell = (p, h) => {
     const t = rows.filter(r => (p === null || r.place === p) && Math.floor(r.dep) === h);
@@ -1228,12 +1271,18 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
   let s = `<svg viewBox="0 0 ${w} ${hgt}" width="${w}" height="${hgt}">`;
   hrs.forEach((h,i) => s += `<text class="axis" x="${lw+i*cw+cw/2}" y="22" text-anchor="middle">${h}時</text>`);
   const row = (label, p, y) => {
-    let o = `<text class="axis" x="${lw-8}" y="${y+ch/2+4}" text-anchor="end" style="font-family:var(--body);font-size:12px">${esc(label)}</text>`;
+    /* ★名前は、左の欄に収まるよう折り返します。切りません。 */
+    const fit = fitLabel(label, lw - 10);
+    const top = y + ch/2 + 4 - (fit.lines.length - 1) * (fit.fs + 1) / 2;
+    let o = `<text class="axis" x="${lw-6}" text-anchor="end"
+      style="font-family:var(--body);font-size:${fit.fs}px">${
+      fit.lines.map((ln,k) => `<tspan x="${lw-6}" y="${top + k*(fit.fs+1)}">${esc(ln)}</tspan>`).join('')
+    }</text>`;
     hrs.forEach((h,i) => { const c = cell(p,h), x = lw+i*cw, t = c.n ? Math.min(1, c.avg/mx) : 0;
       o += `<g data-tip="${esc(label)} ${h}時台&#10;件数 ${c.n}件&#10;1本の平均金額 ${c.n?yen(c.avg):'—'}&#10;平均 待ち ${c.n?Math.round(c.wait)+'分':'—'}">
         <rect x="${x+2}" y="${y+2}" width="${cw-4}" height="${ch-4}" rx="4" fill="${c.n?`rgba(240,163,59,${.10+t*.82})`:'rgba(255,255,255,.03)'}" stroke="#243350"/>
-        ${c.n ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" fill="${t>.55?'#14100A':'#EDE6D8'}">${Math.round(c.avg/100)/10}k</text>
-        <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="9" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${c.n}件</text>` : ''}
+        ${c.n ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" font-size="${fz1}" fill="${t>.55?'#14100A':'#EDE6D8'}">${Math.round(c.avg/100)/10}k</text>
+        <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="${fz2}" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${c.n}件</text>` : ''}
       </g>`; });
     return o; };
   pls.forEach((p,i) => s += row(p, p, 34+i*ch));
