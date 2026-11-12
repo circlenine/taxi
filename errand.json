@@ -1,5 +1,6 @@
 {
-  "id": "2026-11-12-sync12",
-  "do": ["web-sync-go", "web-sync-go", "web-sync-go", "web-sync-try"],
-  "note": "落ちていた12件も、不明のまま台帳へ移します。最後に残りが0件かを数えます"
+  "id": "2026-11-12-evtest1",
+  "do": ["event-test"],
+  "day": "あす",
+  "note": "グループへ出すのと同じ中身を、まーく様の個人LINEにだけ送ります（テスト）"
 }
