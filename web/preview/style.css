@@ -971,6 +971,18 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 .evlinks .mini{text-decoration:none}
 
 /* 最後に、細い画面の手当て（ここが最後に来るようにしています） */
+
+/* 時間帯べつの乗り場ランキング（ご指示・2026/11/12） */
+.hblk{border-top:1px solid var(--ink3);padding:10px 0 4px}
+.hblk:first-of-type{border-top:none}
+.hblk.on{background:rgba(240,163,59,.08);border-radius:10px;padding-left:8px;padding-right:8px}
+.hbh{display:flex;align-items:baseline;gap:9px;margin-bottom:4px;flex-wrap:wrap}
+.hbh b{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--kusha)}
+.hbh span{font-size:11.5px;color:#FFFFFF;opacity:.9}
+.hblk .lhead{display:none}
+.hbn{font-size:11.5px;color:#FFFFFF;opacity:.85;line-height:1.6;margin:2px 0 4px}
+.hbar.on text{font-weight:700}
+
 @media(max-width:560px){.gwrap{grid-template-columns:1fr}}
 @media(max-width:380px){
   nav button{padding:6px 8px}

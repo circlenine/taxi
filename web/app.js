@@ -2271,6 +2271,50 @@ function bandAvg(rs){
  *   どの行にも「平均金額」と「件数」を付けます。
  *   割合だけだと、1件で100%の乗り場が一番上に来てしまうためです。
  */
+/* ★えらんだ時間帯（ご指示・2026/11/12）
+     「ロングが出やすい乗り場と時間帯はリンクさせてほしいです」
+     棒を押すと、その時間帯の乗り場だけになります。空なら全時間です。 */
+let hourPick = '';
+
+/** その集まりを、乗り場ごとの並びにします（3件以上・ロング率の高い順） */
+function longRank(rs){
+  const m = {};
+  rs.forEach(function (r){ const p = r.place; if (p) (m[p] = m[p] || []).push(r); });
+  return Object.keys(m).map(function (p){
+    const o = bandCount(m[p]);
+    return { p: p, o: o, L: bandPct(o, 'L'), avg: bandAvg(m[p]), cat: recCat(m[p][0]) };
+  }).filter(x => x.o.n >= HOT_MIN_N)
+    .sort((a, b) => b.L - a.L || b.avg - a.avg || b.o.n - a.o.n);
+}
+
+/** 並びの1行（押すと地図が開きます） */
+function longRows(rank, n){
+  if (!rank.length) return '<div class="note">3件以上たまった乗り場が、まだありません。</div>';
+  return rank.slice(0, n || 8).map(function (x, i){
+    return '<a class="lrow" href="' + mapUrl(x.p) + '" target="_blank" rel="noopener">' +
+      '<span class="li">' + (i + 1) + '</span>' +
+      '<span class="lp">' + esc(x.p) + '<i>' + esc(x.cat) + '</i></span>' +
+      '<span class="lv">' + x.L + '%</span>' +
+      '<span class="ln">' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></a>';
+  }).join('');
+}
+const longHead = '<div class="lhead"><span class="li"></span><span class="lp">乗り場</span>' +
+  '<span class="lv">ロング率</span><span class="ln">平均金額</span></div>';
+
+/**
+ * パーセントの画面。
+ *
+ * ★まーく様のご指摘（2026/11/12）
+ *   「これで載せて、果たして何がわかるのですか？」
+ *   → 割合そのものでは動けません。動けるのは
+ *     「どこへ行けば、ロング（¥10,000以上）が出やすいか」です。
+ *
+ * ★さらにご指示（2026/11/12）
+ *   「ロングが出やすい乗り場と時間帯はリンクさせてほしいです
+ *     時間帯別に、どこの乗り場がアツいのかをランキング形式に」
+ *   → 時間帯の棒を押すと、その時間の乗り場だけになります。
+ *     下に「時間帯べつの乗り場ランキング」も、まるごと並べます。
+ */
 function paneRatio(){
   const R = visible();
   const head = '<div class="card"><h2>パーセント</h2>' +
@@ -2281,73 +2325,106 @@ function paneRatio(){
   const all = bandCount(R);
   if (!all.n) return head + emptyCard('金額の入った記録が、まだありません。');
 
-  /* ① ロングが出やすい乗り場（3件以上） */
-  const pm = {};
-  R.forEach(function (r){ const p = r.place; if (p) (pm[p] = pm[p] || []).push(r); });
-  const ranked = Object.keys(pm).map(function (p){
-    const o = bandCount(pm[p]);
-    return { p: p, o: o, L: bandPct(o, 'L'), avg: bandAvg(pm[p]), cat: recCat(pm[p][0]) };
-  }).filter(x => x.o.n >= HOT_MIN_N).sort((a, b) => b.L - a.L || b.avg - a.avg);
-
-  const topHTML = ranked.length
-    ? ranked.slice(0, 8).map(function (x, i){
-        return '<a class="lrow" href="' + mapUrl(x.p) + '" target="_blank" rel="noopener">' +
-          '<span class="li">' + (i + 1) + '</span>' +
-          '<span class="lp">' + esc(x.p) + '<i>' + esc(x.cat) + '</i></span>' +
-          '<span class="lv">' + x.L + '%</span>' +
-          '<span class="ln">' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></a>';
-      }).join('')
-    : '<div class="note">3件以上たまった乗り場が、まだありません。</div>';
-
-  let out = head +
-    '<div class="card"><h2>ロングが出やすい乗り場</h2>' +
-    '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと地図が開きます。</p>' +
-    '<div class="lhead"><span class="li"></span><span class="lp">乗り場</span>' +
-    '<span class="lv">ロング率</span><span class="ln">平均金額</span></div>' +
-    topHTML + '</div>';
-
-  /* ② ロングが出やすい時間帯 */
   const D = R.filter(hasDep);
+  /* えらんだ時間帯の記録が無くなっていたら、全時間に戻します */
+  if (hourPick !== '' && !D.some(r => Math.floor(r.dep) === +hourPick)) hourPick = '';
+  const pickRs = (hourPick === '') ? R : D.filter(r => Math.floor(r.dep) === +hourPick);
+
+  /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
+  let out = head +
+    '<div class="card"><h2>' +
+    (hourPick === '' ? 'ロングが出やすい乗り場' : hourPick + '時台に ロングが出やすい乗り場') +
+    '</h2>' +
+    '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと地図が開きます。</p>' +
+    (hourPick === ''
+      ? '<p class="note">下の棒を押すと、その時間帯だけになります。</p>'
+      : '<div class="chips"><button class="chip warn" data-hr="">全時間に戻す</button></div>') +
+    longHead + longRows(longRank(pickRs), 8) + '</div>';
+
+  /* ② ロングが出やすい時間帯（押すと、上の並びがその時間になります） */
+  let hrs = [];
   if (D.length) {
     const hs = D.map(r => Math.floor(r.dep));
-    const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
+    for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
     const hrow = hrs.map(function (h){
       const t = D.filter(r => Math.floor(r.dep) === h);
       return { h: h, o: bandCount(t), avg: bandAvg(t) };
     }).filter(x => x.o.n >= HOT_MIN_N);
     const bestH = hrow.slice().sort((a, b) => bandPct(b.o, 'L') - bandPct(a.o, 'L'))[0];
 
-    /* 積み上げの図。★字が重ならないよう、下に2行ぶんの場所を取ります */
     const cw = 54, L = 10, T = 22, BH = 210;
     const W = L + hrs.length * cw + 12, H = T + BH + 52;
     let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">';
     hrs.forEach(function (h, i){
       const o = bandCount(D.filter(r => Math.floor(r.dep) === h));
       const x = L + i * cw;
+      const on = (hourPick !== '' && +hourPick === h);
+      /* 押せるように、1本まるごとを囲みます */
+      g += '<g class="hbar' + (on ? ' on' : '') + '" data-hr="' + h + '" style="cursor:pointer">';
+      g += '<rect x="' + (x + 2) + '" y="' + (T - 6) + '" width="' + (cw - 4) + '" height="' + (BH + 46) +
+           '" rx="8" fill="' + (on ? 'rgba(240,163,59,.16)' : 'transparent') + '"/>';
       g += '<text class="axis" x="' + (x + cw/2) + '" y="' + (T + BH + 20) + '" text-anchor="middle">' + h + '時</text>';
       g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 38) + '" text-anchor="middle">' + o.n + '件</text>';
-      if (!o.n) return;
-      let y = T + BH;
-      BANDS.forEach(function (bd){
-        const pp = bandPct(o, bd.k), hh = BH * pp / 100;
-        if (!hh) return;
-        y -= hh;
-        g += '<g data-tip="' + h + '時台 ' + bd.n + '&#10;' + o[bd.k] + '件（' + pp + '%）">' +
-          '<rect x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh + '" fill="' + bd.c + '" rx="3"/>' +
-          (hh > 18 ? '<text class="glab" x="' + (x + cw/2) + '" y="' + (y + hh/2 + 4) + '" text-anchor="middle" fill="#14100A">' + Math.round(pp) + '</text>' : '') +
-          '</g>';
-      });
+      if (o.n) {
+        let y = T + BH;
+        BANDS.forEach(function (bd){
+          const pp = bandPct(o, bd.k), hh = BH * pp / 100;
+          if (!hh) return;
+          y -= hh;
+          g += '<rect x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh +
+               '" fill="' + bd.c + '" rx="3"/>' +
+            (hh > 18 ? '<text class="glab" x="' + (x + cw/2) + '" y="' + (y + hh/2 + 4) +
+              '" text-anchor="middle" fill="#14100A">' + Math.round(pp) + '</text>' : '');
+        });
+      }
+      g += '</g>';
     });
     g += '</svg>';
     out += '<div class="card"><h2>ロングが出やすい時間帯</h2>' +
       (bestH ? '<p class="note">いまのところ、一番ロングが出ているのは <b>' + bestH.h +
         '時台</b>（ロング ' + bandPct(bestH.o, 'L') + '%・平均 ' + yen(bestH.avg) + '・' + bestH.o.n + '件）です。</p>' : '') +
+      '<p class="note"><b>棒を押すと、その時間の乗り場だけ</b>になります。</p>' +
       '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
       '<div class="scroll fb">' + g + '</div>' +
       '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
+
+    /* ③ 時間帯べつの乗り場ランキング（ご指示・2026/11/12）
+         ★その1時間だけで数えると、乗り場ごとでは3件に届かず、
+           ほとんどが空になってしまいました。
+           だから **前後1時間をふくめて** 数えます。
+           何時から何時までの記録かは、必ず画面に書きます。 */
+    let hb = '';
+    hrs.forEach(function (h){
+      const t = D.filter(r => Math.floor(r.dep) === h);
+      const o = bandCount(t);
+      if (!o.n) return;
+      const wide = D.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
+      const rk = longRank(wide);
+      /* 3件に届かない乗り場は、割合を出さずに「件数」だけ 参考に出します。
+         1件を「100%」と書くと、それを見て走った人の売上が変わります。 */
+      const thin = [...new Set(t.map(r => r.place).filter(Boolean))]
+        .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
+        .sort((a2, b2) => b2.n - a2.n).slice(0, 5);
+      hb += '<div class="hblk' + (hourPick !== '' && +hourPick === h ? ' on' : '') + '">' +
+        '<div class="hbh"><b>' + h + '時台</b>' +
+        '<span>ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t)) + '</span></div>' +
+        (rk.length
+          ? '<div class="hbn">' + (h - 1) + '〜' + (h + 1) + '時の記録から</div>' + longRows(rk, 3)
+          : (thin.length
+              ? '<div class="hbn">まだ3件そろった乗り場がありません。この時間に入っている所（件数）：' +
+                thin.map(x => esc(x.p) + ' ' + x.n).join('・') + '</div>'
+              : '<div class="hbn">まだ記録がありません。</div>')) +
+        '</div>';
+    });
+    if (hb) {
+      out += '<div class="card"><h2>時間帯べつ 乗り場ランキング</h2>' +
+        '<p class="note">その時間に、ロングが出やすかった乗り場の上位3か所です。' +
+        '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
+        hb + '</div>';
+    }
   }
 
-  /* ③ ぜんぶの内訳 */
+  /* ④ ぜんぶの内訳 */
   const tiles = BANDS.map(function (bd){
     return '<div class="kpi"><small>' + bd.n + '<i>' + bd.d + '</i></small>' +
       '<b style="color:' + bd.c + '">' + bandPct(all, bd.k) + '%</b>' +
@@ -2358,7 +2435,7 @@ function paneRatio(){
     '<p class="note">' + all.n + '件・平均 ' + yen(bandAvg(R)) + '。' +
     (all.unk ? '金額が不明な ' + all.unk + '件は、外しています。' : '') + '</p></div>';
 
-  /* ④ エリアごと（北・南・他 → 中カテゴリー → 乗り場） */
+  /* ⑤ エリアごと（北・南・他 → 中カテゴリー → 乗り場） */
   let pbody = '';
   BIG_CATS.forEach(function (bg){
     const rows = R.filter(r => recBig(r) === bg.k);
@@ -2509,6 +2586,15 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 function wire(){
   fabWire();
+  /* ★時間帯の棒を押すと、その時間の乗り場だけになります（ご指示・2026/11/12） */
+  document.querySelectorAll('[data-hr]').forEach(function (b) {
+    b.onclick = function () {
+      hourPick = b.dataset.hr === '' ? '' : String(+b.dataset.hr);
+      render();
+      const c = document.querySelector('#panes .card h2');
+      if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
   /* 天気の細かさ（15分／1時間／今日明日／2週間） */
   document.querySelectorAll('[data-wxsp]').forEach(function (b) {
     b.onclick = function () { wxSpan = b.dataset.wxsp; render(); };
