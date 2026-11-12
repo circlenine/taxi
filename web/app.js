@@ -1543,11 +1543,35 @@ function omRead(j, now){
                    now: t === nowH });
       if (hours.length >= 14) break;
     }
+    /* 15分ごと（これから先の分だけ） */
+    const q = [];
+    const mq = j.minutely_15 || {};
+    const mt = mq.time || [];
+    for (let i = 0; i < mt.length; i++) {
+      const w = String(mt[i]).split(/[-T:]/).map(Number);
+      const tt = new Date(w[0], w[1] - 1, w[2], w[3], w[4] || 0).getTime();
+      if (tt < d.getTime() - 15 * 60000) continue;
+      const ic2 = wcIcon(mq.weather_code ? mq.weather_code[i] : 0);
+      q.push({ lb: pad(w[3]) + ':' + pad(w[4] || 0), icon: ic2.e,
+               temp: mq.temperature_2m ? mq.temperature_2m[i] : null,
+               mm: mq.precipitation ? mq.precipitation[i] : null });
+      if (q.length >= 24) break;
+    }
+    /* 日ごと（2週間ぶん） */
+    const dys = [];
+    const dd = j.daily || {};
+    const dt = dd.time || [];
+    for (let i = 0; i < dt.length; i++) {
+      const ic3 = wcIcon(dd.weather_code ? dd.weather_code[i] : 0);
+      dys.push({ d: String(dt[i]), icon: ic3.e,
+                 max: (dd.temperature_2m_max || [])[i], min: (dd.temperature_2m_min || [])[i],
+                 pop: (dd.precipitation_probability_max || [])[i] });
+    }
     const cur = j.current || {};
     const ci  = wcIcon(cur.weather_code);
     const dl  = j.daily || {};
     const h0  = hours[0] || null;
-    return { ok: true, icon: ci.e, name: ci.n, temp: cur.temperature_2m,
+    return { ok: true, icon: ci.e, name: ci.n, temp: cur.temperature_2m, q: q, days: dys,
              max: (dl.temperature_2m_max || [])[0], min: (dl.temperature_2m_min || [])[0],
              pop: h0 ? h0.pop : null, span: h0 ? (h0.h + '時台') : '',
              rain: /雨|雪|雷/.test(ci.n) || (h0 && h0.pop !== null && h0.pop >= 50),
@@ -1593,21 +1617,136 @@ function wxNowHTML(){
     radarBtn();
 }
 
+/* ★天気の細かさ（ご指示・2026/11/12）
+     「できれば、5分ごと、1時間ごと、今日明日、2週間 で切り替えできませんか？」
+   ★15分ごとが、無料で取れる一番細かい刻みです。5分ごとは出ていないので、
+     出せないものを「5分」と書かず、正直に「15分」と書きます。 */
+const WX_SPANS = [
+  { k: 'm15', n: '15分' }, { k: 'h1', n: '1時間' },
+  { k: 'd2',  n: '今日・明日' }, { k: 'd14', n: '2週間' }
+];
+let wxSpan = 'h1';
+
+/** 15分ごと（これから6時間ぶん） */
+function omQuarter(o){
+  const q = o.q || [];
+  return q.slice(0, 24);
+}
+/** 日ごと（今日から n 日ぶん） */
+function omDays(o, n){
+  return (o.days || []).slice(0, n);
+}
+
 /** 営業時間（17時〜翌4時）の、1時間ごとの天気。横に流して見ます */
 function wxHoursHTML(){
   const o = hotOm;
-  if (!o || !o.ok || !o.hours.length) return wxNextHTML(hotWx);
-  const cells = o.hours.map(function (x){
-    const pop = (x.pop === null) ? '—' : (x.pop + '%');
-    return '<div class="wxh' + (x.now ? ' now' : '') + '">' +
-      '<small>' + x.h + '時</small>' +
-      '<div class="wi">' + x.icon + '</div>' +
-      '<b>' + tmp(x.temp) + '</b>' +
-      '<span class="' + (x.pop !== null && x.pop >= 50 ? 'rain' : '') + '">' + pop + '</span>' +
-      '</div>';
-  }).join('');
-  return '<div class="scroll fb"><div class="wxhs">' + cells + '</div></div>' +
-         '<p class="note">翌4時まで。横にスクロールできます。</p>';
+  if (!o || !o.ok) return wxNextHTML(hotWx);
+  const tabs = '<div class="chips wxsp">' + WX_SPANS.map(function (x){
+    return '<button class="chip ' + (wxSpan === x.k ? 'on' : '') + '" data-wxsp="' + x.k + '">' +
+      x.n + '</button>';
+  }).join('') + '</div>';
+
+  let cells = '', note = '';
+  if (wxSpan === 'm15') {
+    const q = omQuarter(o);
+    if (!q.length) return tabs + '<p class="note">15分ごとの分が、いま取れていません。</p>';
+    cells = q.map(function (x){
+      const rain = (x.mm !== null && x.mm !== undefined && x.mm > 0);
+      return '<div class="wxh">' +
+        '<small>' + esc(x.lb) + '</small><div class="wi">' + x.icon + '</div>' +
+        '<b>' + tmp(x.temp) + '</b>' +
+        '<span class="' + (rain ? 'rain' : '') + '">' +
+        (x.mm === null || x.mm === undefined ? '—' : (Math.round(x.mm * 10) / 10) + 'mm') +
+        '</span></div>';
+    }).join('');
+    note = 'これから6時間を15分ごとに。数字は雨の量（mm）です。';
+  } else if (wxSpan === 'd2' || wxSpan === 'd14') {
+    const n = (wxSpan === 'd2') ? 2 : 14;
+    const ds = omDays(o, n);
+    if (!ds.length) return tabs + '<p class="note">日ごとの分が、いま取れていません。</p>';
+    cells = ds.map(function (x){
+      const hot = (x.pop !== null && x.pop !== undefined && x.pop >= 50);
+      return '<div class="wxh wide ' + dayCls(x.d) + '">' +
+        '<small>' + esc(fmtD(x.d)) + '</small><div class="wi">' + x.icon + '</div>' +
+        '<b>' + tmp(x.max) + '<i>' + tmp(x.min) + '</i></b>' +
+        '<span class="' + (hot ? 'rain' : '') + '">' +
+        (x.pop === null || x.pop === undefined ? '—' : x.pop + '%') + '</span></div>';
+    }).join('');
+    note = (n === 2 ? '今日と明日。' : 'これから2週間。') + '上が最高、下が最低の気温です。';
+  } else {
+    if (!o.hours.length) return tabs + '<p class="note">1時間ごとの分が、いま取れていません。</p>';
+    cells = o.hours.map(function (x){
+      const pop = (x.pop === null) ? '—' : (x.pop + '%');
+      return '<div class="wxh' + (x.now ? ' now' : '') + '">' +
+        '<small>' + x.h + '時</small><div class="wi">' + x.icon + '</div>' +
+        '<b>' + tmp(x.temp) + '</b>' +
+        '<span class="' + (x.pop !== null && x.pop >= 50 ? 'rain' : '') + '">' + pop + '</span>' +
+        '</div>';
+    }).join('');
+    note = '翌4時まで。横にスクロールできます。';
+  }
+  return tabs + '<div class="scroll fb"><div class="wxhs">' + cells + '</div></div>' +
+         '<p class="note">' + note + '</p>';
+}
+
+/**
+ * 雨雲レーダー（いまの雨）を、画面の中に出します。
+ *
+ * ★まーく様のご指示（2026/11/12）
+ *   「リアルタイムの雨雲レーダーも、webサイト上に載せられるのなら
+ *     大変ありがたいです」
+ *
+ * ★地図は OpenStreetMap、雨雲は RainViewer。どちらも無料・鍵なしです。
+ *   読めなくても、下の「気象庁で見る」ボタンは残ります（止まらない形）。
+ */
+function radarCard(){
+  return '<div class="card"><h2>雨雲レーダー</h2>' +
+    '<p class="note">いまの雨雲です。大阪のまん中を出しています。指で動かせます。</p>' +
+    '<div id="radarMap" class="radarmap">読み込んでいます…</div>' +
+    '<div class="actions rdr"><span class="msg" id="radarTime"></span>' +
+    '<button class="mini" id="radar">気象庁で見る</button></div></div>';
+}
+
+/* 地図を出す係。1枚の画面に1回だけ組み立てます */
+let radarMap = null;
+function radarBoot(){
+  const box = document.getElementById('radarMap');
+  if (!box) { radarMap = null; return; }
+  if (radarMap && radarMap._box === box) return;
+  const go = function (){
+    try {
+      if (typeof L === 'undefined') { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; return; }
+      box.textContent = '';
+      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 10);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 15, attribution: '© OpenStreetMap' }).addTo(m);
+      m._box = box; radarMap = m;
+      fetch('https://api.rainviewer.com/public/weather-maps.json', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(function (j){
+          const fr = (j && j.radar && j.radar.past) ? j.radar.past : [];
+          const last = fr[fr.length - 1];
+          if (!last) return;
+          L.tileLayer(j.host + last.path + '/256/{z}/{x}/{y}/2/1_1.png',
+            { opacity: 0.65, maxZoom: 15 }).addTo(m);
+          const t = new Date(last.time * 1000);
+          const el = document.getElementById('radarTime');
+          if (el) el.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' の雨雲';
+        })
+        .catch(function (){});
+      setTimeout(function (){ try { m.invalidateSize(); } catch (e) {} }, 200);
+    } catch (e) { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; }
+  };
+  /* Leaflet をまだ読んでいなければ、ここで読みます（無料・鍵なし） */
+  if (typeof L !== 'undefined') return go();
+  const css = document.createElement('link');
+  css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css';
+  document.head.appendChild(css);
+  const sc = document.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js';
+  sc.onload = go;
+  sc.onerror = function (){ box.textContent = '地図が読めませんでした。下のボタンから見られます。'; };
+  document.head.appendChild(sc);
 }
 
 function paneHot(now){
@@ -1629,7 +1768,7 @@ function paneHot(now){
   const head = '<div class="card"><h2>今の狙い目</h2>' +
     '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
     '全期間の表は【表グラフ】のほうです。</p>' +
-    wxNowHTML() + wxHoursHTML() + '</div>';
+    wxNowHTML() + wxHoursHTML() + '</div>' + radarCard();
 
   /* ② いまの時刻と、その時刻の狙い目 */
   const clock = '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
@@ -1772,9 +1911,10 @@ const WX_URL = 'https://www.jma.go.jp/bosai/forecast/data/forecast/270000.json';
 /* 大阪市のまん中（梅田あたり）の天気を見ます */
 const OM_URL = 'https://api.open-meteo.com/v1/forecast?latitude=34.7025&longitude=135.4959' +
   '&current=temperature_2m,weather_code' +
+  '&minutely_15=temperature_2m,precipitation,weather_code' +
   '&hourly=temperature_2m,precipitation_probability,weather_code' +
-  '&daily=temperature_2m_max,temperature_2m_min' +
-  '&timezone=Asia%2FTokyo&forecast_days=2';
+  '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
+  '&timezone=Asia%2FTokyo&forecast_days=14';
 /* いまの気温は、気象庁のアメダス（大阪・62078）から。10分ごとに出ています */
 let hotAmd = null;
 const AMD_T = 'https://www.jma.go.jp/bosai/amedas/data/latest_time.txt';
@@ -2369,6 +2509,12 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 function wire(){
   fabWire();
+  /* 天気の細かさ（15分／1時間／今日明日／2週間） */
+  document.querySelectorAll('[data-wxsp]').forEach(function (b) {
+    b.onclick = function () { wxSpan = b.dataset.wxsp; render(); };
+  });
+  /* 雨雲レーダーの地図は、その画面にいるときだけ組み立てます */
+  if (tab === 'hot') radarBoot(); else radarMap = null;
   const dep = $('#f_dep');
   const upd = () => {
     const d = parseT(dep ? dep.value : '');
@@ -2886,22 +3032,32 @@ function newsBoot(){
 }
 
 function paneNews(){
-  let list = [];
+  let gd = [], list = [];
+  try { gd = (typeof APP_GUIDE !== 'undefined' && APP_GUIDE) ? APP_GUIDE : []; } catch (e) { gd = []; }
   try { list = (typeof APP_NEWS !== 'undefined' && APP_NEWS) ? APP_NEWS : []; } catch (e) { list = []; }
-  if (!list.length) return emptyCard('お知らせはまだありません。');
-  const body = list.map(n => `<div class="newsv"><b>${esc(n.v)}</b><small>${esc(n.d)}</small></div>
-    <ul class="newsl">${(n.items || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('');
-  return `<div class="card"><h2>お知らせ・使い方</h2>
-    <p class="note">はじめての方へ。基本的な使い方です。
-      いま動いているのは <b>${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')}</b> です。</p>
-    ${body}
-    <!-- ★顔とひとことの一覧（ご指示・2026/11/11）
-           「セリフと顔の各パターンの一覧を
-             別ファイルか何かで見られる形にしてもらえますか」 -->
-    <div class="actions">
-      <a class="btn ghost" href="/say" target="_blank" rel="noopener"
-         style="text-decoration:none">右上の顔とひとこと、すべて見る</a>
-    </div></div>`;
+
+  /* ★長い文の並びをやめ、カードにしました（ご指摘・2026/11/12）。
+       走る前に、知りたい所だけを拾って読めることが大事です。 */
+  const cards = gd.map(function (g){
+    return '<div class="gcard"><div class="gh"><span class="gi">' + g.i + '</span>' +
+      esc(g.h) + '</div><ul class="gl">' +
+      (g.l || []).map(function (x){ return '<li>' + esc(x) + '</li>'; }).join('') +
+      '</ul></div>';
+  }).join('');
+
+  const news = list.map(function (n){
+    return '<div class="newsv"><b>' + esc(n.v) + '</b><small>' + esc(n.d) + '</small></div>' +
+      '<ul class="newsl">' + (n.items || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+  }).join('');
+
+  return '<div class="card"><h2>使い方</h2>' +
+    '<p class="note">知りたい所だけ読めば大丈夫です。いま動いているのは <b>' +
+    esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + '</b> です。</p>' +
+    '<div class="gwrap">' + cards + '</div></div>' +
+    '<div class="card"><h2>お知らせ</h2>' + (news || '<div class="note">まだありません。</div>') +
+    '<div class="actions">' +
+    '<a class="btn ghost" href="/say" target="_blank" rel="noopener" style="text-decoration:none">' +
+    '右上の顔とひとこと、すべて見る</a></div></div>';
 }
 
 /* ★ここも、画面の無いところで落ちないようにします */

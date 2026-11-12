@@ -357,5 +357,30 @@ console.log('■ 近ごろの記録を先に見る（ご指示・2026/11/12）')
   ok(H.paneHot(now).indexOf('この1か月＋去年の同じ月') !== -1, '★★★何を見たかを画面に書く');
 }
 
+console.log('■ 天気の細かさを切り替えられる（ご指示・2026/11/12）');
+{
+  ok(/const WX_SPANS = \[/.test(appSrc), '★★★切り替えのタグがある');
+  ['15分','1時間','今日・明日','2週間'].forEach(function (n) {
+    ok(appSrc.indexOf("n: '" + n + "'") !== -1, '　 ' + n + ' がある');
+  });
+  ok(/minutely_15=/.test(appSrc), '★★★15分ごとも読みにいく');
+  ok(/forecast_days=14/.test(appSrc), '★★★2週間ぶんも読みにいく');
+  /* ★5分ごとは、無料では出ていません。出せないものを「5分」と書かないこと */
+  ok(appSrc.indexOf("n: '5分'") === -1, '★★★出せない「5分」は、名乗らない');
+  ok(/data-wxsp/.test(appSrc), '　 押せるようになっている');
+}
+
+console.log('■ 雨雲レーダーを、画面の中に出す（ご指示・2026/11/12）');
+{
+  ok(/function radarCard\(\)/.test(appSrc), '★★★画面の中に地図を出す');
+  ok(/id="radarMap"/.test(appSrc), '　 置き場がある');
+  ok(/api\.rainviewer\.com/.test(appSrc), '★★★雨雲は RainViewer（無料・鍵なし）');
+  ok(/tile\.openstreetmap\.org/.test(appSrc), '★★★地図は OpenStreetMap（無料・鍵なし）');
+  ok(!/api_key|apikey=|token=/i.test(appSrc.slice(appSrc.indexOf('function radarBoot'),
+     appSrc.indexOf('function radarBoot') + 2200)), '★★★鍵は、どこにも書いていない');
+  ok(/地図が読めませんでした/.test(appSrc), '★★★読めなくても、止まらずに知らせる');
+  ok(/leaflet\/1\.9\.4/.test(appSrc), '　 地図の道具は、版を決めて読む');
+}
+
 console.log(fail ? `\n☓ ${fail}件 こけました` : '\n✓ ぜんぶ通りました');
 process.exit(fail ? 1 : 0);
