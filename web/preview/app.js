@@ -506,7 +506,7 @@ const emptyCard = t => `<div class="card"><div class="empty">${t}</div></div>`;
 
 /* ---- 記録する ---- */
 function paneIn(){
-  const f = form, pl = places();
+  const f = form, pl = myPlaces();
   const chip = (v,cur,fld,suf='') => `<button class="chip ${String(cur)===String(v)?'on':''}" data-set="${fld}" data-val="${v}">${v}${suf}</button>`;
   return `
   <div class="card">
@@ -524,7 +524,7 @@ function paneIn(){
           return sug ? `<div class="psug">もしかして、<b>${esc(sug)}</b> と同じですか？
             <button class="chip on" data-psug="${esc(sug)}">${esc(sug)} にする</button>
             <button class="chip" data-pkeep="1">このままでよい</button></div>` : ''; })()}
-        <div class="chips">${pl.slice(0,6).map(p => `<button class="chip ${f.place===p?'on':''}" data-set="place" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>
+        <div class="chips">${pl.map(p => `<button class="chip ${f.place===p?'on':''}" data-set="place" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>
         <!-- ★場所を地図で確かめる（ご指示・2026/11/11） -->
         <div class="chips">
           <a class="chip ${f.place ? '' : 'off'}" id="f_map"
@@ -542,14 +542,16 @@ function paneIn(){
              打つ順が 違うと、手が止まります。 -->
       <div class="f w2"><label>乗車時間（分）</label>
         <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
-        <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.ride,'ride')).join('')}</div></div>
+        <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.ride,'ride')).join('')}</div>
+        <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.ride,'ride')).join('')}</div></div>
       <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
       <div class="f w2"><label>乗車金額（円）</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
         <div class="hint" id="rateHint"></div></div>
       <div class="f w2"><label>待ち時間（分）</label>
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
-        <div class="chips mins">${MIN_CHIPS.map(v => chip(v,f.wait,'wait')).join('')}</div></div>
+        <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.wait,'wait')).join('')}</div>
+        <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.wait,'wait')).join('')}</div></div>
 
       <!-- ★記録用スプレッドシートの「種」と「他」に合わせた欄（2026/10/26 追加） -->
       <div class="f w2"><label>種類</label>
@@ -650,6 +652,30 @@ function canonPlace(p){
   const m = placeCanonMap();
   return m[pkey(p)] || String(p || '');
 }
+/*
+ * その人が よく使う乗り場（まーく様のご指示・2026/11/12
+ *   「各人にあわせた、これまででの入力が多いもののタブを入れてください」）
+ *
+ * ★人によって、つける所はまるで違います。
+ *   全員ぶんから出すと、自分が使わない所ばかり並びます。
+ * ★まだ自分の記録が無い人には、全員ぶんから出します。
+ */
+function myPlaces(n){
+  const max = n || 8;
+  const canon = placeCanonMap();
+  const mine = {}, all = {};
+  records.forEach(function (r) {
+    if (!r.place) return;
+    const name = canon[pkey(r.place)] || r.place;
+    all[name] = (all[name] || 0) + 1;
+    if (ME && ME.user && r.user_id === ME.user.id) mine[name] = (mine[name] || 0) + 1;
+  });
+  const pick = Object.keys(mine).length ? mine : all;
+  return Object.keys(pick)
+    .sort((a, b) => pick[b] - pick[a] || (a < b ? -1 : 1))
+    .slice(0, max);
+}
+
 function placeOptions(){
   const canon = placeCanonMap(), n = {};
   records.forEach(function (r) {

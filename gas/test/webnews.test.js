@@ -1759,5 +1759,31 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
 }
 
 
+
+console.log('■ 分のタグの並びと、乗り場のタグ（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「時間タブですが、45までを1行にして90まで入れてと伝えてませんでしたか」
+   *     「乗車場所のタブですが、各人にあわせた、
+   *       これまででの入力が多いもののタブを入れてください」
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  /* 45までを1行目、50以降を2行目。行を分けて出します */
+  t((app.match(/MIN_CHIPS\.slice\(0,10\)/g) || []).length === 2,
+    '★★★45までを1行目に出す（待ち・乗車の2か所）');
+  t((app.match(/MIN_CHIPS\.slice\(10\)/g) || []).length === 2,
+    '★★★50から90までを2行目に出す');
+  t(!/MIN_CHIPS\.map\(v => chip/.test(app), '　 ひとつづきで出す形は、残っていない');
+
+  /* 乗り場のタグは、その人が よく使う所 */
+  t(/function myPlaces\(/.test(app), '★★★その人が よく使う乗り場を出す係がある');
+  t(/const f = form, pl = myPlaces\(\);/.test(app), '★★★入力の画面で、それを使っている');
+  t(/r\.user_id === ME\.user\.id\) mine\[name\]/.test(app), '　 自分の記録から数えている');
+  t(/Object\.keys\(mine\)\.length \? mine : all/.test(app),
+    '★★★まだ自分の記録が無い人には、全員ぶんから出す');
+}
+
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
