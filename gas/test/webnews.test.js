@@ -1832,5 +1832,29 @@ console.log('■ 発車時間を、押すだけで入れる（ご指示・2026/1
 }
 
 
+
+console.log('■ よく出る乗車金額のタグ（ご指示・2026/11/12）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/const FARE_CHIPS = \[600,700,800,900\]\.concat\(/.test(app),
+    '★★★600〜900 から始まる');
+  t(/1000 \+ i \* 100/.test(app) && /length: 16/.test(app),
+    '★★★1000から2500まで、100円きざみ');
+  t(/FARE_CHIPS\.map\(v => chip\(v,f\.fare,'fare'\)\)/.test(app),
+    '★★★乗車金額の欄に、そのタグが出る');
+  t(/\.chips\.fares \.chip\{/.test(css), '　 その見た目も入っている');
+
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext(app.slice(app.indexOf('const FARE_CHIPS = ['),
+                            app.indexOf('const DEP_H =')), box);
+  const F = vm.runInContext('FARE_CHIPS', box);
+  t(F.length === 20, '★★★ぜんぶで20個', F.length);
+  t(F[0] === 600 && F[3] === 900, '　 600・700・800・900');
+  t(F[4] === 1000 && F[19] === 2500, '　 1000から2500まで', F[4] + '〜' + F[19]);
+}
+
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

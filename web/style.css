@@ -796,6 +796,10 @@ tr.w-mark  td{background:#26262A}   /* まーく様 … 灰 */
 
 /* ★分数のタグ。0〜60分を2行に収めるため、小さく・字は数字だけ
      （ご指示・2026/11/12「2行分に収まりませんか」）。 */
+/* よく出る金額のタグ（ご指示・2026/11/12）。数が多いので小さめに */
+.chips.fares{gap:3px}
+.chips.fares .chip{font-size:11.5px;padding:6px 0;min-width:44px;letter-spacing:0}
+@media(max-width:360px){ .chips.fares .chip{min-width:40px;font-size:11px} }
 .chips.mins{gap:3px}
 .chips.mins .chip{font-size:12px;padding:6px 0;min-width:34px;letter-spacing:0}
 @media(max-width:360px){ .chips.mins .chip{min-width:31px;font-size:11.5px} }
