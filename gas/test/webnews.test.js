@@ -1796,5 +1796,41 @@ console.log('■ 分のタグの並びと、乗り場のタグ（ご指示・202
 }
 
 
+
+console.log('■ 発車時間を、押すだけで入れる（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「発車時間のタブですが、時間と、分数とで、入れたら追加で入れるように
+   *       時 17〜04／分 00〜55（5分きざみ）」
+   *   走りながら入れるので、字を打たせません。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(/const DEP_H = \['17','18','19','20','21','22','23','00','01','02','03','04'\]/.test(app),
+    '★★★時は 17〜23、00〜04');
+  t(/const DEP_M = \['00','05','10','15','20','25','30','35','40','45','50','55'\]/.test(app),
+    '★★★分は 5分きざみで 00〜55');
+  t(/data-dh=/.test(app) && /data-dm=/.test(app), '★★★どちらも押せる');
+  t(/form\.dep = depSet\(form\.dep, b\.dataset\.dh, null\)/.test(app), '　 時を押すと、時だけ変わる');
+  t(/form\.dep = depSet\(form\.dep, null, b\.dataset\.dm\)/.test(app), '　 分を押すと、分だけ変わる');
+
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(app.slice(app.indexOf('function depPart('),
+                            app.indexOf('function depSet(') +
+                            app.slice(app.indexOf('function depSet(')).indexOf('\n}') + 2), box);
+  const S = (v,h,m) => vm.runInContext('depSet(' + JSON.stringify(v) + ',' +
+    (h===null?'null':JSON.stringify(h)) + ',' + (m===null?'null':JSON.stringify(m)) + ')', box);
+  t(S('', '25', null) === '2500', '★★★空のときに 時を押すと、分は00');
+  t(S('', null, '30') === '0030', '★★★空のときに 分を押すと、時は00');
+  t(S('2500', null, '30') === '2530', '★★★あとから 分だけ足せる');
+  t(S('2530', '23', null) === '2330', '★★★あとから 時だけ変えられる');
+  t(S('23:30', null, '45') === '2345', '　「23:30」の形でも、ちゃんと読める');
+  const P = v => vm.runInContext('JSON.stringify(depPart(' + JSON.stringify(v) + '))', box);
+  t(P('2530') === '{"h":"25","m":"30"}', '　 時と分に分けられる');
+  t(P('') === '{"h":"","m":""}',          '　 空のときは、どちらも空');
+}
+
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

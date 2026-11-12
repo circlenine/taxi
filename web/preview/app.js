@@ -113,6 +113,31 @@ const METHODS = ['GO', 'Uber', '無線', '付け待ち', '流し', '手上げ',
 const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90];
 const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
 
+/* ------------------------------------------------------------
+ *  発車時間を、押すだけで入れられるようにする（ご指示・2026/11/12）
+ *
+ *  ★走りながら入れるので、字を打たせません。
+ *    時を押して、分を押せば、それで入ります。
+ *  ★時は 17時から 翌4時まで。夜の乗務にある時間だけです。
+ * ---------------------------------------------------------- */
+const DEP_H = ['17','18','19','20','21','22','23','00','01','02','03','04'];
+const DEP_M = ['00','05','10','15','20','25','30','35','40','45','50','55'];
+
+/** いま入っている発車時間を、時と分に分けて返す */
+function depPart(v){
+  const t = String(v == null ? '' : v).trim();
+  const m = t.match(/^(\d{1,2})\D?(\d{2})$/);
+  if (!m) return { h: '', m: '' };
+  return { h: ('0' + m[1]).slice(-2), m: m[2] };
+}
+/** 時か分を押したときの、新しい発車時間 */
+function depSet(v, h, mi){
+  const p = depPart(v);
+  const H = (h != null) ? h : (p.h || '00');
+  const M = (mi != null) ? mi : (p.m || '00');
+  return H + M;
+}
+
 /* 種類のタブ。「流し」は出しません（ご指示）。
    ★METHODS からは消していません。
      消すと、前に「流し」で入れた記録の書き方がそろわなくなるためです。
@@ -535,6 +560,12 @@ function paneIn(){
       </div>
       <div class="f w2"><label>発車時間</label>
         <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
+        <!-- ★時と分を、押すだけで入れられるようにします（ご指示・2026/11/12）。
+               走りながら打つので、字を打たせない形にします。 -->
+        <div class="chips mins">${DEP_H.map(h =>
+          `<button class="chip ${depPart(f.dep).h===h?'on':''}" data-dh="${h}">${h}</button>`).join('')}</div>
+        <div class="chips mins">${DEP_M.map(m =>
+          `<button class="chip ${depPart(f.dep).m===m?'on':''}" data-dm="${m}">${m}</button>`).join('')}</div>
         <div class="hint" id="depHint"></div></div>
       <div class="f w2"><label>乗車金額</label>
         <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
@@ -1714,6 +1745,13 @@ function wire(){
   ['f_dep','f_wait','f_ride','f_fare'].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener('input', upd); });
   /* ★乗り場の名前から手を離したところで、似た名前がないかを見ます
        （ご指示・2026/11/12）。打っている途中で聞くと、うるさいだけです。 */
+  /* 発車時間の、時と分のタグ（ご指示・2026/11/12） */
+  document.querySelectorAll('[data-dh]').forEach(function (b) {
+    b.onclick = function () { grab(); form.dep = depSet(form.dep, b.dataset.dh, null); render(); };
+  });
+  document.querySelectorAll('[data-dm]').forEach(function (b) {
+    b.onclick = function () { grab(); form.dep = depSet(form.dep, null, b.dataset.dm); render(); };
+  });
   const fpl = document.getElementById('f_place');
   if (fpl) fpl.addEventListener('change', function () {
     const v = fpl.value.trim();
