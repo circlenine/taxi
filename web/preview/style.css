@@ -143,7 +143,16 @@ button{font-family:inherit}
        ガタガタしていました。高さが動かなければ、揺れません。 */
 header{display:flex;align-items:center;gap:12px;padding:8px 14px;
   border-bottom:1px solid var(--line);flex-wrap:nowrap;
-  position:sticky;top:0;z-index:50;background:var(--ink);
+  /* ★一番上の行は、どの中身よりも上に出します（ご指摘・2026/11/13）。
+       地図（Leaflet）は、自前で 400〜1000 の重なり順を持っています。
+       ここを 50 のままにしていたため、地図が題の行にかぶさりました。
+       重なり順は、この1か所で決めます。
+         地図の中身 … 1000 まで（地図の箱の中だけに閉じこめます）
+         ふきだし   … 1100
+         一番上の行 … 1200
+         丸いボタン … 1300
+         まん中の箱 … 2000 */
+  position:sticky;top:0;z-index:1200;background:var(--ink);
   /* 端まで塗って、下の中身が横からのぞかないようにします */
   margin:0 -14px;width:calc(100% + 28px)}
 header > h1{flex:none}
@@ -281,7 +290,7 @@ tbody tr:hover{background:#1B2942}
 .empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:13px;line-height:1.8}
 .bar{height:7px;border-radius:4px;background:var(--andon)}
 .tip{position:fixed;pointer-events:none;background:#0A1220;border:1px solid var(--andon);
-  border-radius:6px;padding:7px 10px;font-size:11.5px;line-height:1.6;z-index:50;opacity:0;transition:opacity .12s;max-width:230px}
+  border-radius:6px;padding:7px 10px;font-size:11.5px;line-height:1.6;z-index:1100;opacity:0;transition:opacity .12s;max-width:230px}
 .tip.on{opacity:1}
 footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;line-height:1.8}
 /* ★いちばん下の名前（まーく様のご指示・2026/11/10）。
@@ -501,7 +510,7 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
        日付が古いことにも気づける形にしました）。 */
 .evold{color:var(--kusha);font-weight:700}
 
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2000;
   display:flex;align-items:center;justify-content:center;padding:18px}
 .modalbox{background:var(--ink2);border:1px solid var(--line);border-radius:12px;
   max-width:560px;width:100%;max-height:86vh;display:flex;flex-direction:column;
@@ -1011,7 +1020,7 @@ nav button[aria-selected=true] i{opacity:.95}
 
 
 /* どこからでも押せる丸ボタン */
-.fab{position:fixed;z-index:60;border:none;border-radius:999px;cursor:pointer;
+.fab{position:fixed;z-index:1300;border:none;border-radius:999px;cursor:pointer;
   font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.55)}
 .fab.menu{position:static;width:42px;height:42px;font-size:21px;line-height:1;
   background:var(--ink2);color:#FFFFFF;border:1px solid var(--line);
@@ -1043,7 +1052,7 @@ body.modalon .fab{display:none}
 body[data-hand="r"] .fab.done{right:16px}
 body[data-hand="l"] .fab.done{left:16px}
 /* ≡ を押したときに出る、行き先の一覧 */
-.fabsheet{position:absolute;z-index:61;top:100%;max-height:70vh;overflow:auto;
+.fabsheet{position:absolute;z-index:1301;top:100%;max-height:70vh;overflow:auto;
   background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:6px;
   box-shadow:0 10px 30px rgba(0,0,0,.6);width:min(260px,76vw)}
 body[data-hand="r"] .fabsheet{right:2px}
@@ -1134,7 +1143,11 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 .gl li{font-size:12px;line-height:1.75;color:#FFFFFF;margin:3px 0}
 
 /* 雨雲レーダーと、天気の細かさの切り替え（ご指示・2026/11/12） */
+/* ★地図の重なり順を、この箱の中だけに閉じこめます（ご指摘・2026/11/13）。
+     isolation:isolate を付けると、中の重なり順が外へ出ていきません。
+     これが無いと、地図の部品が 上の行の上に出てきます。 */
 .radarmap{height:260px;border-radius:10px;overflow:hidden;border:1px solid var(--line);
+  position:relative;z-index:0;isolation:isolate;
   background:#0C1422;color:#FFFFFF;font-size:12px;display:flex;align-items:center;
   justify-content:center;margin:8px 0}
 .radarmap .leaflet-container{background:#0C1422}

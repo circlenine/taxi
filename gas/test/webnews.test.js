@@ -1957,6 +1957,29 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(idx.indexOf('1本の平均金額') !== -1, '　 上の4つの名札も入れ替わっている');
   t(idx.indexOf('平均 時間単価') === -1, '　 古い名札は残っていない');
 
+  /* ⑥-8 一番上の行を、何にも ふさがせない。
+         ご指摘（2026/11/13）
+           「マップの方が上に来て、上のスクロールが隠れてしまってます。
+             全ページ、このようなことが起きてないのか見返してください」
+         地図（Leaflet）は 400〜1000 の重なり順を自前で持っています。
+         上の行が 50 のままだったので、地図が上にかぶさりました。
+         重なり順は1か所で決め、地図は箱の中に閉じこめます。 */
+  var zHead = /position:sticky;top:0;z-index:(\d+)/.exec(css);
+  t(!!zHead, '★★★一番上の行に、重なり順が決めてある');
+  t(zHead && Number(zHead[1]) >= 1100,
+    '★★★一番上の行は、地図（1000まで）より上にある', zHead && zHead[1]);
+  t(/\.radarmap\{[\s\S]{0,220}isolation:isolate/.test(css),
+    '★★★地図の重なり順を、地図の箱の中に閉じこめている');
+  var zMod = /\.modal\{[^}]*z-index:(\d+)/.exec(css);
+  t(zMod && Number(zMod[1]) > Number(zHead[1]),
+    '　 まん中の箱は、一番上の行より さらに上', zMod && zMod[1]);
+  var zFab = /\.fab\{position:fixed;z-index:(\d+)/.exec(css);
+  t(zFab && Number(zFab[1]) > Number(zHead[1]),
+    '　 丸いボタンも、一番上の行より上', zFab && zFab[1]);
+  var zTip = /\.tip[^{]*\{[\s\S]{0,200}?z-index:(\d+)/.exec(css);
+  t(!zTip || Number(zTip[1]) < Number(zHead[1]),
+    '　 ふきだしは、一番上の行より下', zTip && zTip[1]);
+
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
   t(/scroll-snap-type:x/.test(css), '★★★区切りの良い位置で止まる');
