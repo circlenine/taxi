@@ -19,13 +19,16 @@ let scOpt = { line: true, label: true }, onlyMine = false;
  */
 /* ★既定は「今期」（16日〜翌月15日）。全期間だと、閑散期と繁忙期が
      混ざって、見ても意味がありません（ご指示・2026/11/12）。 */
-let onlyPlace = '', onlyDay = '', period = { mode: 'c0', from: '', to: '' };
+/* ★onlyCat … 大カテゴリー（関空・バラシ・北7…）だけに絞る（空なら すべて）。
+     グラフの画面で、すぐ切り替えられるようにします（ご指示・2026/11/12）。 */
+let onlyPlace = '', onlyCat = '', onlyDay = '', period = { mode: 'c0', from: '', to: '' };
 const FILT_KEY = 'tsukemachi.filter';
 
 function filtLoad(){
   try {
     const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}') || {};
     if (typeof o.place === 'string') onlyPlace = o.place;
+    if (typeof o.cat === 'string') onlyCat = o.cat;
     if (typeof o.day === 'string') onlyDay = o.day;
     if (typeof o.mine === 'boolean') onlyMine = o.mine;
     if (o.period && typeof o.period.mode === 'string') {
@@ -37,11 +40,11 @@ function filtLoad(){
 function filtSave(){
   try {
     localStorage.setItem(FILT_KEY,
-      JSON.stringify({ place: onlyPlace, day: onlyDay, mine: onlyMine, period: period }));
+      JSON.stringify({ place: onlyPlace, cat: onlyCat, day: onlyDay, mine: onlyMine, period: period }));
   } catch (e) {}
 }
-function filtClear(){ onlyPlace = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
-const filtOn = () => !!onlyPlace || !!onlyDay || period.mode !== 'c0';
+function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
+const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyDay || period.mode !== 'c0';
 
 /* ---------- 起動 ---------- */
 (async () => {
@@ -422,6 +425,7 @@ const inPeriod = r => {
 const visible = () => records.filter(r =>
   (!onlyMine  || r.user_id === ME.user.id) &&
   (!onlyPlace || hitPlace(r)) &&
+  (!onlyCat   || recCat(r) === onlyCat) &&
   (!onlyDay   || dayCls(r.date) === onlyDay) &&
   inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
@@ -523,8 +527,12 @@ function render(){
    *   （中身は shared.js の andonRoll）
    */
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
-  $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc,
-    rank:paneRank, list:paneList, news:paneNews, ev:paneEv, fb:paneFb }[tab]();
+  /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
+       前の形を覚えている方のために、「記録」に戻します。 */
+  const PANES = { in: () => paneIn() + paneOut(), hot:paneHot, heat:paneHeat,
+    tl:paneTl, sc:paneSc, ratio:paneRatio, news:paneNews, ev:paneEv, fb:paneFb };
+  if (!PANES[tab]) tab = 'in';
+  $('#panes').innerHTML = PANES[tab]();
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
   if (sb) sb.textContent = subLine();
@@ -776,7 +784,15 @@ const periodBox = () => `
       <input type="date" data-filt="to" value="${esc(period.to)}"></label>
   </div>` : ''}`;
 
-const filterChips = () => `<div class="filt">
+/* 大カテゴリーのタグ（ご指示・2026/11/12）。'' は「すべて」 */
+const CAT_CHIPS = [''].concat(CAT_ORDER);
+
+/**
+ * 絞り込みのタグ。
+ *   full を true にすると、大カテゴリーと期間も出します。
+ *   ★グラフの画面では、上まで戻らずに切り替えられることが大事です。
+ */
+const filterChips = (full) => `<div class="filt">
   <div class="chips">
     <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
     <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
@@ -787,6 +803,17 @@ const filterChips = () => `<div class="filt">
   <div class="chips daych">
     ${DAY_CHIPS.map(d => `<button class="chip ${onlyDay===d.k?'on':''}" data-day="${d.k}">${d.n}</button>`).join('')}
   </div>
+  <!-- ★いま何で絞っているかを、タグのすぐ下に出します。
+       絞ったまま忘れると、数字を読み違えます。 -->
+  ${filtOn() ? `<div class="fnow">いま：${
+    [onlyCat ? esc(onlyCat) : '', onlyPlace ? esc(splitSel(onlyPlace).place || onlyPlace) : '',
+     (DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n || '',
+     periodLabel()].filter(Boolean).join('／')
+  }</div>` : ''}
+  ${full ? `<div class="chips catch">
+    ${CAT_CHIPS.map(k => `<button class="chip ${onlyCat===k?'on':''}" data-cat="${esc(k)}">${k || 'すべて'}</button>`).join('')}
+  </div>
+  <div class="fperiod">${periodBox()}</div>` : ''}
 </div>`;
 
 /** 場所の名前を、地図で開けるようにして返す（押すと新しいタブ） */
@@ -945,24 +972,26 @@ function fareCls(v){
  *      「アツい時間帯、アツいで表記は必ず統一して下さい」
  *  ★これは、人の多さを買ってくるもの（人口マップ）ではありません。
  *    **自分たちの記録だけ**から作っている地図です。 */
-function paneHeat(noChips){
-  /* 時刻が不明なものは、時間帯の地図には出せません（どこに置けないため） */
-  const R = visible().filter(hasDep);
-  if (!R.length) return emptyCard('場所と時間帯がそろうと、ここが「どこが濃いか」の表になります。');
-  const hs = R.map(r => Math.floor(r.dep));
-  const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
-  const pls = [...new Set(R.map(r => r.place).filter(Boolean))]
-    .map(p => ({ p, n: R.filter(r => r.place === p).length })).sort((a,b) => b.n - a.n).slice(0,10).map(o => o.p);
-  const cell = (p,h) => { const s = R.filter(r => (p === null || r.place === p) && Math.floor(r.dep) === h);
-    return { n:s.length, avg: s.length ? s.map(rate).reduce((a,b)=>a+b,0)/s.length : 0,
-             fare: s.length ? s.reduce((a,r)=>a+r.fare,0)/s.length : 0 }; };
-  const all = []; pls.forEach(p => hrs.forEach(h => { const c = cell(p,h); if (c.n) all.push(c.avg); }));
-  const mx = Math.max(...all, 1), cw = 64, ch = 42, lw = 86;
-  const w = lw + hrs.length*cw + 8, hgt = 34 + (pls.length+1)*ch + 8;
+/* ---- 表グラフ（時間帯 × 乗り場） ---- */
+/**
+ * ★「まとめすぎて雑すぎる」とのご指摘（2026/11/12）。直したところ：
+ *   ・上位10か所で切っていたのをやめ、乗り場は ぜんぶ出します
+ *   ・大カテゴリー（関空・ﾊﾞﾗｼ・北7…）ごとに、表を分けます
+ *   ・並びは CAT_ORDER のまま。エリアの近い順に上から並びます
+ *   ・期間と大カテゴリーは、この画面のタグで切り替えられます
+ */
+function heatSvg(rows, pls, hrs, mx){
+  const cw = 64, ch = 42, lw = 96;
+  const w = lw + hrs.length * cw + 8, hgt = 34 + (pls.length + 1) * ch + 8;
+  const cell = (p, h) => {
+    const t = rows.filter(r => (p === null || r.place === p) && Math.floor(r.dep) === h);
+    return { n: t.length, avg: t.length ? t.map(rate).reduce((a,b)=>a+b,0)/t.length : 0,
+             fare: t.length ? t.reduce((a,r)=>a+(+r.fare||0),0)/t.length : 0 };
+  };
   let s = `<svg viewBox="0 0 ${w} ${hgt}" width="${w}" height="${hgt}">`;
   hrs.forEach((h,i) => s += `<text class="axis" x="${lw+i*cw+cw/2}" y="22" text-anchor="middle">${h}時</text>`);
-  const row = (label,p,y) => {
-    let o = `<text class="axis" x="${lw-8}" y="${y+ch/2+4}" text-anchor="end" style="font-family:var(--body);font-size:11px">${esc(label)}</text>`;
+  const row = (label, p, y) => {
+    let o = `<text class="axis" x="${lw-8}" y="${y+ch/2+4}" text-anchor="end" style="font-family:var(--body);font-size:12px">${esc(label)}</text>`;
     hrs.forEach((h,i) => { const c = cell(p,h), x = lw+i*cw, t = c.n ? Math.min(1, c.avg/mx) : 0;
       o += `<g data-tip="${esc(label)} ${h}時台&#10;件数 ${c.n}件&#10;平均 時間単価 ${c.n?yen(c.avg)+'/h':'—'}&#10;平均 金額 ${c.n?yen(c.fare):'—'}">
         <rect x="${x+2}" y="${y+2}" width="${cw-4}" height="${ch-4}" rx="4" fill="${c.n?`rgba(240,163,59,${.10+t*.82})`:'rgba(255,255,255,.03)'}" stroke="#243350"/>
@@ -970,16 +999,56 @@ function paneHeat(noChips){
         <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" font-size="9" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${c.n}件</text>` : ''}
       </g>`; });
     return o; };
-  pls.forEach((p,i) => s += row(p,p,34+i*ch));
+  pls.forEach((p,i) => s += row(p, p, 34+i*ch));
   s += `<line x1="${lw}" x2="${w-8}" y1="${34+pls.length*ch+1}" y2="${34+pls.length*ch+1}" class="grid-l"/>`;
-  s += row('すべて', null, 34+pls.length*ch+2) + '</svg>';
-  return `<div class="card"><h2>つけ待ち一覧</h2>
-    <p class="note"><b>全期間の記録を、時間帯・乗り場ごとに並べた表</b>です。
-      いつでも同じものが出ます（「今の狙い目」は、いまの時刻だけの話）。<br>
-      数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割のいい枠。まずは3件以上たまったマスだけ信じる。</p>
-    ${noChips ? '' : filterChips()}<div class="scroll">${s}</div>
-    <div class="legend"><span><i style="background:rgba(240,163,59,.15)"></i>薄い＝単価が低い</span>
-    <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span><span>最大 ${yen(mx)}/h</span></div></div>`;
+  s += row('このエリア計', null, 34+pls.length*ch+2) + '</svg>';
+  return s;
+}
+
+function paneHeat(noChips){
+  /* 時刻が不明なものは、時間帯の表には置けません（どこに入れてよいか分からないため） */
+  const R = visible().filter(hasDep);
+  const head = `<div class="card"><h2>表グラフ</h2>
+    <p class="note">えらんだ期間の記録を、<b>時間帯 × 乗り場</b>で並べた表です。
+      数字は平均の時間単価（k＝千円/時）。濃いマスほど、待ち時間まで込みで割がよい枠です。
+      まずは3件以上そろったマスだけ信じてください。</p>
+    ${noChips ? '' : filterChips(true)}</div>`;
+  if (!R.length) return head + emptyCard('該当データがありません');
+
+  const hs = R.map(r => Math.floor(r.dep));
+  const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
+
+  /* 一番濃いマスは、表ぜんたいで共通にします。
+     表ごとに色の基準が変わると、見比べられません。 */
+  let mx = 1;
+  const pl = {};
+  R.forEach(r => { const p = r.place; if (p) (pl[p] = pl[p] || []).push(r); });
+  Object.keys(pl).forEach(p => hrs.forEach(h => {
+    const t = pl[p].filter(r => Math.floor(r.dep) === h);
+    if (t.length) mx = Math.max(mx, t.map(rate).reduce((a,b)=>a+b,0)/t.length);
+  }));
+
+  /* ★エリアが近い順（CAT_ORDER）に、上から並べます */
+  let body = '';
+  CAT_ORDER.forEach(function (cat){
+    const rows = R.filter(r => recCat(r) === cat);
+    if (!rows.length) return;
+    const pls = [...new Set(rows.map(r => r.place).filter(Boolean))]
+      .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }))
+      .sort((a,b) => b.n - a.n || (a.p < b.p ? -1 : 1)).map(o => o.p);
+    if (!pls.length) return;
+    body += `<div class="card"><h2>${esc(cat)}</h2>
+      <p class="note">乗り場 ${pls.length}か所・${rows.length}件。</p>
+      <div class="snote">← 横にスクロールできます（横画面推奨）</div>
+      <div class="scroll fb">${heatSvg(rows, pls, hrs, mx)}</div></div>`;
+  });
+  if (!body) return head + emptyCard('該当データがありません');
+
+  return head + body +
+    `<div class="card"><div class="legend">
+      <span><i style="background:rgba(240,163,59,.15)"></i>薄い＝単価が低い</span>
+      <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝単価が高い</span>
+      <span>一番濃いマス ${yen(mx)}/h</span></div></div>`;
 }
 
 /* =============================================================
@@ -1431,7 +1500,7 @@ function paneHot(now){
   /* ① 一番上 … いまの天気と、営業時間ぶんの移り変わり */
   const head = '<div class="card"><h2>今の狙い目</h2>' +
     '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
-    '全期間の表は【つけ待ち一覧】のほうです。</p>' +
+    '全期間の表は【表グラフ】のほうです。</p>' +
     wxNowHTML() + wxHoursHTML() + '</div>';
 
   /* ② いまの時刻と、その時刻の狙い目 */
@@ -1627,7 +1696,8 @@ async function loadWx(){
 function paneTl(){
   /* 時刻が不明なものは、夜の流れのどこにも置けないので外します */
   const R = visible().filter(hasDep);
-  if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べられます。');
+  if (!R.length) return `<div class="card"><h2>横棒グラフ</h2>${filterChips(true)}
+    <div class="empty">該当データがありません</div></div>`;
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,7);
   /* ★19時より前の記録が、左端に積み上がって見えていました（2026/11/12）。
        最も早い記録に合わせて、横じくの始まりを決めます。 */
@@ -1640,9 +1710,12 @@ function paneTl(){
        1行の高さと横幅を広げ、字も大きくします。 */
   /* ★横画面（iPhoneを横にしたとき）で、ちょうど収まる幅にします。
        字は小さくしません。1時間ぶんの幅から、全体の幅を決めます。 */
-  const L = 116, Rp = 20, rowH = 70;
-  const W = L + Rp + Math.max(1, (x1 - x0)) * 43;
-  const H = 56 + ds.length*rowH + 20;
+  /* ★「大きくなってません」とのご指摘（2026/11/12）。
+       1行をさらに高く、1時間ぶんの幅も広げます。
+       横画面（およそ810px）に、19〜29時がちょうど収まる大きさです。 */
+  const L = 120, Rp = 20, rowH = 88;
+  const W = L + Rp + Math.max(1, (x1 - x0)) * 52;
+  const H = 62 + ds.length*rowH + 20;
   /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
        左の端より外には、はみ出させません。 */
   const sx = v => Math.max(L, Math.min(W - Rp, L + (v-x0)/(x1-x0)*(W-L-Rp)));
@@ -1653,22 +1726,23 @@ function paneTl(){
     <text class="axis" x="${sx(h)}" y="18" text-anchor="middle">${h}</text>`;
   ds.forEach((d,i) => {
     const y = 34 + i*rowH;
-    s += `<text class="axis" x="${L-10}" y="${y+20}" text-anchor="end" fill="${dcol(d)}">${fmtD(d)}</text>`;
+    s += `<text class="axis" x="${L-10}" y="${y+26}" text-anchor="end" fill="${dcol(d)}">${fmtD(d)}</text>`;
     R.filter(r => r.date === d).forEach(r => {
       const a = sx(r.dep - (+r.wait||0)/60), b = sx(r.dep), c = sx(r.dep + (+r.ride||0)/60);
       const rt = rate(r), t = Math.min(1, rt/12000);
       const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}&#10;時間単価 ${rt?yen(rt)+'/h':'—'}`;
       s += `<g data-tip="${tip}">
-        <rect x="${a}" y="${y+13}" width="${Math.max(1,b-a)}" height="6" rx="3" fill="#3A4B6D"/>
-        <rect x="${b}" y="${y+8}" width="${Math.max(3,c-b)}" height="16" rx="4" fill="rgba(240,163,59,${.25+t*.7})"/>
-        <rect x="${a-1}" y="${y+4}" width="${Math.max(6,c-a+2)}" height="24" fill="transparent"/></g>`;
-      if (r.fare >= 8000) s += `<text class="glab" x="${c+4}" y="${y+21}" fill="var(--meter)">${yen(r.fare)}</text>`;
+        <rect x="${a}" y="${y+18}" width="${Math.max(1,b-a)}" height="8" rx="4" fill="#3A4B6D"/>
+        <rect x="${b}" y="${y+10}" width="${Math.max(3,c-b)}" height="22" rx="5" fill="rgba(240,163,59,${.25+t*.7})"/>
+        <rect x="${a-1}" y="${y+5}" width="${Math.max(6,c-a+2)}" height="32" fill="transparent"/></g>`;
+      if (r.fare >= 8000) s += `<text class="glab" x="${c+5}" y="${y+27}" fill="var(--meter)">${yen(r.fare)}</text>`;
     });
   });
   s += '</svg>';
-  return `<div class="card"><h2>一日の流れ</h2>
-    <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。帯が明るいほど、時間単価が高くなっています。空白が長い夜は、流すか、つける場所を変える余地があります。</p>
-    ${filterChips()}<div class="snote">← 横にスクロールできます（横画面にすると、ぜんぶ入ります）</div><div class="scroll fb">${s}</div>
+  return `<div class="card"><h2>横棒グラフ</h2>
+    <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。
+      帯が明るいほど、時間単価が高くなっています。</p>
+    ${filterChips(true)}<div class="snote">← 横にスクロールできます（横画面推奨）</div><div class="scroll fb">${s}</div>
     <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
 }
 
@@ -1676,11 +1750,15 @@ function paneTl(){
 function paneSc(){
   /* 時刻か金額が不明なものは、この図に点を打てないので外します */
   const R = visible().filter(r => hasDep(r) && hasFare(r));
-  if (!R.length) return emptyCard('もとの折れ線グラフを、ラベルが重ならない形で。');
+  if (!R.length) return `<div class="card"><h2>折れ線グラフ</h2>${filterChips(true)}
+    <div class="empty">該当データがありません</div></div>`;
   const ds = [...new Set(R.map(r => r.date))].sort();
-  const L = 58, Rp = 20, T = 18, B = 40, W = 760, H = 430;
+  /* ★大きさは、横棒グラフに合わせます（ご指示・2026/11/12）。
+       1時間ぶんの幅から全体の幅を決めるので、横画面でちょうど収まります。 */
+  const L = 64, Rp = 20, T = 18, B = 44;
   const xs = R.map(r => r.dep);
   const x0 = Math.floor(Math.min(...xs)-.5), x1 = Math.ceil(Math.max(...xs)+.5);
+  const W = L + Rp + Math.max(1, (x1 - x0)) * 52, H = 470;
   const y1 = Math.max(...R.map(r => r.fare)) * 1.12;
   const sx = v => L + (v-x0)/(x1-x0)*(W-L-Rp), sy = v => H-B - (v/y1)*(H-T-B);
   /* ★横幅いっぱいに縮めると、字も帯も小さすぎて読めませんでした（ご指摘・2026/11/12）。
@@ -1711,14 +1789,15 @@ function paneSc(){
     });
   });
   s += '</svg>';
-  return `<div class="card"><h2>乗せた時刻 × 金額</h2>
-    <p class="note">日付ごとに色を変えています。金額の字は、重ならない位置へ 自動でずれるので、手で動かす必要はありません。</p>
+  return `<div class="card"><h2>折れ線グラフ</h2>
+    <p class="note">横は乗せた時刻、縦は金額です。日付ごとに色を変えています。</p>
     <div class="toolbar">
       <button class="chip ${scOpt.line?'on':''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label?'on':''}" data-opt="label">金額を出す</button>
     </div>
-    ${filterChips()}
-    <div class="scroll">${s}</div>
+    ${filterChips(true)}
+    <div class="snote">← 横にスクロールできます（横画面推奨）</div>
+    <div class="scroll fb">${s}</div>
     <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div></div>`;
 }
 
@@ -1834,83 +1913,144 @@ function compareCard(){
     '</div>';
 }
 
-function reportCard(){
+/* =============================================================
+ *  割合（ショート・ミドル・ロング）
+ *
+ *  ★まーく様のご指示（2026/11/12）
+ *    「集計タブは、初めの記録で見られるので、不要です
+ *      代わりに、スプシでも導入していた
+ *      パーセンテージ（ショート何パーセント、ミドル何パーセント、
+ *      ロング何パーセント）をわかりやすい形にまとめてください」
+ *
+ *  ★分け方は、記録用スプレッドシートと同じです。
+ *    ショート … ￥4,999以下
+ *    ミドル　 … ￥5,000〜￥9,999
+ *    ロング　 … ￥10,000以上
+ *  ★金額が「不明」の記録は、この割合から外します。
+ *    0円として数えると、ショートが増えて嘘になります。
+ * ============================================================= */
+const FARE_SHORT_MAX = 4999;    // これ以下がショート
+const FARE_LONG_MIN  = 10000;   // これ以上がロング
+const BANDS = [
+  { k:'S', n:'ショート', d:'¥4,999 以下',      c:'#7FA9F0' },
+  { k:'M', n:'ミドル',   d:'¥5,000〜9,999',    c:'#F0A33B' },
+  { k:'L', n:'ロング',   d:'¥10,000 以上',     c:'#6FD8A8' }
+];
+function fareBand(v){
+  if (isUnk(v)) return '';
+  const n = +v;
+  if (n >= FARE_LONG_MIN)  return 'L';
+  if (n >  FARE_SHORT_MAX) return 'M';
+  return 'S';
+}
+function bandCount(rs){
+  const o = { S:0, M:0, L:0, n:0, unk:0 };
+  rs.forEach(function (r){
+    const b = fareBand(r.fare);
+    if (!b) { o.unk++; return; }
+    o[b]++; o.n++;
+  });
+  return o;
+}
+const bandPct = (o, k) => o.n ? Math.round(o[k] / o.n * 1000) / 10 : 0;
+
+/** 1本の帯（ショート／ミドル／ロングを、割合どおりに積みます） */
+function bandBar(o, big){
+  if (!o.n) return '<div class="bandbar empty"></div>';
+  return '<div class="bandbar' + (big ? ' big' : '') + '">' +
+    BANDS.map(function (b){
+      const p = bandPct(o, b.k);
+      if (!p) return '';
+      return '<span style="width:' + p + '%;background:' + b.c + '">' +
+             (p >= (big ? 7 : 12) ? p + '%' : '') + '</span>';
+    }).join('') + '</div>';
+}
+
+/** 乗り場ごと・エリアごとの1行 */
+function bandRow(label, o){
+  return '<div class="brow"><div class="bl">' + esc(label) + '</div>' +
+    '<div class="bb">' + bandBar(o) + '</div>' +
+    '<div class="bn">' + o.n + '件</div></div>';
+}
+
+function paneRatio(){
   const R = visible();
-  if (!R.length) return '';
-  const ds    = [...new Set(R.map(r => r.date))].sort();
-  const days  = ds.length;
-  const fares = R.filter(hasFare);
-  const sum   = fares.reduce((a,r) => a + (+r.fare || 0), 0);
-  const rts   = R.map(rate).filter(v => v > 0);
-  const avgRt = rts.length ? rts.reduce((a,b) => a+b, 0) / rts.length : 0;
-  /* 1日あたりは「記録のある日」で割ります。走っていない日で割ると下がります */
-  const perDay = days ? sum / days : 0;
-  /* 一番良かった日 */
-  const byDay = {};
-  fares.forEach(r => { byDay[r.date] = (byDay[r.date] || 0) + (+r.fare || 0); });
-  const bestDay = Object.keys(byDay).sort((a,b) => byDay[b] - byDay[a])[0] || '';
-  /* 一番多かった乗り場（3件以上あるときだけ） */
-  const byPl = {};
-  R.forEach(r => { if (r.place) byPl[r.place] = (byPl[r.place] || 0) + 1; });
-  const topPl = Object.keys(byPl).sort((a,b) => byPl[b] - byPl[a])[0] || '';
-  const unk   = R.length - fares.length;
+  const head = '<div class="card"><h2>割合</h2>' +
+    '<p class="note">ショート（¥4,999以下）・ミドル（¥5,000〜9,999）・' +
+    'ロング（¥10,000以上）の割合です。金額が不明な記録は外しています。</p>' +
+    filterChips(true) + '</div>';
+  if (!R.length) return head + emptyCard('該当データがありません');
 
-  const cell = (t, v, sub) =>
-    '<div class="rcell"><small>' + t + '</small><b>' + v + '</b>' +
-    (sub ? '<i>' + sub + '</i>' : '') + '</div>';
+  const all = bandCount(R);
+  if (!all.n) return head + emptyCard('金額の入った記録が、まだありません。');
 
-  return '<div class="card"><h2>この期間のまとめ</h2>' +
-    '<p class="note"><b class="fnow">' + esc(periodLabel()) + '</b>' +
-    (onlyPlace ? '／<b class="fnow">' + esc(onlyPlace) + ' だけ</b>' : '') +
-    '／' + (onlyMine ? '自分だけ' : '全員') + '　' +
-    '記録のある日 ' + days + '日。' +
-    (unk ? '金額が「不明」の ' + unk + '件は、合計にも平均にも入れていません。' : '') +
-    '</p>' +
-    '<div class="rgrid">' +
-      cell('売上の合計', yen(sum), fares.length + '本分') +
-      cell('1日当たり', days ? yen(perDay) : '—', days + '日で割った額') +
-      cell('1本当たり', fares.length ? yen(sum / fares.length) : '—', '平均の金額') +
-      cell('時間単価', rts.length >= 3 ? yen(avgRt) + '/h' : '—',
-           rts.length >= 3 ? ('' + rts.length + '本の平均')
-                           : ('数えられたのは ' + rts.length + '本だけ')) +
-    '</div>' +
-    '<p class="note" style="margin-top:12px">' +
-      (bestDay ? '一番良かった日：<b>' + esc(fmtD(bestDay)) + '</b>（' +
-                 yen(byDay[bestDay]) + '）<br>' : '') +
-      (topPl && byPl[topPl] >= 3
-        ? '一番多く着けた所：<b>' + esc(topPl) + '</b>（' + byPl[topPl] + '件）' : '') +
-    '</p></div>';
-}
+  const tiles = BANDS.map(function (b){
+    return '<div class="kpi"><small>' + b.n + '<i>' + b.d + '</i></small>' +
+      '<b style="color:' + b.c + '">' + bandPct(all, b.k) + '%</b>' +
+      '<span class="bsub">' + all[b.k] + '件</span></div>';
+  }).join('');
 
-function paneRank(){
-  if (!visible().length) {
-    return '<div class="card">' + filterChips() +
-      '<div class="empty">この絞り込みでは、1件もありません。</div></div>';
+  let out = head +
+    '<div class="card"><h2>ぜんぶで</h2>' +
+    bandBar(all, true) +
+    '<div class="kpis bandk">' + tiles + '</div>' +
+    '<p class="note">' + all.n + '件を数えました。' +
+    (all.unk ? '金額が不明な ' + all.unk + '件は、外しています。' : '') + '</p></div>';
+
+  /* 時間帯ごと（横棒グラフと同じ、時間の並び） */
+  const D = R.filter(hasDep);
+  if (D.length) {
+    const hs = D.map(r => Math.floor(r.dep));
+    const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
+    const cw = 52, L = 44, T = 20, BH = 230;
+    const W = L + hrs.length * cw + 12, H = T + BH + 46;
+    let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">';
+    hrs.forEach(function (h, i){
+      const o = bandCount(D.filter(r => Math.floor(r.dep) === h));
+      const x = L + i * cw;
+      g += '<text class="axis" x="' + (x + cw/2) + '" y="' + (T + BH + 18) + '" text-anchor="middle">' + h + '</text>';
+      g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 34) + '" text-anchor="middle">' + o.n + '件</text>';
+      if (!o.n) return;
+      let y = T + BH;
+      BANDS.forEach(function (b){
+        const p = bandPct(o, b.k), hh = BH * p / 100;
+        if (!hh) return;
+        y -= hh;
+        g += '<g data-tip="' + h + '時台 ' + b.n + '&#10;' + o[b.k] + '件（' + p + '%）">' +
+          '<rect x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh + '" fill="' + b.c + '" rx="3"/>' +
+          (hh > 18 ? '<text class="glab" x="' + (x + cw/2) + '" y="' + (y + hh/2 + 4) + '" text-anchor="middle" fill="#14100A">' + Math.round(p) + '</text>' : '') +
+          '</g>';
+      });
+    });
+    g += '<text class="axis" x="' + (W/2) + '" y="' + (H - 2) + '" text-anchor="middle">時（25＝翌1時）</text></svg>';
+    out += '<div class="card"><h2>時間帯ごと</h2>' +
+      '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
+      '<div class="scroll fb">' + g + '</div>' +
+      '<div class="legend">' + BANDS.map(b => '<span><i style="background:' + b.c + '"></i>' + b.n + '</span>').join('') + '</div></div>';
   }
-  const h = hourAgg(), p = placeAgg();
-  const best = h.filter(x => x.n >= 3).sort((a,b) => b.avg - a.avg).slice(0,3);
-  const worst = h.filter(x => x.n >= 3).sort((a,b) => a.avg - b.avg)[0];
-  return reportCard() + compareCard() + `<div class="card"><h2>大事なところ</h2>
-    <p class="note">3件以上ある枠だけを並べています。薄い棒は、件数が足りていない目安です。</p>
-    ${filterChips()}
-    ${best.length ? `<div style="font-size:13px;line-height:2">
-      アツい時間帯：${best.map(b => `<b style="font-family:var(--mono);color:var(--andon)">${b.h}時台 ${yen(b.avg)}/h</b>`).join('　')}<br>
-      ${worst ? `薄い時間帯：<span style="font-family:var(--mono);color:var(--kusha)">${worst.h}時台 ${yen(worst.avg)}/h</span>` : ''}
-      ${p[0] && p[0].n >= 3 ? `<br>割のいい場所：<b style="color:var(--andon)">${esc(p[0].p)} ${yen(p[0].avg)}/h</b>` : ''}
-    </div>` : `<div class="note">まだ3件以上そろった時間帯がありません。</div>`}
-  </div>
-  <div class="card"><h2>時間帯ごと</h2><p class="note">乗せた時刻で分けています。</p>${bars(h,'時間帯',r => r.h+'時台')}</div>
-  <div class="card"><h2>つけ待ち場所ごと</h2><p class="note">時間単価の高い順です。</p>${bars(p,'場所',r => r.p)}</div>
-  ${paneHeat(true)}`;
+
+  /* 乗り場ごと（エリアが近い順。小カテゴリーは ぜんぶ出します） */
+  let pbody = '';
+  CAT_ORDER.forEach(function (cat){
+    const rows = R.filter(r => recCat(r) === cat);
+    if (!rows.length) return;
+    const pls = [...new Set(rows.map(r => r.place).filter(Boolean))]
+      .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }))
+      .sort((a, b) => b.n - a.n || (a.p < b.p ? -1 : 1)).map(o => o.p);
+    pbody += '<div class="bcat">' + esc(cat) + '</div>' + bandRow('エリア計', bandCount(rows)) +
+      pls.map(p => bandRow(p, bandCount(rows.filter(r => r.place === p)))).join('');
+  });
+  if (pbody) {
+    out += '<div class="card"><h2>乗り場ごと</h2>' +
+      '<p class="note">エリアが近い順に並べています。</p>' + pbody +
+      '<div class="legend">' + BANDS.map(b => '<span><i style="background:' + b.c + '"></i>' + b.n + '</span>').join('') + '</div></div>';
+  }
+  return out + compareCard();
 }
 
-/* ---- 一覧・書き出し ---- */
-function paneList(){
-  return `<div class="card"><h2>一覧（${visible().length}件）</h2>
-    ${filterChips()}
-    ${visible().length ? tableHTML(sorted()) : `<div class="empty">該当データがありません</div>`}
-  </div>
-  <div class="card"><h2>書き出し</h2>
+/* ---- 書き出し・取り込み（「記録」の下に出します） ---- */
+function paneOut(){
+  return `<div class="card"><h2>書き出し</h2>
     <p class="note">いま出している${onlyMine?'自分の':'全員の'}記録を、CSVに書き出します。スプレッドシートで数えたいときや、控えを残したいときに使ってください。</p>
     <div class="actions">
       <button class="btn ghost" id="csvout">CSVを書き出す</button>
@@ -2053,7 +2193,12 @@ function wire(){
   ['ktPlace', 'ktPlace2'].forEach(function (id) {
     const kpl = document.getElementById(id);
     if (kpl) kpl.onchange = function () {
-      grab(); onlyPlace = kpl.value; filtSave(); render(); };
+      grab(); onlyPlace = kpl.value; onlyCat = ''; filtSave(); render(); };
+  });
+  /* ★大カテゴリーを押したら、乗り場の指定は外します。
+       どちらも効かせると、どちらで絞ったのか分からなくなります。 */
+  document.querySelectorAll('[data-cat]').forEach(function (b) {
+    b.onclick = function () { grab(); onlyCat = b.dataset.cat; onlyPlace = ''; filtSave(); render(); };
   });
   document.querySelectorAll('[data-day]').forEach(function (b) {
     b.onclick = function () { grab(); onlyDay = b.dataset.day; filtSave(); render(); };

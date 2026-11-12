@@ -1047,15 +1047,19 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   /* ---- 覚えておく ---- */
   t(/localStorage\.setItem\(FILT_KEY/.test(app), '　 絞った形を、その端末に覚える');
 
-  /* ---- まとめ（1か月のレポート） ---- */
-  t(/function reportCard\(\)/.test(app), '★★★この期間のまとめが出る');
-  t(/reportCard\(\) \+ compareCard\(\) \+ `<div class="card"><h2>大事なところ/.test(app),
-    '★★★「集計」の いちばん上に出る（まとめ → くらべる → 大事なところ）');
-  const rep = app.slice(app.indexOf('function reportCard'), app.indexOf('function paneRank'));
-  t(/R\.filter\(hasFare\)/.test(rep),
-    '★★★金額が「不明」のものは、合計にも平均にも入れない');
-  t(/rts\.length >= 3/.test(rep), '★★★3本より少ないものを「平均」と呼ばない');
-  t(/不明/.test(rep), '　 外したぶんが何件かも、ことばで出す');
+  /* ---- 割合（ショート・ミドル・ロング）・ご指示 2026/11/12 ----
+       「集計」はなくして、代わりに割合を出す形にしました。
+       期間ごとのまとめは、いちばん上の「過去の記録」で見られます。 */
+  t(/function paneRatio\(\)/.test(app), '★★★割合の画面がある');
+  t(!/function reportCard\(/.test(app) && !/function paneRank\(/.test(app),
+    '★★★「集計」はなくなっている（上の「過去の記録」と同じ中身だったため）');
+  const rep = app.slice(app.indexOf('const FARE_SHORT_MAX'), app.indexOf('function paneOut'));
+  t(/FARE_SHORT_MAX = 4999/.test(rep) && /FARE_LONG_MIN  = 10000/.test(rep),
+    '★★★分け方は、記録用スプレッドシートと同じ');
+  t(/if \(isUnk\(v\)\) return '';/.test(rep),
+    '★★★金額が「不明」のものは、割合に入れない（0円にしない）');
+  t(/o\.unk\+\+/.test(rep), '　 外したぶんが何件かも、ことばで出す');
+  t(/compareCard\(\)/.test(rep), '　 前の期間とくらべる所も、ここに出す');
 
   /* ---- 期の区切りを、実際に動かして確かめる ---- */
   const box = { console: { log: function(){} } };
@@ -1107,23 +1111,23 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   const adm  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
   const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
 
-  t(/data-t="heat"[^>]*>つけ待ち</.test(html), '★★★タブは「つけ待ち」');
+  t(/data-t="heat"[^>]*>表グラフ</.test(html), '★★★タブは「表グラフ」');
   t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
   t(/data-t="fb"[^>]*>フィードバック</.test(html), '★★★タブは「フィードバック」');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
     '★★★「ごいけん」は、どこにも残っていない');
-  t(/つけ待ち/.test(pv) && /フィードバック/.test(pv),
+  t(/表グラフ/.test(pv) && /フィードバック/.test(pv),
     '　 下見用のページも、同じ名前になっている');
   t(/pvbar/.test(pv), '　 下見用の赤い帯も、消えていない');
-  t(/<h2>つけ待ち一覧<\/h2>/.test(app), '　 中の題も「つけ待ち一覧」');
+  t(/<h2>表グラフ<\/h2>/.test(app), '　 中の題も「表グラフ」');
   t(/<h2>フィードバック<\/h2>/.test(app), '　 中の題も「フィードバック」');
 
   /* ★2つの画面のちがいが、それぞれに書いてあること */
-  t(/全期間の記録を[\s\S]{0,60}時間帯・乗り場ごと/.test(app),
-    '★★★「つけ待ち一覧」は、全期間の表だと書いてある');
+  t(/えらんだ期間の記録を[\s\S]{0,60}時間帯 × 乗り場/.test(app),
+    '★★★「表グラフ」は、えらんだ期間の表だと書いてある');
   t(/いまの時刻に合わせて[\s\S]{0,40}いま行くとよい所/.test(app),
     '★★★「いまアツい」は、いまの時刻の話だと書いてある');
-  t(/つけ待ち一覧】のほう/.test(app), '　 もう一方への案内もある');
+  t(/表グラフ】のほう/.test(app), '　 もう一方への案内もある');
 }
 
 
@@ -1226,9 +1230,10 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
    '1時間あたり', '読みどころ'].forEach(function (w) {
     t(shown.indexOf(w) === -1, '★★★「' + w + '」は、もう出さない');
   });
-  t(/1日当たり/.test(shown) && /1本当たり/.test(shown),
+  /* ★「1日当たり」は、いちばん上の「過去の記録」（index.html）に出ています。
+       かな書きに戻っていないことだけを、上の並びで押さえています。 */
+  t(/1日当たり/.test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
     '★★★「当たり」と漢字で書いている');
-  t(/本分/.test(shown), '★★★「分」と漢字で書いている');
   /* ★耳なれない言い方は使わない（ご指示・2026/11/12
        「ためた分 ぜんぶ ってなんですか」「全期間とかで良いじゃないですか」） */
   ['ためた分', 'ためた記録ぜんぶ', 'ぜんぶに戻す', '乗り場：ぜんぶ',
@@ -1237,7 +1242,7 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   });
   t(/'全期間'/.test(shown), '★★★「全期間」と書いている');
   t(/絞り込みを解除/.test(shown), '★★★「絞り込みを解除」と書いている');
-  t(/<h2>大事なところ<\/h2>/.test(app), '★★★「読みどころ」は言いかえた');
+  t(shown.indexOf('読みどころ') === -1, '★★★「読みどころ」は使っていない');
 
   /* ★ふつうの言い方（だ・である）で終わる説明を、残さない */
   ['仕分け。', '高い順。', '手で動かす必要はない。', '足りていない目安。',
@@ -1302,8 +1307,14 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   /* ---- タブの名前は短く ---- */
   const tabs = (html.match(/<button data-t="[^"]+"[^>]*>([^<]*)/g) || [])
     .map(x => x.replace(/^[\s\S]*>/, '').trim());
-  t(tabs.indexOf('記録') !== -1 && tabs.indexOf('一日の流れ') !== -1 &&
-    tabs.indexOf('全記録') !== -1, '★★★タブの名前を短くした', tabs.join('/'));
+  /* ★タブの名前は、ご指示で付け替えました（2026/11/12）。
+       つけ待ち→表グラフ／一日の流れ→横棒グラフ／時間×金額→折れ線グラフ／
+       集計→割合／全記録はなくす。 */
+  ['記録', '狙い目', '表グラフ', '横棒グラフ', '折れ線グラフ', '割合'].forEach(function (n) {
+    t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
+  });
+  t(tabs.indexOf('全記録') === -1 && tabs.indexOf('集計') === -1,
+    '★★★「集計」と「全記録」はなくなっている', tabs.join('/'));
   t(tabs.every(x => x.length <= 7), '★★★どのタブも7字まで', tabs.join('/'));
 
   /* ---- 表でも、乗り場を目立たせる ---- */
@@ -1429,14 +1440,19 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
   t(html.indexOf('id="ktPeriodBox"') < html.indexOf('<nav id="tabs">'),
     '★★★タブより上にある（いつの・どこのが1か所でそろう）');
   t(/const periodBox = /.test(app), '　 その中身も入っている');
-  t(!/const filterChips = [\s\S]{0,400}data-filt="period"/.test(app),
-    '　 下の方には、二重に出していない');
+  /* ★グラフの画面でも、期間を切り替えられるようにしました（ご指示・2026/11/12）。
+       上まで戻らずに切り替えられることのほうが、大事です。 */
+  t(/\$\{full \? `<div class="chips catch">/.test(app),
+    '★★★グラフの画面には、大カテゴリーのタグも出す');
+  t(/<div class="fperiod">\$\{periodBox\(\)\}<\/div>/.test(app),
+    '★★★グラフの画面でも、期間を切り替えられる');
   t(/\.ktperiod\{/.test(css), '　 その見た目も入っている');
 
-  /* ② 集計の1画面で足りる形に */
-  const rank = app.slice(app.indexOf('function paneRank()'), app.indexOf('/* ---- 全記録'));
-  t(/paneHeat\(true\)/.test(rank), '★★★「集計」に、つけ待ちの表もいっしょに出る');
-  t(/function paneHeat\(noChips\)/.test(app), '　 二重に絞り込みを出さない作りになっている');
+  /* ② 表グラフは、エリアごとに分ける（ご指示・2026/11/12） */
+  const heat = app.slice(app.indexOf('function paneHeat(noChips)'), app.indexOf('いまアツい（ここから）'));
+  t(/CAT_ORDER\.forEach/.test(heat), '★★★大カテゴリーごとに、表を分ける');
+  t(!/slice\(0,10\)/.test(heat), '★★★乗り場は ぜんぶ出す（10か所で切らない）');
+  t(/filterChips\(true\)/.test(heat), '　 大カテゴリーと期間を、その場で切り替えられる');
 
   /* ③ 前の期間とくらべる */
   t(/function compareCard\(\)/.test(app), '★★★前の期間とくらべる所がある');
@@ -1627,16 +1643,19 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
   t(/data-day=/.test(app), '　 押せるようになっている');
   t(/onlyDay = b\.dataset\.day/.test(app), '　 押したら切り替わる');
   t(/day: onlyDay/.test(app), '　 えらんだ形を覚える');
-  t(/filtOn = \(\) => !!onlyPlace \|\| !!onlyDay/.test(app),
-    '★★★曜日で絞っているときも「絞り込みを解除」が出る');
+  t(/filtOn = \(\) => !!onlyPlace \|\| !!onlyCat \|\| !!onlyDay/.test(app),
+    '★★★曜日や大カテゴリーで絞っているときも「絞り込みを解除」が出る');
   t(/DAY_CHIPS\.filter\(d => d\.k === onlyDay\)/.test(app),
     '★★★何で絞っているかを、数のすぐ下に出す');
   t(/\.chips\.daych/.test(css), '　 その見た目も入っている');
 
-  /* 一日の流れは、横画面で収まる幅に */
-  t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* 4\d;/.test(app),
-    '★★★一日の流れは、時間の数から幅を決める（横画面で収まる）');
-  t(/横画面にすると、ぜんぶ入ります/.test(app), '★★★横画面をすすめる案内を出す');
+  /* 横棒グラフ・折れ線グラフは、横画面で収まる幅に */
+  t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* 5\d;/.test(app),
+    '★★★横棒グラフは、時間の数から幅を決める（横画面で収まる）');
+  t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* 52, H = 470;/.test(app),
+    '★★★折れ線グラフも、同じ決め方にそろえる');
+  t((app.match(/横にスクロールできます（横画面推奨）/g) || []).length >= 3,
+    '★★★横画面をすすめる案内を、どのグラフにも出す');
   t(/<div class="scroll fb">/.test(app), '　 図は、カードの端いっぱいまで使う');
   t(/\.scroll\.fb\{margin:0 -16px/.test(fs.readFileSync(path.join(W2,'style.css'),'utf8')),
     '　 その見た目も入っている');
