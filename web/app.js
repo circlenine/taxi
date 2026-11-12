@@ -2156,8 +2156,19 @@ function paneTl(){
   /* ★「大きくなってません」とのご指摘（2026/11/12）。
        1行をさらに高く、1時間ぶんの幅も広げます。
        横画面（およそ810px）に、19〜29時がちょうど収まる大きさです。 */
-  const L = 120, Rp = 20, rowH = 88;
-  const W = L + Rp + Math.max(1, (x1 - x0)) * 52;
+  /* ★左の日付を短くして、表の中身を広く取ります
+       （ご指示・2026/11/13「もっと左の日付部分スマートに短くできませんか？
+         1番大事なのは表の中身なので、表の中身が1画面でできるだけ
+         はっきり見られる形に見直してください」）。
+       「11/11(水)」→「11/11 水」。左の欄は120→56に。
+       1行の高さも88→58にして、1画面に入る日数を増やします。 */
+  const L = 56, Rp = 16, rowH = 58;
+  /* ★1時間ぶんの幅は、表グラフと同じ考え方で決めます。
+       22時までは、横にスクロールせずに見られる大きさにします。 */
+  const vwT  = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
+  const need = Math.max(1, Math.min(x1 - x0, 22 - x0));
+  const cwT  = Math.max(30, Math.min(52, Math.floor((vwT - L - Rp) / need)));
+  const W = L + Rp + Math.max(1, (x1 - x0)) * cwT;
   const H = 62 + ds.length*rowH + 20;
   /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
        左の端より外には、はみ出させません。 */
@@ -2169,7 +2180,9 @@ function paneTl(){
     <text class="axis" x="${sx(h)}" y="18" text-anchor="middle">${h}</text>`;
   ds.forEach((d,i) => {
     const y = 34 + i*rowH;
-    s += `<text class="axis" x="${L-10}" y="${y+26}" text-anchor="end" fill="${dcol(d)}">${fmtD(d)}</text>`;
+    /* 「11/11(水)」は長いので、かっこを外して「11/11 水」にします */
+    s += `<text class="axis" x="${L-8}" y="${y+26}" text-anchor="end" fill="${dcol(d)}"
+      style="font-size:11.5px">${esc(fmtD(d).replace('(', ' ').replace(')', ''))}</text>`;
     R.filter(r => r.date === d).forEach(r => {
       const a = sx(r.dep - (+r.wait||0)/60), b = sx(r.dep), c = sx(r.dep + (+r.ride||0)/60);
       /* ★帯の明るさは「金額」で決めます（ご指示・2026/11/13）。
@@ -2181,7 +2194,14 @@ function paneTl(){
         <rect x="${a}" y="${y+18}" width="${Math.max(1,b-a)}" height="8" rx="4" fill="#3A4B6D"/>
         <rect x="${b}" y="${y+10}" width="${Math.max(3,c-b)}" height="22" rx="5" fill="rgba(240,163,59,${.25+t*.7})"/>
         <rect x="${a-1}" y="${y+5}" width="${Math.max(6,c-a+2)}" height="32" fill="transparent"/></g>`;
-      if (r.fare >= 8000) s += `<text class="glab" x="${c+5}" y="${y+27}" fill="var(--meter)">${yen(r.fare)}</text>`;
+      /* ★大きい金額は、帯のとなりに出します。
+             右の端からはみ出すときは、帯の左に出します（切れないように）。 */
+      if (r.fare >= 8000) {
+        const right = c + 5 + 54 <= W - 2;
+        s += `<text class="glab" x="${right ? c+5 : a-5}" y="${y+27}"
+          text-anchor="${right ? 'start' : 'end'}" style="font-size:11px"
+          fill="var(--meter)">${yen(r.fare)}</text>`;
+      }
     });
   });
   s += '</svg>';
