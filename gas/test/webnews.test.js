@@ -1202,6 +1202,21 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
+  /* ★メニューは、画面の幅いっぱいに ます目でそろえます（ご指示・2026/11/12
+       「ちゃんと、メニューらしく 横幅を画面幅に揃えて、作り直してください」） */
+  {
+    const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/nav\{display:grid;grid-template-columns:repeat\(4,1fr\)/.test(cs),
+      '★★★メニューは4つずつの ます目');
+    t(/nav button\{[^}]*width:100%/.test(cs), '★★★1つ1つを、同じ幅にする');
+    t(/nav button b\{[^}]*white-space:nowrap/.test(cs), '　 名前は折り返さない');
+    const h3 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    const subs = (h3.match(/<i>([^<]*)<\/i>/g) || []).map(x => x.replace(/<\/?i>/g, ''));
+    t(subs.length === 8, '★★★メニューは8つ', subs.length);
+    t(subs.every(x => x.length <= 6), '★★★そえる字は6文字まで（ます目からはみ出さない）',
+      subs.filter(x => x.length > 6).join('/'));
+  }
+
   /* ★ふきだしが出ているあいだは、固定ボタンを出しません
        （ご指示・2026/11/12「ポップアップの時は表示しないでください」） */
   t(/classList\.add\('modalon'\)/.test(app), '★★★ふきだしを出したら、印を付ける');
@@ -1559,11 +1574,12 @@ console.log('■ タブは、横スクロールさせない（ご指示・2026/1
    */
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   const nav = (css.match(/\nnav\{[^}]*\}/) || [''])[0];
-  t(/flex-wrap:wrap/.test(nav), '★★★入りきらなければ、折り返す', nav.slice(0,70));
+  /* ★いまは、ます目（4つずつ2段）で組んでいます。
+       横に流さず、画面の幅ぴったりに収まります。 */
+  t(/grid-template-columns:repeat\(4,1fr\)/.test(nav),
+    '★★★入りきらなければ、2段にする（ます目）', nav.slice(0, 70));
   t(!/overflow-x:auto/.test(nav), '★★★横スクロールは、させない');
   t(!/nav::-webkit-scrollbar/.test(css), '　 スクロールバーを隠す細工も、残っていない');
-  const btn = (css.match(/\nnav button\{[^}]*\}/) || [''])[0];
-  t(!/flex:1 0 auto/.test(btn), '　 ボタンを無理に広げない（折り返せるように）');
 }
 
 

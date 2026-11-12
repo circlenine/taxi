@@ -181,8 +181,12 @@ a.chip.off{opacity:.45;pointer-events:none}
      「あまり横スクロール機能は好きじゃないので、なんとかしてください」
       「PCだと見切れています」）。
      入りきらないときは、折り返して2段にします。 */
-nav{display:flex;flex-wrap:wrap;gap:4px;margin:18px 0 14px;background:var(--ink2);
-  padding:4px;border-radius:9px;border:1px solid var(--ink3)}
+/* ★メニューらしく、画面の幅いっぱいに、ます目でそろえます
+     （ご指示・2026/11/12「ちゃんと、メニューらしく
+       横幅を画面幅に揃えて、作り直してください」）。
+     右側だけ空いていて、並びがばらばらに見えていました。 */
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:18px 0 14px;
+  background:var(--ink2);padding:5px;border-radius:11px;border:1px solid var(--ink3)}
 nav button{flex:0 1 auto;white-space:nowrap;background:none;border:0;color:var(--chipoff);
   padding:9px 11px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
 nav button[aria-selected=true]{background:var(--andon);color:#14100A;font-weight:700}
@@ -952,12 +956,13 @@ h1.dn .xg.on{animation:xgleam 1.15s ease-in-out}
 .handbar span{opacity:.85}
 
 /* メニュー（タブ）に、何が分かるかを添える */
-nav button{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25;padding:7px 10px}
+nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;line-height:1.25;padding:8px 2px;width:100%;min-width:0;border-radius:8px}
 /* ★新着の赤丸は、名前の左に出します（ご指示・2026/11/12） */
 nav button b{font-size:13px;font-weight:700;display:flex;align-items:center;
-  justify-content:center;gap:5px}
+  justify-content:center;gap:4px;white-space:nowrap}
 nav button b .dot{margin:0;flex:0 0 auto}
-nav button i{font-style:normal;font-size:10px;opacity:.78;letter-spacing:0}
+nav button i{font-style:normal;font-size:9.5px;opacity:.78;letter-spacing:0;white-space:nowrap}
 nav button[aria-selected=true] i{opacity:.95}
 
 
@@ -1052,9 +1057,10 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 
 @media(max-width:560px){.gwrap{grid-template-columns:1fr}}
 @media(max-width:380px){
-  nav button{padding:6px 8px}
+  nav{gap:3px;padding:4px}
+  nav button{padding:7px 1px}
   nav button b{font-size:12px}
-  nav button i{font-size:9px}
+  nav button i{font-size:8.5px}
   .fab.done{height:46px;padding:0 16px;font-size:15px}
 }
 
