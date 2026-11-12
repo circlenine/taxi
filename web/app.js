@@ -821,6 +821,10 @@ function paneIn(){
     <div class="ktplace">
       <select class="fsel" id="ktPlace2"></select>
     </div>
+    <div class="ktfind">
+      <input class="ja" id="ktFind2" data-find="ktSug2" placeholder="乗り場をさがす（例：梅田）">
+      <div class="fsug" id="ktSug2"></div>
+    </div>
     <p class="note">${records.length ? '新しい順に10件。全員分が1つの台帳に入ります。' : 'まだ1件も入っていません。'}</p>
     ${filterChips()}
     ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
@@ -2716,7 +2720,8 @@ function paneRatio(){
   /* ★一番上は「何時は、どこ」（ご指示・2026/11/12）。
        「どこを、何時に」ではなく、**時間帯順**に並べて、
        いま走るべき乗り場が、すぐ目に入る形にします。 */
-  let out = head + hourPlanCard(D) + bestTimeCard(D);
+  /* ★「この乗り場は、何時がよいか」を一番上に（ご指示・2026/11/13） */
+  let out = head + bestTimeCard(D) + hourPlanCard(D);
 
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
   out +=
@@ -3115,6 +3120,36 @@ function wire(){
   });
   document.querySelectorAll('[data-day]').forEach(function (b) {
     b.onclick = function () { grab(); onlyDay = b.dataset.day; filtSave(); render(); };
+  });
+  /* ★乗り場を、字で探せるようにします（ご指示・2026/11/13）
+       「乗り場の選択は、プルダウン以外に検索で。
+         検索の該当文字が含んでいたら、候補を表示する形にしてください」
+     ★画面ぜんたいを作り直すと、打っている途中で指が離れてしまうので、
+       候補の欄だけを書きかえます。 */
+  document.querySelectorAll('[data-find]').forEach(function (inp) {
+    const box = document.getElementById(inp.dataset.find);
+    if (!box) return;
+    const show = function () {
+      const q = pkey(inp.value);
+      if (!q) { box.innerHTML = ''; return; }
+      const names = [...new Set(records.map(r => r.place).filter(Boolean))];
+      const hit = names.filter(n => pkey(n).indexOf(q) !== -1)
+        .map(n => ({ n: n, c: records.filter(r => r.place === n).length }))
+        .sort((a, b) => b.c - a.c || (a.n < b.n ? -1 : 1))
+        .slice(0, 10);
+      box.innerHTML = hit.length
+        ? hit.map(o => '<button class="chip" data-fp="' + esc(o.n) + '">' +
+            esc(o.n) + '<span class="cnt">' + o.c + '</span></button>').join('')
+        : '<span class="note">見つかりません</span>';
+      box.querySelectorAll('[data-fp]').forEach(function (b) {
+        b.onclick = function () {
+          grab();
+          onlyPlace = b.dataset.fp; onlyBig = ''; onlyCat = '';
+          filtSave(); render();
+        };
+      });
+    };
+    inp.addEventListener('input', show);
   });
   const kcl = document.getElementById('ktClear');
   if (kcl) kcl.onclick = function () { grab(); onlyPlace = ''; filtSave(); render(); };

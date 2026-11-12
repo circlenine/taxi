@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261112-56255820">
+<link rel="stylesheet" href="style.css?v=20261112-3db285eb">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
@@ -92,6 +92,12 @@
       <select class="fsel" id="ktPlace"></select>
       <button class="chip" id="ktClear" hidden>すべてに戻す</button>
     </div>
+    <!-- ★プルダウン以外に、字で探せるようにします（ご指示・2026/11/13）。
+           打った字が入っている乗り場を、候補として下に出します。 -->
+    <div class="ktfind">
+      <input class="ja" id="ktFind" data-find="ktSug" placeholder="乗り場をさがす（例：梅田）">
+      <div class="fsug" id="ktSug"></div>
+    </div>
     <div class="ktperiod" id="ktPeriodBox"></div>
     <!-- ★ここでも、全員／自分だけを切り替えられます（ご指示・2026/11/12） -->
     <div class="chips ktmine">
@@ -120,9 +126,9 @@
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく</rt></ruby>完了</button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261112-56255820"></script>
-<script src="news.js?v=20261112-56255820"></script>
-<script src="shared.js?v=20261112-56255820"></script>
-<script src="app.js?v=20261112-56255820"></script>
+<script src="config.js?v=20261112-3db285eb"></script>
+<script src="news.js?v=20261112-3db285eb"></script>
+<script src="shared.js?v=20261112-3db285eb"></script>
+<script src="app.js?v=20261112-3db285eb"></script>
 </body>
 </html>

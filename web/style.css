@@ -95,6 +95,12 @@ button{font-family:inherit}
 /* ★乗り場は、いちばん大事（ご指示・2026/11/12）。
      どの画面にいても、ここで切り替えられます。 */
 .ktplace{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+/* ★乗り場を字で探す欄（ご指示・2026/11/13）。
+     打った字が入っている乗り場を、下に候補として出します。 */
+.ktfind{margin-top:8px}
+.ktfind input{width:100%;box-sizing:border-box}
+.fsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fsug:empty{display:none}
 .ktplace .fsel{flex:1 1 180px;min-width:0;font-size:15px}
 .ktwho{font-size:11.5px;color:#FFFFFF;line-height:1.6;
   display:flex;flex-wrap:wrap;gap:0 10px}
