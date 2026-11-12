@@ -892,10 +892,15 @@ td.w-mark {background:#26262A}   /* まーく様 … 灰 */
 .chips.fares{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
 .chips.fares .chip{font-size:11px;padding:6px 0;min-width:0;letter-spacing:-.02em}
 .chips.mins{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+/* ★発車時間の 時（12個）・分（12個）は、それぞれ1行に収めます
+     （ご指示・2026/11/12「これ、なんとかそれぞれ1行にできないですか」）。 */
+.chips.deps{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
+.chips.deps .chip{font-size:11px;padding:6px 0;min-width:0;letter-spacing:-.04em;border-radius:14px}
 .chips.mins .chip{font-size:12px;padding:6px 0;min-width:0;letter-spacing:0}
 @media(max-width:360px){
   .chips.fares .chip{font-size:10px}
   .chips.mins .chip{font-size:11.5px}
+  .chips.deps .chip{font-size:10px}
 }
 
 /* ★似ている乗り場の名前に気づいたときの確認（ご指示・2026/11/12） */
@@ -1041,6 +1046,21 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 .hbh span{font-size:11.5px;color:#FFFFFF;opacity:.9}
 .hblk .lhead{display:none}
 .hbn{font-size:11.5px;color:#FFFFFF;opacity:.85;line-height:1.6;margin:2px 0 4px}
+
+/* この乗り場は、何時がよいか（ご指示・2026/11/12） */
+.bsel{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+.bsel .fsel{flex:1 1 auto;min-width:0}
+.bsel .mini{flex:none;text-decoration:none}
+.btlist{margin-top:6px}
+.btrow{display:grid;grid-template-columns:58px 1fr 48px 72px;align-items:center;gap:8px;
+  padding:6px 4px;border-bottom:1px solid var(--ink3)}
+.btrow.top{background:rgba(240,163,59,.12);border-radius:9px}
+.btrow .bth{font-family:var(--mono);font-size:14px;font-weight:700;color:#FFFFFF}
+.btrow.top .bth{color:var(--andon)}
+.btrow .btv{font-family:var(--mono);font-size:14px;font-weight:700;color:#6FD8A8;text-align:right}
+.btrow .btm{font-family:var(--mono);font-size:12px;font-weight:700;text-align:right;color:#FFFFFF}
+.btrow .btm i{font-style:normal;display:block;font-size:10px;opacity:.75;font-weight:400}
+@media(max-width:380px){.btrow{grid-template-columns:50px 1fr 42px 62px;gap:6px}}
 
 .blk3{border-top:1px solid var(--ink3);padding:10px 0 4px}
 .blk3:first-of-type{border-top:none}

@@ -687,9 +687,9 @@ function paneIn(){
         <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
         <!-- ★時と分を、押すだけで入れられるようにします（ご指示・2026/11/12）。
                走りながら打つので、字を打たせない形にします。 -->
-        <div class="chips mins">${DEP_H.map(h =>
+        <div class="chips deps">${DEP_H.map(h =>
           `<button class="chip ${depPart(f.dep).h===h?'on':''}" data-dh="${h}">${h}</button>`).join('')}</div>
-        <div class="chips mins">${DEP_M.map(m =>
+        <div class="chips deps">${DEP_M.map(m =>
           `<button class="chip ${depPart(f.dep).m===m?'on':''}" data-dm="${m}">${m}</button>`).join('')}</div>
         <div class="hint" id="depHint"></div></div>
       <div class="f w2"><label>乗車金額</label>
@@ -2288,6 +2288,9 @@ function bandAvg(rs){
      「ロングが出やすい乗り場と時間帯はリンクさせてほしいです」
      棒を押すと、その時間帯の乗り場だけになります。空なら全時間です。 */
 let hourPick = '';
+/* ★「この乗り場は、何時に着けるのがよいか」を見るための選び（ご指示・2026/11/12）。
+     空なら、記録の一番多い乗り場を出します。 */
+let bestPlace = '';
 
 /** その集まりを、乗り場ごとの並びにします（3件以上・ロング率の高い順） */
 function longRank(rs){
@@ -2315,6 +2318,69 @@ function longRank(rs){
  * ★枠の名前（いま・次…）は付けません。時刻だけで分かります。
  * ★1つの枠に出すのは3か所だけ。枠は4つまで。
  */
+/**
+ * 乗り場ごとの「何時に着けるのがよいか」（ご指示・2026/11/12）
+ *   「乗り場ごとに、何時に着けるのがベストなのかというのも
+ *     導き出せるようにしてください」
+ *
+ * ★乗り場を1つ選んで、その乗り場の時間帯だけを並べます。
+ *   前に全部の乗り場を並べたら「どれを攻めれば良いのか分かりません」
+ *   とご指摘をいただいたので、1つずつ見る形にしました。
+ * ★乗り場ごとでは件数が少ないので、前後1時間をふくめて数えます。
+ *   どこまで広げたかは、必ず画面に書きます。
+ * ★並べる順は「時刻の順」です。強い順ではありません
+ *   （何時に着けるかを決めるための表なので）。
+ *   一番よい時間だけ、一言で言い切ります。
+ */
+function bestTimeCard(D){
+  if (!D || !D.length) return '';
+  /* 乗り場ごとの件数。多い順にえらべるようにします */
+  const cnt = {};
+  D.forEach(function (r){ const p = r.place; if (p) cnt[p] = (cnt[p] || 0) + 1; });
+  const list = Object.keys(cnt).sort((a2, b2) => cnt[b2] - cnt[a2] || (a2 < b2 ? -1 : 1));
+  if (!list.length) return '';
+  const pick = (bestPlace && cnt[bestPlace]) ? bestPlace : list[0];
+
+  const rs = D.filter(r => r.place === pick);
+  const hs = [...new Set(rs.map(r => Math.floor(r.dep)))].sort((a2, b2) => a2 - b2);
+  const rows = hs.map(function (h){
+    const t = rs.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
+    const o = bandCount(t);
+    return { h: h, o: o, L: bandPct(o, 'L'), avg: bandAvg(t), n: t.length };
+  }).filter(x => x.o.n >= HOT_MIN_N);
+
+  const sel = '<select class="fsel" id="bestPlaceSel">' +
+    list.map(p => '<option value="' + esc(p) + '"' + (p === pick ? ' selected' : '') + '>' +
+      esc(p) + '（' + cnt[p] + '件）</option>').join('') + '</select>';
+
+  if (!rows.length) {
+    return '<div class="card"><h2>この乗り場は、何時がよいか</h2>' +
+      '<div class="bsel">' + sel + '</div>' +
+      '<div class="empty">' + esc(pick) + ' は、3件以上そろった時間帯が、まだありません。</div></div>';
+  }
+
+  /* 一番よい時間（ロング率が高い順。同じならロングの平均金額が高いほう） */
+  const top = rows.slice().sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg)[0];
+  const body = rows.map(function (x){
+    const on = (x === top);
+    return '<div class="btrow' + (on ? ' top' : '') + '">' +
+      '<span class="bth">' + x.h + '時台</span>' +
+      '<span class="btb">' + bandBar(x.o) + '</span>' +
+      '<span class="btv">' + x.L + '%</span>' +
+      '<span class="btm">' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></div>';
+  }).join('');
+
+  return '<div class="card"><h2>この乗り場は、何時がよいか</h2>' +
+    '<div class="bsel">' + sel +
+    '<a class="mini" href="' + mapUrl(pick) + '" target="_blank" rel="noopener">📍 地図</a></div>' +
+    '<p class="note"><b>' + esc(pick) + ' は、' + top.h + '時台</b>が一番よさそうです' +
+    '（ロング ' + top.L + '%・平均 ' + yen(top.avg) + '・' + top.o.n + '件）。</p>' +
+    '<div class="btlist">' + body + '</div>' +
+    '<p class="note">時刻の順に並べています。件数が少ないので、' +
+    '<b>前後1時間をふくめて</b>数えています。3件そろわない時間帯は出していません。</p>' +
+    '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
+}
+
 function hourPlanCard(D){
   if (!D || !D.length) return '';
   const c = hotNow();
@@ -2402,7 +2468,7 @@ function paneRatio(){
   /* ★一番上は「何時は、どこ」（ご指示・2026/11/12）。
        「どこを、何時に」ではなく、**時間帯順**に並べて、
        いま走るべき乗り場が、すぐ目に入る形にします。 */
-  let out = head + hourPlanCard(D);
+  let out = head + hourPlanCard(D) + bestTimeCard(D);
 
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
   out +=
@@ -2670,6 +2736,9 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 function wire(){
   fabWire();
+  /* 「この乗り場は、何時がよいか」の乗り場えらび */
+  const bps = document.getElementById('bestPlaceSel');
+  if (bps) bps.onchange = function () { bestPlace = bps.value; render(); };
   /* ★時間帯の棒を押すと、その時間の乗り場だけになります（ご指示・2026/11/12） */
   document.querySelectorAll('[data-hr]').forEach(function (b) {
     b.onclick = function () {

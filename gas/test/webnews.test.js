@@ -1076,6 +1076,16 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/全時間に戻す/.test(app), '★★★元に戻す押しどころもある');
   t(/時間帯べつ 乗り場ランキング/.test(app), '★★★時間帯べつのランキングを、まるごと出す');
   t(/function longRank\(/.test(app), '　 並べる係は1つにまとめてある');
+  /* ★乗り場ごとに「何時に着けるのがよいか」（ご指示・2026/11/12
+       「乗り場ごとに、何時に着けるのがベストなのかというのも
+         導き出せるようにしてください」） */
+  t(/function bestTimeCard\(/.test(app), '★★★乗り場ごとの「何時がよいか」を出す係がある');
+  t(/<h2>この乗り場は、何時がよいか<\/h2>/.test(app), '★★★その題が出る');
+  t(/id="bestPlaceSel"/.test(app), '★★★乗り場を えらべる');
+  t(/bestPlace = bps\.value/.test(app), '　 えらんだら切り替わる');
+  t(/が一番よさそうです/.test(app), '★★★一番よい時間を、一言で言い切る');
+  t(/hourPlanCard\(D\) \+ bestTimeCard\(D\)/.test(app), '　 時間順の狙い目のすぐ下に出す');
+  t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件そろわない時間帯は出さない');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件より少ない乗り場は、並びに出さない');
   /* ★その1時間だけでは3件に届かないので、前後1時間をふくめて数えます。
        そのことを、必ず画面に書きます（黙って広げない）。 */
@@ -1111,7 +1121,7 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
          なので、時間帯順にして おすすめの乗り場を出す形に」 */
   t(/function hourPlanCard\(/.test(app), '★★★時間順に出す係がある');
   t(/<h2>時間順の狙い目<\/h2>/.test(app), '★★★題は「時間順の狙い目」');
-  t(app.indexOf('let out = head + hourPlanCard(D);') !== -1,
+  t(app.indexOf('let out = head + hourPlanCard(D)') !== -1,
     '★★★画面の一番上に出る');
   t(!/狙いどころ（乗り場 × 時間帯）/.test(app),
     '★★★「どこを、何時に」の並びは、残っていない');
@@ -1817,6 +1827,13 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/\.chips\.fares\{display:grid;grid-template-columns:repeat\(8,1fr\)/
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
     '★★★金額は8個ずつの ます目（3段ぴったり）');
+  /* ★発車時間の 時・分は、それぞれ1行に収めます（ご指示・2026/11/12
+       「これ、なんとかそれぞれ1行にできないですか」）。 */
+  t(/\.chips\.deps\{display:grid;grid-template-columns:repeat\(12,1fr\)/
+    .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★発車時間は12個ずつの ます目（それぞれ1行）');
+  t((app.match(/<div class="chips deps">/g) || []).length === 2,
+    '　 時の行と、分の行の2つに使っている');
 }
 
 
