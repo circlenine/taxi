@@ -1202,9 +1202,11 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
-  t(/<button class="fab done" id="fabAdd" hidden><ruby>粛清完了<rt>きろく<\/rt><\/ruby><\/button>/
+  /* ★ルビが乗るのは「粛清」だけです（ご指示・2026/11/12
+       「粛清の上に、きろくと入れてください」）。 */
+  t(/<button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく<\/rt><\/ruby>完了<\/button>/
     .test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
-    '★★★「粛清完了」に「きろく」のルビがある');
+    '★★★「粛清」の上に「きろく」のルビがある');
   t(/\.fab\.done rt\{/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
     '　 ルビの見た目も入っている');
 
