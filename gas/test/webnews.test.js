@@ -1177,6 +1177,15 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     '★★★タブの行より上にある');
   t(!/<nav id="tabs">[\s\S]*?data-t="fb"[\s\S]*?<\/nav>/.test(html),
     '★★★タブの行には、もう入っていない');
+  /* ★≡ のボタンと、ふきだしが重ならないこと（ご指摘・2026/11/12） */
+  {
+    const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/body\[data-hand="r"\] header\{padding-right:5\dpx\}/.test(cs),
+      '★★★右利きのときは、題の行の右に余白を取る');
+    t(/body\[data-hand="l"\] header\{padding-left:5\dpx\}/.test(cs),
+      '★★★左利きのときは、左に余白を取る');
+  }
+
   /* ★新着の赤丸は、名前の左（ご指示・2026/11/12） */
   t(/<b><span class="dot" id="evDot" hidden><\/span>イベント<\/b>/.test(html),
     '★★★イベントの赤丸は、名前の左');
