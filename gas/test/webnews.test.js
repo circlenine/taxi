@@ -1312,6 +1312,11 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     '★★★イベントの赤丸は、名前の左');
   t(/<b><span class="dot" id="newsDot" hidden><\/span>お知らせ<\/b>/.test(html),
     '★★★お知らせの赤丸も、名前の左');
+  /* ★細い機種（320px）では、入らないときに折り返します
+       （2026/11/13、ほかのアカウントの形を確かめて見つけました）。
+     nowrap のままだと、フィードバックが画面の外へ出ます。 */
+  t(/\.handbar\{flex-wrap:wrap/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★入らないときは、折り返す（画面の外へ出さない）');
   t(/\.handbar \.fbtab\{margin-left:auto\}/
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')), '★★★右端に寄せている');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
