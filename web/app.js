@@ -496,8 +496,15 @@ function periodLabel(){
   if (period.mode === 'all') return '全期間';
   const r = periodRange();
   if (!r.from && !r.to) return '全期間';
+  /* ★いま進んでいる期は、おしりを「記録のある 一番新しい営業日」に
+       します（ご指示・2026/11/13「〇/〇(曜)←最新の営業曜日」）。
+     まだ来ていない日まで書くと、いつの分か分からなくなります。 */
+  const ds = records.map(x => x.date).filter(Boolean).sort();
+  const last = ds[ds.length - 1] || '';
+  let to = r.to;
+  if (to && last && last < to && (!r.from || r.from <= last)) to = last;
   const a = r.from ? fmtD(r.from) : 'はじめ';
-  const b = r.to   ? fmtD(r.to)   : 'いま';
+  const b = to     ? fmtD(to)     : 'いま';
   return a + ' 〜 ' + b;
 }
 
@@ -817,6 +824,8 @@ function placeCat(p){
 }
 /* えらんだものは「分け方＋乗り場」で覚えます */
 const CATSEP = '\u0001';
+/* 大きなまとまり（北・南・他）をえらんだ印。乗り場の名前と見分けるため */
+const BIGSEL = '\u0002';
 const splitSel = v => {
   const t = String(v || '');
   const i = t.indexOf(CATSEP);
@@ -869,6 +878,21 @@ function placeOptions(){
   });
   const sel = String(onlyPlace || '');
   let out = '<option value="">乗り場：すべて</option>';
+  /* ★大きなまとまり（北・南・他）でも えらべるようにします
+       （ご指摘・2026/11/13「中カテゴリーの 北、南、他の選択が出来ませんが」）。
+     タグを押さなくても、このプルダウン1つで切り替えられます。 */
+  const bn = {};
+  records.forEach(function (r){ if (r.place) bn[recBig(r)] = (bn[recBig(r)] || 0) + 1; });
+  const bl = BIG_ORDER.filter(k => bn[k]);
+  if (bl.length) {
+    out += '<optgroup label="エリア">';
+    bl.forEach(function (k) {
+      out += '<option value="' + BIGSEL + esc(k) + '"' +
+             (onlyBig === k && !onlyPlace ? ' selected' : '') + '>' +
+             esc(k) + 'エリア（' + bn[k] + '件）</option>';
+    });
+    out += '</optgroup>';
+  }
   CAT_ORDER.forEach(function (g) {
     const list = Object.keys(n).filter(k => splitSel(k).cat === g)
       .sort((a,b) => n[b] - n[a] || (a < b ? -1 : 1));
@@ -883,13 +907,26 @@ function placeOptions(){
   return out;
 }
 
+/**
+ * 期間のえらび。
+ * ★「今期」「前期」のような言い方はやめ、日付だけを出します
+ *   （ご指示・2026/11/13「今期、前期～とかいりません 日付だけを載せる形にして」）。
+ * ★いま進んでいる期の終わりは、期の最後の日ではなく
+ *   **記録のある 一番新しい営業日** にします
+ *   （ご指示・2026/11/13「10/16(金)〜〇/〇(曜)←最新の営業曜日」）。
+ *   まだ来ていない日まで書くと、いつの分か分からなくなるためです。
+ */
 function periodOptions(){
   const o = ['<option value="all"' + (period.mode === 'all' ? ' selected' : '') +
-             '>期間：全期間</option>'];
+             '>全期間</option>'];
+  /* 記録のある 一番新しい営業日 */
+  const ds = records.map(r => r.date).filter(Boolean).sort();
+  const last = ds[ds.length - 1] || today();
   cycleList().forEach(function (c, i) {
-    const name = i === 0 ? '今期' : (i === 1 ? '前期' : (i + '期まえ'));
+    /* いま進んでいる期だけ、おしりを「最新の営業日」にします */
+    const to = (c.from <= last && last <= c.to) ? last : c.to;
     o.push('<option value="c' + i + '"' + (period.mode === 'c' + i ? ' selected' : '') +
-           '>' + name + '（' + fmtD(c.from) + '〜' + fmtD(c.to) + '）</option>');
+           '>' + fmtD(c.from) + '〜' + fmtD(to) + '</option>');
   });
   o.push('<option value="free"' + (period.mode === 'free' ? ' selected' : '') +
          '>自分で決める…</option>');
@@ -2679,7 +2716,14 @@ function fabWire(){
   if (m && sheet) {
     m.onclick = function () {
       if (!sheet.hidden) { sheet.hidden = true; return; }
-      sheet.innerHTML = [...document.querySelectorAll('[data-t]')].map(function (b) {
+      /* ★フィードバックは、一番下に出します（ご指示・2026/11/13）。
+           上の行に置いてあるので、そのままだと先頭に来てしまいます。 */
+      const btns = [...document.querySelectorAll('[data-t]')]
+        .sort(function (x, y) {
+          const fx = x.dataset.t === 'fb' ? 1 : 0, fy = y.dataset.t === 'fb' ? 1 : 0;
+          return fx - fy;
+        });
+      sheet.innerHTML = btns.map(function (b) {
         const t = b.dataset.t;
         const nm = (b.querySelector('b') || {}).textContent || (b.textContent || '').trim();
         const sb = (b.querySelector('i') || {}).textContent || '';
@@ -2827,7 +2871,15 @@ function wire(){
   ['ktPlace', 'ktPlace2'].forEach(function (id) {
     const kpl = document.getElementById(id);
     if (kpl) kpl.onchange = function () {
-      grab(); onlyPlace = kpl.value; onlyCat = ''; filtSave(); render(); };
+      grab();
+      const v = String(kpl.value || '');
+      if (v.indexOf(BIGSEL) === 0) {
+        /* 「北エリア」などをえらんだとき */
+        onlyBig = v.slice(1); onlyPlace = ''; onlyCat = '';
+      } else {
+        onlyPlace = v; onlyBig = ''; onlyCat = '';
+      }
+      filtSave(); render(); };
   });
   /* ★大カテゴリーを押したら、乗り場の指定は外します。
        どちらも効かせると、どちらで絞ったのか分からなくなります。 */
