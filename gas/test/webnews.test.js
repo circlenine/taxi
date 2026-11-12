@@ -1502,12 +1502,12 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   /* ① 並びは、記録用スプレッドシートと同じ */
-  const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種|他)<\/th>/g) || [])
+  const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種・他)<\/th>/g) || [])
     .map(x => x.replace(/<[^>]+>/g, '').replace('修正削除', '操作'));
-  t(th.join('/') === '名/付/待/発/金/乗/種/他/操作',
-    '★★★並びは 名→付→待→発→金→乗→種→他→操作', th.join('/'));
-  t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('<th>他</th>'),
-    '★★★修正・削除が、いちばん右（ご指示・2026/11/12）');
+  t(th.join('/') === '名/付/待/発/金/乗/種・他/操作',
+    '★★★並びは 名→付→待→発→金→乗→種・他→操作', th.join('/'));
+  t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('<th>種・他</th>'),
+    '★★★修正・削除が、表の右端（ご指示・2026/11/12）');
   t(/>修正</.test(app) && />削除</.test(app), '★★★「修正」「削除」という名前');
   const tbl = app.slice(app.indexOf('function tableHTML'), app.indexOf('const KANA_SHORT'));
   t(!/>直す</.test(tbl) && !/>消す</.test(tbl), '　 表に、前の「直す」「消す」は残っていない');
@@ -1566,9 +1566,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/\.scroll\.tbl table\{table-layout:fixed/.test(css), '　 幅を決めて、広がりすぎないようにする');
 
   /* ⑧ ふきだしは、押した所の真上 */
-  const mv = app.slice(app.indexOf('function moveTip'), app.indexOf('function hideTip'));
-  t(/e\.clientY - h - \d+/.test(mv), '★★★ふきだしは、押した所の真上に出す');
-  t(/if \(y < 8\) y = e\.clientY \+/.test(mv), '　 上に入らないときだけ、下に出す');
+  const mv = app.slice(app.indexOf('function placeTip'), app.indexOf('function hideTip'));
+  t(/r\.top - h - \d+/.test(mv), '★★★ふきだしは、押したものの真上に出す（指や中身にかぶらない）');
+  t(/if \(y < 8\) y = r\.bottom \+/.test(mv), '　 上に入らないときだけ、下に出す');
+  t(/showTip\(e, g\.dataset\.tip, g\)/.test(app), '　 どれを押したかを、ふきだしに伝えている');
 
   /* ⑨ いちばん下の2行は、もう出さない */
   t(!/時間単価 ＝ 金額/.test(html), '★★★下の説明は、もう出さない');
@@ -1713,6 +1714,9 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
     '★★★表でも、そろえた書き方で出す');
   t(/id="ktPlace2"/.test(app) && /ktPlace2/.test(app),
     '★★★「直近の記録」でも、乗り場を選べる');
+  /* ★「過去の記録」でも、全員／自分だけを切り替えられる（ご指示・2026/11/12） */
+  t(/<div class="chips ktmine">/.test(html), '★★★「過去の記録」でも、全員／自分だけ');
+  t(/\.ktmine \[data-mine\]/.test(app), '　 いまの形に合わせて、色が変わる');
 
   /* 中身を動かして確かめます */
   const box = { console: { log: function(){} } };

@@ -447,6 +447,10 @@ function render(){
     });
     const kcl = $('#ktClear');
     if (kcl) kcl.hidden = !onlyPlace;
+    /* 上の区切りの「全員／自分だけ」も、いまの形に合わせます */
+    document.querySelectorAll('.ktmine [data-mine]').forEach(function (b) {
+      b.classList.toggle('on', (b.dataset.mine === '1') === onlyMine);
+    });
     /* 期間の切り替えも、ここに出します（ご指示・2026/11/12） */
     const kpb = $('#ktPeriodBox');
     if (kpb) kpb.innerHTML = periodBox();
@@ -687,7 +691,7 @@ function placeLink(p){
  *  記録の表（まーく様のご指示・2026/11/12）
  *
  *  ★並びは、記録用スプレッドシートと同じにします。
- *      名 ／ 付 ／ 待 ／ 発 ／ 金 ／ 乗 ／ 種 ／ 他 ／ 修正・削除
+ *      名 ／ 付 ／ 待 ／ 発 ／ 金 ／ 乗 ／ 種・他 ／ 修正・削除
  *  ★日付は、変わったときだけ 見出しの行で出します。
  *    同じ日が何行も続くと、横幅を食うだけだからです。
  *  ★人ごとに、行の背景色を変えます（スプレッドシートのタブ色と同じ）。
@@ -706,7 +710,7 @@ function tableHTML(rows){
     let head = '';
     if (r.date !== last) {
       last = r.date;
-      head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="9">' +
+      head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="8">' +
              esc(fmtD(r.date)) + '　<small>' + esc(dayName(r.date)) + '</small></td></tr>';
     }
     return head + '<tr class="' + whoCls(r.user_id) + '">' +
@@ -716,17 +720,19 @@ function tableHTML(rows){
       '<td class="n">' + showT(r.dep) + '</td>' +
       '<td class="n ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
       '<td class="c-place">' + (r.place ? placeLink(canonPlace(r.place)) : UNK) + '</td>' +
-      '<td>' + (r.method ? '<span class="mtag ' + mcls(r.method) + '">' + esc(r.method) + '</span>' : '') + '</td>' +
-      '<td class="ja c-note">' + esc(r.note || '') + '</td>' +
+      /* ★種と他は、1つの欄にまとめます（ご指示・2026/11/12「種・他」） */
+      '<td class="ja c-note">' +
+        (r.method ? '<span class="mtag ' + mcls(r.method) + '">' + esc(r.method) + '</span> ' : '') +
+        esc(r.note || '') + '</td>' +
       /* ★修正・削除は、表の右端に置きます（ご指示・2026/11/12） */
       '<td class="ops">' + (canEdit(r)
         ? '<button class="mini" data-edit="' + r.id + '">修正</button>' +
           '<button class="mini del" data-del="' + r.id + '">削除</button>' : '') + '</td></tr>';
   }).join('');
-  return '<div class="snote">← 横にスクロールできます（乗り場・種類・他・修正／削除は右側です）</div>' +
+  return '<div class="snote">← 横にスクロールできます（乗り場・種・他・修正／削除は右側です）</div>' +
     '<div class="scroll tbl"><table><thead><tr>' +
     '<th>名</th><th class="n">付</th><th class="n">待</th>' +
-    '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種</th><th>他</th>' +
+    '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種・他</th>' +
     '<th class="ops">修正<br>削除</th>' +
     '</tr></thead><tbody>' + body + '</tbody></table></div>';
 }
@@ -1759,10 +1765,9 @@ function wire(){
   if ($('#impGo')) $('#impGo').onclick = commitImport;
 
   document.querySelectorAll('[data-tip]').forEach(g => {
-    g.addEventListener('mouseenter', e => showTip(e, g.dataset.tip));
-    g.addEventListener('mousemove', moveTip);
+    g.addEventListener('mouseenter', e => showTip(e, g.dataset.tip, g));
     g.addEventListener('mouseleave', hideTip);
-    g.addEventListener('click', e => { showTip(e, g.dataset.tip); setTimeout(hideTip, 2600); });
+    g.addEventListener('click', e => { showTip(e, g.dataset.tip, g); setTimeout(hideTip, 3200); });
   });
 }
 function grab(){
@@ -2036,22 +2041,28 @@ async function commitImport(){
 }
 
 /* ---- tooltip ---- */
-const tip = $('#tip');
-function showTip(e,t){ tip.innerHTML = String(t).replace(/&#10;/g,'<br>').split('\n').join('<br>'); tip.classList.add('on'); moveTip(e); }
 /*
- * ★ふきだしは、押した所の「真上」に出します（ご指示・2026/11/12）。
- *     「タップした場所が隠れないように、タップした場所の真上に」
- *   指で押した所にかぶると、何を押したのか見えなくなります。
+ * ★ふきだしは、押したものの「真上」に出します（ご指示・2026/11/12）。
+ *   指の位置ではなく、押した帯やマスそのものの上に置きます。
+ *   そうしないと、見たいものが ふきだしで隠れてしまいます。
  *   上に入らないときだけ、下に出します。
  */
-function moveTip(e){
+const tip = $('#tip');
+function placeTip(el){
+  if (!el || !el.getBoundingClientRect) return;
+  const r = el.getBoundingClientRect();
   const w = tip.offsetWidth || 220, h = tip.offsetHeight || 60;
-  let x = e.clientX - w / 2;
+  let x = r.left + r.width / 2 - w / 2;
   x = Math.max(8, Math.min(x, innerWidth - w - 8));
-  let y = e.clientY - h - 18;                 /* 押した所の真上 */
-  if (y < 8) y = e.clientY + 24;              /* 上に入らなければ、下に */
+  let y = r.top - h - 12;                       /* 押したものの真上 */
+  if (y < 8) y = r.bottom + 12;                 /* 上に入らなければ、下に */
   tip.style.left = x + 'px';
   tip.style.top  = y + 'px';
+}
+function showTip(e, t, el){
+  tip.innerHTML = String(t).replace(/&#10;/g,'<br>').split('\n').join('<br>');
+  tip.classList.add('on');
+  placeTip(el || (e && e.currentTarget));
 }
 function hideTip(){ tip.classList.remove('on'); }
 
