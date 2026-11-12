@@ -1146,3 +1146,23 @@ select{
 select{border-color:#5A5A68}
 select:focus{border-color:var(--andon);outline:none}
 .fsel.on{border-color:var(--andon)}
+
+
+/* ------------------------------------------------------------
+ *  左右を、1本の線にそろえる（ご指示・2026/11/13）
+ *   「この左右の文字だったり、枠だったりが揃ってないのは
+ *     不格好なので、ちゃんと徹底してください」
+ *
+ *  ★基準は「カードの中の字」。画面の端から
+ *      ページの余白 14px ＋ カードの内側 16px ＝ 30px
+ *    のところに、どの字の左端も そろえます。
+ *  ★カードの外にあるもの（題の行・版と称号の帯・ボタン位置の行）は、
+ *    自前で 16px の内側を取って、同じ 30px に合わせます。
+ * ---------------------------------------------------------- */
+:root{--gut:19px}
+/* 題の行（端まで塗るので、余白は自前で33px）… ページの余白14 + 19 */
+header{padding-left:33px;padding-right:33px}
+/* 版と一文の帯、称号とボタンの帯 */
+.hsub > .subline, .hsub > .who{padding-left:var(--gut);padding-right:var(--gut)}
+/* ボタン位置の行（帯を敷いていないので、字だけを内側へ） */
+.handbar{padding-left:var(--gut);padding-right:var(--gut)}
