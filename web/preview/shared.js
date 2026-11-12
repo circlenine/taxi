@@ -117,6 +117,12 @@ const JP_HOLIDAYS = [
   '2027-10-11','2027-11-03','2027-11-23'
 ];
 const isHoli = d => JP_HOLIDAYS.indexOf(String(d)) !== -1;
+/** 前の日（営業日の文字列で返す） */
+function prevYmd(d){
+  const [y,m,dd] = String(d).split('-').map(Number);
+  const n = new Date(y, m-1, dd-1);
+  return n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate());
+}
 /** 次の日（営業日の文字列で返す） */
 function nextYmd(d){
   const [y,m,dd] = String(d).split('-').map(Number);
@@ -416,7 +422,7 @@ function pick(a){
  *  題の下の一文（開くたびに、人の名前が変わります）
  *
  *  ★まーく様のご指示（2026/11/11）
- *      「近日中、誰かがワンメータを乗せたら、○○さんがキラです」
+ *      「近日中、誰かがワンメータを乗せたら、○○さんがベルトルトです」
  *    ○○は、開き直すたびに下の中からでたらめに1人。
  *  ★「くん」が名前に入っているので、「さん」は重ねていません。
  * ---------------------------------------------------------- */
@@ -441,7 +447,8 @@ function subRoll(){
   const el = document.getElementById('sub');
   if (!el) return;
   /* 〝 〞で名前をはさみます（ご指示・2026/11/11） */
-  el.textContent = '近日中、誰かがワンメータを乗せたら、〝' + kiraToday() + '〟がキラです';
+  /* ★「キラ」→「ベルトルト」（ご指示・2026/11/12） */
+  el.textContent = '近日中、誰かがワンメータを乗せたら、〝' + kiraToday() + '〟がベルトルトです';
 }
 
 /* ★顔は「目 × 口」で何通りか。

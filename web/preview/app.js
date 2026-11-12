@@ -464,6 +464,9 @@ function render(){
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
   $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc,
     rank:paneRank, list:paneList, news:paneNews, ev:paneEv, fb:paneFb }[tab]();
+  /* 題の下の一文（前日の万収をほめる） */
+  const sb = $('#sub');
+  if (sb) sb.textContent = subLine();
   if (tab === 'news') newsSeen();
   /* ★イベントを開いたら、赤い点は消します（ご指摘・2026/11/12
        「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
@@ -676,6 +679,48 @@ function kana(v){
   if (KANA_SHORT[t]) return KANA_SHORT[t];
   for (const k in KANA_SHORT) if (t.indexOf(k) !== -1) return KANA_SHORT[k];
   return t.length > 4 ? t.slice(0, 4) : t;
+}
+
+/* ------------------------------------------------------------
+ *  題の下の一文（まーく様のご指示・2026/11/12）
+ *
+ *    「昨日(日付、曜日)の完全万収ライナーは〝○○くん〟です！」
+ *    前日に1万円以上の乗車があった人を、ほめたたえます。
+ *    万収が無かった日は、これまでどおりの一文にします
+ *    （ただし「キラ」→「ベルトルト」）。
+ *
+ *  ★スマホで1行に収めます。折り返すと、題の位置が下がって
+ *    まわりがずれます（これまでに何度も起きています）。
+ * ---------------------------------------------------------- */
+const KUN = { 'ダイスケ':'齋藤くん', 'だいすけ':'齋藤くん', '齊藤':'齋藤くん', '齋藤':'齋藤くん',
+  'シュン':'山敷くん', 'しゅん':'山敷くん', '山敷':'山敷くん',
+  'カイト':'山脇くん', 'かいと':'山脇くん', '海斗':'山脇くん', '山脇':'山脇くん',
+  'アナル':'城越くん', '城越':'城越くん',
+  'ジン':'宮下くん', 'じん':'宮下くん', '宮下':'宮下くん',
+  'マーク':'加藤くん', 'まーく':'加藤くん', 'ポンコツ':'加藤くん' };
+function kunName(uid){
+  const n = String(names[uid] || '').trim();
+  if (KUN[n]) return KUN[n];
+  for (const k in KUN) if (n.indexOf(k) !== -1) return KUN[k];
+  return '';
+}
+/** 万収（1万円以上）＝ ほめる相手 */
+const MANSHU = 10000;
+function subLine(){
+  try {
+    const y = prevYmd(today());
+    const win = [];
+    records.forEach(function (r) {
+      if (r.date !== y || isUnk(r.fare) || +r.fare < MANSHU) return;
+      const k = kunName(r.user_id);
+      if (k && win.indexOf(k) === -1) win.push(k);
+    });
+    if (win.length) {
+      return '昨日（' + fmtD(y) + '）の完全万収ライナーは〝' +
+             win.join('〟〝') + '〟です！';
+    }
+  } catch (e) {}
+  return '近日中、誰かがワンメータを乗せたら、〝' + kiraToday() + '〟がベルトルトです';
 }
 
 /* ★人ごとの色（記録用スプレッドシートのタブ色と同じ考え方・ご指示 2026/11/12） */

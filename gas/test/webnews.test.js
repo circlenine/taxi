@@ -466,9 +466,10 @@ console.log('■ 題の下の一文は、スマホで1行（ご指示・2026/11/
   const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
   /* ★2026/11/11 ご指示：「誰かが、のままでも1行でしたので ここはそのままで良いです」
        「○○くんがキラです → 〝○○くん〟がキラです」
+   *   ★2026/11/12 に「キラ」→「ベルトルト」へ変わりました。
        「○○くんの変更回数は1日1回にしてください」 */
   t(sh.indexOf('誰かがワンメータを乗せたら') !== -1, '★「誰かが」のまま');
-  t(/〝' \+ kiraToday\(\) \+ '〟がキラです/.test(sh),
+  t(/〝' \+ kiraToday\(\) \+ '〟がベルトルトです/.test(sh),
     '★★★名前を〝 〟ではさんでいる');
   t(sh.indexOf('function kiraToday') !== -1, '★★★名前は、その日いちど決めたら変わらない');
   t(/KIRA_KEY/.test(sh) && /localStorage/.test(sh.slice(sh.indexOf('function kiraToday'))),
@@ -1621,6 +1622,62 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
   t(/<div class="scroll fb">/.test(app), '　 図は、カードの端いっぱいまで使う');
   t(/\.scroll\.fb\{margin:0 -16px/.test(fs.readFileSync(path.join(W2,'style.css'),'utf8')),
     '　 その見た目も入っている');
+}
+
+
+
+console.log('■ 題の下の一文（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「昨日(日付、曜日)の完全万収ライナーは〝○○くん〟です！」
+   *     「万収がなかった場合は、～キラです にしてほしいですが、
+   *       キラの部分をベルトルトに修正してください」
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  t(/完全万収ライナーは〝/.test(app), '★★★前日の万収を、ほめる一文がある');
+  t(/const MANSHU = 10000;/.test(app), '★★★万収は1万円以上');
+  t(/ベルトルトです/.test(sh) && /ベルトルトです/.test(app),
+    '★★★万収が無い日は「ベルトルト」');
+  t(!/がキラです/.test(sh) && !/がキラです/.test(app), '　「キラ」は残っていない');
+  t(/prevYmd\(today\(\)\)/.test(app), '★★★見るのは「前の営業日」');
+  t(/function prevYmd/.test(sh), '　 その日を出す係がある');
+  t(/sb\.textContent = subLine\(\)/.test(app), '★★★画面に出している');
+
+  /* 中身を動かして確かめます */
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(
+    'const pad=n=>String(n).padStart(2,"0");' +
+    'const WD=["日","月","火","水","木","金","土"];' +
+    'function fmtD(s){const[y,m,d]=s.split("-").map(Number);' +
+    ' return m+"/"+d+"("+WD[new Date(y,m-1,d).getDay()]+")";}' +
+    'function prevYmd(d){const[y,m,dd]=String(d).split("-").map(Number);' +
+    ' const n=new Date(y,m-1,dd-1);' +
+    ' return n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate());}' +
+    'function today(){return "2026-11-12";}' +
+    'function kiraToday(){return "齋藤くん";}' +
+    'const isUnk = v => (v === null || v === undefined || v === "");' +
+    'let names = {u1:"ダイスケ", u2:"マーク"}; let records = [];' +
+    app.slice(app.indexOf('const KUN = {'), app.indexOf('/* ★人ごとの色')), box);
+  const S = rs => { vm.runInContext('records = ' + JSON.stringify(rs) + ';', box);
+    return vm.runInContext('subLine()', box); };
+  t(S([]).indexOf('ベルトルト') !== -1, '★★★万収が無ければ、ベルトルトの一文', S([]));
+  const a1 = S([{ date:'2026-11-11', fare:12000, user_id:'u1' }]);
+  t(a1 === '昨日（11/11(水)）の完全万収ライナーは〝齋藤くん〟です！',
+    '★★★前日に万収があれば、その人をほめる', a1);
+  const a2 = S([{ date:'2026-11-11', fare:9999, user_id:'u1' }]);
+  t(a2.indexOf('ベルトルト') !== -1, '★★★9,999円では、万収にしない', a2);
+  const a3 = S([{ date:'2026-11-10', fare:20000, user_id:'u1' }]);
+  t(a3.indexOf('ベルトルト') !== -1, '★★★前の日いがいは、数えない', a3);
+  const a4 = S([{ date:'2026-11-11', fare:10000, user_id:'u1' },
+                { date:'2026-11-11', fare:30000, user_id:'u2' }]);
+  t(a4.indexOf('齋藤くん') !== -1 && a4.indexOf('加藤くん') !== -1,
+    '★★★2人以上いれば、2人とも ほめる', a4);
+  const a5 = S([{ date:'2026-11-11', fare:11000, user_id:'u1' },
+                { date:'2026-11-11', fare:15000, user_id:'u1' }]);
+  t((a5.match(/齋藤くん/g) || []).length === 1, '　 同じ人は1回だけ', a5);
 }
 
 
