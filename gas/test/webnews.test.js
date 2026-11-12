@@ -594,8 +594,12 @@ console.log('■ 分からない欄は「不明」（ご指示・2026/11/11）')
 
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   t(app.indexOf('function numOrUnk') !== -1, '★★★空っぽの欄は、0ではなく「不明」で保存する');
-  t(/wait_min: numOrUnk\(/.test(app) && /ride_min: numOrUnk\(/.test(app),
-    '　 待ちも乗車も、同じあつかい');
+  t(/wait_min: numOrUnk\(/.test(app), '　 待ち時間も、同じあつかい');
+  /* ★乗車時間は、入力欄をなくしました（ご指示・2026/11/12）。
+       次の1本の「つけ待ちを始めた時刻」から、自動で割り出します。 */
+  t(/ride_min: null/.test(app), '★★★乗車時間は、入れさせない（自動で出す）');
+  t(/function autoRide\(/.test(app), '★★★次の1本から、自動で割り出す係がある');
+  t(/m >= 0 && m <= 180/.test(app), '　 ありえない長さは「不明」にする');
   t(/const F = rs\.filter\(hasFare\)/.test(app),
     '★★★合計・平均は、不明を外して数える');
   const sql = fs.readFileSync(path.join(W, 'supabase', 'schema.sql'), 'utf8');
@@ -1111,9 +1115,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   const adm  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
   const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
 
-  t(/data-t="heat"[^>]*>表グラフ</.test(html), '★★★タブは「表グラフ」');
+  t(/data-t="heat"[^>]*><b>表グラフ</.test(html), '★★★タブは「表グラフ」');
   t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
-  t(/data-t="fb"[^>]*>フィードバック</.test(html), '★★★タブは「フィードバック」');
+  t(/data-t="fb"[^>]*><b>フィードバック</.test(html), '★★★タブは「フィードバック」');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
     '★★★「ごいけん」は、どこにも残っていない');
   t(/表グラフ/.test(pv) && /フィードバック/.test(pv),
@@ -1213,8 +1217,13 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   t(html.indexOf('id="ktPlace"') < html.indexOf('id="ktWhen"'),
     '★★★同じ区切りの中で、乗り場が数字より上にある');
   t(!/id="blkPlace"/.test(html), '　 前の2つに分かれた形は、残っていない');
-  t(html.indexOf('id="ktop"') < html.indexOf('<nav id="tabs">'),
-    '★★★数字が、タブより上にある');
+  /* ★メニューを、いちばん上に移しました（ご指示・2026/11/12
+       「このメニューが1番上の方が良いのではないでしょうか」）。
+     ★そのさらに上に、固定ボタンの左右を切り替える所を置きます。 */
+  t(html.indexOf('<nav id="tabs">') < html.indexOf('id="ktop"'),
+    '★★★メニューが、数字より上にある');
+  t(html.indexOf('class="handbar"') < html.indexOf('<nav id="tabs">'),
+    '★★★利き手の切り替えは、いちばん上');
   t(/\.card h2:before\{content:"— "/.test(css), '　 赤い線は、見出しの頭に付く');
 
   /* ---- 長い1文は、もう出さない ---- */
@@ -1305,12 +1314,12 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   t(!/この4つだけで、時間単価が出ます/.test(app), '　 長い説明は、残っていない');
 
   /* ---- タブの名前は短く ---- */
-  const tabs = (html.match(/<button data-t="[^"]+"[^>]*>([^<]*)/g) || [])
-    .map(x => x.replace(/^[\s\S]*>/, '').trim());
+  const tabs = (html.match(/<button data-t="[^"]+"[^>]*><b>([^<]*)/g) || [])
+    .map(x => x.replace(/^[\s\S]*<b>/, '').trim());
   /* ★タブの名前は、ご指示で付け替えました（2026/11/12）。
        つけ待ち→表グラフ／一日の流れ→横棒グラフ／時間×金額→折れ線グラフ／
        集計→割合／全記録はなくす。 */
-  ['記録', '狙い目', '表グラフ', '横棒グラフ', '折れ線グラフ', '割合'].forEach(function (n) {
+  ['記録', '狙い目', '表グラフ', '横棒グラフ', '折線グラフ', 'パーセント'].forEach(function (n) {
     t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
   });
   t(tabs.indexOf('全記録') === -1 && tabs.indexOf('集計') === -1,
@@ -1367,18 +1376,26 @@ console.log('■ 入れる順と、下の説明（ご指示・2026/11/12）');
   const at = w => form.indexOf(w);
   /* ★欄の名前は、記録用スプレッドシートと同じ言い方に（ご指示・2026/11/12）
        営業曜日／乗車場所／乗車金額／発車時間／待ち時間／乗車種類／そのほか */
-  ['営業曜日','乗車場所','発車時間','乗車金額','乗車時間','待ち時間',
-   '乗車種類','そのほか'].forEach(function (w) {
+  /* ★乗車場所と発車時間には「＊必須」が付きます（ご指示・2026/11/12） */
+  ['営業曜日','乗車金額','待ち時間','乗車種類','そのほか'].forEach(function (w) {
     t(at('<label>' + w + '</label>') !== -1, '★★★欄の名前：' + w);
   });
+  ['乗車場所','発車時間'].forEach(function (w) {
+    t(at('<label>' + w + '<em class="req">＊必須</em></label>') !== -1,
+      '★★★必ず要る欄：' + w);
+  });
+  t(/function needField\(/.test(app),
+    '★★★入れ忘れたら、その欄まで画面を動かして知らせる');
+  t(at('<label>乗車時間</label>') === -1,
+    '★★★乗車時間の欄は、もう出さない（ご指示・2026/11/12）');
   ['営業日（夜の始まった日）','乗せた時刻（出発）','乗車時間（分）',
    '乗車金額（円）','待ち時間（分）','種類','他（行先・ひとこと）'].forEach(function (w) {
     t(at('<label>' + w + '</label>') === -1, '　 前の書き方は残っていない：' + w);
   });
   /* ★LINEに書く順と同じにします（ご指示・2026/11/12） */
-  t(at('<label>乗車場所</label>') < at('<label>発車時間</label>'),
+  t(at('<label>乗車場所<em') < at('<label>発車時間<em'),
     '★★★乗車場所 → 発車時間 の順');
-  t(at('<label>発車時間</label>') < at('<label>乗車金額</label>'),
+  t(at('<label>発車時間<em') < at('<label>乗車金額</label>'),
     '★★★発車時間 → 乗車金額 の順（LINEと同じ）');
   t(at('<label>乗車金額</label>') < at('<label>待ち時間</label>'),
     '★★★乗車金額 → 待ち時間 の順');
@@ -1437,8 +1454,8 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
 
   /* ① 期間の切り替えも、上の区切りの中に */
   t(/id="ktPeriodBox"/.test(html), '★★★期間の切り替えが、上の区切りの中にある');
-  t(html.indexOf('id="ktPeriodBox"') < html.indexOf('<nav id="tabs">'),
-    '★★★タブより上にある（いつの・どこのが1か所でそろう）');
+  t(html.indexOf('id="ktPeriodBox"') < html.indexOf('<div id="panes">'),
+    '★★★期間は、画面の中身より上にある');
   t(/const periodBox = /.test(app), '　 その中身も入っている');
   /* ★グラフの画面でも、期間を切り替えられるようにしました（ご指示・2026/11/12）。
        上まで戻らずに切り替えられることのほうが、大事です。 */
@@ -1450,7 +1467,14 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
 
   /* ② 表グラフは、エリアごとに分ける（ご指示・2026/11/12） */
   const heat = app.slice(app.indexOf('function paneHeat(noChips)'), app.indexOf('いまアツい（ここから）'));
-  t(/CAT_ORDER\.forEach/.test(heat), '★★★大カテゴリーごとに、表を分ける');
+  t(/BIG_CATS\.forEach/.test(heat), '★★★大カテゴリー（北・南・他）ごとに、表を分ける');
+  t(/const BIG_CATS = \[/.test(app), '★★★大カテゴリーは 北・南・他');
+  ['北','南','他'].forEach(function (k) {
+    t(new RegExp("k: '" + k + "'").test(app), '　 ' + k + ' がある');
+  });
+  t(/subs: \['関空', 'ﾊﾞﾗｼ', 'ほか'\]/.test(app), '★★★関空とバラシは「他」に入れる');
+  t(/sumLabel \|\| 'エリア計'/.test(app),
+    '★★★合計の行は、まとまりのある単位だけに出す');
   t(!/slice\(0,10\)/.test(heat), '★★★乗り場は ぜんぶ出す（10か所で切らない）');
   t(/filterChips\(true\)/.test(heat), '　 大カテゴリーと期間を、その場で切り替えられる');
 
@@ -1555,9 +1579,12 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/本当に削除/.test(del), '　 2回目は、はっきり念を押す');
 
   /* ④ 人ごとの色・金額の色 */
+  /* ★色を付けるのは、いちばん左の名前の欄だけ（ご指示・2026/11/12
+       「色変えは、1番左の、名前部分のみ色変えしてください」） */
   ['w-dai','w-shun','w-kaito','w-ana','w-jin','w-mark'].forEach(function (c) {
-    t(new RegExp('tr\\.' + c + '\\s+td\\{background:#').test(css), '★★★人の色：' + c);
+    t(new RegExp('td\\.' + c + '\\s*\\{background:#').test(css), '★★★人の色：' + c);
   });
+  t(!/tr\.w-dai\s+td\{background/.test(css), '★★★行ぜんたいは、もう塗らない');
   ['f1','f2','f3','f4','f5'].forEach(function (c) {
     t(new RegExp('\\.' + c + '\\{color:#').test(css), '★★★金額の色：' + c);
   });
@@ -1643,7 +1670,7 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
   t(/data-day=/.test(app), '　 押せるようになっている');
   t(/onlyDay = b\.dataset\.day/.test(app), '　 押したら切り替わる');
   t(/day: onlyDay/.test(app), '　 えらんだ形を覚える');
-  t(/filtOn = \(\) => !!onlyPlace \|\| !!onlyCat \|\| !!onlyDay/.test(app),
+  t(/filtOn = \(\) => !!onlyPlace \|\| !!onlyCat \|\| !!onlyBig \|\| !!onlyDay/.test(app),
     '★★★曜日や大カテゴリーで絞っているときも「絞り込みを解除」が出る');
   t(/DAY_CHIPS\.filter\(d => d\.k === onlyDay\)/.test(app),
     '★★★何で絞っているかを、数のすぐ下に出す');
@@ -1736,8 +1763,9 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   t(/const PLACE_CATS = \[/.test(app), '★★★大きな分け方がある');
-  t(/const CAT_ORDER = \['関空', 'ﾊﾞﾗｼ', '北7', '北4', '北他', 'ﾐﾅﾐ', 'ほか'\]/.test(app),
-    '★★★並びは 関空／ﾊﾞﾗｼ／北7／北4／北他／ﾐﾅﾐ／ほか');
+  /* ★中カテゴリーの並び（ご指示・2026/11/12で、北・南・他の下に入りました） */
+  t(/const CAT_ORDER = \['北7', '北4', '北他', 'ﾐﾅﾐ', '関空', 'ﾊﾞﾗｼ', 'ほか'\]/.test(app),
+    '★★★中分類の並びは 北7／北4／北他／ﾐﾅﾐ／関空／ﾊﾞﾗｼ／ほか');
   ['北7','北4','北他','ﾐﾅﾐ'].forEach(function (k) {
     t(app.indexOf("k:'" + k + "'") !== -1, '　 ' + k + ' がある');
   });
@@ -1805,9 +1833,10 @@ console.log('■ 分のタグの並びと、乗り場のタグ（ご指示・202
    */
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   /* 45までを1行目、50以降を2行目。行を分けて出します */
-  t((app.match(/MIN_CHIPS\.slice\(0,10\)/g) || []).length === 2,
-    '★★★45までを1行目に出す（待ち・乗車の2か所）');
-  t((app.match(/MIN_CHIPS\.slice\(10\)/g) || []).length === 2,
+  /* ★乗車時間の欄はなくしたので、分のタグが出るのは「待ち時間」だけです */
+  t((app.match(/MIN_CHIPS\.slice\(0,10\)/g) || []).length === 1,
+    '★★★45までを1行目に出す（待ち時間）');
+  t((app.match(/MIN_CHIPS\.slice\(10\)/g) || []).length === 1,
     '★★★50から90までを2行目に出す');
   t(!/MIN_CHIPS\.map\(v => chip/.test(app), '　 ひとつづきで出す形は、残っていない');
 

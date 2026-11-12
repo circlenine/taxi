@@ -241,7 +241,7 @@ console.log('■ 地図は「さがす」形（番地まで当てない）');
 console.log('■ 画面への組み込み（押すところ・描くところ）');
 {
   ok(/data-t="hot"/.test(htmlSrc), 'index.html に「今の狙い目」の押しどころがある');
-  ok(/data-t="hot"[^>]*>狙い目</.test(htmlSrc), '押しどころの名前は「狙い目」');
+  ok(/data-t="hot"[^>]*><b>狙い目</.test(htmlSrc), '押しどころの名前は「狙い目」');
   ok(/<h2>今の狙い目<\/h2>/.test(appSrc), '画面の題は「今の狙い目」');
   ok(/hot\s*:\s*paneHot/.test(appSrc), 'app.js が hot のときに paneHot を描く');
   ok(/loadWx\(\)/.test(appSrc), '起動のときに天気を読む');

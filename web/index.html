@@ -50,6 +50,25 @@
 
   <!-- ★乗り場と数字は、1つの区切りにまとめます（ご指示・2026/11/12）。
        見出しは「過去の記録」。 -->
+
+
+    <!-- ★利き手の切り替え（ご指示・2026/11/12）
+         「左利きの人もいるので、右上右下固定のものは
+           左利き用に、左固定にする、切替仕様メニューも1番上に作ってください」 -->
+  <div class="handbar"><span>固定ボタンの位置</span>
+    <button class="chip" data-hand="r">右利き</button>
+    <button class="chip" data-hand="l">左利き</button></div>
+  <nav id="tabs">
+    <button data-t="in" aria-selected="true"><b>記録</b><i>入れる・直す</i></button>
+    <button data-t="hot" aria-selected="false"><b>狙い目</b><i>いま行く所</i></button>
+    <button data-t="heat" aria-selected="false"><b>表グラフ</b><i>時間×乗り場</i></button>
+    <button data-t="tl" aria-selected="false"><b>横棒グラフ</b><i>夜の流れ</i></button>
+    <button data-t="sc" aria-selected="false"><b>折線グラフ</b><i>時刻×金額</i></button>
+    <button data-t="ratio" aria-selected="false"><b>パーセント</b><i>ロングの出やすさ</i></button>
+    <button data-t="ev" aria-selected="false"><b>イベント</b><span class="dot" id="evDot" hidden></span><i>今日・明日の催し</i></button>
+    <button data-t="news" aria-selected="false"><b>お知らせ</b><span class="dot" id="newsDot" hidden></span><i>使い方</i></button>
+    <button data-t="fb" aria-selected="false"><b>フィードバック</b><i>意見を送る</i></button>
+  </nav>
   <section class="card blk" id="ktop">
     <h2>過去の記録</h2>
     <div class="ktplace">
@@ -73,19 +92,6 @@
     </div>
     <div class="kperiod" id="kperiod">—</div>
   </section>
-
-  <nav id="tabs">
-    <button data-t="in" aria-selected="true">記録</button>
-    <button data-t="hot" aria-selected="false">狙い目</button>
-    <button data-t="heat" aria-selected="false">表グラフ</button>
-    <button data-t="tl" aria-selected="false">横棒グラフ</button>
-    <button data-t="sc" aria-selected="false">折れ線グラフ</button>
-    <button data-t="ratio" aria-selected="false">割合</button>
-    <button data-t="ev" aria-selected="false">イベント<span class="dot" id="evDot" hidden></span></button>
-    <button data-t="news" aria-selected="false">お知らせ<span class="dot" id="newsDot" hidden></span></button>
-    <button data-t="fb" aria-selected="false">フィードバック</button>
-  </nav>
-
   <div id="panes"></div>
 
   <footer>
@@ -94,6 +100,11 @@
 </div>
 <div class="tip" id="tip"></div>
 
+<!-- ★どこからでもメニューへ飛べる丸ボタン（ご指示・2026/11/12） -->
+<button class="fab menu" id="fabMenu" aria-label="メニュー">≡</button>
+<!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
+<button class="fab done" id="fabAdd" hidden>粛清完了</button>
+<div class="fabsheet" id="fabSheet" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="news.js"></script>

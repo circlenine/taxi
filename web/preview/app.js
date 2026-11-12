@@ -21,14 +21,61 @@ let scOpt = { line: true, label: true }, onlyMine = false;
      混ざって、見ても意味がありません（ご指示・2026/11/12）。 */
 /* ★onlyCat … 大カテゴリー（関空・バラシ・北7…）だけに絞る（空なら すべて）。
      グラフの画面で、すぐ切り替えられるようにします（ご指示・2026/11/12）。 */
-let onlyPlace = '', onlyCat = '', onlyDay = '', period = { mode: 'c0', from: '', to: '' };
+let onlyPlace = '', onlyCat = '', onlyBig = '', onlyDay = '', period = { mode: 'c0', from: '', to: '' };
 const FILT_KEY = 'tsukemachi.filter';
+/* ★開いていたタブを覚えます（ご指示・2026/11/12）
+     「更新した時に、勝手に記録に戻ってしまうので、
+       開いてたままのタブのまま開き直すようにして欲しい」 */
+const TAB_KEY  = 'tsukemachi.tab';
+/* ★書きかけの記録も覚えます（ご指示・2026/11/12）
+     「1回バックグラウンドにしたり、消したりしても
+       できる限り、入力した情報は残った状態にできるように」 */
+const FORM_KEY = 'tsukemachi.form';
+/* ★固定ボタンを、右に置くか左に置くか（左利きの方のため） */
+const HAND_KEY = 'tsukemachi.hand';
+let hand = 'r';
+
+function tabSave(){ try { localStorage.setItem(TAB_KEY, tab); } catch (e) {} }
+function tabLoad(){
+  try { const v = localStorage.getItem(TAB_KEY); if (v) tab = v; } catch (e) {}
+}
+/** 書きかけが1つでもあるか（日付だけなら、書きかけとは見なしません） */
+function formDirty(){
+  const f = form || {};
+  return !!(String(f.place || '') || String(f.dep || '') || String(f.wait || '') ||
+            String(f.fare || '') || String(f.method || '') || String(f.note || ''));
+}
+function formSave(){
+  try {
+    if (formDirty()) localStorage.setItem(FORM_KEY, JSON.stringify(form));
+    else localStorage.removeItem(FORM_KEY);
+  } catch (e) {}
+}
+function formLoad(){
+  try {
+    const o = JSON.parse(localStorage.getItem(FORM_KEY) || 'null');
+    if (o && typeof o === 'object') form = Object.assign({}, form, o);
+  } catch (e) {}
+}
+function handLoad(){
+  try { const v = localStorage.getItem(HAND_KEY); if (v === 'l' || v === 'r') hand = v; } catch (e) {}
+  handApply();
+}
+function handApply(){
+  try {
+    document.body.setAttribute('data-hand', hand);
+    document.querySelectorAll('[data-hand]').forEach(function (b) {
+      if (b.tagName === 'BUTTON') b.classList.toggle('on', b.dataset.hand === hand);
+    });
+  } catch (e) {}
+}
 
 function filtLoad(){
   try {
     const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}') || {};
     if (typeof o.place === 'string') onlyPlace = o.place;
     if (typeof o.cat === 'string') onlyCat = o.cat;
+    if (typeof o.big === 'string') onlyBig = o.big;
     if (typeof o.day === 'string') onlyDay = o.day;
     if (typeof o.mine === 'boolean') onlyMine = o.mine;
     if (o.period && typeof o.period.mode === 'string') {
@@ -40,11 +87,11 @@ function filtLoad(){
 function filtSave(){
   try {
     localStorage.setItem(FILT_KEY,
-      JSON.stringify({ place: onlyPlace, cat: onlyCat, day: onlyDay, mine: onlyMine, period: period }));
+      JSON.stringify({ place: onlyPlace, cat: onlyCat, big: onlyBig, day: onlyDay, mine: onlyMine, period: period }));
   } catch (e) {}
 }
-function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
-const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyDay || period.mode !== 'c0';
+function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyBig = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
+const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || period.mode !== 'c0';
 
 /* ---------- 起動 ---------- */
 (async () => {
@@ -58,9 +105,12 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyDay || period.mode !== 'c
   $('#out').addEventListener('click', signOut);
   $('#tabs').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    grab(); tab = b.dataset.t; msg = ''; render();
+    grab(); tab = b.dataset.t; tabSave(); msg = ''; render();
   });
   filtLoad();                      /* 前に絞ったままの形を思い出す */
+  tabLoad();                       /* 前に開いていたタブに戻す */
+  formLoad();                      /* 書きかけの記録を取り戻す */
+  handLoad();                      /* 固定ボタンの位置（右利き／左利き） */
   $('#boot').hidden = true; $('#app').hidden = false;
   await reload();
   /*
@@ -81,7 +131,7 @@ async function reload(){
   ]);
   names = {}; (ps || []).forEach(p => names[p.id] = p.display_name);
   if (error) { msg = jaError(error); msgBad = true; records = []; }
-  else records = (rs || []).map(rowToRec);
+  else records = fillRides((rs || []).map(rowToRec));
   render();
 }
 /* ------------------------------------------------------------
@@ -285,6 +335,41 @@ function mcls(v){
   return '';
 }
 
+/**
+ * その1本にかけた時間（分）を、次の記録から自動で割り出します。
+ *
+ * ★まーく様のご指示（2026/11/12）
+ *   「乗車時間は入力として不要ですし、その後の記録としての
+ *     待ち時間－発車時間で、自動で割り出せるじゃないですか」
+ *
+ * ★同じ人・同じ営業日で、次に発車した1本の
+ *   「つけ待ちを始めた時刻（発車 − 待ち）」までを数えます。
+ * ★その夜の最後の1本は、次が無いので「不明」のままにします。
+ *   0分として数えると、時間単価が跳ね上がって嘘になります。
+ */
+function autoRide(r, all){
+  if (!isUnk(r.ride)) return r.ride;             // 昔の記録は、入っている値を使う
+  if (isUnk(r.dep)) return null;
+  let best = null;
+  for (let i = 0; i < all.length; i++) {
+    const x = all[i];
+    if (x === r || x.user_id !== r.user_id || x.date !== r.date) continue;
+    if (isUnk(x.dep) || +x.dep <= +r.dep) continue;
+    const st = +x.dep - (+x.wait || 0) / 60;     // 次のつけ待ちを始めた時刻
+    if (best === null || st < best) best = st;
+  }
+  if (best === null) return null;
+  const m = Math.round((best - +r.dep) * 60);
+  /* ★ありえない長さ（3時間超・マイナス）は「不明」にします。
+       入力のずれを、そのまま数字にしないためです。 */
+  return (m >= 0 && m <= 180) ? m : null;
+}
+/** 読み込んだ記録ぜんぶに、自動の乗車時間を入れます */
+function fillRides(list){
+  list.forEach(function (r){ r.ride = autoRide(r, list); });
+  return list;
+}
+
 const rowToRec = r => ({
   id: r.id, user_id: r.user_id, date: r.work_date, place: r.place,
   /* ★不明（空っぽ）は、0に変えずに そのまま持ちます。
@@ -426,6 +511,7 @@ const visible = () => records.filter(r =>
   (!onlyMine  || r.user_id === ME.user.id) &&
   (!onlyPlace || hitPlace(r)) &&
   (!onlyCat   || recCat(r) === onlyCat) &&
+  (!onlyBig   || recBig(r) === onlyBig) &&
   (!onlyDay   || dayCls(r.date) === onlyDay) &&
   inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
@@ -482,8 +568,11 @@ function render(){
     }
     if (onlyDay) who.push((DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n + ' だけ');
     who.push(onlyMine ? '自分だけ' : '全員');
+    /* ★「記録のある日」には、いつから入っているかも出します
+         （ご指示・2026/11/12「記録のある日ですが、開始日も載せてください」）。 */
     who.push(ds.length ? ('記録のある日 ' + days + '日・' + rs.length + '件')
                        : '記録なし');
+    if (ds.length) who.push(fmtD(ds[0]) + ' から');
 
         ktop.classList.toggle('on', filtOn());
     /* 期間は、見出しの下に出します（見出しは「過去の記録」） */
@@ -529,7 +618,9 @@ function render(){
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
        前の形を覚えている方のために、「記録」に戻します。 */
-  const PANES = { in: () => paneIn() + paneOut(), hot:paneHot, heat:paneHeat,
+  /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
+       ほかの乗務員の方には、要らない画面です。 */
+  const PANES = { in: () => paneIn() + (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
     tl:paneTl, sc:paneSc, ratio:paneRatio, news:paneNews, ev:paneEv, fb:paneFb };
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
@@ -563,7 +654,7 @@ function paneIn(){
     <div class="grid">
       <div class="f w2 fdate"><label>営業曜日</label>
         <input type="date" id="f_date" value="${f.date || today()}"></div>
-      <div class="f w2"><label>乗車場所</label>
+      <div class="f w2"><label>乗車場所<em class="req">＊必須</em></label>
         <input class="ja" id="f_place" list="pls" placeholder="新地7" value="${esc(f.place || '')}">
         <datalist id="pls">${pl.map(p => `<option value="${esc(p)}">`).join('')}</datalist>
         ${(() => { const sug = placeAskOk[f.place] ? '' : placeSuggest(f.place);
@@ -579,7 +670,7 @@ function paneIn(){
             ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ 地図は合っている' : 'この地図で合っている'}</button>
         </div>
       </div>
-      <div class="f w2"><label>発車時間</label>
+      <div class="f w2"><label>発車時間<em class="req">＊必須</em></label>
         <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
         <!-- ★時と分を、押すだけで入れられるようにします（ご指示・2026/11/12）。
                走りながら打つので、字を打たせない形にします。 -->
@@ -601,10 +692,12 @@ function paneIn(){
              営業曜日／乗車場所／発車時間／乗車金額／待ち時間／
              乗車種類／そのほか
              （LINEに書く順と同じ・ご指示 2026/11/12） -->
-      <div class="f w2"><label>乗車時間</label>
-        <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
-        <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.ride,'ride')).join('')}</div>
-        <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.ride,'ride')).join('')}</div></div>
+      <!-- ★乗車時間の欄は、なくしました（ご指示・2026/11/12）
+             「乗車時間は入力として不要ですし、その後の記録としての
+               待ち時間－発車時間で、自動で割り出せるじゃないですか」
+             次の1本の「つけ待ちを始めた時刻」までが、この1本にかけた
+             時間になるので、こちらで自動で出します。
+             その夜の最後の1本だけは、次が無いので「不明」です。 -->
       <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
       <div class="f w2"><label>待ち時間</label>
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
@@ -665,7 +758,26 @@ const PLACE_CATS = [
   { k:'ﾐﾅﾐ',   t:/難波|なんば|ナンバ|道頓堀|心斎橋|宗右衛門|千日前|日本橋|アメ村|島之内/ },
 ];
 /* 大きな分け方の並び（記録用スプレッドシートのタブと同じ順） */
-const CAT_ORDER = ['関空', 'ﾊﾞﾗｼ', '北7', '北4', '北他', 'ﾐﾅﾐ', 'ほか'];
+/* 中カテゴリー（これまでの大カテゴリー）。エリアが近い順に並べます */
+const CAT_ORDER = ['北7', '北4', '北他', 'ﾐﾅﾐ', '関空', 'ﾊﾞﾗｼ', 'ほか'];
+
+/* ★大カテゴリー（ご指示・2026/11/12）
+     「大カテゴリーが 北、南、他 として
+       今まで大カテゴリーを中カテゴリーとしてください
+       関空やバラシも、他扱いとします」 */
+const BIG_CATS = [
+  { k: '北', subs: ['北7', '北4', '北他'] },
+  { k: '南', subs: ['ﾐﾅﾐ'] },
+  { k: '他', subs: ['関空', 'ﾊﾞﾗｼ', 'ほか'] }
+];
+const BIG_ORDER = BIG_CATS.map(b => b.k);
+/** 中カテゴリーから、大カテゴリーを引きます */
+function bigOf(sub){
+  for (let i = 0; i < BIG_CATS.length; i++) if (BIG_CATS[i].subs.indexOf(sub) !== -1) return BIG_CATS[i].k;
+  return '他';
+}
+/** その記録の大カテゴリー */
+function recBig(r){ return bigOf(recCat(r)); }
 
 /*
  * ★「関空」と「ﾊﾞﾗｼ」は、乗り場の名前ではなく
@@ -806,12 +918,19 @@ const filterChips = (full) => `<div class="filt">
   <!-- ★いま何で絞っているかを、タグのすぐ下に出します。
        絞ったまま忘れると、数字を読み違えます。 -->
   ${filtOn() ? `<div class="fnow">いま：${
-    [onlyCat ? esc(onlyCat) : '', onlyPlace ? esc(splitSel(onlyPlace).place || onlyPlace) : '',
+    [onlyBig ? esc(onlyBig) : '', onlyCat ? esc(onlyCat) : '',
+     onlyPlace ? esc(splitSel(onlyPlace).place || onlyPlace) : '',
      (DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n || '',
      periodLabel()].filter(Boolean).join('／')
   }</div>` : ''}
   ${full ? `<div class="chips catch">
-    ${CAT_CHIPS.map(k => `<button class="chip ${onlyCat===k?'on':''}" data-cat="${esc(k)}">${k || 'すべて'}</button>`).join('')}
+    <button class="chip ${!onlyBig?'on':''}" data-big="">すべて</button>
+    ${BIG_ORDER.map(k => `<button class="chip big ${onlyBig===k?'on':''}" data-big="${esc(k)}">${k}</button>`).join('')}
+  </div>
+  <div class="chips catch sub">
+    <button class="chip ${!onlyCat?'on':''}" data-cat="">${onlyBig ? onlyBig + '：すべて' : '中分類：すべて'}</button>
+    ${(onlyBig ? (BIG_CATS.filter(b => b.k === onlyBig)[0] || {subs:[]}).subs : CAT_ORDER)
+      .map(k => `<button class="chip ${onlyCat===k?'on':''}" data-cat="${esc(k)}">${k}</button>`).join('')}
   </div>
   <div class="fperiod">${periodBox()}</div>` : ''}
 </div>`;
@@ -851,8 +970,8 @@ function tableHTML(rows){
       head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="8">' +
              esc(fmtD(r.date)) + '　<small>' + esc(dayName(r.date)) + '</small></td></tr>';
     }
-    return head + '<tr class="' + whoCls(r.user_id) + '">' +
-      '<td class="c-who">' + esc(kana(r.who)) + '</td>' +
+    return head + '<tr>' +
+      '<td class="c-who ' + whoCls(r.user_id) + '">' + esc(kana(r.who)) + '</td>' +
       '<td class="n">' + showT(tsuke(r)) + '</td>' +
       '<td class="n ' + waitCls(r.wait) + '">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
       '<td class="n">' + showT(r.dep) + '</td>' +
@@ -980,7 +1099,7 @@ function fareCls(v){
  *   ・並びは CAT_ORDER のまま。エリアの近い順に上から並びます
  *   ・期間と大カテゴリーは、この画面のタグで切り替えられます
  */
-function heatSvg(rows, pls, hrs, mx){
+function heatSvg(rows, pls, hrs, mx, sumLabel){
   const cw = 64, ch = 42, lw = 96;
   const w = lw + hrs.length * cw + 8, hgt = 34 + (pls.length + 1) * ch + 8;
   const cell = (p, h) => {
@@ -1001,7 +1120,7 @@ function heatSvg(rows, pls, hrs, mx){
     return o; };
   pls.forEach((p,i) => s += row(p, p, 34+i*ch));
   s += `<line x1="${lw}" x2="${w-8}" y1="${34+pls.length*ch+1}" y2="${34+pls.length*ch+1}" class="grid-l"/>`;
-  s += row('このエリア計', null, 34+pls.length*ch+2) + '</svg>';
+  s += row(sumLabel || 'エリア計', null, 34+pls.length*ch+2) + '</svg>';
   return s;
 }
 
@@ -1028,19 +1147,28 @@ function paneHeat(noChips){
     if (t.length) mx = Math.max(mx, t.map(rate).reduce((a,b)=>a+b,0)/t.length);
   }));
 
-  /* ★エリアが近い順（CAT_ORDER）に、上から並べます */
+  /* ★大カテゴリー（北・南・他）ごとに1枚（ご指示・2026/11/12）。
+       「北7は既に限定的に絞られてるのに、このエリア計っていうのは、
+         まるで意味がわからない」
+       → 合計を出すのは、北・南・他のような まとまりのある単位だけにします。
+       中は、中カテゴリー（北7・北4…）の順に並べます。 */
   let body = '';
-  CAT_ORDER.forEach(function (cat){
-    const rows = R.filter(r => recCat(r) === cat);
+  BIG_CATS.forEach(function (bg){
+    const rows = R.filter(r => recBig(r) === bg.k);
     if (!rows.length) return;
-    const pls = [...new Set(rows.map(r => r.place).filter(Boolean))]
-      .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }))
-      .sort((a,b) => b.n - a.n || (a.p < b.p ? -1 : 1)).map(o => o.p);
+    /* 中カテゴリーの順 → その中は件数の多い順 */
+    const pls = [];
+    bg.subs.forEach(function (sub){
+      [...new Set(rows.filter(r => recCat(r) === sub).map(r => r.place).filter(Boolean))]
+        .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }))
+        .sort((x,y) => y.n - x.n || (x.p < y.p ? -1 : 1))
+        .forEach(o => pls.push(o.p));
+    });
     if (!pls.length) return;
-    body += `<div class="card"><h2>${esc(cat)}</h2>
+    body += `<div class="card"><h2>${esc(bg.k)}エリア</h2>
       <p class="note">乗り場 ${pls.length}か所・${rows.length}件。</p>
       <div class="snote">← 横にスクロールできます（横画面推奨）</div>
-      <div class="scroll fb">${heatSvg(rows, pls, hrs, mx)}</div></div>`;
+      <div class="scroll fb">${heatSvg(rows, pls, hrs, mx, bg.k + 'エリア計')}</div></div>`;
   });
   if (!body) return head + emptyCard('該当データがありません');
 
@@ -1966,84 +2094,152 @@ function bandBar(o, big){
     }).join('') + '</div>';
 }
 
-/** 乗り場ごと・エリアごとの1行 */
-function bandRow(label, o){
+/**
+ * 乗り場ごと・エリアごとの1行。
+ * ★乗り場の名前を「…」で切らないこと（ご指摘・2026/11/12
+ *   「乗り場名が…でなってしまうと、具体的な場所が分かりません」）。
+ *   折り返して、ぜんぶ出します。
+ * ★割合だけでは動けないので、平均金額と件数も必ず付けます。
+ */
+function bandRow(label, o, avg){
   return '<div class="brow"><div class="bl">' + esc(label) + '</div>' +
-    '<div class="bb">' + bandBar(o) + '</div>' +
-    '<div class="bn">' + o.n + '件</div></div>';
+    '<div class="bb">' + bandBar(o) +
+      '<div class="bmeta">' + (avg ? yen(avg) : '—') + '　' + o.n + '件</div></div></div>';
 }
 
+/* その組の平均金額（不明は外す） */
+function bandAvg(rs){
+  const f = rs.filter(hasFare);
+  return f.length ? f.reduce((a,r) => a + (+r.fare || 0), 0) / f.length : 0;
+}
+
+/**
+ * パーセントの画面。
+ *
+ * ★まーく様のご指摘（2026/11/12）
+ *   「これで載せて、果たして何がわかるのですか？
+ *     パーセンテージにすることで、タクシー情報として、
+ *     どういうメリットがあるのか…徹底的に考えて見返して作り直して」
+ *
+ * ★考え直したこと
+ *   割合そのものは、見ても動けません。動けるのは
+ *   「どこへ行けば、ロング（¥10,000以上）が出やすいか」です。
+ *   だから、この画面の軸は **ロングの出やすさ** にしました。
+ *     ① ロングが出やすい乗り場（3件以上・多い順）
+ *     ② ロングが出やすい時間帯
+ *     ③ ぜんぶの内訳と、エリアごとの表
+ *   どの行にも「平均金額」と「件数」を付けます。
+ *   割合だけだと、1件で100%の乗り場が一番上に来てしまうためです。
+ */
 function paneRatio(){
   const R = visible();
-  const head = '<div class="card"><h2>割合</h2>' +
-    '<p class="note">ショート（¥4,999以下）・ミドル（¥5,000〜9,999）・' +
-    'ロング（¥10,000以上）の割合です。金額が不明な記録は外しています。</p>' +
+  const head = '<div class="card"><h2>パーセント</h2>' +
+    '<p class="note">ロング（¥10,000以上）が<b>出やすい所と時間</b>を探す画面です。' +
+    'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。</p>' +
     filterChips(true) + '</div>';
   if (!R.length) return head + emptyCard('該当データがありません');
-
   const all = bandCount(R);
   if (!all.n) return head + emptyCard('金額の入った記録が、まだありません。');
 
-  const tiles = BANDS.map(function (b){
-    return '<div class="kpi"><small>' + b.n + '<i>' + b.d + '</i></small>' +
-      '<b style="color:' + b.c + '">' + bandPct(all, b.k) + '%</b>' +
-      '<span class="bsub">' + all[b.k] + '件</span></div>';
-  }).join('');
+  /* ① ロングが出やすい乗り場（3件以上） */
+  const pm = {};
+  R.forEach(function (r){ const p = r.place; if (p) (pm[p] = pm[p] || []).push(r); });
+  const ranked = Object.keys(pm).map(function (p){
+    const o = bandCount(pm[p]);
+    return { p: p, o: o, L: bandPct(o, 'L'), avg: bandAvg(pm[p]), cat: recCat(pm[p][0]) };
+  }).filter(x => x.o.n >= HOT_MIN_N).sort((a, b) => b.L - a.L || b.avg - a.avg);
+
+  const topHTML = ranked.length
+    ? ranked.slice(0, 8).map(function (x, i){
+        return '<a class="lrow" href="' + mapUrl(x.p) + '" target="_blank" rel="noopener">' +
+          '<span class="li">' + (i + 1) + '</span>' +
+          '<span class="lp">' + esc(x.p) + '<i>' + esc(x.cat) + '</i></span>' +
+          '<span class="lv">' + x.L + '%</span>' +
+          '<span class="ln">' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></a>';
+      }).join('')
+    : '<div class="note">3件以上たまった乗り場が、まだありません。</div>';
 
   let out = head +
-    '<div class="card"><h2>ぜんぶで</h2>' +
-    bandBar(all, true) +
-    '<div class="kpis bandk">' + tiles + '</div>' +
-    '<p class="note">' + all.n + '件を数えました。' +
-    (all.unk ? '金額が不明な ' + all.unk + '件は、外しています。' : '') + '</p></div>';
+    '<div class="card"><h2>ロングが出やすい乗り場</h2>' +
+    '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと地図が開きます。</p>' +
+    '<div class="lhead"><span class="li"></span><span class="lp">乗り場</span>' +
+    '<span class="lv">ロング率</span><span class="ln">平均金額</span></div>' +
+    topHTML + '</div>';
 
-  /* 時間帯ごと（横棒グラフと同じ、時間の並び） */
+  /* ② ロングが出やすい時間帯 */
   const D = R.filter(hasDep);
   if (D.length) {
     const hs = D.map(r => Math.floor(r.dep));
     const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
-    const cw = 52, L = 44, T = 20, BH = 230;
-    const W = L + hrs.length * cw + 12, H = T + BH + 46;
+    const hrow = hrs.map(function (h){
+      const t = D.filter(r => Math.floor(r.dep) === h);
+      return { h: h, o: bandCount(t), avg: bandAvg(t) };
+    }).filter(x => x.o.n >= HOT_MIN_N);
+    const bestH = hrow.slice().sort((a, b) => bandPct(b.o, 'L') - bandPct(a.o, 'L'))[0];
+
+    /* 積み上げの図。★字が重ならないよう、下に2行ぶんの場所を取ります */
+    const cw = 54, L = 10, T = 22, BH = 210;
+    const W = L + hrs.length * cw + 12, H = T + BH + 52;
     let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">';
     hrs.forEach(function (h, i){
       const o = bandCount(D.filter(r => Math.floor(r.dep) === h));
       const x = L + i * cw;
-      g += '<text class="axis" x="' + (x + cw/2) + '" y="' + (T + BH + 18) + '" text-anchor="middle">' + h + '</text>';
-      g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 34) + '" text-anchor="middle">' + o.n + '件</text>';
+      g += '<text class="axis" x="' + (x + cw/2) + '" y="' + (T + BH + 20) + '" text-anchor="middle">' + h + '時</text>';
+      g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 38) + '" text-anchor="middle">' + o.n + '件</text>';
       if (!o.n) return;
       let y = T + BH;
-      BANDS.forEach(function (b){
-        const p = bandPct(o, b.k), hh = BH * p / 100;
+      BANDS.forEach(function (bd){
+        const pp = bandPct(o, bd.k), hh = BH * pp / 100;
         if (!hh) return;
         y -= hh;
-        g += '<g data-tip="' + h + '時台 ' + b.n + '&#10;' + o[b.k] + '件（' + p + '%）">' +
-          '<rect x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh + '" fill="' + b.c + '" rx="3"/>' +
-          (hh > 18 ? '<text class="glab" x="' + (x + cw/2) + '" y="' + (y + hh/2 + 4) + '" text-anchor="middle" fill="#14100A">' + Math.round(p) + '</text>' : '') +
+        g += '<g data-tip="' + h + '時台 ' + bd.n + '&#10;' + o[bd.k] + '件（' + pp + '%）">' +
+          '<rect x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh + '" fill="' + bd.c + '" rx="3"/>' +
+          (hh > 18 ? '<text class="glab" x="' + (x + cw/2) + '" y="' + (y + hh/2 + 4) + '" text-anchor="middle" fill="#14100A">' + Math.round(pp) + '</text>' : '') +
           '</g>';
       });
     });
-    g += '<text class="axis" x="' + (W/2) + '" y="' + (H - 2) + '" text-anchor="middle">時（25＝翌1時）</text></svg>';
-    out += '<div class="card"><h2>時間帯ごと</h2>' +
+    g += '</svg>';
+    out += '<div class="card"><h2>ロングが出やすい時間帯</h2>' +
+      (bestH ? '<p class="note">いまのところ、一番ロングが出ているのは <b>' + bestH.h +
+        '時台</b>（ロング ' + bandPct(bestH.o, 'L') + '%・平均 ' + yen(bestH.avg) + '・' + bestH.o.n + '件）です。</p>' : '') +
       '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
       '<div class="scroll fb">' + g + '</div>' +
-      '<div class="legend">' + BANDS.map(b => '<span><i style="background:' + b.c + '"></i>' + b.n + '</span>').join('') + '</div></div>';
+      '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
   }
 
-  /* 乗り場ごと（エリアが近い順。小カテゴリーは ぜんぶ出します） */
+  /* ③ ぜんぶの内訳 */
+  const tiles = BANDS.map(function (bd){
+    return '<div class="kpi"><small>' + bd.n + '<i>' + bd.d + '</i></small>' +
+      '<b style="color:' + bd.c + '">' + bandPct(all, bd.k) + '%</b>' +
+      '<span class="bsub">' + all[bd.k] + '件</span></div>';
+  }).join('');
+  out += '<div class="card"><h2>ぜんぶの内訳</h2>' + bandBar(all, true) +
+    '<div class="kpis bandk">' + tiles + '</div>' +
+    '<p class="note">' + all.n + '件・平均 ' + yen(bandAvg(R)) + '。' +
+    (all.unk ? '金額が不明な ' + all.unk + '件は、外しています。' : '') + '</p></div>';
+
+  /* ④ エリアごと（北・南・他 → 中カテゴリー → 乗り場） */
   let pbody = '';
-  CAT_ORDER.forEach(function (cat){
-    const rows = R.filter(r => recCat(r) === cat);
+  BIG_CATS.forEach(function (bg){
+    const rows = R.filter(r => recBig(r) === bg.k);
     if (!rows.length) return;
-    const pls = [...new Set(rows.map(r => r.place).filter(Boolean))]
-      .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }))
-      .sort((a, b) => b.n - a.n || (a.p < b.p ? -1 : 1)).map(o => o.p);
-    pbody += '<div class="bcat">' + esc(cat) + '</div>' + bandRow('エリア計', bandCount(rows)) +
-      pls.map(p => bandRow(p, bandCount(rows.filter(r => r.place === p)))).join('');
+    pbody += '<div class="bcat">' + esc(bg.k) + 'エリア</div>' +
+      bandRow(bg.k + ' 合計', bandCount(rows), bandAvg(rows));
+    bg.subs.forEach(function (sub){
+      const sr = rows.filter(r => recCat(r) === sub);
+      if (!sr.length) return;
+      const pls = [...new Set(sr.map(r => r.place).filter(Boolean))]
+        .map(p => ({ p: p, n: sr.filter(r => r.place === p).length }))
+        .sort((x, y) => y.n - x.n || (x.p < y.p ? -1 : 1)).map(o => o.p);
+      pbody += '<div class="bsubh">' + esc(sub) + '</div>' +
+        pls.map(p => bandRow(p, bandCount(sr.filter(r => r.place === p)),
+                             bandAvg(sr.filter(r => r.place === p)))).join('');
+    });
   });
   if (pbody) {
-    out += '<div class="card"><h2>乗り場ごと</h2>' +
-      '<p class="note">エリアが近い順に並べています。</p>' + pbody +
-      '<div class="legend">' + BANDS.map(b => '<span><i style="background:' + b.c + '"></i>' + b.n + '</span>').join('') + '</div></div>';
+    out += '<div class="card"><h2>エリアごと</h2>' +
+      '<p class="note">北・南・他のまとまりで見ています。</p>' + pbody +
+      '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
   }
   return out + compareCard();
 }
@@ -2114,15 +2310,73 @@ function importPreview(){
 }
 
 /* ---------- 操作 ---------- */
+/* ================================================================
+ *  固定ボタン（ご指示・2026/11/12）
+ *   ・右上の ≡ … どこからでもメニューへ
+ *   ・右下の「粛清完了」… 記録の画面だけ。1回で保存できる
+ *   ・左利きの方は、一番上の切り替えで 左側に寄せられます
+ * ================================================================ */
+function fabWire(){
+  const m = document.getElementById('fabMenu');
+  const sheet = document.getElementById('fabSheet');
+  if (m && sheet) {
+    m.onclick = function () {
+      if (!sheet.hidden) { sheet.hidden = true; return; }
+      sheet.innerHTML = [...document.querySelectorAll('#tabs button')].map(function (b) {
+        const t = b.dataset.t;
+        const nm = (b.querySelector('b') || {}).textContent || '';
+        const sb = (b.querySelector('i') || {}).textContent || '';
+        return '<button class="fsrow ' + (t === tab ? 'on' : '') + '" data-go="' + t + '">' +
+               '<b>' + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
+      }).join('');
+      sheet.hidden = false;
+      sheet.querySelectorAll('[data-go]').forEach(function (b) {
+        b.onclick = function () {
+          grab(); tab = b.dataset.go; tabSave(); sheet.hidden = true; msg = '';
+          render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+      });
+    };
+  }
+  const a = document.getElementById('fabAdd');
+  if (a) {
+    a.hidden = (tab !== 'in');
+    a.onclick = function () { const b = document.getElementById('add'); if (b) b.click(); };
+  }
+  document.querySelectorAll('.handbar [data-hand]').forEach(function (b) {
+    b.onclick = function () {
+      hand = b.dataset.hand;
+      try { localStorage.setItem(HAND_KEY, hand); } catch (e) {}
+      handApply();
+    };
+  });
+  handApply();
+}
+
+/* ★書きかけのまま閉じようとしたら、1度だけ確かめます（ご指示・2026/11/12）
+     「なにか入力情報があるままの場合、更新したら、入力途中のため、
+       情報が消えてしまうという、再確認のポップアップ表示」 */
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('beforeunload', function (e) {
+    try {
+      if (!formDirty()) return;
+      e.preventDefault();
+      e.returnValue = '入力の途中です。このまま閉じると、書きかけが消えることがあります。';
+      return e.returnValue;
+    } catch (err) {}
+  });
+}
+
 function wire(){
+  fabWire();
   const dep = $('#f_dep');
   const upd = () => {
     const d = parseT(dep ? dep.value : '');
     if ($('#depHint')) $('#depHint').textContent = d !== null ? fmtT(d) + ' に出発' : (dep && dep.value ? '読めない時刻' : '');
-    const w = +(($('#f_wait')||{}).value) || 0, r = +(($('#f_ride')||{}).value) || 0, f = +(($('#f_fare')||{}).value) || 0;
+    const w = +(($('#f_wait')||{}).value) || 0, r = 0, f = +(($('#f_fare')||{}).value) || 0;
     if ($('#rateHint')) $('#rateHint').textContent = (w+r > 0 && f) ? '時間単価 ' + yen(f/(w+r)*60) + '/h' : '';
   };
-  ['f_dep','f_wait','f_ride','f_fare'].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener('input', upd); });
+  ['f_dep','f_wait','f_fare'].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener('input', upd); });
   /* ★乗り場の名前から手を離したところで、似た名前がないかを見ます
        （ご指示・2026/11/12）。打っている途中で聞くと、うるさいだけです。 */
   /* 発車時間の、時と分のタグ（ご指示・2026/11/12） */
@@ -2200,6 +2454,10 @@ function wire(){
   document.querySelectorAll('[data-cat]').forEach(function (b) {
     b.onclick = function () { grab(); onlyCat = b.dataset.cat; onlyPlace = ''; filtSave(); render(); };
   });
+  /* 大カテゴリーを押したら、中カテゴリーと乗り場の指定は外します */
+  document.querySelectorAll('[data-big]').forEach(function (b) {
+    b.onclick = function () { grab(); onlyBig = b.dataset.big; onlyCat = ''; onlyPlace = ''; filtSave(); render(); };
+  });
   document.querySelectorAll('[data-day]').forEach(function (b) {
     b.onclick = function () { grab(); onlyDay = b.dataset.day; filtSave(); render(); };
   });
@@ -2260,10 +2518,18 @@ function wire(){
 function grab(){
   const g = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
   form = { date:g('f_date') ?? form.date, place:g('f_place') ?? form.place, dep:g('f_dep') ?? form.dep,
-           wait:g('f_wait') ?? form.wait, ride:g('f_ride') ?? form.ride, fare:g('f_fare') ?? form.fare,
+           wait:g('f_wait') ?? form.wait, ride:'', fare:g('f_fare') ?? form.fare,
            method:g('f_method') ?? form.method, note:g('f_note') ?? form.note };
+  /* ★書きかけを、その場で覚えます。
+       アプリを閉じても・切り替えても、戻ってきたら続きから書けます。 */
+  formSave();
 }
-const ok  = t => { msg = t; msgBad = false; render(); };
+const ok  = t => {
+  msg = t; msgBad = false;
+  /* 保存できたので、書きかけの控えは消します（次の1本を、空から書けるように） */
+  try { localStorage.removeItem(FORM_KEY); } catch (e) {}
+  render();
+};
 const bad = t => { msg = t; msgBad = true;  render(); };
 
 /* ★数の欄：空っぽなら「不明」（null）。0 と混ぜません
@@ -2276,12 +2542,34 @@ function numOrUnk(v, max){
   return Math.min(n, max);
 }
 
+/**
+ * 入れ忘れた欄まで、画面を動かして知らせます（ご指示・2026/11/12）。
+ * ★ただ「入れてください」と出すだけでは、どこの欄か分かりません。
+ */
+function needField(id, text){
+  msg = text; msgBad = true; render();
+  try {
+    const e = document.getElementById(id);
+    if (e) {
+      e.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      e.classList.add('need');
+      setTimeout(function (){ e.classList.remove('need'); }, 2600);
+      e.focus({ preventScroll: true });
+    }
+  } catch (err) {}
+  return;
+}
+
 async function addRec(){
   grab();
   const dRaw = String(form.dep || '').trim();
   const d = dRaw === '' ? null : parseT(dRaw);
   const fare = numOrUnk(form.fare, 1000000);
-  if (!form.date) return bad('営業日を入れる');
+  if (!form.date) return bad('営業曜日を入れてください');
+  /* ★乗車場所と発車時間は必ず要ります（ご指示・2026/11/12）。
+       抜けていたら、その欄まで画面を動かして、赤く知らせます。 */
+  if (!String(form.place || '').trim()) return needField('f_place', '乗車場所は必ず入れてください');
+  if (dRaw === '') return needField('f_dep', '発車時間は必ず入れてください');
   /* ★似た名前の乗り場があれば、保存の前に1度だけ聞きます（ご指示・2026/11/12）。
        同じ場所が2つの名前で入ると、どちらの数字も当てになりません。 */
   const pSug = placeAskOk[form.place] ? '' : placeSuggest(form.place);
@@ -2289,14 +2577,12 @@ async function addRec(){
   /* ★時刻は「書いてあるのに読めない」ときだけ はじきます。
        書いていないのは「不明」として通します（ご指示・2026/11/11）。 */
   if (dRaw !== '' && d === null) return bad('乗せた時刻が読めない（例 25:30）');
-  /* 何ひとつ入っていない記録は、残しても意味がないので止めます */
-  if (d === null && fare === null && !String(form.place || '').trim())
-    return bad('場所・時刻・金額のうち、どれか1つは入れてください');
+
   const row = {
     user_id: ME.user.id, work_date: form.date, place: (form.place || '').trim(),
     dep: (d === null ? null : +d.toFixed(2)),
     wait_min: numOrUnk(form.wait, 1440),
-    ride_min: numOrUnk(form.ride, 1440), fare: fare,
+    ride_min: null, fare: fare,
     method: normMethod(form.method || ''), note: (form.note || '').trim()
   };
   const btn = $('#add'); btn.disabled = true;
@@ -2745,6 +3031,10 @@ function evRows(day){
     <div class="evt">${esc(x.t || '')}</div>
     ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
     ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
+    <div class="evlinks">
+      ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
+      <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">地図</a>
+    </div>
   </div>`).join('');
 }
 
