@@ -1732,7 +1732,7 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   vm.runInContext(
     'let records = [];' +
     app.slice(app.indexOf('function pkey('), app.indexOf('/** 1字違いまでの近さ')) +
-    app.slice(app.indexOf('const PLACE_CATS = ['), app.indexOf('function placeCanonMap()'))
+    app.slice(app.indexOf('const PLACE_CATS = ['), app.indexOf('function placeOptions()'))
        .replace(/\/\* ---[\s\S]*?--- \*\//, ''), box);
   const C = v => vm.runInContext('placeCat(' + JSON.stringify(v) + ')', box);
   const R2 = (place, note) => vm.runInContext(
