@@ -1528,6 +1528,12 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     t(new RegExp('\\.' + c + '\\{color:#').test(css), '★★★金額の色：' + c);
   });
   t(/function fareCls/.test(app), '　 金額の色を決める係がある');
+  /* ★待ち時間の色（ご指示・2026/11/12「10分以内は薄い青、30分以内は薄い灰」） */
+  t(/function waitCls/.test(app), '★★★待ち時間の色を決める係がある');
+  t(/n <= 10\) return 'wt1'/.test(app) && /n <= 30\) return 'wt2'/.test(app),
+    '★★★10分以内と30分以内で、色を分ける');
+  t(/\.wt1\{color:#/.test(css) && /\.wt2\{color:#/.test(css), '　 その見た目も入っている');
+  t(/<td class="n ' \+ waitCls\(r\.wait\)/.test(app), '★★★待ちの欄に、その色が付く');
   t(/n < 1000\)  return 'f1'/.test(app) && /n < 20000\) return 'f4'/.test(app),
     '★★★金額の区切りが、スプレッドシートと同じ');
 

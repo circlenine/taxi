@@ -769,6 +769,10 @@ tr.w-ana   td{background:#40290F}   /* 城越くん … 橙 */
 tr.w-jin   td{background:#2C1F44}   /* 宮下くん … 紫 */
 tr.w-mark  td{background:#26262A}   /* まーく様 … 灰 */
 
+/* 待ち時間の色（記録用スプレッドシートと同じ分け方） */
+.wt1{color:#9ECBFF}                 /* 10分以内 … 薄い青 */
+.wt2{color:#C9CDD3}                 /* 30分以内 … 薄い灰 */
+
 /* 金額の色（記録用スプレッドシートと同じ分け方） */
 .f1{color:#9AA0A6}                  /* 999円以下 */
 .f2{color:#FFFFFF}                  /* 1000〜4999 */

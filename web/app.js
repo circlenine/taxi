@@ -636,7 +636,7 @@ function tableHTML(rows){
           '<button class="mini del" data-del="' + r.id + '">削除</button>' : '') + '</td>' +
       '<td class="c-who">' + esc(kana(r.who)) + '</td>' +
       '<td class="n">' + showT(tsuke(r)) + '</td>' +
-      '<td class="n">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
+      '<td class="n ' + waitCls(r.wait) + '">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
       '<td class="n">' + showT(r.dep) + '</td>' +
       '<td class="n ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
       '<td class="c-place">' + (r.place ? placeLink(r.place) : UNK) + '</td>' +
@@ -673,6 +673,18 @@ function whoCls(uid){
   if (/アナル|城越/.test(n))                      return 'w-ana';
   if (/ジン|じん|宮下/.test(n))                   return 'w-jin';
   if (/マーク|まーく|ポンコツ/.test(n))            return 'w-mark';
+  return '';
+}
+
+/* ★待ち時間の色（記録用スプレッドシートと同じ分け方・ご指示 2026/11/12）
+     10分以内 … 薄い青（すぐ乗れた）
+     30分以内 … 薄い灰
+     それより長い … そのままの白 */
+function waitCls(v){
+  if (isUnk(v)) return '';
+  const n = +v;
+  if (n <= 10) return 'wt1';
+  if (n <= 30) return 'wt2';
   return '';
 }
 
