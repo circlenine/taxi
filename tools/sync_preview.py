@@ -7,7 +7,14 @@
   ここを通せば、帯は必ず付け直されます。
 """
 import pathlib
-W = pathlib.Path(__file__).resolve().parent.parent / 'web'
+import subprocess
+import sys
+HERE = pathlib.Path(__file__).resolve().parent
+W = HERE.parent / 'web'
+
+# ★読み込むファイルに「いつのものか」の印を付け直します。
+#   これを忘れると、直したのに前の画面が出ます（2026/11/13 のしくじり）。
+subprocess.run([sys.executable, str(HERE / 'stamp.py')], check=True)
 P = W / 'preview'
 BAR = ('<div class="pvbar">ここは<b>下見用</b>のページです。本番は\n'
        '  <a href="/">こちら</a>。まだ本番には反映していません。</div>')

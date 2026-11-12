@@ -1226,6 +1226,26 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
+  /* ★直したのに前の画面が出る、を起こさない（ご指摘・2026/11/13）。
+       読み込むファイルに「いつのものか」の印を付け、
+       中身が変われば必ず新しいものが読まれるようにします。 */
+  {
+    const h6 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    ['style.css', 'app.js', 'shared.js', 'news.js'].forEach(function (n) {
+      t(new RegExp(n.replace('.', '\\.') + '\\?v=\\d{8}-[0-9a-f]{8}').test(h6),
+        '★★★' + n + ' に、いつのものかの印が付いている');
+    });
+    t(!/["']style\.css["']/.test(h6), '　 印の無い読み方は、残っていない');
+    const vj = JSON.parse(fs.readFileSync(path.join(W, 'vercel.json'), 'utf8'));
+    const hs = (vj.headers[0] || {}).headers || [];
+    t(hs.some(x => x.key === 'Cache-Control' && /must-revalidate/.test(x.value)),
+      '★★★毎回、新しいかどうかを確かめに行く');
+    const pv = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
+    const m1 = (h6.match(/app\.js\?v=([0-9a-z-]+)/) || [])[1];
+    const m2 = (pv.match(/app\.js\?v=([0-9a-z-]+)/) || [])[1];
+    t(m1 && m1 === m2, '　 下見用のページも、同じ印になっている', m1 + ' / ' + m2);
+  }
+
   /* ★題の行は、段ごとに薄い帯で区切ります（ご指示・2026/11/12
        「赤く囲った部分を薄グレー背景など引いて
          もっとそれぞれ、くぎって 視覚化しやすくしてください
