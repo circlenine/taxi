@@ -119,7 +119,7 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || perio
    *   天気は30分ごとに読み直します（気象庁・無料）。
    */
   loadWx();
-  setInterval(function (){ if (tab === 'hot') render(); }, 60 * 1000);
+  setInterval(function (){ if (tab === 'hot' || tab === 'ratio') render(); }, 60 * 1000);
   setInterval(loadWx, 30 * 60 * 1000);
 })();
 
@@ -2486,47 +2486,49 @@ function paneRatio(){
     }
   }
 
-  /* ④ 乗り場べつ アツい時間帯（ご指示・2026/11/12）
-       「乗り場別にも、アツいスポットを出せるようにしてください」
-       ★時間帯べつの逆です。「この乗り場は、何時台が濃いか」を出します。
-       ★ここも、乗り場ごとでは件数が少ないので 前後1時間をふくめます。 */
+  /* ④ これからの3時間おき（ご指摘・2026/11/12）
+       「こんなたくさんあると、どれ攻めれば良いのか分かりません
+         リアルタイム時間に合わせて 3時間おきでまとめてください」
+       ★並べすぎると、選べません。
+         いまの時刻から、3時間ずつの枠にまとめて、各枠3か所だけ出します。 */
   if (D.length) {
-    const pm3 = {};
-    D.forEach(function (r){ const p = r.place; if (p) (pm3[p] = pm3[p] || []).push(r); });
-    const plist = Object.keys(pm3)
-      .map(p => ({ p: p, rs: pm3[p] }))
-      .filter(x => x.rs.length >= HOT_MIN_N)
-      .sort((a2, b2) => b2.rs.length - a2.rs.length)
-      .slice(0, 12);
-    let pb = '';
-    plist.forEach(function (x){
-      const hset = [...new Set(x.rs.map(r => Math.floor(r.dep)))].sort((a2, b2) => a2 - b2);
-      const rows = hset.map(function (h){
-        const t = x.rs.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
-        const o = bandCount(t);
-        return { h: h, o: o, L: bandPct(o, 'L'), avg: bandAvg(t) };
-      }).filter(r2 => r2.o.n >= HOT_MIN_N)
-        .sort((a2, b2) => b2.L - a2.L || b2.avg - a2.avg).slice(0, 3);
-      const o2 = bandCount(x.rs);
-      pb += '<div class="hblk"><div class="hbh">' +
-        '<b class="pnm">' + esc(x.p) + '</b>' +
-        '<span>' + esc(recCat(x.rs[0])) + '・ロング ' + bandPct(o2, 'L') + '%・' + o2.n + '件</span></div>' +
-        (rows.length
-          ? '<div class="htags">' + rows.map(function (r2, i){
-              return '<a class="htag' + (i === 0 ? ' top' : '') + '" href="' + mapUrl(x.p) +
-                '" target="_blank" rel="noopener">' +
-                '<b>' + r2.h + '時台</b>' +
-                '<span class="hv">ロング ' + r2.L + '%</span>' +
-                '<span class="hm">' + yen(r2.avg) + '・' + r2.o.n + '件</span></a>';
-            }).join('') + '</div>' +
-            '<div class="hbn">前後1時間をふくめて数えています。</div>'
-          : '<div class="hbn">まだ3件そろった時間帯がありません。</div>') +
+    const c = hotNow();
+    const blocks = [];
+    let st = Math.floor(c.early ? HOT_FROM : c.h);
+    while (st <= HOT_TO && blocks.length < 4) {
+      blocks.push({ a: st, b: Math.min(st + 2, HOT_TO) });
+      st += 3;
+    }
+    const NAME = ['いま', '次', 'そのあと', 'さらにあと'];
+    let bb = '';
+    blocks.forEach(function (bk, i){
+      const t = D.filter(function (r){
+        const h = Math.floor(r.dep);
+        return h >= bk.a && h <= bk.b;
+      });
+      const rk = longRank(t);
+      const o = bandCount(t);
+      const thin = [...new Set(t.map(r => r.place).filter(Boolean))]
+        .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
+        .sort((x, y) => y.n - x.n).slice(0, 5);
+      bb += '<div class="blk3' + (i === 0 ? ' now' : '') + '">' +
+        '<div class="b3h"><em>' + NAME[i] + '</em>' +
+        '<b>' + bk.a + '〜' + bk.b + '時</b>' +
+        '<span>' + (o.n ? ('ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t))) : '記録なし') + '</span>' +
+        '</div>' +
+        (rk.length ? longRows(rk, 3)
+          : (thin.length
+              ? '<div class="hbn">まだ3件そろった乗り場がありません。この枠に入っている所（件数）：' +
+                thin.map(x => esc(x.p) + ' ' + x.n).join('・') + '</div>'
+              : '<div class="hbn">この枠の記録が、まだありません。</div>')) +
         '</div>';
     });
-    if (pb) {
-      out += '<div class="card"><h2>乗り場べつ アツい時間帯</h2>' +
-        '<p class="note">その乗り場で、ロングが出やすかった時間帯の上位3つです。' +
-        '件数の多い乗り場から並べています。押すと地図が開きます。</p>' + pb + '</div>';
+    if (bb) {
+      out += '<div class="card"><h2>これからの3時間おき</h2>' +
+        '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '。' +
+        (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時からの枠で出しています。' : '') +
+        'この先を3時間ずつに分けて、ロングが出やすかった乗り場を3か所ずつ出しています。</p>' +
+        bb + '</div>';
     }
   }
 
