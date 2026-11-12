@@ -1079,3 +1079,26 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 
 /* 下の「粛清完了」に、中身が隠れないようにします */
 body{padding-bottom:84px}
+
+/* ------------------------------------------------------------
+ *  えらぶ欄（プルダウン）を、はっきり分かる形に
+ *  ご指示・2026/11/12
+ *   「プルダウンできるやつ、しっかり右際に▼みたいなのつけて
+ *     わかりやすくしてください
+ *     それに、枠ももう気持ち太くしてください」
+ *  ★iPhone の既定のしるしは小さく、暗い画面では見えませんでした。
+ *    自前の ▼ を、右端に大きめに出します。
+ * ---------------------------------------------------------- */
+input,select,textarea{border-width:2px}
+select{
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 1.5h12L7 8.5z' fill='%23FFFFFF'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 13px center;
+  background-size:14px 9px;
+  padding-right:40px;
+}
+/* 押せる所だと分かるよう、ふちを少し明るく */
+select{border-color:#5A5A68}
+select:focus{border-color:var(--andon);outline:none}
+.fsel.on{border-color:var(--andon)}

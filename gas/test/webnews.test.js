@@ -1201,6 +1201,19 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/classList\.toggle\('scrolled'/.test(app), '　 下に進んだかどうかを見ている');
   }
 
+  /* ★えらぶ欄は、▼ と太い枠ではっきり分かるように（ご指示・2026/11/12
+       「プルダウンできるやつ、しっかり右際に▼みたいなのつけて
+         わかりやすくしてください それに、枠ももう気持ち太くしてください」） */
+  {
+    const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/input,select,textarea\{border-width:2px\}/.test(cs), '★★★枠を太くした');
+    t(/select\{[\s\S]{0,400}appearance:none/.test(cs), '　 機種ごとのしるしは消す');
+    t(/background-image:url\("data:image\/svg\+xml[^"]*M1 1\.5h12L7 8\.5z/.test(cs),
+      '★★★自前の ▼ を出す');
+    t(/background-position:right 1\dpx center/.test(cs), '★★★▼ は右端に寄せる');
+    t(/padding-right:40px/.test(cs), '　 字と ▼ が重ならない');
+  }
+
   /* ★新着の赤丸は、名前の左（ご指示・2026/11/12） */
   t(/<b><span class="dot" id="evDot" hidden><\/span>イベント<\/b>/.test(html),
     '★★★イベントの赤丸は、名前の左');
