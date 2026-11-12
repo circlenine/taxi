@@ -3312,6 +3312,24 @@ function evTimeLine(x){
   return '<div class="evgo' + dim + '">🎬 ' + st + '　／　' + end + '</div>';
 }
 
+/**
+ * アーティストの公式リンク（ご指摘・2026/11/12）。
+ * ★出すのは「公式」と言い切れるものだけです。
+ *   調べられなかった催しには、1つも出しません（黙って消えるのではなく、
+ *   そもそも書かないだけです。あて推量を並べないため）。
+ */
+function evArtHTML(x){
+  const al = (x && x.al) ? x.al : [];
+  if (!al.length) return '';
+  const who = (al[0] && al[0].l === 'name') ? al[0].n : '';
+  const links = al.filter(y => y && y.u);
+  if (!links.length) return '';
+  return '<div class="evart">' +
+    (who ? '<span class="evwho">🎤 ' + esc(who) + '</span>' : '') +
+    links.map(y => '<a class="mini" href="' + esc(y.u) + '" target="_blank" rel="noopener">' +
+      esc(y.l) + '</a>').join('') + '</div>';
+}
+
 function evRows(day){
   if (!day || !day.list || !day.list.length) return '<div class="empty">該当データがありません</div>';
   const kind = { event:'🎤 イベント', barasi:'🔧 バラシ',
@@ -3334,9 +3352,10 @@ function evRows(day){
     <div class="evt">${esc(x.t || '')}</div>
     ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
     ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
+    ${evArtHTML(x)}
     <div class="evlinks">
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
-      <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">地図</a>
+      <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
     </div>
   </div>`).join('');
 }

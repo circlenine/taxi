@@ -1225,6 +1225,16 @@ console.log('■ イベントは、開演の時刻を いちばん上に（ご�
   t(/一番上は<b>開演の時刻<\/b>/.test(app), '　 画面の説明も、そろっている');
   const news = fs.readFileSync(path.join(W, 'news.js'), 'utf8');
   t(/一番上に出るのは【開演の時刻】/.test(news), '　 使い方のカードにも、そろっている');
+  /* ★地図とアーティストの公式リンク（ご指摘・2026/11/12） */
+  t(/function evArtHTML\(/.test(app), '★★★アーティストの公式リンクを出す係がある');
+  t(/📍 地図/.test(app), '★★★1件ずつに、地図の押しどころがある');
+  t(/くわしく見る/.test(app), '★★★会場のページへの押しどころもある');
+  const ven = fs.readFileSync(path.join(W, '..', 'gas', '006-Venue.gs'), 'utf8');
+  t(/function vnFeedArtLinks_\(/.test(ven), '★★★GAS側も、公式リンクを渡している');
+  t(/al: vnFeedArtLinks_\(ev\)/.test(ven), '　 1件ずつに付けている');
+  t(/vnOkUri_/.test(ven.slice(ven.indexOf('function vnFeedArtLinks_'),
+     ven.indexOf('function vnFeedArtLinks_') + 1600)),
+    '★★★開けない住所は出さない（押せないリンクは嘘と同じ）');
 }
 
 

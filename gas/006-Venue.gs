@@ -2,7 +2,13 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V110ver  （2026/11/12）  ★★★
+ *  ★★★  V111ver  （2026/11/12）  ★★★
+ *
+ *  [V111ver]
+ *   ・🎤 アーティストの公式リンクを、ウェブの台帳にも渡すようにした
+ *     （ご指摘・2026/11/12「各アーティスト情報のリンクは…反映済みですか？」）
+ *     ★LINEの絵には出していましたが、ウェブには渡していませんでした。
+ *     ★出すのは「公式」と言い切れるものだけ。検索の入口は出しません。
  *
  *  [V110ver]
  *   ・🔗 イベント1件ずつに「くわしく見る」の読み先を付けた
@@ -1787,7 +1793,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V110ver";
+const VN_VERSION = "V111ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -11267,6 +11273,50 @@ function vnLinkBarasiTime_(list) {
  * ================================================================ */
 const VN_FEED_PATH = "web/data/events.json";
 
+/**
+ * アーティストの公式リンクを、データのまま取り出す（ウェブの台帳用）。
+ *
+ * ★まーく様のご指摘（2026/11/12）
+ *   「イベント情報に、Googleマップのリンクや
+ *     各アーティスト情報のリンクは載せてるのは反映済みですか？」
+ *
+ * ★LINEの絵では出していましたが、ウェブには渡していませんでした。
+ * ★出すのは「公式」と言い切れるものだけです（Wikidata に登録されたもの）。
+ *   検索の入口は出しません。あて推量を「関連リンク」として並べると、
+ *   確かなものと見分けがつかなくなります。
+ * ★調べに出られないときは、何も返しません。イベントの知らせは止めません。
+ * ★6時間おぼえておく仕組みは、LINEの絵と同じものを使い回します
+ *   （同じ人を、1日に何度も調べ直さないため）。
+ */
+function vnFeedArtLinks_(ev) {
+  const out = [];
+  try {
+    if (!ev || !ev.title || ev.artNone) return out;
+    let name = "";
+    try { name = shArtistName_(ev.artist || ev.title); } catch (e) { name = ""; }
+    if (!name) return out;
+    let wd = null;
+    try {
+      const c = CacheService.getScriptCache().get("VN_ART_" + name);
+      if (c) wd = (JSON.parse(c) || {}).wd;
+    } catch (e) { wd = null; }
+    if (!wd) {
+      try { if (typeof shWdArtist_ === "function") wd = shWdArtist_(name); } catch (e) { wd = null; }
+    }
+    if (!wd) return out;
+    const add = function (label, u) {
+      const ok = (typeof vnOkUri_ === "function") ? vnOkUri_(u) : u;
+      if (ok) out.push({ l: label, u: String(ok) });
+    };
+    add("公式サイト", wd.site);
+    add("X", wd.x);
+    add("Instagram", wd.instagram);
+    add("YouTube", wd.youtube);
+    if (out.length) out.unshift({ l: "name", u: "", n: name });
+  } catch (e) {}
+  return out.slice(0, 5);
+}
+
 /** その日のぶんを、ウェブに渡す形（小さく）にまとめる */
 function vnFeedDay_(day) {
   const out = [];
@@ -11290,7 +11340,9 @@ function vnFeedDay_(day) {
          *   ★開けない住所は出しません（vnOkUri_ でふるいます）。
          *     開かないリンクは、嘘と同じです。
          */
-        u: String((typeof vnOkUri_ === "function" ? vnOkUri_(ev.url) : (ev.url || "")) || "")
+        u: String((typeof vnOkUri_ === "function" ? vnOkUri_(ev.url) : (ev.url || "")) || ""),
+        /* アーティストの公式リンク（ウェブの台帳で、1件ずつに出します） */
+        al: vnFeedArtLinks_(ev)
       });
     } catch (e) {}
   });

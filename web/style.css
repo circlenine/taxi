@@ -1034,3 +1034,8 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 .wxh b i{font-style:normal;display:block;font-size:12px;opacity:.8}
 .wxh.d-sun small{color:#FF8A80}
 .wxh.d-sat small{color:#8FC7FF}
+
+/* イベントのアーティスト公式リンク（ご指摘・2026/11/12） */
+.evart{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:6px}
+.evwho{font-size:12.5px;font-weight:700;color:#FFFFFF}
+.evart .mini{text-decoration:none}
