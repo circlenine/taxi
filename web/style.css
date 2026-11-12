@@ -879,12 +879,18 @@ td.w-mark {background:#26262A}   /* まーく様 … 灰 */
 /* ★分数のタグ。0〜60分を2行に収めるため、小さく・字は数字だけ
      （ご指示・2026/11/12「2行分に収まりませんか」）。 */
 /* よく出る金額のタグ（ご指示・2026/11/12）。数が多いので小さめに */
-.chips.fares{gap:3px}
-.chips.fares .chip{font-size:11.5px;padding:6px 0;min-width:44px;letter-spacing:0}
-@media(max-width:360px){ .chips.fares .chip{min-width:40px;font-size:11px} }
-.chips.mins{gap:3px}
-.chips.mins .chip{font-size:12px;padding:6px 0;min-width:34px;letter-spacing:0}
-@media(max-width:360px){ .chips.mins .chip{min-width:31px;font-size:11.5px} }
+/* ★数字のタグは、ます目で並べます（ご指示・2026/11/12）。
+     「45までを1段目に」「2段目のギリギリまで」。
+     1行に入る数を機種まかせにすると、45 だけが はみ出したりします。
+     列の数を決めてしまえば、どの機種でも同じ形で収まります。 */
+.chips.fares{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.chips.fares .chip{font-size:11px;padding:6px 0;min-width:0;letter-spacing:-.02em}
+.chips.mins{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.chips.mins .chip{font-size:12px;padding:6px 0;min-width:0;letter-spacing:0}
+@media(max-width:360px){
+  .chips.fares .chip{font-size:10px}
+  .chips.mins .chip{font-size:11.5px}
+}
 
 /* ★似ている乗り場の名前に気づいたときの確認（ご指示・2026/11/12） */
 .psug{margin-top:7px;padding:8px 10px;border:1px solid var(--andon);border-radius:8px;

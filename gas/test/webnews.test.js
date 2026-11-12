@@ -292,8 +292,10 @@ console.log('■ 入れる欄のタブ（ご指示・2026/11/11）');
     const C = box.C;
     /* ★タグが多すぎると「嫌に見えてくる」とのご指示（2026/11/12）。
        0〜60分の13個までにして、2行に収めます。 */
-    t(Math.max.apply(null, C.chips) === 90, '★★★分のタグは90分まで', Math.max.apply(null, C.chips));
-    t(C.chips.length === 19, '★★★0〜90分の19個（45までが1行目）', C.chips.length);
+    t(Math.max.apply(null, C.chips) === 95, '★★★分のタグは95分まで', Math.max.apply(null, C.chips));
+    /* ★10個ずつの ます目で2段。45までが1段目、50〜95が2段目
+         （ご指示・2026/11/12）。 */
+    t(C.chips.length === 20, '★★★0〜95分の20個（45までが1段目）', C.chips.length);
     t(Math.max.apply(null, C.all) === 100,   '★★★欄を押したときの候補も100分まで', Math.max.apply(null, C.all));
     t(C.m.indexOf('途中乗り') !== -1,        '★★★種類のタブに「途中乗り」がある', C.m.join('/'));
     t(C.m.indexOf('流し') === -1,            '　 「流し」は出していない（ご指示）');
@@ -1792,8 +1794,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★イベントを開いたら、赤い点が消える');
 
   /* ⑪ 分のタグは90分まで、45までが1行目 */
-  t(/MIN_CHIPS = \[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90\]/.test(app),
-    '★★★分のタグは 0〜90');
+  t(/MIN_CHIPS = \[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95\]/.test(app),
+    '★★★分のタグは 0〜95');
+  t(/\.chips\.mins\{display:grid;grid-template-columns:repeat\(10,1fr\)/
+    .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★10個ずつの ます目で並べる（45が はみ出さない）');
+  t(/\.chips\.fares\{display:grid;grid-template-columns:repeat\(8,1fr\)/
+    .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★金額は8個ずつの ます目（3段ぴったり）');
 }
 
 
@@ -2042,8 +2050,8 @@ console.log('■ よく出る乗車金額のタグ（ご指示・2026/11/12）')
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   t(/const FARE_CHIPS = \[600,700,800,900\]\.concat\(/.test(app),
     '★★★600〜900 から始まる');
-  t(/1000 \+ i \* 100/.test(app) && /length: 16/.test(app),
-    '★★★1000から2500まで、100円きざみ');
+  t(/1000 \+ i \* 100/.test(app) && /length: 20/.test(app),
+    '★★★1000から2900まで、100円きざみ');
   t(/FARE_CHIPS\.map\(v => chip\(v,f\.fare,'fare'\)\)/.test(app),
     '★★★乗車金額の欄に、そのタグが出る');
   t(/\.chips\.fares \.chip\{/.test(css), '　 その見た目も入っている');
@@ -2053,9 +2061,12 @@ console.log('■ よく出る乗車金額のタグ（ご指示・2026/11/12）')
   vm.runInContext(app.slice(app.indexOf('const FARE_CHIPS = ['),
                             app.indexOf('const DEP_H =')), box);
   const F = vm.runInContext('FARE_CHIPS', box);
-  t(F.length === 20, '★★★ぜんぶで20個', F.length);
+  /* ★8個ずつ3段に、ぴったり収まる数にしています（ご指示・2026/11/12
+       「2段目のギリギリまでタブを追加してください」）。 */
+  t(F.length === 24, '★★★ぜんぶで24個（8個ずつ3段ぴったり）', F.length);
+  t(F.length % 8 === 0, '★★★段のおしりが、余らない');
   t(F[0] === 600 && F[3] === 900, '　 600・700・800・900');
-  t(F[4] === 1000 && F[19] === 2500, '　 1000から2500まで', F[4] + '〜' + F[19]);
+  t(F[4] === 1000 && F[23] === 2900, '　 1000から2900まで', F[4] + '〜' + F[23]);
 }
 
 
