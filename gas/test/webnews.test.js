@@ -297,6 +297,11 @@ console.log('■ 入れる欄のタブ（ご指示・2026/11/11）');
     t(Math.max.apply(null, C.all) === 100,   '★★★欄を押したときの候補も100分まで', Math.max.apply(null, C.all));
     t(C.m.indexOf('途中乗り') !== -1,        '★★★種類のタブに「途中乗り」がある', C.m.join('/'));
     t(C.m.indexOf('流し') === -1,            '　 「流し」は出していない（ご指示）');
+    /* ★S.Ride は Uber のすぐ右（ご指示・2026/11/12）。
+       並び順まで押さえないと、足したつもりで別の場所に出ます。 */
+    t(C.m.indexOf('S.Ride') === C.m.indexOf('Uber') + 1,
+      '★★★種類のタブ「S.Ride」が Uber のすぐ右にある', C.m.join('/'));
+    t(C.m.indexOf('付け待ち') === -1,        '★★★「付け待ち」は出していない（ご指示）', C.m.join('/'));
     t(C.m.length === C.names.length,
       '★★★タブに並べた名前が、ぜんぶ METHODS にある（書きまちがいなし）',
       C.names.filter(function(x){ return C.ms.indexOf(x) === -1; }).join('/') || 'ぜんぶある');

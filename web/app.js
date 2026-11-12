@@ -90,7 +90,7 @@ async function reload(){
  *    スプシ側と同じ決まりにしておかないと、
  *    同じ乗車が別の種類として数えられてしまいます。
  * ---------------------------------------------------------- */
-const METHODS = ['GO', 'Uber', '無線', '付け待ち', '流し', '手上げ',
+const METHODS = ['GO', 'Uber', 'S.Ride', '無線', '付け待ち', '流し', '手上げ',
                  '乗り場', 'ホテル', '途中乗り', '呼び込み', 'エスライド', '道路'];
 
 /* ----------------------------------------------------------
@@ -154,7 +154,8 @@ function depSet(v, h, mi){
      タブに出すものは、ここに名前で並べます。
      書き間違えると出なくなるので、検査（webnews.test.js）で
      「7つ ぜんぶ METHODS にある」ことを押さえています。 */
-const METHOD_CHIP_NAMES = ['GO', 'Uber', '無線', '付け待ち', '手上げ', '乗り場', '途中乗り'];
+/* ★S.Ride を Uber の横に。付け待ちは出しません（ご指示・2026/11/12） */
+const METHOD_CHIP_NAMES = ['GO', 'Uber', 'S.Ride', '無線', '手上げ', '乗り場', '途中乗り'];
 const METHOD_CHIPS = METHOD_CHIP_NAMES.filter(m => METHODS.indexOf(m) !== -1);
 
 /* 「他」のタブ。よく書くものを、ひと押しで入れられるように。
@@ -266,6 +267,9 @@ function normMethod(v){
   if (/^(ゴ[ー\-ｰ]?|ｺﾞ[ー\-ｰ]?|go|ＧＯ)$/i.test(t)) return 'GO';
   if (/^(uber|ウーバー|ｳｰﾊﾞｰ|うーばー)$/i.test(t)) return 'Uber';
   if (/^(無線|むせん|ニューモ|newmo)$/i.test(t))   return '無線';
+  /* ★エスライドは S.Ride にそろえます（ご指示・2026/11/12）。
+       2つの書き方が残ると、同じものが別々に数えられます。 */
+  if (/^(s[\.\s]?ride|エスライド|ｴｽﾗｲﾄﾞ|Ｓライド|sライド)$/i.test(t)) return 'S.Ride';
   return t;
 }
 
