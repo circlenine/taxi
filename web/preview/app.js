@@ -3,6 +3,17 @@ const $ = s => document.querySelector(s);
 
 let ME = null, records = [], names = {}, tab = 'in', form = {}, editId = null, msg = '', msgBad = false;
 let scOpt = { line: true, label: true }, onlyMine = false;
+/* ★折線グラフで、自分でえらんだ乗り場（ご指示・2026/11/13
+     「その他にも好きに乗り場をカスタムできる選択肢も追加してください」）。
+     押した乗り場は、次に開いたときも覚えています。 */
+const SCP_KEY = 'tn_sc_picks';
+let scPicks = (function (){
+  try { return JSON.parse(localStorage.getItem(SCP_KEY) || '[]') || []; }
+  catch (e) { return []; }
+})();
+function scPicksSave(){
+  try { localStorage.setItem(SCP_KEY, JSON.stringify(scPicks)); } catch (e) {}
+}
 /*
  * しぼり込み（まーく様のご指示・2026/11/12）
  *   「各乗り場だけをピンポイントで絞る機能」
@@ -2213,29 +2224,41 @@ function paneTl(){
 }
 
 /* ---- 時間×金額 ---- */
-function paneSc(){
-  /* 時刻か金額が不明なものは、この図に点を打てないので外します */
-  const R = visible().filter(r => hasDep(r) && hasFare(r));
-  if (!R.length) return `<div class="card"><h2>折れ線グラフ</h2>${filterChips(true)}
-    <div class="empty">該当データがありません</div></div>`;
+/* ------------------------------------------------------------
+ *  折線グラフ（時刻 × 金額）
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「この棒グラフは、スプシでいう
+ *      北7、北4、北他、ﾐﾅﾐ、ほか、関空、ﾊﾞﾗｼ 別に作ってください。
+ *      その他にも好きに乗り場をカスタムできる選択肢も追加してください」
+ *
+ *  ★1枚に全部の乗り場を重ねていたので、点と字が重なって読めませんでした。
+ *    中分類（北7・北4…）ごとに、1枚ずつ分けて出します。
+ *    さらに、乗り場を自分でえらんで1枚にすることもできます。
+ * ---------------------------------------------------------- */
+
+/** 1枚ぶんの図を作ります（えらんだ記録だけで描きます） */
+function scChart(R){
   const ds = [...new Set(R.map(r => r.date))].sort();
-  /* ★大きさは、横棒グラフに合わせます（ご指示・2026/11/12）。
-       1時間ぶんの幅から全体の幅を決めるので、横画面でちょうど収まります。 */
-  const L = 64, Rp = 20, T = 18, B = 44;
+  const L = 70, Rp = 16, T = 18, B = 44;
   const xs = R.map(r => r.dep);
-  const x0 = Math.floor(Math.min(...xs)-.5), x1 = Math.ceil(Math.max(...xs)+.5);
-  const W = L + Rp + Math.max(1, (x1 - x0)) * 52, H = 470;
-  const y1 = Math.max(...R.map(r => r.fare)) * 1.12;
+  const x0 = Math.floor(Math.min(...xs) - .5), x1 = Math.ceil(Math.max(...xs) + .5);
+  /* ★1時間ぶんの幅は、画面の広さに合わせます。
+       22時までは、横にスクロールせずに見られる大きさにします。 */
+  const vwS  = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
+  const need = Math.max(1, Math.min(x1 - x0, 22 - x0));
+  const cwS  = Math.max(30, Math.min(52, Math.floor((vwS - L - Rp) / need)));
+  const W = L + Rp + Math.max(1, (x1 - x0)) * cwS, H = 360;
+  const y1 = Math.max(...R.map(r => r.fare)) * 1.12 || 1000;
   const sx = v => L + (v-x0)/(x1-x0)*(W-L-Rp), sy = v => H-B - (v/y1)*(H-T-B);
-  /* ★横幅いっぱいに縮めると、字も帯も小さすぎて読めませんでした（ご指摘・2026/11/12）。
-       元の大きさのまま出して、横に動かせる形にします。 */
   let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
   const step = y1 > 20000 ? 5000 : y1 > 8000 ? 2000 : 1000;
+  /* ★縦じくも「¥5,000」のように、そのまま出します（ご指示・2026/11/13）。
+       「¥5k」という書き方はやめました。 */
   for (let v = 0; v <= y1; v += step) s += `<line class="grid-l" x1="${L}" x2="${W-Rp}" y1="${sy(v)}" y2="${sy(v)}"/>
-    <text class="axis" x="${L-8}" y="${sy(v)+4}" text-anchor="end">${v ? ('¥'+v/1000+'k') : '0'}</text>`;
+    <text class="axis" x="${L-6}" y="${sy(v)+4}" text-anchor="end" style="font-size:10.5px">${v ? yen(v) : '0'}</text>`;
   for (let h = x0; h <= x1; h++) s += `<line class="grid-l" x1="${sx(h)}" x2="${sx(h)}" y1="${T}" y2="${H-B}" stroke-dasharray="2 4"/>
     <text class="axis" x="${sx(h)}" y="${H-B+18}" text-anchor="middle">${h}</text>`;
-  s += `<text class="axis" x="${(L+W-Rp)/2}" y="${H-6}" text-anchor="middle">時（25＝翌1時）</text>`;
   const placed = [];
   const fits = (x,y,w) => { for (const p of placed) if (x < p.x+p.w+3 && x+w+3 > p.x && y < p.y+11 && y+11 > p.y) return false; return true; };
   ds.forEach(d => {
@@ -2250,21 +2273,57 @@ function paneSc(){
         const txt = yen(r.fare), w = txt.length*6.2;
         let ly = y-9, ok = false;
         for (const dy of [0,-12,12,-24,24,-36,36,-48,48]) if (fits(x+7, ly+dy, w)) { ly += dy; ok = true; break; }
-        if (ok) { placed.push({x:x+7, y:ly, w}); s += `<text class="glab" x="${x+7}" y="${ly+8}" fill="${c}">${txt}</text>`; }
+        if (ok) { placed.push({x:x+7, y:ly, w}); s += `<text class="glab" x="${x+7}" y="${ly+8}" style="font-size:10px" fill="${c}">${txt}</text>`; }
       }
     });
   });
   s += '</svg>';
-  return `<div class="card"><h2>折れ線グラフ</h2>
-    <p class="note">横は乗せた時刻、縦は金額です。日付ごとに色を変えています。</p>
+  return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
+    <div class="scroll fb">${s}</div>
+    <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div>`;
+}
+
+function paneSc(){
+  /* 時刻か金額が不明なものは、この図に点を打てないので外します */
+  const R = visible().filter(r => hasDep(r) && hasFare(r));
+  const head = `<div class="card"><h2>折線グラフ</h2>
+    <p class="note">横は乗せた時刻（25＝翌1時）、縦は金額です。日付ごとに色を変えています。
+      記録用スプレッドシートと同じ分け方で、1枚ずつ分けています。</p>
     <div class="toolbar">
       <button class="chip ${scOpt.line?'on':''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label?'on':''}" data-opt="label">金額を出す</button>
     </div>
-    ${filterChips(true)}
-    <div class="snote">← 横にスクロールできます（横画面推奨）</div>
-    <div class="scroll fb">${s}</div>
-    <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div></div>`;
+    ${filterChips(true)}</div>`;
+  if (!R.length) return head + emptyCard('該当データがありません');
+
+  /* ★中分類ごとに1枚ずつ（ご指示・2026/11/13） */
+  let body = '';
+  CAT_ORDER.forEach(function (k){
+    const rows = R.filter(r => recCat(r) === k);
+    if (!rows.length) return;
+    body += `<div class="card"><h2>${esc(k)}</h2>
+      <p class="note">${rows.length}件・乗り場 ${new Set(rows.map(r => r.place).filter(Boolean)).size}か所。</p>
+      ${scChart(rows)}</div>`;
+  });
+
+  /* ★好きな乗り場をえらんで、1枚にする（ご指示・2026/11/13） */
+  const pls = [...new Set(R.map(r => r.place).filter(Boolean))]
+    .map(p => ({ p: p, n: R.filter(r => r.place === p).length }))
+    .sort((a,b) => b.n - a.n || (a.p < b.p ? -1 : 1));
+  const picked = R.filter(r => scPicks.indexOf(r.place) !== -1);
+  const custom = `<div class="card"><h2>乗り場をえらぶ</h2>
+    <p class="note">見たい乗り場を押してください。えらんだぶんだけで、1枚にまとめます。</p>
+    <div class="chips">
+      ${pls.map(o => `<button class="chip ${scPicks.indexOf(o.p)!==-1?'on':''}" data-scp="${esc(o.p)}">${esc(o.p)}<span class="cnt">${o.n}</span></button>`).join('')}
+      ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
+    </div>
+    ${scPicks.length
+      ? (picked.length
+          ? `<p class="note">${esc(scPicks.join('／'))}　${picked.length}件。</p>` + scChart(picked)
+          : '<div class="empty">該当データがありません</div>')
+      : ''}</div>`;
+
+  return head + body + custom;
 }
 
 /* ---- 集計 ---- */
@@ -2991,6 +3050,17 @@ function wire(){
     render();
   });
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { scOpt[b.dataset.opt] = !scOpt[b.dataset.opt]; render(); });
+  /* ★折線グラフで、乗り場を自分でえらぶ（ご指示・2026/11/13） */
+  document.querySelectorAll('[data-scp]').forEach(function (b) {
+    b.onclick = function () {
+      const p = b.dataset.scp, i = scPicks.indexOf(p);
+      if (i === -1) scPicks.push(p); else scPicks.splice(i, 1);
+      scPicksSave(); render();
+    };
+  });
+  document.querySelectorAll('[data-scp-clear]').forEach(function (b) {
+    b.onclick = function () { scPicks = []; scPicksSave(); render(); };
+  });
   document.querySelectorAll('[data-mine]').forEach(b => b.onclick = () => {
     grab(); onlyMine = b.dataset.mine === '1'; filtSave(); render(); });
   /*

@@ -789,6 +789,9 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* ★各選択項目の【リセット】（ご指示・2026/11/13）。
      えらんだものを、その欄だけ 空に戻します。
      押しまちがえないよう、ふつうのタグより ひとまわり小さく、枠は点線。 */
+/* ★折線グラフで、乗り場をえらぶタグの件数（ご指示・2026/11/13）。
+     どの乗り場に記録が多いかが、押す前に分かります。 */
+.chip .cnt{margin-left:5px;font-size:10.5px;opacity:.72}
 .chip.rst{border-style:dashed;color:#FFFFFF;background:transparent;font-size:12px;padding:5px 11px}
 /* ★はじめての乗り場だけ出す1行（ご指示・2026/11/13）。
      2回目からは出しません。 */
