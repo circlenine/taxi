@@ -159,6 +159,12 @@ function pkey(v){
   let t = String(v == null ? '' : v).trim().toLowerCase();
   t = t.replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   t = t.replace(/[\s\u3000ー－\-・．.,、。「」（）()]/g, '');
+  /* ★ひらがなとカタカナのゆれも、同じ所として見ます
+       （ご指示・2026/11/12「ひらがなやカタカタの表記揺れがある場合は
+         基本的に、初めに登録した名前に合わせてください」）。
+       「なんば南」と「ナンバ南」が別の所になると、
+       どちらの数字も当てになりません。 */
+  t = t.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
   return t;
 }
 /** 1字違いまでの近さを見る（レーベンシュタイン） */
@@ -369,7 +375,7 @@ const inPeriod = r => {
  */
 const visible = () => records.filter(r =>
   (!onlyMine  || r.user_id === ME.user.id) &&
-  (!onlyPlace || r.place === onlyPlace) &&
+  (!onlyPlace || pkey(r.place) === pkey(onlyPlace)) &&
   (!onlyDay   || dayCls(r.date) === onlyDay) &&
   inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
@@ -426,17 +432,19 @@ function render(){
     who.push(ds.length ? ('記録のある日 ' + days + '日・' + rs.length + '件')
                        : '記録なし');
 
-    ktop.hidden = false;
-    ktop.classList.toggle('on', filtOn());
-    /* 見出しは、赤い線のあとに「いつの分か」。ここが区切りの目じるしです */
-    $('#ktWhen').textContent = when;
+        ktop.classList.toggle('on', filtOn());
+    /* 期間は、見出しの下に出します（見出しは「過去の記録」） */
+    const kw = $('#ktWhen'); if (kw) kw.textContent = when;
     $('#ktSum').textContent  = yen(sum);
     /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
          「記録のある日 9 ／ 日・10件」のような切れ方をすると、読めません。 */
     $('#ktWho').innerHTML = who.map(x => '<span>' + esc(x) + '</span>').join('');
     /* 乗り場は、どの画面にいても ここで すぐ切り替えられます */
-    const kpl = $('#ktPlace');
-    if (kpl) { kpl.innerHTML = placeOptions(); kpl.classList.toggle('on', !!onlyPlace); }
+    [$('#ktPlace'), $('#ktPlace2')].forEach(function (kpl) {
+      if (!kpl) return;
+      kpl.innerHTML = placeOptions();
+      kpl.classList.toggle('on', !!onlyPlace);
+    });
     const kcl = $('#ktClear');
     if (kcl) kcl.hidden = !onlyPlace;
     /* 期間の切り替えも、ここに出します（ご指示・2026/11/12） */
@@ -489,7 +497,7 @@ function paneIn(){
   <div class="card">
     <!-- ★見出しは「乗車データ」（ご指示・2026/11/12）。
          前は所要時間を出していましたが、消すようご指示をいただきました。 -->
-    <h2>乗車データ</h2>
+    <h2>新規の記録</h2>
     <p class="note">空の欄は「不明」。平均には数えません。</p>
     <div class="grid">
       <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
@@ -547,6 +555,10 @@ function paneIn(){
 
   <div class="card">
     <h2>直近の記録</h2>
+    <!-- ★ここでも乗り場を選べるようにします（ご指示・2026/11/12） -->
+    <div class="ktplace">
+      <select class="fsel" id="ktPlace2"></select>
+    </div>
     <p class="note">${records.length ? '新しい順に10件。全員分が1つの台帳に入ります。' : 'まだ1件も入っていません。'}</p>
     ${filterChips()}
     ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
@@ -562,14 +574,66 @@ function paneIn(){
  *  ★絞っているときは、赤い「絞り込みを解除」を必ず出します。
  *    絞ったまま忘れると、数字をまるごと読みちがえます。
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  乗り場の大きな分け方（記録用スプレッドシートのタブと同じ）
+ *    関空／ﾊﾞﾗｼ／北7／北4／北他／ﾐﾅﾐ／ほか
+ *  （まーく様のご指示・2026/11/12）
+ *
+ *  ★名前の書き方がゆれていると、同じ所が2つに分かれて、
+ *    どちらの数字も当てになりません。
+ *    いちど決めた書き方（最初に入れたもの）に、そろえて出します。
+ * ---------------------------------------------------------- */
+const PLACE_CATS = [
+  { k:'関空',  t:/関空|関西空港|ＫＩＸ|kix/i },
+  { k:'ﾊﾞﾗｼ',  t:/大阪城ホール|城ホール|hatch|ハッチ|オリックス劇場|京セラ|ドーム|asue|アスエ|インテックス|万博|アリーナ|スタジアム|グランキューブ|国際会議場|zepp|フェスティバルホール|バラシ/i },
+  { k:'北7',   t:/新地\s*7|新地７/ },
+  { k:'北4',   t:/新地\s*4|新地４/ },
+  { k:'北他',  t:/新地|梅田|キタ|北新地|茶屋町|中之島|堂島|曽根崎|西天満|天満|扇町/ },
+  { k:'ﾐﾅﾐ',   t:/難波|なんば|ナンバ|道頓堀|心斎橋|宗右衛門|千日前|日本橋|アメ村|島之内/ },
+];
+function placeCat(p){
+  const v = String(p || '');
+  for (let i = 0; i < PLACE_CATS.length; i++) if (PLACE_CATS[i].t.test(v)) return PLACE_CATS[i].k;
+  return 'ほか';
+}
+/* ★同じ所の書き方のゆれを、最初に入れた書き方にそろえます */
+function placeCanonMap(){
+  const first = {};
+  [...records].sort((a,b) => (a.date < b.date ? -1 : 1)).forEach(function (r) {
+    if (!r.place) return;
+    const k = pkey(r.place);
+    if (!first[k]) first[k] = r.place;
+  });
+  return first;
+}
+function canonPlace(p){
+  const m = placeCanonMap();
+  return m[pkey(p)] || String(p || '');
+}
 function placeOptions(){
-  const n = {};
-  records.forEach(r => { if (r.place) n[r.place] = (n[r.place] || 0) + 1; });
-  const list = Object.keys(n).sort((a,b) => n[b] - n[a] || (a < b ? -1 : 1));
-  return ['<option value="">乗り場：すべて</option>'].concat(
-    list.map(p => '<option value="' + esc(p) + '"' +
-      (p === onlyPlace ? ' selected' : '') + '>' + esc(p) + '（' + n[p] + '件）</option>')
-  ).join('');
+  const canon = placeCanonMap(), n = {}, cat = {};
+  records.forEach(function (r) {
+    if (!r.place) return;
+    const name = canon[pkey(r.place)] || r.place;
+    n[name] = (n[name] || 0) + 1;
+    cat[name] = placeCat(name);
+  });
+  const sel = pkey(onlyPlace);
+  const groups = PLACE_CATS.map(c => c.k).concat(['ほか']);
+  let out = '<option value="">乗り場：すべて</option>';
+  groups.forEach(function (g) {
+    const list = Object.keys(n).filter(x => cat[x] === g)
+      .sort((a,b) => n[b] - n[a] || (a < b ? -1 : 1));
+    if (!list.length) return;
+    out += '<optgroup label="' + esc(g) + '">';
+    list.forEach(function (x) {
+      out += '<option value="' + esc(x) + '"' +
+             (pkey(x) === sel ? ' selected' : '') + '>' +
+             esc(x) + '（' + n[x] + '件）</option>';
+    });
+    out += '</optgroup>';
+  });
+  return out;
 }
 function periodOptions(){
   const o = ['<option value="all"' + (period.mode === 'all' ? ' selected' : '') +
@@ -651,7 +715,7 @@ function tableHTML(rows){
       '<td class="n ' + waitCls(r.wait) + '">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
       '<td class="n">' + showT(r.dep) + '</td>' +
       '<td class="n ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
-      '<td class="c-place">' + (r.place ? placeLink(r.place) : UNK) + '</td>' +
+      '<td class="c-place">' + (r.place ? placeLink(canonPlace(r.place)) : UNK) + '</td>' +
       '<td>' + (r.method ? '<span class="mtag ' + mcls(r.method) + '">' + esc(r.method) + '</span>' : '') + '</td>' +
       '<td class="ja c-note">' + esc(r.note || '') + '</td>' +
       /* ★修正・削除は、表の右端に置きます（ご指示・2026/11/12） */
@@ -1365,7 +1429,7 @@ function bars(rows, label, fmt){
 function sumIn(from, to){
   const rs = records.filter(r =>
     (!onlyMine  || r.user_id === ME.user.id) &&
-    (!onlyPlace || r.place === onlyPlace) &&
+    (!onlyPlace || pkey(r.place) === pkey(onlyPlace)) &&
     (!from || r.date >= from) && (!to || r.date <= to));
   const f = rs.filter(hasFare);
   const days = new Set(rs.map(r => r.date)).size;
@@ -1638,9 +1702,11 @@ function wire(){
   const pk = document.querySelector('[data-pkeep]');
   if (pk) pk.onclick = function () {
     grab(); placeAskOk[form.place] = true; msg = ''; render(); };
-  const kpl = document.getElementById('ktPlace');
-  if (kpl) kpl.onchange = function () {
-    grab(); onlyPlace = kpl.value; filtSave(); render(); };
+  ['ktPlace', 'ktPlace2'].forEach(function (id) {
+    const kpl = document.getElementById(id);
+    if (kpl) kpl.onchange = function () {
+      grab(); onlyPlace = kpl.value; filtSave(); render(); };
+  });
   document.querySelectorAll('[data-day]').forEach(function (b) {
     b.onclick = function () { grab(); onlyDay = b.dataset.day; filtSave(); render(); };
   });

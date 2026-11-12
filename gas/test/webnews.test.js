@@ -482,13 +482,13 @@ console.log('■ 題の下の一文は、スマホで1行（ご指示・2026/11/
 console.log('■ 記録の入口（ご指示・2026/11/11）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
-  t(app.indexOf('<h2>乗車データ</h2>') !== -1, '★★★見出しが「乗車データ」になっている');
+  t(app.indexOf('<h2>新規の記録</h2>') !== -1, '★★★見出しが「新規の記録」になっている');
   t(app.indexOf('<h2>1回ぶんを残す</h2>') === -1, '　 古い見出しは残っていない');
   t(/NOTE_CHIPS = \[[^\]]*行先：/.test(app), '★★★「他」のタブに「行先：」がある');
   t(/：\$\/\.test\(val\)/.test(app), '★★★「：」で終わるタグは、続きを打てる（入れ替えない）');
   t(app.indexOf('function mapUrl') !== -1, '★★★場所を地図で開く係がある');
   t(app.indexOf('google.com/maps/search') !== -1, '　 Googleマップの住所を組み立てている');
-  t(app.indexOf('placeLink(r.place)') !== -1, '★★★一覧の場所を押すと、地図へ飛ぶ');
+  t(app.indexOf('placeLink(canonPlace(r.place))') !== -1, '★★★一覧の場所を押すと、地図へ飛ぶ');
   t(app.indexOf('PLACE_OK_KEY') !== -1, '★★★「同じ名前なら同じ場所」の印がある');
 }
 
@@ -1193,16 +1193,17 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   t(html.indexOf('id="kperiod"') > html.indexOf('class="kpis"'),
     '★★★注意書きは、4つの数より下');
   t(/id="ktop"/.test(pv), '　 下見用のページも同じ');
-  t(/#ktop h2\{/.test(css) && /\.ktsum b\{/.test(css), '　 その見た目も入っている');
+  t(/\.ktwhen\{/.test(css) && /\.ktsum b\{/.test(css), '　 その見た目も入っている');
   /* ★ひと区切りごとに、赤い線の見出し（ご指示・2026/11/12
        「赤い線を最初に入れて、見出しとしてだしてもらわないと、
          わけがわかりません」） */
-  t(/<section class="card blk" id="blkPlace">[\s\S]{0,80}<h2>乗り場<\/h2>/.test(html),
-    '★★★いちばん上は「乗り場」の区切り（赤い線つきの見出し）');
-  t(/<section class="card blk" id="ktop"[\s\S]{0,60}<h2 id="ktWhen">/.test(html),
-    '★★★その下は「いつの分か」の区切り（赤い線つきの見出し）');
-  t(html.indexOf('id="blkPlace"') < html.indexOf('id="ktop"'),
-    '★★★乗り場が、数字より上にある');
+  /* ★乗り場と数字は、1つの区切りにまとめました（ご指示・2026/11/12）。
+       見出しは「過去の記録」。 */
+  t(/<section class="card blk" id="ktop">[\s\S]{0,80}<h2>過去の記録<\/h2>/.test(html),
+    '★★★見出しは「過去の記録」');
+  t(html.indexOf('id="ktPlace"') < html.indexOf('id="ktWhen"'),
+    '★★★同じ区切りの中で、乗り場が数字より上にある');
+  t(!/id="blkPlace"/.test(html), '　 前の2つに分かれた形は、残っていない');
   t(html.indexOf('id="ktop"') < html.indexOf('<nav id="tabs">'),
     '★★★数字が、タブより上にある');
   t(/\.card h2:before\{content:"— "/.test(css), '　 赤い線は、見出しの頭に付く');
@@ -1319,7 +1320,7 @@ console.log('■ 入力欄と、タグの言い方（ご指示・2026/11/12）')
   t(/placeholder="2530"/.test(app), '★★★時刻の見本は「2530」');
   t(!/placeholder="25:30"/.test(app), '　 前の「25:30」は残っていない');
   /* ★入力欄の幅は、ぜんぶ同じ */
-  const form = app.slice(app.indexOf('<h2>乗車データ</h2>'), app.indexOf('<button class="btn" id="add">'));
+  const form = app.slice(app.indexOf('<h2>新規の記録</h2>'), app.indexOf('<button class="btn" id="add">'));
   const ws = (form.match(/class="f w\d/g) || []).map(x => x.slice(-1));
   t(ws.length >= 7 && ws.every(x => x === '2'),
     '★★★入力欄の幅が、ぜんぶそろっている', ws.join('/'));
@@ -1346,7 +1347,7 @@ console.log('■ 入れる順と、下の説明（ご指示・2026/11/12）');
    */
   const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-  const form = app.slice(app.indexOf('<h2>乗車データ</h2>'), app.indexOf('<button class="btn" id="add">'));
+  const form = app.slice(app.indexOf('<h2>新規の記録</h2>'), app.indexOf('<button class="btn" id="add">'));
   const at = w => form.indexOf(w);
   t(at('<label>乗車場所</label>') !== -1, '★★★「乗車場所」という名前になっている');
   t(at('<label>乗車金額（円）</label>') !== -1, '★★★「乗車金額」という名前になっている');
@@ -1394,7 +1395,7 @@ console.log('■ 入力の見出し（ご指示・2026/11/12）');
   /* ★まーく様のご指示：「あと35秒…」→「乗車データ」。
        「記録の目安時間」は消す。 */
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
-  t(/<h2>乗車データ<\/h2>/.test(app), '★★★見出しは「乗車データ」');
+  t(/<h2>新規の記録<\/h2>/.test(app), '★★★見出しは「新規の記録」');
   t(!/あと35秒/.test(app), '　「あと35秒…」は残っていない');
   t(!/記録の目安時間/.test(app), '　「記録の目安時間」も残っていない');
 }
@@ -1678,6 +1679,67 @@ console.log('■ 題の下の一文（ご指示・2026/11/12）');
   const a5 = S([{ date:'2026-11-11', fare:11000, user_id:'u1' },
                 { date:'2026-11-11', fare:15000, user_id:'u1' }]);
   t((a5.match(/齋藤くん/g) || []).length === 1, '　 同じ人は1回だけ', a5);
+}
+
+
+
+console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・2026/11/12）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/12）
+   *     「まず大カテゴリーとして、スプシと同じく
+   *       関空、ﾊﾞﾗｼ、北7、北4、北他、ﾐﾅﾐ、ほか を作り
+   *       小カテゴリーに、それぞれのタブに合わせた
+   *       具体的な乗り場名を挙げてください」
+   *     「ひらがなやカタカタの表記揺れがある場合は
+   *       基本的に、初めに登録した名前に合わせてください」
+   *
+   *   ★同じ所が2つの名前に分かれると、どちらの数字も当てになりません。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+
+  t(/const PLACE_CATS = \[/.test(app), '★★★大きな分け方がある');
+  ['関空','ﾊﾞﾗｼ','北7','北4','北他','ﾐﾅﾐ'].forEach(function (k) {
+    t(app.indexOf("k:'" + k + "'") !== -1, '　 ' + k + ' がある');
+  });
+  t(/return 'ほか';/.test(app), '　 どれにも当たらないものは「ほか」');
+  t(/<optgroup label="/.test(app), '★★★大きな分け方の中に、乗り場を並べる');
+  t(/function canonPlace/.test(app) && /function placeCanonMap/.test(app),
+    '★★★書き方のゆれを、1つにそろえる');
+  t(/pkey\(r\.place\) === pkey\(onlyPlace\)/.test(app),
+    '★★★書き方がゆれていても、同じ所として絞れる');
+  t(/placeLink\(canonPlace\(r\.place\)\)/.test(app),
+    '★★★表でも、そろえた書き方で出す');
+  t(/id="ktPlace2"/.test(app) && /ktPlace2/.test(app),
+    '★★★「直近の記録」でも、乗り場を選べる');
+
+  /* 中身を動かして確かめます */
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(
+    'let records = [];' +
+    app.slice(app.indexOf('function pkey('), app.indexOf('/** 1字違いまでの近さ')) +
+    app.slice(app.indexOf('const PLACE_CATS = ['), app.indexOf('function placeOptions()'))
+       .replace(/\/\* ---[\s\S]*?--- \*\//, ''), box);
+  const C = v => vm.runInContext('placeCat(' + JSON.stringify(v) + ')', box);
+  t(C('関空') === '関空',        '★★★関空 → 関空');
+  t(C('新地7') === '北7',        '★★★新地7 → 北7');
+  t(C('新地4') === '北4',        '★★★新地4 → 北4');
+  t(C('新地8') === '北他',       '★★★新地8 → 北他', C('新地8'));
+  t(C('梅田ヒルトン') === '北他','★★★梅田 → 北他');
+  t(C('難波') === 'ﾐﾅﾐ',         '★★★難波 → ﾐﾅﾐ');
+  t(C('道頓堀') === 'ﾐﾅﾐ',       '★★★道頓堀 → ﾐﾅﾐ');
+  t(C('大阪城ホール') === 'ﾊﾞﾗｼ','★★★大阪城ホール → ﾊﾞﾗｼ');
+  t(C('天王寺') === 'ほか',      '★★★当てはまらないものは ほか', C('天王寺'));
+
+  /* 書き方のゆれ … 最初に入れたほうに そろう */
+  vm.runInContext('records = [' +
+    '{date:"2026-10-01", place:"なんば南"},' +
+    '{date:"2026-11-01", place:"ナンバ南"}];', box);
+  const K = v => vm.runInContext('canonPlace(' + JSON.stringify(v) + ')', box);
+  t(K('ナンバ南') === 'なんば南', '★★★あとから入れた書き方は、最初のものにそろう', K('ナンバ南'));
+  t(K('なんば南') === 'なんば南', '　 最初のものは、そのまま');
 }
 
 

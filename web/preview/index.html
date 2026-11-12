@@ -50,22 +50,17 @@
            わけがわかりません」「ブロックわけがよくわかるように」
        ①乗り場 ②その乗り場の数字 ③タブから下の中身、の3つに分けます。 -->
 
-  <!-- ① どこの乗り場を見るか -->
-  <section class="card blk" id="blkPlace">
-    <h2>乗り場</h2>
+  <!-- ★乗り場と数字は、1つの区切りにまとめます（ご指示・2026/11/12）。
+       見出しは「過去の記録」。 -->
+  <section class="card blk" id="ktop">
+    <h2>過去の記録</h2>
     <div class="ktplace">
       <select class="fsel" id="ktPlace"></select>
       <button class="chip" id="ktClear" hidden>すべてに戻す</button>
     </div>
-  </section>
-
-  <!-- ② その乗り場・その期間の数字 -->
-  <section class="card blk" id="ktop" hidden>
-    <h2 id="ktWhen">—</h2>
-    <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
-    <!-- ★期間の切り替えも、ここに置きます（ご指示・2026/11/12）。
-         「いつの・どこの」が、1か所でそろうようにするため。 -->
     <div class="ktperiod" id="ktPeriodBox"></div>
+    <div class="ktwhen" id="ktWhen">—</div>
+    <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
     <div class="ktwho" id="ktWho">—</div>
     <div class="kpis">
       <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>

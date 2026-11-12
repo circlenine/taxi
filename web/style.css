@@ -74,7 +74,9 @@ button{font-family:inherit}
 /* ★ひと区切りごとに、赤い線の見出しを付けます（ご指示・2026/11/12）。
      どこからどこまでが ひとまとまりかが、ひと目で分かるように。 */
 .blk{margin-bottom:12px}
-#ktop h2{font-family:var(--mono);font-size:15px;letter-spacing:.02em}
+.ktwhen{font-family:var(--mono);font-size:15px;letter-spacing:.02em;color:#FFFFFF;
+  margin-top:9px}
+#ktop.on .ktwhen{color:var(--kusha)}
 .ktsum{text-align:right;white-space:nowrap;margin-top:-22px}
 .ktsum small{display:block;font-size:10.5px;color:#FFFFFF;letter-spacing:.06em}
 .ktsum b{display:block;font-family:var(--mono);font-size:23px;color:var(--andon);
