@@ -665,7 +665,7 @@ function paneIn(){
         <!-- ★場所を地図で確かめる（ご指示・2026/11/11） -->
         <div class="chips">
           <a class="chip ${f.place ? '' : 'off'}" id="f_map"
-             href="${f.place ? esc(mapUrl(f.place)) : '#'}" target="_blank" rel="noopener">📍 MAP</a>
+             href="${f.place ? esc(mapUrl(f.place)) : '#'}" target="_blank" rel="noopener">📍 地図</a>
           <button class="chip ${f.place && placeOk(f.place) ? 'on' : ''}" id="f_mapok"
             ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ 地図は合っている' : 'この地図で合っている'}</button>
         </div>
@@ -941,7 +941,7 @@ function placeLink(p){
   if (!q) return '';
   const u = mapUrl(q);
   return '<a class="plink" href="' + esc(u) + '" target="_blank" rel="noopener"' +
-         ' title="MAPで開く">' + esc(q) + (placeOk(q) ? ' <b class="okmark">✓</b>' : '') + '</a>';
+         ' title="地図で開く">' + esc(q) + (placeOk(q) ? ' <b class="okmark">✓</b>' : '') + '</a>';
 }
 
 /* ------------------------------------------------------------
@@ -1795,7 +1795,7 @@ function paneHot(now){
       '<b>' + esc(x.p) + '</b>' +
       '<div class="hv">' + yen(x.avg) + '/h</div>' +
       '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
-      '<span class="mini">📍 MAP</span></a>';
+      '<span class="mini">📍 地図</span></a>';
   }).join('');
 
   const bars = got.rows.slice(0, 8).map(function (x){
@@ -1822,7 +1822,7 @@ function paneHot(now){
 /** 翌4時までの見当（横に流して見ます） */
 function hotPlanCard(plan, early){
   return '<div class="card"><h2>翌4時までの予想</h2>' +
-    '<p class="note">1時間ごとの、一番強かった場所です。押すと MAP が開きます。' +
+    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。' +
     '空いている時間は、記録がまだ足りません。</p>' +
     '<div class="scroll fb"><div class="plan">' + plan.map(function (s, i){
       const head = '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>';
@@ -2339,11 +2339,11 @@ function hourPlanCard(D){
   return '<div class="card plan3"><h2>時間順の狙い目</h2>' +
     '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '。' +
     (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時からの枠で出しています。' : '') +
-    '<b>時間の順</b>に並べています。一番上が、いま走る枠です。押すと MAP が開きます。</p>' +
+    '<b>時間の順</b>に並べています。一番上が、いま走る枠です。押すと地図が開きます。</p>' +
     bb + '</div>';
 }
 
-/** 並びの1行（押すと MAP が開きます） */
+/** 並びの1行（押すと地図が開きます） */
 function longRows(rank, n){
   if (!rank.length) return '<div class="note">3件以上たまった乗り場が、まだありません。</div>';
   return rank.slice(0, n || 8).map(function (x, i){
@@ -2396,7 +2396,7 @@ function paneRatio(){
     '<div class="card"><h2>' +
     (hourPick === '' ? 'ロングが出やすい乗り場' : hourPick + '時台に ロングが出やすい乗り場') +
     '</h2>' +
-    '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと MAP が開きます。</p>' +
+    '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと地図が開きます。</p>' +
     (hourPick === ''
       ? '<p class="note">下の棒を押すと、その時間帯だけになります。</p>'
       : '<div class="chips"><button class="chip warn" data-hr="">全時間に戻す</button></div>') +
@@ -2480,7 +2480,7 @@ function paneRatio(){
     if (hb) {
       out += '<div class="card"><h2>時間帯べつ 乗り場ランキング</h2>' +
         '<p class="note">その時間に、ロングが出やすかった乗り場の上位3か所です。' +
-        '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと MAP が開きます。</p>' +
+        '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
         hb + '</div>';
     }
   }
@@ -3355,7 +3355,7 @@ function evRows(day){
     ${evArtHTML(x)}
     <div class="evlinks">
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
-      <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 MAP</a>
+      <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
     </div>
   </div>`).join('');
 }
