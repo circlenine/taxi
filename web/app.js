@@ -515,7 +515,7 @@ function paneIn(){
     <h2>新規の記録</h2>
     <p class="note">空の欄は「不明」。平均には数えません。</p>
     <div class="grid">
-      <div class="f w2 fdate"><label>営業日（夜の始まった日）</label>
+      <div class="f w2 fdate"><label>営業曜日</label>
         <input type="date" id="f_date" value="${f.date || today()}"></div>
       <div class="f w2"><label>乗車場所</label>
         <input class="ja" id="f_place" list="pls" placeholder="新地7" value="${esc(f.place || '')}">
@@ -533,33 +533,36 @@ function paneIn(){
             ${f.place ? '' : 'disabled'}>${f.place && placeOk(f.place) ? '✓ 地図は合っている' : 'この地図で合っている'}</button>
         </div>
       </div>
-      <div class="f w2"><label>乗せた時刻（出発）</label>
+      <div class="f w2"><label>乗車金額</label>
+        <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
+        <div class="hint" id="rateHint"></div></div>
+
+      <div class="f w2"><label>発車時間</label>
         <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
         <div class="hint" id="depHint"></div></div>
 
-      <!-- ★LINEに書く順にそろえます（ご指示・2026/11/12）
-             乗車場所 → 乗車時間 → 乗車金額 → 待ち時間。
-             打つ順が 違うと、手が止まります。 -->
-      <div class="f w2"><label>乗車時間（分）</label>
+      <!-- ★欄の名前は、記録用スプレッドシートと同じ言い方にそろえます
+             （ご指示・2026/11/12）。書き方がゆれると、同じものを
+             別のものだと思わせてしまいます。
+             営業曜日／乗車場所／乗車金額／発車時間／待ち時間／
+             乗車種類／そのほか -->
+      <div class="f w2"><label>乗車時間</label>
         <input id="f_ride" inputmode="numeric" list="mins" placeholder="20" value="${f.ride ?? ''}">
         <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.ride,'ride')).join('')}</div>
         <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.ride,'ride')).join('')}</div></div>
       <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
-      <div class="f w2"><label>乗車金額（円）</label>
-        <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
-        <div class="hint" id="rateHint"></div></div>
-      <div class="f w2"><label>待ち時間（分）</label>
+      <div class="f w2"><label>待ち時間</label>
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
         <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.wait,'wait')).join('')}</div>
         <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.wait,'wait')).join('')}</div></div>
 
       <!-- ★記録用スプレッドシートの「種」と「他」に合わせた欄（2026/10/26 追加） -->
-      <div class="f w2"><label>種類</label>
+      <div class="f w2"><label>乗車種類</label>
         <input class="ja" id="f_method" list="mts" placeholder="GO" value="${esc(f.method || '')}">
         <datalist id="mts">${METHODS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
         <div class="chips">${METHOD_CHIPS.map(m => chip(m, f.method, 'method')).join('')}</div>
       </div>
-      <div class="f w2"><label>他（行先・ひとこと）</label>
+      <div class="f w2"><label>そのほか</label>
         <input class="ja" id="f_note" placeholder="行先：新金岡駅（堺市）" value="${esc(f.note || '')}">
         <div class="chips">${NOTE_CHIPS.map(n => chip(n, f.note, 'note')).join('')}</div></div>
     </div>

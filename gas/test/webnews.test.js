@@ -1349,14 +1349,24 @@ console.log('■ 入れる順と、下の説明（ご指示・2026/11/12）');
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
   const form = app.slice(app.indexOf('<h2>新規の記録</h2>'), app.indexOf('<button class="btn" id="add">'));
   const at = w => form.indexOf(w);
-  t(at('<label>乗車場所</label>') !== -1, '★★★「乗車場所」という名前になっている');
-  t(at('<label>乗車金額（円）</label>') !== -1, '★★★「乗車金額」という名前になっている');
-  t(at('<label>乗車場所</label>') < at('<label>乗車時間（分）</label>'),
-    '★★★乗車場所 → 乗車時間 の順');
-  t(at('<label>乗車時間（分）</label>') < at('<label>乗車金額（円）</label>'),
-    '★★★乗車時間 → 乗車金額 の順');
-  t(at('<label>乗車金額（円）</label>') < at('<label>待ち時間（分）</label>'),
-    '★★★乗車金額 → 待ち時間 の順');
+  /* ★欄の名前は、記録用スプレッドシートと同じ言い方に（ご指示・2026/11/12）
+       営業曜日／乗車場所／乗車金額／発車時間／待ち時間／乗車種類／そのほか */
+  ['営業曜日','乗車場所','乗車金額','発車時間','乗車時間','待ち時間',
+   '乗車種類','そのほか'].forEach(function (w) {
+    t(at('<label>' + w + '</label>') !== -1, '★★★欄の名前：' + w);
+  });
+  ['営業日（夜の始まった日）','乗せた時刻（出発）','乗車時間（分）',
+   '乗車金額（円）','待ち時間（分）','種類','他（行先・ひとこと）'].forEach(function (w) {
+    t(at('<label>' + w + '</label>') === -1, '　 前の書き方は残っていない：' + w);
+  });
+  t(at('<label>乗車場所</label>') < at('<label>乗車金額</label>'),
+    '★★★乗車場所 → 乗車金額 の順');
+  t(at('<label>乗車金額</label>') < at('<label>発車時間</label>'),
+    '★★★乗車金額 → 発車時間 の順');
+  t(at('<label>発車時間</label>') < at('<label>待ち時間</label>'),
+    '★★★発車時間 → 待ち時間 の順');
+  t(at('<label>待ち時間</label>') < at('<label>乗車種類</label>'),
+    '★★★待ち時間 → 乗車種類 の順');
 
   /* ---- 下の説明は、短く ---- */
   const ft = (html.match(/<footer>[\s\S]*?<div class="copy">/) || [''])[0];
