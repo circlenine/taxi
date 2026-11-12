@@ -1887,7 +1887,7 @@ console.log('\n■ 読み取り台帳（先の日付まで、ちゃんと読め�
   eq(ctx.vnCategory_({ venue: '京セラドーム', kind: 'event', title: 'セレッソ大阪 vs ガンバ大阪' }), 'スポーツ', 'スポーツを見分ける');
   eq(ctx.vnCategory_({ venue: '京セラドーム', kind: 'event', title: 'LIVE TOUR 2026' }), 'ライブ・コンサート', 'ライブを見分ける');
   eq(ctx.vnCategory_({ venue: 'フェスティバルホール', kind: 'event', title: '大阪フィルハーモニー交響楽団' }), 'クラシック・舞台', 'クラシックを見分ける');
-  eq(ctx.vnCategory_({ venue: 'ワントゥワン', kind: 'barasi', title: '' }), 'バラシ（搬出）', 'バラシも分ける');
+  eq(ctx.vnCategory_({ venue: 'ワントゥワン', kind: 'barasi', title: '' }), 'バラシ', 'バラシも分ける');
   eq(ctx.vnCategory_({ venue: 'どこか', kind: 'event', title: '' }), '不明', '★分からないときは、うそを書かずに「不明」');
 
   // 送ったスクショのありかは、その1件ずつが持っている（先の日付でも引ける）

@@ -17,7 +17,9 @@ let scOpt = { line: true, label: true }, onlyMine = false;
  *   絞っていることを忘れると、数字を読みちがえます。
  *   だから、4つの数の下に「何で絞っているか」を必ず書きます。
  */
-let onlyPlace = '', period = { mode: 'all', from: '', to: '' };
+/* ★既定は「今期」（16日〜翌月15日）。全期間だと、閑散期と繁忙期が
+     混ざって、見ても意味がありません（ご指示・2026/11/12）。 */
+let onlyPlace = '', period = { mode: 'c0', from: '', to: '' };
 const FILT_KEY = 'tsukemachi.filter';
 
 function filtLoad(){
@@ -37,8 +39,8 @@ function filtSave(){
       JSON.stringify({ place: onlyPlace, mine: onlyMine, period: period }));
   } catch (e) {}
 }
-function filtClear(){ onlyPlace = ''; period = { mode:'all', from:'', to:'' }; filtSave(); }
-const filtOn = () => !!onlyPlace || period.mode !== 'all';
+function filtClear(){ onlyPlace = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
+const filtOn = () => !!onlyPlace || period.mode !== 'c0';
 
 /* ---------- 起動 ---------- */
 (async () => {
@@ -106,7 +108,8 @@ const METHODS = ['GO', 'Uber', '無線', '付け待ち', '流し', '手上げ',
      100個ぜんぶをタブにすると、画面が埋まって かえって押しにくい。
    ★1分きざみの細かい数も、欄を押せば候補として出ます（MIN_ALL）。 */
 /* ★0〜60分。2行に収めるため、タグの字は数字だけにします（ご指示・2026/11/12） */
-const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60];
+/* ★0〜90分。45までが1行目、50以降が2行目に収まります（ご指示・2026/11/12） */
+const MIN_CHIPS = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90];
 const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
 
 /* 種類のタブ。「流し」は出しません（ご指示）。
@@ -459,6 +462,10 @@ function render(){
   $('#panes').innerHTML = { in:paneIn, hot:paneHot, heat:paneHeat, tl:paneTl, sc:paneSc,
     rank:paneRank, list:paneList, news:paneNews, ev:paneEv, fb:paneFb }[tab]();
   if (tab === 'news') newsSeen();
+  /* ★イベントを開いたら、赤い点は消します（ご指摘・2026/11/12
+       「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
+     見たのに点が残ると、いつまでも新しいものがあるように見えます。 */
+  if (tab === 'ev') { const d2 = $('#evDot'); if (d2) d2.hidden = true; }
   wire();
 }
 const msgHTML = id => `<span class="msg ${msgBad?'bad':''}" id="${id}">${esc(msg)}</span>`;
@@ -597,21 +604,87 @@ function placeLink(p){
          ' title="地図で開く">' + esc(q) + (placeOk(q) ? ' <b class="okmark">✓</b>' : '') + '</a>';
 }
 
+/* ------------------------------------------------------------
+ *  記録の表（まーく様のご指示・2026/11/12）
+ *
+ *  ★並びは、記録用スプレッドシートと同じにします。
+ *      修正・削除 ／ 名 ／ 付 ／ 待 ／ 発 ／ 金 ／ 乗 ／ 種 ／ 他
+ *  ★日付は、変わったときだけ 見出しの行で出します。
+ *    同じ日が何行も続くと、横幅を食うだけだからです。
+ *  ★人ごとに、行の背景色を変えます（スプレッドシートのタブ色と同じ）。
+ *  ★金額は、大きさで字の色を変えます（スプレッドシートと同じ）。
+ *  ★1つ1つの幅を、できるだけ狭くします。横に動かす回数を減らすためです。
+ * ---------------------------------------------------------- */
+/** 付け時間（乗せた時刻 − 待ち時間）。どちらかが不明なら不明 */
+function tsuke(r){
+  if (isUnk(r.dep) || isUnk(r.wait)) return null;
+  const v = (+r.dep) - (+r.wait) / 60;
+  return v < 0 ? v + 24 : v;
+}
 function tableHTML(rows){
-  return `<div class="scroll"><table><thead><tr>
-    <th>日付</th><th>乗り場</th><th>乗せた</th><th class="n">待ち</th><th class="n">乗車</th>
-    <th class="n">金額</th><th class="n">時間単価</th><th>種類</th><th>他</th><th>記録者</th><th></th></tr></thead><tbody>
-    ${rows.map(r => `<tr>
-      <td>${fmtD(r.date)}</td><td class="place">${r.place ? placeLink(r.place) : UNK}</td>
-      <td class="n">${showT(r.dep)}</td><td class="n">${showMin(r.wait)}</td><td class="n">${showMin(r.ride)}</td>
-      <td class="n">${showYen(r.fare)}</td>
-      <td class="n" style="color:var(--meter)">${rate(r) ? yen(rate(r)) : '—'}</td>
-      <td>${r.method ? `<span class="mtag ${mcls(r.method)}">${esc(r.method)}</span>` : ''}</td>
-      <td class="ja">${esc(r.note || '')}</td>
-      <td>${esc(r.who)}</td>
-      <td>${canEdit(r) ? `<button class="mini" data-edit="${r.id}">直す</button>
-          <button class="mini" data-del="${r.id}">消す</button>` : ''}</td></tr>`).join('')}
-  </tbody></table></div>`;
+  let last = '';
+  const body = rows.map(function (r) {
+    let head = '';
+    if (r.date !== last) {
+      last = r.date;
+      head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="9">' +
+             esc(fmtD(r.date)) + '　<small>' + esc(dayName(r.date)) + '</small></td></tr>';
+    }
+    return head + '<tr class="' + whoCls(r.user_id) + '">' +
+      '<td class="ops">' + (canEdit(r)
+        ? '<button class="mini" data-edit="' + r.id + '">修正</button>' +
+          '<button class="mini del" data-del="' + r.id + '">削除</button>' : '') + '</td>' +
+      '<td class="c-who">' + esc(kana(r.who)) + '</td>' +
+      '<td class="n">' + showT(tsuke(r)) + '</td>' +
+      '<td class="n">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
+      '<td class="n">' + showT(r.dep) + '</td>' +
+      '<td class="n ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
+      '<td class="c-place">' + (r.place ? placeLink(r.place) : UNK) + '</td>' +
+      '<td>' + (r.method ? '<span class="mtag ' + mcls(r.method) + '">' + esc(r.method) + '</span>' : '') + '</td>' +
+      '<td class="ja c-note">' + esc(r.note || '') + '</td></tr>';
+  }).join('');
+  return '<div class="snote">← 横にスクロールできます（乗り場・種類・他は右側です）</div>' +
+    '<div class="scroll tbl"><table><thead><tr>' +
+    '<th class="ops">修正<br>削除</th><th>名</th><th class="n">付</th><th class="n">待</th>' +
+    '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種</th><th>他</th>' +
+    '</tr></thead><tbody>' + body + '</tbody></table></div>';
+}
+
+/* ★名前は半角カタカナで短く出します（スプレッドシートのタブと同じ形） */
+const KANA_SHORT = { 'ダイスケ':'ﾀﾞｲｽｹ', 'だいすけ':'ﾀﾞｲｽｹ', '齊藤':'ﾀﾞｲｽｹ', '齋藤':'ﾀﾞｲｽｹ',
+  'シュン':'ｼｭﾝ', 'しゅん':'ｼｭﾝ', '山敷':'ｼｭﾝ',
+  'カイト':'ｶｲﾄ', 'かいと':'ｶｲﾄ', '海斗':'ｶｲﾄ', '山脇':'ｶｲﾄ',
+  'アナル':'ｱﾅﾙ', '城越':'ｱﾅﾙ',
+  'マーク':'ﾏｰｸ', 'まーく':'ﾏｰｸ', 'ポンコツ':'ﾏｰｸ',
+  'ジン':'ｼﾞﾝ', 'じん':'ｼﾞﾝ', 'ジンキチ':'ｼﾞﾝ', '宮下':'ｼﾞﾝ' };
+function kana(v){
+  const t = String(v == null ? '' : v).trim();
+  if (KANA_SHORT[t]) return KANA_SHORT[t];
+  for (const k in KANA_SHORT) if (t.indexOf(k) !== -1) return KANA_SHORT[k];
+  return t.length > 4 ? t.slice(0, 4) : t;
+}
+
+/* ★人ごとの色（記録用スプレッドシートのタブ色と同じ考え方・ご指示 2026/11/12） */
+function whoCls(uid){
+  const n = String(names[uid] || '').trim();
+  if (/ダイスケ|だいすけ|齊藤|齋藤|大介/.test(n)) return 'w-dai';
+  if (/シュン|しゅん|山敷/.test(n))               return 'w-shun';
+  if (/カイト|かいと|海斗|山脇/.test(n))           return 'w-kaito';
+  if (/アナル|城越/.test(n))                      return 'w-ana';
+  if (/ジン|じん|宮下/.test(n))                   return 'w-jin';
+  if (/マーク|まーく|ポンコツ/.test(n))            return 'w-mark';
+  return '';
+}
+
+/* ★金額の色（記録用スプレッドシートと同じ分け方・ご指示 2026/11/12） */
+function fareCls(v){
+  if (isUnk(v)) return '';
+  const n = +v;
+  if (n < 1000)  return 'f1';     /* 999円以下 … グレー */
+  if (n < 5000)  return 'f2';     /* 1000〜4999 … 白 */
+  if (n < 10000) return 'f3';     /* 5000〜9999 … 青 */
+  if (n < 20000) return 'f4';     /* 10000〜19999 … 黄 */
+  return 'f5';                    /* 20000〜 … 赤 */
 }
 
 /* ---- つけ待ち一覧（時間帯 × つけ待ち場所の表）----
@@ -1079,11 +1152,17 @@ function paneTl(){
   /* 時刻が不明なものは、夜の流れのどこにも置けないので外します */
   const R = visible().filter(hasDep);
   if (!R.length) return emptyCard('待ち時間と乗車時間を、夜ごとの帯で見比べられます。');
-  const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,14);
+  const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,7);
   const x0 = 19, x1 = Math.max(29, Math.ceil(Math.max(...R.map(r => r.dep + r.ride/60))));
-  const L = 74, Rp = 16, W = 760, rowH = 34, H = 40 + ds.length*rowH + 14;
-  const sx = v => L + (v-x0)/(x1-x0)*(W-L-Rp);
-  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMinYMin meet">`;
+  /* ★細かすぎて読めないとご指摘（2026/11/12）。
+       1行を高くし、字も大きくして、日数は最近7日までにします。 */
+  const L = 86, Rp = 16, W = 760, rowH = 52, H = 46 + ds.length*rowH + 16;
+  /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
+       左の端より外には、はみ出させません。 */
+  const sx = v => Math.max(L, Math.min(W - Rp, L + (v-x0)/(x1-x0)*(W-L-Rp)));
+  /* ★横幅いっぱいに縮めると、字も帯も小さすぎて読めませんでした（ご指摘・2026/11/12）。
+       元の大きさのまま出して、横に動かせる形にします。 */
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
   for (let h = x0; h <= x1; h++) s += `<line class="grid-l" x1="${sx(h)}" x2="${sx(h)}" y1="26" y2="${H-14}" ${h%2?'stroke-dasharray="2 4"':''}/>
     <text class="axis" x="${sx(h)}" y="18" text-anchor="middle">${h}</text>`;
   ds.forEach((d,i) => {
@@ -1103,7 +1182,7 @@ function paneTl(){
   s += '</svg>';
   return `<div class="card"><h2>一日の流れ</h2>
     <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。帯が明るいほど、時間単価が高くなっています。空白が長い夜は、流すか、つける場所を変える余地があります。</p>
-    ${filterChips()}<div class="scroll">${s}</div>
+    ${filterChips()}<div class="snote">← 横にスクロールできます</div><div class="scroll">${s}</div>
     <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
 }
 
@@ -1118,7 +1197,9 @@ function paneSc(){
   const x0 = Math.floor(Math.min(...xs)-.5), x1 = Math.ceil(Math.max(...xs)+.5);
   const y1 = Math.max(...R.map(r => r.fare)) * 1.12;
   const sx = v => L + (v-x0)/(x1-x0)*(W-L-Rp), sy = v => H-B - (v/y1)*(H-T-B);
-  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMinYMin meet">`;
+  /* ★横幅いっぱいに縮めると、字も帯も小さすぎて読めませんでした（ご指摘・2026/11/12）。
+       元の大きさのまま出して、横に動かせる形にします。 */
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
   const step = y1 > 20000 ? 5000 : y1 > 8000 ? 2000 : 1000;
   for (let v = 0; v <= y1; v += step) s += `<line class="grid-l" x1="${L}" x2="${W-Rp}" y1="${sy(v)}" y2="${sy(v)}"/>
     <text class="axis" x="${L-8}" y="${sy(v)+4}" text-anchor="end">${v ? ('¥'+v/1000+'k') : '0'}</text>`;
@@ -1618,7 +1699,18 @@ async function addRec(){
   await reload();
 }
 async function delRec(id){
-  if (!confirm('この1件を消します。戻せません。')) return;
+  /*
+   * ★2回たずねます（ご指示・2026/11/12）
+   *     「削除の場合は、再確認のメッセージも出して、
+   *       1回で誤って消えるような形にならないように」
+   *   走りながら押すので、1回だと指が当たっただけで消えます。
+   *   消した記録は戻せません。
+   */
+  const r = records.filter(function (x){ return x.id === id; })[0];
+  const what = r ? (fmtD(r.date) + '　' + (r.place || '乗り場 不明') + '　' +
+                    showT(r.dep) + '　' + showYen(r.fare)) : 'この1件';
+  if (!confirm('この記録を削除します。\n\n' + what + '\n\n戻せません。よろしいですか？')) return;
+  if (!confirm('もう一度おたずねします。\n本当に削除してよろしいですか？')) return;
   const { error } = await db.from('rides').delete().eq('id', id);
   if (error) return bad(jaError(error));
   msg = '消した'; msgBad = false;
@@ -1796,7 +1888,21 @@ async function commitImport(){
 /* ---- tooltip ---- */
 const tip = $('#tip');
 function showTip(e,t){ tip.innerHTML = String(t).replace(/&#10;/g,'<br>').split('\n').join('<br>'); tip.classList.add('on'); moveTip(e); }
-function moveTip(e){ tip.style.left = Math.min(e.clientX+14, innerWidth-240) + 'px'; tip.style.top = Math.max(8, e.clientY-70) + 'px'; }
+/*
+ * ★ふきだしは、押した所の「真上」に出します（ご指示・2026/11/12）。
+ *     「タップした場所が隠れないように、タップした場所の真上に」
+ *   指で押した所にかぶると、何を押したのか見えなくなります。
+ *   上に入らないときだけ、下に出します。
+ */
+function moveTip(e){
+  const w = tip.offsetWidth || 220, h = tip.offsetHeight || 60;
+  let x = e.clientX - w / 2;
+  x = Math.max(8, Math.min(x, innerWidth - w - 8));
+  let y = e.clientY - h - 18;                 /* 押した所の真上 */
+  if (y < 8) y = e.clientY + 24;              /* 上に入らなければ、下に */
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
 function hideTip(){ tip.classList.remove('on'); }
 
 
@@ -1930,7 +2036,10 @@ function evTitle(day){
 function evTitleHTML(day){
   const n = (day && day.list) ? day.list.length : 0;
   if (!day || !day.d) return 'イベント（' + n + '件）';
-  const kyo = (day.d === evNight()) ? '<span class="evkyo">きょう</span> ' : '';
+  /* ★今日・明日は、赤い札で はっきり出します（ご指示・2026/11/12） */
+  let kyo = '';
+  if (day.d === evNight())              kyo = '<span class="evkyo">今日</span> ';
+  else if (day.d === nextYmd(evNight())) kyo = '<span class="evkyo">明日</span> ';
   return kyo + '<span class="evday">' + esc(fmtD(day.d)) + '</span>' +
          '<span class="evcnt">のイベント（' + n + '件）</span>';
 }
@@ -1968,8 +2077,8 @@ function evTimeLine(x){
 
 function evRows(day){
   if (!day || !day.list || !day.list.length) return '<div class="empty">該当データがありません</div>';
-  const kind = { event:'🎤 イベント', barasi:'🔧 バラシ（搬出）',
-                 hanyu:'🚚 搬入（この日は夜の人出なし）', hotel:'🍽 ホテル宴会' };
+  const kind = { event:'🎤 イベント', barasi:'🔧 バラシ',
+                 hanyu:'🚚 搬入', hotel:'🍽 ホテル宴会' };
   /*
    * ★一番上に出すのは「開演の時刻」です
    *   （まーく様のご指示・2026/11/12）。

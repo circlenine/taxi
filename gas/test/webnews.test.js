@@ -292,8 +292,8 @@ console.log('■ 入れる欄のタブ（ご指示・2026/11/11）');
     const C = box.C;
     /* ★タグが多すぎると「嫌に見えてくる」とのご指示（2026/11/12）。
        0〜60分の13個までにして、2行に収めます。 */
-    t(Math.max.apply(null, C.chips) === 60, '★★★分のタグは60分まで', Math.max.apply(null, C.chips));
-    t(C.chips.length <= 13, '★★★タグは13個まで（2行に収める）', C.chips.length);
+    t(Math.max.apply(null, C.chips) === 90, '★★★分のタグは90分まで', Math.max.apply(null, C.chips));
+    t(C.chips.length === 19, '★★★0〜90分の19個（45までが1行目）', C.chips.length);
     t(Math.max.apply(null, C.all) === 100,   '★★★欄を押したときの候補も100分まで', Math.max.apply(null, C.all));
     t(C.m.indexOf('途中乗り') !== -1,        '★★★種類のタブに「途中乗り」がある', C.m.join('/'));
     t(C.m.indexOf('流し') === -1,            '　 「流し」は出していない（ご指示）');
@@ -619,7 +619,7 @@ console.log('■ 記録を直せるのは、本人と まーく様だけ');
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   t(/const canEdit = r => r\.user_id === ME\.user\.id \|\| ME\.profile\.is_admin/.test(app),
     '★★★画面で、本人と管理者だけに「直す」を出す');
-  t(/canEdit\(r\) \?/.test(app), '　 一覧のボタンが、それを見ている');
+  t(/canEdit\(r\)\s*\n?\s*\?/.test(app), '　 一覧のボタンが、それを見ている');
   const sql = fs.readFileSync(path.join(W, 'supabase', 'schema.sql'), 'utf8');
   const up = sql.slice(sql.indexOf('create policy rides_update_own'));
   t(/user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(up.slice(0, 400)),
@@ -1300,9 +1300,9 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   t(tabs.every(x => x.length <= 7), '★★★どのタブも7字まで', tabs.join('/'));
 
   /* ---- 表でも、乗り場を目立たせる ---- */
-  t(/<th>乗り場<\/th>/.test(app), '★★★表の見出しは「乗り場」');
-  t(/<td class="place">/.test(app), '★★★乗り場の欄に、目立つ印がある');
-  t(/td\.place\{/.test(css), '　 その見た目も入っている');
+  t(/<th>乗<\/th>/.test(app), '★★★表の見出しは、スプシと同じ短い字');
+  t(/<td class="c-place">/.test(app), '★★★乗り場の欄に、目立つ印がある');
+  t(/td\.c-place\{|\.scroll\.tbl td\.c-place/.test(css), '　 その見た目も入っている');
 }
 
 
@@ -1488,6 +1488,94 @@ console.log('■ ふつうの漢字で書く（ご指示・2026/11/12）');
       t(src.indexOf(w) === -1, '★★★' + f + '：「' + w + '」は使わない');
     });
   });
+}
+
+
+
+console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+
+  /* ① 並びは、記録用スプレッドシートと同じ */
+  const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種|他)<\/th>/g) || [])
+    .map(x => x.replace(/<[^>]+>/g, '').replace('修正削除', '操作'));
+  t(th.join('/') === '操作/名/付/待/発/金/乗/種/他',
+    '★★★並びは 操作→名→付→待→発→金→乗→種→他', th.join('/'));
+  t(app.indexOf('<th class="ops">修正<br>削除</th>') < app.indexOf('<th>名</th>'),
+    '★★★修正・削除が、いちばん左');
+  t(/>修正</.test(app) && />削除</.test(app), '★★★「修正」「削除」という名前');
+  const tbl = app.slice(app.indexOf('function tableHTML'), app.indexOf('const KANA_SHORT'));
+  t(!/>直す</.test(tbl) && !/>消す</.test(tbl), '　 表に、前の「直す」「消す」は残っていない');
+
+  /* ② 日付は、変わったときだけ */
+  t(/if \(r\.date !== last\)/.test(app), '★★★日付は、変わったときだけ出す');
+  t(/class="dhead /.test(app), '　 その見出しの行がある');
+
+  /* ③ 削除は、2回たずねる */
+  const del = app.slice(app.indexOf('async function delRec'), app.indexOf('async function delRec') + 1200);
+  t((del.match(/confirm\(/g) || []).length >= 2,
+    '★★★削除は2回たずねる（1回で誤って消えない）');
+  t(/本当に削除/.test(del), '　 2回目は、はっきり念を押す');
+
+  /* ④ 人ごとの色・金額の色 */
+  ['w-dai','w-shun','w-kaito','w-ana','w-jin','w-mark'].forEach(function (c) {
+    t(new RegExp('tr\\.' + c + '\\s+td\\{background:#').test(css), '★★★人の色：' + c);
+  });
+  ['f1','f2','f3','f4','f5'].forEach(function (c) {
+    t(new RegExp('\\.' + c + '\\{color:#').test(css), '★★★金額の色：' + c);
+  });
+  t(/function fareCls/.test(app), '　 金額の色を決める係がある');
+  t(/n < 1000\)  return 'f1'/.test(app) && /n < 20000\) return 'f4'/.test(app),
+    '★★★金額の区切りが、スプレッドシートと同じ');
+
+  /* ⑤ 営業曜日の区分（平日／金・祝前日／土／日・祝） */
+  t(/function dayCls/.test(sh) && /JP_HOLIDAYS/.test(sh), '★★★営業曜日の区分がある');
+  ['d-wd','d-fri','d-sat','d-sun'].forEach(function (c) {
+    t(new RegExp('tr\\.dhead\\.' + c + '\\s*td\\{background:#').test(css), '★★★曜日の色：' + c);
+  });
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext('const pad = n => String(n).padStart(2,"0");' +
+    sh.slice(sh.indexOf('const JP_HOLIDAYS'), sh.indexOf('/*\n * いま「どの夜」')), box);
+  const D = d => vm.runInContext('dayCls("' + d + '")', box);
+  t(D('2026-11-11') === 'd-wd',  '★★★水曜は 平日', D('2026-11-11'));
+  t(D('2026-11-13') === 'd-fri', '★★★金曜は 金・祝前日', D('2026-11-13'));
+  t(D('2026-11-14') === 'd-sat', '★★★土曜は 土', D('2026-11-14'));
+  t(D('2026-11-15') === 'd-sun', '★★★日曜は 日・祝', D('2026-11-15'));
+  t(D('2026-11-23') === 'd-sun', '★★★祝日（11/23）も 日・祝', D('2026-11-23'));
+  t(D('2026-11-02') === 'd-fri', '★★★祝前日（11/2・文化の日の前）は 金と同じあつかい', D('2026-11-02'));
+
+  /* ⑥ 期間の既定は「今期」 */
+  t(/period = \{ mode: 'c0'/.test(app), '★★★はじめから「今期」で出す（全期間ではない）');
+  t(/mode:'c0', from:'', to:''/.test(app), '　 絞り込みを解除しても、今期に戻る');
+
+  /* ⑦ 横スクロールの案内と、区切りの良い位置 */
+  t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
+  t(/scroll-snap-type:x/.test(css), '★★★区切りの良い位置で止まる');
+  t(/\.scroll\.tbl table\{table-layout:fixed/.test(css), '　 幅を決めて、広がりすぎないようにする');
+
+  /* ⑧ ふきだしは、押した所の真上 */
+  const mv = app.slice(app.indexOf('function moveTip'), app.indexOf('function hideTip'));
+  t(/e\.clientY - h - \d+/.test(mv), '★★★ふきだしは、押した所の真上に出す');
+  t(/if \(y < 8\) y = e\.clientY \+/.test(mv), '　 上に入らないときだけ、下に出す');
+
+  /* ⑨ いちばん下の2行は、もう出さない */
+  t(!/時間単価 ＝ 金額/.test(html), '★★★下の説明は、もう出さない');
+
+  /* ⑩ イベントの札は「今日」「明日」 */
+  t(/evkyo">今日</.test(app) && /evkyo">明日</.test(app),
+    '★★★「今日」「明日」の赤い札を出す');
+  t(!/evkyo">きょう</.test(app), '　「きょう」は残っていない');
+  /* ⑫ イベントを開いたら、赤い点は消える */
+  t(/if \(tab === 'ev'\) \{ const d2 = \$\('#evDot'\); if \(d2\) d2\.hidden = true; \}/.test(app),
+    '★★★イベントを開いたら、赤い点が消える');
+
+  /* ⑪ 分のタグは90分まで、45までが1行目 */
+  t(/MIN_CHIPS = \[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90\]/.test(app),
+    '★★★分のタグは 0〜90');
 }
 
 

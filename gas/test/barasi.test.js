@@ -143,13 +143,13 @@ console.log('■ 大阪A地区の外は、1件も出さない');
              place: 'ロームシアター京都\\, 日本、〒606-8342 京都府京都市左京区',
              desc: '公演日：14日（土）' }),
     vevent({ from: '20261114', to: '20261115', name: '東京混声合唱団',
-             place: 'フェニーチェ堺\\, 日本、〒590-0078 大阪府堺市堺区翁橋町',
+             place: 'インテックス大阪\\, 日本、〒559-0034 大阪府大阪市住之江区南港北',
              desc: '公演日：14日（土）' })
   ]);
   const r = read(body, 2026, 10, 14);
   ok(r.events.length === 1, '★★★大阪A地区の1件だけが出る', r.events.length);
-  ok(String((r.events[0] || {}).venue).indexOf('フェニーチェ堺') !== -1,
-     '★残るのは堺（A地区）', (r.events[0] || {}).venue);
+  ok(String((r.events[0] || {}).venue).indexOf('インテックス大阪') !== -1,
+     '★残るのはA地区の大きい会場', (r.events[0] || {}).venue);
 }
 
 console.log('■ 時刻が書いていなくても、バラシは落とさない');
@@ -243,7 +243,11 @@ console.log('■ 搬出と搬入を、別のまとまりにする');
   ok(String(L['hanyu']).indexOf('搬入') !== -1, '★見出しが分かれている', L['hanyu']);
   ok(String(L['hanyu']).indexOf('夜の人出なし') !== -1,
      '★★★見出しだけで「夜は出ない」と分かる', L['hanyu']);
-  ok(String(L['barasi']).indexOf('搬出') !== -1, '　 搬出のほうも分かる', L['barasi']);
+  /* ★名前は「搬入」「バラシ」の2つに分けました（ご指示・2026/11/12）
+       「バラシ(搬入)、バラシ(搬出)だとややこしいので」 */
+  ok(String(L['barasi']).indexOf('バラシ') !== -1 &&
+     String(L['barasi']).indexOf('搬出') === -1,
+     '　 バラシは「バラシ」とだけ書く', L['barasi']);
   ok(V('VN_KIND_ORDER').indexOf('hanyu') > V('VN_KIND_ORDER').indexOf('barasi'),
      '★搬入は、いちばん下に置く（その日の夜に動く話ではない）');
 }
