@@ -941,7 +941,10 @@ h1.dn .xg.on{animation:xgleam 1.15s ease-in-out}
 
 /* メニュー（タブ）に、何が分かるかを添える */
 nav button{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25;padding:7px 10px}
-nav button b{font-size:13px;font-weight:700}
+/* ★新着の赤丸は、名前の左に出します（ご指示・2026/11/12） */
+nav button b{font-size:13px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;gap:5px}
+nav button b .dot{margin:0;flex:0 0 auto}
 nav button i{font-style:normal;font-size:10px;opacity:.78;letter-spacing:0}
 nav button[aria-selected=true] i{opacity:.95}
 

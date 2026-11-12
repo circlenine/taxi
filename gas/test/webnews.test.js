@@ -1177,6 +1177,11 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     '★★★タブの行より上にある');
   t(!/<nav id="tabs">[\s\S]*?data-t="fb"[\s\S]*?<\/nav>/.test(html),
     '★★★タブの行には、もう入っていない');
+  /* ★新着の赤丸は、名前の左（ご指示・2026/11/12） */
+  t(/<b><span class="dot" id="evDot" hidden><\/span>イベント<\/b>/.test(html),
+    '★★★イベントの赤丸は、名前の左');
+  t(/<b><span class="dot" id="newsDot" hidden><\/span>お知らせ<\/b>/.test(html),
+    '★★★お知らせの赤丸も、名前の左');
   t(/\.handbar \.fbtab\{margin-left:auto\}/
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')), '★★★右端に寄せている');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
