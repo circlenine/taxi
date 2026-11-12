@@ -103,9 +103,13 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || perio
   $('#me').textContent = s.profile.title || s.profile.display_name || s.user.email;
   if (s.profile.is_admin) { $('#meBadge').hidden = false; $('#toAdmin').hidden = false; }
   $('#out').addEventListener('click', signOut);
-  $('#tabs').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
+  /* ★タブは nav の中だけとはかぎりません（フィードバックは上の行にあります）。
+       どこにあっても、data-t を持つボタンなら切り替わるようにします。 */
+  document.body.addEventListener('click', e => {
+    const b = e.target.closest ? e.target.closest('[data-t]') : null;
+    if (!b || !b.dataset.t) return;
     grab(); tab = b.dataset.t; tabSave(); msg = ''; render();
+    if (!b.closest('#tabs')) window.scrollTo({ top: 0, behavior: 'smooth' });
   });
   filtLoad();                      /* 前に絞ったままの形を思い出す */
   tabLoad();                       /* 前に開いていたタブに戻す */
@@ -615,7 +619,7 @@ function render(){
    *   守る値打ちがないので、ほかの画面と同じように回します。
    *   （中身は shared.js の andonRoll）
    */
-  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
+  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
@@ -2600,9 +2604,9 @@ function fabWire(){
   if (m && sheet) {
     m.onclick = function () {
       if (!sheet.hidden) { sheet.hidden = true; return; }
-      sheet.innerHTML = [...document.querySelectorAll('#tabs button')].map(function (b) {
+      sheet.innerHTML = [...document.querySelectorAll('[data-t]')].map(function (b) {
         const t = b.dataset.t;
-        const nm = (b.querySelector('b') || {}).textContent || '';
+        const nm = (b.querySelector('b') || {}).textContent || (b.textContent || '').trim();
         const sb = (b.querySelector('i') || {}).textContent || '';
         return '<button class="fsrow ' + (t === tab ? 'on' : '') + '" data-go="' + t + '">' +
                '<b>' + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';

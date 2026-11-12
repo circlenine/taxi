@@ -1168,7 +1168,17 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
 
   t(/data-t="heat"[^>]*><b>表グラフ</.test(html), '★★★タブは「表グラフ」');
   t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
-  t(/data-t="fb"[^>]*><b>フィードバック</.test(html), '★★★タブは「フィードバック」');
+  /* ★フィードバックは、タブの行から外して、いちばん上の行の右端へ
+       （ご指示・2026/11/12「左利きとかと同じ文字サイズで、
+         丸している右寄せで設置してください、サブタイトルはいりません」）。 */
+  t(/<button class="chip fbtab" data-t="fb"[^>]*>フィードバック<\/button>/.test(html),
+    '★★★フィードバックは、上の行のタグとして出す');
+  t(html.indexOf('class="chip fbtab"') < html.indexOf('<nav id="tabs">'),
+    '★★★タブの行より上にある');
+  t(!/<nav id="tabs">[\s\S]*?data-t="fb"[\s\S]*?<\/nav>/.test(html),
+    '★★★タブの行には、もう入っていない');
+  t(/\.handbar \.fbtab\{margin-left:auto\}/
+    .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')), '★★★右端に寄せている');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
     '★★★「ごいけん」は、どこにも残っていない');
   t(/表グラフ/.test(pv) && /フィードバック/.test(pv),

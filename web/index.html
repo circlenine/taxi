@@ -55,9 +55,13 @@
     <!-- ★利き手の切り替え（ご指示・2026/11/12）
          「左利きの人もいるので、右上右下固定のものは
            左利き用に、左固定にする、切替仕様メニューも1番上に作ってください」 -->
-  <div class="handbar"><span>固定ボタンの位置</span>
+  <div class="handbar"><span>ボタン位置</span>
     <button class="chip" data-hand="r">右利き</button>
-    <button class="chip" data-hand="l">左利き</button></div>
+    <button class="chip" data-hand="l">左利き</button>
+    <!-- ★フィードバックは、タブから外してここへ（ご指示・2026/11/12）。
+           「左利きとかと同じ文字サイズで、丸している右寄せで設置してください、
+             サブタイトルはいりません」 -->
+    <button class="chip fbtab" data-t="fb" aria-selected="false">フィードバック</button></div>
   <nav id="tabs">
     <button data-t="in" aria-selected="true"><b>記録</b><i>入れる・直す</i></button>
     <button data-t="hot" aria-selected="false"><b>狙い目</b><i>いま行く所</i></button>
@@ -67,7 +71,6 @@
     <button data-t="ratio" aria-selected="false"><b>パーセント</b><i>ロングの出やすさ</i></button>
     <button data-t="ev" aria-selected="false"><b>イベント</b><span class="dot" id="evDot" hidden></span><i>今日・明日の催し</i></button>
     <button data-t="news" aria-selected="false"><b>お知らせ</b><span class="dot" id="newsDot" hidden></span><i>使い方</i></button>
-    <button data-t="fb" aria-selected="false"><b>フィードバック</b><i>意見を送る</i></button>
   </nav>
   <section class="card blk" id="ktop">
     <h2>過去の記録</h2>
