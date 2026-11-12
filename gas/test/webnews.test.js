@@ -473,10 +473,10 @@ console.log('■ 題の下の一文は、スマホで1行（ご指示・2026/11/
   const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
   /* ★2026/11/11 ご指示：「誰かが、のままでも1行でしたので ここはそのままで良いです」
        「○○くんがキラです → 〝○○くん〟がキラです」
-   *   ★2026/11/12 に「キラ」→「ベルトルト」へ変わりました。
+   *   ★2026/11/13 のご指示で「キラ」に戻りました。
        「○○くんの変更回数は1日1回にしてください」 */
   t(sh.indexOf('誰かがワンメータを乗せたら') !== -1, '★「誰かが」のまま');
-  t(/〝' \+ kiraToday\(\) \+ '〟がベルトルトです/.test(sh),
+  t(/〝' \+ kiraToday\(\) \+ '〟がキラです/.test(sh),
     '★★★名前を〝 〟ではさんでいる');
   t(sh.indexOf('function kiraToday') !== -1, '★★★名前は、その日いちど決めたら変わらない');
   t(/KIRA_KEY/.test(sh) && /localStorage/.test(sh.slice(sh.indexOf('function kiraToday'))),
@@ -1926,9 +1926,11 @@ console.log('■ 題の下の一文（ご指示・2026/11/12）');
   const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
   t(/完全万収ライナーは〝/.test(app), '★★★前日の万収を、ほめる一文がある');
   t(/const MANSHU = 10000;/.test(app), '★★★万収は1万円以上');
-  t(/ベルトルトです/.test(sh) && /ベルトルトです/.test(app),
-    '★★★万収が無い日は「ベルトルト」');
-  t(!/がキラです/.test(sh) && !/がキラです/.test(app), '　「キラ」は残っていない');
+  /* ★2026/11/13 のご指示で「キラ」に戻りました。 */
+  t(/がキラです/.test(sh) && /がキラです/.test(app),
+    '★★★万収が無い日は「キラ」');
+  t(!/ベルトルトです/.test(sh) && !/ベルトルトです/.test(app),
+    '　「ベルトルト」は残っていない');
   t(/prevYmd\(today\(\)\)/.test(app), '★★★見るのは「前の営業日」');
   t(/function prevYmd/.test(sh), '　 その日を出す係がある');
   t(/sb\.textContent = subLine\(\)/.test(app), '★★★画面に出している');
@@ -1951,14 +1953,14 @@ console.log('■ 題の下の一文（ご指示・2026/11/12）');
     app.slice(app.indexOf('const KUN = {'), app.indexOf('/* ★人ごとの色')), box);
   const S = rs => { vm.runInContext('records = ' + JSON.stringify(rs) + ';', box);
     return vm.runInContext('subLine()', box); };
-  t(S([]).indexOf('ベルトルト') !== -1, '★★★万収が無ければ、ベルトルトの一文', S([]));
+  t(S([]).indexOf('キラ') !== -1, '★★★万収が無ければ、キラの一文', S([]));
   const a1 = S([{ date:'2026-11-11', fare:12000, user_id:'u1' }]);
   t(a1 === '昨日（11/11(水)）の完全万収ライナーは〝齋藤くん〟です！',
     '★★★前日に万収があれば、その人をほめる', a1);
   const a2 = S([{ date:'2026-11-11', fare:9999, user_id:'u1' }]);
-  t(a2.indexOf('ベルトルト') !== -1, '★★★9,999円では、万収にしない', a2);
+  t(a2.indexOf('がキラです') !== -1, '★★★9,999円では、万収にしない', a2);
   const a3 = S([{ date:'2026-11-10', fare:20000, user_id:'u1' }]);
-  t(a3.indexOf('ベルトルト') !== -1, '★★★前の日いがいは、数えない', a3);
+  t(a3.indexOf('がキラです') !== -1, '★★★前の日いがいは、数えない', a3);
   const a4 = S([{ date:'2026-11-11', fare:10000, user_id:'u1' },
                 { date:'2026-11-11', fare:30000, user_id:'u2' }]);
   t(a4.indexOf('齋藤くん') !== -1 && a4.indexOf('加藤くん') !== -1,
