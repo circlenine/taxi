@@ -1180,14 +1180,25 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   /* ★≡ のボタンと、ふきだしが重ならないこと（ご指摘・2026/11/12） */
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-    t(/body\[data-hand="r"\] \.saymount\{padding-right:5\dpx\}/.test(cs),
-      '★★★右利きのときは、ふきだしの右に余白を取る');
-    t(/body\[data-hand="l"\] \.saymount\{padding-left:5\dpx\}/.test(cs),
-      '★★★左利きのときは、左に余白を取る');
-    /* ★題の行ぜんたいに取ると、ログアウトや題の下の一文が
-         右端まで使えなくなります（ご指摘・2026/11/12）。 */
-    t(!/body\[data-hand="r"\] header\{padding-right/.test(cs),
-      '★★★題の行ぜんたいには、余白を取らない');
+    /* ★余白で避けるのは、その場しのぎでした（ご指摘・2026/11/12
+         「もっと考えてください」）。
+       ≡ を題の行の中に入れ、その行ごと上に貼り付けます。
+       これなら、ふきだしとも下の中身とも、重なりようがありません。 */
+    t(/header\{[^}]*position:sticky/.test(cs), '★★★題の行は、上に貼り付ける');
+    t(/\.fab\.menu\{position:static/.test(cs), '★★★≡ は、題の行の中に置く（浮かせない）');
+    t(/\.fabsheet\{position:absolute/.test(cs), '　 行き先の一覧も、その行にぶら下げる');
+    t(!/\.saymount\{padding-right/.test(cs), '★★★ふきだしを よける余白は、もう要らない');
+    t(/body\.scrolled header/.test(cs), '★★★下に進んだら、細いバーにする');
+    t(/body\{padding-bottom:\d+px\}/.test(cs), '★★★下の固定ボタンに、中身が隠れない');
+    const h2 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    t(h2.indexOf('<header>') < h2.indexOf('id="fabMenu"') &&
+      h2.indexOf('id="fabMenu"') < h2.indexOf('</header>'),
+      '★★★≡ は、題の行の中にある');
+    t(/header > #fabMenu\{grid-column:3;grid-row:1/.test(cs),
+      '★★★題の行の1段目、いちばん右に入れる');
+    t(/body\[data-hand="l"\] header > #fabMenu\{grid-column:1/.test(cs),
+      '★★★左利きのときは、いちばん左に入れる');
+    t(/classList\.toggle\('scrolled'/.test(app), '　 下に進んだかどうかを見ている');
   }
 
   /* ★新着の赤丸は、名前の左（ご指示・2026/11/12） */

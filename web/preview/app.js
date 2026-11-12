@@ -2635,6 +2635,16 @@ function fabWire(){
   handApply();
 }
 
+/* ★下に進んだら、題の行を細いバーにします（ご指摘・2026/11/12）。
+     ≡ は、その行の中にいるので、下の中身と重なりません。 */
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('scroll', function () {
+    try {
+      document.body.classList.toggle('scrolled', (window.scrollY || 0) > 72);
+    } catch (e) {}
+  }, { passive: true });
+}
+
 /* ★書きかけのまま閉じようとしたら、1度だけ確かめます（ご指示・2026/11/12）
      「なにか入力情報があるままの場合、更新したら、入力途中のため、
        情報が消えてしまうという、再確認のポップアップ表示」 */

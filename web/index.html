@@ -23,8 +23,14 @@
        2段目：版（v1.0）と、その右に一文
        3段目：名前とボタン -->
   <header>
+    <!-- ★題・ふきだし・≡ は、必ず同じ1行に収めます（ご指摘・2026/11/12）。
+           ≡ を画面に浮かせると、ふきだしや下の中身と必ずどこかで重なります。
+           同じ行に入れてしまえば、重なりようがありません。
+           場所が足りないときは、ふきだしのほうが縮みます。 -->
     <h1 class="dn">TA<span class="xg">X</span>I NOTE</h1>
     <div id="saymount" class="saymount"></div>
+    <button class="fab menu" id="fabMenu" aria-label="メニュー">≡</button>
+    <div class="fabsheet" id="fabSheet" hidden></div>
     <div class="subline">
       <span class="ver" id="ver"></span>
       <span class="sub" id="sub">近日中、誰かがワンメータを乗せたら、キラが決まります</span>
@@ -103,11 +109,8 @@
 </div>
 <div class="tip" id="tip"></div>
 
-<!-- ★どこからでもメニューへ飛べる丸ボタン（ご指示・2026/11/12） -->
-<button class="fab menu" id="fabMenu" aria-label="メニュー">≡</button>
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden>粛清完了</button>
-<div class="fabsheet" id="fabSheet" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="news.js"></script>
