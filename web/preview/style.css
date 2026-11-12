@@ -986,9 +986,6 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 .blk3:first-of-type{border-top:none}
 .blk3.now{background:rgba(240,163,59,.09);border-radius:10px;padding:10px 9px 6px}
 .b3h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:5px}
-.b3h em{font-style:normal;font-size:11px;font-weight:700;color:#14100A;background:var(--andon);
-  border-radius:999px;padding:2px 9px}
-.blk3.now .b3h em{background:var(--kusha);color:#140A0A}
 .b3h b{font-family:var(--mono);font-size:17px;font-weight:700;color:#FFFFFF}
 .b3h span{font-size:11.5px;color:#FFFFFF;opacity:.9}
 .blk3 .lhead{display:none}

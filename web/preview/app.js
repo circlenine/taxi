@@ -2299,6 +2299,7 @@ function longRank(rs){
  * ★だから、強い順ではなく **時刻の順** に並べます。
  *   一番上がいまの枠。走り出す前に、そこだけ見れば足ります。
  * ★3時間ずつにまとめます（1時間ずつだと、並びすぎて選べません）。
+ * ★枠の名前（いま・次…）は付けません。時刻だけで分かります。
  * ★1つの枠に出すのは3か所だけ。枠は4つまで。
  */
 function hourPlanCard(D){
@@ -2310,7 +2311,6 @@ function hourPlanCard(D){
     blocks.push({ a: st, b: Math.min(st + 2, HOT_TO) });
     st += 3;
   }
-  const NAME = ['いま', '次', 'そのあと', 'さらにあと'];
   let bb = '';
   blocks.forEach(function (bk, i){
     const t = D.filter(function (r){
@@ -2323,8 +2323,9 @@ function hourPlanCard(D){
       .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
       .sort((x, y) => y.n - x.n).slice(0, 5);
     bb += '<div class="blk3' + (i === 0 ? ' now' : '') + '">' +
-      '<div class="b3h"><em>' + NAME[i] + '</em>' +
-      '<b>' + bk.a + '〜' + bk.b + '時</b>' +
+      /* ★「いま／次／そのあと」の札は、出しません（ご指示・2026/11/12）。
+           時刻だけで分かります。いまの枠は、赤い枠で見分けます。 */
+      '<div class="b3h"><b>' + bk.a + '〜' + bk.b + '時</b>' +
       '<span>' + (o.n ? ('ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t))) : '記録なし') + '</span>' +
       '</div>' +
       (rk.length ? longRows(rk, 3)
