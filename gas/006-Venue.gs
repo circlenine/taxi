@@ -2,7 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V116ver  （2026/11/14）  ★★★
+ *  ★★★  V117ver  （2026/11/14）  ★★★
+ *
+ *  [V117ver]
+ *   ・🎤 大阪城ホールに、終わりの時刻の見積もりを足した
+ *     ★これが、催しが1件も出ていなかった もう1つの原因です。
+ *       終わりが書いていないと、時間帯のふるいが「開演」で見るので、
+ *       17:00 開演の公演が「17:30より前に終わる」と見なされ、
+ *       まるごと落ちていました。
  *
  *  [V116ver]
  *   ・🎤 大阪城ホールの開演時刻を「17:00」の形に直した
@@ -1824,7 +1831,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V116ver";
+const VN_VERSION = "V117ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -8339,13 +8346,27 @@ function vnJohall_(src, day, html) {
     const hit2 = b.match(/開場[\s\S]{0,120}?class="d-txt"[^>]*>\s*(\d{1,2}):(\d{2})/);
     const h = hit || hit2;
     if (h) st = ("0" + h[1]).slice(-2) + ":" + h[2];
+    /*
+     * ★終わりの時刻は、書いてありません（2026/11/14 に足しました）。
+     *   書かずに出すと、時間帯のふるいが「開演の時刻」で見るので、
+     *   17:00 開演の公演が「17:30より前に終わる」と見なされ、
+     *   まるごと落ちていました。実際に、大阪城ホールの
+     *   U-KNOW（11/14・17:00 開演）が1件も出ていませんでした。
+     *   ほかの会場と同じように、会場の種類から見積もります。
+     *   見積もりだと分かるように endGuess を立てます（画面では「（予定）」）。
+     */
+    let en = "", gu = false;
+    if (st && typeof vnGuessEnd_ === "function") {
+      en = vnGuessEnd_(src.venue || src.name, st);
+      gu = !!en;
+    }
     const gm = b.match(/class="event-genre[^"]*"[^>]*>([\s\S]*?)<\/li>/);
     out.events.push({
       venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
       title: title, artist: title, runText: "",
       fee: 0, feeFree: false, genre: gm ? strip(gm[1]) : "",
       start: st, startKind: (hit ? "開演" : (hit2 ? "開場" : "")),
-      end: "", endGuess: false, endSure: false, people: 0,
+      end: en, endGuess: gu, endSure: false, people: 0,
       url: vnSrcUrl_(src, day), raw: strip(b).slice(0, 400)
     });
   }

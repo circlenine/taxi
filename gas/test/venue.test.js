@@ -4120,7 +4120,10 @@ console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る')
   vm.runInContext(src2.slice(i0, j0 + 1), box2);
   /* ★時刻の関所（vnHourOf_ / vnHasTime_）も、本物をそのまま入れます。
        作った形が「ほんとうに通る形か」まで確かめるためです。 */
-  ['vnHourOf_', 'vnHasTime_'].forEach(function (fn) {
+  box2.VN_VENUES = {}; box2.VN_MIN_PEOPLE = 0;
+  box2.VN_FROM_HOUR = 17.5; box2.VN_TO_HOUR = 28;
+  ['vnGuessEnd_', 'vnHourOf_', 'vnHasTime_', 'vnInTimeRange_',
+   'vnBigEnough_', 'vnFromHour_', 'vnToHour_'].forEach(function (fn) {
     const a1 = src2.indexOf('function ' + fn);
     let d1 = 0, j1 = a1;
     while (true) { const c = src2[j1]; if (c === '{') d1++; else if (c === '}') { d1--; if (!d1) break; } j1++; }
@@ -4159,6 +4162,21 @@ console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る')
   const pass = vm.runInContext('vnHasTime_(' +
     JSON.stringify(got.events[0] || {}) + ')', box2);
   eq(pass, true, '★★★「時刻なし」として落とされない');
+  /*
+   * ★終わりの時刻は、ページに書いてありません。
+   *   書かずに出すと、時間帯のふるいが「開演の時刻」で見るので、
+   *   17:00 開演の公演が「17:30より前に終わる」と見なされ、
+   *   まるごと落ちていました。
+   *   実際に、大阪城ホールの U-KNOW（11/14・17:00 開演）が
+   *   1件も出ていませんでした（2026/11/14 に見つけました）。
+   */
+  eq(got.events[0] ? got.events[0].end : '', '19:00',
+     '★★★終わりの時刻を、会場の種類から見積もる');
+  eq(got.events[0] ? got.events[0].endGuess : false, true,
+     '　 見積もりだと分かる形にする（画面では「（予定）」）');
+  const inR = vm.runInContext('vnInTimeRange_(' +
+    JSON.stringify(got.events[0] || {}) + ')', box2);
+  eq(inR, true, '★★★17:00 開演の公演が、時間帯のふるいを通る');
   const none = vm.runInContext(
     'vnJohall_({name:"大阪城ホール",kind:"event",url:"x"}, new Date(2026,10,15), ' +
     JSON.stringify(page) + ')', box2);
