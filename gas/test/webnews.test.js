@@ -1897,6 +1897,22 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
 }
 
+console.log('■ 【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/14）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  /* 「仕掛けを起こすというのは、僕だけのアカウントの表示になってますか？」
+     仕組みの手当てなので、乗務員の方々には出しません。 */
+  const bar = app.slice(app.indexOf('function gasWakeBar()'),
+                        app.indexOf('function gasWakeBar()') + 900);
+  t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(bar),
+    '★★★赤い帯は、まーく様だけに出る');
+  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n\s*\? '<a class="fsrow wake"/.test(app),
+    '★★★≡ の【仕掛けを起こす】も、まーく様だけ');
+  t(/<b>みんなの記録<\/b>/.test(app)
+    && app.indexOf('<b>みんなの記録</b>') < app.indexOf('<b>仕掛けを起こす</b>'),
+    '　 「みんなの記録」は、みなさんに出したまま');
+}
+
 console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

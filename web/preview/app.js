@@ -3325,6 +3325,14 @@ function gasStale(){
 }
 /** 一番上に出す、起こすための帯 */
 function gasWakeBar(){
+  /*
+   * ★【仕掛けを起こす】は、まーく様だけに出します（ご質問・2026/11/14
+   *     「仕掛けを起こすというのは、僕だけのアカウントの表示になってますか？」）。
+   *   これは仕組みの手当てで、乗務員の方々には関わりのない話です。
+   *   ほかの方の画面に出すと「何これ」になりますし、
+   *   押すと見慣れない画面が開いて、不安にさせます。
+   */
+  if (!(ME.profile && ME.profile.is_admin)) return '';
   if (!gasStale() || !gasInfo || !gasInfo.exec) return '';
   return '<div class="wakebar">' +
     '<b>仕掛けが止まっているかもしれません。</b>' +
@@ -3696,8 +3704,12 @@ function fabWire(){
         ((gasInfo && gasInfo.exec)
           ? '<a class="fsrow" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
             '<b>みんなの記録</b><i>記録カード・立ち回り・ロング</i></a>' +
-            '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-            '<b>仕掛けを起こす</b><i>止まったときに、ここを押すだけ</i></a>'
+            /* ★【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/14）。
+                 仕組みの手当てなので、乗務員の方々には出しません。 */
+            ((ME.profile && ME.profile.is_admin)
+              ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
+                '<b>仕掛けを起こす</b><i>止まったときに、ここを押すだけ</i></a>'
+              : '')
           : '');
       sheet.hidden = false;
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
