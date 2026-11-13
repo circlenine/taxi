@@ -2901,8 +2901,18 @@ function bandBar(o, big){
     BANDS.map(function (b){
       const p = bandPct(o, b.k);
       if (!p) return '';
+      /*
+       * ★数字は、その色の幅に入るときだけ出します（2026/11/13）。
+       *   前は「12%より多ければ出す」という割合で決めていました。
+       *   細い機種（320px）では 14.3% でも 22px しかなく、
+       *   「14.3%」の字（約30px）が帯からはみ出して切れていました。
+       *   画面の広さから、入る幅があるかどうかで決めます。
+       */
+      const barW = Math.max(150,
+        (typeof window !== 'undefined' ? window.innerWidth : 390) - 64);
+      const need = 34 / barW * 100;
       return '<span style="width:' + p + '%;background:' + b.c + '">' +
-             (p >= (big ? 7 : 12) ? p + '%' : '') + '</span>';
+             (p >= need ? p + '%' : '') + '</span>';
     }).join('') + '</div>';
 }
 

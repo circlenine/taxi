@@ -1868,6 +1868,20 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
 }
 
+console.log('■ 割合の帯の数字が、帯からはみ出さない（2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* 細い機種（320px）では 14.3% でも 22px しかなく、
+     「14.3%」の字（約30px）が帯から はみ出して切れていました。 */
+  t(/const need = 34 \/ barW \* 100;/.test(app),
+    '★★★入る幅があるときだけ、数字を出す');
+  t(!/p >= \(big \? 7 : 12\)/.test(app),
+    '　 前の「割合で決める」書き方は残っていない');
+  t(/\.bandbar span\{[^}]*overflow:hidden/.test(css),
+    '　 それでも はみ出したら、帯の中で止める');
+}
+
 console.log('■ 雨雲レーダーの動き（ご指摘・2026/11/13）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
