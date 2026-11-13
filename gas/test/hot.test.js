@@ -403,7 +403,9 @@ console.log('■ 雨雲レーダーを、画面の中に出す（ご指示・202
   ok(/async function wxRefresh\(/.test(appSrc), '★★★押すと、取り直す係がある');
   ok(/await loadWx\(\)[\s\S]{0,200}await loadEv\(\)[\s\S]{0,120}await reload\(\)/.test(appSrc),
      '★★★天気・イベント・記録を、ぜんぶ取り直す');
-  ok(/radarMap = null;\s*\/\* 雨雲の地図も/.test(appSrc), '　 雨雲の地図も作り直す');
+  /* ★こま送りを止めてから作り直します（ご指摘・2026/11/13）。
+       ただ捨てるだけだと、見ていないのに動き続けて、電池を食います。 */
+  ok(/radarStop\(\);\s*\/\* 雨雲の地図も/.test(appSrc), '　 雨雲の地図も作り直す');
   ok(/一部は取れませんでした。/.test(appSrc), '★★★1つこけても、ほかは取り直す（そうと書く）');
 }
 
