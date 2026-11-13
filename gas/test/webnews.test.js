@@ -1859,6 +1859,48 @@ console.log('■ ふつうの漢字で書く（ご指示・2026/11/12）');
 
 
 
+console.log('■ 雨雲レーダーの動き（ご指摘・2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  /* 「このマップだと雨雲の動きわかりづらいのですが」 */
+  t(/const fr = j\.slice\(0, 7\)\.reverse\(\);/.test(app),
+    '★★★直近35分ぶん（7枚）を、古いほうから順に出す');
+  t(/t\.setOpacity\(k === i \? \.68 : 0\)/.test(app),
+    '　 見せる1枚だけ濃くする（毎回 読み直さない）');
+  t(/id="radarPlay"/.test(app) && />とめる</.test(app) && /'うごかす'/.test(app),
+    '★★★とめる・うごかすボタンがある');
+  t(/function radarStop\(\)\{/.test(app)
+    && /clearInterval\(radarMap\._radarTimer\)/.test(app),
+    '★★★ほかの画面に移ったら、こま送りを止める（電池を食わない）');
+  t(!/if \(tab === 'hot'\) radarBoot\(\); else radarMap = null;/.test(app),
+    '　 前の「止めずに捨てる」書き方は残っていない');
+  t(/直近35分の動きを、くり返し出します/.test(app),
+    '　 画面にも、動くことが書いてある');
+}
+
+console.log('■ 読み込み中の絵（ご依頼・2026/11/13）');
+{
+  const html  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const adm   = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
+  const css   = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* 「読み込み中の時、はははははと高らかに笑う、
+       夜神月風のイラスト載せられないでしょうか」 */
+  t(/<div class="bootart">/.test(html), '★★★読み込み中の画面に、絵が入っている');
+  t(/class="bootha"/.test(html)
+    && (html.match(/<span>は<\/span>/g) || []).length >= 5,
+    '★★★「ははははは」が5つ出る');
+  t(/\.bootha span\{[^}]*animation:bootha/.test(css),
+    '　 1字ずつ、順に出る');
+  t(/@keyframes bootha\{/.test(css), '　 その動きが書いてある');
+  t(/<div class="bootmsg">読み込んでいます…<\/div>/.test(html),
+    '　 「読み込んでいます…」も残っている');
+  /* 外から画像を読みに行かないこと（電波が細いときに、絵だけ出ないため） */
+  const art = html.slice(html.indexOf('<div class="bootart">'),
+                         html.indexOf('</div>', html.indexOf('bootmsg')) + 6);
+  t(!/<img|url\(/.test(art), '★★★外から画像を読みに行かない（その場で描いている）');
+  t(/<div class="bootart">/.test(adm), '　 管理の画面にも、同じ絵が入っている');
+}
+
 console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

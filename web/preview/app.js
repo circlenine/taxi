@@ -2061,15 +2061,25 @@ function wxHoursHTML(){
  *   読めなくても、下の「気象庁で見る」ボタンは残ります（止まらない形）。
  */
 function radarCard(){
+  /* ★雨雲の動きが分かるように、直近35分ぶんを順に出します
+       （ご指摘・2026/11/13「このマップだと雨雲の動きわかりづらいのですが」）。
+       1枚だけだと、近づいているのか 離れているのかが分かりません。 */
   return '<div class="card"><h2>雨雲レーダー</h2>' +
-    '<p class="note">いまの雨雲です。大阪のまん中を出しています。指で動かせます。</p>' +
+    '<p class="note">直近35分の動きを、くり返し出します。指で動かせます。</p>' +
     '<div id="radarMap" class="radarmap">読み込んでいます…</div>' +
     '<div class="actions rdr"><span class="msg" id="radarTime"></span>' +
+    '<button class="mini" id="radarPlay">とめる</button>' +
     '<button class="mini" id="radar">気象庁で見る</button></div></div>';
 }
 
 /* 地図を出す係。1枚の画面に1回だけ組み立てます */
 let radarMap = null;
+/* ★ほかの画面に移ったら、こま送りを止めます。
+     止めないと、見ていないのに ずっと動き続けて、電池を食います。 */
+function radarStop(){
+  try { if (radarMap && radarMap._radarTimer) clearInterval(radarMap._radarTimer); } catch (e) {}
+  radarMap = null;
+}
 function radarBoot(){
   const box = document.getElementById('radarMap');
   if (!box) { radarMap = null; return; }
@@ -2105,14 +2115,39 @@ function radarBoot(){
                      { cache: 'no-store' })
           .then(r => r.json())
           .then(function (j){
-            const o = (j && j.length) ? j[0] : null;
-            if (!o || !o.basetime) throw new Error('時刻が取れない');
-            L.tileLayer('https://www.jma.go.jp/bosai/jmatile/data/nowc/' +
-              o.basetime + '/none/' + o.validtime + '/surf/hrpns/{z}/{x}/{y}.png',
-              { opacity: 0.68, maxZoom: 15, maxNativeZoom: 10,
-                attribution: '気象庁ナウキャスト' }).addTo(m);
-            const el = document.getElementById('radarTime');
-            if (el) el.textContent = jstOf(o.validtime) + ' の雨雲（気象庁）';
+            if (!j || !j.length || !j[0].basetime) throw new Error('時刻が取れない');
+            /* ★古いほうから新しいほうへ、順に出します（7枚＝35分ぶん）。
+                 7枚とも先に地図へ置いて、見せる1枚だけ濃くします。
+                 こうすると、こまが変わるたびに読み直さずに済みます。 */
+            const fr = j.slice(0, 7).reverse();
+            const lay = fr.map(function (o){
+              return L.tileLayer('https://www.jma.go.jp/bosai/jmatile/data/nowc/' +
+                o.basetime + '/none/' + o.validtime + '/surf/hrpns/{z}/{x}/{y}.png',
+                { opacity: 0, maxZoom: 15, maxNativeZoom: 10,
+                  attribution: '気象庁ナウキャスト' }).addTo(m);
+            });
+            let i = fr.length - 1;
+            const show = function (){
+              lay.forEach(function (t, k){ try { t.setOpacity(k === i ? .68 : 0); } catch (e) {} });
+              const el = document.getElementById('radarTime');
+              if (el) el.textContent = jstOf(fr[i].validtime) +
+                (i === fr.length - 1 ? ' いま' : '') + '（気象庁）';
+            };
+            show();
+            const tick = function (){ i = (i + 1) % fr.length; show(); };
+            /* いまの絵は、少し長めに見せます（そこが知りたい所なので） */
+            m._radarTimer = setInterval(function (){
+              if (i === fr.length - 1) { m._radarHold = (m._radarHold || 0) + 1;
+                if (m._radarHold < 3) return; m._radarHold = 0; }
+              tick();
+            }, 500);
+            /* とめる・うごかす */
+            const pb = document.getElementById('radarPlay');
+            if (pb) pb.onclick = function (){
+              if (m._radarTimer) { clearInterval(m._radarTimer); m._radarTimer = null;
+                pb.textContent = 'うごかす'; i = fr.length - 1; show(); }
+              else { m._radarTimer = setInterval(tick, 500); pb.textContent = 'とめる'; }
+            };
           });
       };
       /* 気象庁が読めなかったときだけ、RainViewer に落とします。
@@ -2332,7 +2367,7 @@ async function wxRefresh(btn){
   try { await loadAmd(); } catch (e) { ng++; }
   try { await loadEv(); } catch (e) { ng++; }
   try { await reload(); } catch (e) { ng++; }
-  radarMap = null;                       /* 雨雲の地図も、作り直します */
+  radarStop();                           /* 雨雲の地図も、作り直します */
   render();
   const m2 = document.getElementById('radarMsg');
   if (m2) {
@@ -3741,7 +3776,7 @@ function wire(){
     b.onclick = function () { wxSpan = b.dataset.wxsp; render(); };
   });
   /* 雨雲レーダーの地図は、その画面にいるときだけ組み立てます */
-  if (tab === 'hot') radarBoot(); else radarMap = null;
+  if (tab === 'hot') radarBoot(); else radarStop();
   const dep = $('#f_dep');
   const upd = () => {
     const d = parseT(dep ? dep.value : '');

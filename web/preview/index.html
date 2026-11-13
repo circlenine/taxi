@@ -9,12 +9,51 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261113-c4c8147f">
+<link rel="stylesheet" href="style.css?v=20261113-19414087">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
   <a href="/">こちら</a>。まだ本番には反映していません。</div>
-<div id="boot" class="boot">読み込んでいます…</div>
+<div id="boot" class="boot">
+<div class="bootart">
+  <div class="bootha"><span>は</span><span>は</span><span>は</span><span>は</span><span>は</span></div>
+  <svg viewBox="0 0 200 230" width="150" height="172" aria-hidden="true">
+    <!-- うしろの光 -->
+    <circle cx="96" cy="100" r="76" fill="#16203A" opacity=".9"/>
+    <circle cx="96" cy="100" r="76" fill="none" stroke="#E23B30" stroke-width="1.4" opacity=".45"/>
+    <!-- かた -->
+    <path d="M14 230 C26 182 64 160 100 160 C136 160 174 182 186 230 Z" fill="#0B1220"/>
+    <!-- えり -->
+    <path d="M78 162 L92 192 L106 162 L96 158 L88 158 Z" fill="#17223A"/>
+    <!-- くび -->
+    <rect x="80" y="138" width="24" height="26" rx="8" fill="#0B1220"/>
+    <!-- 顔（すこし上を向いています） -->
+    <ellipse cx="92" cy="100" rx="35" ry="42" fill="#0B1220" transform="rotate(-9 92 100)"/>
+    <!-- かみ（とがった形） -->
+    <path d="M57 84 L66 40 L78 68 L88 32 L100 66 L112 38 L122 70 L130 52 L128 90
+             C118 66 66 68 57 84 Z" fill="#0B1220"/>
+    <!-- 口（高らかに笑っているところ） -->
+    <path d="M74 116 C88 110 108 110 118 118 C112 140 80 142 74 116 Z" fill="#C2251C"/>
+    <path d="M77 118 C89 113 105 113 115 119 L112 124 C100 119 90 119 79 123 Z" fill="#FFFFFF"/>
+    <!-- 目（細めた線） -->
+    <path d="M68 90 L84 95" stroke="#E23B30" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M100 95 L116 90" stroke="#E23B30" stroke-width="3.2" stroke-linecap="round"/>
+    <!-- 上げた手 -->
+    <g transform="translate(140 44) rotate(18)">
+      <rect x="0" y="22" width="30" height="34" rx="11" fill="#0B1220"/>
+      <rect x="2"  y="-2" width="8" height="30" rx="4" fill="#0B1220"/>
+      <rect x="11" y="-8" width="8" height="36" rx="4" fill="#0B1220"/>
+      <rect x="20" y="-2" width="8" height="30" rx="4" fill="#0B1220"/>
+      <rect x="27" y="8"  width="8" height="24" rx="4" fill="#0B1220"
+            transform="rotate(16 31 20)"/>
+    </g>
+    <!-- 左からの赤いふち -->
+    <path d="M58 74 C46 96 50 126 64 144" fill="none" stroke="#E23B30"
+          stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+  </svg>
+  <div class="bootmsg">読み込んでいます…</div>
+</div>
+</div>
 
 <div class="wrap" id="app" hidden>
   <!-- ★貼り付く行（ご指示・2026/11/13）
@@ -126,9 +165,9 @@
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261113-c4c8147f"></script>
-<script src="news.js?v=20261113-c4c8147f"></script>
-<script src="shared.js?v=20261113-c4c8147f"></script>
-<script src="app.js?v=20261113-c4c8147f"></script>
+<script src="config.js?v=20261113-19414087"></script>
+<script src="news.js?v=20261113-19414087"></script>
+<script src="shared.js?v=20261113-19414087"></script>
+<script src="app.js?v=20261113-19414087"></script>
 </body>
 </html>
