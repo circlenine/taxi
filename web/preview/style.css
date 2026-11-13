@@ -1683,3 +1683,7 @@ header{padding-left:33px;padding-right:33px}
 .scroll.tbl th:last-child,.scroll.tbl td:last-child{border-right:0}
 .scroll.tbl td{border-bottom:1px solid #33456B}
 .scroll.tbl th{border-bottom:1px solid #4A5F90}
+
+/* 地図のピン（ご指示・2026/11/13） */
+.pinmap{height:360px}
+.chips.maph{max-height:none}

@@ -1227,7 +1227,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   const adm  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
   const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
 
-  t(/data-t="heat"[^>]*><b>表グラフ</.test(html), '★★★タブは「表グラフ」');
+  /* ★3つのグラフは1ページにまとめました（ご指示・2026/11/13
+       「比較表が沢山あっても訳が分からなくなるので…同じページにまとめて
+         表はそれぞれ1つだけ表示して」）。 */
+  t(/data-t="g"[^>]*><b>グラフ</.test(html), '★★★タブは「グラフ」（3つを1ページに）');
+  t(!/data-t="heat"/.test(html) && !/data-t="tl"/.test(html) && !/data-t="sc"/.test(html),
+    '　 前の3つのタブは、残っていない');
   t(!/アツい場所/.test(html), '　 前の「アツい場所」は、残っていない');
   /* ★フィードバックは、タブの行から外して、いちばん上の行の右端へ
        （ご指示・2026/11/12「左利きとかと同じ文字サイズで、
@@ -1374,13 +1379,14 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          「イベント」「お知らせ」は画面から外して ≡ だけにしました
          （ご指示「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。画面に出るのは8こ。 */
-    t(subs.length === 8, '★★★画面のメニューは8こ', subs.length);
+    /* ★2026/11/13：3つのグラフを1つにまとめ、「地図」を足したので7こ */
+    t(subs.length === 7, '★★★画面のメニューは7こ', subs.length);
     t(/data-t="ev" aria-selected="false" hidden/.test(h3),
       '★★★イベントは、画面のメニューには出さない');
     t(/data-t="news" aria-selected="false" hidden/.test(h3),
       '★★★お知らせも、画面のメニューには出さない');
-    t(subs.every(x => x.length <= 6), '★★★そえる字は6文字まで（ます目からはみ出さない）',
-      subs.filter(x => x.length > 6).join('/'));
+    t(subs.every(x => x.length <= 7), '★★★そえる字は7文字まで（ます目からはみ出さない）',
+      subs.filter(x => x.length > 7).join('/'));
   }
 
   /* ★ふきだしが出ているあいだは、固定ボタンを出しません
@@ -1449,15 +1455,15 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')), '★★★右端に寄せている');
   t(!/ごいけん/.test(html) && !/ごいけん/.test(app) && !/ごいけん/.test(adm),
     '★★★「ごいけん」は、どこにも残っていない');
-  t(/表グラフ/.test(pv) && /フィードバック/.test(pv),
+  t(/data-t="g"/.test(pv) && /フィードバック/.test(pv),
     '　 下見用のページも、同じ名前になっている');
   t(/pvbar/.test(pv), '　 下見用の赤い帯も、消えていない');
-  t(/<h2>表グラフ<\/h2>/.test(app), '　 中の題も「表グラフ」');
+  t(/<h2>グラフ<\/h2>/.test(app), '　 中の題も「グラフ」');
   t(/<h2>フィードバック<\/h2>/.test(app), '　 中の題も「フィードバック」');
 
   /* ★2つの画面のちがいが、それぞれに書いてあること */
-  t(/えらんだ期間の記録を[\s\S]{0,60}時間帯 × 乗り場/.test(app),
-    '★★★「表グラフ」は、えらんだ期間の表だと書いてある');
+  t(/時間帯ごとに、どの乗り場が強いかを並べた表です/.test(app),
+    '★★★「表グラフ」が何の表かは、えらんだときに出る');
   t(/いまの時刻に合わせて[\s\S]{0,40}いま行くとよい所/.test(app),
     '★★★「いまアツい」は、いまの時刻の話だと書いてある');
   t(/表グラフ】のほう/.test(app), '　 もう一方への案内もある');
@@ -1662,7 +1668,9 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   /* ★タブの名前は、ご指示で付け替えました（2026/11/12）。
        つけ待ち→表グラフ／一日の流れ→横棒グラフ／時間×金額→折れ線グラフ／
        集計→割合／全記録はなくす。 */
-  ['記録', '狙い目', '表グラフ', '横棒グラフ', '折線グラフ', 'パーセント'].forEach(function (n) {
+  /* ★2026/11/13 のご指示で、表グラフ・横棒グラフ・折線グラフは
+       「グラフ」1つにまとめ、ピンの「地図」を足しました。 */
+  ['記録', '狙い目', 'グラフ', '地図', 'パーセント'].forEach(function (n) {
     t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
   });
   t(tabs.indexOf('全記録') === -1 && tabs.indexOf('集計') === -1,
@@ -1812,9 +1820,16 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
     '★★★グラフの画面でも、期間を切り替えられる');
   t(/\.ktperiod\{/.test(css), '　 その見た目も入っている');
 
-  /* ② 表グラフは、エリアごとに分ける（ご指示・2026/11/12） */
-  const heat = app.slice(app.indexOf('function paneHeat(noChips)'), app.indexOf('いまアツい（ここから）'));
-  t(/BIG_CATS\.forEach/.test(heat), '★★★大カテゴリー（北・南・他）ごとに、表を分ける');
+  /* ② 表グラフは、1枚にまとめます（ご指示・2026/11/13
+         「比較表が沢山あっても訳が分からなくなるので…表はそれぞれ1つだけ表示して」）。
+       前は 大カテゴリーごとに何枚も出していましたが、
+       いまは 絞り込みで1枚だけを出します。並び順は これまでどおり
+       大カテゴリー → 中カテゴリー → 件数の多い順です。 */
+  const heat = app.slice(app.indexOf('function gChart(kind, R)'), app.indexOf('function paneMap()'));
+  t(/BIG_CATS\.forEach/.test(heat), '★★★並びは 大カテゴリー → 中カテゴリーの順');
+  t((app.match(/<div class="card">\$\{sub\} \+ gChart/g) || []).length === 0
+    && /return head \+ '<div class="card">' \+ sub \+ gChart\(kind, R\) \+ '<\/div>';/.test(app),
+    '★★★出す表は、1枚だけ');
   t(/const BIG_CATS = \[/.test(app), '★★★大カテゴリーは 北・南・他');
   ['北','南','他'].forEach(function (k) {
     t(new RegExp("k: '" + k + "'").test(app), '　 ' + k + ' がある');
@@ -1822,8 +1837,10 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
   t(/subs: \['関空', 'ﾊﾞﾗｼ', 'ほか'\]/.test(app), '★★★関空とバラシは「他」に入れる');
   t(/sumLabel \|\| 'エリア計'/.test(app),
     '★★★合計の行は、まとまりのある単位だけに出す');
+  t(/heatSvg\(R, pls, hrs, mx, '合計'\)/.test(app), '　 1枚にまとめたときの合計は「合計」');
   t(!/slice\(0,10\)/.test(heat), '★★★乗り場は ぜんぶ出す（10か所で切らない）');
-  t(/filterChips\(true\)/.test(heat), '　 大カテゴリーと期間を、その場で切り替えられる');
+  t(/filterChips\(true\)/.test(app.slice(app.indexOf('function paneG()'), app.indexOf('function gChart'))),
+    '　 大カテゴリーと期間を、その場で切り替えられる');
 
   /* ③ 前の期間とくらべる */
   t(/function compareCard\(\)/.test(app), '★★★前の期間とくらべる所がある');
@@ -2340,7 +2357,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/function wrapLabel\(/.test(app), '★★★名前を、左の欄に収まる行に折り返す');
   t(/function fitLabel\(/.test(app), '　 収まらなければ、字を小さくしていく');
   t(/lines\.map\(\(ln,k\) =>[\s\S]{0,60}<tspan/.test(app), '　 折り返した行を、1行ずつ置く');
-  t(!/…/.test(app.slice(app.indexOf('function heatSvg'), app.indexOf('function paneHeat'))),
+  t(!/…/.test(app.slice(app.indexOf('function heatSvg'), app.indexOf('const G_KINDS'))),
     '★★★「…」で切らない（どこの乗り場か分からなくなる）');
   t(/22 - hrs\[0\] \+ 1/.test(app), '★★★22時までの本数から、1時間ぶんの幅を決める');
   t(/const cw   = Math\.max\(36, Math\.min\(64, Math\.floor\(\(vw - lw\) \/ need\)\)\)/.test(app),
@@ -2356,7 +2373,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(!/\}k<\/text>|\/100\)\/10\}k/.test(app), '★★★マスに「k（千円）」を使わない');
   t(/>\$\{yen\(c\.avg\)\}<\/text>/.test(app), '★★★マスは「¥〇〇」で、そのまま出す');
   t(/'平均・' \+ c\.n \+ '件'/.test(app), '★★★マスの下に「平均・〇件」と書く');
-  t(/その枠の平均金額（1本当たり）/.test(app), '★★★表の上にも、平均だとはっきり書く');
+  t(/マスの数字は1本の平均金額、下は件数です/.test(app), '★★★表の上にも、平均だとはっきり書く');
   t(/一番濃いマスの平均/.test(app), '　 色の案内も「平均」と書く');
   t(/style="font-size:\$\{fz1\}px"/.test(app),
     '　 字の大きさは style で指定する（font-size の決まりに負けないため）');
@@ -2426,9 +2443,11 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
               その他にも好きに乗り場をカスタムできる選択肢も追加してください」
           1枚に全部を重ねていたので、点も字も重なって読めなかった。 */
   t(/function scChart\(R\)\{/.test(app), '★★★1枚ぶんの図を、別々に作れるようにした');
-  t(/CAT_ORDER\.forEach\(function \(k\)\{[\s\S]{0,260}recCat\(r\) === k/.test(app),
-    '★★★中分類（北7・北4・北他・ﾐﾅﾐ・関空・ﾊﾞﾗｼ・ほか）ごとに1枚ずつ出す');
-  t(/<h2>乗り場をえらぶ<\/h2>/.test(app), '★★★好きな乗り場をえらぶ欄がある');
+  /* ★2026/11/13 のご指示で、1枚ずつ出すのはやめ、絞り込みで1枚だけにしました。
+       中分類でえらべること自体は、絞り込みのタグに残しています。 */
+  t(/data-cat="\$\{esc\(k\)\}"/.test(app),
+    '★★★中分類（北7・北4・北他・ﾐﾅﾐ・関空・ﾊﾞﾗｼ・ほか）で、絞り込める');
+  t(/<div class="chips" id="scpBox">/.test(app), '★★★好きな乗り場をえらぶ欄がある');
   t(/data-scp="/.test(app), '　 乗り場を押してえらべる');
   t(/scPicks\.indexOf\(r\.place\) !== -1/.test(app), '　 えらんだ乗り場だけで1枚にする');
   t(/data-scp-clear/.test(app), '　 えらんだものを、まとめて戻せる');
@@ -2450,9 +2469,17 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★候補の欄だけを書きかえる（打っている途中で指が離れない）');
   t(/\.fsug\{/.test(css), '　 候補の見た目がある');
 
-  /* ⑥-15 「この乗り場は、何時がよいか」を一番上に（ご指示・2026/11/13） */
-  t(/out = head \+ bestTimeCard\(D\) \+ hourPlanCard\(D\)/.test(app),
-    '★★★「この乗り場は、何時がよいか」が一番上');
+  /* ⑥-15 並びのご指示（2026/11/13）
+       「時間帯別のりばランキングをそのページの1番上にしてください
+         その関連性を考えながら、順序をしっかり組み直してください」
+       一番上は「時間帯べつ 乗り場ランキング」、そのすぐ下に
+       「この乗り場は、何時がよいか」→「時間順の狙い目」と続けます。 */
+  t(/return head \+ rankCard \+ out \+ compareCard\(\);/.test(app),
+    '★★★「時間帯べつ 乗り場ランキング」が一番上');
+  t(/let out = bestTimeCard\(D\) \+ hourPlanCard\(D\);/.test(app),
+    '★★★その次が「この乗り場は、何時がよいか」→「時間順の狙い目」');
+  t(/rankCard = '<div class="card"><h2>時間帯べつ 乗り場ランキング<\/h2>'/.test(app),
+    '　 ランキングは、あとから一番上に置き直している');
 
   /* ⑥-16 2026/11/13 のまとめてのご指示 */
 
@@ -2755,11 +2782,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
             スプシに作られてるタブ通りのカテゴリーごとで作ってください。
             自分ですきにカスタムできるようにする機能も残してください」 */
   t(/function tlChart\(R\)\{/.test(app), '★★★1枚ぶんの横棒グラフを、別々に作れる');
-  t(/CAT_ORDER\.forEach\(function \(k\)\{[\s\S]{0,300}tlChart\(rows\)/.test(app),
-    '★★★スプシのタブと同じ分け方・同じ並びで、1枚ずつ出す');
-  t((app.match(/<h2>乗り場をえらぶ<\/h2>/g) || []).length === 2,
-    '★★★横棒グラフにも「乗り場をえらぶ」がある（折線グラフと合わせて2つ）');
-  t(/tlChart\(picked\)/.test(app), '　 えらんだ乗り場だけで、1枚にまとめる');
+  t(/if \(kind === 'tl'\) return tlChart\(R\);/.test(app),
+    '★★★横棒グラフも、同じ絞り込みから1枚だけ出す');
+  t(/if \(scPicks\.length\) R = R\.filter\(r => scPicks\.indexOf\(r\.place\) !== -1\);/.test(app),
+    '★★★えらんだ乗り場だけで、1枚にまとめる（3つの形すべてで）');
 
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
@@ -3182,6 +3208,67 @@ console.log('\n■ 表・タグ・期間の直し（ご指示・2026/11/13）');
   t(/periodAt: today\(\)/.test(app), '　 いつの分かを、一緒に覚えている');
   t(/let onlyPlace = '', onlyCat = '', onlyBig = '', period = \{ mode: 'c0'/.test(app),
     '　 何も覚えていなければ、今の営業月');
+}
+
+
+console.log('\n■ グラフを１ページに、地図にピン（ご指示・2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+
+  /* ★「比較表が沙山あっても訳が分からなくなるので
+       棒グラフ 横グラフ 表グラフ これらは、同じページにまとめて
+       表はそれぞれ1つだけ表示して
+       好きにカスタムできる検索欄的なものを設けて出す形に」 */
+  t(/function paneG\(\)/.test(app), '★★★グラフは1つの画面にまとめた');
+  t(/const G_KINDS = \[\{ k:'heat', n:'表グラフ' \}, \{ k:'tl', n:'横棒グラフ' \},\s*\{ k:'sc', n:'折線グラフ' \}\]/.test(app),
+    '★★★中で 3つの形をえらべる');
+  t(/data-gk="\$\{x\.k\}"/.test(app) && /b\.dataset\.gk/.test(app), '　 そのタグが押せる');
+  t(/function gKindSet\(k\)/.test(app) && /localStorage\.setItem\(G_KEY, k\)/.test(app),
+    '　 えらんだ形を、その端末に覚える');
+  t(/g:paneG, heat:paneG, tl:paneG, sc:paneG/.test(app),
+    '★★★前の押しどころで来ても、同じ画面に行ける');
+  t(/if \(tab === 'heat' \|\| tab === 'tl' \|\| tab === 'sc'\) \{ gKindSet\(tab\); tab = 'g'; tabSave\(\); \}/.test(app),
+    '　 そのときは、その形をえらんだことにする');
+
+  /* ★地図のページ（ご指示・2026/11/13
+       「マップに対して、ピンを打って 時間帯、金額別に
+         例えば、20時台の￥3,000以上 という形で」） */
+  t(/data-t="map"[^>]*><b>地図</.test(ix), '★★★「地図」の押しどころがある');
+  t(/function paneMap\(\)/.test(app) && /map:paneMap/.test(app), '★★★地図の画面がある');
+  t(/data-mh="\$\{h\}"/.test(app), '★★★時間帯で絞り込める');
+  t(/const MAP_FARES = \[\{ v:0[\s\S]{0,160}v:10000/.test(app), '★★★金額でも絞り込める（¥10,000以上まで）');
+  t(/v:3000, n:'¥3,000以上'/.test(app), '　 ¥3,000以上もある（ご指示の例）');
+  t(/L\.circleMarker\(/.test(app), '★★★ピンを打つ');
+  /* ★お金のかかる地図は使いません（OpenStreetMap・無料・鍵なし） */
+  t(/tile\.openstreetmap\.org/.test(app), '★★★地図は無料の OpenStreetMap');
+  t(!/googleapis\.com\/maps|mapbox|api_key|apiKey/i.test(app), '★★★お金のかかる地図を使っていない');
+  /* ★場所が分からない乗り場は、黙って落とさない */
+  t(/<h2>地図に出せていない乗り場<\/h2>/.test(app),
+    '★★★場所の分からない乗り場は、名前を出す');
+  t(/ピンは、乗り場のあるあたりを指しています/.test(app),
+    '★★★「そのあたり」だと、画面に書いてある');
+  t(/function mapStop\(\)/.test(app) && /if \(tab === 'map'\) mapBoot\(\); else mapStop\(\);/.test(app),
+    '　 ほかの画面に移ったら、地図は片づける');
+  t(/\.pinmap\{height:360px\}/.test(css), '　 その見た目も入っている');
+
+  /* 地図に出す場所の表を、実際に引いてみる */
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext(app.slice(app.indexOf('function toHalfW(s)'), app.indexOf('/* えらんだものは')), box);
+  const g = vm.runInContext('placeGeo', box);
+  [['新地7', '北新地'], ['難波', '難波'], ['道頓堀', '道頓堀'],
+   ['天神橋筋六丁目', '天神橋筋六丁目'], ['梅田ヒルトン', 'ヒルトン']].forEach(function (x) {
+    const r = g(x[0]);
+    t(!!r && r.key === x[1], '★★★' + x[0] + ' は 「' + x[1] + '」のあたり', r && r.key);
+  });
+  t(g('こんな場所はありません') === null, '★★★分からない名前には、ピンを打たない');
+  /* 緯度・経度が大阪から離れていないこと（打ちまちがいを見つける） */
+  const G2 = vm.runInContext('PLACE_GEO', box);
+  const bad = G2.filter(function (x) {
+    return !(x[1][0] > 34.3 && x[1][0] < 34.9 && x[1][1] > 135.1 && x[1][1] < 135.7); });
+  t(bad.length === 0, '★★★どの場所も、大阪の中にある', bad.map(x => x[0]).join('/'));
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

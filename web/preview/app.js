@@ -803,9 +803,14 @@ function render(){
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
        ほかの乗務員の方には、要らない画面です。 */
-  const PANES = { in: () => (ME.profile.is_admin ? paneOut() : '') + paneSays(), hot:paneHot, heat:paneHeat,
-    tl:paneTl, sc:paneSc, ratio:paneRatio, bara:paneBara, kix:paneKix,
+  /* ★グラフは3つを1ページにまとめました（ご指示・2026/11/13）。
+       前の押しどころを覚えている方のために、heat/tl/sc も同じ画面へ回します。 */
+  const PANES = { in: () => (ME.profile.is_admin ? paneOut() : '') + paneSays(), hot:paneHot,
+    g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
+    ratio:paneRatio, bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
+  /* 古い押しどころで来たときは、その形をえらんだことにします */
+  if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
@@ -1082,6 +1087,101 @@ function placeCat(p){
   if (v.indexOf('新地') !== -1 || matchWord(v, NORTH_WORDS)) return '北他';
   return 'ほか';
 }
+
+/* ------------------------------------------------------------
+ *  乗り場の「だいたいの場所」（地図にピンを打つため）
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「マップに対して、ピンを打って 時間帯、金額別に
+ *      例えば、20時台の￥3,000以上 という形で該当する場所にピンを打って、
+ *      視覚化しやすい形のページを作って欲しいです」
+ *
+ *  ★ここに書いてあるのは「そのあたり」の緯度・経度です。
+ *    1件ごとの正確な場所ではありません。画面にも、そう書いています。
+ *    分からない名前には、ピンを**打ちません**。
+ *    あてずっぽうの場所に打つほうが、何も出さないより ずっと悪いためです。
+ *  ★お金はかかりません。住所を調べにいく先（有料の地図）は使っていません。
+ *    地図そのものは OpenStreetMap（無料・鍵なし）です。
+ * ---------------------------------------------------------- */
+const PLACE_GEO = [
+  /* 北（キタ） */
+  ['北新地',[34.6966,135.4958]], ['新地',[34.6966,135.4958]],
+  ['梅田',[34.7025,135.4959]], ['大阪駅',[34.7025,135.4959]],
+  ['西梅田',[34.7008,135.4930]], ['東梅田',[34.7017,135.5005]],
+  ['茶屋町',[34.7078,135.4995]], ['堂山',[34.7045,135.5010]],
+  ['中崎町',[34.7090,135.5050]], ['中崎',[34.7090,135.5050]],
+  ['曽根崎',[34.7008,135.5008]], ['太融寺',[34.7055,135.5035]],
+  ['兎我野町',[34.7036,135.5055]], ['兎野町',[34.7036,135.5055]],
+  ['東通り',[34.7042,135.5040]], ['角田町',[34.7035,135.4995]],
+  ['堂島',[34.6950,135.4935]], ['桜橋',[34.6975,135.4955]],
+  ['マルビル',[34.7000,135.4945]], ['グランヴィア',[34.7020,135.4985]],
+  ['ヒルトン',[34.7005,135.4938]], ['リッツカールトン',[34.6995,135.4915]],
+  ['インターコンチネンタル',[34.7060,135.4930]], ['コンラッド',[34.6928,135.4930]],
+  ['阪急東',[34.7055,135.5000]], ['芝田',[34.7060,135.4975]],
+  ['中津',[34.7125,135.4940]], ['豊崎',[34.7085,135.4985]],
+  ['福島',[34.6950,135.4855]], ['野田',[34.6930,135.4700]],
+  ['中之島',[34.6930,135.4950]], ['淀屋橋',[34.6925,135.5012]],
+  ['肥後橋',[34.6907,135.4950]], ['渡辺橋',[34.6935,135.4960]],
+  ['大江橋',[34.6945,135.5000]], ['水晶橋',[34.6940,135.5020]],
+  ['南森町',[34.6980,135.5105]], ['大阪天満宮',[34.6968,135.5120]],
+  ['天神橋筋六丁目',[34.7117,135.5118]], ['天六',[34.7117,135.5118]],
+  ['天満',[34.7050,135.5125]], ['扇町',[34.7060,135.5095]],
+  ['天神橋筋',[34.7000,135.5115]], ['西天満',[34.6975,135.5050]],
+  ['老松通り',[34.6975,135.5035]], ['西中',[34.6985,135.4985]],
+  ['お初',[34.6998,135.4990]], ['大深町',[34.7050,135.4930]],
+  ['キタ',[34.7010,135.4980]],
+  /* 南（ミナミ） */
+  ['難波',[34.6657,135.5010]], ['なんば',[34.6657,135.5010]],
+  ['道頓堀',[34.6687,135.5013]], ['戎橋',[34.6687,135.5010]],
+  ['ひっかけ橋',[34.6687,135.5010]], ['宗右衛門',[34.6692,135.5025]],
+  ['心斎橋',[34.6745,135.5010]], ['西心斎橋',[34.6730,135.4990]],
+  ['東心斎橋',[34.6735,135.5035]], ['アメリカ村',[34.6723,135.4983]],
+  ['アメ村',[34.6723,135.4983]], ['三津寺',[34.6700,135.5005]],
+  ['千日前',[34.6660,135.5035]], ['黒門',[34.6650,135.5065]],
+  ['日本橋',[34.6630,135.5063]], ['長堀橋',[34.6755,135.5070]],
+  ['四ツ橋',[34.6730,135.4960]], ['南船場',[34.6780,135.5020]],
+  ['島之内',[34.6710,135.5040]], ['鰻谷',[34.6730,135.5020]],
+  ['大国町',[34.6520,135.4960]], ['桜川',[34.6660,135.4880]],
+  ['恵美須町',[34.6520,135.5060]], ['今宮戎',[34.6540,135.5020]],
+  ['湊町',[34.6665,135.4950]], ['OCAT',[34.6665,135.4950]],
+  ['高島屋',[34.6650,135.5010]], ['なんばパークス',[34.6610,135.5020]],
+  ['なんばCITY',[34.6640,135.5020]], ['大丸',[34.6735,135.5005]],
+  ['スイスホテル',[34.6640,135.5020]], ['センタラ',[34.6650,135.5045]],
+  ['クロスホテル',[34.6710,135.5015]], ['大正',[34.6690,135.4800]],
+  ['芦原橋',[34.6600,135.4830]], ['汐見橋',[34.6700,135.4900]],
+  ['夕陽丘',[34.6560,135.5130]], ['ミナミ',[34.6680,135.5020]],
+  /* そのほか、よく出る所 */
+  ['京橋',[34.6966,135.5340]], ['本町',[34.6823,135.5003]],
+  ['新大阪',[34.7338,135.5000]], ['天王寺',[34.6455,135.5140]],
+  ['鶴橋',[34.6650,135.5330]], ['上本町',[34.6690,135.5180]],
+  ['弁天町',[34.6690,135.4610]], ['江坂',[34.7580,135.4980]],
+  ['関西空港',[34.4347,135.2329]], ['関空',[34.4347,135.2329]],
+  ['古川橋',[34.7355,135.5790]], ['菅原町',[34.6960,135.5090]]
+];
+/**
+ * 乗り場の名前から、だいたいの場所を引きます。
+ * 名前の中に入っていれば拾います。長い名前から先に見ます
+ * （「天神橋筋六丁目」を「天満」より先に当てるため）。
+ * 分からなければ null を返し、ピンは打ちません。
+ */
+function placeGeo(p){
+  const v = toHalfW(p);
+  if (!v) return null;
+  let hit = null, len = -1;
+  for (let i = 0; i < PLACE_GEO.length; i++) {
+    const k = PLACE_GEO[i][0];
+    if (v.indexOf(k) !== -1 && k.length > len) { hit = PLACE_GEO[i]; len = k.length; }
+  }
+  if (!hit) return null;
+  /* ★同じ場所を指す別の言い方（新地／北新地、梅田／大阪駅…）は、
+       1つのピンにまとめます。別々にすると、同じ所に丸が重なって読めません。
+       名前は、上の表で先に書いてあるほう（代表の言い方）を使います。 */
+  for (let j = 0; j < PLACE_GEO.length; j++) {
+    if (PLACE_GEO[j][1][0] === hit[1][0] && PLACE_GEO[j][1][1] === hit[1][1]) { hit = PLACE_GEO[j]; break; }
+  }
+  return { key: hit[0], lat: hit[1][0], lon: hit[1][1] };
+}
+
 /* えらんだものは「分け方＋乗り場」で覚えます */
 const CATSEP = '\u0001';
 /* 大きなまとまり（北・南・他）をえらんだ印。乗り場の名前と見分けるため */
@@ -1598,61 +1698,240 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
   return s;
 }
 
-function paneHeat(noChips){
-  /* 時刻が不明なものは、時間帯の表には置けません（どこに入れてよいか分からないため） */
-  const R = visible().filter(hasDep);
-  const head = `<div class="card"><h2>表グラフ</h2>
-    <p class="note">えらんだ期間の記録を、<b>時間帯 × 乗り場</b>で並べた表です。
-      マスの数字は、<b>その枠の平均金額（1本当たり）</b>です。下は件数。
-      濃いマスほど、1本が大きい枠です。
-      まずは3件以上そろったマスだけ信じてください。</p>
-    ${noChips ? '' : filterChips(true)}</div>`;
+/* ------------------------------------------------------------
+ *  グラフ（3つを1ページにまとめたもの）
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「よく考えたら、比較表が沢山あっても訳が分からなくなるので
+ *      棒グラフ 横グラフ 表グラフ これらは、同じページにまとめて
+ *      表はそれぞれ1つだけ表示して
+ *      好きにカスタムできる検索欄的なものを設けて出す形にしてください」
+ *
+ *  前は、形ごとに1ページあり、その中で エリアごとに何枚も表を出していました。
+ *  同じような表が並ぶと、どれを見ればよいのか分からなくなります。
+ *  いまは「形をえらぶ」「絞り込む」で、**1枚だけ**を出します。
+ * ---------------------------------------------------------- */
+const G_KINDS = [{ k:'heat', n:'表グラフ' }, { k:'tl', n:'横棒グラフ' },
+                 { k:'sc', n:'折線グラフ' }];
+const G_KEY = 'tsukemachi.gkind';
+let gKind = (function (){
+  try { const v = localStorage.getItem(G_KEY);
+    return G_KINDS.some(x => x.k === v) ? v : 'heat'; } catch (e) { return 'heat'; }
+})();
+function gKindSet(k){ gKind = k; try { localStorage.setItem(G_KEY, k); } catch (e) {} }
+
+const G_NOTE = {
+  heat: '時間帯ごとに、どの乗り場が強いかを並べた表です。マスの数字は1本の平均金額、下は件数です。',
+  tl:   '1件ずつを、時刻の線の上に並べた図です。細い線が待ち時間、太い帯が乗せていた時間です。',
+  sc:   '横は乗せた時刻（25＝翌1時）、縦は金額です。日付ごとに色を変えています。' };
+
+function paneG(){
+  const kind = gKind;
+  /* 図に置けない記録は外します（折線グラフは、金額も要ります） */
+  let R = visible().filter(kind === 'sc' ? (r => hasDep(r) && hasFare(r)) : hasDep);
+  /* 乗り場のえらびは、絞る前の中身から作ります（えらぶと消えてしまうため） */
+  const pls0 = sortPlaces([...new Set(R.map(r => r.place).filter(Boolean))]
+    .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
+  if (scPicks.length) R = R.filter(r => scPicks.indexOf(r.place) !== -1);
+
+  const head = `<div class="card"><h2>グラフ</h2>
+    <p class="note">${G_NOTE[kind]}</p>
+    <div class="chips gkind">
+      ${G_KINDS.map(x => `<button class="chip ${gKind === x.k ? 'on' : ''}" data-gk="${x.k}">${x.n}</button>`).join('')}
+    </div>
+    ${kind === 'sc' ? `<div class="toolbar">
+      <button class="chip ${scOpt.line ? 'on' : ''}" data-opt="line">線でつなぐ</button>
+      <button class="chip ${scOpt.label ? 'on' : ''}" data-opt="label">金額を出す</button>
+    </div>` : ''}
+    ${filterChips(true)}
+    <div class="ktfind"><input class="ja" data-filt-chip="scpBox"
+      placeholder="乗り場をさがす（例：梅田）"></div>
+    <div class="chips" id="scpBox">
+      ${pls0.map(x => `<button class="chip ${scPicks.indexOf(x.p) !== -1 ? 'on' : ''}" data-scp="${esc(x.p)}">${esc(x.p)}<span class="cnt">${x.n}</span></button>`).join('')}
+      ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
+    </div></div>`;
   if (!R.length) return head + emptyCard('該当データがありません');
 
+  const title = scPicks.length ? scPicks.join('／') : (onlyCat || onlyBig || '乗り場：すべて');
+  const sub = `<p class="note">${esc(title)}　${R.length}件・乗り場 ${
+    new Set(R.map(r => r.place).filter(Boolean)).size}か所。</p>`;
+  return head + '<div class="card">' + sub + gChart(kind, R) + '</div>';
+}
+
+/** えらんだ形で、1枚だけ描きます */
+function gChart(kind, R){
+  if (kind === 'tl') return tlChart(R);
+  if (kind === 'sc') return scChart(R);
   const hs = R.map(r => Math.floor(r.dep));
-  const hrs = []; for (let h = Math.min(...hs); h <= Math.max(...hs); h++) hrs.push(h);
-
-  /* 一番濃いマスは、表ぜんたいで共通にします。
-     表ごとに色の基準が変わると、見比べられません。 */
-  let mx = 1;
-  const pl = {};
-  R.forEach(r => { const p = r.place; if (p) (pl[p] = pl[p] || []).push(r); });
-  Object.keys(pl).forEach(p => hrs.forEach(h => {
-    const t = pl[p].filter(r => Math.floor(r.dep) === h);
-    const tf = t.filter(hasFare);
-    if (tf.length) mx = Math.max(mx, tf.reduce((a,r)=>a+(+r.fare||0),0)/tf.length);
-  }));
-
-  /* ★大カテゴリー（北・南・他）ごとに1枚（ご指示・2026/11/12）。
-       「北7は既に限定的に絞られてるのに、このエリア計っていうのは、
-         まるで意味がわからない」
-       → 合計を出すのは、北・南・他のような まとまりのある単位だけにします。
-       中は、中カテゴリー（北7・北4…）の順に並べます。 */
-  let body = '';
+  const hrs = []; for (let h = Math.min.apply(null, hs); h <= Math.max.apply(null, hs); h++) hrs.push(h);
+  const names = [...new Set(R.map(r => r.place).filter(Boolean))];
+  /* 並びは 大カテゴリー → 中カテゴリー → 件数の多い順（エリアが近い順） */
+  const pls = [];
   BIG_CATS.forEach(function (bg){
-    const rows = R.filter(r => recBig(r) === bg.k);
-    if (!rows.length) return;
-    /* 中カテゴリーの順 → その中は件数の多い順 */
-    const pls = [];
     bg.subs.forEach(function (sub){
-      const sub2 = [...new Set(rows.filter(r => recCat(r) === sub).map(r => r.place).filter(Boolean))]
-        .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }));
-      sortPlaces(sub2).forEach(o => pls.push(o.p));
+      const s2 = names.filter(function (p){
+        const r0 = R.filter(r => r.place === p)[0];
+        return r0 && recBig(r0) === bg.k && recCat(r0) === sub;
+      }).map(p => ({ p: p, n: R.filter(r => r.place === p).length }));
+      sortPlaces(s2).forEach(function (x){ if (pls.indexOf(x.p) === -1) pls.push(x.p); });
     });
-    if (!pls.length) return;
-    body += `<div class="card"><h2>${esc(bg.k)}エリア</h2>
-      <p class="note">乗り場 ${pls.length}か所・${rows.length}件。</p>
-      <div class="snote">← 横にスクロールできます（横画面推奨）</div>
-      <div class="scroll fb">${heatSvg(rows, pls, hrs, mx, bg.k + 'エリア計')}</div></div>`;
   });
-  if (!body) return head + emptyCard('該当データがありません');
-
-  return head + body +
-    `<div class="card"><div class="legend">
+  names.forEach(function (p){ if (pls.indexOf(p) === -1) pls.push(p); });
+  /* 色の濃さの基準は、1枚ぜんたいで共通にします */
+  let mx = 1;
+  pls.forEach(p => hrs.forEach(function (h){
+    const tf = R.filter(r => r.place === p && Math.floor(r.dep) === h && hasFare(r));
+    if (tf.length) mx = Math.max(mx, tf.reduce((a, r) => a + (+r.fare || 0), 0) / tf.length);
+  }));
+  return '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
+    '<div class="scroll fb">' + heatSvg(R, pls, hrs, mx, '合計') + '</div>' +
+    `<div class="legend">
       <span><i style="background:rgba(240,163,59,.15)"></i>薄い＝1本が小さい</span>
       <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝1本が大きい</span>
-      <span>一番濃いマスの平均 ${yen(mx)}</span></div></div>`;
+      <span>一番濃いマスの平均 ${yen(mx)}</span></div>`;
 }
+
+/* ------------------------------------------------------------
+ *  地図（ピンで見る）
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「マップに対して、ピンを打って 時間帯、金額別に
+ *      例えば、20時台の￥3,000以上 という形で該当する場所にピンを打って、
+ *      視覚化しやすい形のページを作って欲しいです」
+ *
+ *  ★ピンは「そのあたり」を指します。1件ごとの正確な場所ではありません。
+ *  ★場所が分からない乗り場には、ピンを打ちません。
+ *    そのかわり、下に名前を並べて、地図へのつながりを出します。
+ *    黙って落とすと、あるはずのものが無いことに気づけません。
+ *  ★お金はかかりません（OpenStreetMap・無料・鍵なし）。
+ * ---------------------------------------------------------- */
+const MAP_FARES = [{ v:0, n:'すべて' }, { v:3000, n:'¥3,000以上' },
+  { v:5000, n:'¥5,000以上' }, { v:10000, n:'¥10,000以上' }];
+let mapHour = '';     /* '' は すべての時間帯 */
+let mapMin  = 0;      /* いくら以上を出すか */
+let pinMap  = null;
+
+/** いま地図に出す記録（時間帯と金額で絞ったもの） */
+function mapRows(){
+  let R = visible();
+  if (mapHour !== '') R = R.filter(r => hasDep(r) && Math.floor(r.dep) === +mapHour);
+  if (mapMin > 0)     R = R.filter(r => hasFare(r) && (+r.fare) >= mapMin);
+  return R;
+}
+/** 乗り場ごとにまとめ、場所の分かるものと 分からないものに分けます */
+function mapGroups(R){
+  const byKey = {}, miss = {};
+  R.forEach(function (r){
+    const p = String(r.place || ''); if (!p) return;
+    const g = placeGeo(p);
+    if (!g) { (miss[p] = miss[p] || []).push(r); return; }
+    const o = byKey[g.key] = byKey[g.key] || { key:g.key, lat:g.lat, lon:g.lon, rows:[], pls:{} };
+    o.rows.push(r); o.pls[p] = (o.pls[p] || 0) + 1;
+  });
+  return { hit: Object.keys(byKey).map(k => byKey[k]), miss: miss };
+}
+
+function paneMap(){
+  const R0 = visible().filter(hasDep);
+  const hrs = [...new Set(R0.map(r => Math.floor(r.dep)))].sort(function (a, b){ return a - b; });
+  const R = mapRows();
+  const G = mapGroups(R);
+  const missNames = Object.keys(G.miss);
+
+  const head = `<div class="card"><h2>地図</h2>
+    <p class="note">えらんだ時間帯と金額に当てはまる記録を、乗り場のあたりにピンで出します。
+      丸が大きいほど件数が多く、赤いほど1本が大きい乗り場です。</p>
+    <div class="chips maph">
+      <button class="chip ${mapHour === '' ? 'on' : ''}" data-mh="">すべて</button>
+      ${hrs.map(h => `<button class="chip ${String(mapHour) === String(h) ? 'on' : ''}" data-mh="${h}">${h}時</button>`).join('')}
+    </div>
+    <div class="chips">
+      ${MAP_FARES.map(f => `<button class="chip ${mapMin === f.v ? 'on' : ''}" data-mf="${f.v}">${f.n}</button>`).join('')}
+    </div>
+    ${filterChips(true)}</div>`;
+
+  const sum = `<div class="card"><h2>${mapHour === '' ? 'すべての時間帯' : mapHour + '時台'}　${
+    (MAP_FARES.filter(f => f.v === mapMin)[0] || MAP_FARES[0]).n}</h2>
+    <p class="note">${R.length}件・ピンの立つ乗り場 ${G.hit.length}か所。
+      ピンは、乗り場のあるあたりを指しています。1件ごとの正確な場所ではありません。</p>
+    <div id="pinMap" class="radarmap pinmap">読み込んでいます…</div>
+    <div class="legend">
+      <span><i style="background:#6FB7FF"></i>平均 ¥5,000未満</span>
+      <span><i style="background:#F2C14E"></i>¥5,000〜9,999</span>
+      <span><i style="background:#FF6A60"></i>¥10,000以上</span></div></div>`;
+
+  /* ★ピンの立つ上位を、文字でも出します（地図が読めない機種のため） */
+  const top = G.hit.slice().sort(function (a, b){ return b.rows.length - a.rows.length; }).slice(0, 10);
+  const list = top.length ? `<div class="card"><h2>件数の多い順</h2>
+    <div class="scroll"><table><thead><tr><th>あたり</th><th class="n">件</th>
+    <th class="n">1本の平均</th><th>乗り場</th></tr></thead><tbody>${
+      top.map(function (o){
+        const a = agg(o.rows);
+        return '<tr><td>' + esc(o.key) + '</td><td class="n">' + o.rows.length + '</td>' +
+          '<td class="n">' + (a.fare ? yen(a.fare) : UNK) + '</td><td>' +
+          esc(Object.keys(o.pls).slice(0, 4).join('／')) + '</td></tr>';
+      }).join('')}</tbody></table></div></div>` : '';
+
+  /* 場所の分からない乗り場は、黙って落とさずに名前を出します */
+  const missCard = missNames.length ? `<div class="card"><h2>地図に出せていない乗り場</h2>
+    <p class="note">あたりが分からないので、ピンを打っていません。
+      名前を押すと、地図で探せます。</p>
+    <div class="chips">${missNames.slice(0, 40).map(p =>
+      `<a class="chip" href="${esc(mapUrl(p))}" target="_blank" rel="noopener">${esc(p)}<span class="cnt">${G.miss[p].length}</span></a>`).join('')}</div>
+    </div>` : '';
+
+  if (!R.length) return head + emptyCard('該当データがありません') + missCard;
+  return head + sum + list + missCard;
+}
+
+/** 地図とピンを組み立てます（1枚の画面に1回だけ） */
+function mapStop(){ try { if (pinMap) pinMap.remove(); } catch (e) {} pinMap = null; }
+function mapBoot(){
+  const box = document.getElementById('pinMap');
+  if (!box) { mapStop(); return; }
+  if (pinMap && pinMap._box === box) return;
+  mapStop();
+  const go = function (){
+    try {
+      if (typeof L === 'undefined') { box.textContent = '地図が読めませんでした。下の表でご覧ください。'; return; }
+      box.textContent = '';
+      const m = L.map(box, { attributionControl: true, zoomControl: true })
+        .setView([34.6900, 135.5000], 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 17, attribution: '© OpenStreetMap' }).addTo(m);
+      m._box = box; pinMap = m;
+      const G = mapGroups(mapRows());
+      const mxn = Math.max.apply(null, G.hit.map(o => o.rows.length).concat([1]));
+      const pts = [];
+      G.hit.forEach(function (o){
+        const a = agg(o.rows);
+        const col = a.fare >= 10000 ? '#FF6A60' : (a.fare >= 5000 ? '#F2C14E' : '#6FB7FF');
+        const rad = 6 + Math.round(12 * Math.sqrt(o.rows.length / mxn));
+        L.circleMarker([o.lat, o.lon], { radius: rad, color: col, weight: 2,
+          fillColor: col, fillOpacity: .45 })
+          .bindPopup('<b>' + esc(o.key) + 'のあたり</b><br>' + o.rows.length + '件' +
+            '<br>1本の平均 ' + (a.fare ? yen(a.fare) : '不明') +
+            '<br>' + esc(Object.keys(o.pls).slice(0, 5).join('／')))
+          .addTo(m);
+        pts.push([o.lat, o.lon]);
+      });
+      /* 近づきすぎると、丸が重なって読めません。13 までにしておきます */
+      if (pts.length > 1) { try { m.fitBounds(pts, { padding: [24, 24], maxZoom: 13 }); } catch (e) {} }
+      else if (pts.length === 1) m.setView(pts[0], 14);
+      setTimeout(function (){ try { m.invalidateSize(); } catch (e) {} }, 200);
+    } catch (e) { box.textContent = '地図が読めませんでした。下の表でご覧ください。'; }
+  };
+  if (typeof L !== 'undefined') return go();
+  const css = document.createElement('link');
+  css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css';
+  document.head.appendChild(css);
+  const sc = document.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js';
+  sc.onload = go;
+  sc.onerror = function (){ box.textContent = '地図が読めませんでした。下の表でご覧ください。'; };
+  document.head.appendChild(sc);
+}
+
 
 /* =============================================================
  *  いまアツい（ここから）
@@ -2644,46 +2923,6 @@ function tlChart(R){
  *      スプシに作られてるタブ通りのカテゴリーごとで作ってください。
  *      自分ですきにカスタムできるようにする機能も残してください」
  * ---------------------------------------------------------- */
-function paneTl(){
-  const R = visible().filter(hasDep);
-  const head = `<div class="card"><h2>横棒グラフ</h2>
-    <p class="note">細い線＝つけ待ちの時間、太い帯＝お客さまを乗せていた時間です。
-      帯の色は金額（青＝ショート／黄＝ミドル／赤＝ロング）を表しています。</p>
-    ${filterChips(true)}</div>`;
-  if (!R.length) return head + emptyCard('該当データがありません');
-
-  /* ★中分類ごとに1枚ずつ（スプシのタブと同じ並び） */
-  let body = '';
-  CAT_ORDER.forEach(function (k){
-    const rows = R.filter(r => recCat(r) === k);
-    if (!rows.length) return;
-    body += `<div class="card"><h2>${esc(k)}</h2>
-      <p class="note">${rows.length}件・乗り場 ${new Set(rows.map(r => r.place).filter(Boolean)).size}か所。</p>
-      ${tlChart(rows)}</div>`;
-  });
-
-  /* ★好きな乗り場をえらんで、1枚にする（折線グラフと同じ えらび方を使います） */
-  const pls = sortPlaces([...new Set(R.map(r => r.place).filter(Boolean))]
-    .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
-  const picked = R.filter(r => scPicks.indexOf(r.place) !== -1);
-  const custom = `<div class="card"><h2>乗り場をえらぶ</h2>
-    <p class="note">見たい乗り場を押してください。えらんだぶんだけで、1枚にまとめます。
-      （折線グラフと同じえらび方です）</p>
-    <div class="ktfind"><input class="ja" data-filt-chip="scpBox2"
-      placeholder="乗り場をさがす（例：梅田）"></div>
-    <div class="chips" id="scpBox2">
-      ${pls.map(o => `<button class="chip ${scPicks.indexOf(o.p)!==-1?'on':''}" data-scp="${esc(o.p)}">${esc(o.p)}<span class="cnt">${o.n}</span></button>`).join('')}
-      ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
-    </div>
-    ${scPicks.length
-      ? (picked.length
-          ? `<p class="note">${esc(scPicks.join('／'))}　${picked.length}件。</p>` + tlChart(picked)
-          : '<div class="empty">該当データがありません</div>')
-      : ''}</div>`;
-
-  return head + body + custom;
-}
-
 /* ---- 時間×金額 ---- */
 /* ------------------------------------------------------------
  *  折線グラフ（時刻 × 金額）
@@ -2768,50 +3007,6 @@ function scChart(R){
   return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
     <div class="scroll fb">${s}</div>
     <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div>`;
-}
-
-function paneSc(){
-  /* 時刻か金額が不明なものは、この図に点を打てないので外します */
-  const R = visible().filter(r => hasDep(r) && hasFare(r));
-  const head = `<div class="card"><h2>折線グラフ</h2>
-    <p class="note">横は乗せた時刻（25＝翌1時）、縦は金額です。日付ごとに色を変えています。
-      記録用スプレッドシートと同じ分け方で、1枚ずつ分けています。</p>
-    <div class="toolbar">
-      <button class="chip ${scOpt.line?'on':''}" data-opt="line">線でつなぐ</button>
-      <button class="chip ${scOpt.label?'on':''}" data-opt="label">金額を出す</button>
-    </div>
-    ${filterChips(true)}</div>`;
-  if (!R.length) return head + emptyCard('該当データがありません');
-
-  /* ★中分類ごとに1枚ずつ（ご指示・2026/11/13） */
-  let body = '';
-  CAT_ORDER.forEach(function (k){
-    const rows = R.filter(r => recCat(r) === k);
-    if (!rows.length) return;
-    body += `<div class="card"><h2>${esc(k)}</h2>
-      <p class="note">${rows.length}件・乗り場 ${new Set(rows.map(r => r.place).filter(Boolean)).size}か所。</p>
-      ${scChart(rows)}</div>`;
-  });
-
-  /* ★好きな乗り場をえらんで、1枚にする（ご指示・2026/11/13） */
-  const pls = sortPlaces([...new Set(R.map(r => r.place).filter(Boolean))]
-    .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
-  const picked = R.filter(r => scPicks.indexOf(r.place) !== -1);
-  const custom = `<div class="card"><h2>乗り場をえらぶ</h2>
-    <p class="note">見たい乗り場を押してください。えらんだぶんだけで、1枚にまとめます。</p>
-    <div class="ktfind"><input class="ja" data-filt-chip="scpBox"
-      placeholder="乗り場をさがす（例：梅田）"></div>
-    <div class="chips" id="scpBox">
-      ${pls.map(o => `<button class="chip ${scPicks.indexOf(o.p)!==-1?'on':''}" data-scp="${esc(o.p)}">${esc(o.p)}<span class="cnt">${o.n}</span></button>`).join('')}
-      ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
-    </div>
-    ${scPicks.length
-      ? (picked.length
-          ? `<p class="note">${esc(scPicks.join('／'))}　${picked.length}件。</p>` + scChart(picked)
-          : '<div class="empty">該当データがありません</div>')
-      : ''}</div>`;
-
-  return head + body + custom;
 }
 
 /* ---- 集計 ---- */
@@ -3221,7 +3416,17 @@ function paneRatio(){
        「どこを、何時に」ではなく、**時間帯順**に並べて、
        いま走るべき乗り場が、すぐ目に入る形にします。 */
   /* ★「この乗り場は、何時がよいか」を一番上に（ご指示・2026/11/13） */
-  let out = head + bestTimeCard(D) + hourPlanCard(D);
+  /* ★「時間帯べつ 乗り場ランキング」を、このページの一番上に出します
+       （ご指示・2026/11/13「時間帯別のりばランキングを
+         そのページの1番上にしてください」）。
+       そのあとは、つながりの近い順に並べます。
+         ① 時間帯べつ 乗り場ランキング … いま、どこへ行くか
+         ② この乗り場は、何時がよいか   … その乗り場を、いつ狙うか
+         ③ 時間順の狙い目               … 夜ぜんたいの流れ
+         ④ ロングが出やすい乗り場／時間帯
+         ⑤ エリアごと／前の期間と比べる */
+  let rankCard = '';
+  let out = bestTimeCard(D) + hourPlanCard(D);
 
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
   out +=
@@ -3310,7 +3515,7 @@ function paneRatio(){
         '</div>';
     });
     if (hb) {
-      out += '<div class="card"><h2>時間帯べつ 乗り場ランキング</h2>' +
+      rankCard = '<div class="card"><h2>時間帯べつ 乗り場ランキング</h2>' +
         '<p class="note">その時間に、ロングが出やすかった乗り場の上位3か所です。' +
         '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
         hb + '</div>';
@@ -3357,7 +3562,7 @@ function paneRatio(){
       '<p class="note">北・南・他のまとまりで見ています。</p>' + pbody +
       '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
   }
-  return out + compareCard();
+  return head + rankCard + out + compareCard();
 }
 
 /* ============================================================
@@ -3988,7 +4193,9 @@ function tocBuild(){
   const hs = [...document.querySelectorAll('#panesTop .card > h2, #ktop > h2, #panes .card > h2')]
     .filter(function (h) { return !h.closest('[hidden]'); });
 
-  if (hs.length < 2) return;
+  /* ★イベント・お知らせ・フィードバックは いつも足すので、
+       この画面の見出しが1つでも、目次は出します（ご指示・2026/11/13）。 */
+  if (!hs.length) return;
   hs.forEach(function (h, i) { if (!h.id) h.id = 'sec' + i; });
   const nav = document.createElement('div');
   nav.className = 'toc' + (tocFolded() ? ' fold' : '');
@@ -4130,6 +4337,8 @@ function wire(){
   });
   /* 雨雲レーダーの地図は、その画面にいるときだけ組み立てます */
   if (tab === 'hot') radarBoot(); else radarStop();
+  /* ピンの地図も、その画面にいるときだけ組み立てます */
+  if (tab === 'map') mapBoot(); else mapStop();
   const dep = $('#f_dep');
   const upd = () => {
     const d = parseT(dep ? dep.value : '');
@@ -4177,6 +4386,17 @@ function wire(){
   });
   document.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => { scOpt[b.dataset.opt] = !scOpt[b.dataset.opt]; render(); });
   /* ★折線グラフで、乗り場を自分でえらぶ（ご指示・2026/11/13） */
+  /* 地図の 時間帯と金額のえらび */
+  document.querySelectorAll('[data-mh]').forEach(function (b) {
+    b.onclick = function () { mapHour = b.dataset.mh; mapStop(); render(); };
+  });
+  document.querySelectorAll('[data-mf]').forEach(function (b) {
+    b.onclick = function () { mapMin = +b.dataset.mf; mapStop(); render(); };
+  });
+  /* グラフの形のえらび（表／横棒／折線）。1ページにまとめたので、ここで切り替えます */
+  document.querySelectorAll('[data-gk]').forEach(function (b) {
+    b.onclick = function () { gKindSet(b.dataset.gk); render(); };
+  });
   document.querySelectorAll('[data-scp]').forEach(function (b) {
     b.onclick = function () {
       const p = b.dataset.scp, i = scPicks.indexOf(p);
