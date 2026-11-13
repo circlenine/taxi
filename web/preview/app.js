@@ -216,6 +216,10 @@ const MIN_ALL = Array.from({ length: 101 }, (_, i) => i);
      600〜900 の4つ＋1000〜2900 の20で、ちょうど24個です。 */
 const FARE_CHIPS = [600,700,800,900].concat(
   Array.from({ length: 20 }, (_, i) => 1000 + i * 100));
+/* ★乗車金額は、数字を押して足していく形にします（ご指示・2026/11/13）。
+     1〜9 を1段目、0・00・000・0000・00000 を2段目に置きます。 */
+const FARE_KEYS  = ['1','2','3','4','5','6','7','8','9'];
+const FARE_ZEROS = ['0','00','000','0000','00000'];
 
 const DEP_H = ['17','18','19','20','21','22','23','00','01','02','03','04'];
 const DEP_M = ['00','05','10','15','20','25','30','35','40','45','50','55'];
@@ -704,10 +708,13 @@ function render(){
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
        ほかの乗務員の方には、要らない画面です。 */
-  const PANES = { in: () => paneIn() + (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
+  const PANES = { in: () => paneInRecent() + (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
     tl:paneTl, sc:paneSc, ratio:paneRatio, news:paneNews, ev:paneEv, fb:paneFb };
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
+  /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13） */
+  const pt = $('#panesTop');
+  if (pt) pt.innerHTML = (tab === 'in') ? paneInNew() : '';
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
   if (sb) sb.textContent = subLine();
@@ -733,7 +740,10 @@ const emptyCard = t => `<div class="card"><div class="empty">${t}</div></div>`;
  *   もう記録にある乗り場なら、何も聞かずに そのまま記録します。
  *   初めて出てきた名前のときだけ、1行で地図へ誘います。
  */
-function paneIn(){
+/* ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13）。
+     「過去の記録」は index.html の #ktop なので、
+     新規のぶんだけを先に（#panesTop）、直近のぶんをあとに（#panes）出します。 */
+function paneInNew(){
   const f = form, pl = myPlaces();
   const chip = (v,cur,fld,suf='') => `<button class="chip ${String(cur)===String(v)?'on':''}" data-set="${fld}" data-val="${v}">${v}${suf}</button>`;
   return `
@@ -764,7 +774,7 @@ function paneIn(){
              target="_blank" rel="noopener">📍 地図でひらく</a></div>` : ''}
       </div>
       <div class="f w2"><label>発車時間<em class="req">＊必須</em></label>
-        <input id="f_dep" inputmode="numeric" placeholder="2530" value="${esc(f.dep || '')}">
+        <input id="f_dep" inputmode="numeric" placeholder="0330" value="${esc(f.dep || '')}">
         <!-- ★時と分を、押すだけで入れられるようにします（ご指示・2026/11/12）。
                走りながら打つので、字を打たせない形にします。 -->
         <div class="chips deps">${DEP_H.map(h =>
@@ -774,11 +784,20 @@ function paneIn(){
         <div class="chips"><button class="chip rst" data-clr="dep">リセット</button></div>
         <div class="hint" id="depHint"></div></div>
       <div class="f w2"><label>乗車金額</label>
-        <input id="f_fare" inputmode="numeric" placeholder="3400" value="${f.fare ?? ''}">
+        <input id="f_fare" inputmode="numeric" placeholder="2900" value="${f.fare ?? ''}">
         <!-- ★よく出る金額は、押すだけで入れられるようにします
                （ご指示・2026/11/12）。これより大きい額は、打ち込みます。 -->
-        <div class="chips fares">${FARE_CHIPS.map(v => chip(v,f.fare,'fare')).join('')}</div>
-        <div class="chips"><button class="chip rst" data-clr="fare">リセット</button></div></div>
+        <!-- ★数字を足していく形にします（ご指示・2026/11/13）
+               「1、2、3、4、5、6、7、8、9／0、00、000、0000、00000
+                 という形で、数値追加できる形にしてください」
+               押すたびに、うしろに足されます。打ち込むより速いためです。 -->
+        <div class="chips fares">${FARE_KEYS.map(v =>
+          `<button class="chip" data-fa="${v}">${v}</button>`).join('')}</div>
+        <div class="chips fares z0">${FARE_ZEROS.map(v =>
+          `<button class="chip" data-fa="${v}">${v}</button>`).join('')}</div>
+        <div class="chips fares z">
+          <button class="chip" data-fa="BS">←1つ消す</button>
+          <button class="chip rst" data-clr="fare">リセット</button></div></div>
 
       <!-- ★欄の名前は、記録用スプレッドシートと同じ言い方にそろえます
              （ご指示・2026/11/12）。書き方がゆれると、同じものを
@@ -818,6 +837,11 @@ function paneIn(){
     </div>
   </div>
 
+  `;
+}
+
+function paneInRecent(){
+  return `
   <div class="card">
     <h2>直近の記録</h2>
     <!-- ★ここでも乗り場を選べるようにします（ご指示・2026/11/12） -->
@@ -2980,6 +3004,68 @@ function fabWire(){
   });
   handApply();
   hsubWire();
+  placeChipsFit();
+  tocBuild();
+}
+
+/* ------------------------------------------------------------
+ *  乗車場所の候補タグは、2行まで
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「乗車場所の候補タグは、毎回、2行までに収まるように絞ってください」
+ *
+ *  ★名前の長さで、折り返しの数が変わります。
+ *    画面に置いたあとで measurement（高さ）を見て、
+ *    3行目に回ったものを外します。
+ * ---------------------------------------------------------- */
+function placeChipsFit(){
+  const inp = document.getElementById('f_place');
+  if (!inp) return;
+  const box = inp.parentElement.querySelector('.chips');
+  if (!box) return;
+  const bs = [...box.querySelectorAll('.chip')];
+  bs.forEach(function (b) { b.hidden = false; });
+  const tops = [];
+  bs.forEach(function (b) {
+    const t = Math.round(b.offsetTop);
+    if (tops.indexOf(t) === -1) tops.push(t);
+    if (tops.length > 2) b.hidden = true;
+  });
+}
+
+/* ------------------------------------------------------------
+ *  目次（ご指示・2026/11/13）
+ *    「全てのページの各見出しの目次を付けて、
+ *      目次から、すぐにページへスクロールできるようにしてください」
+ *
+ *  ★その画面に出ている見出しを、そのまま並べます。
+ *    押すと、その見出しまで すっと動きます。
+ *    一番上の行（貼り付いている行）のぶんだけ、下げて止めます。
+ * ---------------------------------------------------------- */
+function tocBuild(){
+  const old = document.getElementById('toc');
+  if (old) old.remove();
+  const hs = [...document.querySelectorAll('#panesTop .card > h2, #ktop > h2, #panes .card > h2')];
+  if (hs.length < 2) return;
+  hs.forEach(function (h, i) { if (!h.id) h.id = 'sec' + i; });
+  const nav = document.createElement('div');
+  nav.className = 'toc'; nav.id = 'toc';
+  nav.innerHTML = '<span class="tocl">目次</span>' + hs.map(function (h) {
+    return '<button class="chip" data-toc="' + h.id + '">' +
+      esc(h.textContent.trim()) + '</button>';
+  }).join('');
+  const host = document.getElementById('panesTop') || document.getElementById('panes');
+  host.parentNode.insertBefore(nav, host);
+  nav.querySelectorAll('[data-toc]').forEach(function (b) {
+    b.onclick = function () {
+      const el = document.getElementById(b.dataset.toc);
+      if (!el) return;
+      const hd = document.querySelector('header');
+      const off = (hd ? hd.getBoundingClientRect().height : 0) + 8;
+      window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - off,
+                        behavior: 'smooth' });
+    };
+  });
 }
 
 /* ------------------------------------------------------------
@@ -3238,6 +3324,17 @@ function wire(){
   });
   /* ★えらんだものを、その欄だけ 空に戻します
        （ご指示・2026/11/13「各選択項目で、リセットボタンも追加してください」）。 */
+  /* ★乗車金額は、押すたびに うしろへ足していきます（ご指示・2026/11/13） */
+  document.querySelectorAll('[data-fa]').forEach(function (b) {
+    b.onclick = function () {
+      grab();
+      const cur = String(form.fare == null ? '' : form.fare);
+      if (b.dataset.fa === 'BS') form.fare = cur.slice(0, -1);
+      else if (cur.length < 7)   form.fare = cur + b.dataset.fa;
+      msg = ''; render();
+      const i = document.getElementById('f_fare'); if (i) i.focus();
+    };
+  });
   document.querySelectorAll('[data-clr]').forEach(function (b) {
     b.onclick = function () {
       grab();

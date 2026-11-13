@@ -1617,9 +1617,11 @@ console.log('■ 入力欄と、タグの言い方（ご指示・2026/11/12）')
   /* ★見本の字は、もっと薄く */
   t(/::placeholder\{color:var\(--chipoff\);opacity:\.4\d\}/.test(css),
     '★★★見本の字は、もっと薄くした');
-  /* ★時刻の見本は 2530 */
-  t(/placeholder="2530"/.test(app), '★★★時刻の見本は「2530」');
+  /* ★見本の字（ご指示・2026/11/13）
+       発車時間は 0330、乗車金額は 2900。 */
+  t(/placeholder="0330"/.test(app), '★★★時刻の見本は「0330」');
   t(!/placeholder="25:30"/.test(app), '　 前の「25:30」は残っていない');
+  t(/placeholder="2900"/.test(app), '★★★金額の見本は「2900」');
   /* ★入力欄の幅は、ぜんぶ同じ */
   const form = app.slice(app.indexOf('<h2>新規の記録</h2>'), app.indexOf('<button class="btn" id="add">'));
   const ws = (form.match(/class="f w\d/g) || []).map(x => x.slice(-1));
@@ -2152,6 +2154,32 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
       cards + '枚・' + ls + '行');
   }
 
+  /* ⑥-17 2026/11/13（2回目）のご指示 */
+
+  /* 並びは 新規 → 過去 → 直近 */
+  t(/function paneInNew\(/.test(app) && /function paneInRecent\(/.test(app),
+    '★★★新規と直近を、別々に出せるようにした');
+  t(/<div id="panesTop"><\/div>/.test(idx), '　 新規を入れる場所が、過去の記録より上にある');
+  t(idx.indexOf('id="panesTop"') < idx.indexOf('id="ktop"'),
+    '★★★新規の記録 → 過去の記録 の順');
+  t(idx.indexOf('id="ktop"') < idx.indexOf('id="panes"'),
+    '★★★過去の記録 → 直近の記録 の順');
+  t(/pt\.innerHTML = \(tab === 'in'\) \? paneInNew\(\) : ''/.test(app),
+    '　 記録の画面のときだけ、新規を出す');
+
+  /* 目次 */
+  t(/function tocBuild\(/.test(app), '★★★目次を作る係がある');
+  t(/#panesTop \.card > h2, #ktop > h2, #panes \.card > h2/.test(app),
+    '　 その画面に出ている見出しを、ぜんぶ拾う');
+  t(/behavior: 'smooth'/.test(app), '★★★押すと、そこまで動く');
+  t(/hd\.getBoundingClientRect\(\)\.height/.test(app),
+    '　 貼り付いている行のぶん、下げて止める（見出しが隠れない）');
+  t(/\.toc\{/.test(css), '　 目次の見た目がある');
+
+  /* 乗り場の候補タグは2行まで */
+  t(/function placeChipsFit\(/.test(app), '★★★候補タグを2行までに絞る係がある');
+  t(/if \(tops\.length > 2\) b\.hidden = true/.test(app), '　 3行目に回ったものは出さない');
+
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
   t(/scroll-snap-type:x/.test(css), '★★★区切りの良い位置で止まる');
@@ -2180,9 +2208,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/\.chips\.mins\{display:grid;grid-template-columns:repeat\(10,1fr\)/
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
     '★★★10個ずつの ます目で並べる（45が はみ出さない）');
-  t(/\.chips\.fares\{display:grid;grid-template-columns:repeat\(8,1fr\)/
+  /* ★2026/11/13 から、金額は「数字を足していく」形（1〜9 ＋ 0〜00000）。 */
+  t(/\.chips\.fares\{display:grid;grid-template-columns:repeat\(9,1fr\)/
     .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
-    '★★★金額は8個ずつの ます目（3段ぴったり）');
+    '★★★金額の1段目は 1〜9 の9個');
   /* ★発車時間の 時・分は、それぞれ1行に収めます（ご指示・2026/11/12
        「これ、なんとかそれぞれ1行にできないですか」）。 */
   t(/\.chips\.deps\{display:grid;grid-template-columns:repeat\(12,1fr\)/
@@ -2451,12 +2480,16 @@ console.log('■ よく出る乗車金額のタグ（ご指示・2026/11/12）')
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-  t(/const FARE_CHIPS = \[600,700,800,900\]\.concat\(/.test(app),
-    '★★★600〜900 から始まる');
-  t(/1000 \+ i \* 100/.test(app) && /length: 20/.test(app),
-    '★★★1000から2900まで、100円きざみ');
-  t(/FARE_CHIPS\.map\(v => chip\(v,f\.fare,'fare'\)\)/.test(app),
-    '★★★乗車金額の欄に、そのタグが出る');
+  /* ★金額は「数字を足していく」形に変えました（ご指示・2026/11/13）
+       「1、2、3、4、5、6、7、8、9／0、00、000、0000、00000
+         という形で、数値追加できる形にしてください」 */
+  t(/const FARE_KEYS  = \['1','2','3','4','5','6','7','8','9'\]/.test(app),
+    '★★★1段目は 1〜9');
+  t(/const FARE_ZEROS = \['0','00','000','0000','00000'\]/.test(app),
+    '★★★2段目は 0・00・000・0000・00000');
+  t(/data-fa="\$\{v\}"/.test(app), '★★★押すと、うしろに足される形');
+  t(/form\.fare = cur \+ b\.dataset\.fa/.test(app), '　 押すたびに、足していく');
+  t(/data-fa="BS"/.test(app), '　 1つ消すボタンもある');
   t(/\.chips\.fares \.chip\{/.test(css), '　 その見た目も入っている');
 
   const box = {};

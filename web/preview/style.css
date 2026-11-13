@@ -131,6 +131,16 @@ body[data-hand="l"] .rst{order:99}
 body[data-hand="r"] .hrow .whoR{margin-left:auto;margin-right:0;order:9}
 body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
 .ktplace{flex-wrap:wrap}
+
+/* ★目次（ご指示・2026/11/13）。
+     「全てのページの各見出しの目次を付けて、
+       目次から、すぐにページへスクロールできるようにしてください」
+     その画面に出ている見出しを並べ、押すとそこまで動きます。 */
+.toc{display:flex;flex-wrap:wrap;gap:5px;align-items:center;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:12px;padding:8px 10px;margin:0 0 10px}
+.toc .tocl{font-size:11px;color:#FFFFFF;opacity:.8;margin-right:2px}
+.toc .chip{font-size:11.5px;padding:4px 9px;color:#FFFFFF}
 .ktplace .fsel{flex:1 1 180px;min-width:0;font-size:15px}
 .ktwho{font-size:11.5px;color:#FFFFFF;line-height:1.6;
   display:flex;flex-wrap:wrap;gap:0 10px}
@@ -979,8 +989,13 @@ td.w-mark {background:#26262A}   /* まーく様 … 灰 */
      「45までを1段目に」「2段目のギリギリまで」。
      1行に入る数を機種まかせにすると、45 だけが はみ出したりします。
      列の数を決めてしまえば、どの機種でも同じ形で収まります。 */
-.chips.fares{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-.chips.fares .chip{font-size:11px;padding:6px 0;min-width:0;letter-spacing:-.02em}
+/* ★2026/11/13 から、金額は「数字を足していく」形です（ご指示）。
+     1段目は 1〜9 の9つ。2段目は 0・00・000・0000・00000 と 消す・リセット。 */
+.chips.fares{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.chips.fares .chip{font-size:13px;padding:8px 0;min-width:0;letter-spacing:0;text-align:center}
+.chips.fares.z0{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.chips.fares.z{display:flex;flex-wrap:wrap;gap:4px}
+.chips.fares.z .chip{padding:7px 10px;font-size:12px}
 .chips.mins{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
 /* ★発車時間の 時（12個）・分（12個）は、それぞれ1行に収めます
      （ご指示・2026/11/12「これ、なんとかそれぞれ1行にできないですか」）。 */
@@ -988,7 +1003,8 @@ td.w-mark {background:#26262A}   /* まーく様 … 灰 */
 .chips.deps .chip{font-size:11px;padding:6px 0;min-width:0;letter-spacing:-.04em;border-radius:14px}
 .chips.mins .chip{font-size:12px;padding:6px 0;min-width:0;letter-spacing:0}
 @media(max-width:360px){
-  .chips.fares .chip{font-size:10px}
+  .chips.fares .chip{font-size:12px}
+  .chips.fares.z .chip{font-size:11px;padding:7px 8px}
   .chips.mins .chip{font-size:11.5px}
   .chips.deps .chip{font-size:10px}
 }
