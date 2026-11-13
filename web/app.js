@@ -141,6 +141,8 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || perio
   handLoad();                      /* 固定ボタンの位置（右利き／左利き） */
   $('#boot').hidden = true; $('#app').hidden = false;
   await reload();
+  /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
+  loadSays();
   /*
    * ★「いまアツい」は時刻で中身が変わるので、
    *   1分ごとに描き直します（通信はしません）。
@@ -790,7 +792,7 @@ function render(){
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
        ほかの乗務員の方には、要らない画面です。 */
-  const PANES = { in: () => (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
+  const PANES = { in: () => (ME.profile.is_admin ? paneOut() : '') + paneSays(), hot:paneHot, heat:paneHeat,
     tl:paneTl, sc:paneSc, ratio:paneRatio, bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
   if (!PANES[tab]) tab = 'in';
@@ -3495,6 +3497,100 @@ function paneKix(){
     'どのホテルから、何時台に呼ばれているかを並べます。');
 }
 
+/* ------------------------------------------------------------
+ *  ふきだしに足す（ご指示・2026/11/14）
+ *    「吹き出しに追加したい一言 みたいな検索枠も付けて
+ *      自由にふやせるようにしてください」
+ *
+ *  ★足したものは、みんなの画面に出ます（台帳に入れています）。
+ *  ★消せるのは、足した本人と まーく様だけです。
+ *    画面のボタンだけでなく、台帳の側でも止めています。
+ *  ★「ぼやき」と「ほめ」に分けて持ちます。
+ *    交互に出す決まりを、こわさないためです。
+ * ---------------------------------------------------------- */
+let says = [];          /* 台帳から読んだ、足されたひとこと */
+let sayText = '';       /* 入れかけの字（画面を作り直しても消えないように） */
+let sayGood = true;     /* ほめ（true）か、ぼやき（false）か */
+
+async function loadSays(){
+  try {
+    const { data, error } = await db.from('says')
+      .select('id,text,good,user_id').order('created_at', { ascending: false }).limit(300);
+    if (error || !data) return;          /* 棚がまだ無くても、黙って元のまま */
+    /* 念のため、字の入っていない行は外します（混ざると空のふきだしが出ます） */
+    says = data.filter(function (x){ return x && String(x.text || '').trim(); });
+    sayPush();
+  } catch (e) {}
+}
+/* 読んだものを、ふきだしの係に渡します */
+function sayPush(){
+  try {
+    if (typeof sayAddSet !== 'function') return;
+    sayAddSet(says.filter(x => !x.good).map(x => x.text),
+              says.filter(x =>  x.good).map(x => x.text));
+  } catch (e) {}
+}
+
+function paneSays(){
+  const mine = says.filter(x => canDelSay(x)).length;
+  return `<div class="card"><h2>ふきだしに足す</h2>
+    <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。</p>
+    <div class="ktfind">
+      <input class="ja" id="sayNew" maxlength="24"
+        placeholder="吹き出しに追加したい一言" value="${esc(sayText)}">
+    </div>
+    <div class="chips">
+      <button class="chip ${sayGood ? 'on' : ''}" data-saykind="1">ほめ</button>
+      <button class="chip ${sayGood ? '' : 'on'}" data-saykind="0">ぼやき</button>
+      <button class="btn mini" id="sayAdd">足す</button>
+    </div>
+    <p class="note">※ 全角12文字くらいまでが、きれいに収まります。</p>
+    ${says.length ? `<div class="wlist">` + says.map(x =>
+      `<div class="wli"><span class="wd ${x.good ? 'd-sat' : 'd-wd'}">${x.good ? 'ほめ' : 'ぼやき'}</span>` +
+      `<span class="wp">${esc(x.text)}</span>` +
+      (canDelSay(x) ? `<button class="mini del" data-saydel="${esc(x.id)}">消す</button>` : '') +
+      `</div>`).join('') + `</div>`
+      : '<div class="empty">まだ足されていません。</div>'}
+    ${mine || says.length ? '' : ''}
+    ${msgHTML('msgsay')}
+  </div>`;
+}
+/* 消せるのは、足した本人と まーく様だけ */
+function canDelSay(x){
+  return !!(x && (x.user_id === ME.id || (ME.profile && ME.profile.is_admin)));
+}
+
+async function sayAddNew(){
+  const t = String($('#sayNew') ? $('#sayNew').value : '').trim();
+  if (!t) { bad('ひとことを書いてから押してください'); return; }
+  if (t.length > 24) { bad('長すぎます。24文字までにしてください'); return; }
+  if (says.some(x => x.text === t)) { bad('同じひとことが、もう入っています'); return; }
+  try {
+    const { error } = await db.from('says').insert({ text: t, good: sayGood, user_id: ME.id });
+    if (error) {
+      const m = String(error.message || '');
+      bad(/relation|does not exist|schema cache/i.test(m)
+          ? 'ふきだしの置き場が、まだ台帳にありません（少し待ってから、もう一度）'
+          : jaError(error));
+      return;
+    }
+    sayText = '';
+    await loadSays();
+    ok('足しました');
+    render();
+  } catch (e) { bad(jaError(e)); }
+}
+
+async function sayDel(id){
+  try {
+    const { error } = await db.from('says').delete().eq('id', id);
+    if (error) { bad(jaError(error)); return; }
+    await loadSays();
+    ok('消しました');
+    render();
+  } catch (e) { bad(jaError(e)); }
+}
+
 /* ---- 書き出し・取り込み（「記録」の下に出します） ---- */
 function paneOut(){
   return `<div class="card"><h2>書き出し</h2>
@@ -4109,6 +4205,16 @@ function wire(){
   });
   if ($('#fb'))     $('#fb').addEventListener('input', e => { fbText = e.target.value; });
   if ($('#fbSend')) $('#fbSend').onclick = fbSend;
+  /* ふきだしに足す（ご指示・2026/11/14） */
+  const sn = $('#sayNew');
+  if (sn) { sn.oninput = function (){ sayText = sn.value; }; }
+  if ($('#sayAdd')) $('#sayAdd').onclick = sayAddNew;
+  document.querySelectorAll('[data-saykind]').forEach(function (b){
+    b.onclick = function (){ sayGood = b.dataset.saykind === '1'; render(); };
+  });
+  document.querySelectorAll('[data-saydel]').forEach(function (b){
+    b.onclick = function (){ sayDel(b.dataset.saydel); };
+  });
   if ($('#add'))    $('#add').onclick = addRec;
   if ($('#cancel')) $('#cancel').onclick = () => { editId = null; form = {}; msg = ''; render(); };
   if ($('#csvout')) $('#csvout').onclick = () => dl(csv());

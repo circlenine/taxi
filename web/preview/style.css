@@ -393,7 +393,7 @@ h1.dn2{font-family:var(--disp);letter-spacing:.08em}
 /* ★題を小さくして、ふきだしに幅をゆずります（ご指示・2026/11/14）。
      「題を小さくして、幅をゆずる」をお選びいただきました。
      ふきだしのひとことが、どの機種でも最後まで読めるようにするためです。 */
-@media(max-width:640px){:root{--logo:clamp(13px,3.6vw,22px)}}
+@media(max-width:640px){:root{--logo:clamp(13px,4.4vw,24px)}}
 /* 地図で開ける場所の名前（ご指示・2026/11/11） */
 .plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
 .plink:hover{border-bottom-color:var(--andon)}
@@ -966,7 +966,10 @@ header > h1, .login .head > h1{white-space:nowrap}
      min-height だと、1行のときと2行のときで高さが変わります。
    ★行の高さを px で決めています。字の大きさが画面ごとに変わっても、
      2行ぶんの高さが動かないようにするためです。 */
-.saymount .bubble{flex:1 1 auto;min-width:0;max-width:260px;
+/* ★幅は「残っている場所」で決めます（flex-basis を 0 に）。
+     auto のままだと、中の字を小さくすると ふきだしも一緒に縮むので、
+     「入るまで小さくする」がいつまでも終わりません（2026/11/14）。 */
+.saymount .bubble{flex:1 1 0;min-width:0;max-width:260px;
   /* ★高さは、題の字の高さ（大きさ×1.2）とぴたり同じ */
   height:calc(var(--logo) * 1.2);
   min-height:calc(var(--logo) * 1.2);max-height:calc(var(--logo) * 1.2);
@@ -1589,4 +1592,14 @@ header{padding-left:33px;padding-right:33px}
 /* 細い機種では、題の行の余白も詰めます（ここだけは そろえ方より中身を優先） */
 @media(max-width:375px){
   header{padding-left:16px;padding-right:16px}
+}
+
+/* ★題の字づめを、キュッと詰めます（ご質問・2026/11/14
+     「TAXINOTE の文字横幅をもう少しキュッとしても、
+       ふきだしははみ出てしまうのでしょうか」）。
+   字の大きさを小さくするより、字と字のすき間を詰めるほうが、
+   題は読みやすいまま 幅だけが縮みます。
+   .17em → .05em で、390px では 24px ぶん 縮みます。 */
+@media(max-width:640px){
+  h1.dn{letter-spacing:.05em}
 }

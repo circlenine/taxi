@@ -1,4 +1,5 @@
 {
-  "id": "2026-11-14-joh5",
-  "do": ["web-events"]
+  "id": "2026-11-14-says",
+  "do": ["web-sql", "web-events"],
+  "go": true
 }

@@ -141,8 +141,13 @@ console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
     const o = box.OUT;
     t(o.bp === 100, '★★★ぼやきの顔が、ちょうど100通り', o.bp);
     t(o.gp === 100, '★★★ありがとうの顔が、ちょうど100通り', o.gp);
-    t(o.sb === 100, '★★★ぼやきのひとことが、ちょうど100通り', o.sb);
-    t(o.sg === 100, '★★★ありがとうのひとことが、ちょうど100通り', o.sg);
+    /* ★ひとことは、まーく様がお決めになったものに入れ替えました
+         （ご指示・2026/11/14「ふきだしのセリフを以下にしてください」）。
+       数は決め打ちにしません。画面から いくつでも足せるためです。
+       ただし「交互に出す」ので、両方とも空でないこと・
+       数がそろっていることだけは、必ず確かめます。 */
+    t(o.sb >= 5 && o.sg >= 5, '★★★ひとことが、どちらも5つ以上ある', [o.sb, o.sg]);
+    t(o.sb === o.sg, '★★★ぼやきとほめの数が、そろっている', [o.sb, o.sg]);
     t(o.be === 10 && o.bm === 10 && o.ge === 10 && o.gm === 10,
       '　 どれも 目10 × 口10 で数えている', [o.be, o.bm, o.ge, o.gm]);
     t(o.kasanari === 0, '★★★しかめ顔と笑い顔に、同じ部品を混ぜていない', o.kasanari);
@@ -229,8 +234,8 @@ console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・
     t(o.bad === 0, '★★★2回続けて同じものは、1度も出ない', o.bad);
     t(o.kinds[0] === 10 && o.kinds[1] === 10 && o.kinds[2] === 10 && o.kinds[3] === 10,
       '　 それでも、目も口も ぜんぶ出てくる（しかめ顔・笑い顔とも）', o.kinds);
-    t(o.kinds[4] === 100 && o.kinds[5] === 100,
-      '　 ひとことも、100通りぜんぶ出てくる', [o.kinds[4], o.kinds[5]]);
+    t(o.kinds[4] >= 5 && o.kinds[5] >= 5,
+      '　 ひとことも、ぜんぶ出てくる', [o.kinds[4], o.kinds[5]]);
     t(o.kinds[6] === 6 && o.kira === 6, '　 キラの名前は6人ぶん', o.kira);
   } else {
     t(false, '★顔の中身が見つからない');
@@ -434,8 +439,8 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
                           Object.keys(SAY_BAD.concat(SAY_GOOD).reduce(function(o,x){o[x]=1;return o;},{})).length };
       })();`, box);
     const S = box.S;
-    t(S.good === 100, '★★★ありがとうのひとことが、ちょうど100通りある', S.good);
-    t(S.bad === 100,  '★★★ぼやきも100通りある（片方だけ少ないと、すぐ同じのが戻る）', S.bad);
+    t(S.good >= 5, '★★★ほめのひとことがある', S.good);
+    t(S.bad === S.good, '★★★ぼやきとほめの数が、そろっている', [S.bad, S.good]);
     t(S.alt === true, '★★★かならず「ぼやき→ありがとう」の交互になる');
     t(S.first === 'B', '　 はじめは ぼやきから', S.first);
     t(S.dup === 0, '　 同じ文が、両方に入っていない', S.dup);
@@ -445,7 +450,8 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
      */
     t(S.maxlen <= 12, '★★★ひとことは12字まで（1行に収めるため）', S.maxlen);
     t(S.sameLen === 0, '　 同じ文が、同じ側にも入っていない', S.sameLen);
-    t(S.kindsB > 60 && S.kindsG > 60, '　 どちらも、ちゃんと散らばる', [S.kindsB, S.kindsG]);
+    t(S.kindsB >= S.bad && S.kindsG >= S.good,
+      '　 どちらも、ちゃんと散らばる', [S.kindsB, S.kindsG]);
   }
 }
 
@@ -693,7 +699,10 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
    */
   t(/\.hmain > \.saymount\{[^}]*flex:1 1 auto/.test(css),
     '★★★ふきだしは、余っている幅いっぱいまで広がる');
-  t(/\.saymount \.bubble\{[^}]*flex:1 1 auto/.test(css),
+  /* ★basis を 0 にしています（2026/11/14）。auto のままだと、
+       中の字を小さくすると ふきだしも一緒に縮むので、
+       「入るまで小さくする」がいつまでも終わりません。 */
+  t(/\.saymount \.bubble\{[^}]*flex:1 1 0/.test(css),
     '★★★中のふきだしも、伸びる形になっている');
   t(!/\.saymount \.bubble\{[^}]*[^-]width:\d+px/.test(css),
     '★★★幅の決め打ちは、どこにも残っていない');
@@ -1868,14 +1877,53 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
 }
 
+console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8');
+  /* 「吹き出しに追加したい一言 みたいな検索枠も付けて
+       自由にふやせるようにしてください」 */
+  t(/placeholder="吹き出しに追加したい一言"/.test(app),
+    '★★★入れる枠がある（そのままの言い方で）');
+  t(/function paneSays\(\)/.test(app) && /paneOut\(\) : ''\) \+ paneSays\(\)/.test(app),
+    '★★★【記録】の画面に出る');
+  t(/db\.from\('says'\)[\s\S]{0,80}\.insert\(/.test(app), '★★★足したものを、台帳に入れる');
+  t(/db\.from\('says'\)[\s\S]{0,80}\.delete\(\)/.test(app), '　 消すこともできる');
+  t(/function canDelSay\(x\)/.test(app)
+    && /x\.user_id === ME\.id \|\| \(ME\.profile && ME\.profile\.is_admin\)/.test(app),
+    '★★★消せるのは、足した本人と まーく様だけ（画面の側）');
+  t(/create policy says_delete[\s\S]{0,160}user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(sql),
+    '★★★台帳の側でも止まっている（片方だけでは守りにならない）');
+  t(/create table if not exists public\.says/.test(sql), '　 棚を作る文がある');
+  t(/alter table public\.says enable row level security/.test(sql), '　 守りが入っている');
+  /* 交互に出す決まりは、足しても こわれないこと */
+  t(/function sayAddSet\(bad, good\)/.test(sh)
+    && /_sayB = SAY_BAD\.concat\(bad \|\| \[\]\)/.test(sh),
+    '★★★足したぶんも、ぼやき・ほめに分けて持つ');
+  t(/const arr = \(_sayTurn\+\+ % 2 === 0\) \? _sayB : _sayG;/.test(sh),
+    '★★★足しても、交互に出る');
+  t(/_sayWidest = '';/.test(sh), '　 足したら、幅も測り直す');
+  /* まーく様がお決めになったひとこと（ご指示・2026/11/14） */
+  ['やってんねぇ！','ドリーマーやな！','ええやん！','ぃやぁ～！','やるんだなライナー！',
+   '良い人生でした','ﾌｩｰﾝ、そうだねｪｰ','おぅ、しばくぞぉ？','ええとこ行っとるやん！',
+   'ドパらせてくれぇ！'].forEach(function (x) {
+    t(sh.indexOf("'" + x + "'") !== -1, '　 「' + x + '」が入っている');
+  });
+}
+
 console.log('■ ふきだしのひとことが、最後まで読める（ご指示・2026/11/14）');
 {
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
   /* ご指示「題を小さくして、幅をゆずる」
      ひとことが「エアコン、ちょうどえ…」と切れていました。 */
-  t(/--logo:clamp\(13px,3\.6vw,22px\)/.test(css),
-    '★★★題を小さくして、ふきだしに幅をゆずった');
+  /* ★字の大きさを小さくするより、字と字のすき間を詰めるほうが、
+       題は読みやすいまま 幅だけが縮みます（ご質問・2026/11/14）。 */
+  t(/--logo:clamp\(13px,4\.4vw,24px\)/.test(css),
+    '★★★題は、字づめをキュッとして幅をゆずった');
+  t(/h1\.dn\{letter-spacing:\.05em\}/.test(css),
+    '★★★題の字づめを詰めた（.17em → .05em）');
   t(/\.saymount \.face\{width:30px/.test(css),
     '　 顔とすき間も、少し詰めてゆずった');
   t(/rg\.getBoundingClientRect\(\)\.width > t\.getBoundingClientRect\(\)\.width - 0\.6/
