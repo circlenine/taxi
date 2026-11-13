@@ -1873,6 +1873,34 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★並びは 名→付→待→発→金→乗→種・他→操作', th.join('/'));
   t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('<th>種・他</th>'),
     '★★★修正・削除が、表の右端（ご指示・2026/11/12）');
+  /* ★8つの欄が、390px の画面に ぜんぶ入る（ご指示・2026/11/13
+       「この微妙に右が見切れてのが嫌なので 映せるなら映して欲しいですし、
+         どうしても無理なら、見切れない幅調整をしてください」）。
+       前は 9つの欄のころの幅が残っていて、合計 514px ありました。 */
+  {
+    const wm = {};
+    /* 「th:nth-child(2),th:nth-child(4){width:32px}」のように
+       まとめて書いてある分も、ぜんぶ拾います */
+    (css.match(/\.scroll\.tbl th:nth-child\(\d\)[^{]*\{width:\d+px/g) || [])
+      .forEach(function (x) {
+        const w = +x.match(/\{width:(\d+)px/)[1];
+        (x.match(/nth-child\((\d)\)/g) || []).forEach(function (c) {
+          wm[c.replace(/\D/g, '')] = w;
+        });
+      });
+    const ops = (css.match(/\.scroll\.tbl th\.ops[^{]*\{width:(\d+)px/) || [])[1];
+    const pad = (css.match(/\.scroll\.tbl th,\.scroll\.tbl td\{[^}]*padding:6px (\d+)px/) || [])[1];
+    const cols = [wm[1], wm[2], wm[3], wm[4], wm[5], wm[6], wm[7], +ops];
+    const sum  = cols.reduce(function (t, v) { return t + (v || 0); }, 0)
+               + 8 * 2 * (+pad || 0) + 12;
+    t(cols.every(function (v) { return v > 0; }),
+      '　 8つの欄すべてに、幅が決まっている', cols);
+    t(sum <= 356, '★★★表の幅の合計が、390pxの画面に収まる', sum);
+    t(!/nth-child\(8\)/.test(css),
+      '　 9つの欄のころの幅（8番目）は、残っていない');
+    t(/\.scroll\.tbl \.mtag\{font-size:9\.5px/.test(css),
+      '　 種のタグは、表の中では小さくする');
+  }
   t(/>修正</.test(app) && />削除</.test(app), '★★★「修正」「削除」という名前');
   const tbl = app.slice(app.indexOf('function tableHTML'), app.indexOf('const KANA_SHORT'));
   t(!/>直す</.test(tbl) && !/>消す</.test(tbl), '　 表に、前の「直す」「消す」は残っていない');
@@ -2080,15 +2108,37 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
             「もっと左の日付部分スマートに短くできませんか？
               1番大事なのは表の中身なので、表の中身が1画面で
               できるだけはっきり見られる形に見直してください」 */
-  t(/const L = 56, Rp = 16, rowH = 58;/.test(app),
+  t(/const L = 58, Rp = 16, rowH = 54, TOPH = 30;/.test(app),
     '★★★左の日付の欄をせまく、1行の高さも低くした');
+  /* ⑥-12b 横棒グラフ：パッと見て分かる形に（ご指摘・2026/11/13
+            「これ、パッと見、よく分からないので もっと視覚的に
+              わかりやすく工夫して再見直しできませんか？」） */
+  t(/#FF6A60','ロング'/.test(app) && /#F2C14E','ミドル'/.test(app)
+    && /#6FB7FF','ショート'/.test(app),
+    '★★★帯の色は、金額の3段階で塗り分ける');
+  t(/class="trow"/.test(app) && /\.trow\{/.test(css),
+    '★★★1日ごとに、下じきを敷いて行を区切る');
+  t(/class="tlin"/.test(app) && /\.tlin\{/.test(css),
+    '★★★乗り場の名前を、帯の中に出す');
+  t(/\$\{rows\.length\}件 \$\{yen\(sum\)\}/.test(app),
+    '★★★日付の下に、その日の件数と合計を出す');
+  t((app.match(/text-anchor="middle" style="font-size:11px">\$\{h\}/g) || []).length >= 2,
+    '★★★時刻の数字は、上と下の両方に出す');
   t(/fmtD\(d\)\.replace\('\(', ' '\)\.replace\('\)', ''\)/.test(app),
     '★★★日付は「11/11 水」の形（かっこを外して短く）');
   t(/const need = Math\.max\(1, Math\.min\(x1 - x0, 22 - x0\)\)/.test(app),
     '★★★22時までが、横にスクロールせずに見られる');
   t(/const cwT  = Math\.max\(30, Math\.min\(52/.test(app), '　 1時間ぶんの幅を、画面に合わせる');
-  t(/const right = c \+ 5 \+ 54 <= W - 2;/.test(app),
-    '★★★大きい金額の字が、右の端で切れない');
+  /* ⑥-12c 目次：隠している見出しは、目次にも出さない（ご指摘・2026/11/13
+            「過去の記録は記録ページのみで良いと言いましたよね？
+              なんで他のページにも残ったままなのでしょうか」）
+            画面からは消えていたのに、目次にだけ名前が残っていました。 */
+  t(/\.filter\(function \(h\) \{ return !h\.closest\('\[hidden\]'\); \}\);/.test(app),
+    '★★★隠している見出しは、目次に出さない');
+
+  t(/const nm = String\(r\.place \|\| ''\);/.test(app)
+    && /bw >= nm\.length\*9 \+ 8/.test(app),
+    '★★★乗り場の名前は、入る広さがあるときだけ出す（切れない）');
 
   /* ⑥-13 折線グラフ：中分類ごとに1枚ずつ＋好きな乗り場をえらべる。
           ご指示（2026/11/13）
@@ -2514,8 +2564,24 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
   /* 横棒グラフ・折れ線グラフは、横画面で収まる幅に */
   t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* cwT;/.test(app),
     '★★★横棒グラフは、時間の数から幅を決める（画面に合わせる）');
-  t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* cwS, H = 360;/.test(app),
+  t(/const W = L \+ Rp \+ Math\.max\(1, \(x1 - x0\)\) \* cwS, H = 236;/.test(app),
     '★★★折線グラフも、同じ決め方にそろえる');
+  /* 折線グラフの読みやすさ（ご指摘・2026/11/13
+       「もっと丸のさいずを小さくしたり、極力、数字が被らないような配置に、
+         下のメモリもなにもみえなくなってしまってる、
+         左の値のスペースがでかすぎますので もっとスマートにギリギリまで詰めて、
+         縦1画面でできる限り収まる形に」） */
+  t(/const L = 50, Rp = 14, T = 12, B = 30;/.test(app),
+    '★★★左の数字の場所を、ギリギリまで詰めた');
+  t(/r="2\.8"/.test(app), '★★★丸を小さくした');
+  t(/const axisBottom = \(\) =>/.test(app) && /\.axis-l\{/.test(css),
+    '★★★一番下の線と目盛りが、点に隠れない');
+  t(/\[500,1000,2000,2500,5000,10000,20000\]/.test(app),
+    '★★★目盛りは4〜5本（線だらけにしない）');
+  t(/if \(x < L \|\| x \+ w > W - 2 \|\| y < T \+ 2 \|\| y > H - B - 2\) return false;/.test(app),
+    '★★★金額の数字は、枠の外に出さない');
+  t(/\[5,-4\],\[5,-13\],\[5,5\],\[-5-w,-4\]/.test(app),
+    '★★★数字は、右・左・上・下と置き場所をさがす（重ねない）');
   t((app.match(/横にスクロールできます（横画面推奨）/g) || []).length >= 3,
     '★★★横画面をすすめる案内を、どのグラフにも出す');
   t(/<div class="scroll fb">/.test(app), '　 図は、カードの端いっぱいまで使う');

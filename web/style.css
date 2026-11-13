@@ -459,6 +459,13 @@ svg{display:block}
 .axis{fill:var(--muted);font-family:var(--mono);font-size:11px}
 .glab{fill:var(--paper);font-family:var(--mono);font-size:10px}
 .grid-l{stroke:#243350;stroke-width:1}
+/* ★一番下と左の線・目盛り。点に隠れないよう、はっきり出します
+     （ご指摘・2026/11/13「下のメモリもなにもみえなくなってしまってる」）。 */
+.axis-l{stroke:#7C8BA6;stroke-width:1.2}
+/* ★横棒グラフの、1日ぶんの下じき。行の区切りが見えるようにします
+     （ご指摘・2026/11/13「パッと見、よく分からない」）。 */
+.trow{fill:#18223A}
+.tlin{fill:#10192B;font-family:var(--mono);font-weight:700}
 .toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
 .legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px}
@@ -1035,28 +1042,36 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* ★カードの端いっぱいまで使います。そのほうが1列ぶん多く見えます。 */
 .scroll.tbl{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
   margin:0 -16px;width:calc(100% + 32px)}
-.scroll.tbl th:first-child,.scroll.tbl td:first-child{padding-left:12px}
-.scroll.tbl th:last-child,.scroll.tbl td:last-child{padding-right:12px}
+.scroll.tbl th:first-child,.scroll.tbl td:first-child{padding-left:8px}
+.scroll.tbl th:last-child,.scroll.tbl td:last-child{padding-right:8px}
 .scroll.tbl table{table-layout:fixed;width:auto}
-.scroll.tbl th,.scroll.tbl td{scroll-snap-align:start;padding:6px 5px;font-size:12px;
+.scroll.tbl th,.scroll.tbl td{scroll-snap-align:start;padding:6px 2px;font-size:11.5px;
   vertical-align:middle}
 .scroll.tbl th{font-size:11px;letter-spacing:0;white-space:nowrap;text-align:center;font-weight:700}
-.scroll.tbl th.ops,.scroll.tbl td.ops{width:46px;min-width:46px}
 .scroll.tbl td.ops{display:table-cell;white-space:nowrap}
-.scroll.tbl td.ops .mini{display:block;width:100%;min-height:18px;font-size:10.5px;
+.scroll.tbl td.ops .mini{display:block;width:100%;min-height:18px;font-size:10px;
   padding:2px 0;margin:1px 0}
 .scroll.tbl td.ops .mini.del{border-color:var(--andon);color:#FFFFFF}
-/* 並びは 名／付／待／発／金／乗／種／他／修正削除（ご指示・2026/11/12） */
-.scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:36px;min-width:36px;
-  font-family:var(--mono);font-size:11px;white-space:nowrap}
-.scroll.tbl th:nth-child(2),.scroll.tbl th:nth-child(4){width:40px;min-width:40px}
-.scroll.tbl th:nth-child(3){width:26px;min-width:26px}
-.scroll.tbl th:nth-child(5){width:56px;min-width:56px}
-.scroll.tbl th:nth-child(6),.scroll.tbl td.c-place{width:70px;min-width:70px;
-  white-space:normal;word-break:break-all;line-height:1.4}
-.scroll.tbl th:nth-child(7){width:50px;min-width:50px}
-.scroll.tbl th:nth-child(8),.scroll.tbl td.c-note{width:92px;min-width:92px;
-  white-space:normal;word-break:break-all;line-height:1.4}
+/* ★8つの欄を、390px の画面に ぜんぶ入れます（ご指示・2026/11/13
+     「この微妙に右が見切れてのが嫌なので 映せるなら映して欲しいですし、
+       どうしても無理なら、見切れない幅調整をしてください」）。
+   前は 9つの欄のころの幅が残っていて、合計 514px ありました。
+   画面は 390px なので、右が切れていました。
+   いまは 名34＋付32＋待18＋発32＋金46＋乗46＋種他44＋操作40＝292、
+   すき間をふくめて 352px。390px の画面に収まります。
+   並びは 名→付→待→発→金→乗→種・他→操作（ご指示・2026/11/12）。 */
+.scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:34px;min-width:34px;
+  font-family:var(--mono);font-size:10.5px;white-space:nowrap}
+.scroll.tbl th:nth-child(2),.scroll.tbl th:nth-child(4){width:32px;min-width:32px}
+.scroll.tbl th:nth-child(3){width:16px;min-width:16px}
+/* 種のタグは、表の中では小さくします（ここが広いと、右が切れます） */
+.scroll.tbl .mtag{font-size:9.5px;padding:1px 4px;line-height:1.5}
+.scroll.tbl th:nth-child(5){width:46px;min-width:46px}
+.scroll.tbl th:nth-child(6),.scroll.tbl td.c-place{width:46px;min-width:46px;
+  white-space:normal;word-break:break-all;line-height:1.35}
+.scroll.tbl th:nth-child(7),.scroll.tbl td.c-note{width:44px;min-width:44px;
+  white-space:normal;word-break:break-all;line-height:1.35}
+.scroll.tbl th.ops,.scroll.tbl td.ops{width:40px;min-width:40px}
 
 /* 日付の見出し（変わったときだけ）。営業曜日の区分で色を分けます */
 .scroll.tbl tr.dhead td{font-family:var(--mono);font-size:12.5px;font-weight:700;
