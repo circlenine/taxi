@@ -2342,6 +2342,47 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
       '★★★新地は 4→5→7→12→17、ドンは 1→2→10 の順になる', got);
   }
 
+  /* ⑥-22 「ミナミ」が他エリアに入っていた／ミナミ15番 は ドン15
+          ご指摘（2026/11/13）
+            「ミナミって書いてるのに、他エリアにあるのおかしくないですか？
+              どうして気づかないのでしょうか。
+              また、ミナミ15は、ドン15と同じ扱いですので、ドン15に統一してください」 */
+  t(/ミナミ\|ﾐﾅﾐ\|みなみ/.test(app), '★★★「ミナミ」は、南エリアに入れる');
+  t(/ドン\|ﾄﾞﾝ/.test(app), '★★★ミナミの乗り場「ドン〇〇」も、南エリア');
+  t(/const PLACE_ALIAS = \[/.test(app), '★★★同じ所を、1つの名前にそろえる表がある');
+  t(/function aliasPlace\(/.test(app), '　 そろえる係もある');
+  t(/list\.forEach\(function \(r\)\{ if \(r\.place\) r\.place = aliasPlace\(r\.place\); \}\)/.test(app),
+    '★★★読み込んだところで、そろえる（どの画面でも1行にまとまる）');
+  t(/if \(r\.place && first\[pkey\(r\.place\)\]\) r\.place = first\[pkey\(r\.place\)\]/.test(app),
+    '★★★書き方のゆれも、はじめに入れた書き方にそろえる');
+  {
+    const box3 = {}; vm.createContext(box3);
+    const i0 = app.indexOf('function pkey(');
+    let d = 0, j0 = i0;
+    while (true) { const c = app[j0]; if (c === '{') d++; else if (c === '}') { d--; if (!d) break; } j0++; }
+    vm.runInContext(app.slice(i0, j0 + 1), box3);
+    const k0 = app.indexOf('const PLACE_ALIAS'), k1 = app.indexOf("/** 「このままでよい」");
+    vm.runInContext(app.slice(k0, k1), box3);
+    ['ミナミ15番', 'ミナミ15', 'ﾐﾅﾐ15番', 'みなみ15'].forEach(function (x) {
+      const got = vm.runInContext('aliasPlace(' + JSON.stringify(x) + ')', box3);
+      t(got === 'ドン15', '★★★' + x + ' は ドン15 にそろう', got);
+    });
+    t(vm.runInContext('aliasPlace("ドン15")', box3) === 'ドン15', '　 もともと ドン15 は、そのまま');
+    t(vm.runInContext('aliasPlace("ミナミ")', box3) === 'ミナミ', '　 番号の無い「ミナミ」は、変えない');
+  }
+  {
+    const m0 = app.indexOf('const PLACE_CATS'), m1 = app.indexOf('/* 大きな分け方の並び');
+    const box4 = {}; vm.createContext(box4);
+    vm.runInContext(app.slice(m0, m1) +
+      ';function placeCat(p){const v=String(p||"");' +
+      'for(let i=0;i<PLACE_CATS.length;i++)if(PLACE_CATS[i].t.test(v))return PLACE_CATS[i].k;return "ほか";}', box4);
+    [['ミナミ15番', 'ﾐﾅﾐ'], ['ドン15', 'ﾐﾅﾐ'], ['ドン2', 'ﾐﾅﾐ'], ['難波', 'ﾐﾅﾐ'],
+     ['新地7', '北7'], ['新地4', '北4'], ['大丸', 'ほか']].forEach(function (x) {
+      const got = vm.runInContext('placeCat(' + JSON.stringify(x[0]) + ')', box4);
+      t(got === x[1], '★★★' + x[0] + ' は ' + x[1], got);
+    });
+  }
+
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
   t(/scroll-snap-type:x/.test(css), '★★★区切りの良い位置で止まる');
