@@ -7359,5 +7359,35 @@ console.log('■ スプシ→台帳で「不明」を落とさない（2026/11/1
 }
 
 
+console.log('■ スプシ→台帳の自動反映（ご指示・2026/11/10／2026/11/13）');
+{
+  /*
+   * ★「スプシのURLを一回共有すれば、以後、自動反映できるような形で」
+   *   「僕が行う(PCをいじる操作)は限りなく少なく」
+   *   これまでは「説明」タブの [22] を押していただく形でした。
+   *   押し忘れると、台帳とスプシの数字がずれます。
+   */
+  const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const vn  = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const fn  = src.slice(src.indexOf('function webSyncTick_'),
+                        src.indexOf('function webSyncPush_'));
+  t(fn.length > 100, '★★★ひとりでに移す係がある');
+  t(/if \(h < 7 \|\| h >= 9\) return false;/.test(fn),
+    '★★★朝7時台・8時台だけ（夜の記録が ぜんぶ入ったあと）');
+  t(/pr\.getProperty\("WEB_SYNC_DONE"\) === key/.test(fn),
+    '★★★1日1回だけ（日づけの札で見分ける）');
+  t(fn.indexOf('pr.setProperty("WEB_SYNC_DONE", key);') <
+    fn.indexOf('webSyncPush_(true)'),
+    '★★★札は先に立てる（6分で切られても、同じ日に何度も読みに行かない）');
+  t(/webSyncPush_\(true\)/.test(fn), '★★★下見ではなく、ほんとうに移す');
+  t(/updErrandLog_\("🔄 台帳へ自動反映：/.test(fn),
+    '　 控えに1行 残す（走ったかどうかを、こちらから見られる）');
+  t(/catch \(e\) \{[\s\S]*logErr_\("webSyncTick", e\)/.test(fn),
+    '★★★しくじっても、ほかの仕事は止めない');
+  t(/try \{ if \(typeof webSyncTick_ === "function"\) webSyncTick_\(\); \}/.test(vn)
+    && /logErr_\("webSyncTick", e\)/.test(vn),
+    '★★★1日1回かならず通る道から、try で囲って呼んでいる');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

@@ -2,8 +2,13 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U174ver  （2026/11/12）  ★★★
+ *  ★★★  U175ver  （2026/11/13）  ★★★
  *
+ *   [U175ver]
+ *   ・🔄 スプシの記録を、台帳へ ひとりでに移すようにした（1日1回・朝7時台）
+ *     ★これまでは「説明」タブの [22] を押していただく形でした。
+ *       押し忘れると、台帳とスプシの数字がずれていました。
+ *     ★二重には入りません（営業日・時刻・金額が同じものは入れません）。
  *
  *   [U174ver]
  *   ・🔄 スプシ→台帳で、「不明」の欄をそのまま移すようにした
@@ -1936,7 +1941,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U174ver";
+const UPD_VERSION = "U175ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11729,6 +11734,49 @@ function sbGet_(path) {
     if (res.getResponseCode() !== 200) return null;
     return JSON.parse(res.getContentText());
   } catch (e) { return null; }
+}
+
+/**
+ * スプシの記録を、台帳へ ひとりでに移す（1日1回）。
+ *
+ * ★まーく様のご指示（2026/11/10）
+ *   「スプシのURLを一回共有すれば、以後、自動反映できるような形で、
+ *     web上でも、スプシ上でも見られる形にしてほしいです」
+ * ★まーく様のご指示（2026/11/13）
+ *   「僕が行う(PCをいじる操作)は限りなく少なく、今後はクロちゃん側に指示、
+ *     もしくは、全自動で行える、修正、更新等の仕組み作りを徹底してください」
+ *
+ * ★これまでは「説明」タブの [22] を押していただく形でした。
+ *   押し忘れると、台帳とスプシの数字がずれます。
+ *   押していただかなくても、毎朝ひとりでに移します。
+ *
+ * ★朝7時台にします。まーく様は 18:00〜翌06:00 のお仕事なので、
+ *   その夜の記録が ぜんぶ入ったあと、お休みになる前の時間です。
+ * ★1日1回だけ。日づけの札で見分けます。
+ * ★二重には入りません（営業日・時刻・金額が同じものは入れません）。
+ * ★鍵（TAXINOTE_EMAIL / TAXINOTE_PASS）が入っていなければ、
+ *   黙って何もしません。ほかの仕事は止めません。
+ */
+function webSyncTick_() {
+  try {
+    const now = new Date();
+    const h = now.getHours();
+    if (h < 7 || h >= 9) return false;          // 朝7時台・8時台だけ
+    const key = Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd");
+    const pr = PropertiesService.getScriptProperties();
+    if (pr.getProperty("WEB_SYNC_DONE") === key) return false;   // きょうはもう移した
+    /* 先に札を立てます。途中で6分に当たっても、
+       同じ日に何度も読みに行かないようにするためです。 */
+    pr.setProperty("WEB_SYNC_DONE", key);
+    const out = webSyncPush_(true);
+    if (out && typeof updErrandLog_ === "function") {
+      updErrandLog_("🔄 台帳へ自動反映：" + String(out).replace(/\n/g, " ").slice(0, 120));
+    }
+    return true;
+  } catch (e) {
+    try { if (typeof logErr_ === "function") logErr_("webSyncTick", e); } catch (e2) {}
+    return false;
+  }
 }
 
 /**
