@@ -408,7 +408,10 @@ console.log('■ ふきだしは2行ぶんの高さで固定（ご指摘・2026/
     '★★★字が届いてから、測り直す（届く前に測ると はみ出す）');
   t(/_sayWidest = ''/.test(sh2.slice(sh2.indexOf('const refit'))),
     '　 測り直すときは、いちばん太いひとことも選び直す');
-  t(!/-webkit-line-clamp:2/.test(css), '　 2行で止める古い書き方は残っていない');
+  /* ★ふきだしの中では、2行で止める書き方を使いません（字を縮めて1行に収めます）。
+       目次のマスでは、わざと2行までにしているので、ふきだしの所だけを見ます。 */
+  t(!/\.bubble[^{]*\{[^}]*-webkit-line-clamp:2/.test(css),
+    '　 ふきだしに、2行で止める古い書き方は残っていない');
   const face = css.split('.saymount .face{').slice(1)
                   .map(function (x) { return x.split('}')[0]; }).join(';');
   t(/width:\d+px/.test(face) && /height:\d+px/.test(face),
@@ -1978,8 +1981,19 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
   t(/db\.from\('says'\)[\s\S]{0,80}\.delete\(\)/.test(app), '　 消すこともできる');
   /* 「既にある吹き出し内容の修正もできるようにしてください」 */
   t(/async function sayUpdate\(id, t\)/.test(app)
-    && /db\.from\('says'\)[\s\S]{0,90}\.update\(\{ text: t, good: sayGood \}\)/.test(app),
+    && /db\.from\('says'\)[\s\S]{0,90}\.update\(\{ text: t \}\)/.test(app),
     '★★★すでにあるひとことを、直せる');
+  /* ★「ほめ・ぼやき」は、まーく様に選ばせません（ご指示・2026/11/13
+       「ほめ、ぼやきとかはいりません」）。
+       ただし交互に出す決まりは守るので、少ないほうへ こちらで入れます。 */
+  t(app.indexOf('data-saykind') === -1, '★★★ほめ・ぼやきのえらびは、無くなっている');
+  t(/function sayAutoGood_\(\)/.test(app) &&
+    /\.insert\(\{ text: t, good: sayAutoGood_\(\), user_id: ME\.id \}\)/.test(app),
+    '★★★どちらに入れるかは、こちらで釣り合うように決める');
+  t(/<h2>ふきだしに追加したい文言<\/h2>/.test(app),
+    '★★★見出しは「ふきだしに追加したい文言」');
+  t(!/>ほめ<\/button>/.test(app) && !/>ぼやき<\/button>/.test(app),
+    '　 ほめ・ぼやきのボタンは出ていない');
   t(/data-sayedit=/.test(app) && />直す</.test(app), '　 行ごとに【直す】が出る');
   /* ★すでに台帳へ写したあとでも、足したひとことが出るようにします。
        同じものが入っていれば、何もしません（二重に入れない）。 */
@@ -2529,9 +2543,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
        「ただし、もくじだけで、そんなに高さを埋めたくない」 */
   t(/<button class="toch" id="tocH">目次/.test(app),
     '★★★「目次」の字は、1段目に 単独で置く');
-  t(/\.tocg\{display:grid;grid-template-columns:1fr 1fr/.test(css),
-    '★★★見出しは、1段に2つずつ');
-  t(/\.tocit\{[^}]*min-height:30px/.test(css), '★★★押しやすい大きさ（30px）');
+  /* ★4列3段に変えました（ご指示・2026/11/13
+       「イベント お知らせ フィードバック も追加して、4列、3段にしてください」） */
+  t(/\.tocg\{display:grid;grid-template-columns:repeat\(4,1fr\)/.test(css),
+    '★★★見出しは、1段に4つずつ');
+  t(/\.tocit\{[^}]*min-height:34px/.test(css), '★★★押しやすい大きさ（34px）');
+  t(/const TOC_TABS = \[\{ k:'ev', n:'イベント' \}, \{ k:'news', n:'お知らせ' \},\s*\{ k:'fb', n:'フィードバック' \}\]/.test(app),
+    '★★★イベント・お知らせ・フィードバックも、目次から行ける');
+  t(/data-tocto/.test(app), '　 押すと、そのページへ移る');
   t(/<em>' \+ \(i \+ 1\) \+ '<\/em>/.test(app), '　 番号を振る（目次らしく）');
   t(/\.toc\.fold \.tocg\{display:none\}/.test(css),
     '★★★「目次」を押せば たためる（高さを食わない）');
@@ -3115,6 +3134,54 @@ console.log('\n■ 待ち時間のタグと、読み込み中の注記（ご指�
   t(ix.indexOf(note) !== -1, '★★★表の画面に注記がある');
   t(ad.indexOf(note) !== -1, '★★★管理の画面にもある');
   t(/\.bootnote\{/.test(css), '　 その見た目も入っている');
+}
+
+
+console.log('\n■ 表・タグ・期間の直し（ご指示・2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+
+  /* ★「乗り場」と「付け待ち」は同じものなので、1つにそろえました
+       （ご質問・2026/11/13「乗り場と付け待ちは、ほぼ同じ意味合いなのに、
+         2つともあるのはなぜですか？」）。
+       2つの名前で持つと、同じ乗せ方の売上が別々に数えられます。 */
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext(app.slice(app.indexOf('const METHODS = ['),
+                            app.indexOf("/** 種類ごとの色分け")), box);
+  const M = vm.runInContext('METHODS', box);
+  t(M.indexOf('付け待ち') === -1, '★★★えらべる種類から、付け待ちは外した');
+  t(M.indexOf('乗り場') !== -1, '　 乗り場は残っている');
+  const nm = vm.runInContext('normMethod', box);
+  ['付け待ち', '付待ち', 'つけ待ち', 'つけまち'].forEach(function (x) {
+    t(nm(x) === '乗り場', '★★★「' + x + '」は「乗り場」にそろえる', nm(x));
+  });
+  t(nm('乗り場') === '乗り場' && nm('ホテル') === 'ホテル', '　 ほかはそのまま');
+  t(/esc\(normMethod\(r\.method\)\)/.test(app),
+    '★★★前に入れた記録も、出すときにそろえる');
+  /* 横棒グラフの凡例も、乗り場とまぎらわしくない言い方に */
+  t(/>待ち時間<\/span>/.test(app), '　 横棒グラフの凡例は「待ち時間」');
+
+  /* ★枠の中の字は、まん中（ご指示・2026/11/13） */
+  t(/\.chip\{display:inline-flex;align-items:center;justify-content:center/.test(css),
+    '★★★タグの字は、枠のまん中');
+  t(/\.scroll\.tbl td\{text-align:center\}/.test(css), '★★★表の中身も、まん中');
+  /* ★区切りが見えないとのご指摘（2026/11/13） */
+  t(/\.scroll\.tbl th,\.scroll\.tbl td\{border-right:1px solid/.test(css),
+    '★★★表に、たての区切り線がある');
+  t(/\.grid-l\{stroke:#44598A/.test(css), '★★★表グラフの区切りも、明るくした');
+  /* 「待」の欄に「不明」が入っても、となりに重ならないこと */
+  t(/\.scroll\.tbl th:nth-child\(3\)\{width:26px/.test(css), '★★★「待」の欄は、不明が入る幅');
+  t(/\.scroll\.tbl td:nth-child\(3\)\{font-size:10px;overflow:hidden\}/.test(css),
+    '　 万が一でも、欄の外に出ない');
+
+  /* ★期間のめどしは、営業月（ご指示・2026/11/13） */
+  t(/o\.period && typeof o\.period\.mode === 'string' && o\.periodAt === today\(\)/.test(app),
+    '★★★営業日が変わったら、期間はその日の営業月に戻る');
+  t(/periodAt: today\(\)/.test(app), '　 いつの分かを、一緒に覚えている');
+  t(/let onlyPlace = '', onlyCat = '', onlyBig = '', period = \{ mode: 'c0'/.test(app),
+    '　 何も覚えていなければ、今の営業月');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

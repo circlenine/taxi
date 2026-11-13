@@ -242,12 +242,17 @@ body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
 .toch em{font-style:normal;font-size:10.5px;opacity:.7;margin-left:7px}
 .toch .fmark{margin-left:auto}
 .toc.fold .toch .fmark{transform:rotate(-90deg)}
-.tocg{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}
+.tocg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 5px}
 .toc.fold .tocg{display:none}
-.tocit{display:flex;align-items:center;gap:6px;min-height:30px;
+/* ★4列3段に並べます（ご指示・2026/11/13）。1マスが細いので、
+     字は小さくし、2行までは折り返して出します。 */
+.tocit{display:flex;align-items:center;gap:4px;min-height:34px;
   background:none;border:0;border-top:1px solid var(--ink3);
-  color:#FFFFFF;font-size:12.5px;text-align:left;padding:2px 2px;cursor:pointer;
-  min-width:0}
+  color:#FFFFFF;font-size:10.5px;line-height:1.3;text-align:left;
+  padding:3px 1px;cursor:pointer;min-width:0}
+.tocit > span{min-width:0;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tocit.tabto{border-top-color:var(--meter)}
 .tocit em{font-style:normal;font-size:10.5px;opacity:.6;flex:none;
   font-variant-numeric:tabular-nums}
 /* ★目次の見出しが、おしりで切れていました（2026/11/13）。
@@ -495,7 +500,8 @@ input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.42}
 svg{display:block}
 .axis{fill:var(--muted);font-family:var(--mono);font-size:11px}
 .glab{fill:var(--paper);font-family:var(--mono);font-size:10px}
-.grid-l{stroke:#243350;stroke-width:1}
+/* ★区切りが見えないとのご指摘（2026/11/13）。線を明るく・太くしました */
+.grid-l{stroke:#44598A;stroke-width:1.2}
 /* ★一番下と左の線・目盛り。点に隠れないよう、はっきり出します
      （ご指摘・2026/11/13「下のメモリもなにもみえなくなってしまってる」）。 */
 .axis-l{stroke:#7C8BA6;stroke-width:1.2}
@@ -1185,19 +1191,23 @@ header > h1, .login .head > h1{white-space:nowrap}
        どうしても無理なら、見切れない幅調整をしてください」）。
    前は 9つの欄のころの幅が残っていて、合計 514px ありました。
    画面は 390px なので、右が切れていました。
-   いまは 名34＋付32＋待18＋発32＋金46＋乗46＋種他44＋操作40＝292、
+   いまは 名30＋付32＋待26＋発32＋金46＋乗46＋種他42＋操作40＝294、
    すき間をふくめて 352px。390px の画面に収まります。
    並びは 名→付→待→発→金→乗→種・他→操作（ご指示・2026/11/12）。 */
-.scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:34px;min-width:34px;
+.scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:30px;min-width:30px;
   font-family:var(--mono);font-size:10.5px;white-space:nowrap}
 .scroll.tbl th:nth-child(2),.scroll.tbl th:nth-child(4){width:32px;min-width:32px}
-.scroll.tbl th:nth-child(3){width:16px;min-width:16px}
+/* ★「待」の欄は「不明」が入ることがあります（2026/11/13 に、となりの
+     欄に重なって出ていました）。字がちょうど入る幅にし、
+     万一はみ出しても、欄の外には出ないようにします。 */
+.scroll.tbl th:nth-child(3){width:26px;min-width:26px}
+.scroll.tbl td:nth-child(3){font-size:10px;overflow:hidden}
 /* 種のタグは、表の中では小さくします（ここが広いと、右が切れます） */
 .scroll.tbl .mtag{font-size:9.5px;padding:1px 4px;line-height:1.5}
 .scroll.tbl th:nth-child(5){width:46px;min-width:46px}
 .scroll.tbl th:nth-child(6),.scroll.tbl td.c-place{width:46px;min-width:46px;
   white-space:normal;word-break:break-all;line-height:1.35}
-.scroll.tbl th:nth-child(7),.scroll.tbl td.c-note{width:44px;min-width:44px;
+.scroll.tbl th:nth-child(7),.scroll.tbl td.c-note{width:42px;min-width:42px;
   white-space:normal;word-break:break-all;line-height:1.35}
 .scroll.tbl th.ops,.scroll.tbl td.ops{width:40px;min-width:40px}
 
@@ -1653,3 +1663,23 @@ header{padding-left:33px;padding-right:33px}
 
 /* 直している行を、見分けられるようにします（ご指示・2026/11/14） */
 .wli.on{outline:2px solid var(--andon);outline-offset:-2px;border-radius:8px}
+
+/* ============================================================
+   表と タグの読みやすさ（ご指示・2026/11/13）
+     「枠に対して文字は必ず中央にしてください
+       きっちり中央であれば 乗り場、付け待ちなどは
+       気持ちもう少し下にしてください」
+     「表の区切りがよく見えません」
+   ============================================================ */
+/* タグの字を、枠のまん中に置きます。日本語は上に寄って見えるので、
+   下の余白を1px 削って、気持ち下へ下げています。 */
+.chip{display:inline-flex;align-items:center;justify-content:center;
+  padding:5px 10px 3px;line-height:1.35}
+/* 表の中身も、枠のまん中に置きます */
+.scroll.tbl td{text-align:center}
+.scroll.tbl td.c-place,.scroll.tbl td.c-note{text-align:center}
+/* 区切りが見えるように、たての線も入れ、よこの線も明るくします */
+.scroll.tbl th,.scroll.tbl td{border-right:1px solid #33456B}
+.scroll.tbl th:last-child,.scroll.tbl td:last-child{border-right:0}
+.scroll.tbl td{border-bottom:1px solid #33456B}
+.scroll.tbl th{border-bottom:1px solid #4A5F90}

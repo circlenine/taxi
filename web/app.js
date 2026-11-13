@@ -99,7 +99,13 @@ function filtLoad(){
          同じ夜のうちは、押して選んだものを そのまま残します。 */
     if (typeof o.day === 'string' && o.dayAt === today()) onlyDay = o.day;
     if (typeof o.mine === 'boolean') onlyMine = o.mine;
-    if (o.period && typeof o.period.mode === 'string') {
+    /* ★期間も、営業日が変わったら「開いた日の営業月」に戻します
+         （ご指示・2026/11/13「過去の記録のデフォルト表示は全期間ではなく、
+           営業月(〇月16日〜翌〇月15日の内の、開いてる日に該当する月)に」）。
+         前の晩に「全期間」を選んだまま残ると、閑散期と繁忙期が混ざって、
+         きょうの数字として読めなくなります。
+         同じ夜のうちは、押して選んだものを そのまま残します。 */
+    if (o.period && typeof o.period.mode === 'string' && o.periodAt === today()) {
       period = { mode: o.period.mode,
                  from: String(o.period.from || ''), to: String(o.period.to || '') };
     }
@@ -109,7 +115,7 @@ function filtSave(){
   try {
     localStorage.setItem(FILT_KEY,
       JSON.stringify({ place: onlyPlace, cat: onlyCat, big: onlyBig, day: onlyDay,
-        dayAt: today(), mine: onlyMine, period: period }));
+        dayAt: today(), mine: onlyMine, period: period, periodAt: today() }));
   } catch (e) {}
 }
 function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyBig = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
@@ -173,7 +179,12 @@ async function reload(){
  *    スプシ側と同じ決まりにしておかないと、
  *    同じ乗車が別の種類として数えられてしまいます。
  * ---------------------------------------------------------- */
-const METHODS = ['GO', 'Uber', 'S.Ride', '無線', '付け待ち', '流し', '手上げ',
+/* ★「付け待ち」は、えらべる種類から外しました（ご質問・2026/11/13
+     「乗り場と付け待ちは、ほぼ同じ意味合いなのに、2つともあるのはなぜですか？」）。
+     おっしゃるとおり、同じ乗せ方を2つの名前で持っていました。
+     2つあると、同じものが別々に数えられます。
+     前に「付け待ち」で入れた記録は、下の normMethod で「乗り場」にそろえます。 */
+const METHODS = ['GO', 'Uber', 'S.Ride', '無線', '流し', '手上げ',
                  '乗り場', 'ホテル', '途中乗り', '呼び込み', 'エスライド', '道路'];
 
 /* ----------------------------------------------------------
@@ -461,6 +472,9 @@ function normMethod(v){
   /* ★エスライドは S.Ride にそろえます（ご指示・2026/11/12）。
        2つの書き方が残ると、同じものが別々に数えられます。 */
   if (/^(s[\.\s]?ride|エスライド|ｴｽﾗｲﾄﾞ|Ｓライド|sライド)$/i.test(t)) return 'S.Ride';
+  /* ★「付け待ち」＝「乗り場」。同じ乗せ方なので、1つにそろえます
+       （ご質問・2026/11/13）。別々に残すと、売上が2つに割れて読めません。 */
+  if (/^(付け?待ち?|つけ待ち|つけまち|ﾂｹﾏﾁ)$/.test(t)) return '乗り場';
   return t;
 }
 
@@ -1314,7 +1328,10 @@ function tableHTML(rows){
       '<td class="c-place">' + (r.place ? placeLink(canonPlace(r.place)) : UNK) + '</td>' +
       /* ★種と他は、1つの欄にまとめます（ご指示・2026/11/12「種・他」） */
       '<td class="ja c-note">' +
-        (r.method ? '<span class="mtag ' + mcls(r.method) + '">' + esc(r.method) + '</span> ' : '') +
+        /* ★書き方のゆれは、出すときにもそろえます（ご質問・2026/11/13）。
+             前に「付け待ち」で入れた記録も、「乗り場」として出します。 */
+        (r.method ? '<span class="mtag ' + mcls(r.method) + '">' +
+          esc(normMethod(r.method)) + '</span> ' : '') +
         esc(r.note || '') + '</td>' +
       /* ★修正・削除は、表の右端に置きます（ご指示・2026/11/12） */
       '<td class="ops">' + (canEdit(r)
@@ -2295,27 +2312,33 @@ function paneHot(now){
   const mx = Math.max.apply(null, got.rows.map(function (x){ return x.avg; }).concat([1]));
   const when = near ? 'この1か月＋去年の同じ月' : '全期間';
 
-  /* ① 一番上 … いまの天気と、営業時間ぶんの移り変わり */
-  const head = '<div class="card"><h2>今の狙い目</h2>' +
-    '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
-    '全期間の表は【表グラフ】のほうです。</p>' +
+  /*
+   * ★並びは、まーく様のご指示のとおりです（2026/11/13）。
+   *     「11/13(金) 05:27 金土の夜 は ページの中で1番上にして出してみてください
+   *       その下に 翌4時までの予想
+   *       その下に この時間に強い場所(今の時間帯に強い場所に直してください)」
+   *   天気は、その下に回します。
+   */
+  const head = '<div class="card"><h2>天気</h2>' +
     wxNowHTML() + wxHoursHTML() + '</div>' + radarCard();
 
-  /* ② いまの時刻と、その時刻の狙い目 */
+  /* ① 一番上 … いまの時刻と、その時刻の狙い目 */
   const clock = '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
     '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
+    '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
+    '全期間の表は【表グラフ】のほうです。</p>' +
     '<p class="note">' +
     (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時台の見当です。' : '') +
     '自分たちの記録からの傾向です。いま何人いるかを測っているのではありません。</p>' +
     filterChips();
 
   if (!got.rows.length) {
-    return head + clock +
+    return clock +
       '<div class="empty">この時間の記録が、まだ ' + HOT_MIN_N + '件 たまっていません。<br>' +
       '1件は、たまたまの1本なので、出しません。</div>' +
       (got.thin.length ? '<div class="note" style="margin:0">参考（件数が足りません）：' +
         got.thin.slice(0, 5).map(function (x){ return esc(x.p) + ' ' + x.n + '件'; }).join('・') + '</div>' : '') +
-      '</div>' + hotPlanCard(plan, c.early) + hotNoteCard(got);
+      '</div>' + hotPlanCard(plan, c.early) + head + hotNoteCard(got);
   }
 
   /* ★カードごと押すと、地図が開きます（ご指示・2026/11/12） */
@@ -2337,21 +2360,34 @@ function paneHot(now){
       '<td class="n">' + Math.round(x.wait) + '分</td></tr>';
   }).join('');
 
-  return head + clock +
+  return clock +
     '<div class="hot">' + cards + '</div>' +
     '<div class="note" style="margin:12px 0 0">根拠：' + esc(got.basis) + '（' + esc(when) + '）' +
     (got.loose ? '／この時間ぴったりの記録が足りないので、少し広げました' : '') + '</div>' +
     '</div>' +
     hotPlanCard(plan, c.early) +
-    '<div class="card"><h2>この時間に強い場所</h2>' +
+    '<div class="card"><h2>今の時間帯に強い場所</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
     '<th class="n">1本の平均</th><th style="width:34%"></th><th class="n">待ち</th>' +
     '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
-    hotNoteCard(got);
+    head + hotNoteCard(got);
+}
+
+/*
+ * ★「翌4時までの予想」は、中身が固まるまで 見出しごと出しません
+ *   （ご指示・2026/11/13「翌4時までの予想はデータが固まるまでは、
+ *     見出し含めて非表示にしてください」）。
+ *   ほとんどが「記録が足りない」の表は、見ても役に立たないためです。
+ *   固まった、の目安は「半分以上の時間に場所が出ていて、3つ以上あること」。
+ */
+function hotPlanReady_(plan){
+  const n = (plan || []).filter(function (s){ return s && s.top; }).length;
+  return n >= 3 && n * 2 >= (plan || []).length;
 }
 
 /** 翌4時までの見当（横に流して見ます） */
 function hotPlanCard(plan, early){
+  if (!hotPlanReady_(plan)) return '';
   return '<div class="card"><h2>翌4時までの予想</h2>' +
     '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。' +
     '空いている時間は、記録がまだ足りません。</p>' +
@@ -2462,7 +2498,7 @@ async function wxRefresh(btn){
   let ng = 0;
   try { await loadWx(); } catch (e) { ng++; }
   try { await loadAmd(); } catch (e) { ng++; }
-  try { await loadEv(); } catch (e) { ng++; }
+  try { await loadEv(true); } catch (e) { ng++; }   /* 箱は出さない */
   try { await reload(); } catch (e) { ng++; }
   radarStop();                           /* 雨雲の地図も、作り直します */
   render();
@@ -2597,7 +2633,7 @@ function tlChart(R){
   s += '</svg>';
   return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
     <div class="scroll fb">${s}</div>
-    <div class="legend"><span><i style="background:#55657F"></i>つけ待ち</span><span><i style="background:#6FB7FF"></i>ショート</span><span><i style="background:#F2C14E"></i>ミドル</span><span><i style="background:#FF6A60"></i>ロング</span><span><i style="background:#8C97AD"></i>不明</span><span>横軸は時。25＝翌1時</span></div>`;
+    <div class="legend"><span><i style="background:#55657F"></i>待ち時間</span><span><i style="background:#6FB7FF"></i>ショート</span><span><i style="background:#F2C14E"></i>ミドル</span><span><i style="background:#FF6A60"></i>ロング</span><span><i style="background:#8C97AD"></i>不明</span><span>横軸は時。25＝翌1時</span></div>`;
 }
 
 /* ------------------------------------------------------------
@@ -3557,7 +3593,6 @@ function paneKix(){
  * ---------------------------------------------------------- */
 let says = [];          /* 台帳から読んだ、足されたひとこと */
 let sayText = '';       /* 入れかけの字（画面を作り直しても消えないように） */
-let sayGood = true;     /* ほめ（true）か、ぼやき（false）か */
 let sayEdit = '';       /* 直している行（空なら、新しく足すところ） */
 
 async function loadSays(){
@@ -3601,7 +3636,7 @@ function sayPush(){
 function paneSays(){
   const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
   const now = [...sayText].length;
-  return `<div class="card" id="sayCard"><h2>ふきだしに足す</h2>
+  return `<div class="card" id="sayCard"><h2>ふきだしに追加したい文言</h2>
     <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。
       ふきだしを押すと、ここへ来られます。</p>
     <div class="ktfind">
@@ -3609,8 +3644,6 @@ function paneSays(){
         placeholder="吹き出しに追加したい一言" value="${esc(sayText)}">
     </div>
     <div class="chips">
-      <button class="chip ${sayGood ? 'on' : ''}" data-saykind="1">ほめ</button>
-      <button class="chip ${sayGood ? '' : 'on'}" data-saykind="0">ぼやき</button>
       <button class="btn mini" id="sayAdd">${sayEdit ? '直す' : '足す'}</button>
       ${sayEdit ? '<button class="chip rst" id="sayCancel">やめる</button>' : ''}
     </div>
@@ -3618,7 +3651,6 @@ function paneSays(){
       これより長いと、細い画面でおしりが切れます。</p>
     ${says.length ? `<div class="wlist">` + says.map(x =>
       `<div class="wli${sayEdit === x.id ? ' on' : ''}">` +
-      `<span class="wd ${x.good ? 'd-sat' : 'd-wd'}">${x.good ? 'ほめ' : 'ぼやき'}</span>` +
       `<span class="wp">${esc(x.text)}</span>` +
       (canDelSay(x)
         ? `<button class="mini" data-sayedit="${esc(x.id)}">直す</button>` +
@@ -3633,6 +3665,19 @@ function canDelSay(x){
   return !!(x && (x.user_id === ME.id || (ME.profile && ME.profile.is_admin)));
 }
 
+/*
+ * ★「ほめ」か「ぼやき」かは、まーく様に選ばせません（ご指示・2026/11/13
+ *     「ほめ、ぼやきとかはいりません」）。
+ *   ただし、ふきだしは この2つを**交互に**出しています
+ *   （「ネガティブばかりだと、嫌な気分になる」）。
+ *   なので、いま少ないほうに入れて、釣り合いを保ちます。
+ */
+function sayAutoGood_(){
+  const g = says.filter(x =>  x.good).length;
+  const b = says.filter(x => !x.good).length;
+  return g <= b;                         /* ほめが少なければ ほめに入れる */
+}
+
 async function sayAddNew(){
   const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
   const t = String($('#sayNew') ? $('#sayNew').value : '').trim();
@@ -3645,7 +3690,8 @@ async function sayAddNew(){
   /* 直しているときは、入れ替えます（ご指示・2026/11/14） */
   if (sayEdit) { await sayUpdate(sayEdit, t); return; }
   try {
-    const { error } = await db.from('says').insert({ text: t, good: sayGood, user_id: ME.id });
+    const { error } = await db.from('says')
+      .insert({ text: t, good: sayAutoGood_(), user_id: ME.id });
     if (error) {
       const m = String(error.message || '');
       bad(/relation|does not exist|schema cache/i.test(m)
@@ -3665,7 +3711,7 @@ async function sayAddNew(){
 async function sayUpdate(id, t){
   try {
     const { error } = await db.from('says')
-      .update({ text: t, good: sayGood }).eq('id', id);
+      .update({ text: t }).eq('id', id);   /* 区分は そのまま残す */
     if (error) { bad(jaError(error)); return; }
     sayEdit = ''; sayText = '';
     await loadSays();
@@ -3928,6 +3974,10 @@ function foldWire(){
  *    押すと、その見出しまで すっと動きます。
  *    一番上の行（貼り付いている行）のぶんだけ、下げて止めます。
  * ---------------------------------------------------------- */
+/* 目次の下につける、別ページへの行き先（ご指示・2026/11/13） */
+const TOC_TABS = [{ k:'ev', n:'イベント' }, { k:'news', n:'お知らせ' },
+  { k:'fb', n:'フィードバック' }];
+
 function tocBuild(){
   const old = document.getElementById('toc');
   if (old) old.remove();
@@ -3950,6 +4000,15 @@ function tocBuild(){
       return '<button class="tocit" data-toc="' + h.id + '">' +
         '<em>' + (i + 1) + '</em>' +
         '<span>' + esc(h.textContent.replace(/[▼▲]/g, '').trim()) + '</span></button>';
+    }).join('') +
+    /* ★イベント・お知らせ・フィードバックも、目次から行けるようにします
+         （ご指示・2026/11/13「イベント お知らせ フィードバック も追加して、
+           4列、3段にしてください」）。
+         この3つは別のページなので、押すとそのページへ移ります。 */
+    TOC_TABS.map(function (x, j) {
+      return '<button class="tocit tabto" data-tocto="' + x.k + '">' +
+        '<em>' + (hs.length + j + 1) + '</em>' +
+        '<span>' + x.n + '</span></button>';
     }).join('') + '</div>';
   const host = document.getElementById('panesTop') || document.getElementById('panes');
   host.parentNode.insertBefore(nav, host);
@@ -3960,6 +4019,12 @@ function tocBuild(){
     nav.classList.toggle('fold', on);
     try { localStorage.setItem(TOC_KEY, on ? '1' : '0'); } catch (e) {}
   };
+  nav.querySelectorAll('[data-tocto]').forEach(function (b) {
+    b.onclick = function () {
+      tab = b.dataset.tocto; tabSave(); render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
   nav.querySelectorAll('[data-toc]').forEach(function (b) {
     b.onclick = function () {
       const el = document.getElementById(b.dataset.toc);
@@ -4336,9 +4401,6 @@ function wire(){
     };
   }
   if ($('#sayAdd')) $('#sayAdd').onclick = sayAddNew;
-  document.querySelectorAll('[data-saykind]').forEach(function (b){
-    b.onclick = function (){ sayGood = b.dataset.saykind === '1'; render(); };
-  });
   document.querySelectorAll('[data-saydel]').forEach(function (b){
     b.onclick = function (){ sayDel(b.dataset.saydel); };
   });
@@ -4347,7 +4409,7 @@ function wire(){
     b.onclick = function (){
       const x = says.filter(function (y){ return y.id === b.dataset.sayedit; })[0];
       if (!x) return;
-      sayEdit = x.id; sayText = x.text; sayGood = !!x.good;
+      sayEdit = x.id; sayText = x.text;
       render();
       const i = $('#sayNew'); if (i) { i.focus(); i.select(); }
     };
@@ -4822,13 +4884,17 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 let evData = null;
 const EV_KEY = 'tsukemachi.ev.hide';     // 「今日はもう表示しない」を覚える所
 
-async function loadEv(){
+async function loadEv(quiet){
   try {
     const res = await fetch('data/events.json', { cache: 'no-store' });
     if (!res.ok) throw new Error('status ' + res.status);
     evData = await res.json();
   } catch (e) { evData = { at:'', days:[] }; }
-  evBoot();
+  /* ★【更新】から呼ばれたときは、まん中の箱を出しません（ご指示・2026/11/13
+       「天気の更新の時にポップアップのイベント表示が出るのはおかしいので、
+         天気の更新の際にポップアップを出すのはやめてください」）。
+       押したのは天気の取り直しなので、イベントの箱が出ると邪魔になります。 */
+  if (!quiet) evBoot(); else evDotOnly_();
   if (tab === 'ev') render();
 }
 
@@ -5112,6 +5178,16 @@ function evHiddenToday(){
 }
 function evHideToday(){
   try { localStorage.setItem(EV_KEY, evNight()); } catch (e) {}
+}
+/* 箱は出さず、赤い点だけを付け直します（【更新】のとき） */
+function evDotOnly_(){
+  try {
+    const d = evToday();
+    const n = (d && d.list) ? d.list.length : 0;
+    const dot = document.getElementById('evDot');
+    if (dot) dot.hidden = !n;
+    menuDot();
+  } catch (e) {}
 }
 function evBoot(){
   try {

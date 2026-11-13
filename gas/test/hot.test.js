@@ -178,9 +178,29 @@ console.log('■ 翌4時までの見当（ご指示・2026/11/12）');
   ok(plan[1].h === 2, '26時は「2時台」と出す', plan[1].h);
 }
 
+console.log('■ 翌4時までの予想は、固まるまで出さない（ご指示・2026/11/13）');
+{
+  const tp = p => ({ p: p, avg: 9000, n: 3 });
+  /* からっぽ … 見出しごと出ない */
+  ok(H.hotPlanCard([{ h:18, top:null }, { h:19, top:null }, { h:20, top:null }], false) === '',
+     '★★★中身が無ければ、見出しも出さない');
+  /* 2つだけ … まだ固まっていないので出ない */
+  ok(H.hotPlanCard([{ h:18, top:tp('A') }, { h:19, top:tp('B') },
+                    { h:20, top:null }, { h:21, top:null }], false) === '',
+     '★★★半分しか無ければ、まだ出さない');
+  /* 3つ以上で、半分以上あれば出す */
+  ok(H.hotPlanCard([{ h:18, top:tp('A') }, { h:19, top:tp('B') },
+                    { h:20, top:tp('C') }, { h:21, top:null }], false)
+       .indexOf('翌4時までの予想') !== -1,
+     '★★★そろったら、出す');
+}
+
 console.log('■ 見出しの字（「いま」と書いてよいのは乗務中だけ）');
 {
-  const plan = [{ h: 18, top: null }, { h: 19, top: null }, { h: 20, top: null }];
+  /* ★「翌4時までの予想」は、中身が固まるまで 見出しごと出しません
+       （ご指示・2026/11/13）。なので、ここでは中身の入った plan で見ます。 */
+  const tp   = p => ({ p: p, avg: 9000, n: 3 });
+  const plan = [{ h: 18, top: tp('A') }, { h: 19, top: tp('B') }, { h: 20, top: tp('C') }];
   const now  = H.hotPlanCard(plan, false);
   const soon = H.hotPlanCard(plan, true);
   ok(now.indexOf('いま</small>') !== -1, '乗務中は「いま」と書く');
@@ -242,7 +262,11 @@ console.log('■ 画面への組み込み（押すところ・描くところ）
 {
   ok(/data-t="hot"/.test(htmlSrc), 'index.html に「今の狙い目」の押しどころがある');
   ok(/data-t="hot"[^>]*><b>狙い目</.test(htmlSrc), '押しどころの名前は「狙い目」');
-  ok(/<h2>今の狙い目<\/h2>/.test(appSrc), '画面の題は「今の狙い目」');
+  /* ★並びは、まーく様のご指示のとおりです（2026/11/13）。
+       日時＋金土の夜 → 翌4時までの予想 → 今の時間帯に強い場所 → 天気 */
+  ok(/<h2>今の時間帯に強い場所<\/h2>/.test(appSrc), '表の題は「今の時間帯に強い場所」');
+  ok(appSrc.indexOf('<h2>この時間に強い場所</h2>') === -1, '古い題は残っていない');
+  ok(/<h2>天気<\/h2>/.test(appSrc), '天気の区切りがある');
   ok(/hot\s*:\s*paneHot/.test(appSrc), 'app.js が hot のときに paneHot を描く');
   ok(/loadWx\(\)/.test(appSrc), '起動のときに天気を読む');
   ok(/setInterval\(/.test(appSrc), '時刻が変わったら描き直す');
@@ -339,7 +363,8 @@ console.log('■ カードを押すと地図が開く（ご指示・2026/11/12�
   ok(/<a class="hotc[^"]*" href="https:\/\/www\.google\.com\/maps/.test(html),
      '★★★1位〜3位のカードごと、地図につながっている');
   ok(/<a class="pl" href="https:\/\/www\.google\.com\/maps/.test(html) ||
-     html.indexOf('記録が足りない') !== -1, '翌4時までの予想も、押せば地図が開く');
+     html.indexOf('翌4時までの予想') === -1,
+     '翌4時までの予想は、押せば地図が開く（中身が無ければ、見出しごと出さない）');
 }
 
 console.log('■ 近ごろの記録を先に見る（ご指示・2026/11/12）');
@@ -401,8 +426,14 @@ console.log('■ 雨雲レーダーを、画面の中に出す（ご指示・202
   ok(/id="wxRefresh">↻ 更新/.test(appSrc), '★★★天気の下のボタンは【更新】');
   ok(!/id="radar">☂ 雨雲レーダー/.test(appSrc), '　 同じ役のボタンが2つ並んでいない');
   ok(/async function wxRefresh\(/.test(appSrc), '★★★押すと、取り直す係がある');
-  ok(/await loadWx\(\)[\s\S]{0,200}await loadEv\(\)[\s\S]{0,120}await reload\(\)/.test(appSrc),
+  ok(/await loadWx\(\)[\s\S]{0,200}await loadEv\(true\)[\s\S]{0,200}await reload\(\)/.test(appSrc),
      '★★★天気・イベント・記録を、ぜんぶ取り直す');
+  /* ★【更新】では、まん中の箱を出しません（ご指示・2026/11/13
+       「天気の更新の際にポップアップを出すのはやめてください」）。 */
+  ok(/async function loadEv\(quiet\)/.test(appSrc) &&
+     /if \(!quiet\) evBoot\(\); else evDotOnly_\(\);/.test(appSrc),
+     '★★★【更新】のときは、イベントの箱を出さない');
+  ok(/function evDotOnly_\(\)/.test(appSrc), '　 赤い点だけは、付け直す');
   /* ★こま送りを止めてから作り直します（ご指摘・2026/11/13）。
        ただ捨てるだけだと、見ていないのに動き続けて、電池を食います。 */
   ok(/radarStop\(\);\s*\/\* 雨雲の地図も/.test(appSrc), '　 雨雲の地図も作り直す');
