@@ -2,7 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V114ver  （2026/11/13）  ★★★
+ *  ★★★  V115ver  （2026/11/13）  ★★★
+ *
+ *  [V115ver]
+ *   ・🔧 初日・中日の公演日を、バラシとして出すのをやめた（ご指摘・2026/11/13）
+ *     ★「初日ならバラシじゃなくて搬入じゃないですか」
+ *       2日間の公演なら、片づけは2日目の夜だけです。
+ *       初日の夜は舞台をそのまま残すので、片づけはありません。
+ *       片づけの時刻に会場へ向かわせて、1本も乗れないまま
+ *       終わるところでした。
  *
  *  [V114ver]
  *   ・🔄 スプシ→台帳の自動反映を、1日1回ここから呼ぶようにした
@@ -1811,7 +1819,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V114ver";
+const VN_VERSION = "V115ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -8030,7 +8038,23 @@ function vnIcsRole_(desc, day, baseY, baseM) {
   const loadSet = load ? vnIcsDaySet_(load, baseY, baseM) : null;
   const run = showSet ? vnIcsRunText_(showSet, day) : "";
 
-  if (showSet && showSet[ymd]) return { ok: true, role: "公演日", run: run };
+  if (showSet && showSet[ymd]) {
+    /*
+     * ★その公演日が「最終日かどうか」も返します（ご指摘・2026/11/13）。
+     *     「初日ならバラシじゃなくて搬入じゃないですか」
+     *   2日間の公演なら、片づけ（バラシ）は2日目の夜だけです。
+     *   初日の夜は、舞台をそのまま残すので、片づけはありません。
+     *   初日を「バラシ」として出すと、片づけの時刻に会場へ向かわせて、
+     *   1本も乗れないまま終わります。
+     */
+    const kk = [];
+    for (const k2 in showSet) {
+      if (Object.prototype.hasOwnProperty.call(showSet, k2)) kk.push(k2);
+    }
+    kk.sort();
+    const isLast = (kk.length <= 1) || (kk[kk.length - 1] === ymd);
+    return { ok: true, role: "公演日", run: run, last: isLast };
+  }
   if (loadSet && loadSet[ymd]) {
     /*
      * ★搬入の日は「このあと何日間あるか」を添えます。
@@ -8233,6 +8257,17 @@ function vnScrapeIcs_(src, day) {
        *   出すと、行っても仕事にならない場所へ向かわせることになります。
        */
       if (!isLoad && !vnBarasiBig_(place || src.venue || src.name)) return;
+      /*
+       * ★初日・中日の公演日は、バラシとして出しません
+       *   （ご指摘・2026/11/13「初日ならバラシじゃなくて搬入じゃないですか」）。
+       *   片づけ（バラシ）があるのは、最終日の夜だけです。
+       *   2日間の公演なら、初日の夜は舞台をそのまま残します。
+       *   それを「バラシ」として出すと、片づけの時刻に会場へ向かわせて、
+       *   1本も乗れないまま終わります。
+       *   ★お客さまが出てくる分は、会場のページから読んだ
+       *     公演の知らせ（開演の時刻つき）のほうに出ています。
+       */
+      if (!isLoad && r.last === false) return;
 
       out.events.push({
         // ★見出しは、実際の会場の名前（分からないときだけ、会社の名前）

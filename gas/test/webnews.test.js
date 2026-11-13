@@ -1887,27 +1887,37 @@ console.log('■ 雨雲レーダーの動き（ご指摘・2026/11/13）');
     '　 画面にも、動くことが書いてある');
 }
 
-console.log('■ 読み込み中の絵（ご依頼・2026/11/13）');
+console.log('■ 読み込み中の絵（ご指示・2026/11/13）');
 {
   const html  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
   const adm   = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
   const css   = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-  /* 「読み込み中の時、はははははと高らかに笑う、
-       夜神月風のイラスト載せられないでしょうか」 */
+  /* 「透過の人物が中心で／背景にはははをうごかして表示して／
+       さらなる背景に画像のような集中線の動きを出してください」 */
   t(/<div class="bootart">/.test(html), '★★★読み込み中の画面に、絵が入っている');
-  t(/class="bootha"/.test(html)
-    && (html.match(/<span>は<\/span>/g) || []).length >= 5,
-    '★★★「ははははは」が5つ出る');
-  t(/\.bootha span\{[^}]*animation:bootha/.test(css),
-    '　 1字ずつ、順に出る');
-  t(/@keyframes bootha\{/.test(css), '　 その動きが書いてある');
+  t(/<img class="bkira" src="img\/kira\.png"/.test(html),
+    '★★★まん中は、いただいた透過の絵');
+  t(fs.existsSync(path.join(W, 'img', 'kira.png')), '　 その絵が、ちゃんと置いてある');
+  t((html.match(/<span class="h\d">は<\/span>/g) || []).length >= 6,
+    '★★★背景に「は」が並ぶ');
+  t(/@keyframes bha\{/.test(css) && /animation:bha /.test(css),
+    '★★★「は」が動く');
+  t(/class="blines"/.test(html) && /repeating-conic-gradient/.test(css),
+    '★★★さらに後ろに、集中線がある');
+  t(/@keyframes bspin\{/.test(css) && /animation:bspin /.test(css),
+    '★★★集中線が動く');
   t(/<div class="bootmsg">読み込んでいます…<\/div>/.test(html),
     '　 「読み込んでいます…」も残っている');
-  /* 外から画像を読みに行かないこと（電波が細いときに、絵だけ出ないため） */
-  const art = html.slice(html.indexOf('<div class="bootart">'),
-                         html.indexOf('</div>', html.indexOf('bootmsg')) + 6);
-  t(!/<img|url\(/.test(art), '★★★外から画像を読みに行かない（その場で描いている）');
+  t(/prefers-reduced-motion:reduce\)\{\s*\.blines,\.bstage:before,\.bha span,\.bkira\{animation:none\}/
+    .test(css), '　 動きを減らす設定の方には、動かさずに出す');
   t(/<div class="bootart">/.test(adm), '　 管理の画面にも、同じ絵が入っている');
+  /* ★四角く切り取らないこと（肩が真横で切れ、集中線も四角く見えました） */
+  t(!/\.bstage\{[^}]*overflow:hidden/.test(css),
+    '★★★四角く切り取らない（肩が真横で切れないように）');
+  /* ★下見用のページにも、絵のフォルダをそろえること。
+       /preview/ から開くので、無いと読み込み中の絵が出ません。 */
+  t(fs.existsSync(path.join(W, 'preview', 'img', 'kira.png')),
+    '★★★下見用のページにも、絵が置いてある');
 }
 
 console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）');

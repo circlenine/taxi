@@ -19,6 +19,17 @@ P = W / 'preview'
 BAR = ('<div class="pvbar">ここは<b>下見用</b>のページです。本番は\n'
        '  <a href="/">こちら</a>。まだ本番には反映していません。</div>')
 
+# ★絵のフォルダ（img/）も、まるごとそろえます。
+#   下見のページは /preview/ から開くので、ここに無いと
+#   読み込み中の絵が出ません（2026/11/13）。
+import shutil
+if (W / 'img').is_dir():
+    (P / 'img').mkdir(exist_ok=True)
+    for im in sorted((W / 'img').glob('*')):
+        if im.is_file():
+            shutil.copy2(im, P / 'img' / im.name)
+            print('そろえた: img/' + im.name)
+
 for f in sorted(P.glob('*')):
     src = W / f.name
     if not src.is_file():

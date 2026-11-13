@@ -803,7 +803,7 @@ function render(){
     ((tab === 'in') ? (paneInRecent() + paneInNew()) : '');
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
-  if (sb) sb.textContent = subLine();
+  if (sb) { sb.textContent = subLine(); subFit(sb); }
   if (tab === 'news') newsSeen();
   /* ★イベントを開いたら、赤い点は消します（ご指摘・2026/11/12
        「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
@@ -1351,7 +1351,63 @@ function subLine(){
              win.join('〟〝') + '〟です！';
     }
   } catch (e) {}
-  return '近日中、誰かがワンメータを乗せたら、〝' + kiraToday() + '〟がキラです';
+  /* ★スマホで1行に収めるため、短い言い方にしました（ご指示・2026/11/13）。
+       前は「近日中、誰かがワンメータを乗せたら、〜」で29字あり、
+       390px の画面で おしりが「…」で切れていました。 */
+  return '近日、誰か1メーター引けば〝' + kiraToday() + '〟がキラです';
+}
+
+/* ------------------------------------------------------------
+ *  題の下の一文を、必ず1行に収める（ご指示・2026/11/13）
+ *    「1画面で収まるようにしてください。
+ *      これでも収まらなければ、収まるように工夫してください」
+ *
+ *  ★名前によって長さが変わるので、字の大きさを決め打ちにすると
+ *    いつか はみ出します（実際に 320px の機種で「…」と切れていました）。
+ *    入るまで、少しずつ小さくします。それでも読める下限（9px）で止めます。
+ *  ★折り返させません。折り返すと題の位置が下がって、まわりがずれます。
+ * ---------------------------------------------------------- */
+function subFit(el){
+  try {
+    const row = el.parentElement;
+    if (row) row.classList.remove('wide');
+    /*
+     * ★はみ出しているか。枠より中身が広ければ、おしりが「…」になります。
+     *
+     * ★ここは scrollWidth で見てはいけません（2026/11/13・実機で確認）。
+     *   scrollWidth は整数に丸められるので、中身 215.6px・枠 215.2px の
+     *   ように 0.4px だけはみ出しているときも「215 と 215」で同じに見えます。
+     *   それで「入っている」と思い込み、実際の画面では
+     *   「…がキラで…」と切れていました。
+     *   字そのものの幅（Range）を、小数のまま測ります。
+     */
+    const over = function (){
+      try {
+        const rg = document.createRange();
+        rg.selectNodeContents(el);
+        return rg.getBoundingClientRect().width > el.getBoundingClientRect().width - 0.6;
+      } catch (e) { return el.scrollWidth > el.clientWidth; }
+    };
+    el.style.fontSize = '';
+    if (!over()) return;                       // そのままで入る
+    let px = parseFloat(getComputedStyle(el).fontSize) || 13;
+    for (let i = 0; i < 24 && px > 9 && over(); i++) {
+      px -= 0.25;
+      el.style.fontSize = px + 'px';
+    }
+    if (!over()) {
+      /* ★ぴったりだと、機種によっては おしりが「…」になります。
+           もう1段だけ小さくして、余りを作ります。 */
+      if (px > 9) { px -= 0.25; el.style.fontSize = px + 'px'; }
+      return;
+    }
+    /* ★9px より小さくすると読めないので、そこで字を小さくするのはやめ、
+         一文を「版の札の下」の1行まるごとに移します。
+         万収をほめる一文（名前が2人ぶん並ぶ日）は、どうしても長いためです。
+         題より下なので、題の位置は動きません。
+       ★移したら、字の大きさは元に戻します（広いので小さくする必要がありません）。 */
+    if (row) { row.classList.add('wide'); el.style.fontSize = ''; }
+  } catch (e) {}
 }
 
 /* ★人ごとの色（記録用スプレッドシートのタブ色と同じ考え方・ご指示 2026/11/12） */
@@ -3561,6 +3617,25 @@ function fabWire(){
   handApply();
   hsubWire();
   placeChipsFit();
+  /* ★横にしたとき・画面の広さが変わったときも、はみ出さないように
+       もう一度 合わせ直します（1回だけ付けます）。 */
+  if (!window.__fitWired) {
+    window.__fitWired = true;
+    window.addEventListener('resize', function (){
+      try { const e = $('#sub'); if (e) subFit(e); placeChipsFit(); } catch (e2) {}
+    });
+    /* ★字の形（フォント）は、あとから届きます。
+         届く前に測ると、幅を小さく見あやまって、
+         届いたとたんに おしりが「…」で切れます。
+         実際に 320px の機種で切れていました（2026/11/13）。 */
+    try {
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function (){
+          try { const e = $('#sub'); if (e) subFit(e); placeChipsFit(); } catch (e2) {}
+        });
+      }
+    } catch (e3) {}
+  }
   tocBuild();
   foldWire();
 }

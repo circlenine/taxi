@@ -155,8 +155,24 @@ button{font-family:inherit}
 /* ★見出しだけで、折りたたむ・広げる（ご指示・2026/11/13）。
      見出しの右の ▼ が、向きで教えます。 */
 .card > h2, #ktop > h2{display:flex;align-items:center;gap:8px}
-.fmark{font-style:normal;font-size:11px;opacity:.7;margin-left:auto;
-  transition:transform .18s ease;color:#FFFFFF}
+/* ★▼ の形は、どこでも同じにします（ご指摘・2026/11/13
+     「▼ですが、幅がそろってなく、不格好なので 形はしっかり統一してください」）。
+   前は字をそのまま置いていたので、見出しの字の大きさや
+   向きの回転で、大きさが 11.8×14 や 12.7×19.3 とばらついていました。
+   22×22 の同じ枠に入れて、まん中にそろえます。 */
+.fmark{font-style:normal;font-size:11px;line-height:1;opacity:.7;margin-left:auto;
+  transition:transform .18s ease;color:#FFFFFF;
+  width:22px;height:22px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center}
+/* ★見出しと、その下の字との空きを そろえます（ご指摘・2026/11/13
+     「枠があることで下の文字との高さが狭く感じるものがあります。
+       そういった各文字の高さ詰まりがないかを見て
+       きちんと全て徹底してください」）。
+   前は 5px の所と 8px の所が混ざっていました。
+   下の字が持っている「上の空き」を取り消して、
+   見出しの「下の空き」1つだけで決まるようにします。 */
+.card > h2, #ktop > h2{margin-bottom:9px}
+.card > h2 + *, #ktop > h2 + *{margin-top:0}
 .card.fold > h2 .fmark, #ktop.fold > h2 .fmark{transform:rotate(-90deg)}
 .card.fold > *:not(h2), #ktop.fold > *:not(h2){display:none}
 .card.fold, #ktop.fold{padding-bottom:12px}
@@ -234,7 +250,11 @@ body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
   min-width:0}
 .tocit em{font-style:normal;font-size:10.5px;opacity:.6;flex:none;
   font-variant-numeric:tabular-nums}
-.tocit span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ★目次の見出しが、おしりで切れていました（2026/11/13）。
+     「スプレッドシートから取り…」では、何の見出しか分かりません。
+     2行まで入るようにします（高さは min-height で持たせてあります）。 */
+.tocit span{min-width:0;overflow:visible;text-overflow:clip;white-space:normal;
+  line-height:1.3;word-break:break-all}
 .ktplace .fsel{flex:1 1 180px;min-width:0;font-size:15px}
 .ktwho{font-size:11.5px;color:#FFFFFF;line-height:1.6;
   display:flex;flex-wrap:wrap;gap:0 10px}
@@ -311,6 +331,20 @@ body[data-hand="l"] .hmain > #fabMenu{order:-1;margin-left:0;margin-right:auto}
 .hver{margin-top:4px;display:flex;align-items:center;gap:8px;min-width:0}
 .hver > .sub{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;flex:1 1 auto}
+/* ★細い機種（320px など）では、一文の場所をもう少し広く取ります
+     （ご指示・2026/11/13「1画面で収まるようにしてください。
+       これでも収まらなければ、収まるように工夫してください」）。
+   版の札のすき間と内側を詰めて、6px ぶん 一文にまわします。
+   それでも入らないときは、app.js の subFit が字を小さくします。 */
+@media(max-width:345px){
+  .hver{gap:5px}
+  .hver > .ver{padding:1px 5px;letter-spacing:.02em}
+}
+/* ★どうしても1行に入らない一文（万収で名前が2人ぶん並ぶ日など）は、
+     版の札の下に、1行まるごとで出します。題より下なので題は動きません。 */
+.hver.wide{flex-wrap:wrap}
+.hver.wide > .sub{flex:1 0 100%;margin-top:3px;
+  white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
 /* 3段目：灰色のブロック（まるごと しまえます） */
 .hsub{display:flex;flex-direction:column;gap:7px;padding:9px 0 10px;
   background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:14px;
@@ -398,7 +432,7 @@ nav button{flex:0 1 auto;white-space:nowrap;background:none;border:0;color:var(-
 nav button[aria-selected=true]{background:var(--andon);color:#14100A;font-weight:700}
 
 .card{background:var(--ink2);border:1px solid var(--ink3);border-radius:10px;padding:16px;margin-bottom:14px}
-.card h2{font-family:var(--disp);font-weight:400;font-size:16px;margin:0 0 3px;letter-spacing:.05em}
+.card h2{font-family:var(--disp);font-weight:400;font-size:16px;margin:0 0 9px;letter-spacing:.05em}
 .card .note{color:var(--muted);font-size:11.5px;margin:0 0 14px;line-height:1.6}
 
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px}
@@ -506,27 +540,79 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .login .foot a{color:var(--muted);text-decoration:underline}
 .boot{display:grid;place-items:center;min-height:100vh;color:var(--muted);font-size:13px}
 /* ------------------------------------------------------------
- *  読み込み中の絵（ご依頼・2026/11/13）
- *    「読み込み中の時、はははははと高らかに笑う、
- *      夜神月風のイラスト載せられないでしょうか」
- *  ※よそから持ってきた絵ではなく、こちらで描いた形だけの絵です。
- *    外から画像を読みに行かないので、電波が細くても すぐ出ます。
+ *  読み込み中の絵（ご指示・2026/11/13）
+ *
+ *  ★まーく様からいただいた絵と、ご指示そのまま
+ *    「透過の人物が中心で／背景にはははをうごかして表示して／
+ *      さらなる背景に画像のような集中線の動きを出してください」
+ *
+ *  ★3枚 重ねています（うしろから）
+ *      ① 集中線 … 回しながら、濃さを脈うたせます
+ *      ② はは   … 外へ飛び出すように、順ぐりに出します
+ *      ③ 人物   … まん中。背景が透けている絵をそのまま置きます
+ *  ★集中線は絵ではなく、その場で描いています（読みに行く物を増やさない）。
  * ---------------------------------------------------------- */
-.bootart{display:grid;place-items:center;gap:10px;text-align:center}
-.bootha{display:flex;gap:2px;font-weight:700;font-size:26px;color:#E23B30;
-  letter-spacing:.04em;text-shadow:0 0 12px rgba(226,59,48,.55)}
-.bootha span{opacity:0;animation:bootha 1.6s infinite}
-.bootha span:nth-child(2){animation-delay:.12s}
-.bootha span:nth-child(3){animation-delay:.24s}
-.bootha span:nth-child(4){animation-delay:.36s}
-.bootha span:nth-child(5){animation-delay:.48s}
-@keyframes bootha{0%{opacity:0;transform:translateY(6px) scale(.9)}
-  18%{opacity:1;transform:translateY(0) scale(1.08)}
-  60%{opacity:1;transform:translateY(0) scale(1)}
-  100%{opacity:0;transform:translateY(-4px) scale(1)}}
-.bootart svg{filter:drop-shadow(0 0 14px rgba(226,59,48,.3))}
+.bootart{display:grid;place-items:center;gap:12px;text-align:center}
+/* ★四角く切り取らないこと。切ると、集中線の外わくが四角く見えて、
+     人物の肩も真横で切れます（実際にそうなりました・2026/11/13）。 */
+.bstage{position:relative;width:min(80vw,310px);height:min(80vw,310px);
+  display:grid;place-items:center}
+
+/* ① 集中線。まん中はあけて、人物が沈まないようにします */
+.blines{position:absolute;left:-50%;top:-50%;width:200%;height:200%;
+  background:repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255,255,255,.22) 0deg 0.9deg,
+    rgba(255,255,255,0)   0.9deg 3.4deg);
+  /* まん中はあけ、外へいくほど薄くして、四角いふちを出しません */
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0) 17%, #000 34%, #000 42%, rgba(0,0,0,0) 50%);
+  mask-image:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0) 17%, #000 34%, #000 42%, rgba(0,0,0,0) 50%);
+  animation:bspin 9s linear infinite;will-change:transform}
+@keyframes bspin{to{transform:rotate(360deg)}}
+/* 濃さの脈は、別の箱で（回転と ぶつからないように） */
+.bstage:before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,
+    rgba(226,59,48,.30) 0%, rgba(226,59,48,.10) 42%, transparent 68%);
+  animation:bpulse 1.5s ease-in-out infinite}
+@keyframes bpulse{0%,100%{opacity:.45;transform:scale(.94)}
+  50%{opacity:1;transform:scale(1.06)}}
+
+/* ② はは。外へ飛び出すように、順ぐりに出します */
+.bha{position:absolute;inset:0}
+.bha span{position:absolute;font-weight:900;color:#FFFFFF;
+  font-size:clamp(20px,7vw,30px);line-height:1;opacity:0;
+  text-shadow:0 0 10px rgba(226,59,48,.85),0 2px 0 #7A1510;
+  animation:bha 2.2s ease-out infinite;will-change:transform,opacity}
+.bha .h1{left:4%;top:16%;animation-delay:0s}
+.bha .h2{right:6%;top:10%;animation-delay:.28s}
+.bha .h3{left:0%;top:52%;animation-delay:.56s}
+.bha .h4{right:0%;top:56%;animation-delay:.84s}
+.bha .h5{left:16%;top:80%;animation-delay:1.12s}
+.bha .h6{right:18%;top:82%;animation-delay:1.4s}
+@keyframes bha{
+  0%{opacity:0;transform:scale(.5) translate(0,0)}
+  18%{opacity:1;transform:scale(1.15)}
+  55%{opacity:.95;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.5)}}
+
+/* ③ 人物。背景が透けている絵を、そのまま置きます */
+.bkira{position:relative;z-index:2;width:min(46vw,172px);height:auto;
+  filter:drop-shadow(0 0 16px rgba(226,59,48,.45));
+  /* ★絵の下は、胸のところで真横に切れています。
+       そのままだと「切り取った線」が見えるので、下だけ うすく消します。 */
+  -webkit-mask-image:linear-gradient(#000 76%, rgba(0,0,0,0) 99%);
+  mask-image:linear-gradient(#000 76%, rgba(0,0,0,0) 99%);
+  animation:bkira 1.5s ease-in-out infinite}
+@keyframes bkira{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+
 .bootmsg{font-size:13px;color:#FFFFFF;opacity:.85}
-@media(prefers-reduced-motion:reduce){.bootha span{opacity:1;animation:none}}
+
+/* ★動きを減らす設定の方には、動かさずに出します */
+@media(prefers-reduced-motion:reduce){
+  .blines,.bstage:before,.bha span,.bkira{animation:none}
+  .bha span{opacity:1}
+}
 /* ★隠したものは、必ず消えること。
  *   （.boot の display:grid が勝ってしまい、読み込みのあとも
  *     「読み込んでいます…」が画面に残っていました） */
@@ -581,7 +667,10 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
   border:1px solid var(--line);margin:4px 0}
 .bandbar.big{height:30px;border-radius:10px;margin:10px 0 14px}
 .bandbar span{display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:11px;color:#14100A;font-weight:700;min-width:0}
+  font-family:var(--mono);font-size:11px;color:#14100A;font-weight:700;min-width:0;
+  /* ★中の字が帯より広くなり、3pxほど はみ出していました（2026/11/13）。
+       字のほうを縮めて、帯の中に収めます。 */
+  overflow:hidden;white-space:nowrap}
 .bandbar.big span{font-size:14px}
 .kpis.bandk .kpi small i{font-style:normal;display:block;font-size:10.5px;color:var(--paper);opacity:.75}
 .kpi .bsub{display:block;font-family:var(--mono);font-size:12px;color:var(--paper);margin-top:2px}
@@ -747,7 +836,10 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
  * ============================================================ */
 .sub{font-size:clamp(10px,2.9vw,13px);color:var(--muted)}
 .card{padding:18px}
-.card h2{font-size:17.5px;margin-bottom:5px}
+/* ★見出しの下の空きは 9px でそろえます（ご指摘・2026/11/13
+     「枠があることで下の文字との高さが狭く感じるものがあります」）。
+   ここが 5px だったので、上で 9px にしても こちらが勝っていました。 */
+.card h2{font-size:17.5px;margin-bottom:9px}
 .card .note{font-size:12.5px;color:var(--muted);line-height:1.85}
 .kpi{padding:12px 13px}
 .kpi small{font-size:11.5px;color:var(--muted);letter-spacing:.05em}
@@ -1455,3 +1547,23 @@ select:focus{border-color:var(--andon);outline:none}
 header{padding-left:33px;padding-right:33px}
 /* 版と一文の帯、称号とボタンの帯 */
 .hsub > .subline, .hsub > .hrow{padding-left:var(--gut);padding-right:var(--gut)}
+
+/* ------------------------------------------------------------
+ *  細い機種（320px など）で、枠から出ないようにする
+ *
+ *  ★まーく様のご指摘（2026/11/13）
+ *    「全アカウントパターン問題ないのでしょうか」
+ *  ★320px の機種で「ログアウト」が画面の外へ出ていました。
+ *    ボタン位置と 管理〜 は同じ行に置いたまま（ご指示・2026/11/13）、
+ *    すき間と字を詰めて、ぜんぶ画面の中に収めます。
+ *  ★ここは、いちばん下に置きます。上のほうに書くと、
+ *    あとから出てくる同じ強さの決まりに負けて、効きません。
+ * ---------------------------------------------------------- */
+@media(max-width:375px){
+  .hsub > .hrow{padding-left:7px;padding-right:7px}
+  .hrow{gap:3px}
+  .hrow > span{font-size:9.5px}
+  .hrow .chip{padding:4px 5px;font-size:10px}
+  .hrow .mini{padding:4px 5px;font-size:10px}
+  .hsub > .hrow > .whoR{gap:3px}
+}
