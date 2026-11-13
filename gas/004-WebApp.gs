@@ -2,12 +2,13 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W013ver  （2026/09/16）  ★★★
+ *  ★★★  W014ver  （2026/11/13）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *
+ *  [W014ver] 売上ランキングを「その日のロング」だけに絞った
  *  [W013ver] 外から1回 叩けば、新しい中身が入り、頼まれごとも進むようにした
  *            ★それまでは「診て直す」しか入っておらず、
  *              見張りが止まると、置いた直しが永久に届かなかった
@@ -64,7 +65,7 @@
  * ================================================================
  */
 
-const WB_VERSION = "W013ver";
+const WB_VERSION = "W014ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
@@ -1299,7 +1300,6 @@ function viewC(s) {
              lr: x.l / x.n * 100, days: days, per: x.sum / days };
   }).sort((a, b) => b.sum - a.sum);
 
-  const max = list[0].sum;
   const medal = ['🥇','🥈','🥉'];
 
   const H = ['<div class="kpis">' +
@@ -1308,14 +1308,30 @@ function viewC(s) {
     kpi('全体平均', yen(rows.reduce((a, r) => a + r.m, 0) / rows.length)) +
     '</div>'];
 
-  H.push('<div class="card"><div class="chead"><b>🏆 売上ランキング</b>' +
-    '<span class="sub">' + esc(s.p.label.replace('（今期）','')) + '</span></div><div class="rank">' +
-    list.map((x, i) =>
-      '<div class="rrow"><div class="t"><span class="nm">' +
-      (medal[i] || (i + 1) + '.') + ' ' + esc(x.w) + '</span>' +
-      '<span class="r">' + x.days + '日 / ' + x.n + '件 <b>' + yen(x.sum) + '</b></span></div>' +
-      '<div class="track"><i class="seg-l" style="width:' + (x.sum / max * 100) + '%"></i></div>' +
-      '</div>').join('') + '</div></div>');
+  /* ★売上ランキングは「その日のロング」だけにします（ご指示・2026/11/13）
+         「売上ランキングは、データを入れた順ではなく
+           その日の、ロングのランキングのみに絞ってください」
+         「データは僕が多く入れていて、量としてのランキングは
+           かたよりがあるので参考になりません」
+       人ごとの合計で並べると、たくさん入れた人が必ず上に来ます。
+       だから、記録のある一番新しい日の ロング（高額）だけを、
+       金額の高い順に並べます。1本ずつ出すので、かたよりが出ません。 */
+  const lgs  = rows.filter(r => band(r.m) === 'l');
+  const dayL = (lgs.length ? lgs : rows).map(r => r.d).sort().pop();
+  const top  = lgs.filter(r => r.d === dayL).sort((a, b) => b.m - a.m);
+  const topM = top.length ? top[0].m : 1;
+  H.push('<div class="card"><div class="chead"><b>🏆 ロングランキング</b>' +
+    '<span class="sub">' + dLabel(dayL) + '</span></div>' +
+    (top.length
+      ? '<div class="rank">' + top.map((r, i) =>
+          '<div class="rrow"><div class="t"><span class="nm">' +
+          (medal[i] || (i + 1) + '.') + ' ' + esc(r.w) + '</span>' +
+          '<span class="r">' + esc(r.t) + ' / ' + esc(r.p || '不明') +
+          ' <b>' + yen(r.m) + '</b></span></div>' +
+          '<div class="track"><i class="seg-l" style="width:' +
+          (r.m / topM * 100) + '%"></i></div></div>').join('') + '</div>'
+      : '<div class="note">この日のロングはありません。</div>') +
+    '<div class="note">ロング＝' + yen(D.longMin) + '以上。記録のある一番新しい日の分です。</div></div>');
 
   H.push('<div class="card"><div class="chead"><b>📈 中身くらべ</b>' +
     '<span class="sub">1回あたり・1日あたり</span></div><div class="rank">' +

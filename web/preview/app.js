@@ -3524,8 +3524,17 @@ function fabWire(){
         /* ★【仕掛けを起こす】は、いつでも ここから押せます
              （ご指示・2026/11/13「スプシにおいても色々やらないといけないの面倒」）。
              押すと、GASの受け口が開いて 自動で直ります。 */
+        /* ★「みんなの記録」も、ここから開けます（ご質問・2026/11/13
+             「このみんなの記録、とても良い感じですが
+               webサイトにはそのページは載らないのですか？」）。
+           同じ中身を2つ持つと、直すたびに2か所 直すことになり、
+           いつか片方が古いまま残ります。だから作り直さず、
+           ここから1回で開ける形にしました。
+           開いたついでに、止まっている仕掛けも自動で直ります。 */
         ((gasInfo && gasInfo.exec)
-          ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
+          ? '<a class="fsrow" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
+            '<b>みんなの記録</b><i>記録カード・立ち回り・ロング</i></a>' +
+            '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
             '<b>仕掛けを起こす</b><i>止まったときに、ここを押すだけ</i></a>'
           : '');
       sheet.hidden = false;

@@ -65,6 +65,12 @@ function has(s, n, l) {
      '  … 実際: ' + JSON.stringify(String(s).slice(0, 200))));
 }
 
+/* 「入っていないこと」も確かめます（消したはずのものが残っていないか） */
+function no(s, n, l) {
+  ok(String(s).indexOf(n) === -1, l + (String(s).indexOf(n) === -1 ? '' :
+     '  … まだ残っています: ' + JSON.stringify(n)));
+}
+
 /* ---- テスト用の行を作る ---- */
 function row(who, y, m, d, time, money, place, other, wait, mark) {
   const r = new Array(11).fill('');
@@ -245,11 +251,30 @@ has(view.innerHTML, '¥42,000', '日別の合計は自社ぶんだけ');
 
 // ③ ランキング
 page.ctx.go('c');
-has(view.innerHTML, '売上ランキング', '③ ランキングが描けた');
-has(view.innerHTML, '🥇 ﾀﾞｲｽｹ', '売上1位はﾀﾞｲｽｹ');
-has(view.innerHTML, '🥈 ｼｭﾝ', '2位はｼｭﾝ');
-has(view.innerHTML, '¥42,000', 'ﾀﾞｲｽｹの合計');
-has(view.innerHTML, '¥5,000', 'ｼｭﾝの合計');
+/* ★売上ランキングは「その日のロング」だけ（ご指示・2026/11/13）
+     「データを入れた順ではなく その日の、ロングのランキングのみに」
+     「データは僕が多く入れていて、量としてのランキングは
+       かたよりがあるので参考になりません」 */
+has(view.innerHTML, 'ロングランキング', '③ ランキングが描けた');
+no(view.innerHTML, '売上ランキング', '人ごとの合計のランキングは、もう出さない');
+{
+  /* ランキングの札だけを取り出して、中身を数えます。
+     この日のロングは ¥15,000 と ¥12,000 の2本だけです。
+     ¥7,000・¥5,000・¥3,000 が混ざっていたら、絞れていません。 */
+  const h = view.innerHTML;
+  const card = h.slice(h.indexOf('ロングランキング'),
+                       h.indexOf('中身くらべ') === -1 ? h.length : h.indexOf('中身くらべ'));
+  ok((card.match(/class="rrow"/g) || []).length === 2,
+     'その日のロングだけ（2本）が並ぶ',
+     '  … 実際: ' + (card.match(/class="rrow"/g) || []).length + '本');
+  has(card, '🥇 ﾀﾞｲｽｹ', 'その日のロングの1位');
+  has(card, '¥15,000', '1位は、その1本の金額');
+  has(card, '¥12,000', '2位も、その1本の金額');
+  no(card, '¥7,000',  'ロングでない ¥7,000 は並ばない');
+  no(card, '¥5,000',  'ロングでない ¥5,000 は並ばない');
+  no(card, '¥3,000',  'ロングでない ¥3,000 は並ばない');
+  has(card, 'ロング＝', 'ロングの境目も書いてある');
+}
 
 console.log('\n■ 記録が無くても落ちない');
 reset();

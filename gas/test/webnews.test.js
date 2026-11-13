@@ -1859,6 +1859,15 @@ console.log('■ ふつうの漢字で書く（ご指示・2026/11/12）');
 
 
 
+console.log('■ みんなの記録への行き方（ご質問・2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  /* 「このみんなの記録、とても良い感じですが
+       webサイトにはそのページは載らないのですか？」 */
+  t(/<b>みんなの記録<\/b>/.test(app), '★★★≡ の一覧から「みんなの記録」へ行ける');
+  t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
+}
+
 console.log('■ 雨雲レーダーの動き（ご指摘・2026/11/13）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
