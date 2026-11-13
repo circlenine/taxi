@@ -1945,6 +1945,10 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
     && /db\.from\('says'\)[\s\S]{0,90}\.update\(\{ text: t, good: sayGood \}\)/.test(app),
     '★★★すでにあるひとことを、直せる');
   t(/data-sayedit=/.test(app) && />直す</.test(app), '　 行ごとに【直す】が出る');
+  /* ★すでに台帳へ写したあとでも、足したひとことが出るようにします。
+       同じものが入っていれば、何もしません（二重に入れない）。 */
+  t(/insert into public\.says \(text, good, user_id\)[\s\S]{0,260}not exists/.test(sql),
+    '★★★あとから足したひとことも、台帳へ入る（二重には入れない）');
   t(/create policy says_update[\s\S]{0,220}user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(sql)
     && /grant update \(text, good\) on public\.says to authenticated;/.test(sql),
     '★★★直せるのも、本人と まーく様だけ（台帳の側でも止める）');
@@ -1969,7 +1973,8 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
   t(/_sayB = b\.length \? b : SAY_BAD;/.test(sh),
     '★★★台帳に入っていれば、そちらだけを出す（二重に出さない）');
   /* まーく様が足されたひとこと（ご指示・2026/11/14） */
-  ['松田ァー！誰を乗せてるゥー！','新世界(大阪)の神だァ！','ロングゥー？ふざけるなァ！']
+  ['松田ァー！誰を乗せてるゥー！','新世界(大阪)の神だァ！','ロングゥー？ふざけるなァ！',
+   '出た！合わせてロングマァン！']
     .forEach(function (x) {
       t(sh.indexOf("'" + x + "'") !== -1, '　 「' + x + '」が入っている');
       t([...x].length <= 14, '　 　その字数も14以内', [...x].length);

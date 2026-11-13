@@ -112,3 +112,20 @@ create policy says_update on public.says
   with check (user_id = auth.uid() or public.is_admin());
 
 grant update (text, good) on public.says to authenticated;
+
+-- ------------------------------------------------------------
+-- ⑤ ふきだしのひとことを、1つ足す（2026/11/14・まーく様のご指示）
+--      「出た！合わせてロングマァン！ も、吹き出しに入れてください」
+--
+--    ★すでに台帳へ写したあとだと、コードに足すだけでは出ません。
+--      ここで1行だけ入れます。
+--    ★同じものが入っていれば、何もしません（二重に入れない）。
+--    ★まだ1つも入っていないときも、何もしません
+--      （そのときは、画面を開いたときに まとめて写されます）。
+-- ------------------------------------------------------------
+insert into public.says (text, good, user_id)
+select '出た！合わせてロングマァン！', true,
+       (select user_id from public.says limit 1)
+where exists (select 1 from public.says)
+  and not exists (select 1 from public.says
+                  where text = '出た！合わせてロングマァン！');
