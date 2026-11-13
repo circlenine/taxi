@@ -3252,6 +3252,11 @@ function placeChipsFit(){
  *    （タグを押すたびに ぜんぶ開き直すと、使いものになりません）
  * ---------------------------------------------------------- */
 const FOLD_KEY = 'tn_folds';
+/* 目次そのものを たたんでいるか（高さを食わせないため） */
+const TOC_KEY = 'tn_toc_fold';
+function tocFolded(){
+  try { return localStorage.getItem(TOC_KEY) === '1'; } catch (e) { return false; }
+}
 let foldSet = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '[]') || []; }
   catch (e) { return []; }
@@ -3302,19 +3307,33 @@ function tocBuild(){
   if (hs.length < 2) return;
   hs.forEach(function (h, i) { if (!h.id) h.id = 'sec' + i; });
   const nav = document.createElement('div');
-  nav.className = 'toc'; nav.id = 'toc';
-  nav.innerHTML = '<span class="tocl">目次</span>' + hs.map(function (h) {
-    return '<button class="chip" data-toc="' + h.id + '">' +
-      esc(h.textContent.trim()) + '</button>';
-  }).join('');
+  nav.className = 'toc' + (tocFolded() ? ' fold' : '');
+  nav.id = 'toc';
+  nav.innerHTML =
+    '<button class="toch" id="tocH">目次<i class="fmark">▼</i></button>' +
+    '<div class="tocg">' + hs.map(function (h, i) {
+      return '<button class="tocit" data-toc="' + h.id + '">' +
+        '<em>' + (i + 1) + '</em>' +
+        '<span>' + esc(h.textContent.replace(/[▼▲]/g, '').trim()) + '</span></button>';
+    }).join('') + '</div>';
   const host = document.getElementById('panesTop') || document.getElementById('panes');
   host.parentNode.insertBefore(nav, host);
+  /* 目次そのものも、たたんでおけます（高さを食わないように） */
+  const hd = nav.querySelector('#tocH');
+  if (hd) hd.onclick = function () {
+    const on = !nav.classList.contains('fold');
+    nav.classList.toggle('fold', on);
+    try { localStorage.setItem(TOC_KEY, on ? '1' : '0'); } catch (e) {}
+  };
   nav.querySelectorAll('[data-toc]').forEach(function (b) {
     b.onclick = function () {
       const el = document.getElementById(b.dataset.toc);
       if (!el) return;
-      const hd = document.querySelector('header');
-      const off = (hd ? hd.getBoundingClientRect().height : 0) + 8;
+      /* 閉じてある区切りは、開いてから動きます（押しても何も見えないと困るため） */
+      const card = el.parentElement;
+      if (card && card.classList.contains('fold')) el.click();
+      const hdr = document.querySelector('header');
+      const off = (hdr ? hdr.getBoundingClientRect().height : 0) + 8;
       window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - off,
                         behavior: 'smooth' });
     };

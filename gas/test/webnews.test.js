@@ -2196,9 +2196,25 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/#panesTop \.card > h2, #ktop > h2, #panes \.card > h2/.test(app),
     '　 その画面に出ている見出しを、ぜんぶ拾う');
   t(/behavior: 'smooth'/.test(app), '★★★押すと、そこまで動く');
-  t(/hd\.getBoundingClientRect\(\)\.height/.test(app),
+  t(/hdr\.getBoundingClientRect\(\)\.height/.test(app),
     '　 貼り付いている行のぶん、下げて止める（見出しが隠れない）');
   t(/\.toc\{/.test(css), '　 目次の見た目がある');
+  /* ★目次の作り直し（ご指示・2026/11/13）
+       「ただのタブ一覧みたいで、目次っぽくない」
+       「一つ一つの見出しを1段に2つずつにして、TAPしやすくして」
+       「目次の文字自体は1番上にして、実際の目次見出しとは別の行に」
+       「ただし、もくじだけで、そんなに高さを埋めたくない」 */
+  t(/<button class="toch" id="tocH">目次/.test(app),
+    '★★★「目次」の字は、1段目に 単独で置く');
+  t(/\.tocg\{display:grid;grid-template-columns:1fr 1fr/.test(css),
+    '★★★見出しは、1段に2つずつ');
+  t(/\.tocit\{[^}]*min-height:30px/.test(css), '★★★押しやすい大きさ（30px）');
+  t(/<em>' \+ \(i \+ 1\) \+ '<\/em>/.test(app), '　 番号を振る（目次らしく）');
+  t(/\.toc\.fold \.tocg\{display:none\}/.test(css),
+    '★★★「目次」を押せば たためる（高さを食わない）');
+  t(/localStorage\.setItem\(TOC_KEY/.test(app), '　 たたんだままを覚える');
+  t(/card\.classList\.contains\('fold'\)\) el\.click\(\)/.test(app),
+    '★★★閉じてある区切りへ飛ぶときは、開いてから動く');
 
   /* 乗り場の候補タグは2行まで */
   t(/function placeChipsFit\(/.test(app), '★★★候補タグを2行までに絞る係がある');

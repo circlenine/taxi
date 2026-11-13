@@ -192,14 +192,29 @@ body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
 .ktplace{flex-wrap:wrap}
 
 /* ★目次（ご指示・2026/11/13）。
-     「全てのページの各見出しの目次を付けて、
-       目次から、すぐにページへスクロールできるようにしてください」
-     その画面に出ている見出しを並べ、押すとそこまで動きます。 */
-.toc{display:flex;flex-wrap:wrap;gap:5px;align-items:center;
-  background:rgba(255,255,255,.045);border:1px solid var(--line);
-  border-radius:12px;padding:8px 10px;margin:0 0 10px}
-.toc .tocl{font-size:11px;color:#FFFFFF;opacity:.8;margin-right:2px}
-.toc .chip{font-size:11.5px;padding:4px 9px;color:#FFFFFF}
+     「ただのタブ一覧みたいで、目次っぽくない」とのご指摘で、作り直しました。
+       ・「目次」の字は、1段目に 単独で置く
+       ・見出しは 1段に2つずつ。番号を振って、目次らしく
+       ・押しやすいよう、1つの高さは30px（指で外さない大きさ）
+     ★ただし、目次だけで高さを食わないように：
+       ・字も余白も小さく、1段に2つ（5つなら3段・約110px）
+       ・「目次」を押せば たためる。たたんだら20px。覚えています。 */
+.toc{background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:12px;padding:6px 8px 7px;margin:0 0 10px}
+.toch{display:flex;align-items:center;width:100%;background:none;border:0;
+  color:#FFFFFF;font-size:11.5px;padding:2px 2px 4px;cursor:pointer;
+  letter-spacing:.06em}
+.toch .fmark{margin-left:auto}
+.toc.fold .toch .fmark{transform:rotate(-90deg)}
+.tocg{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}
+.toc.fold .tocg{display:none}
+.tocit{display:flex;align-items:center;gap:6px;min-height:30px;
+  background:none;border:0;border-top:1px solid var(--ink3);
+  color:#FFFFFF;font-size:12.5px;text-align:left;padding:2px 2px;cursor:pointer;
+  min-width:0}
+.tocit em{font-style:normal;font-size:10.5px;opacity:.6;flex:none;
+  font-variant-numeric:tabular-nums}
+.tocit span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ktplace .fsel{flex:1 1 180px;min-width:0;font-size:15px}
 .ktwho{font-size:11.5px;color:#FFFFFF;line-height:1.6;
   display:flex;flex-wrap:wrap;gap:0 10px}
