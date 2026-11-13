@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261112-3db285eb">
+<link rel="stylesheet" href="style.css?v=20261113-004b04a7">
 </head>
 <body>
 <div id="boot" class="boot">読み込んでいます…</div>
@@ -39,41 +39,36 @@
        高さが変わると、その境目で画面がガタつきます。
        貼り付けるのは「題・ふきだし・≡」の1行だけにして、
        高さが変わらないようにしました。 -->
-  <div class="hsub">
+  <!-- ★ここは「ひとつのブロック」です（ご指示・2026/11/13）。
+         「ここはひとつのブロック扱いで、灰背景もひとつでまとめて下さい」
+         「称号は、ロゴ下に入れてもらって」
+         「フィードバックは三の方にあるので、ここでは消して」
+         「ボタン位置と、管理～を、同じ列にしてみてください」
+         「指で上下に動かしたら、開いたり閉じたりできる仕様にできませんか？」
+       上に指で払うと閉じ、下に払うと開きます。つまみを押しても同じです。 -->
+  <div class="hsub" id="hsub">
     <div class="subline">
       <span class="ver" id="ver"></span>
+      <b class="mytitle" id="me">—</b>
       <span class="sub" id="sub">近日中、誰かがワンメータを乗せたら、キラが決まります</span>
     </div>
-    <!-- ★称号（ポンコツ）だけ左、ボタンは右（ご指示・2026/11/11） -->
-    <div class="who">
-      <b id="me">—</b>
+    <div class="hrow">
+      <span>ボタン位置</span>
+      <button class="chip" data-hand="r">右利き</button>
+      <button class="chip" data-hand="l">左利き</button>
       <span class="whoR">
         <a class="mini" id="toAdmin" href="/admin" hidden style="text-decoration:none">管理</a>
         <button class="mini" id="out">ログアウト</button>
       </span>
     </div>
+    <button class="hgrab" id="hgrab" aria-label="開く・閉じる"></button>
   </div>
 
-  <!-- ★ひと区切りごとに、赤い線の見出しを付けます
-       （まーく様のご指示・2026/11/12）
-         「赤い線を最初に入れて、見出しとしてだしてもらわないと、
-           わけがわかりません」「ブロックわけがよくわかるように」
-       ①乗り場 ②その乗り場の数字 ③タブから下の中身、の3つに分けます。 -->
-
-  <!-- ★乗り場と数字は、1つの区切りにまとめます（ご指示・2026/11/12）。
-       見出しは「過去の記録」。 -->
-
-
-    <!-- ★利き手の切り替え（ご指示・2026/11/12）
-         「左利きの人もいるので、右上右下固定のものは
-           左利き用に、左固定にする、切替仕様メニューも1番上に作ってください」 -->
-  <div class="handbar"><span>ボタン位置</span>
-    <button class="chip" data-hand="r">右利き</button>
-    <button class="chip" data-hand="l">左利き</button>
-    <!-- ★フィードバックは、タブから外してここへ（ご指示・2026/11/12）。
-           「左利きとかと同じ文字サイズで、丸している右寄せで設置してください、
-             サブタイトルはいりません」 -->
-    <button class="chip fbtab" data-t="fb" aria-selected="false">フィードバック</button></div>
+  <!-- ★フィードバックは、≡ の一覧からだけ行けます（ご指示・2026/11/13
+         「フィードバックは三の方にあるので、ここでは消して」）。
+       ≡ は、この札を見て行き先の一覧を作ります。
+       上の行からは消しましたが、目に見えない形でここに残します。 -->
+  <button class="chip fbtab" data-t="fb" aria-selected="false" hidden>フィードバック</button>
   <nav id="tabs">
     <button data-t="in" aria-selected="true"><b>記録</b><i>入れる・直す</i></button>
     <button data-t="hot" aria-selected="false"><b>狙い目</b><i>いま行く所</i></button>
@@ -88,7 +83,7 @@
     <h2>過去の記録</h2>
     <div class="ktplace">
       <select class="fsel" id="ktPlace"></select>
-      <button class="chip" id="ktClear" hidden>すべてに戻す</button>
+      <button class="chip rst" id="ktClear" hidden>すべてに戻す</button>
     </div>
     <!-- ★プルダウン以外に、字で探せるようにします（ご指示・2026/11/13）。
            打った字が入っている乗り場を、候補として下に出します。 -->
@@ -102,8 +97,10 @@
       <button class="chip" data-mine="0">全員</button>
       <button class="chip" data-mine="1">自分だけ</button>
     </div>
-    <div class="ktwhen" id="ktWhen">—</div>
-    <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
+    <div class="ktline">
+      <div class="ktwhen" id="ktWhen">—</div>
+      <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
+    </div>
     <div class="ktwho" id="ktWho">—</div>
     <div class="kpis">
       <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
@@ -124,9 +121,9 @@
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく</rt></ruby>完了</button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261112-3db285eb"></script>
-<script src="news.js?v=20261112-3db285eb"></script>
-<script src="shared.js?v=20261112-3db285eb"></script>
-<script src="app.js?v=20261112-3db285eb"></script>
+<script src="config.js?v=20261113-004b04a7"></script>
+<script src="news.js?v=20261113-004b04a7"></script>
+<script src="shared.js?v=20261113-004b04a7"></script>
+<script src="app.js?v=20261113-004b04a7"></script>
 </body>
 </html>

@@ -708,25 +708,27 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
     '　 字そろえも右');
   t(/\.login \.head > \.subline \.sub\{[^}]*margin-left:auto/.test(css),
     '　 ログインの画面も、同じ寄せ方');
-  t(/\.hsub > \.who\{[^}]*width:100%/.test(css), '　 名前とボタンは、一文の下');
+  /* ★2026/11/13 の作り直し：称号はロゴ下（1行目）、
+       ボタン位置と管理・ログアウトは2行目（.hrow）で同じ列。 */
+  t(/\.hrow\{[^}]*flex-wrap:nowrap/.test(css), '　 ボタン位置と管理は、同じ1列に収める');
   /*
    * ★まーく様のご指示（2026/11/11）
    *     「ポンコツ(称号)だけ、左寄せにしてください」
    *   称号は左、ボタンは右。段いっぱいに広げて、左右に振り分けます。
    */
-  t(/\.hsub > \.who\{[^}]*justify-content:space-between/.test(css),
-    '★★★称号は左、ボタンは右（段の左右に振り分ける）');
+  t(/\.mytitle\{/.test(css), '★★★称号は、ロゴのすぐ下（1行目）に出す');
   t(!/header > \.who\{[^}]*justify-self:end/.test(css),
     '　 右に かためる書き方は残っていない');
-  t(/\.hsub > \.who > \.whoR\{/.test(css), '　 右がわを まとめる入れものがある');
-  ['index.html', 'admin.html'].forEach(function (f) {
-    const h = fs.readFileSync(path.join(W, f), 'utf8');
-    const w = h.slice(h.indexOf('class="who"'), h.indexOf('class="who"') + 500);
-    t(/<b id="me">[\s\S]*?<\/b>[\s\S]*?class="whoR"/.test(w),
-      '★★★' + f + '：称号が先、ボタンはそのあとの入れものの中');
-    t(/class="whoR"[\s\S]{0,400}id="out"/.test(w),
-      '　 ' + f + '：ログアウトは、右がわの入れものの中');
-  });
+  t(/\.hsub > \.hrow > \.whoR\{/.test(css), '　 右がわを まとめる入れものがある');
+  {
+    const h = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    t(/<b class="mytitle" id="me">/.test(h), '★★★index.html：称号はロゴ下の1行目');
+    t(/class="hrow"[\s\S]{0,500}id="out"/.test(h),
+      '　 index.html：ログアウトは、ボタン位置と同じ列');
+    const h2 = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
+    t(/class="whoR"[\s\S]{0,400}id="out"/.test(h2),
+      '　 admin.html：ログアウトは、右がわの入れものの中');
+  }
   t(/header > h1[^{]*\{[^}]*white-space:nowrap/.test(css),
     '★★★題は折り返さない（折り返すと、絵との段がずれる）');
   t(/--logo:clamp\(/.test(css),
@@ -922,7 +924,7 @@ console.log('■ イベントは、何日のぶんかを必ず出す（ご指示
       'function today(){return "2026-11-30";}' +
       app.slice(a, b), box);
     const T = (d, n) => vm.runInContext(
-      'evTitle(' + JSON.stringify({ d: d, list: new Array(n).fill(0) }) + ')', box);
+      'evTitle(' + JSON.stringify({ d: d, list: new Array(n).fill({ s: '19:00' }) }) + ')', box);
     const S = d => vm.runInContext(
       'evStale(' + JSON.stringify({ d: d, list: [] }) + ')', box);
 
@@ -1040,7 +1042,7 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/data-filt="from"/.test(app) && /data-filt="to"/.test(app),
     '★★★期間は、自分で決めることもできる');
   t(/id="fClear"/.test(app), '★★★絞っているときは「ぜんぶに戻す」が出る');
-  t(/filtOn\(\) \? '<button class="chip warn" id="fClear"/.test(app),
+  t(/filtOn\(\) \? '<button class="chip warn rst" id="fClear"/.test(app),
     '　 絞っていないときは出さない（よけいなものを増やさない）');
 
   /* ---- 絞り込みは、1か所でまとめて効く ---- */
@@ -1190,10 +1192,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   /* ★フィードバックは、タブの行から外して、いちばん上の行の右端へ
        （ご指示・2026/11/12「左利きとかと同じ文字サイズで、
          丸している右寄せで設置してください、サブタイトルはいりません」）。 */
-  t(/<button class="chip fbtab" data-t="fb"[^>]*>フィードバック<\/button>/.test(html),
-    '★★★フィードバックは、上の行のタグとして出す');
-  t(html.indexOf('class="chip fbtab"') < html.indexOf('<nav id="tabs">'),
-    '★★★タブの行より上にある');
+  /* ★2026/11/13 のご指示で、上の行からは消しました
+       （「フィードバックは三の方にあるので、ここでは消して」）。
+       ≡ の一覧からは行けるよう、目に見えない形で残します。 */
+  t(/data-t="fb"/.test(html), '★★★フィードバックへは ≡ から行ける');
+  t(/data-t="fb"[^>]*hidden/.test(html), '★★★上の行には出さない（目に見えない形で残す）');
+  t(!/class="handbar"/.test(html), '　 前の「ボタン位置」の行は、ブロックにまとめた');
   t(!/<nav id="tabs">[\s\S]*?data-t="fb"[\s\S]*?<\/nav>/.test(html),
     '★★★タブの行には、もう入っていない');
   /* ★≡ のボタンと、ふきだしが重ならないこと（ご指摘・2026/11/12） */
@@ -1264,10 +1268,8 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/:root\{--gut:19px\}/.test(cs), '★★★そろえる位置を、1か所で決めている');
     t(/header\{padding-left:33px;padding-right:33px\}/.test(cs),
       '★★★題の行も、同じ位置にそろえる');
-    t(/\.hsub > \.subline, \.hsub > \.who\{padding-left:var\(--gut\);padding-right:var\(--gut\)\}/.test(cs),
-      '★★★版と称号の帯も、同じ位置');
-    t(/\.handbar\{padding-left:var\(--gut\);padding-right:var\(--gut\)\}/.test(cs),
-      '★★★ボタン位置の行も、同じ位置');
+    t(/\.hsub > \.subline, \.hsub > \.hrow\{padding-left:var\(--gut\);padding-right:var\(--gut\)\}/.test(cs),
+      '★★★ブロックの中も、同じ位置にそろえる');
   }
 
   /* ★直したのに前の画面が出る、を起こさない（ご指摘・2026/11/13）。
@@ -1297,9 +1299,13 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
     const h4 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-    t(/\.hsub > \.subline, \.hsub > \.who\{[^}]*background:rgba\(255,255,255,\.0\d+\)/.test(cs),
-      '★★★段ごとに、薄い帯を敷く');
-    t(/\.hsub > \.subline, \.hsub > \.who\{[^}]*border-radius/.test(cs), '　 角も丸める');
+    /* ★2026/11/13 のご指示で、灰背景はブロックぜんたいで1つに
+         （「ここはひとつのブロック扱いで、灰背景もひとつでまとめて下さい」）。 */
+    t(/\.hsub\{[^}]*background:rgba\(255,255,255,\.0\d+\)/.test(cs),
+      '★★★灰背景は、ブロックぜんたいで1つ');
+    t(/\.hsub\{[^}]*border-radius/.test(cs), '　 角も丸める');
+    t(!/\.hsub > \.subline, \.hsub > \.hrow\{[^}]*background:/.test(cs),
+      '　 段ごとの帯は、残っていない');
     t(!/id="meBadge"/.test(h4), '★★★「管理者」の札は、省いた');
     t(!/>管理者</.test(h4), '　 その字も、どこにも残っていない');
     t(/id="toAdmin"/.test(h4), '　 【管理】のボタンは、残っている');
@@ -1340,10 +1346,13 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/\.fab\.done rt\{/.test(cs), '　 ルビの見た目も入っている');
     /* ★離れているとルビに見えません（ご指示・2026/11/13）。
        ★形も、角丸の長方形ではなく ほんとうの楕円にします。 */
-    t(/\.fab\.done rt\{[\s\S]{0,120}line-height:1;transform:translateY\(3px\)\}/.test(cs),
-      '★★★ルビと字のすき間を、詰めている');
-    t(/\.fab\.done\{[^}]*border-radius:50%/.test(cs), '★★★きれいな楕円にしている');
-    t(!/\.fab\.done\{[^}]*border-radius:999px/.test(cs), '　 角丸の長方形は、残っていない');
+    /* ★2026/11/13 のご指示で、前の形（角の丸い横長）に戻しました
+         （「なんで、丸になってるんですか。前の形に戻してください」）。
+         「きろく」と「粛清」の高さのすき間だけを、さらに詰めます。 */
+    t(/\.fab\.done rt\{[\s\S]{0,140}line-height:\.9;transform:translateY\(4px\)\}/.test(cs),
+      '★★★ルビと字のすき間を、ぎりぎりまで詰めている');
+    t(!/\.fab\.done\{[^}]*border-radius:50%/.test(cs), '★★★丸にはしない（前の形に戻した）');
+    t(/\.fab\.done\{[^}]*height:56px/.test(cs), '　 高さも前の形');
   }
 
   /* ★えらぶ欄は、▼ と太い枠ではっきり分かるように（ご指示・2026/11/12
@@ -1426,7 +1435,7 @@ console.log('■ イベントは、開演の時刻を いちばん上に（ご�
     '★★★搬入（設営）の日は、時刻を1つも出さない');
   t(/一番上は<b>開演の時刻<\/b>/.test(app), '　 画面の説明も、そろっている');
   const news = fs.readFileSync(path.join(W, 'news.js'), 'utf8');
-  t(/一番上に出るのは【開演の時刻】/.test(news), '　 使い方のカードにも、そろっている');
+  t(/大きい時刻は開演/.test(news), '　 使い方のカードにも、そろっている');
   /* ★地図とアーティストの公式リンク（ご指摘・2026/11/12） */
   t(/function evArtHTML\(/.test(app), '★★★アーティストの公式リンクを出す係がある');
   /* ★押しどころの名前は「📍 地図」でそろえます（ご指示・2026/11/12）。
@@ -2084,6 +2093,64 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ⑥-15 「この乗り場は、何時がよいか」を一番上に（ご指示・2026/11/13） */
   t(/out = head \+ bestTimeCard\(D\) \+ hourPlanCard\(D\)/.test(app),
     '★★★「この乗り場は、何時がよいか」が一番上');
+
+  /* ⑥-16 2026/11/13 のまとめてのご指示 */
+
+  /* 一番上を、ひとつのブロックに */
+  t(/<div class="hsub" id="hsub">/.test(idx), '★★★上のブロックに、まとめる入れものがある');
+  t(/id="hgrab"/.test(idx), '★★★指で開け閉めするつまみがある');
+  t(/\.hsub\.cl > \.hrow\{display:none\}/.test(css), '　 閉じたら、2行目が隠れる');
+  t(/function hsubWire\(/.test(app), '★★★開け閉めの動きがある');
+  t(/addEventListener\('touchend'/.test(app), '★★★指で上下に払って開け閉めできる');
+  t(/Math\.abs\(dy\) < 18/.test(app), '　 少し触れただけでは閉じない');
+  t(/localStorage\.setItem\(HSUB_KEY/.test(app), '　 閉じたままかを覚えている');
+
+  /* 過去の記録は、記録の画面だけ */
+  t(/ktop\.hidden = \(tab !== 'in'\)/.test(app),
+    '★★★「過去の記録」は、記録の画面だけに出す');
+  t(!/#ktop\.on\{border-color/.test(css), '★★★赤枠はやめた（ほかの区切りに合わせる）');
+
+  /* 合計と日付を、同じ高さに */
+  t(/<div class="ktline">/.test(idx), '★★★日付と合計を、同じ行に入れる');
+  t(/\.ktline\{[^}]*align-items:center/.test(css), '★★★高さをそろえる');
+  t(!/\.ktsum\{[^}]*margin-top:-20px/.test(css), '　 むりやり重ねる書き方は、残っていない');
+
+  /* 平均には、必ず「平均」と添える */
+  t(/'<div class="hv"><i>平均<\/i>'/.test(app), '★★★狙い目の金額に「平均」と添える');
+  t(/'<td class="n" style="color:var\(--meter\)">平均 '/.test(app), '　 表の中にも添える');
+  t(/'平均 ' \+ yen\(avg\)/.test(app), '　 エリアごとの行にも添える');
+  t(/<span class="ln">1本の平均金額<\/span>/.test(app), '　 見出しも「1本の平均金額」');
+
+  /* イベント */
+  t(/function evSplit\(/.test(app), '★★★時刻が分からないものを、より分ける');
+  t(/x\.k === 'hanyu' \|\| x\.s \|\| x\.e/.test(app),
+    '★★★開演も終演も分からないものは、出さない（搬入はのぞく）');
+  t(/function evHidNote\(/.test(app), '　 出さなかったものは、名前だけ1行で出す');
+  t(/function evNextCard\(/.test(app), '★★★次の日のぶんは、1枚目の「次」を出す');
+  t(/nx\.d === d\.d\)\) return ''/.test(app), '★★★同じ日付が2回出ない');
+  t(!/evData\.days\[1\]\) \?/.test(app), '　 2枚目を days\[1\] に決め打ちしていない');
+
+  /* リセットの置き場所と、左利き */
+  t(/body\[data-hand="r"\] \.rst\{order:-1\}/.test(css), '★★★右利きは、リセットが左');
+  t(/body\[data-hand="l"\] \.rst\{order:99\}/.test(css), '★★★左利きは、リセットが右');
+  t(/body\[data-hand="l"\] \.hrow \.whoR\{[^}]*order:-1/.test(css),
+    '　 管理・ログアウトも、左利きなら左へ');
+  t(/id="ktClear"[^>]*class|class="chip rst" id="ktClear"/.test(idx) ||
+    /class="chip rst" id="ktClear"/.test(idx), '　 「すべてに戻す」にも目印がある');
+
+  /* 使い方は、端的に */
+  {
+    const nj = fs.readFileSync(path.join(W, 'news.js'), 'utf8');
+    const g  = nj.slice(nj.indexOf('const APP_GUIDE'), nj.indexOf('const APP_NEWS'));
+    /* カード1枚につき、絵文字（i）と題（h）で2つ。
+       あとは中身の行。ぜんぶで 2×枚数＋行数 になります。 */
+    const cards = (g.match(/\{ i:/g) || []).length;
+    const strs  = (g.match(/'[^'\n]*'/g) || []).length;
+    const ls    = strs - cards * 2;
+    t(cards >= 6 && ls <= cards + 2,
+      '★★★使い方のカードは、1枚1行まで（読む気をなくさせない）',
+      cards + '枚・' + ls + '行');
+  }
 
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');

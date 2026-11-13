@@ -85,10 +85,16 @@ button{font-family:inherit}
 /* ★ひと区切りごとに、赤い線の見出しを付けます（ご指示・2026/11/12）。
      どこからどこまでが ひとまとまりかが、ひと目で分かるように。 */
 .blk{margin-bottom:12px}
+/* ★日付と合計は、同じ高さにそろえます（ご指示・2026/11/13
+     「合計と日付はきちんと同じ高さに合わせてください」）。
+     前は「負の余白」でむりやり重ねていたので、字の大きさが変わると
+     すぐズレました。1つの行に入れて、両端に寄せます。 */
+.ktline{display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-top:9px}
+.ktsum{display:flex;align-items:baseline;gap:5px}
 .ktwhen{font-family:var(--mono);font-size:15px;letter-spacing:.02em;color:#FFFFFF;
-  margin-top:9px}
-#ktop.on .ktwhen{color:var(--kusha)}
-.ktsum{text-align:right;white-space:nowrap;margin-top:-20px}
+  min-width:0}
+.ktsum{text-align:right;white-space:nowrap}
 .ktsum small{display:inline;font-size:11px;color:#FFFFFF;letter-spacing:.06em;margin-right:5px}
 .ktsum b{display:inline;font-family:var(--mono);font-size:15px;color:var(--andon);
   line-height:1.2}
@@ -101,6 +107,30 @@ button{font-family:inherit}
 .ktfind input{width:100%;box-sizing:border-box}
 .fsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .fsug:empty{display:none}
+/* ★時刻が分からず、出さなかった催し（ご指示・2026/11/13）。
+     黙って消すと、載っていないことに気づけないので、名前だけ1行。 */
+.evhid{margin-top:10px;font-size:11.5px;color:#FFFFFF;opacity:.72;line-height:1.7}
+/* ★金額には、必ず「平均」と添えます（ご指示・2026/11/13
+     「平均額は、必ず、平均と含めてください。
+       ただ金額があってもなんの金額かわけがわかりません」）。 */
+.hv i{font-style:normal;font-size:10px;opacity:.8;margin-right:4px}
+
+/* ------------------------------------------------------------
+ *  利き手で、押すものの置き場所を入れかえる
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「リセットは全て左寄りにして。
+ *      左利きの場合は、こういう系は右において。
+ *      全て左利きがやりやすいシステムに見直してください」
+ *
+ *  ★並びだけを入れかえます。字も色も、どちらも同じです。
+ * ---------------------------------------------------------- */
+body[data-hand="r"] .rst{order:-1}
+body[data-hand="l"] .rst{order:99}
+/* 管理・ログアウトも、利き手の側へ */
+body[data-hand="r"] .hrow .whoR{margin-left:auto;margin-right:0;order:9}
+body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
+.ktplace{flex-wrap:wrap}
 .ktplace .fsel{flex:1 1 180px;min-width:0;font-size:15px}
 .ktwho{font-size:11.5px;color:#FFFFFF;line-height:1.6;
   display:flex;flex-wrap:wrap;gap:0 10px}
@@ -109,10 +139,10 @@ button{font-family:inherit}
 /* 区切りの「/」は、前のことばにくっつけます。
    行のあたまに「/」が取り残されると、読みにくくなります。 */
 .ktwho span:not(:last-child):after{content:" /";opacity:.5}
-/* 絞っているときは、ふちを赤くして ひと目で分かるようにします */
-#ktop.on{border-color:var(--andon)}
+/* ★赤枠はやめました（ご指示・2026/11/13
+     「過去の記録も、赤枠にはしなくて良くて、他に合わせてください」）。
+     絞り込んでいることは、下の「いま：〜」の行で分かります。 */
 #ktop .kpis{margin-top:11px}
-#ktop.on h2{color:var(--kusha)}
 
 /* ★版の番号（まーく様のご指示・2026/11/11）
      「v1.0も、他の文字と同じサイズにして
@@ -166,7 +196,30 @@ header > .saymount{flex:1 1 auto;min-width:0}
 header > #fabMenu{flex:none;margin-left:auto}
 body[data-hand="l"] header > #fabMenu{order:-1;margin-left:0;margin-right:auto}
 /* 版・一文・称号・ボタンは、貼り付けない（ふつうに流れる） */
-.hsub{display:flex;flex-direction:column;gap:5px;padding:9px 0 2px}
+.hsub{display:flex;flex-direction:column;gap:7px;padding:10px 0 14px;position:relative;
+  background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:14px;
+  margin:8px 0 10px;touch-action:pan-y;overflow:hidden;
+  transition:max-height .18s ease, padding .18s ease}
+/* ★つまみ。指で上下に払っても、押しても、開いたり閉じたりします */
+.hgrab{position:absolute;left:0;right:0;bottom:0;height:14px;border:0;padding:0;
+  background:transparent;cursor:pointer}
+.hgrab:after{content:"";position:absolute;left:50%;bottom:5px;width:38px;height:3px;
+  margin-left:-19px;border-radius:2px;background:rgba(255,255,255,.34)}
+/* 閉じたときは、1行目（版・称号・ひとこと）だけ残します */
+.hsub.cl > .hrow{display:none}
+.hsub.cl{padding-bottom:14px}
+/* ★ボタン位置と、管理・ログアウトを同じ列に（ご指示・2026/11/13） */
+/* ★「ボタン位置」と「管理・ログアウト」を、同じ1列に収めます
+     （ご指示・2026/11/13）。細い機種でも折り返さないよう、
+     字と余白を少しずつ詰めてあります。 */
+.hrow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+  font-size:11px;color:#FFFFFF}
+.hrow > span{white-space:nowrap;font-size:11px;opacity:.85}
+.hrow .chip{padding:4px 8px;font-size:11px;white-space:nowrap}
+.hrow .mini{padding:4px 8px;font-size:11px;white-space:nowrap}
+.hrow .whoR{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* ★称号は、ロゴのすぐ下（1行目）に置きます（ご指示・2026/11/13） */
+.mytitle{color:#FFFFFF;font-weight:600;font-size:12.5px;white-space:nowrap;flex:0 0 auto}
 h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
 /* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
 /* ★題の大きさは、ここ1か所で決めます。
@@ -617,12 +670,10 @@ header > h1, .login .head > h1{margin:0}
 /* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
 .hsub > .subline, .login .head > .subline{
   display:flex;align-items:center;gap:8px;min-width:0}
-/* ★段ごとに、薄い帯を敷いて区切ります（ご指示・2026/11/12
-     「赤く囲った部分を薄グレー背景など引いて
-       もっとそれぞれ、くぎって 視覚化しやすくしてください」）。
-     字が多いので、どこからどこまでが ひとまとまりか分かりません。 */
-.hsub > .subline, .hsub > .who{
-  background:rgba(255,255,255,.055);border-radius:9px;padding:6px 10px}
+/* ★灰背景は、ブロックぜんたいで1つだけにします（ご指示・2026/11/13
+     「ここはひとつのブロック扱いで、灰背景もひとつでまとめて下さい」）。
+     段ごとの帯はやめました。 */
+.hsub > .subline, .hsub > .hrow{padding:2px 0}
 /* ★一文（近日中〜）は、右へ寄せます（ご指示・2026/11/11）
      「サブタイトル(近日中～)は、右寄りにしてください」
      margin-left:auto … 左の余りを ぜんぶ ここで食うので、
@@ -633,11 +684,10 @@ header > h1, .login .head > h1{margin:0}
 /* ★称号（ポンコツ）だけ左、あとは右（ご指示・2026/11/11）
      「ポンコツ(称号)だけ、左寄せにしてください」
      段いっぱいに広げて、左右に振り分けます。 */
-.hsub > .who{margin-left:0;width:100%;justify-content:space-between;gap:10px}
-.hsub > .who > .whoR{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+.hsub > .hrow > .whoR{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
   justify-content:flex-end}
 /* 称号は、長くても折り返さずに 1つのかたまりで */
-.hsub > .who > b{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
 
 /* 題は折り返さない。2行になると、絵との段がずれます */
 header > h1, .login .head > h1{white-space:nowrap}
@@ -1046,18 +1096,23 @@ header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;wh
 /* ★きれいな楕円にします（ご指示・2026/11/13）。
      角丸の長方形ではなく、ほんとうの楕円（50%）です。
      字が端で切れないよう、左右の余白を広く取ります。 */
-.fab.done{bottom:18px;height:64px;padding:0 32px;font-size:16px;line-height:1;
-  background:var(--andon);color:#F2EDE4;border-radius:50%;
-  display:flex;align-items:center;justify-content:center}
+/* ★前の形（角の丸い横長）に戻しました（ご指示・2026/11/13）
+     「なんで、丸になってるんですか。前の形に戻してください」
+   ★「きろく」と「粛清」の高さの間だけを、ぎりぎりまで縮めます
+     （ご指示・2026/11/13「きろく と 粛清 の高さ幅だけをもっと縮めて」）。
+     漢字そのものの大きさは、ほかのボタンとそろえます。 */
+.fab.done{bottom:18px;height:56px;padding:0 20px;font-size:16px;line-height:1.15;
+  background:var(--andon);color:#F2EDE4;display:flex;align-items:center;justify-content:center}
+
 /* ★ふきだし（イベントの箱）が出ているあいだは、固定ボタンを隠します
      （ご指示・2026/11/12「ポップアップの時は表示しないでください」）。 */
 body.modalon .fab{display:none}
 /* ★「粛清完了」に「きろく」とルビを振ります（ご指示・2026/11/12）。
-     ★離れているとルビに見えないので、すき間を詰めます
-       （ご指示・2026/11/13）。 */
-.fab.done ruby{ruby-align:center;line-height:1}
-.fab.done rt{font-size:10px;font-weight:700;letter-spacing:.08em;opacity:.95;
-  line-height:1;transform:translateY(3px)}
+     ★「きろく」と「粛清」の高さのすき間だけを、ぎりぎりまで詰めます
+       （ご指示・2026/11/13）。字の大きさは、ほかとそろえたままです。 */
+.fab.done ruby{ruby-align:center;ruby-position:over;line-height:1}
+.fab.done rt{font-size:9px;font-weight:700;letter-spacing:.06em;opacity:.95;
+  line-height:.9;transform:translateY(4px)}
 body[data-hand="r"] .fab.done{right:16px}
 body[data-hand="l"] .fab.done{left:16px}
 /* ≡ を押したときに出る、行き先の一覧 */
@@ -1213,6 +1268,6 @@ select:focus{border-color:var(--andon);outline:none}
 /* 題の行（端まで塗るので、余白は自前で33px）… ページの余白14 + 19 */
 header{padding-left:33px;padding-right:33px}
 /* 版と一文の帯、称号とボタンの帯 */
-.hsub > .subline, .hsub > .who{padding-left:var(--gut);padding-right:var(--gut)}
+.hsub > .subline, .hsub > .hrow{padding-left:var(--gut);padding-right:var(--gut)}
 /* ボタン位置の行（帯を敷いていないので、字だけを内側へ） */
 .handbar{padding-left:var(--gut);padding-right:var(--gut)}

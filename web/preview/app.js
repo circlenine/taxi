@@ -631,7 +631,11 @@ function render(){
    *     「いつの」「いくら」「だれの」を、3つに分けて並べます。
    */
   const ktop = $('#ktop');
-  if (ktop) {
+  /* ★「過去の記録」は、記録の画面だけに出します（ご指示・2026/11/13
+       「過去の記録は記録のページだけに残して、他は出さないでください」）。
+       どの画面にも出していたので、グラフを見たいときに邪魔でした。 */
+  if (ktop) ktop.hidden = (tab !== 'in');
+  if (ktop && !ktop.hidden) {
     const ds   = rs.map(r => r.date).sort();
     const days = new Set(ds).size;
     const sum  = rs.filter(hasFare).reduce((a2, r) => a2 + (+r.fare || 0), 0);
@@ -655,7 +659,6 @@ function render(){
                        : '記録なし');
     if (ds.length) who.push(fmtD(ds[0]) + ' から');
 
-        ktop.classList.toggle('on', filtOn());
     /* 期間は、見出しの下に出します（見出しは「過去の記録」） */
     const kw = $('#ktWhen'); if (kw) kw.textContent = when;
     $('#ktSum').textContent  = yen(sum);
@@ -1039,7 +1042,7 @@ const filterChips = (full) => `<div class="filt">
   <div class="chips">
     <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
     <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
-    ${filtOn() ? '<button class="chip warn" id="fClear">絞り込みを解除</button>' : ''}
+    ${filtOn() ? '<button class="chip warn rst" id="fClear">絞り込みを解除</button>' : ''}
   </div>
   <!-- ★営業曜日の区分でも、すぐ切り替えられるようにします（ご指示・2026/11/12）。
        平日と土日祝では、売上の出方がまるで違うためです。 -->
@@ -1983,7 +1986,7 @@ function paneHot(now){
       '" target="_blank" rel="noopener">' +
       '<small>' + (i + 1) + '位' + (i === 0 ? '　一番濃い' : '') + '</small>' +
       '<b>' + esc(x.p) + '</b>' +
-      '<div class="hv">' + yen(x.avg) + '</div>' +
+      '<div class="hv"><i>平均</i>' + yen(x.avg) + '</div>' +
       '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
       '<span class="mini">📍 地図</span></a>';
   }).join('');
@@ -1991,7 +1994,7 @@ function paneHot(now){
   const bars = got.rows.slice(0, 8).map(function (x){
     return '<tr><td><a class="plink" href="' + hotMap(x.p) + '" target="_blank" rel="noopener">' +
       esc(x.p) + '</a></td><td class="n">' + x.n + '</td>' +
-      '<td class="n" style="color:var(--meter)">' + yen(x.avg) + '</td>' +
+      '<td class="n" style="color:var(--meter)">平均 ' + yen(x.avg) + '</td>' +
       '<td><div class="bar" style="width:' + Math.max(3, x.avg / mx * 100) + '%"></div></td>' +
       '<td class="n">' + Math.round(x.wait) + '分</td></tr>';
   }).join('');
@@ -2018,7 +2021,7 @@ function hotPlanCard(plan, early){
       const head = '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>';
       if (!s.top) return '<div class="pl">' + head + '<b class="thin">—</b><span>記録が足りない</span></div>';
       return '<a class="pl" href="' + hotMap(s.top.p) + '" target="_blank" rel="noopener">' + head +
-        '<b>' + esc(s.top.p) + '</b><span>' + yen(s.top.avg) + '・' + s.top.n + '件</span></a>';
+        '<b>' + esc(s.top.p) + '</b><span>平均 ' + yen(s.top.avg) + '・' + s.top.n + '件</span></a>';
     }).join('') + '</div></div></div>';
 }
 
@@ -2509,7 +2512,7 @@ function bandBar(o, big){
 function bandRow(label, o, avg){
   return '<div class="brow"><div class="bl">' + esc(label) + '</div>' +
     '<div class="bb">' + bandBar(o) +
-      '<div class="bmeta">' + (avg ? yen(avg) : '—') + '　' + o.n + '件</div></div></div>';
+      '<div class="bmeta">' + (avg ? '平均 ' + yen(avg) : '平均 —') + '　' + o.n + '件</div></div></div>';
 }
 
 /* その組の平均金額（不明は外す） */
@@ -2619,7 +2622,7 @@ function bestTimeCard(D){
       '<span class="bth">' + x.h + '時台</span>' +
       '<span class="btb">' + bandBar(x.o) + '</span>' +
       '<span class="btv">' + x.L + '%</span>' +
-      '<span class="btm">' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></div>';
+      '<span class="btm">平均 ' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></div>';
   }).join('');
 
   return '<div class="card"><h2>この乗り場は、何時がよいか</h2>' +
@@ -2682,11 +2685,11 @@ function longRows(rank, n){
       '<span class="li">' + (i + 1) + '</span>' +
       '<span class="lp">' + esc(x.p) + '<i>' + esc(x.cat) + '</i></span>' +
       '<span class="lv">' + x.L + '%</span>' +
-      '<span class="ln">' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></a>';
+      '<span class="ln">平均 ' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></a>';
   }).join('');
 }
 const longHead = '<div class="lhead"><span class="li"></span><span class="lp">乗り場</span>' +
-  '<span class="lv">ロング率</span><span class="ln">平均金額</span></div>';
+  '<span class="lv">ロング率</span><span class="ln">1本の平均金額</span></div>';
 
 /**
  * パーセントの画面。
@@ -2706,7 +2709,8 @@ function paneRatio(){
   const R = visible();
   const head = '<div class="card"><h2>パーセント</h2>' +
     '<p class="note">ロング（¥10,000以上）が<b>出やすい所と時間</b>を探す画面です。' +
-    'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。</p>' +
+    'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。' +
+    '<b>3件に届かない乗り場は、割合を出しません。</b></p>' +
     filterChips(true) + '</div>';
   if (!R.length) return head + emptyCard('該当データがありません');
   const all = bandCount(R);
@@ -2731,7 +2735,7 @@ function paneRatio(){
     '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと地図が開きます。</p>' +
     (hourPick === ''
       ? '<p class="note">下の棒を押すと、その時間帯だけになります。</p>'
-      : '<div class="chips"><button class="chip warn" data-hr="">全時間に戻す</button></div>') +
+      : '<div class="chips"><button class="chip warn rst" data-hr="">全時間に戻す</button></div>') +
     longHead + longRows(longRank(pickRs), 8) + '</div>';
 
   /* ② ロングが出やすい時間帯（押すと、上の並びがその時間になります） */
@@ -2817,16 +2821,14 @@ function paneRatio(){
     }
   }
 
-  /* ⑤ ぜんぶの内訳 */
-  const tiles = BANDS.map(function (bd){
-    return '<div class="kpi"><small>' + bd.n + '<i>' + bd.d + '</i></small>' +
-      '<b style="color:' + bd.c + '">' + bandPct(all, bd.k) + '%</b>' +
-      '<span class="bsub">' + all[bd.k] + '件</span></div>';
-  }).join('');
-  out += '<div class="card"><h2>ぜんぶの内訳</h2>' + bandBar(all, true) +
-    '<div class="kpis bandk">' + tiles + '</div>' +
-    '<p class="note">' + all.n + '件・平均 ' + yen(bandAvg(R)) + '。' +
-    (all.unk ? '金額が不明な ' + all.unk + '件は、外しています。' : '') + '</p></div>';
+  /* ★「ぜんぶの内訳」は、なくしました（ご指示・2026/11/13）
+       「ぜんぶの内訳は参考にならないのでいらないです。
+         作る際に、まず考えてください。
+         全て一緒くたにしたデータで何がわかるのですか？
+         もっと、参考になるデータ作りを必ず前提としてかんがえてくみたててください」
+       乗り場も時間も混ぜた1本の帯からは、どこへ行くかが decide できません。
+       これから作るものも、「この数字を見て、何をするか」が
+       言えないものは出しません。 */
 
   /* ⑥ エリアごと（北・南・他 → 中カテゴリー → 乗り場） */
   let pbody = '';
@@ -2840,10 +2842,19 @@ function paneRatio(){
       if (!sr.length) return;
       const pls = [...new Set(sr.map(r => r.place).filter(Boolean))]
         .map(p => ({ p: p, n: sr.filter(r => r.place === p).length }))
-        .sort((x, y) => y.n - x.n || (x.p < y.p ? -1 : 1)).map(o => o.p);
+        .sort((x, y) => y.n - x.n || (x.p < y.p ? -1 : 1));
+      /* ★3件に届かない乗り場は、割合を出しません（ご指示・2026/11/13 の考え方）。
+           1件を「ロング100%」と書くと、それを見て走った人の売上が変わります。
+           名前と件数だけを、下に1行で出します。 */
+      const fat  = pls.filter(o => o.n >= HOT_MIN_N);
+      const thin = pls.filter(o => o.n <  HOT_MIN_N);
       pbody += '<div class="bsubh">' + esc(sub) + '</div>' +
-        pls.map(p => bandRow(p, bandCount(sr.filter(r => r.place === p)),
-                             bandAvg(sr.filter(r => r.place === p)))).join('');
+        fat.map(o => bandRow(o.p, bandCount(sr.filter(r => r.place === o.p)),
+                             bandAvg(sr.filter(r => r.place === o.p)))).join('') +
+        (thin.length
+          ? '<div class="hbn">まだ3件に届かない所（件数）：' +
+            thin.map(o => esc(o.p) + ' ' + o.n).join('・') + '</div>'
+          : '');
     });
   });
   if (pbody) {
@@ -2960,7 +2971,7 @@ function fabWire(){
     a.hidden = (tab !== 'in');
     a.onclick = function () { const b = document.getElementById('add'); if (b) b.click(); };
   }
-  document.querySelectorAll('.handbar [data-hand]').forEach(function (b) {
+  document.querySelectorAll('.hrow [data-hand]').forEach(function (b) {
     b.onclick = function () {
       hand = b.dataset.hand;
       try { localStorage.setItem(HAND_KEY, hand); } catch (e) {}
@@ -2968,6 +2979,48 @@ function fabWire(){
     };
   });
   handApply();
+  hsubWire();
+}
+
+/* ------------------------------------------------------------
+ *  一番上の灰色のブロックを、指で開いたり閉じたりする
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「灰背景ぶぶんですが、指で上下に動かしたら、
+ *      開いたり閉じたりできる仕様にできませんか？」
+ *
+ *  ★上に払うと閉じ、下に払うと開きます。つまみを押しても同じです。
+ *    閉じたかどうかは覚えておき、次に開いたときも同じ形で出します。
+ * ---------------------------------------------------------- */
+const HSUB_KEY = 'tn_hsub_closed';
+function hsubSet(cl){
+  const h = document.getElementById('hsub');
+  if (!h) return;
+  h.classList.toggle('cl', cl);
+  try { localStorage.setItem(HSUB_KEY, cl ? '1' : '0'); } catch (e) {}
+}
+function hsubWire(){
+  const h = document.getElementById('hsub');
+  if (!h || h.dataset.wired) return;
+  h.dataset.wired = '1';
+  let cl = false;
+  try { cl = localStorage.getItem(HSUB_KEY) === '1'; } catch (e) {}
+  h.classList.toggle('cl', cl);
+  const g = document.getElementById('hgrab');
+  if (g) g.onclick = function (e) { e.preventDefault(); hsubSet(!h.classList.contains('cl')); };
+  let y0 = null;
+  h.addEventListener('touchstart', function (e) {
+    y0 = (e.touches && e.touches[0]) ? e.touches[0].clientY : null;
+  }, { passive: true });
+  h.addEventListener('touchend', function (e) {
+    if (y0 === null) return;
+    const y1 = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : y0;
+    const dy = y1 - y0;
+    y0 = null;
+    /* ★押したつもりが閉じてしまわないよう、18px 以上 動いたときだけにします */
+    if (Math.abs(dy) < 18) return;
+    hsubSet(dy < 0);                      /* 上へ払ったら閉じる */
+  }, { passive: true });
 }
 
 /* ★書きかけのまま閉じようとしたら、1度だけ確かめます（ご指示・2026/11/12）
@@ -3672,7 +3725,7 @@ function evToday(){
  *   違う日のぶんを出しているのに「きょう」と書くのは、嘘になります。
  */
 function evTitle(day){
-  const n = (day && day.list) ? day.list.length : 0;
+  const n = evSplit(day).show.length;
   if (!day || !day.d) return 'イベント（' + n + '件）';
   const kyo = (day.d === evNight()) ? 'きょう ' : '';
   return kyo + fmtD(day.d) + ' のイベント（' + n + '件）';
@@ -3681,8 +3734,27 @@ function evTitle(day){
 /* ★日付は、一番目立たせます（ご指示・2026/11/12
      「〇〇のイベントの日付部分は、もっと目立たせてください」）。
      どの日のぶんかを取り違えると、空振りになるためです。 */
+/**
+ * 時刻が1つも分かっていないものは、出しません。
+ *
+ * ★まーく様のご指示（2026/11/13）
+ *   「イベントですが、開演不明のものは、もう表示させないでください。
+ *     見ても意味がありません」
+ *
+ * ★搬入（設営）は、もともと時刻を出しません。
+ *   「公演は 11/14 から」のような、次の日の手がかりになるので残します。
+ * ★消したものは、一番下に1行だけ名前を出します。
+ *   黙って消すと、載っていないことに気づけません。
+ */
+function evSplit(day){
+  const L = (day && day.list) ? day.list : [];
+  const show = L.filter(x => x.k === 'hanyu' || x.s || x.e);
+  const hid  = L.filter(x => !(x.k === 'hanyu' || x.s || x.e));
+  return { show: show, hid: hid };
+}
+
 function evTitleHTML(day){
-  const n = (day && day.list) ? day.list.length : 0;
+  const n = evSplit(day).show.length;
   if (!day || !day.d) return 'イベント（' + n + '件）';
   /* ★今日・明日は、赤い札で はっきり出します（ご指示・2026/11/12） */
   let kyo = '';
@@ -3742,7 +3814,9 @@ function evArtHTML(x){
 }
 
 function evRows(day){
-  if (!day || !day.list || !day.list.length) return '<div class="empty">該当データがありません</div>';
+  const sp = evSplit(day);
+  if (!sp.show.length && !sp.hid.length) return '<div class="empty">該当データがありません</div>';
+  if (!sp.show.length) return '<div class="empty">該当データがありません</div>' + evHidNote(sp.hid);
   const kind = { event:'🎤 イベント', barasi:'🔧 バラシ',
                  hanyu:'🚚 搬入', hotel:'🍽 ホテル宴会' };
   /*
@@ -3757,7 +3831,7 @@ function evRows(day){
    *   ★着ける時刻の目安は、消さずに下に残します。
    *     判断の材料として、あったほうがよいからです。
    */
-  return day.list.map(x => `<div class="evrow">
+  return sp.show.map(x => `<div class="evrow">
     <div class="evhead">${esc(x.v || '')}<span class="evkind">${esc(kind[x.k] || '')}</span></div>
     ${evTimeLine(x)}
     <div class="evt">${esc(x.t || '')}</div>
@@ -3768,7 +3842,15 @@ function evRows(day){
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
       <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
     </div>
-  </div>`).join('');
+  </div>`).join('') + evHidNote(sp.hid);
+}
+
+/** 時刻が分からず、出さなかったもの（名前だけ1行） */
+function evHidNote(hid){
+  if (!hid || !hid.length) return '';
+  return '<div class="evhid">時刻が分からないため、出していないもの：' +
+    hid.map(x => esc(x.v || '') + (x.k === 'barasi' ? '（バラシ）' : '')).join('・') +
+    '</div>';
 }
 
 function paneEv(){
@@ -3788,10 +3870,24 @@ function paneEv(){
       ${hid ? '<span class="note">※きょうは「もう表示しない」にしてあります。' +
               '押せば、その場でもう一度 出ます。</span>' : ''}
     </div>
-    ${evRows(d)}</div>` +
-    ((evData && evData.days && evData.days[1]) ?
-      `<div class="card"><h2>${evTitleHTML(evData.days[1])}</h2>
-        ${evRows(evData.days[1])}</div>` : '');
+    ${evRows(d)}</div>` + evNextCard(d);
+}
+
+/**
+ * 次の日のぶん。
+ *
+ * ★ご指摘（2026/11/13）
+ *   「なんで、イベントページ開いたら同じ日付が2つあるのですか？」
+ *   2枚目を days[1] に決め打ちしていました。
+ *   1枚目が days[1] だった日は、同じ日が2回出ていました。
+ *   1枚目の「次」を出します。同じ日なら、出しません。
+ */
+function evNextCard(d){
+  if (!evData || !evData.days || !d) return '';
+  const i = evData.days.indexOf(d);
+  const nx = (i >= 0) ? evData.days[i + 1] : null;
+  if (!nx || !nx.d || (d.d && nx.d === d.d)) return '';
+  return '<div class="card"><h2>' + evTitleHTML(nx) + '</h2>' + evRows(nx) + '</div>';
 }
 
 /* ============================================================
