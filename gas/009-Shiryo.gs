@@ -2,7 +2,21 @@
  * ================================================================
  *  イベント参考資料（009-Shiryo.gs）
  *
- *  ★★★  S004ver  （2026/11/10）  ★★★
+ *  ★★★  S005ver  （2026/11/13）  ★★★
+ *
+ *  [S005ver]
+ *   ・🎤 アーティストの名前の取り出しを直した
+ *     ★「アーティスト情報が、なにも掲載されていない」の、本当の原因です。
+ *       名前がずれて取れていたため、そんな名前のアーティストは居ず、
+ *       照会が必ず空で返っていました。
+ *         2026 INI 5TH ANNIVERSARY DOME TOUR → 「2026 INI 5TH ANNIVERSARY」
+ *         大野智 1st Birthday Event          → 「大野智 1st Birthday Event」
+ *         Juice=Juice Room Tour 2026         → 「Juice=Juice Room」
+ *       いまは INI／大野智／Juice=Juice と取れます。
+ *     ★直したところは3つ。
+ *       ① 頭に付いている「年」「第N回」を、先に落とす
+ *       ② 「何周年」「誕生日」も、ツアー名の始まりとして切る
+ *       ③ おしりに残った飾りの言葉（Room・東名阪 など）を落とす
  *
  *  [S004ver]
  *   ・🍽 ディナーショーの名前からも、アーティストを取り出せるようにした
@@ -70,7 +84,7 @@
  * ================================================================ */
 
 /** このファイルのバージョン（先頭の ★★★ と必ずそろえる） */
-const SH_VERSION = "S004ver";
+const SH_VERSION = "S005ver";
 
 /** 参考資料スプシを覚えておく名札と、その題 */
 const SH_SS_KEY  = "SH_SHIRYO_SS";
@@ -233,11 +247,24 @@ function shArtistName_(title) {
    * ★名前そのものが かぎかっこで包まれていることがあります
    *   （「なんとか」コンサート）。包みだけを外し、中身は残します。
    */
-  t = t.replace(/^[「『【〈《]\s*/, "").replace(/\s*[」』】〉》]/, " ").trim();
+  t = t.replace(/^[「『【〈《“‘〝]\s*/, "").replace(/\s*[」』】〉》”’〟]/, " ").trim();
+
+  /*
+   * ★頭に付いている「年」と「第N回」は、先に落とします（2026/11/13）。
+   *   公演名は「2026 INI 5TH ANNIVERSARY DOME TOUR」のように、
+   *   年から始まることがよくあります。
+   *   下の「いちばん早い目じるしで切る」は 頭（0文字目）の目じるしを
+   *   数えないので、年が頭に来ていると そのまま残り、
+   *   「2026 INI 5TH ANNIVERSARY」という名前で照会して、
+   *   当然 見つからず、**アーティスト情報が1つも出ませんでした**。
+   */
+  t = t.replace(/^(?:19|20)\d{2}\s*年?\s*/, "")
+       .replace(/^第\s*\d+\s*回\s*/, "")
+       .trim();
 
   // ② ツアー名が始まる目じるし。いちばん早く出てきた所で切る
   const marks = [
-    /[「『【〈《\[［(（]/,                    // かぎかっこ・かっこ
+    /[「『【〈《\[［(（“‘〝]/,                 // かぎかっこ・かっこ
     /[〜～]/,                                  // なみ線
     /\b(19|20)\d{2}\b/,                        // 年（2026 など）
     /\b(LIVE|TOUR|CONCERT|ARENA|DOME|HALL|FES|FESTIVAL|ZEPP|presents|feat|vol)\b/i,
@@ -246,7 +273,17 @@ function shArtistName_(title) {
     //   ここで切らないと、そんな名前のアーティストは居ないので照会に失敗します。
     /(クリスマス|ディナー|ニューイヤー|新春|謝恩|忘年)/,
     /\s(with|×|x|＆|&)\s/i,
-    /[|｜\/／]/                                // 区切り
+    /[|｜\/／]/,                               // 区切り
+    /*
+     * ★「何周年」「誕生日」も、ツアー名の始まりです（2026/11/13）。
+     *   「AGE AGE 7th Anniversary Live in OSAKA」
+     *   「大野智 1st Birthday Event「…」」
+     *   ここで切らないと「AGE AGE 7th Anniversary」という名前になり、
+     *   そんなアーティストは居ないので、照会が必ず失敗します。
+     */
+    /\b\d{1,3}(st|nd|rd|th)\b/i,
+    /\b(Anniversary|Birthday|Premium|Special|Final|Night|Party|Oneman|One-?man)\b/i,
+    /(周年|生誕|単独公演|ワンマン)/
   ];
   let cut = t.length;
   marks.forEach(function (re) {
@@ -259,6 +296,20 @@ function shArtistName_(title) {
   name = name.replace(/[‐‑–—:：,、。．・]+$/, "")
              .replace(/^[\s　]+|[\s　]+$/g, "")
              .replace(/\s{2,}/g, " ");
+
+  /*
+   * ★おしりに残った「飾りの言葉」を落とします（2026/11/13）。
+   *   「Juice=Juice Room Tour …」は TOUR の手前で切るので
+   *   「Juice=Juice Room」が残ります。Room はツアー名の一部で、
+   *   アーティスト名ではありません。
+   *   名前そのものが1語だけ残る所までは削りません。
+   */
+  const TAIL = /(?:\s|^)(Room|Live|Hall|Arena|Dome|Zepp|Japan|Osaka|Tokyo|Event|Show|Stage|Night|Tour|Concert|ライブ|ツアー|コンサート|公演|東名阪|全国|ホール|アリーナ|ドーム)$/i;
+  for (let g = 0; g < 4; g++) {
+    const cut2 = name.replace(TAIL, "").trim();
+    if (cut2 === name || cut2.length < 2) break;
+    name = cut2;
+  }
 
   /*
    * ★切りすぎたときは、切らないほうを使います。

@@ -236,7 +236,26 @@ console.log('\n■ アーティストの名前を、公演名から取り出す'
     ['milet Hall Tour 2026', 'milet'],
     ['SUPER BEAVER', 'SUPER BEAVER'],
     ['Juice=Juice', 'Juice=Juice'],
-    ['U-KNOW', 'U-KNOW']
+    ['U-KNOW', 'U-KNOW'],
+    /*
+     * ★2026/11/13 に見つけた分。
+     *   アーティスト情報が1件も出ていなかった、本当の原因です。
+     *   名前の取り出しがずれていて、そんな名前のアーティストは
+     *   居ないので、照会が必ず空で返っていました。
+     *   （Wikidata が読めていない話ではありませんでした）
+     */
+    ['2026 INI 5TH ANNIVERSARY DOME TOUR [CITY OF LIGHTS]', 'INI'],
+    ['2026 VERIVERY CONCERT "GIVE ME FIVE, KEEP THAT VIBE" JAPAN', 'VERIVERY'],
+    ['大野智 1st Birthday Event 「さと島 -SATOSHI OHNO 45→46」', '大野智'],
+    ['AGE AGE 7th Anniversary Live in OSAKA', 'AGE AGE'],
+    ['SHADOWS 10th Anniversary TOUR dustbox / 山嵐', 'SHADOWS'],
+    ['Juice=Juice Room Tour 2026 「5ROOMS」', 'Juice=Juice'],
+    ['電気グルーヴ “菩薩アー”', '電気グルーヴ'],
+    ['花いろは 東名阪ツアー『SHIFT UP』@大阪', '花いろは'],
+    ['松田聖子クリスマスディナー＆コンサート2026', '松田聖子'],
+    ['第3回 なんとか祭 2026', 'なんとか祭'],
+    ['超ときめき♡宣伝部', '超ときめき♡宣伝部'],
+    ['米津玄師', '米津玄師']
   ];
   cases.forEach(function (c) {
     t(A(c[0]) === c[1],

@@ -1,8 +1,4 @@
 {
-  "id": "2026-11-13-johall",
-  "go": true,
-  "jobs": [
-    { "name": "event-test" },
-    { "name": "web-events" }
-  ]
+  "id": "2026-11-13-johall2",
+  "do": ["web-events", "event-test"]
 }
