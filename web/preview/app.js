@@ -753,12 +753,9 @@ function render(){
     /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
          「記録のある日 9 ／ 日・10件」のような切れ方をすると、読めません。 */
     $('#ktWho').innerHTML = who.map(x => '<span>' + esc(x) + '</span>').join('');
-    /* 乗り場は、どの画面にいても ここで すぐ切り替えられます */
-    [$('#ktPlace'), $('#ktPlace2')].forEach(function (kpl) {
-      if (!kpl) return;
-      kpl.innerHTML = placeOptions();
-      kpl.classList.toggle('on', !!onlyPlace);
-    });
+    /* 乗り場は、どの画面にいても ここで すぐ切り替えられます。
+       ★中身を入れるのは placeSelFill_（画面を組み立てたあとに呼びます）。 */
+    placeSelFill_();
     const kcl = $('#ktClear');
     if (kcl) kcl.hidden = !onlyPlace;
     /* 上の区切りの「全員／自分だけ」も、いまの形に合わせます */
@@ -803,6 +800,9 @@ function render(){
   const pt = $('#panesTop');
   if (pt) pt.innerHTML = gasWakeBar() +
     ((tab === 'in') ? (paneInRecent() + paneInNew()) : '');
+  /* ★作り直したあとに、乗り場のプルダウンへ中身を入れ直します。
+       これを忘れると、iPhoneで「オプションなし」と出ます（2026/11/14）。 */
+  placeSelFill_();
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
   if (sb) { sb.textContent = subLine(); subFit(sb); }
@@ -1108,6 +1108,26 @@ function myPlaces(n){
   return Object.keys(pick)
     .sort((a, b) => pick[b] - pick[a] || (a < b ? -1 : 1))
     .slice(0, max);
+}
+
+/*
+ * ★乗り場のプルダウンに、中身を入れます（2026/11/14）。
+ *
+ * ★まーく様のご指摘
+ *     「このオプションなしとはどういうことでしょうか」
+ *   【直近の記録】の中のプルダウンが、からっぽでした。
+ *   iPhone は、中身が1つも無いプルダウンを押すと
+ *   「オプションなし」という画面を出します。
+ *   中身を入れたあとに、その場所を作り直していたため、
+ *   せっかく入れたものが 毎回 消えていました。
+ *   だから、作り直したあとに もう一度 入れます。
+ */
+function placeSelFill_(){
+  [$('#ktPlace'), $('#ktPlace2')].forEach(function (kpl) {
+    if (!kpl) return;
+    kpl.innerHTML = placeOptions();
+    kpl.classList.toggle('on', !!onlyPlace);
+  });
 }
 
 function placeOptions(){

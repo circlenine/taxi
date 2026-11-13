@@ -1903,6 +1903,25 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
 }
 
+console.log('■ 乗り場のプルダウンが、からっぽにならない（ご指摘・2026/11/14）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  /* 「このオプションなしとはどういうことでしょうか」
+     iPhone は、中身が1つも無いプルダウンを押すと
+     「オプションなし」という画面を出します。
+     中身を入れたあとに その場所を作り直していたため、
+     【直近の記録】の中のものが、毎回 からっぽになっていました。 */
+  t(/function placeSelFill_\(\)/.test(app), '★★★中身を入れる係がある');
+  const a1 = app.indexOf("pt.innerHTML = gasWakeBar()");
+  const a2 = app.indexOf('placeSelFill_();', a1);
+  t(a1 > 0 && a2 > a1 && a2 - a1 < 400,
+    '★★★作り直した「あと」に、中身を入れ直している');
+  t((app.match(/placeSelFill_\(\);/g) || []).length >= 2,
+    '　 上の欄と、直近の記録の欄の両方で呼んでいる');
+  t(!/\[\$\('#ktPlace'\), \$\('#ktPlace2'\)\]\.forEach\(function \(kpl\) \{\s*\n\s*if \(!kpl\) return;\s*\n\s*kpl\.innerHTML = placeOptions\(\);[\s\S]{0,120}\}\);\s*\n\s*const kcl/.test(app),
+    '　 前の「入れてから作り直す」書き方は残っていない');
+}
+
 console.log('■ 【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/14）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
