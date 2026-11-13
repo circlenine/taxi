@@ -1,235 +1,6 @@
 {
- "at": "2026-11-13 21:16",
+ "at": "2026-11-14 00:00",
  "days": [
-  {
-   "d": "2026-11-13",
-   "list": [
-    {
-     "v": "オリックス劇場",
-     "t": "Juice=Juice Room Tour 2026 「5ROOMS」",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "Juice=Juice"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://helloproject.com/juicejuice/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/JuiceJuice_uf"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/juice_juice_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UC6FadPgGviUcq6VQ0CEJqdQ"
-      }
-     ]
-    },
-    {
-     "v": "大阪城音楽堂",
-     "t": "こんがり音楽祭（搬入（初日））　📅 公演は 11/14［コンサート］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
-    {
-     "v": "京セラドーム大阪",
-     "t": "INI（搬入（初日））　📅 公演は 11/14 から2日間［コンサート］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
-    {
-     "v": "フェスティバルホール",
-     "t": "大野智 1st Birthday Event 「さと島 -SATOSHI OHNO 45→46」",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "大野智"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.johnnys-net.jp/page?id=profile&artist=10"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/satojima_x"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/satojima_official/"
-      }
-     ]
-    },
-    {
-     "v": "インテックス大阪",
-     "t": "STU48（搬入（初日））　📅 公演は 11/14 から2日間［イベント］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "STU48"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.stu48.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/STU48_official_"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/stu48.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCa8GISK9_hsZ8aEJEL1u1Sg"
-      }
-     ]
-    },
-    {
-     "v": "Zepp Namba",
-     "t": "2026 VERIVERY CONCERT \"GIVE ME FIVE, KEEP THAT VIBE\" JAPAN",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "VERIVERY"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/the_verivery"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/the_verivery/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UC4t_pYSKIhLWFgutdzIK66Q"
-      }
-     ]
-    },
-    {
-     "v": "Zepp Osaka Bayside",
-     "t": "超ときめき♡宣伝部",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "超ときめき♡宣伝部"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://toki-sen.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/sendenbu_staff"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/tokisen_sd/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCPO-HYS3fdDIKlMMgpcCzdg"
-      }
-     ]
-    },
-    {
-     "v": "BIGCAT",
-     "t": "山中さわお & ELPIS JOINT LIVE TOUR 2026 COME ON, BOOTY!",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "http://bigcat-live.com/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "山中さわお"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://www.pillows.jp/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/sawaoband"
-      }
-     ]
-    },
-    {
-     "v": "GORILLA HALL OSAKA",
-     "t": "AGE AGE 7th Anniversary Live in OSAKA",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://gorillahall.jp/",
-     "al": []
-    }
-   ]
-  },
   {
    "d": "2026-11-14",
    "list": [
@@ -384,36 +155,6 @@
      ]
     },
     {
-     "v": "グランキューブ大阪",
-     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "BUDDiiS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://buddiis.com/"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/buddiis.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
-      }
-     ]
-    },
-    {
      "v": "新歌舞伎座",
      "t": "舞台『メイジ・ザ・キャッツアイ』｜公演情報",
      "k": "event",
@@ -450,6 +191,207 @@
        "u": "https://www.instagram.com/hanazono_rugby_stadium/"
       }
      ]
+    }
+   ]
+  },
+  {
+   "d": "2026-11-15",
+   "list": [
+    {
+     "v": "京セラドーム大阪",
+     "t": "INI（公演日）　📅 2日中の最終日［コンサート］",
+     "k": "barasi",
+     "s": "",
+     "e": "",
+     "g": false,
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": []
+    },
+    {
+     "v": "インテックス大阪",
+     "t": "STU48（公演日）　📅 2日中の最終日［イベント］",
+     "k": "barasi",
+     "s": "",
+     "e": "",
+     "g": false,
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "STU48"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.stu48.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/STU48_official_"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/stu48.official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCa8GISK9_hsZ8aEJEL1u1Sg"
+      }
+     ]
+    },
+    {
+     "v": "フェスティバルホール",
+     "t": "平原綾香 Concert Tour 2026 with Orchestra",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://www.festivalhall.jp/events/list/2026/11/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "平原綾香"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.camp-a-ya.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/AyakaHirahara1"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/ayaka_hirahara_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCGVlsrjTjC3OlqPL_DKYBzA"
+      }
+     ]
+    },
+    {
+     "v": "Zepp Namba",
+     "t": "WATWING Zepp Live Tour「love」",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "WATWING"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://official.watwing.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/watwing_info"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/watwing_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCWZWatauQ4KemO7Upy35fbw"
+      }
+     ]
+    },
+    {
+     "v": "Zepp Osaka Bayside",
+     "t": "PARK JINYOUNG 1ST CONCERT TOUR [CODE#] IN JAPAN",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
+     "al": []
+    },
+    {
+     "v": "BIGCAT",
+     "t": "EIR AOI LIVE TOUR 2026-2027 “UNBOUND”",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "http://bigcat-live.com/schedule/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "EIR AOI"
+      },
+      {
+       "l": "公式サイト",
+       "u": "http://www.aoieir.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/eir_ruru"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/aoieir/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCp90rwcTPmdd3HMAQv7K3eA"
+      }
+     ]
+    },
+    {
+     "v": "GORILLA HALL OSAKA",
+     "t": "ポルカドットスティングレイ ポルフェス125 #STILL PINK TOUR 2026",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://gorillahall.jp/",
+     "al": []
+    },
+    {
+     "v": "グランキューブ大阪",
+     "t": "SENRA LIVE TOUR 2026 Caleaの公演詳細 | 公演を探す",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://kyodo-osaka.co.jp/search/detail/12842",
+     "al": []
+    },
+    {
+     "v": "オリックス劇場",
+     "t": "2026 KIM JI WON FANMEETING ＜WONEDERLAND＞ in JAPAN",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
+     "al": []
     }
    ]
   }
