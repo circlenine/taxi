@@ -1,5 +1,5 @@
 {
- "at": "2026-11-14 00:00",
+ "at": "2026-11-14 02:13",
  "days": [
   {
    "d": "2026-11-14",
@@ -27,52 +27,6 @@
      "r": "",
      "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
      "al": []
-    },
-    {
-     "v": "京セラドーム大阪",
-     "t": "INI（公演日）　📅 2日中の初日［コンサート］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
-    {
-     "v": "インテックス大阪",
-     "t": "STU48（公演日）　📅 2日中の初日［イベント］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "STU48"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.stu48.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/STU48_official_"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/stu48.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCa8GISK9_hsZ8aEJEL1u1Sg"
-      }
-     ]
     },
     {
      "v": "Zepp Namba",
@@ -151,6 +105,36 @@
       {
        "l": "公式サイト",
        "u": "http://www.theshadowsofficial.com"
+      }
+     ]
+    },
+    {
+     "v": "グランキューブ大阪",
+     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "BUDDiiS"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://buddiis.com/"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/buddiis.official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
       }
      ]
     },
