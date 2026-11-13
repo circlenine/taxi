@@ -2138,9 +2138,21 @@ function wxNextHTML(wx){
  * ★こちらで場所を覚えることはありません。棚にも入れません。
  */
 const RADAR_BASE = 'https://www.jma.go.jp/bosai/nowc/#zoom:10/lat:LAT/lon:LON/colordepth:normal/elements:hrpns';
+/**
+ * 天気の下に出す押しボタン。
+ *
+ * ★まーく様のご質問（2026/11/13）
+ *   「この画像にある、雨雲レーダーというタブは更新タブで合ってますか？
+ *     それであれば、更新という文字の方が適切だと思うのですが」
+ *
+ * ★違いました。あれは「気象庁の雨雲レーダーのページを開く」ボタンでした。
+ *   すぐ下に 雨雲の地図と【気象庁で見る】があるので、同じものが2つ
+ *   並んでいた形です。まぎらわしいので、こちらは【更新】にしました。
+ * ★【更新】は、天気・雨雲の時刻・記録・イベントを取り直します。
+ *   画面を開きっぱなしでも、いまの数字になります。
+ */
 function radarBtn(){
-  /* ★長い説明はやめて、押しボタン1つにしました（ご指示・2026/11/12） */
-  return '<div class="actions rdr"><button class="mini" id="radar">☂ 雨雲レーダー</button>' +
+  return '<div class="actions rdr"><button class="mini" id="wxRefresh">↻ 更新</button>' +
     '<span class="msg" id="radarMsg"></span></div>';
 }
 /* 前の名前でも動くようにしておきます（どこかに残っていても落ちないため） */
@@ -2167,7 +2179,34 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('click', function (e) {
     const b = (e.target && e.target.closest) ? e.target.closest('#radar') : null;
     if (b) radarOpen();
+    /* ★【更新】… 天気・雨雲・記録・イベントを取り直します（ご指示・2026/11/13） */
+    const r = (e.target && e.target.closest) ? e.target.closest('#wxRefresh') : null;
+    if (r) wxRefresh(r);
   });
+}
+
+/**
+ * 【更新】を押したとき。
+ *   天気・雨雲の時刻・記録・イベントを、ぜんぶ取り直します。
+ *   ★1つ こけても、ほかは取り直します（止まらない形）。
+ */
+async function wxRefresh(btn){
+  const msg = document.getElementById('radarMsg');
+  if (btn) btn.disabled = true;
+  if (msg) msg.textContent = '取り直しています…';
+  let ng = 0;
+  try { await loadWx(); } catch (e) { ng++; }
+  try { await loadAmd(); } catch (e) { ng++; }
+  try { await loadEv(); } catch (e) { ng++; }
+  try { await reload(); } catch (e) { ng++; }
+  radarMap = null;                       /* 雨雲の地図も、作り直します */
+  render();
+  const m2 = document.getElementById('radarMsg');
+  if (m2) {
+    const d = new Date();
+    m2.textContent = (ng ? '一部は取れませんでした。' : '') +
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' に取り直しました';
+  }
 }
 
 /* ---- 天気を読む（どちらも無料・鍵なし・課金の設定なし） ---- */
