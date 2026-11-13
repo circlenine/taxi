@@ -3290,5 +3290,51 @@ console.log('\n■ パーセントを、帯の下にも出す（ご指示・2026
   t(/\.bandbar\{height:20px/.test(css), '★★★帯そのものも、太くした');
 }
 
+
+console.log('\n■ 次に拾えた場所（ご指示・2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  t(/function nextChains\(R\)/.test(app) && /function nextCard\(R\)/.test(app),
+    '★★★「次に拾えた場所」がある');
+  t(/nextCard\(visible\(\)\)/.test(app), '　 地図の画面に出ている');
+
+  /* 実際に引いてみます */
+  const box = { HOT_MIN_N: 3,
+    hasDep:  r => r.dep != null,
+    hasFare: r => r.fare != null,
+    canonPlace: p => p };
+  vm.createContext(box);
+  vm.runInContext(app.slice(app.indexOf('function nextChains(R)'),
+                            app.indexOf('function nextCard(R)')), box);
+  const nc = vm.runInContext('nextChains', box);
+  const r = (u, d, dep, p, f) => ({ user_id:u, date:d, dep:dep, place:p, fare:f });
+  /* 同じ人・同じ営業日で、3回 新地7 → 難波 */
+  const rows = [];
+  ['d1','d2','d3'].forEach(function (d){
+    rows.push(r('u1', d, 20, '新地7', 1000));
+    rows.push(r('u1', d, 20.5, '難波', 6000));
+  });
+  /* 別の人・別の日をまたいだ組み合わせは、数えない */
+  rows.push(r('u2', 'd1', 21, '京橋', 2000));
+  rows.push(r('u1', 'd9', 22, '心斎橋', 2000));
+  /* 1回だけのつながり（京橋→心斎橋）。たまたまの1本なので出しません */
+  rows.push(r('u2', 'd1', 21.5, '心斎橋', 2000));
+  const out = nc(rows);
+  t(out.length === 1, '★★★3件そろった組み合わせだけが出る', out.length);
+  t(out[0].from === '新地7' && out[0].to === '難波', '★★★新地7 のあとは 難波');
+  t(out[0].n === 3, '　 3件と数えている', out[0].n);
+  t(Math.round(out[0].min) === 30, '★★★30分後と出る', out[0].min);
+  t(Math.round(out[0].fare) === 6000, '★★★次の1本は ¥6,000', out[0].fare);
+  /* 1件だけの組み合わせは、「たまたまの1本」なので出さない */
+  t(!out.some(x => x.to === '心斎橋'), '★★★1件だけの組み合わせは出さない');
+  /* 間があきすぎる（3時間超）ものは、つながりと見なさない */
+  const far = [];
+  ['e1','e2','e3'].forEach(function (d){
+    far.push(r('u3', d, 18, 'A', 1000));
+    far.push(r('u3', d, 22, 'B', 1000));
+  });
+  t(nc(far).length === 0, '★★★あきすぎているものは、つながりと数えない');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

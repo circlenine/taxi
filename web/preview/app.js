@@ -1831,6 +1831,75 @@ function mapGroups(R){
   return { hit: Object.keys(byKey).map(k => byKey[k]), miss: miss };
 }
 
+/* ------------------------------------------------------------
+ *  「この乗り場のあと、次に拾えた場所」
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「僕が言う以外に、もっとタクシー業務として参考になりそうな
+ *      システムがあれば取り入れて欲しいです」
+ *
+ *  1本 降ろしたあと、**次の1本をどこで拾えているか**は、
+ *  記録から そのまま出せて、しかも すぐ動きに使える数字です。
+ *  同じ人の同じ営業日の中で、時刻の順に並べて、となり合う2本を見ます。
+ *
+ *  ★3件に届かない組み合わせは出しません（1件は、たまたまの1本）。
+ *  ★「何分後」は、乗せた時刻どうしの差です。
+ * ---------------------------------------------------------- */
+function nextChains(R){
+  /* 人ごと・営業日ごとに、時刻の順へ */
+  const by = {};
+  R.filter(hasDep).forEach(function (r){
+    if (!r.place) return;
+    const k = String(r.user_id || '') + '\u0001' + String(r.date || '');
+    (by[k] = by[k] || []).push(r);
+  });
+  const pair = {};
+  Object.keys(by).forEach(function (k){
+    const L = by[k].slice().sort(function (a, b){ return a.dep - b.dep; });
+    for (let i = 0; i + 1 < L.length; i++) {
+      const a = L[i], b = L[i + 1];
+      const from = canonPlace(a.place), to = canonPlace(b.place);
+      if (!from || !to) continue;
+      const min = Math.round((b.dep - a.dep) * 60);
+      /* 日をまたいだ飛びや、ありえない間は外します */
+      if (min <= 0 || min > 180) continue;
+      const kk = from + '\u0001' + to;
+      const o = pair[kk] = pair[kk] || { from: from, to: to, n: 0, min: 0, fare: 0, nf: 0 };
+      o.n++; o.min += min;
+      if (hasFare(b)) { o.fare += (+b.fare || 0); o.nf++; }
+    }
+  });
+  return Object.keys(pair).map(function (k){ return pair[k]; })
+    .filter(function (o){ return o.n >= HOT_MIN_N; })
+    .map(function (o){
+      return { from: o.from, to: o.to, n: o.n,
+               min: o.min / o.n, fare: o.nf ? o.fare / o.nf : 0 };
+    })
+    .sort(function (a, b){ return b.n - a.n; });
+}
+
+function nextCard(R){
+  const L = nextChains(R);
+  if (!L.length) {
+    return '<div class="card"><h2>次に拾えた場所</h2>' +
+      '<p class="note">1本 降ろしたあと、次の1本をどこで拾えているかです。</p>' +
+      '<div class="empty">まだ ' + HOT_MIN_N + '件 そろった組み合わせがありません。</div></div>';
+  }
+  return '<div class="card"><h2>次に拾えた場所</h2>' +
+    '<p class="note">1本 乗せたあと、次の1本を <b>どこで・何分後に</b> 拾えているかです。' +
+    HOT_MIN_N + '件以上そろった組み合わせだけを出しています。押すと地図が開きます。</p>' +
+    '<div class="scroll"><table><thead><tr><th>この乗り場のあと</th><th>次に拾えた所</th>' +
+    '<th class="n">件</th><th class="n">何分後</th><th class="n">次の1本</th></tr></thead><tbody>' +
+    L.slice(0, 12).map(function (o){
+      return '<tr><td>' + esc(o.from) + '</td>' +
+        '<td><a class="plink" href="' + hotMap(o.to) + '" target="_blank" rel="noopener">' +
+        esc(o.to) + '</a></td>' +
+        '<td class="n">' + o.n + '</td>' +
+        '<td class="n">' + Math.round(o.min) + '分</td>' +
+        '<td class="n">' + (o.fare ? yen(o.fare) : UNK) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+}
+
 function paneMap(){
   const R0 = visible().filter(hasDep);
   const hrs = [...new Set(R0.map(r => Math.floor(r.dep)))].sort(function (a, b){ return a - b; });
@@ -1881,7 +1950,7 @@ function paneMap(){
     </div>` : '';
 
   if (!R.length) return head + emptyCard('該当データがありません') + missCard;
-  return head + sum + list + missCard;
+  return head + sum + list + nextCard(visible()) + missCard;
 }
 
 /** 地図とピンを組み立てます（1枚の画面に1回だけ） */
