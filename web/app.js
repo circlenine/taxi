@@ -1856,9 +1856,9 @@ function paneMap(){
       ピンは、乗り場のあるあたりを指しています。1件ごとの正確な場所ではありません。</p>
     <div id="pinMap" class="radarmap pinmap">読み込んでいます…</div>
     <div class="legend">
-      <span><i style="background:#6FB7FF"></i>平均 ¥5,000未満</span>
-      <span><i style="background:#F2C14E"></i>¥5,000〜9,999</span>
-      <span><i style="background:#FF6A60"></i>¥10,000以上</span></div></div>`;
+      <span><i style="background:${BANDS[0].c}"></i>平均 ¥5,000未満</span>
+      <span><i style="background:${BANDS[1].c}"></i>¥5,000〜9,999</span>
+      <span><i style="background:${BANDS[2].c}"></i>¥10,000以上</span></div></div>`;
 
   /* ★ピンの立つ上位を、文字でも出します（地図が読めない機種のため） */
   const top = G.hit.slice().sort(function (a, b){ return b.rows.length - a.rows.length; }).slice(0, 10);
@@ -1905,7 +1905,7 @@ function mapBoot(){
       const pts = [];
       G.hit.forEach(function (o){
         const a = agg(o.rows);
-        const col = a.fare >= 10000 ? '#FF6A60' : (a.fare >= 5000 ? '#F2C14E' : '#6FB7FF');
+        const col = a.fare >= 10000 ? BANDS[2].c : (a.fare >= 5000 ? BANDS[1].c : BANDS[0].c);
         const rad = 6 + Math.round(12 * Math.sqrt(o.rows.length / mxn));
         L.circleMarker([o.lat, o.lon], { radius: rad, color: col, weight: 2,
           fillColor: col, fillOpacity: .45 })
@@ -2861,7 +2861,10 @@ function tlChart(R){
        ② 1日ごとに、薄い帯の下じきを敷いて、行の区切りを見えるように。
        ③ 乗り場の名前を、帯の中に入れる（入る広さがあるときだけ）。
        ④ 時刻の数字を、上と下の両方に。下の線も引きます。 */
-  const L = 58, Rp = 16, rowH = 54, TOPH = 30;
+  /* ★左をもっと詰めました（ご指示・2026/11/13「もっと左をスマートに詰められませんか」）。
+       日付を10pxにしたので、52pxで「10/30 金」まで入ります。
+       48pxにしたら「10/30」の1が切れました（2026/11/13・実際に測って直し）。 */
+  const L = 52, Rp = 12, rowH = 54, TOPH = 30;
   /* ★1時間ぶんの幅は、表グラフと同じ考え方で決めます。
        22時までは、横にスクロールせずに見られる大きさにします。 */
   const vwT  = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
@@ -2873,9 +2876,12 @@ function tlChart(R){
        左の端より外には、はみ出させません。 */
   const sx = v => Math.max(L, Math.min(W - Rp, L + (v-x0)/(x1-x0)*(W-L-Rp)));
   /* ★金額の3段階。記録用スプレッドシート・「割合」の画面と同じ分け方です。 */
-  const band = r => !hasFare(r) ? ['#8C97AD','不明']
-    : r.fare >= 10000 ? ['#FF6A60','ロング']
-    : r.fare >= 5000  ? ['#F2C14E','ミドル'] : ['#6FB7FF','ショート'];
+  /* ★色は、パーセントの画面と同じにそろえます（ご指摘・2026/11/13
+       「パッと見、よく分からない」）。同じ「ロング」が画面ごとに
+       別の色だと、見るたびに覚え直すことになります。 */
+  const band = r => !hasFare(r) ? ['#5A6273','不明']
+    : r.fare >= 10000 ? [BANDS[2].c,'ロング']
+    : r.fare >= 5000  ? [BANDS[1].c,'ミドル'] : [BANDS[0].c,'ショート'];
   let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
   /* ② 行の下じき（1日ぶん）。これがあると、どこからどこまでが同じ日か分かります */
   ds.forEach((d,i) => { s += `<rect class="trow" x="${L}" y="${TOPH + i*rowH + 3}"
@@ -2887,21 +2893,27 @@ function tlChart(R){
     const rows = R.filter(r => r.date === d);
     const sum  = rows.filter(hasFare).reduce((t,r) => t + (+r.fare||0), 0);
     /* 「11/11(水)」は長いので、かっこを外して「11/11 水」にします */
-    s += `<text class="axis" x="${L-8}" y="${y+24}" text-anchor="end" fill="${dcol(d)}"
-      style="font-size:11.5px">${esc(fmtD(d).replace('(', ' ').replace(')', ''))}</text>
-      <text class="axis" x="${L-8}" y="${y+39}" text-anchor="end"
-      style="font-size:9.5px;opacity:.8">${rows.length}件 ${yen(sum)}</text>`;
+    s += `<text class="axis" x="${L-6}" y="${y+23}" text-anchor="end" fill="${dcol(d)}"
+      style="font-size:10px">${esc(fmtD(d).replace('(', ' ').replace(')', ''))}</text>
+      <text class="axis" x="${L-6}" y="${y+36}" text-anchor="end"
+      style="font-size:9px;opacity:.8">${rows.length}件</text>
+      <text class="axis" x="${L-6}" y="${y+46}" text-anchor="end"
+      style="font-size:9px;opacity:.8">${yen(sum)}</text>`;
     rows.forEach(r => {
       const a = sx(r.dep - (+r.wait||0)/60), b = sx(r.dep), c = sx(r.dep + (+r.ride||0)/60);
       const bd = band(r), bw = Math.max(3, c-b);
       const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}・${bd[1]}`;
       s += `<g data-tip="${tip}">
-        <rect x="${a}" y="${y+19}" width="${Math.max(1,b-a)}" height="7" rx="3.5" fill="#55657F"/>
+        <rect x="${a}" y="${y+19}" width="${Math.max(1,b-a)}" height="7" rx="3.5" fill="#8FA3C4"/>
         <rect x="${b}" y="${y+11}" width="${bw}" height="23" rx="5" fill="${bd[0]}"/>`;
       /* ③ 乗り場の名前は、帯の中に。入りきらないときは出しません */
       const nm = String(r.place || '');
-      if (nm && bw >= nm.length*9 + 8)
+      if (nm && bw >= nm.length*10 + 10)
         s += `<text class="tlin" x="${b+5}" y="${y+27}" style="font-size:9.5px">${esc(nm)}</text>`;
+      /* ★名前が入らない細い帯でも、金額だけは出します（ご指摘・2026/11/13
+           「パッと見、よく分からない」）。いくらの1本かが、一番知りたい所です。 */
+      else if (hasFare(r) && bw >= String(yen(r.fare)).length * 5.6 + 6)
+        s += `<text class="tlin" x="${b+4}" y="${y+27}" style="font-size:8.5px">${yen(r.fare)}</text>`;
       s += `<rect x="${a-1}" y="${y+6}" width="${Math.max(6,c-a+2)}" height="32" fill="transparent"/></g>`;
     });
   });
@@ -2912,7 +2924,7 @@ function tlChart(R){
   s += '</svg>';
   return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
     <div class="scroll fb">${s}</div>
-    <div class="legend"><span><i style="background:#55657F"></i>待ち時間</span><span><i style="background:#6FB7FF"></i>ショート</span><span><i style="background:#F2C14E"></i>ミドル</span><span><i style="background:#FF6A60"></i>ロング</span><span><i style="background:#8C97AD"></i>不明</span><span>横軸は時。25＝翌1時</span></div>`;
+    <div class="legend"><span><i style="background:#8FA3C4"></i>待ち時間</span>${BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.n}</span>`).join('')}<span><i style="background:#5A6273"></i>不明</span><span>横軸は時。25＝翌1時</span></div>`;
 }
 
 /* ------------------------------------------------------------
@@ -2942,7 +2954,9 @@ function scChart(R){
   const ds = [...new Set(R.map(r => r.date))].sort();
   /* ★左の数字の場所は、ギリギリまで詰めます（ご指示・2026/11/13）。
        前は 70px もとっていて、肝心の中身が狭くなっていました。 */
-  const L = 50, Rp = 14, T = 12, B = 30;
+  /* ★さらに詰めました（ご指示・2026/11/13「もっと左をスマートに詰められませんか」）。
+       縦の数字を9pxにしたので、40pxで「¥10,000」まで入ります。 */
+  const L = 40, Rp = 12, T = 12, B = 30;
   const xs = R.map(r => r.dep);
   const x0 = Math.floor(Math.min(...xs) - .5), x1 = Math.ceil(Math.max(...xs) + .5);
   /* ★1時間ぶんの幅は、画面の広さに合わせます。
@@ -2963,7 +2977,7 @@ function scChart(R){
   /* ★縦じくは「¥5,000」のように、そのまま出します（ご指示・2026/11/13）。
        「¥5k」という書き方はやめました。 */
   for (let v = 0; v <= y1; v += step) s += `<line class="grid-l" x1="${L}" x2="${W-Rp}" y1="${sy(v)}" y2="${sy(v)}"/>
-    <text class="axis" x="${L-5}" y="${sy(v)+3.5}" text-anchor="end" style="font-size:9.5px">${v ? yen(v) : '0'}</text>`;
+    <text class="axis" x="${L-4}" y="${sy(v)+3}" text-anchor="end" style="font-size:9px">${v ? yen(v) : '0'}</text>`;
   for (let h = x0; h <= x1; h++) s += `<line class="grid-l" x1="${sx(h)}" x2="${sx(h)}" y1="${T}" y2="${H-B}" stroke-dasharray="2 4"/>`;
   /* ★一番下の線と、時刻の数字は、必ず見えるようにします
        （ご指摘・2026/11/13「下のメモリもなにもみえなくなってしまってる」）。
@@ -2989,9 +3003,9 @@ function scChart(R){
       const x = sx(r.dep), y = sy(r.fare);
       /* ★丸は小さく（ご指示・2026/11/13）。押せる広さは透明の丸で別にとります */
       s += `<g data-tip="${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;${showT(r.dep)}・${showYen(r.fare)}&#10;待ち${showMin(r.wait)}／乗車${showMin(r.ride)}">
-        <circle cx="${x}" cy="${y}" r="2.8" fill="${c}"/><circle cx="${x}" cy="${y}" r="11" fill="transparent"/></g>`;
+        <circle cx="${x}" cy="${y}" r="2.2" fill="${c}"/><circle cx="${x}" cy="${y}" r="11" fill="transparent"/></g>`;
       if (scOpt.label) {
-        const txt = yen(r.fare), w = txt.length*5.4;
+        const txt = yen(r.fare), w = txt.length*5.2;
         /* ★数字が重ならないように、右・左・上・下と置き場所をさがします。
              どこにも置けないときは、出しません（重ねるより読めます）。 */
         let put = null;
@@ -2999,7 +3013,7 @@ function scChart(R){
                          [5,-22],[-5-w,-22],[5,14],[-5-w,14]]) {
           if (fits(x+o[0], y+o[1], w)) { put = [x+o[0], y+o[1]]; break; }
         }
-        if (put) { placed.push({x:put[0], y:put[1], w}); s += `<text class="glab" x="${put[0]}" y="${put[1]+8}" style="font-size:9px" fill="${c}">${txt}</text>`; }
+        if (put) { placed.push({x:put[0], y:put[1], w}); s += `<text class="glab" x="${put[0]}" y="${put[1]+8}" style="font-size:8px" fill="${c}">${txt}</text>`; }
       }
     });
   });
@@ -3167,6 +3181,22 @@ function bandCount(rs){
 const bandPct = (o, k) => o.n ? Math.round(o[k] / o.n * 1000) / 10 : 0;
 
 /** 1本の帯（ショート／ミドル／ロングを、割合どおりに積みます） */
+/*
+ * ★帯の下に、パーセントを字でも並べます（ご指示・2026/11/13
+ *   「グラフ内のパーセンテージが見づらいです、もっと見やすく作り直してください」）。
+ *   帯の中の数字は、細い所に入らないと消えてしまいます。
+ *   下に色つきで並べれば、どんな画面でも ぜんぶ読めます。
+ */
+function bandPctLine(o){
+  if (!o || !o.n) return '';
+  const t = BANDS.map(function (b){
+    const p = bandPct(o, b.k);
+    return p ? '<span style="color:' + b.c + '"><i style="background:' + b.c + '"></i>' +
+               b.n + ' ' + p + '%</span>' : '';
+  }).filter(Boolean).join('');
+  return t ? '<div class="bpct">' + t + '</div>' : '';
+}
+
 function bandBar(o, big){
   if (!o.n) return '<div class="bandbar empty"></div>';
   return '<div class="bandbar' + (big ? ' big' : '') + '">' +
@@ -3197,7 +3227,7 @@ function bandBar(o, big){
  */
 function bandRow(label, o, avg){
   return '<div class="brow"><div class="bl">' + esc(label) + '</div>' +
-    '<div class="bb">' + bandBar(o) +
+    '<div class="bb">' + bandBar(o) + bandPctLine(o) +
       '<div class="bmeta">' + (avg ? '平均 ' + yen(avg) : '平均 —') + '　' + o.n + '件</div></div></div>';
 }
 
@@ -3311,7 +3341,7 @@ function bestTimeCard(D){
     const on = (x === top);
     return '<div class="btrow' + (on ? ' top' : '') + '">' +
       '<span class="bth">' + x.h + '時台</span>' +
-      '<span class="btb">' + bandBar(x.o) + '</span>' +
+      '<span class="btb">' + bandBar(x.o) + bandPctLine(x.o) + '</span>' +
       '<span class="btv">' + x.L + '%</span>' +
       '<span class="btm">平均 ' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></div>';
   }).join('');
