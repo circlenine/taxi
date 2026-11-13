@@ -1924,7 +1924,7 @@ function wxHoursHTML(){
  *   「リアルタイムの雨雲レーダーも、webサイト上に載せられるのなら
  *     大変ありがたいです」
  *
- * ★地図は OpenStreetMap、雨雲は RainViewer。どちらも無料・鍵なしです。
+ * ★地図は OpenStreetMap、雨雲は 気象庁のナウキャスト。どちらも無料・鍵なしです。
  *   読めなくても、下の「気象庁で見る」ボタンは残ります（止まらない形）。
  */
 function radarCard(){
@@ -1941,6 +1941,16 @@ function radarBoot(){
   const box = document.getElementById('radarMap');
   if (!box) { radarMap = null; return; }
   if (radarMap && radarMap._box === box) return;
+
+  /* 時刻の字（20261113070500＝世界の時刻）を、日本の時刻に直します */
+  const jstOf = function (v){
+    const t = String(v || '');
+    if (t.length < 12) return '';
+    const d = new Date(Date.UTC(+t.slice(0,4), +t.slice(4,6) - 1, +t.slice(6,8),
+                                +t.slice(8,10), +t.slice(10,12)));
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  };
+
   const go = function (){
     try {
       if (typeof L === 'undefined') { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; return; }
@@ -1949,19 +1959,47 @@ function radarBoot(){
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 15, attribution: '© OpenStreetMap' }).addTo(m);
       m._box = box; radarMap = m;
-      fetch('https://api.rainviewer.com/public/weather-maps.json', { cache: 'no-store' })
-        .then(r => r.json())
-        .then(function (j){
-          const fr = (j && j.radar && j.radar.past) ? j.radar.past : [];
-          const last = fr[fr.length - 1];
-          if (!last) return;
-          L.tileLayer(j.host + last.path + '/256/{z}/{x}/{y}/2/1_1.png',
-            { opacity: 0.65, maxZoom: 15 }).addTo(m);
-          const t = new Date(last.time * 1000);
-          const el = document.getElementById('radarTime');
-          if (el) el.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' の雨雲';
-        })
-        .catch(function (){});
+
+      /* ★雨雲は、気象庁の「高解像度降水ナウキャスト」を出します
+           （ご指摘・2026/11/13「なんか、変な英語出てますが」）。
+         ★前は RainViewer を出していましたが、あちらは拡大すると
+           「Zoom Level Not Supported」という英語の絵を返してきます。
+           いまの大きさ（10）では、その絵しか出ていませんでした。
+         ★気象庁のものは 鍵も要らず、拡大しても ちゃんと出ます。
+           日本の気象庁が出している、公式のものです。 */
+      const jma = function (){
+        return fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json',
+                     { cache: 'no-store' })
+          .then(r => r.json())
+          .then(function (j){
+            const o = (j && j.length) ? j[0] : null;
+            if (!o || !o.basetime) throw new Error('時刻が取れない');
+            L.tileLayer('https://www.jma.go.jp/bosai/jmatile/data/nowc/' +
+              o.basetime + '/none/' + o.validtime + '/surf/hrpns/{z}/{x}/{y}.png',
+              { opacity: 0.68, maxZoom: 15, maxNativeZoom: 10,
+                attribution: '気象庁ナウキャスト' }).addTo(m);
+            const el = document.getElementById('radarTime');
+            if (el) el.textContent = jstOf(o.validtime) + ' の雨雲（気象庁）';
+          });
+      };
+      /* 気象庁が読めなかったときだけ、RainViewer に落とします。
+         そのときは 拡大しすぎないようにして、英語の絵が出ないようにします。 */
+      const rv = function (){
+        return fetch('https://api.rainviewer.com/public/weather-maps.json', { cache: 'no-store' })
+          .then(r => r.json())
+          .then(function (j){
+            const fr = (j && j.radar && j.radar.past) ? j.radar.past : [];
+            const last = fr[fr.length - 1];
+            if (!last) return;
+            L.tileLayer(j.host + last.path + '/256/{z}/{x}/{y}/2/1_1.png',
+              { opacity: 0.65, maxZoom: 15, maxNativeZoom: 7 }).addTo(m);
+            const t = new Date(last.time * 1000);
+            const el = document.getElementById('radarTime');
+            if (el) el.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' の雨雲';
+          });
+      };
+      jma().catch(function (){ rv().catch(function (){}); });
+
       setTimeout(function (){ try { m.invalidateSize(); } catch (e) {} }, 200);
     } catch (e) { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; }
   };

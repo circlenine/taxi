@@ -374,7 +374,19 @@ console.log('■ 雨雲レーダーを、画面の中に出す（ご指示・202
 {
   ok(/function radarCard\(\)/.test(appSrc), '★★★画面の中に地図を出す');
   ok(/id="radarMap"/.test(appSrc), '　 置き場がある');
-  ok(/api\.rainviewer\.com/.test(appSrc), '★★★雨雲は RainViewer（無料・鍵なし）');
+  /* ★雨雲は、気象庁のナウキャストに変えました（ご指摘・2026/11/13
+       「なんか、変な英語出てますが、これは消したり別のサイトの導入はできないのでしょうか」）。
+       RainViewer は、拡大すると「Zoom Level Not Supported」という
+       英語の絵を返してきます。いまの大きさでは、それしか出ていませんでした。 */
+  ok(/jmatile\/data\/nowc\/targetTimes_N1\.json/.test(appSrc),
+     '★★★雨雲は 気象庁のナウキャスト（無料・鍵なし）');
+  ok(/surf\/hrpns\/\{z\}\/\{x\}\/\{y\}\.png/.test(appSrc), '　 その絵の読み先');
+  ok(/maxNativeZoom: 10/.test(appSrc), '★★★拡大しても、無いものを取りにいかない');
+  ok(/api\.rainviewer\.com/.test(appSrc), '　 気象庁が読めないときの ひかえもある');
+  ok(/maxNativeZoom: 7/.test(appSrc),
+     '★★★ひかえの RainViewer は、英語の絵が出ない大きさまでにする');
+  ok(/jma\(\)\.catch\(function \(\)\{ rv\(\)/.test(appSrc),
+     '　 気象庁がだめなときだけ、ひかえに落とす');
   ok(/tile\.openstreetmap\.org/.test(appSrc), '★★★地図は OpenStreetMap（無料・鍵なし）');
   ok(!/api_key|apikey=|token=/i.test(appSrc.slice(appSrc.indexOf('function radarBoot'),
      appSrc.indexOf('function radarBoot') + 2200)), '★★★鍵は、どこにも書いていない');
