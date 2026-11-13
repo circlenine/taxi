@@ -3541,8 +3541,9 @@ function sayPush(){
 
 function paneSays(){
   const mine = says.filter(x => canDelSay(x)).length;
-  return `<div class="card"><h2>ふきだしに足す</h2>
-    <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。</p>
+  return `<div class="card" id="sayCard"><h2>ふきだしに足す</h2>
+    <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。
+      ふきだしを押すと、ここへ来られます。</p>
     <div class="ktfind">
       <input class="ja" id="sayNew" maxlength="24"
         placeholder="吹き出しに追加したい一言" value="${esc(sayText)}">
@@ -4217,6 +4218,27 @@ function wire(){
   });
   if ($('#fb'))     $('#fb').addEventListener('input', e => { fbText = e.target.value; });
   if ($('#fbSend')) $('#fbSend').onclick = fbSend;
+  /*
+   * ★ふきだしを押すと、足す所へ来られます（ご質問・2026/11/14
+   *     「ふきだし追加したい時のやつ、どこにあるんですか？」）。
+   *   【記録】の一番下にあって、探さないと見つかりませんでした。
+   *   ふきだしそのものが入口なら、迷いようがありません。
+   */
+  const sm = $('#saymount');
+  if (sm && !sm._sayGo) {
+    sm._sayGo = true;
+    sm.style.cursor = 'pointer';
+    sm.setAttribute('title', 'ふきだしに足す');
+    sm.onclick = function () {
+      grab(); tab = 'in'; tabSave(); msg = ''; render();
+      setTimeout(function () {
+        const c = document.getElementById('sayCard');
+        if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const i = document.getElementById('sayNew');
+        if (i) i.focus();
+      }, 60);
+    };
+  }
   /* ふきだしに足す（ご指示・2026/11/14） */
   const sn = $('#sayNew');
   if (sn) { sn.oninput = function (){ sayText = sn.value; }; }

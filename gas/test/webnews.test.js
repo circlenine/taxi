@@ -1924,6 +1924,14 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
     '★★★入れる枠がある（そのままの言い方で）');
   t(/function paneSays\(\)/.test(app) && /paneOut\(\) : ''\) \+ paneSays\(\)/.test(app),
     '★★★【記録】の画面に出る');
+  /* ★探さなくても行けること（ご質問・2026/11/14
+       「ふきだし追加したい時のやつ、どこにあるんですか？」）。
+     【記録】の一番下にあって、見つけられませんでした。 */
+  t(/sm\.onclick = function \(\) \{\s*\n\s*grab\(\); tab = 'in'; tabSave\(\);[\s\S]{0,260}getElementById\('sayCard'\)/
+    .test(app),
+    '★★★ふきだしを押すと、【記録】を開いて そこへ行ける');
+  t(/id="sayCard"/.test(app), '　 行き先の目じるしがある');
+  t(/ふきだしを押すと、ここへ来られます。/.test(app), '　 画面にも、そう書いてある');
   t(/db\.from\('says'\)[\s\S]{0,80}\.insert\(/.test(app), '★★★足したものを、台帳に入れる');
   t(/db\.from\('says'\)[\s\S]{0,80}\.delete\(\)/.test(app), '　 消すこともできる');
   t(/function canDelSay\(x\)/.test(app)
