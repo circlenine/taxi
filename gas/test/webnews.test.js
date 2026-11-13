@@ -3092,5 +3092,30 @@ console.log('■ よく出る乗車金額のタグ（ご指示・2026/11/12）')
 }
 
 
+
+console.log('\n■ 待ち時間のタグと、読み込み中の注記（ご指示・2026/11/13）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const ad  = fs.readFileSync(path.join(W, 'admin.html'), 'utf8');
+  /* ★待ち時間の「0」は1段目に入れました（ご指示・2026/11/13
+       「待ち時間の0のタブは1列目に収められませんか？」） */
+  t(/class="chips fares w10"/.test(app), '★★★0を含めて10個を1段目に並べる');
+  t(/\.chips\.fares\.w10\{grid-template-columns:repeat\(10,1fr\)/.test(css),
+    '　 10列分の見た目も入っている');
+  /* 2段目に数字が残っていないこと（残ると、2度出る） */
+  {
+    const w = app.slice(app.indexOf('class="chips fares w10"'));
+    const seg = w.slice(0, w.indexOf('</div>', w.indexOf('data-wa="BS"')));
+    t(!/data-wa="0"[\s\S]*data-wa="0"/.test(seg), '　 0 は1つだけ');
+  }
+  /* ★読み込み中の絵に、小さく注記を入れました（ご指示・2026/11/13） */
+  const note = '※これはAIによるロイヤリティフリー画像のはずです';
+  t(ix.indexOf(note) !== -1, '★★★表の画面に注記がある');
+  t(ad.indexOf(note) !== -1, '★★★管理の画面にもある');
+  t(/\.bootnote\{/.test(css), '　 その見た目も入っている');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

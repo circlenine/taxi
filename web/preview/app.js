@@ -905,10 +905,14 @@ function paneInNew(){
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
         <!-- ★待ち時間も、数字を足していく形にします（ご指示・2026/11/13）
                「待ち時間のタブも 1、2、3、4、5、6、7、8、9、0 にしてください」 -->
-        <div class="chips fares">${FARE_KEYS.map(v =>
-          `<button class="chip" data-wa="${v}">${v}</button>`).join('')}</div>
+        <!-- ★「0」は1段目の おしりに入れます（ご指示・2026/11/14
+               「待ち時間の0のタブは1列目に収められませんか？」）。
+             1、2、…、9、0 の並びで、1段に10個。
+             2段目は【←1つ消す】と【リセット】の2つだけになります。 -->
+        <div class="chips fares w10">${FARE_KEYS.map(v =>
+          `<button class="chip" data-wa="${v}">${v}</button>`).join('')}<button
+          class="chip" data-wa="0">0</button></div>
         <div class="chips fares z">
-          <button class="chip" data-wa="0">0</button>
           <button class="chip" data-wa="BS">←1つ消す</button>
           <button class="chip rst" data-clr="wait">リセット</button></div></div>
 

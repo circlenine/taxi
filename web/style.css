@@ -610,6 +610,10 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 @keyframes bkira{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
 
 .bootmsg{font-size:13px;color:#FFFFFF;opacity:.85}
+/* ★絵の出どころの断り書き（ご指示・2026/11/14）。
+     小さく、下に置きます。読み込み中の邪魔をしないためです。 */
+.bootnote{font-size:9.5px;color:#FFFFFF;opacity:.55;margin-top:2px;
+  letter-spacing:.02em;padding:0 16px;text-align:center;line-height:1.5}
 
 /* ★動きを減らす設定の方には、動かさずに出します */
 @media(prefers-reduced-motion:reduce){
@@ -1256,6 +1260,10 @@ td.w-mark {background:#26262A}   /* まーく様 … 灰 */
      1段目は 1〜9 の9つ。2段目は 0・00・000・0000・00000 と 消す・リセット。 */
 .chips.fares{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
 .chips.fares .chip{font-size:13px;padding:8px 0;min-width:0;letter-spacing:0;text-align:center}
+/* ★待ち時間は 1〜9 と 0 で、1段に10個（ご指示・2026/11/14
+     「待ち時間の0のタブは1列目に収められませんか？」）。 */
+.chips.fares.w10{grid-template-columns:repeat(10,1fr);gap:2px}
+.chips.fares.w10 .chip{font-size:12.5px;padding:8px 0}
 .chips.fares.z0{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
 .chips.fares.z{display:flex;flex-wrap:wrap;gap:4px}
 .chips.fares.z .chip{padding:7px 10px;font-size:12px}
