@@ -1903,6 +1903,23 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
 }
 
+console.log('■ 表は幅いっぱい、いらない案内は出さない（ご指示・2026/11/14）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* 「左によりすぎて、幅いっぱいに綺麗に作れてません」
+     「横スクロール不要なものは、横スクロールしてという説明などは無しに」 */
+  t(/\.scroll\.tbl table\{table-layout:fixed;width:100%;min-width:320px\}/.test(css),
+    '★★★表は、幅いっぱいまで広がる（余った幅は欄に配る）');
+  t(!/\.scroll\.tbl table\{table-layout:fixed;width:auto\}/.test(css),
+    '　 前の「中身の幅のまま」は残っていない');
+  t(/function snoteFit\(\)/.test(app)
+    && /n\.hidden = \(box\.scrollWidth <= box\.clientWidth \+ 1\);/.test(app),
+    '★★★動かせないときは、「横にスクロールできます」を出さない');
+  t((app.match(/snoteFit\(\);/g) || []).length >= 3,
+    '　 画面を作ったとき・向きを変えたとき・字が届いたときに、見直す');
+}
+
 console.log('■ 乗り場のプルダウンが、からっぽにならない（ご指摘・2026/11/14）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

@@ -1122,6 +1122,21 @@ function myPlaces(n){
  *   せっかく入れたものが 毎回 消えていました。
  *   だから、作り直したあとに もう一度 入れます。
  */
+/*
+ * ★「横にスクロールできます」は、ほんとうに動かせるときだけ出します
+ *   （ご指示・2026/11/14「横スクロール不要なものは、
+ *     横スクロールしてという説明などは無しにしてください」）。
+ *   画面に収まっているのに案内が出ていると、
+ *   「動かせるのかな」と探させてしまいます。
+ */
+function snoteFit(){
+  document.querySelectorAll('.snote').forEach(function (n) {
+    const box = n.nextElementSibling;
+    if (!box || box.className.indexOf('scroll') === -1) return;
+    n.hidden = (box.scrollWidth <= box.clientWidth + 1);
+  });
+}
+
 function placeSelFill_(){
   [$('#ktPlace'), $('#ktPlace2')].forEach(function (kpl) {
     if (!kpl) return;
@@ -3801,12 +3816,13 @@ function fabWire(){
   handApply();
   hsubWire();
   placeChipsFit();
+  snoteFit();
   /* ★横にしたとき・画面の広さが変わったときも、はみ出さないように
        もう一度 合わせ直します（1回だけ付けます）。 */
   if (!window.__fitWired) {
     window.__fitWired = true;
     window.addEventListener('resize', function (){
-      try { const e = $('#sub'); if (e) subFit(e); placeChipsFit(); } catch (e2) {}
+      try { const e = $('#sub'); if (e) subFit(e); placeChipsFit(); snoteFit(); } catch (e2) {}
     });
     /* ★字の形（フォント）は、あとから届きます。
          届く前に測ると、幅を小さく見あやまって、
@@ -3815,7 +3831,7 @@ function fabWire(){
     try {
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(function (){
-          try { const e = $('#sub'); if (e) subFit(e); placeChipsFit(); } catch (e2) {}
+          try { const e = $('#sub'); if (e) subFit(e); placeChipsFit(); snoteFit(); } catch (e2) {}
         });
       }
     } catch (e3) {}
