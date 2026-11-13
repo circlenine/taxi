@@ -219,7 +219,8 @@ const FARE_CHIPS = [600,700,800,900].concat(
 /* ★乗車金額は、数字を押して足していく形にします（ご指示・2026/11/13）。
      1〜9 を1段目、0・00・000・0000・00000 を2段目に置きます。 */
 const FARE_KEYS  = ['1','2','3','4','5','6','7','8','9'];
-const FARE_ZEROS = ['0','00','000','0000','00000'];
+/* ★00000 は、ありえないので外しました（ご指示・2026/11/13） */
+const FARE_ZEROS = ['0','00','000','0000'];
 
 const DEP_H = ['17','18','19','20','21','22','23','00','01','02','03','04'];
 const DEP_M = ['00','05','10','15','20','25','30','35','40','45','50','55'];
@@ -713,9 +714,10 @@ function render(){
     news:paneNews, ev:paneEv, fb:paneFb };
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
-  /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13） */
+  /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
+     仕掛けが止まっていそうなときは、その上に 赤い帯を出します。 */
   const pt = $('#panesTop');
-  if (pt) pt.innerHTML = (tab === 'in') ? paneInNew() : '';
+  if (pt) pt.innerHTML = gasWakeBar() + ((tab === 'in') ? paneInNew() : '');
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
   if (sb) sb.textContent = subLine();
@@ -785,7 +787,7 @@ function paneInNew(){
         <div class="chips"><button class="chip rst" data-clr="dep">リセット</button></div>
         <div class="hint" id="depHint"></div></div>
       <div class="f w2"><label>乗車金額</label>
-        <input id="f_fare" inputmode="numeric" placeholder="2900" value="${f.fare ?? ''}">
+        <input id="f_fare" inputmode="numeric" placeholder="1500" value="${f.fare ?? ''}">
         <!-- ★よく出る金額は、押すだけで入れられるようにします
                （ご指示・2026/11/12）。これより大きい額は、打ち込みます。 -->
         <!-- ★数字を足していく形にします（ご指示・2026/11/13）
@@ -815,9 +817,14 @@ function paneInNew(){
       <datalist id="mins">${MIN_ALL.map(v => `<option value="${v}">`).join('')}</datalist>
       <div class="f w2"><label>待ち時間</label>
         <input id="f_wait" inputmode="numeric" list="mins" placeholder="15" value="${f.wait ?? ''}">
-        <div class="chips mins">${MIN_CHIPS.slice(0,10).map(v => chip(v,f.wait,'wait')).join('')}</div>
-        <div class="chips mins">${MIN_CHIPS.slice(10).map(v => chip(v,f.wait,'wait')).join('')}</div>
-        <div class="chips"><button class="chip rst" data-clr="wait">リセット</button></div></div>
+        <!-- ★待ち時間も、数字を足していく形にします（ご指示・2026/11/13）
+               「待ち時間のタブも 1、2、3、4、5、6、7、8、9、0 にしてください」 -->
+        <div class="chips fares">${FARE_KEYS.map(v =>
+          `<button class="chip" data-wa="${v}">${v}</button>`).join('')}</div>
+        <div class="chips fares z">
+          <button class="chip" data-wa="0">0</button>
+          <button class="chip" data-wa="BS">←1つ消す</button>
+          <button class="chip rst" data-clr="wait">リセット</button></div></div>
 
       <!-- ★記録用スプレッドシートの「種」と「他」に合わせた欄（2026/10/26 追加） -->
       <div class="f w2"><label>乗車種類</label>
@@ -2891,6 +2898,56 @@ function paneRatio(){
 }
 
 /* ============================================================
+ *  仕掛けを、ここから起こす（ご指示・2026/11/13）
+ *
+ *  ★まーく様のご指示
+ *    「止まってしまった際や、あらゆるエラーにおいて
+ *      基本的に僕が行わずに、クロちゃんに依頼したら
+ *      クロちゃん側で全て直せる仕組みづくりにして欲しい」
+ *    「毎回、スプシにおいても色々やらないといけないの面倒なので」
+ *
+ *  ★一番 面倒だったのは、止まったときに
+ *    スプレッドシートを開いて【拡張機能】→【Apps Script】…と
+ *    たどらせていたことです。それをやめます。
+ *
+ *  ★ここ（TAXI NOTE）に【仕掛けを起こす】のボタンを置きます。
+ *    押すと、GASの受け口が開きます。開いた時点で、GAS側は
+ *      ① 自分を診て直す（見張りの立て直し・受け口の公開し直し）
+ *      ② 新しい中身を取り込む
+ *      ③ 頼まれごと（errand.json）を走らせる
+ *    を、ぜんぶ自分でやります。指は1回だけです。
+ *
+ *  ★止まっていることにも、こちらから気づけるようにします。
+ *    イベントの紙が20時間より古ければ、一番上に赤い帯を出します。
+ * ========================================================== */
+let gasInfo = null;
+async function gasLoad(){
+  try {
+    const r = await fetch('data/gas.json', { cache: 'no-store' });
+    if (r.ok) gasInfo = await r.json();
+  } catch (e) { gasInfo = null; }
+}
+/** 仕掛けが止まっていそうか（イベントの紙の古さで見ます） */
+function gasStale(){
+  const at = (evData && evData.at) ? String(evData.at) : '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(at);
+  if (!m) return false;
+  const t = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime();
+  return (Date.now() - t) > 20 * 3600 * 1000;      /* 20時間より古い */
+}
+/** 一番上に出す、起こすための帯 */
+function gasWakeBar(){
+  if (!gasStale() || !gasInfo || !gasInfo.exec) return '';
+  return '<div class="wakebar">' +
+    '<b>仕掛けが止まっているかもしれません。</b>' +
+    '<span>イベントの紙が ' + esc(String(evData.at)) + ' のままです。</span>' +
+    '<a class="btn" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
+    '仕掛けを起こす</a>' +
+    '<span class="note">押すと、新しい画面が開いて 自動で直します。' +
+    '戻ってきたら、この帯は消えます。</span></div>';
+}
+
+/* ============================================================
  *  バラシ・関空の くわしい表（ご指示・2026/11/13）
  *
  *  ★まーく様のご指示
@@ -3113,7 +3170,14 @@ function fabWire(){
         const sb = (b.querySelector('i') || {}).textContent || '';
         return '<button class="fsrow ' + (t === tab ? 'on' : '') + '" data-go="' + t + '">' +
                '<b>' + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
-      }).join('');
+      }).join('') +
+        /* ★【仕掛けを起こす】は、いつでも ここから押せます
+             （ご指示・2026/11/13「スプシにおいても色々やらないといけないの面倒」）。
+             押すと、GASの受け口が開いて 自動で直ります。 */
+        ((gasInfo && gasInfo.exec)
+          ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
+            '<b>仕掛けを起こす</b><i>止まったときに、ここを押すだけ</i></a>'
+          : '');
       sheet.hidden = false;
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
         b.onclick = function () {
@@ -3468,16 +3532,21 @@ function wire(){
   /* ★えらんだものを、その欄だけ 空に戻します
        （ご指示・2026/11/13「各選択項目で、リセットボタンも追加してください」）。 */
   /* ★乗車金額は、押すたびに うしろへ足していきます（ご指示・2026/11/13） */
-  document.querySelectorAll('[data-fa]').forEach(function (b) {
-    b.onclick = function () {
-      grab();
-      const cur = String(form.fare == null ? '' : form.fare);
-      if (b.dataset.fa === 'BS') form.fare = cur.slice(0, -1);
-      else if (cur.length < 7)   form.fare = cur + b.dataset.fa;
-      msg = ''; render();
-      const i = document.getElementById('f_fare'); if (i) i.focus();
-    };
-  });
+  const padWire = function (attr, fld, max, inpId) {
+    document.querySelectorAll('[' + attr + ']').forEach(function (b) {
+      b.onclick = function () {
+        grab();
+        const cur = String(form[fld] == null ? '' : form[fld]);
+        const k = b.getAttribute(attr);
+        if (k === 'BS') form[fld] = cur.slice(0, -1);
+        else if (cur.length < max) form[fld] = cur + k;
+        msg = ''; render();
+        const i = document.getElementById(inpId); if (i) i.focus();
+      };
+    });
+  };
+  padWire('data-fa', 'fare', 7, 'f_fare');
+  padWire('data-wa', 'wait', 3, 'f_wait');
   document.querySelectorAll('[data-clr]').forEach(function (b) {
     b.onclick = function () {
       grab();
@@ -4261,7 +4330,13 @@ function evPopup(d){
   box.addEventListener('click', e => { if (e.target === box) close(); });
 }
 
+/* ★イベントの紙と、受け口の住所を 読みます。
+     住所は【仕掛けを起こす】のボタンに使います（ご指示・2026/11/13）。 */
+async function bootLoad(){
+  await gasLoad();
+  await loadEv();
+}
 if (typeof document !== 'undefined' && document.addEventListener) {
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadEv);
-  else loadEv();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootLoad);
+  else bootLoad();
 }

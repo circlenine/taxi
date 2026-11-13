@@ -1636,7 +1636,7 @@ console.log('■ 入力欄と、タグの言い方（ご指示・2026/11/12）')
        発車時間は 0330、乗車金額は 2900。 */
   t(/placeholder="0330"/.test(app), '★★★時刻の見本は「0330」');
   t(!/placeholder="25:30"/.test(app), '　 前の「25:30」は残っていない');
-  t(/placeholder="2900"/.test(app), '★★★金額の見本は「2900」');
+  t(/placeholder="1500"/.test(app), '★★★金額の見本は「1500」');
   /* ★入力欄の幅は、ぜんぶ同じ */
   const form = app.slice(app.indexOf('<h2>新規の記録</h2>'), app.indexOf('<button class="btn" id="add">'));
   const ws = (form.match(/class="f w\d/g) || []).map(x => x.slice(-1));
@@ -2182,7 +2182,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★新規の記録 → 過去の記録 の順');
   t(idx.indexOf('id="ktop"') < idx.indexOf('id="panes"'),
     '★★★過去の記録 → 直近の記録 の順');
-  t(/pt\.innerHTML = \(tab === 'in'\) \? paneInNew\(\) : ''/.test(app),
+  t(/\(tab === 'in'\) \? paneInNew\(\) : ''/.test(app),
     '　 記録の画面のときだけ、新規を出す');
 
   /* 目次 */
@@ -2237,6 +2237,39 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★いま何件から出しているかを、必ず書く');
   t(/まだ数が足りない/.test(app), '　 足りない所も、件数だけは出す（黙って消さない）');
   t(/\.wbar\{/.test(css) && /\.wcell\{/.test(css), '　 時間帯の帯の見た目がある');
+
+  /* ⑥-19 止まったときに、まーく様の手をお借りしない仕組み
+          ご指示（2026/11/13）
+            「止まってしまった際や、あらゆるエラーにおいて
+              基本的に僕が行わずに、クロちゃんに依頼したら
+              クロちゃん側で全て直せる仕組みづくりにして欲しい」
+            「毎回、スプシにおいても色々やらないといけないの面倒なので」
+          これまでは スプレッドシート →【拡張機能】→【Apps Script】…と
+          たどっていただいていました。それを、台帳のボタン1回にします。 */
+  t(/async function gasLoad\(/.test(app), '★★★受け口の住所を、台帳が読む');
+  t(/data\/gas\.json/.test(app), '　 置き場は web/data/gas.json');
+  t(fs.existsSync(path.join(W, 'data', 'gas.json')), '　 その紙が、もう置いてある');
+  {
+    const gj = JSON.parse(fs.readFileSync(path.join(W, 'data', 'gas.json'), 'utf8'));
+    t(/^https:\/\/script\.google\.com\/macros\/s\//.test(String(gj.exec || '')),
+      '　 中身は、GASの受け口の住所');
+    t(!/token|key|secret|password/i.test(JSON.stringify(gj)),
+      '★★★鍵のたぐいは、1つも入っていない');
+  }
+  t(/function gasWakeBar\(/.test(app), '★★★止まっていそうなら、赤い帯を出す');
+  t(/function gasStale\(/.test(app), '　 イベントの紙の古さで見分ける');
+  t(/20 \* 3600 \* 1000/.test(app), '　 20時間より古ければ、止まっているとみなす');
+  t(/仕掛けを起こす/.test(app), '★★★【仕掛けを起こす】のボタンがある');
+  t(/fsrow wake/.test(app), '★★★≡ の一覧からも、いつでも押せる');
+  t(/\.wakebar\{/.test(css), '　 その帯の見た目がある');
+  {
+    const vn = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+    t(/function vnGasPush_\(/.test(vn), '★★★GASが、受け口の住所を置き直す');
+    t(/VN_GAS_PATH = "web\/data\/gas\.json"/.test(vn), '　 置き場も同じ');
+    t(/vnGasPush_\(\);/.test(vn), '　 1日の仕事の中から呼んでいる');
+    t(/String\(old\.exec \|\| ""\) === url\) return true/.test(vn),
+      '　 住所が同じときは、置き直さない（むだに作り直さない）');
+  }
 
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
@@ -2480,13 +2513,11 @@ console.log('■ 分のタグの並びと、乗り場のタグ（ご指示・202
    *       これまででの入力が多いもののタブを入れてください」
    */
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
-  /* 45までを1行目、50以降を2行目。行を分けて出します */
-  /* ★乗車時間の欄はなくしたので、分のタグが出るのは「待ち時間」だけです */
-  t((app.match(/MIN_CHIPS\.slice\(0,10\)/g) || []).length === 1,
-    '★★★45までを1行目に出す（待ち時間）');
-  t((app.match(/MIN_CHIPS\.slice\(10\)/g) || []).length === 1,
-    '★★★50から90までを2行目に出す');
-  t(!/MIN_CHIPS\.map\(v => chip/.test(app), '　 ひとつづきで出す形は、残っていない');
+  /* ★2026/11/13 のご指示で、待ち時間も「数字を足していく」形にしました
+       （「待ち時間のタブも 1、2、3、4、5、6、7、8、9、0 にしてください」）。
+       45・90 のような決め打ちのタグは、やめました。 */
+  t(!/MIN_CHIPS\.slice/.test(app), '★★★決め打ちの分のタグは、もう出さない');
+  t(/data-wa="\$\{v\}"/.test(app), '★★★待ち時間は 1〜9 を押して足していく');
 
   /* 乗り場のタグは、その人が よく使う所 */
   t(/function myPlaces\(/.test(app), '★★★その人が よく使う乗り場を出す係がある');
@@ -2543,10 +2574,18 @@ console.log('■ よく出る乗車金額のタグ（ご指示・2026/11/12）')
          という形で、数値追加できる形にしてください」 */
   t(/const FARE_KEYS  = \['1','2','3','4','5','6','7','8','9'\]/.test(app),
     '★★★1段目は 1〜9');
-  t(/const FARE_ZEROS = \['0','00','000','0000','00000'\]/.test(app),
-    '★★★2段目は 0・00・000・0000・00000');
+  /* ★00000 は ありえないので外しました（ご指示・2026/11/13） */
+  t(/const FARE_ZEROS = \['0','00','000','0000'\]/.test(app),
+    '★★★2段目は 0・00・000・0000');
+  t(app.indexOf("'00000'") === -1, '　 00000 は残っていない');
   t(/data-fa="\$\{v\}"/.test(app), '★★★押すと、うしろに足される形');
-  t(/form\.fare = cur \+ b\.dataset\.fa/.test(app), '　 押すたびに、足していく');
+  t(/form\[fld\] = cur \+ k;/.test(app), '　 押すたびに、足していく');
+  /* ★待ち時間も、同じ形にしました（ご指示・2026/11/13
+       「待ち時間のタブも 1、2、3、4、5、6、7、8、9、0 にしてください」） */
+  t(/padWire\('data-wa', 'wait', 3, 'f_wait'\)/.test(app),
+    '★★★待ち時間も、数字を足していく形');
+  t(/data-wa="\$\{v\}"/.test(app), '　 1〜9 のタグがある');
+  t(/data-wa="0"/.test(app), '　 0 のタグもある');
   t(/data-fa="BS"/.test(app), '　 1つ消すボタンもある');
   t(/\.chips\.fares \.chip\{/.test(css), '　 その見た目も入っている');
 

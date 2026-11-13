@@ -2,7 +2,16 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V111ver  （2026/11/12）  ★★★
+ *  ★★★  V112ver  （2026/11/13）  ★★★
+ *
+ *  [V112ver]
+ *   ・🔑 受け口の住所を、台帳（web/data/gas.json）にも置くようにした
+ *     （ご指示・2026/11/13「止まってしまった際や、あらゆるエラーにおいて
+ *       基本的に僕が行わずに…クロちゃん側で全て直せる仕組みづくりに」
+ *       「毎回、スプシにおいても色々やらないといけないの面倒」）
+ *     ★台帳の【仕掛けを起こす】が、この住所を使います。
+ *       止まったときに、スプレッドシートを開く必要が無くなります。
+ *     ★住所が変わったときだけ置き直します（むだに作り直さないため）。
  *
  *  [V111ver]
  *   ・🎤 アーティストの公式リンクを、ウェブの台帳にも渡すようにした
@@ -1793,7 +1802,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V111ver";
+const VN_VERSION = "V112ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -11354,6 +11363,73 @@ function vnFeedDay_(day) {
  * ★書けなかったときは、黙って終わります（ほかの仕事は止めません）。
  *   控えには1行だけ残すので、あとから追えます。
  */
+/* ----------------------------------------------------------------
+ *  受け口の住所を、台帳にも置く（ご指示・2026/11/13）
+ *
+ *  ★まーく様のご指示
+ *    「止まってしまった際や、あらゆるエラーにおいて
+ *      基本的に僕が行わずに、クロちゃんに依頼したら
+ *      クロちゃん側で全て直せる仕組みづくりにして欲しい」
+ *    「毎回、スプシにおいても色々やらないといけないの面倒なので」
+ *
+ *  ★これまで、止まったときは スプレッドシートを開いて
+ *    【拡張機能】→【Apps Script】→…と たどっていただいていました。
+ *    その代わりに、台帳（TAXI NOTE）に【仕掛けを起こす】を置きます。
+ *    押すと この住所が開き、GAS側が ひとりでに
+ *      ①自分を診て直す ②新しい中身を取り込む ③頼まれごとを走らせる
+ *    を します。指は1回だけです。
+ *
+ *  ★住所が変わったときだけ置き直します。
+ *    毎回置き直すと、台帳が意味もなく作り直されます（Vercelの回数を食います）。
+ *  ★住所は秘密ではありません（LINEも同じ所を叩いています）。
+ *    鍵は1つも入れません。
+ * ---------------------------------------------------------------- */
+const VN_GAS_PATH = "web/data/gas.json";
+
+function vnGasPush_() {
+  try {
+    if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
+    let url = "";
+    try { url = (typeof updWebAppUrl_ === "function") ? String(updWebAppUrl_() || "") : ""; } catch (e) { url = ""; }
+    if (!url) return false;
+
+    const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_GAS_PATH;
+    const ref  = encodeURIComponent(updBranch_());
+    let sha = "", prev = "";
+    try {
+      const got = updGhTry_(base + "?ref=" + ref);
+      if (got.code === 200) {
+        const j = JSON.parse(got.body);
+        sha = j.sha || "";
+        try {
+          prev = Utilities.newBlob(
+            Utilities.base64Decode(String(j.content || "").replace(/\s/g, ""))
+          ).getDataAsString("UTF-8");
+        } catch (e) { prev = ""; }
+      }
+    } catch (e) {}
+
+    /* 住所が同じなら、置き直しません */
+    try {
+      const old = JSON.parse(prev);
+      if (old && String(old.exec || "") === url) return true;
+    } catch (e) {}
+
+    const body = { exec: url,
+      at: Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm") };
+    const payload = { message: "受け口の住所を置き直した（じどう）",
+                      content: Utilities.base64Encode(JSON.stringify(body, null, 1), Utilities.Charset.UTF_8),
+                      branch: updBranch_() };
+    if (sha) payload.sha = sha;
+    const res = UrlFetchApp.fetch(base, {
+      method: "put", headers: updGhHeaders_(false),
+      contentType: "application/json",
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    return res.getResponseCode() < 300;
+  } catch (e) { return false; }
+}
+
 function vnFeedPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
@@ -11979,6 +12055,12 @@ function venueDailyJob() {
      */
     try { if (typeof vnFeedPush_ === "function") vnFeedPush_(); }
     catch (e) { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); }
+
+    /* ★受け口の住所も、台帳に置いておきます（ご指示・2026/11/13）。
+         止まったときに、台帳の【仕掛けを起こす】から戻せるようにするためです。
+         住所が変わったときだけ置き直すので、ふだんは何もしません。 */
+    try { if (typeof vnGasPush_ === "function") vnGasPush_(); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnGasPush", e); }
 
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。
