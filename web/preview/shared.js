@@ -477,6 +477,19 @@ function sayFit(mount){
   } catch (e) {}
 }
 
+/*
+ * ★顔の絵の置き場。
+ *   本番は /img/kira.png、下見は /preview/img/kira.png です。
+ *   いま開いているページの場所から組み立てるので、どちらでも出ます。
+ */
+function sayFaceSrc(){
+  try {
+    const p = String(location.pathname || '/');
+    const dir = p.slice(0, p.lastIndexOf('/') + 1);
+    return dir + 'img/kira.png';
+  } catch (e) { return 'img/kira.png'; }
+}
+
 function sayRoll() {
   /* ★画面の無いところ（検査など）でも落ちないようにします */
   if (typeof document === 'undefined' || !document.getElementById) return;
@@ -509,8 +522,19 @@ function sayRoll() {
            ふきだしの高さを2行ぶんに決め打ちするため、
            字のほうを「2行まで」で止める必要があります。 */
       const say = sayNext();
-      /* ★ひとことに合わせて、顔も変えます（ご指示・2026/11/11） */
-      mount.innerHTML = faceSvg(say.good) +
+      /*
+       * ★顔は、まーく様からいただいた絵にしました（ご指示・2026/11/14）
+       *     「ふきだしの顔は、さっきお渡しした画像を小さくして載せてください」
+       *   気分（ぼやき／ほめ）は、まわりの光の色で分けます。
+       * ★描いていた顔（faceSvg）は、そのまま残します。
+       *   「顔とひとことの一覧」の画面で使っているためです。
+       * ★ひとことが変わるたびに「ははは」が ふわっと出ます
+       *     「できれば、はははのトランジションもあると嬉しいです」
+       *   中身を作り直すたびに、動きは自然に最初から始まります。
+       */
+      mount.innerHTML =
+        '<img class="face kiraface" src="' + sayFaceSrc() + '" alt="" decoding="async">' +
+        '<span class="hahafx" aria-hidden="true"><i>は</i><i>は</i><i>は</i></span>' +
         '<div class="bubble' + (say.good ? ' good' : '') + '"><span class="t"></span></div>';
       mount.querySelector('.bubble .t').textContent = say.t;
       sayFit(mount);

@@ -155,9 +155,29 @@ console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
   }
   /* 顔は、ひとことの気分に合わせて変える */
   const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  t(/faceSvg\(say\.good\)/.test(sh),
-    '★★★ひとことに合わせて、顔も切りかえている（ぼやき＝しかめ顔）');
-  t(/function faceSvg\(good\)/.test(sh), '　 顔を描く係が、気分を受け取る形になっている');
+  /*
+   * ★顔は、まーく様からいただいた絵にしました（ご指示・2026/11/14）
+   *     「ふきだしの顔は、さっきお渡しした画像を小さくして載せてください」
+   *   気分（ぼやき／ほめ）は、ふきだしのふちと顔のまわりの光で分けます。
+   *   描いていた顔（faceSvg）は、一覧の画面で使うので残してあります。
+   */
+  const css2 = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/<img class="face kiraface" src="' \+ sayFaceSrc\(\)/.test(sh),
+    '★★★顔は、いただいた絵になっている');
+  t(/function sayFaceSrc\(\)/.test(sh) && /dir \+ 'img\/kira\.png'/.test(sh),
+    '　 下見用のページからでも、絵が出る');
+  t(/'<div class="bubble' \+ \(say\.good \? ' good' : ''\)/.test(sh),
+    '★★★ひとことの気分（ぼやき／ほめ）で、ふきだしを切りかえている');
+  t(/:has\(\.bubble\.good\) \.kiraface/.test(css2),
+    '　 顔のまわりの光も、気分で変える');
+  t(/function faceSvg\(good\)/.test(sh), '　 描いていた顔も、一覧のために残してある');
+  /* 「できれば、はははのトランジションもあると嬉しいです」 */
+  t(/<span class="hahafx"[^>]*><i>は<\/i><i>は<\/i><i>は<\/i><\/span>/.test(sh),
+    '★★★ひとことが変わると「ははは」が出る');
+  t(/@keyframes hahafx\{/.test(css2) && /animation:hahafx /.test(css2),
+    '★★★その「ははは」が、ふわっと上がる');
+  t(/prefers-reduced-motion:reduce\)\{\.hahafx\{display:none\}\}/.test(css2),
+    '　 動きを減らす設定の方には、出さない');
 }
 
 console.log('■ 顔とひとことの一覧（ご指示・2026/11/11）');
