@@ -521,8 +521,22 @@ function sayFit(mount){
       });
     }
     t.textContent = _sayWidest;
+    /*
+     * ★はみ出しは、小数のまま測ります（2026/11/14）。
+     *   scrollWidth は整数に丸められるので、中身 98.4px・枠 97.8px の
+     *   ように 0.6px だけはみ出していても、同じ数に見えます。
+     *   それで「入っている」と思い込み、実際の画面では
+     *   「ちょっと待っとい…」と切れていました。
+     */
+    const over = function () {
+      try {
+        const rg = document.createRange();
+        rg.selectNodeContents(t);
+        return rg.getBoundingClientRect().width > t.getBoundingClientRect().width - 0.6;
+      } catch (e) { return t.scrollWidth > t.clientWidth + 1; }
+    };
     let guard = 0;
-    while (t.scrollWidth > t.clientWidth + 1 && size > 7 && guard++ < 40) {
+    while (over() && size > 7 && guard++ < 40) {
       size -= 0.5;
       t.style.fontSize = size + 'px';
     }

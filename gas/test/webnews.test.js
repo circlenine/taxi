@@ -1868,6 +1868,23 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   t(/<b>仕掛けを起こす<\/b>/.test(app), '　 「仕掛けを起こす」も、そのまま残っている');
 }
 
+console.log('■ ふきだしのひとことが、最後まで読める（ご指示・2026/11/14）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  /* ご指示「題を小さくして、幅をゆずる」
+     ひとことが「エアコン、ちょうどえ…」と切れていました。 */
+  t(/--logo:clamp\(13px,3\.6vw,22px\)/.test(css),
+    '★★★題を小さくして、ふきだしに幅をゆずった');
+  t(/\.saymount \.face\{width:30px/.test(css),
+    '　 顔とすき間も、少し詰めてゆずった');
+  t(/rg\.getBoundingClientRect\(\)\.width > t\.getBoundingClientRect\(\)\.width - 0\.6/
+    .test(sh),
+    '★★★はみ出しは、小数のまま測る（整数だと 0.6px の切れを見逃す）');
+  t(/while \(over\(\) && size > 7/.test(sh),
+    '　 入るまで、字を小さくする');
+}
+
 console.log('■ 割合の帯の数字が、帯からはみ出さない（2026/11/13）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

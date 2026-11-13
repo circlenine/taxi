@@ -390,7 +390,10 @@ h1.dn{font-family:var(--goth);font-weight:700;font-size:var(--logo);letter-spaci
 h1.dn2{font-family:var(--disp);letter-spacing:.08em}
 /* ★題は、画面の幅に合わせて縮めます（ご指示・2026/11/11）。
      決め打ちだと、ふきだしと顔を右に置いたときに はみ出します。 */
-@media(max-width:640px){:root{--logo:clamp(19px,5.2vw,27px)}}
+/* ★題を小さくして、ふきだしに幅をゆずります（ご指示・2026/11/14）。
+     「題を小さくして、幅をゆずる」をお選びいただきました。
+     ふきだしのひとことが、どの機種でも最後まで読めるようにするためです。 */
+@media(max-width:640px){:root{--logo:clamp(13px,3.6vw,22px)}}
 /* 地図で開ける場所の名前（ご指示・2026/11/11） */
 .plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
 .plink:hover{border-bottom-color:var(--andon)}
@@ -1566,4 +1569,24 @@ header{padding-left:33px;padding-right:33px}
   .hrow .chip{padding:4px 5px;font-size:10px}
   .hrow .mini{padding:4px 5px;font-size:10px}
   .hsub > .hrow > .whoR{gap:3px}
+}
+
+/* ------------------------------------------------------------
+ *  ふきだしに、幅をゆずる（ご指示・2026/11/14）
+ *
+ *  ★ご指示「題を小さくして、幅をゆずる」
+ *    ひとことが「エアコン、ちょうどえ…」のように切れていました。
+ *    題・顔・ふきだし・≡ が1行に並びきらないのが原因です。
+ *  ★顔とすき間も、少しずつ詰めて、ふきだしに回します。
+ *  ★ここは いちばん下に置きます（上に書くと、あとの決まりに負けます）。
+ * ---------------------------------------------------------- */
+@media(max-width:640px){
+  .saymount{gap:6px}
+  .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
+  .saymount .bubble{padding:0 7px}
+  .hmain{gap:7px}
+}
+/* 細い機種では、題の行の余白も詰めます（ここだけは そろえ方より中身を優先） */
+@media(max-width:375px){
+  header{padding-left:16px;padding-right:16px}
 }
