@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261113-2ef3d93c">
+<link rel="stylesheet" href="style.css?v=20261113-39fc1a4e">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
@@ -72,9 +72,14 @@
     <!-- ★バラシと関空の くわしい表（ご指示・2026/11/13） -->
     <button data-t="bara" aria-selected="false"><b>バラシ</b><i>会場×時間</i></button>
     <button data-t="kix" aria-selected="false"><b>関空</b><i>ホテル×時間</i></button>
-    <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
-    <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
   </nav>
+  <!-- ★【イベント】と【お知らせ】は、画面のメニューからは外しました
+         （ご指示・2026/11/13「イベントとお知らせは画面では非表示で、
+           三の方には追加したままで」）。
+       ≡ は この札を見て行き先の一覧を作るので、目に見えない形で残します。
+       まだ読んでいないものがあるときは、≡ に赤い丸が付きます。 -->
+  <button data-t="ev" aria-selected="false" hidden><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
+  <button data-t="news" aria-selected="false" hidden><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
   <!-- ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13） -->
   <div id="panesTop"></div>
   <section class="card blk" id="ktop">
@@ -119,9 +124,9 @@
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく</rt></ruby>完了</button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261113-2ef3d93c"></script>
-<script src="news.js?v=20261113-2ef3d93c"></script>
-<script src="shared.js?v=20261113-2ef3d93c"></script>
-<script src="app.js?v=20261113-2ef3d93c"></script>
+<script src="config.js?v=20261113-39fc1a4e"></script>
+<script src="news.js?v=20261113-39fc1a4e"></script>
+<script src="shared.js?v=20261113-39fc1a4e"></script>
+<script src="app.js?v=20261113-39fc1a4e"></script>
 </body>
 </html>

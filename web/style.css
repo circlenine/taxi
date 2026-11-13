@@ -151,6 +151,22 @@ button{font-family:inherit}
 /* ≡ の一覧の中の【仕掛けを起こす】 */
 .fsrow.wake{text-decoration:none;border-top:1px solid var(--line);margin-top:4px;padding-top:9px}
 .fsrow.wake b{color:var(--andon)}
+
+/* ★見出しだけで、折りたたむ・広げる（ご指示・2026/11/13）。
+     見出しの右の ▼ が、向きで教えます。 */
+.card > h2, #ktop > h2{display:flex;align-items:center;gap:8px}
+.fmark{font-style:normal;font-size:11px;opacity:.7;margin-left:auto;
+  transition:transform .18s ease;color:#FFFFFF}
+.card.fold > h2 .fmark, #ktop.fold > h2 .fmark{transform:rotate(-90deg)}
+.card.fold > *:not(h2), #ktop.fold > *:not(h2){display:none}
+.card.fold, #ktop.fold{padding-bottom:12px}
+/* ★≡ に付く赤い丸（まだ読んでいないものがあるとき・ご指示・2026/11/13） */
+.fab.menu{position:relative}
+.fab.menu.dotted:after{content:"";position:absolute;top:6px;right:6px;
+  width:9px;height:9px;border-radius:50%;background:var(--andon);
+  box-shadow:0 0 0 2px var(--ink)}
+/* ★バラシ・関空で、まだ数が少ないところ */
+.wfew{font-style:normal;margin-left:8px;font-size:11px;color:#FFFFFF;opacity:.75}
 /* ★タブは10個。4つずつ3段（最後の段は2つ）で出ます。
      5列にすると、細い機種で字が潰れるので4列のままにします。 */
 /* ★金額には、必ず「平均」と添えます（ご指示・2026/11/13

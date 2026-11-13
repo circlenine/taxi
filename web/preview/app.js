@@ -709,15 +709,17 @@ function render(){
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
        ほかの乗務員の方には、要らない画面です。 */
-  const PANES = { in: () => paneInRecent() + (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
+  const PANES = { in: () => (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
     tl:paneTl, sc:paneSc, ratio:paneRatio, bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
      仕掛けが止まっていそうなときは、その上に 赤い帯を出します。 */
+  /* ★並びは 直近の記録 → 新規の記録 → 過去の記録（ご指示・2026/11/13） */
   const pt = $('#panesTop');
-  if (pt) pt.innerHTML = gasWakeBar() + ((tab === 'in') ? paneInNew() : '');
+  if (pt) pt.innerHTML = gasWakeBar() +
+    ((tab === 'in') ? (paneInRecent() + paneInNew()) : '');
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
   if (sb) sb.textContent = subLine();
@@ -726,6 +728,7 @@ function render(){
        「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
      見たのに点が残ると、いつまでも新しいものがあるように見えます。 */
   if (tab === 'ev') { const d2 = $('#evDot'); if (d2) d2.hidden = true; }
+  menuDot();
   wire();
 }
 const msgHTML = id => `<span class="msg ${msgBad?'bad':''}" id="${id}">${esc(msg)}</span>`;
@@ -3004,11 +3007,17 @@ function whenBar(o, hrs){
  */
 function whenPane(cat, title, label, lead){
   const R = visible().filter(function (r){ return recCat(r) === cat; });
+  /* ★ここだけは「3件そろってから」の決まりを外します
+       （ご指示・2026/11/13「バラシタブ、関空タブにおいては
+         3件ルールは除いてください（圧倒的に情報が少ないので）」）。
+     ★そのかわり、出す数字は「件数」です。割合は出しません。
+       件数は、たまたまでも たしかにあった事実なので、嘘になりません。
+     ★1件・2件のところには「まだ○件」と、はっきり添えます。 */
   const head = '<div class="card"><h2>' + esc(title) + '</h2>' +
     '<p class="note">' + lead +
     '<b>記録がたまるほど、当たるようになります。</b>' +
     'いまは ' + R.length + '件 から出しています。' +
-    HOT_MIN_N + '件に届かない' + label + 'は、時間帯を出しません。</p>' +
+    '1件からでも出します（数が少ないところには「まだ○件」と書きます）。</p>' +
     filterChips(true) + '</div>';
   if (!R.length) return head + emptyCard('該当データがありません');
 
@@ -3018,8 +3027,9 @@ function whenPane(cat, title, label, lead){
   if (hs.length) for (let h = Math.min.apply(null, hs); h <= Math.max.apply(null, hs); h++) hrs.push(h);
 
   const rows = whenAgg(R);
-  const fat  = rows.filter(function (o){ return o.nd >= HOT_MIN_N; });
-  const thin = rows.filter(function (o){ return o.nd <  HOT_MIN_N; });
+  /* 時刻の分かっている記録が1件でもあれば、出します */
+  const fat  = rows.filter(function (o){ return o.nd >= 1; });
+  const thin = rows.filter(function (o){ return o.nd <  1; });
 
   let body = '';
   fat.forEach(function (o){
@@ -3029,13 +3039,14 @@ function whenPane(cat, title, label, lead){
     body += '<div class="wrow">' +
       '<div class="wh"><b>' + esc(o.p) + '</b>' +
       '<a class="mini" href="' + mapUrl(o.p) + '" target="_blank" rel="noopener">📍 地図</a></div>' +
-      '<div class="wtop">呼ばれやすい時間　<b>' + esc(top) + '</b></div>' +
+      '<div class="wtop">呼ばれやすい時間　<b>' + esc(top) + '</b>' +
+      (o.nd < HOT_MIN_N ? '<i class="wfew">まだ ' + o.nd + '件</i>' : '') + '</div>' +
       whenBar(o, hrs) +
       '<div class="wmeta">' + o.n + '件' +
       (o.nf ? '／1本の平均 ' + yen(o.avg) : '') +
       (o.wait ? '／平均 待ち ' + Math.round(o.wait) + '分' : '') + '</div></div>';
   });
-  if (!body) body = '<div class="empty">まだ ' + HOT_MIN_N + '件そろった' + label + 'がありません</div>';
+  if (!body) body = '<div class="empty">時刻の入った記録が、まだありません</div>';
 
   let out = head + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
     '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +
@@ -3059,10 +3070,9 @@ function whenPane(cat, title, label, lead){
     const o = { hm: hm };
     const best = hrs.slice().sort(function (a, b){ return (hm[b] || 0) - (hm[a] || 0) || a - b; })[0];
     out += '<div class="card"><h2>' + esc(title) + 'ぜんたいの 時間帯</h2>' +
-      ((hm[best] || 0) >= HOT_MIN_N
-        ? '<p class="note">いまのところ、一番多いのは <b>' + (best % 24) + '時台</b>（' +
-          hm[best] + '件）です。</p>'
-        : '<p class="note">まだ どの時間も ' + HOT_MIN_N + '件に届きません。</p>') +
+      '<p class="note">いまのところ、一番多いのは <b>' + (best % 24) + '時台</b>（' +
+        hm[best] + '件）です。' +
+        ((hm[best] || 0) < HOT_MIN_N ? 'まだ数が少ないので、目安です。' : '') + '</p>' +
       whenBar(o, hrs) +
       '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
       (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div></div>';
@@ -3203,6 +3213,7 @@ function fabWire(){
   hsubWire();
   placeChipsFit();
   tocBuild();
+  foldWire();
 }
 
 /* ------------------------------------------------------------
@@ -3228,6 +3239,51 @@ function placeChipsFit(){
     if (tops.indexOf(t) === -1) tops.push(t);
     if (tops.length > 2) b.hidden = true;
   });
+}
+
+/* ------------------------------------------------------------
+ *  見出しだけで、折りたたむ・広げる（ご指示・2026/11/13）
+ *    「各見出し(全ページ含む)は 右に▼みたいなの作って
+ *      見出しのみに折りたたみや、展開できる形にしてください」
+ *
+ *  ★見出しを押すと、その区切りの中身だけが閉じます。
+ *    もう一度 押すと開きます。▼が向きで教えます。
+ *  ★どの区切りを閉じたかは覚えておき、画面を作り直しても そのままです。
+ *    （タグを押すたびに ぜんぶ開き直すと、使いものになりません）
+ * ---------------------------------------------------------- */
+const FOLD_KEY = 'tn_folds';
+let foldSet = (function (){
+  try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '[]') || []; }
+  catch (e) { return []; }
+})();
+function foldSave(){
+  try { localStorage.setItem(FOLD_KEY, JSON.stringify(foldSet.slice(0, 80))); } catch (e) {}
+}
+/** 見出しの字から、覚えておくための名前を作ります */
+function foldKey(h){ return String(h.textContent || '').replace(/[▼▲\s]/g, '').slice(0, 24); }
+
+function foldWire(){
+  document.querySelectorAll('#panesTop .card > h2, #ktop > h2, #panes .card > h2')
+    .forEach(function (h){
+      const card = h.parentElement;
+      if (!card) return;
+      const k = foldKey(h);
+      if (!h.querySelector('.fmark')) {
+        const i = document.createElement('i');
+        i.className = 'fmark'; i.textContent = '▼';
+        h.appendChild(i);
+      }
+      card.classList.toggle('fold', foldSet.indexOf(k) !== -1);
+      h.style.cursor = 'pointer';
+      h.onclick = function () {
+        const on = !card.classList.contains('fold');
+        card.classList.toggle('fold', on);
+        const i2 = foldSet.indexOf(k);
+        if (on && i2 === -1) foldSet.push(k);
+        if (!on && i2 !== -1) foldSet.splice(i2, 1);
+        foldSave();
+      };
+    });
 }
 
 /* ------------------------------------------------------------
@@ -3939,6 +3995,27 @@ function newsSeen(){
   try { localStorage.setItem(NEWS_KEY, newsLatest()); } catch (e) {}
   const d = document.getElementById('newsDot');
   if (d) d.hidden = true;
+  menuDot();
+}
+
+/**
+ * ≡ に赤い丸を付ける／消す。
+ *
+ * ★まーく様のご指示（2026/11/13）
+ *   「イベントとお知らせは画面では非表示で、三の方には追加したままで。
+ *     未読の場合は 三に赤丸を付けて、開いたのが確認できたら、赤丸は消してください」
+ *
+ * ★【イベント】と【お知らせ】を、画面のメニューから外したので、
+ *   そこに付いていた赤い点が見えなくなりました。
+ *   代わりに ≡ そのものに付けます。どちらかが未読なら、赤い丸が出ます。
+ */
+function menuDot(){
+  const m = document.getElementById('fabMenu');
+  if (!m) return;
+  const ev = document.getElementById('evDot');
+  const nw = document.getElementById('newsDot');
+  const on = (ev && !ev.hidden) || (nw && !nw.hidden);
+  m.classList.toggle('dotted', !!on);
 }
 
 /** 題のとなりの版の番号と、タブの赤い点をととのえる */
@@ -3948,6 +4025,7 @@ function newsBoot(){
     if (v && typeof APP_VERSION !== 'undefined') v.textContent = APP_VERSION;
     const d = document.getElementById('newsDot');
     if (d) d.hidden = !newsUnread();
+    menuDot();
   } catch (e) {}
 }
 
@@ -4300,6 +4378,7 @@ function evBoot(){
     const n = (d && d.list) ? d.list.length : 0;
     const dot = document.getElementById('evDot');
     if (dot) dot.hidden = !n;
+    menuDot();
     if (!n || evHiddenToday()) return;
     evPopup(d);
   } catch (e) {}
