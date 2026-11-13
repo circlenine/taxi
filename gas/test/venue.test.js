@@ -4118,6 +4118,14 @@ console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る')
   const box2 = { vnSrcUrl_: function (s3) { return s3.url; } };
   vm.createContext(box2);
   vm.runInContext(src2.slice(i0, j0 + 1), box2);
+  /* ★時刻の関所（vnHourOf_ / vnHasTime_）も、本物をそのまま入れます。
+       作った形が「ほんとうに通る形か」まで確かめるためです。 */
+  ['vnHourOf_', 'vnHasTime_'].forEach(function (fn) {
+    const a1 = src2.indexOf('function ' + fn);
+    let d1 = 0, j1 = a1;
+    while (true) { const c = src2[j1]; if (c === '{') d1++; else if (c === '}') { d1--; if (!d1) break; } j1++; }
+    vm.runInContext(src2.slice(a1, j1 + 1), box2);
+  });
   const page =
     '<li class="event-detail place-arena"><ul><li class="event-date">' +
     '<span class="date-num">14</span><span class="date-weekly">（土）</span></li>' +
@@ -4133,7 +4141,24 @@ console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る')
   eq(got.events.length, 1, '★★★その日のぶんを1件 取れる');
   eq(got.events[0] ? got.events[0].title : '', 'U-KNOW',
      '★★★催しの名前（アーティスト名）が入る');
-  eq(got.events[0] ? got.events[0].start : 0, 17 * 60, '★★★開演の時刻も入る');
+  /*
+   * ★ここが、2026/11/13 のしくじりです。申し訳ありませんでした。
+   *   はじめ「17時＝1020分」という数で持たせ、テストもその数で
+   *   確かめていました。ですが、時刻を見る関所（vnHourOf_）は
+   *   「17:00」という字しか読めません。
+   *   そのため大阪城ホールの催しが、1件も出ませんでした。
+   *   テストが、作ったとおりを確かめていただけで、
+   *   「ほかの所がちゃんと読めるか」を確かめていませんでした。
+   */
+  eq(got.events[0] ? got.events[0].start : 0, '17:00',
+     '★★★開演の時刻は「17:00」の形で入る');
+  /* ★作った形が、ほんとうに通る形かどうかまで確かめます */
+  const hv = vm.runInContext('vnHourOf_(' +
+    JSON.stringify(got.events[0] ? got.events[0].start : '') + ')', box2);
+  eq(hv, 17, '★★★その形で、時刻の関所がちゃんと読める');
+  const pass = vm.runInContext('vnHasTime_(' +
+    JSON.stringify(got.events[0] || {}) + ')', box2);
+  eq(pass, true, '★★★「時刻なし」として落とされない');
   const none = vm.runInContext(
     'vnJohall_({name:"大阪城ホール",kind:"event",url:"x"}, new Date(2026,10,15), ' +
     JSON.stringify(page) + ')', box2);

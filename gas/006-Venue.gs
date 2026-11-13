@@ -2,7 +2,12 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V115ver  （2026/11/13）  ★★★
+ *  ★★★  V116ver  （2026/11/14）  ★★★
+ *
+ *  [V116ver]
+ *   ・🎤 大阪城ホールの開演時刻を「17:00」の形に直した
+ *     ★数（1020）で持たせていたため、時刻を見る関所が
+ *       「時刻なし」と判断し、催しが1件も出ていませんでした。
  *
  *  [V115ver]
  *   ・🔧 初日・中日の公演日を、バラシとして出すのをやめた（ご指摘・2026/11/13）
@@ -1819,7 +1824,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V115ver";
+const VN_VERSION = "V116ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -8322,18 +8327,25 @@ function vnJohall_(src, day, html) {
     const title = tm ? strip(tm[1]) : "";
     if (!title) continue;
     /* 開演の時刻（無ければ開場） */
-    let st = null;
+    /*
+     * ★時刻は「18:30」の形の字で持ちます（2026/11/13 に直しました）。
+     *   はじめ「18時30分＝1110分」のように数で持たせていたため、
+     *   時刻を見る関所（vnHourOf_）が「時刻なし」と判断し、
+     *   大阪城ホールの催しが1件も出ませんでした。
+     *   ほかの会場と、同じ形にそろえます。
+     */
+    let st = "";
     const hit = b.match(/開演[\s\S]{0,120}?class="d-txt"[^>]*>\s*(\d{1,2}):(\d{2})/);
     const hit2 = b.match(/開場[\s\S]{0,120}?class="d-txt"[^>]*>\s*(\d{1,2}):(\d{2})/);
     const h = hit || hit2;
-    if (h) st = Number(h[1]) * 60 + Number(h[2]);
+    if (h) st = ("0" + h[1]).slice(-2) + ":" + h[2];
     const gm = b.match(/class="event-genre[^"]*"[^>]*>([\s\S]*?)<\/li>/);
     out.events.push({
       venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
       title: title, artist: title, runText: "",
       fee: 0, feeFree: false, genre: gm ? strip(gm[1]) : "",
       start: st, startKind: (hit ? "開演" : (hit2 ? "開場" : "")),
-      end: null, endGuess: false, endSure: false, people: 0,
+      end: "", endGuess: false, endSure: false, people: 0,
       url: vnSrcUrl_(src, day), raw: strip(b).slice(0, 400)
     });
   }
