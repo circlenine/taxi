@@ -147,7 +147,10 @@ console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
        ただし「交互に出す」ので、両方とも空でないこと・
        数がそろっていることだけは、必ず確かめます。 */
     t(o.sb >= 5 && o.sg >= 5, '★★★ひとことが、どちらも5つ以上ある', [o.sb, o.sg]);
-    t(o.sb === o.sg, '★★★ぼやきとほめの数が、そろっている', [o.sb, o.sg]);
+    /* ★数はそろえません（まーく様のお言葉のほうを大事にします）。
+         片方が極端に少ないと、すぐ同じものが戻るので、そこだけ見ます。 */
+    t(o.sb <= o.sg * 2 && o.sg <= o.sb * 2,
+      '★★★ぼやきとほめ、どちらかに かたよりすぎていない', [o.sb, o.sg]);
     t(o.be === 10 && o.bm === 10 && o.ge === 10 && o.gm === 10,
       '　 どれも 目10 × 口10 で数えている', [o.be, o.bm, o.ge, o.gm]);
     t(o.kasanari === 0, '★★★しかめ顔と笑い顔に、同じ部品を混ぜていない', o.kasanari);
@@ -460,7 +463,8 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
       })();`, box);
     const S = box.S;
     t(S.good >= 5, '★★★ほめのひとことがある', S.good);
-    t(S.bad === S.good, '★★★ぼやきとほめの数が、そろっている', [S.bad, S.good]);
+    t(S.bad <= S.good * 2 && S.good <= S.bad * 2,
+      '★★★ぼやきとほめ、どちらかに かたよりすぎていない', [S.bad, S.good]);
     t(S.alt === true, '★★★かならず「ぼやき→ありがとう」の交互になる');
     t(S.first === 'B', '　 はじめは ぼやきから', S.first);
     t(S.dup === 0, '　 同じ文が、両方に入っていない', S.dup);
@@ -468,7 +472,9 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
      * ★ふきだしの高さを題にそろえたので、中身は1行です（2026/11/11）。
      *   長いひとことは、1行に入りません。12字までにそろえてあります。
      */
-    t(S.maxlen <= 12, '★★★ひとことは12字まで（1行に収めるため）', S.maxlen);
+    /* ★14字まで（2026/11/14・320pxの画面で実際に測って決めた数）。
+         15字にすると、細い機種でおしりが切れます。 */
+    t(S.maxlen <= 14, '★★★ひとことは14字まで（細い画面で切れない最大）', S.maxlen);
     t(S.sameLen === 0, '　 同じ文が、同じ側にも入っていない', S.sameLen);
     t(S.kindsB >= S.bad && S.kindsG >= S.good,
       '　 どちらも、ちゃんと散らばる', [S.kindsB, S.kindsG]);
@@ -1934,6 +1940,40 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
   t(/ふきだしを押すと、ここへ来られます。/.test(app), '　 画面にも、そう書いてある');
   t(/db\.from\('says'\)[\s\S]{0,80}\.insert\(/.test(app), '★★★足したものを、台帳に入れる');
   t(/db\.from\('says'\)[\s\S]{0,80}\.delete\(\)/.test(app), '　 消すこともできる');
+  /* 「既にある吹き出し内容の修正もできるようにしてください」 */
+  t(/async function sayUpdate\(id, t\)/.test(app)
+    && /db\.from\('says'\)[\s\S]{0,90}\.update\(\{ text: t, good: sayGood \}\)/.test(app),
+    '★★★すでにあるひとことを、直せる');
+  t(/data-sayedit=/.test(app) && />直す</.test(app), '　 行ごとに【直す】が出る');
+  t(/create policy says_update[\s\S]{0,220}user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(sql)
+    && /grant update \(text, good\) on public\.says to authenticated;/.test(sql),
+    '★★★直せるのも、本人と まーく様だけ（台帳の側でも止める）');
+  /* 「ふきだしがはみ出さない最大サイズまでの文字数指定して」 */
+  t(/const SAY_MAX = 14;/.test(sh),
+    '★★★入る字数は14文字（320pxの画面で、実際に測って決めた数）');
+  /* ★大きさの合わせ直しは、3段がまえ（2026/11/14）。
+       ①いちばん幅を食うものに合わせる ②いま出す字でも確かめる
+       ③それでもはみ出すなら、比で一発で合わせる
+       ＋ ふきだしの幅が決まったときに、もう一度 合わせ直す */
+  t(/function sayShrink\(t, size\)/.test(sh), '★★★はみ出したら、比で一発で合わせる');
+  t(/sayShrink\(t, size\);/.test(sh), '　 いま出す字にも、それを通す');
+  t(/new ResizeObserver\(/.test(sh) && /ro\.observe\(mount\)/.test(sh),
+    '★★★ふきだしの幅が決まったときに、合わせ直す');
+  t(/maxlength="\$\{max\}"/.test(app) && /\[\.\.\.t\]\.length > max/.test(app),
+    '★★★それより長い字は、入れられない');
+  t(/id="sayLeft"/.test(app) && /max - \[\.\.\.sayText\]\.length/.test(app),
+    '　 あと何文字かが、打ちながら分かる');
+  /* はじめから入っている分も、直せるように台帳へ写す */
+  t(/if \(!says\.length && ME\.profile && ME\.profile\.is_admin/.test(app),
+    '★★★はじめの分も、台帳へ写して直せるようにする');
+  t(/_sayB = b\.length \? b : SAY_BAD;/.test(sh),
+    '★★★台帳に入っていれば、そちらだけを出す（二重に出さない）');
+  /* まーく様が足されたひとこと（ご指示・2026/11/14） */
+  ['松田ァー！誰を乗せてるゥー！','新世界(大阪)の神だァ！','ロングゥー？ふざけるなァ！']
+    .forEach(function (x) {
+      t(sh.indexOf("'" + x + "'") !== -1, '　 「' + x + '」が入っている');
+      t([...x].length <= 14, '　 　その字数も14以内', [...x].length);
+    });
   t(/function canDelSay\(x\)/.test(app)
     && /x\.user_id === ME\.id \|\| \(ME\.profile && ME\.profile\.is_admin\)/.test(app),
     '★★★消せるのは、足した本人と まーく様だけ（画面の側）');
@@ -1943,7 +1983,7 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
   t(/alter table public\.says enable row level security/.test(sql), '　 守りが入っている');
   /* 交互に出す決まりは、足しても こわれないこと */
   t(/function sayAddSet\(bad, good\)/.test(sh)
-    && /_sayB = SAY_BAD\.concat\(bad \|\| \[\]\)/.test(sh),
+    && /_sayG = g\.length \? g : SAY_GOOD;/.test(sh),
     '★★★足したぶんも、ぼやき・ほめに分けて持つ');
   t(/const arr = \(_sayTurn\+\+ % 2 === 0\) \? _sayB : _sayG;/.test(sh),
     '★★★足しても、交互に出る');
@@ -1973,7 +2013,7 @@ console.log('■ ふきだしのひとことが、最後まで読める（ご指
   t(/rg\.getBoundingClientRect\(\)\.width > t\.getBoundingClientRect\(\)\.width - 0\.6/
     .test(sh),
     '★★★はみ出しは、小数のまま測る（整数だと 0.6px の切れを見逃す）');
-  t(/while \(over\(\) && size > 7/.test(sh),
+  t(/while \(over\(\) && size > 6/.test(sh),
     '　 入るまで、字を小さくする');
 }
 

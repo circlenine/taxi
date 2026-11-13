@@ -289,7 +289,9 @@ const SAY_BAD = [
   '良い人生でした',
   'ﾌｩｰﾝ、そうだねｪｰ',
   'おぅ、しばくぞぉ？',
-  'ドパらせてくれぇ！'
+  'ドパらせてくれぇ！',
+  '松田ァー！誰を乗せてるゥー！',
+  'ロングゥー？ふざけるなァ！'
 ];
 
 /* 乗せてよかった、と思えるひとこと */
@@ -298,7 +300,8 @@ const SAY_GOOD = [
   'ドリーマーやな！',
   'ええやん！',
   'やるんだなライナー！',
-  'ええとこ行っとるやん！'
+  'ええとこ行っとるやん！',
+  '新世界(大阪)の神だァ！'
 ];
 
 /*
@@ -310,11 +313,25 @@ const SAY_GOOD = [
  *   足したときに1回だけ作り直します。
  */
 let _sayB = SAY_BAD, _sayG = SAY_GOOD;
+/*
+ * ★台帳に入っているものがあれば、そちらだけを出します（2026/11/14）。
+ *   上の SAY_BAD / SAY_GOOD は「台帳が読めないときの控え」です。
+ *   足すだけにすると、台帳にも同じものが入ったときに
+ *   二重に出てしまい、直しても古いほうが残ります。
+ */
 function sayAddSet(bad, good){
-  _sayB = SAY_BAD.concat(bad || []);
-  _sayG = SAY_GOOD.concat(good || []);
+  const b = bad || [], g = good || [];
+  _sayB = b.length ? b : SAY_BAD;
+  _sayG = g.length ? g : SAY_GOOD;
   _sayWidest = '';                  // いちばん幅を食うものを、測り直す
 }
+
+/*
+ * ★ふきだしに入る、いちばん長い字数（2026/11/14・実際に測って決めました）。
+ *   いちばん細い機種（320px）で、全角14文字までは切れません。
+ *   15文字にすると切れます。だから14で止めます。
+ */
+const SAY_MAX = 14;
 
 /* 必ず交互に出します（ぼやき → ありがとう → ぼやき → …） */
 let _sayTurn = 0;
@@ -435,6 +452,23 @@ const SAY_FADE = 450;    // 消えるのにかかる長さ（ミリ秒）
  *  ★画面の向きを変えたときは、測り直します。
  * ---------------------------------------------------------- */
 let _sayWidest = '';
+/*
+ * ★いまの字が、ふきだしから はみ出していたら、入る大きさに直します。
+ *   いる幅（字の幅）と ある幅（ふきだしの幅）の比で決めるので、1回で決まります。
+ */
+function sayShrink(t, size){
+  try {
+    const box = t.getBoundingClientRect().width;
+    if (!(box > 0)) return;
+    const rg = document.createRange();
+    rg.selectNodeContents(t);
+    const need = rg.getBoundingClientRect().width;
+    if (!(need > box - 0.6)) return;             // 入っている
+    const v = Math.max(6, Math.floor((size * (box - 1) / need) * 10) / 10);
+    t.style.fontSize = v + 'px';
+  } catch (e) {}
+}
+
 function sayFit(mount){
   try {
     const bu = mount.querySelector('.bubble');
@@ -469,11 +503,41 @@ function sayFit(mount){
       } catch (e) { return t.scrollWidth > t.clientWidth + 1; }
     };
     let guard = 0;
-    while (over() && size > 7 && guard++ < 40) {
+    while (over() && size > 6 && guard++ < 48) {
       size -= 0.5;
       t.style.fontSize = size + 'px';
     }
+    /*
+     * ★最後に、**いま出す字そのもの**でも、もう一度 確かめます（2026/11/14）。
+     *   「いちばん幅を食うもの」を覚えておく形だけだと、
+     *   覚えたときと今とで条件が変わっていたときに、取りこぼします。
+     *   実際に「松田ァー！誰を乗せてるゥ…」と切れていました。
+     *   覚えたほうは「大きさをそろえる」ため、こちらは「切らない」ためです。
+     */
     t.textContent = keep;
+    guard = 0;
+    while (over() && size > 6 && guard++ < 48) {
+      size -= 0.5;
+      t.style.fontSize = size + 'px';
+    }
+    /*
+     * ★それでも はみ出していたら、計算で一発で合わせます（2026/11/14）。
+     *   少しずつ小さくするやり方は、測るときの作りが整っていないと
+     *   「入っている」と思い込んで、そのまま終わってしまいます。
+     *   実際に「松田ァー！誰を乗せてるゥ…」と切れる回がありました。
+     *   いる幅と ある幅の比で、必要な大きさを直に出します。
+     */
+    sayShrink(t, size);
+    /*
+     * ★画面の組み立てが終わってから、もう一度だけ確かめます。
+     *   作っている途中は、ふきだしの幅がまだ決まっていないことがあり、
+     *   そのときに測ると、広いつもりで大きいままになります。
+     */
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        try { sayShrink(t, parseFloat(t.style.fontSize) || size); } catch (e) {}
+      });
+    }
   } catch (e) {}
 }
 
@@ -514,6 +578,26 @@ function sayRoll() {
     window.addEventListener('resize', function () {
       try { _sayWidest = ''; sayFit(mount); } catch (e) {}
     });
+    /*
+     * ★ふきだしの幅が決まった「そのとき」に、合わせ直します（2026/11/14）。
+     *   画面を組み立てている途中に測ると、まだ幅が決まっておらず、
+     *   「広いから そのままでよい」と思い込んで、大きいまま残ります。
+     *   実際に「松田ァー！誰を乗せてるゥ…」と切れる回がありました。
+     *   幅が変わったことを教えてもらう形にすれば、取りこぼしません。
+     */
+    try {
+      if (typeof ResizeObserver === 'function') {
+        const ro = new ResizeObserver(function () {
+          try {
+            const bu2 = mount.querySelector('.bubble');
+            const t2  = bu2 && bu2.querySelector('.t');
+            if (t2) sayShrink(t2, parseFloat(t2.style.fontSize) ||
+              parseFloat(getComputedStyle(bu2).fontSize) || 12);
+          } catch (e) {}
+        });
+        ro.observe(mount);
+      }
+    } catch (e) {}
   }
 
   const put = function () {

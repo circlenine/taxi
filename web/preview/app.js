@@ -3519,6 +3519,7 @@ function paneKix(){
 let says = [];          /* 台帳から読んだ、足されたひとこと */
 let sayText = '';       /* 入れかけの字（画面を作り直しても消えないように） */
 let sayGood = true;     /* ほめ（true）か、ぼやき（false）か */
+let sayEdit = '';       /* 直している行（空なら、新しく足すところ） */
 
 async function loadSays(){
   try {
@@ -3527,6 +3528,25 @@ async function loadSays(){
     if (error || !data) return;          /* 棚がまだ無くても、黙って元のまま */
     /* 念のため、字の入っていない行は外します（混ざると空のふきだしが出ます） */
     says = data.filter(function (x){ return x && String(x.text || '').trim(); });
+    /*
+     * ★台帳が空のときは、はじめから入っているひとことを写します
+     *   （ご指示・2026/11/14「既にある吹き出し内容の修正もできるように」）。
+     *   写しておくと、はじめの分も あとから直せます。
+     *   写すのは まーく様の画面だけです（何人も同時に写すと、二重に入ります）。
+     */
+    if (!says.length && ME.profile && ME.profile.is_admin
+        && typeof SAY_BAD !== 'undefined') {
+      const seed = SAY_BAD.map(function (t){ return { text: t, good: false, user_id: ME.id }; })
+        .concat(SAY_GOOD.map(function (t){ return { text: t, good: true, user_id: ME.id }; }));
+      try {
+        const r2 = await db.from('says').insert(seed);
+        if (!r2.error) {
+          const again = await db.from('says')
+            .select('id,text,good,user_id').order('created_at', { ascending: false }).limit(300);
+          if (!again.error && again.data) says = again.data;
+        }
+      } catch (e2) {}
+    }
     sayPush();
   } catch (e) {}
 }
@@ -3540,27 +3560,32 @@ function sayPush(){
 }
 
 function paneSays(){
-  const mine = says.filter(x => canDelSay(x)).length;
+  const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
+  const now = [...sayText].length;
   return `<div class="card" id="sayCard"><h2>ふきだしに足す</h2>
     <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。
       ふきだしを押すと、ここへ来られます。</p>
     <div class="ktfind">
-      <input class="ja" id="sayNew" maxlength="24"
+      <input class="ja" id="sayNew" maxlength="${max}"
         placeholder="吹き出しに追加したい一言" value="${esc(sayText)}">
     </div>
     <div class="chips">
       <button class="chip ${sayGood ? 'on' : ''}" data-saykind="1">ほめ</button>
       <button class="chip ${sayGood ? '' : 'on'}" data-saykind="0">ぼやき</button>
-      <button class="btn mini" id="sayAdd">足す</button>
+      <button class="btn mini" id="sayAdd">${sayEdit ? '直す' : '足す'}</button>
+      ${sayEdit ? '<button class="chip rst" id="sayCancel">やめる</button>' : ''}
     </div>
-    <p class="note">※ 全角12文字くらいまでが、きれいに収まります。</p>
+    <p class="note"><b id="sayLeft">${max - now}</b> 文字 入ります（${max}文字まで）。
+      これより長いと、細い画面でおしりが切れます。</p>
     ${says.length ? `<div class="wlist">` + says.map(x =>
-      `<div class="wli"><span class="wd ${x.good ? 'd-sat' : 'd-wd'}">${x.good ? 'ほめ' : 'ぼやき'}</span>` +
+      `<div class="wli${sayEdit === x.id ? ' on' : ''}">` +
+      `<span class="wd ${x.good ? 'd-sat' : 'd-wd'}">${x.good ? 'ほめ' : 'ぼやき'}</span>` +
       `<span class="wp">${esc(x.text)}</span>` +
-      (canDelSay(x) ? `<button class="mini del" data-saydel="${esc(x.id)}">消す</button>` : '') +
+      (canDelSay(x)
+        ? `<button class="mini" data-sayedit="${esc(x.id)}">直す</button>` +
+          `<button class="mini del" data-saydel="${esc(x.id)}">消す</button>` : '') +
       `</div>`).join('') + `</div>`
       : '<div class="empty">まだ足されていません。</div>'}
-    ${mine || says.length ? '' : ''}
     ${msgHTML('msgsay')}
   </div>`;
 }
@@ -3570,10 +3595,16 @@ function canDelSay(x){
 }
 
 async function sayAddNew(){
+  const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
   const t = String($('#sayNew') ? $('#sayNew').value : '').trim();
   if (!t) { bad('ひとことを書いてから押してください'); return; }
-  if (t.length > 24) { bad('長すぎます。24文字までにしてください'); return; }
-  if (says.some(x => x.text === t)) { bad('同じひとことが、もう入っています'); return; }
+  /* ★字数は、実際に測って決めた数です（細い画面で切れない最大）。 */
+  if ([...t].length > max) { bad('長すぎます。' + max + '文字までにしてください'); return; }
+  if (says.some(x => x.text === t && x.id !== sayEdit)) {
+    bad('同じひとことが、もう入っています'); return;
+  }
+  /* 直しているときは、入れ替えます（ご指示・2026/11/14） */
+  if (sayEdit) { await sayUpdate(sayEdit, t); return; }
   try {
     const { error } = await db.from('says').insert({ text: t, good: sayGood, user_id: ME.id });
     if (error) {
@@ -3586,6 +3617,20 @@ async function sayAddNew(){
     sayText = '';
     await loadSays();
     ok('足しました');
+    render();
+  } catch (e) { bad(jaError(e)); }
+}
+
+/* ★すでにあるひとことを、直します（ご指示・2026/11/14
+     「既にある吹き出し内容の修正もできるようにしてください」）。 */
+async function sayUpdate(id, t){
+  try {
+    const { error } = await db.from('says')
+      .update({ text: t, good: sayGood }).eq('id', id);
+    if (error) { bad(jaError(error)); return; }
+    sayEdit = ''; sayText = '';
+    await loadSays();
+    ok('直しました');
     render();
   } catch (e) { bad(jaError(e)); }
 }
@@ -4241,7 +4286,15 @@ function wire(){
   }
   /* ふきだしに足す（ご指示・2026/11/14） */
   const sn = $('#sayNew');
-  if (sn) { sn.oninput = function (){ sayText = sn.value; }; }
+  if (sn) {
+    sn.oninput = function (){
+      sayText = sn.value;
+      /* 残りの字数を、そのたびに出します（押してから怒られないように） */
+      const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
+      const el = $('#sayLeft');
+      if (el) el.textContent = String(max - [...sayText].length);
+    };
+  }
   if ($('#sayAdd')) $('#sayAdd').onclick = sayAddNew;
   document.querySelectorAll('[data-saykind]').forEach(function (b){
     b.onclick = function (){ sayGood = b.dataset.saykind === '1'; render(); };
@@ -4249,6 +4302,19 @@ function wire(){
   document.querySelectorAll('[data-saydel]').forEach(function (b){
     b.onclick = function (){ sayDel(b.dataset.saydel); };
   });
+  /* 直す（ご指示・2026/11/14）。押すと、その字が枠に入ります */
+  document.querySelectorAll('[data-sayedit]').forEach(function (b){
+    b.onclick = function (){
+      const x = says.filter(function (y){ return y.id === b.dataset.sayedit; })[0];
+      if (!x) return;
+      sayEdit = x.id; sayText = x.text; sayGood = !!x.good;
+      render();
+      const i = $('#sayNew'); if (i) { i.focus(); i.select(); }
+    };
+  });
+  if ($('#sayCancel')) $('#sayCancel').onclick = function (){
+    sayEdit = ''; sayText = ''; render();
+  };
   if ($('#add'))    $('#add').onclick = addRec;
   if ($('#cancel')) $('#cancel').onclick = () => { editId = null; form = {}; msg = ''; render(); };
   if ($('#csvout')) $('#csvout').onclick = () => dl(csv());

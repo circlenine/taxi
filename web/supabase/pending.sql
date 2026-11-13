@@ -96,3 +96,19 @@ create policy says_delete on public.says
   using (user_id = auth.uid() or public.is_admin());
 
 grant select, insert, delete on public.says to authenticated;
+
+-- ------------------------------------------------------------
+-- ④ ふきだしのひとことを、あとから直せるようにする
+--      （2026/11/14・まーく様のご指示）
+--      「また、既にある吹き出し内容の修正もできるようにしてください」
+--
+--    ★直せるのは「足した本人」と まーく様だけです。
+--      消すときと同じ守りにします。
+-- ------------------------------------------------------------
+drop policy if exists says_update on public.says;
+create policy says_update on public.says
+  for update to authenticated
+  using      (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
+
+grant update (text, good) on public.says to authenticated;

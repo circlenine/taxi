@@ -1,5 +1,5 @@
 {
-  "id": "2026-11-14-says",
-  "do": ["web-sql", "web-events"],
+  "id": "2026-11-14-sayedit",
+  "do": ["web-sql"],
   "go": true
 }
