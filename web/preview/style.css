@@ -162,11 +162,30 @@ button{font-family:inherit}
 .card.fold, #ktop.fold{padding-bottom:12px}
 /* ★≡ に付く赤い丸（まだ読んでいないものがあるとき・ご指示・2026/11/13） */
 .fab.menu{position:relative}
-.fab.menu.dotted:after{content:"";position:absolute;top:6px;right:6px;
-  width:9px;height:9px;border-radius:50%;background:var(--andon);
-  box-shadow:0 0 0 2px var(--ink)}
+/* ★丸の中の右上に入れます（ご指示・2026/11/13
+     「三の赤丸は〇の中の右上あたりに入れてください。
+       今のままだと、なんの赤丸かわけがわかりません」）。
+     外に浮かせていたので、何の印か分かりませんでした。 */
+.fab.menu.dotted:after{content:"";position:absolute;top:9px;right:11px;
+  width:8px;height:8px;border-radius:50%;background:var(--andon)}
 /* ★バラシ・関空で、まだ数が少ないところ */
 .wfew{font-style:normal;margin-left:8px;font-size:11px;color:#FFFFFF;opacity:.75}
+/* ★バラシ・関空は、日付・曜日・時刻をそのまま並べます（ご指示・2026/11/13）。
+     件数が少ないので、平均より「いつ・何時・いくら」が役に立ちます。 */
+.wlist{display:flex;flex-direction:column}
+.wli{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;
+  border-top:1px solid var(--ink3);padding:7px 0;font-size:12.5px;color:#FFFFFF}
+.wli:first-child{border-top:none}
+.wli b{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.wli .wd{font-size:10.5px;padding:1px 6px;border-radius:9px;white-space:nowrap;
+  background:rgba(255,255,255,.08)}
+.wli .wd.d-sat{background:rgba(111,183,255,.22)}
+.wli .wd.d-sun{background:rgba(255,106,96,.22)}
+.wli .wd.d-fri{background:rgba(242,193,78,.22)}
+.wli .wt{font-family:var(--mono);font-size:13px;color:var(--meter);white-space:nowrap}
+.wli .wp{flex:1 1 auto;min-width:0;font-weight:700}
+.wli .wy{font-family:var(--mono);white-space:nowrap}
+.wli .ww{font-size:11px;opacity:.8;white-space:nowrap}
 /* ★タブは10個。4つずつ3段（最後の段は2つ）で出ます。
      5列にすると、細い機種で字が潰れるので4列のままにします。 */
 /* ★金額には、必ず「平均」と添えます（ご指示・2026/11/13
@@ -204,6 +223,7 @@ body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
 .toch{display:flex;align-items:center;width:100%;background:none;border:0;
   color:#FFFFFF;font-size:11.5px;padding:2px 2px 4px;cursor:pointer;
   letter-spacing:.06em}
+.toch em{font-style:normal;font-size:10.5px;opacity:.7;margin-left:7px}
 .toch .fmark{margin-left:auto}
 .toc.fold .toch .fmark{transform:rotate(-90deg)}
 .tocg{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}
@@ -286,7 +306,11 @@ header{display:block;padding:8px 14px 0;
 .hmain > #fabMenu{flex:none;margin-left:auto}
 body[data-hand="l"] .hmain > #fabMenu{order:-1;margin-left:0;margin-right:auto}
 /* 2段目：版（ロゴのすぐ下・いつも見えます） */
-.hver{margin-top:4px}
+/* ★版のとなりに一文（ご指示・2026/11/13「近日中～は v1.0の横に」）。
+     入りきらないときは、一文のほうが縮みます。 */
+.hver{margin-top:4px;display:flex;align-items:center;gap:8px;min-width:0}
+.hver > .sub{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;flex:1 1 auto}
 /* 3段目：灰色のブロック（まるごと しまえます） */
 .hsub{display:flex;flex-direction:column;gap:7px;padding:9px 0 10px;
   background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:14px;
@@ -1066,6 +1090,16 @@ td.w-mark {background:#26262A}   /* まーく様 … 灰 */
 .f3{color:#6FB7FF}                  /* 5000〜9999 */
 .f4{color:#F2C14E}                  /* 10000〜19999 */
 .f5{color:#FF6A60;font-weight:700}  /* 20000〜 */
+/* ★色の見方（ご指示・2026/11/13）。端的に1行で、表のすぐ下に出します。 */
+.clegend{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;
+  font-size:10.5px;color:#FFFFFF;opacity:.85;line-height:1.6}
+.clegend span{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.clegend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.clegend .lw1{background:#9ECBFF}
+.clegend .lw2{background:#8C97AD}
+.clegend .lf3{background:#6FB7FF}
+.clegend .lf4{background:#F2C14E}
+.clegend .lf5{background:#FF6A60}
 
 /* 一日の流れ。細かすぎて読めないとのご指摘（2026/11/12）。
    横に動かす形のまま、字も大きくします。 */
@@ -1187,7 +1221,8 @@ nav button[aria-selected=true] i{opacity:.95}
 /* どこからでも押せる丸ボタン */
 .fab{position:fixed;z-index:1300;border:none;border-radius:999px;cursor:pointer;
   font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.55)}
-.fab.menu{position:static;width:42px;height:42px;font-size:21px;line-height:1;
+/* ★赤丸を「丸の中の右上」に置くため、ここを基準にします（2026/11/13） */
+.fab.menu{position:relative;width:42px;height:42px;font-size:21px;line-height:1;
   background:var(--ink2);color:#FFFFFF;border:1px solid var(--line);
   margin-left:auto;flex:none;box-shadow:none;align-self:center}
 body[data-hand="l"] .fab.menu{order:-1;margin-left:0;margin-right:auto}
@@ -1213,18 +1248,20 @@ header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;wh
 /* ★ふきだし（イベントの箱）が出ているあいだは、固定ボタンを隠します
      （ご指示・2026/11/12「ポップアップの時は表示しないでください」）。 */
 body.modalon .fab{display:none}
-/* ★「粛清完了」に「きろく」とルビを振ります（ご指示・2026/11/12）。
-   ★「粛清」と「完了」の下の位置を、ぴったりそろえます
-     （ご指示・2026/11/13「粛清完了の漢字同士は、下位置はずらさずに
-       合わせてください」）。
-     ルビを ふつうに置くと、その高さのぶん「粛清」だけが持ち上がります。
-     ルビを「浮かせて」置けば、漢字の並びは1つも動きません。
-   ★「きろく」は、そのすぐ上に ぴったり付けます。 */
-.fab.done ruby{position:relative;display:inline-block;line-height:1;
-  ruby-position:over;ruby-align:center}
-.fab.done rt{position:absolute;left:50%;top:-8px;transform:translateX(-50%);
-  display:block;font-size:9px;font-weight:700;letter-spacing:.06em;opacity:.95;
-  line-height:1;white-space:nowrap;margin:0}
+/* ★「粛清完了」の上に「きろく」（ご指示・2026/11/12）。
+   ★漢字4つの下の位置は、ぴったりそろえます
+     （ご指示・2026/11/13「粛清完了の漢字同士は、下位置はずらさずに」）。
+   ★ruby（ふりがなの仕組み）はやめました。
+     このボタンは横ならび（flex）なので、ruby の中身が
+     ばらばらの部品として並んでしまい、「きろく」が左下へ落ちました
+     （2026/11/13・申し訳ありませんでした）。
+     いまは、ふだんの字の流れの中に置き、「きろく」だけを
+     「粛清」の真上に浮かせています。漢字は1ミリも動きません。 */
+.fab.done .lab{display:inline-block;position:relative;line-height:1;white-space:nowrap}
+.fab.done .k{position:relative;display:inline-block}
+.fab.done .k i{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);
+  font-style:normal;font-size:9px;font-weight:700;letter-spacing:.06em;
+  line-height:1;white-space:nowrap;margin-bottom:1px;opacity:.95}
 body[data-hand="r"] .fab.done{right:16px}
 body[data-hand="l"] .fab.done{left:16px}
 /* ≡ を押したときに出る、行き先の一覧 */
@@ -1322,7 +1359,7 @@ input.need,textarea.need{border-color:var(--kusha)!important;
 /* ★地図の重なり順を、この箱の中だけに閉じこめます（ご指摘・2026/11/13）。
      isolation:isolate を付けると、中の重なり順が外へ出ていきません。
      これが無いと、地図の部品が 上の行の上に出てきます。 */
-.radarmap{height:260px;border-radius:10px;overflow:hidden;border:1px solid var(--line);
+.radarmap{height:240px;border-radius:10px;overflow:hidden;border:1px solid var(--line);
   position:relative;z-index:0;isolation:isolate;
   background:#0C1422;color:#FFFFFF;font-size:12px;display:flex;align-items:center;
   justify-content:center;margin:8px 0}

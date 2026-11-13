@@ -968,16 +968,50 @@ function paneInRecent(){
  *    どちらの数字も当てになりません。
  *    いちど決めた書き方（最初に入れたもの）に、そろえて出します。
  * ---------------------------------------------------------- */
-const PLACE_CATS = [
-  { k:'北7',   t:/新地\s*7|新地７/ },
-  { k:'北4',   t:/新地\s*4|新地４/ },
-  { k:'北他',  t:/新地|梅田|キタ|北新地|茶屋町|中之島|堂島|曽根崎|西天満|天満|扇町/ },
-  /* ★「ミナミ」と書いてあるのに 他エリアに入っていました（ご指摘・2026/11/13）。
-       「ミナミ」そのものと、ミナミの乗り場である「ドン〇〇」を足します。
-       ★ドン〇〇＝ミナミの番号つきの乗り場（ミナミ15番＝ドン15）。
-         もし ミナミでない「ドン」があれば、教えてください。外します。 */
-  { k:'ﾐﾅﾐ',   t:/難波|なんば|ナンバ|道頓堀|心斎橋|宗右衛門|千日前|日本橋|アメ村|島之内|ミナミ|ﾐﾅﾐ|みなみ|ドン|ﾄﾞﾝ/ },
-];
+/* ------------------------------------------------------------
+ *  乗り場を、記録用スプレッドシートのタブと同じに振り分ける
+ *
+ *  ★まーく様のご指摘（2026/11/13）
+ *    「え、他エリア、めちゃくちゃ過ぎますよ。
+ *      北と南とで、まったく振り分けできてません」
+ *    「もっとスプシのタブを参照してください」
+ *
+ *  ★これまでは、こちらで思いついた言葉だけで分けていました。
+ *    スプレッドシート側（001-Code.gs の categoryOf_）が持っている
+ *    本物の表を、そのまま写しました。これで タブと同じ中身になります。
+ *  ★表を直すときは、スプレッドシート側と ここの両方を直します。
+ *    片方だけ直すと、スプシと台帳で 中身が食い違います。
+ * ---------------------------------------------------------- */
+/* 北の乗り場のことば（スプシの NORTH_WORDS と同じ） */
+const NORTH_WORDS = ["堂山","東通り","阪急東","神山町","中崎町","茶屋町","角田町","小松原",
+"大深町","芝田","西天満","老松通り","兎野町","兎我野町","マネプラ","ガチマネプラ","乗場マネプラ",
+"西中","お初","江坂","梅田","大阪駅","東梅田","西梅田","北新地","中津","豊崎","福島","野田",
+"中之島","淀屋橋","肥後橋","渡辺橋","大江橋","南森町","大阪天満宮","天満","扇町","天神橋筋",
+"堂島","曽根崎","太融寺","桜橋","堂島大橋","水晶橋","鉾流橋","堀川","ライオン橋","難波橋",
+"キタ","スエヒロ","アナクラ","ANAクラ","リッツカールトン","コンラッド","ヒルトン","インターコンチネンタル",
+"マルビル","グランヴィア","広芝町","天六","天神橋筋六丁目","中崎","梅田","茶屋町","古川橋","菅原町","樋之口町"];
+/* 南の乗り場のことば（スプシの SOUTH_WORDS と同じ） */
+const SOUTH_WORDS = ["千日前","裏なんば","座裏","アメ村","アメリカ村","心斎橋筋","御堂筋",
+"西心斎橋","東心斎橋","南船場","黒門","千代崎","大正","心斎橋","難波","なんば","道頓堀",
+"日本橋","近鉄日本橋","長堀橋","四ツ橋","大国町","桜川","恵美須町","今宮戎","湊町","芦原橋",
+"宗右衛門","周防","ヨーロッパ","久左衛門","九郎右衛門","八幡筋","三津寺","三ツ寺","戎橋",
+"ひっかけ橋","日本一","相合橋","太左衛門橋","大黒橋","高島屋","マルイ","なんばパークス",
+"スイスホテル","センタラグランド","クロスホテル","鰻谷","清水","三休橋","長堀","汐見橋",
+"ミナミ","ﾐﾅﾐ","みなみ","センタラ","夕陽丘","八幡","新橋","大丸","宗右衛門町","三津寺町","三津寺筋","笠屋町","玉屋町","畳屋町","島之内","東心斎橋","西賑町","元町","難波中","難波千日前","湊町リバープレイス","OCAT","なんばCITY"];
+/** 全角を半角に、全角の空白を 普通の空白に（スプシの toHalf_ と同じ） */
+function toHalfW(s){
+  return String(s == null ? '' : s)
+    .replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, function (c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/　/g, ' ')
+    .trim();
+}
+/** 「〜通」で終わる言い方も、同じ所として見ます（スプシの matchWord_ と同じ） */
+function matchWord(p, list){
+  const t = String(p).replace(/(通|とおり|どおり|とうり|どうり)$/, '');
+  for (let i = 0; i < list.length; i++) if (t.indexOf(list[i]) !== -1) return true;
+  return false;
+}
+
 /* 大きな分け方の並び（記録用スプレッドシートのタブと同じ順） */
 /* 中カテゴリー（これまでの大カテゴリー）。エリアが近い順に並べます */
 const CAT_ORDER = ['北7', '北4', '北他', 'ﾐﾅﾐ', '関空', 'ﾊﾞﾗｼ', 'ほか'];
@@ -1013,14 +1047,19 @@ function recCat(r){
   const no = String((r && r.note) || '');
   if (/関空|関西空港/.test(no)) return '関空';
   if (/バラシ|ﾊﾞﾗｼ|ばらし/.test(no)) return 'ﾊﾞﾗｼ';
-  const v = String((r && r.place) || '');
-  for (let i = 0; i < PLACE_CATS.length; i++) if (PLACE_CATS[i].t.test(v)) return PLACE_CATS[i].k;
-  return 'ほか';
+  return placeCat((r && r.place) || '');
 }
-/* 乗り場の名前だけで決まる分け方（試すとき用） */
+/**
+ * 乗り場の名前だけで決まる分け方。
+ * ★スプレッドシートの categoryOf_ と、1行ずつ同じにしてあります。
+ */
 function placeCat(p){
-  const v = String(p || '');
-  for (let i = 0; i < PLACE_CATS.length; i++) if (PLACE_CATS[i].t.test(v)) return PLACE_CATS[i].k;
+  const v = toHalfW(p);
+  if (/新地\s*7(?!\d)/.test(v) || /北\s*7(?!\d)/.test(v) || /^7$/.test(v)) return '北7';
+  if (/新地\s*4(?!\d)/.test(v) || /北\s*4(?!\d)/.test(v) || /^4$/.test(v)) return '北4';
+  if (v.indexOf('ドン') !== -1 || v.indexOf('ドンキ') !== -1) return 'ﾐﾅﾐ';
+  if (matchWord(v, SOUTH_WORDS)) return 'ﾐﾅﾐ';
+  if (v.indexOf('新地') !== -1 || matchWord(v, NORTH_WORDS)) return '北他';
   return 'ほか';
 }
 /* えらんだものは「分け方＋乗り場」で覚えます */
@@ -1246,7 +1285,17 @@ function tableHTML(rows){
     '<th>名</th><th class="n">付</th><th class="n">待</th>' +
     '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種・他</th>' +
     '<th class="ops">修正<br>削除</th>' +
-    '</tr></thead><tbody>' + body + '</tbody></table></div>';
+    '</tr></thead><tbody>' + body + '</tbody></table></div>' +
+    /* ★色の見方を、端的に1行で（ご指示・2026/11/13
+         「表の色変えの説明も端的に(長文にならないように)載せてください」）。 */
+    '<div class="clegend">' +
+    '<span>名＝人ごとの色</span>' +
+    '<span><i class="lw1"></i>待ち10分以内</span>' +
+    '<span><i class="lw2"></i>30分以内</span>' +
+    '<span><i class="lf3"></i>¥5千〜</span>' +
+    '<span><i class="lf4"></i>¥1万〜</span>' +
+    '<span><i class="lf5"></i>¥2万〜</span>' +
+    '</div>';
 }
 
 /* ★名前は半角カタカナで短く出します（スプレッドシートのタブと同じ形） */
@@ -2039,7 +2088,7 @@ function radarBoot(){
     try {
       if (typeof L === 'undefined') { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; return; }
       box.textContent = '';
-      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 10);
+      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 11);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 15, attribution: '© OpenStreetMap' }).addTo(m);
       m._box = box; radarMap = m;
@@ -2350,11 +2399,8 @@ async function loadWx(){
  * ============================================================= */
 
 /* ---- 一夜の流れ ---- */
-function paneTl(){
-  /* 時刻が不明なものは、夜の流れのどこにも置けないので外します */
-  const R = visible().filter(hasDep);
-  if (!R.length) return `<div class="card"><h2>横棒グラフ</h2>${filterChips(true)}
-    <div class="empty">該当データがありません</div></div>`;
+/** 1枚ぶんの横棒グラフを作ります（えらんだ記録だけで描きます） */
+function tlChart(R){
   const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,7);
   /* ★19時より前の記録が、左端に積み上がって見えていました（2026/11/12）。
        最も早い記録に合わせて、横じくの始まりを決めます。 */
@@ -2419,11 +2465,58 @@ function paneTl(){
     });
   });
   s += '</svg>';
-  return `<div class="card"><h2>横棒グラフ</h2>
+  return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
+    <div class="scroll fb">${s}</div>
+    <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るいほど高い）</span><span>横軸は時。25＝翌1時</span></div>`;
+}
+
+/* ------------------------------------------------------------
+ *  横棒グラフ（夜の流れ）
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「横棒グラフも、スプシに合わせて 北7、北4…と
+ *      スプシに作られてるタブ通りのカテゴリーごとで作ってください。
+ *      自分ですきにカスタムできるようにする機能も残してください」
+ * ---------------------------------------------------------- */
+function paneTl(){
+  const R = visible().filter(hasDep);
+  const head = `<div class="card"><h2>横棒グラフ</h2>
     <p class="note">細い線＝つけ待ちで潰れた時間、太い帯＝お客さまを乗せていた時間です。
-      帯が明るいほど、1本の金額が大きくなっています。</p>
-    ${filterChips(true)}<div class="snote">← 横にスクロールできます（横画面推奨）</div><div class="scroll fb">${s}</div>
-    <div class="legend"><span><i style="background:#3A4B6D"></i>待ち</span><span><i style="background:rgba(240,163,59,.9)"></i>実車（明るい＝高単価）</span><span>横軸は時。25＝翌1時</span></div></div>`;
+      帯が明るいほど、1本の金額が大きくなっています。
+      記録用スプレッドシートと同じ分け方で、1枚ずつ分けています。</p>
+    ${filterChips(true)}</div>`;
+  if (!R.length) return head + emptyCard('該当データがありません');
+
+  /* ★中分類ごとに1枚ずつ（スプシのタブと同じ並び） */
+  let body = '';
+  CAT_ORDER.forEach(function (k){
+    const rows = R.filter(r => recCat(r) === k);
+    if (!rows.length) return;
+    body += `<div class="card"><h2>${esc(k)}</h2>
+      <p class="note">${rows.length}件・乗り場 ${new Set(rows.map(r => r.place).filter(Boolean)).size}か所。</p>
+      ${tlChart(rows)}</div>`;
+  });
+
+  /* ★好きな乗り場をえらんで、1枚にする（折線グラフと同じ えらび方を使います） */
+  const pls = sortPlaces([...new Set(R.map(r => r.place).filter(Boolean))]
+    .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
+  const picked = R.filter(r => scPicks.indexOf(r.place) !== -1);
+  const custom = `<div class="card"><h2>乗り場をえらぶ</h2>
+    <p class="note">見たい乗り場を押してください。えらんだぶんだけで、1枚にまとめます。
+      （折線グラフと同じえらび方です）</p>
+    <div class="ktfind"><input class="ja" data-filt-chip="scpBox2"
+      placeholder="乗り場をさがす（例：梅田）"></div>
+    <div class="chips" id="scpBox2">
+      ${pls.map(o => `<button class="chip ${scPicks.indexOf(o.p)!==-1?'on':''}" data-scp="${esc(o.p)}">${esc(o.p)}<span class="cnt">${o.n}</span></button>`).join('')}
+      ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
+    </div>
+    ${scPicks.length
+      ? (picked.length
+          ? `<p class="note">${esc(scPicks.join('／'))}　${picked.length}件。</p>` + tlChart(picked)
+          : '<div class="empty">該当データがありません</div>')
+      : ''}</div>`;
+
+  return head + body + custom;
 }
 
 /* ---- 時間×金額 ---- */
@@ -2515,7 +2608,9 @@ function paneSc(){
   const picked = R.filter(r => scPicks.indexOf(r.place) !== -1);
   const custom = `<div class="card"><h2>乗り場をえらぶ</h2>
     <p class="note">見たい乗り場を押してください。えらんだぶんだけで、1枚にまとめます。</p>
-    <div class="chips">
+    <div class="ktfind"><input class="ja" data-filt-chip="scpBox"
+      placeholder="乗り場をさがす（例：梅田）"></div>
+    <div class="chips" id="scpBox">
       ${pls.map(o => `<button class="chip ${scPicks.indexOf(o.p)!==-1?'on':''}" data-scp="${esc(o.p)}">${esc(o.p)}<span class="cnt">${o.n}</span></button>`).join('')}
       ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
     </div>
@@ -2799,9 +2894,14 @@ function bestTimeCard(D){
     return { h: h, o: o, L: bandPct(o, 'L'), avg: bandAvg(t), n: t.length };
   }).filter(x => x.o.n >= HOT_MIN_N);
 
+  /* ★プルダウンのほかに、字でも探せるようにします（ご指示・2026/11/13
+       「この乗り場は何時が良いか、も検索候補機能を追加してください」）。 */
   const sel = '<select class="fsel" id="bestPlaceSel">' +
     list.map(p => '<option value="' + esc(p) + '"' + (p === pick ? ' selected' : '') + '>' +
-      esc(p) + '（' + cnt[p] + '件）</option>').join('') + '</select>';
+      esc(p) + '（' + cnt[p] + '件）</option>').join('') + '</select>' +
+    '<div class="ktfind"><input class="ja" id="bestFind" data-pick="bestSug"' +
+    ' placeholder="乗り場をさがす（例：梅田）">' +
+    '<div class="fsug" id="bestSug"></div></div>';
 
   if (!rows.length) {
     return '<div class="card"><h2>この乗り場は、何時がよいか</h2>' +
@@ -3208,7 +3308,29 @@ function whenPane(cat, title, label, lead){
   });
   if (!body) body = '<div class="empty">時刻の入った記録が、まだありません</div>';
 
-  let out = head + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
+  /* ★日付・曜日・時刻を、そのまま並べます（ご指示・2026/11/13
+       「関空やバラシ情報は 具体的な日付土曜日と時間帯がマストなので
+         これは分かりやすく表示してください」）。
+     ★件数が少ないので、平均や割合より「いつ・何時・いくら」が役に立ちます。
+       新しい順に、そのまま出します。 */
+  let plain = '<div class="card"><h2>' + esc(title) + 'の記録（新しい順）</h2>' +
+    '<p class="note">日付・曜日・時刻・' + esc(label) + '・金額を、そのまま並べています。</p>' +
+    '<div class="wlist">' +
+    R.slice().sort(function (a2, b2){
+      if (a2.date !== b2.date) return (a2.date < b2.date ? 1 : -1);
+      return (+b2.dep || 0) - (+a2.dep || 0);
+    }).map(function (r){
+      return '<div class="wli">' +
+        '<b>' + esc(fmtD(r.date)) + '</b>' +
+        '<span class="wd ' + dayCls(r.date) + '">' + esc(dayName(r.date)) + '</span>' +
+        '<span class="wt">' + showT(r.dep) + '</span>' +
+        '<span class="wp">' + esc(r.place || '（無記入）') + '</span>' +
+        '<span class="wy">' + showYen(r.fare) + '</span>' +
+        (isUnk(r.wait) ? '' : '<span class="ww">待ち' + r.wait + '分</span>') +
+        '</div>';
+    }).join('') + '</div></div>';
+
+  let out = head + plain + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
     '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +
     body +
     (hrs.length ? '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
@@ -3470,7 +3592,8 @@ function tocBuild(){
   nav.className = 'toc' + (tocFolded() ? ' fold' : '');
   nav.id = 'toc';
   nav.innerHTML =
-    '<button class="toch" id="tocH">目次<i class="fmark">▼</i></button>' +
+    '<button class="toch" id="tocH">目次<em>タップで移動します</em>' +
+      '<i class="fmark">▼</i></button>' +
     '<div class="tocg">' + hs.map(function (h, i) {
       return '<button class="tocit" data-toc="' + h.id + '">' +
         '<em>' + (i + 1) + '</em>' +
@@ -3731,6 +3854,41 @@ function wire(){
       });
     };
     inp.addEventListener('input', show);
+  });
+  /* ★「この乗り場は、何時がよいか」の字で探す欄（ご指示・2026/11/13） */
+  document.querySelectorAll('[data-pick]').forEach(function (inp) {
+    const box = document.getElementById(inp.dataset.pick);
+    if (!box) return;
+    inp.addEventListener('input', function () {
+      const q = pkey(inp.value);
+      if (!q) { box.innerHTML = ''; return; }
+      const names = [...new Set(records.map(r => r.place).filter(Boolean))];
+      const hit = names.filter(n => pkey(n).indexOf(q) !== -1)
+        .map(n => ({ n: n, c: records.filter(r => r.place === n).length }))
+        .sort((a, b) => b.c - a.c).slice(0, 10);
+      box.innerHTML = hit.length
+        ? hit.map(o => '<button class="chip" data-bp="' + esc(o.n) + '">' +
+            esc(o.n) + '<span class="cnt">' + o.c + '</span></button>').join('')
+        : '<span class="note">見つかりません</span>';
+      box.querySelectorAll('[data-bp]').forEach(function (b) {
+        b.onclick = function () { bestPlace = b.dataset.bp; render(); };
+      });
+    });
+  });
+  /* ★「乗り場をえらぶ」のタグを、字でしぼります（ご指示・2026/11/13）。
+       画面を作り直すと打っている途中で指が離れるので、
+       タグを隠したり出したりするだけにします。 */
+  document.querySelectorAll('[data-filt-chip]').forEach(function (inp) {
+    const box = document.getElementById(inp.dataset.filtChip);
+    if (!box) return;
+    inp.addEventListener('input', function () {
+      const q = pkey(inp.value);
+      box.querySelectorAll('.chip').forEach(function (b) {
+        if (b.classList.contains('rst')) return;
+        const nm = String(b.textContent || '').replace(/\d+$/, '');
+        b.hidden = !!q && pkey(nm).indexOf(q) === -1;
+      });
+    });
   });
   const kcl = document.getElementById('ktClear');
   if (kcl) kcl.onclick = function () { grab(); onlyPlace = ''; filtSave(); render(); };

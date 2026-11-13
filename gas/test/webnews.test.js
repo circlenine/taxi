@@ -1210,7 +1210,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
        ≡ を題の行の中に入れ、その行ごと上に貼り付けます。
        これなら、ふきだしとも下の中身とも、重なりようがありません。 */
     t(/header\{[^}]*position:sticky/.test(cs), '★★★題の行は、上に貼り付ける');
-    t(/\.fab\.menu\{position:static/.test(cs), '★★★≡ は、題の行の中に置く（浮かせない）');
+    /* ★2026/11/13：赤丸を「丸の中の右上」に置くため relative にしました。
+         貼り付く行の中にあるので、浮いてはいません。 */
+    t(/\.fab\.menu\{position:relative/.test(cs), '★★★≡ は、題の行の中に置く（浮かせない）');
     t(/\.fabsheet\{position:absolute/.test(cs), '　 行き先の一覧も、その行にぶら下げる');
     t(!/\.saymount\{padding-right/.test(cs), '★★★ふきだしを よける余白は、もう要らない');
     /* ★高さが変わると、その境目でスクロールがガタつきます
@@ -1355,12 +1357,16 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
 
   /* ★ルビが乗るのは「粛清」だけです（ご指示・2026/11/12
        「粛清の上に、きろくと入れてください」）。 */
-  t(/<button class="fab done" id="fabAdd" hidden><ruby>粛清<rt>きろく<\/rt><\/ruby>完了<\/button>/
+  /* ★ruby（ふりがなの仕組み）はやめました（2026/11/13）。
+       ボタンが横ならびなので、中身がばらばらに並んで
+       「きろく」が左下へ落ちました。いまは字の流れの中に置き、
+       「きろく」だけを「粛清」の真上に浮かせています。 */
+  t(/<span class="k">粛清<i>きろく<\/i><\/span>完了/
     .test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
-    '★★★「粛清」の上に「きろく」のルビがある');
+    '★★★「粛清」の上に「きろく」がある');
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-    t(/\.fab\.done rt\{/.test(cs), '　 ルビの見た目も入っている');
+    t(/\.fab\.done \.k i\{/.test(cs), '　 その見た目も入っている');
     /* ★離れているとルビに見えません（ご指示・2026/11/13）。
        ★形も、角丸の長方形ではなく ほんとうの楕円にします。 */
     /* ★2026/11/13 のご指示で、前の形（角の丸い横長）に戻しました
@@ -1368,10 +1374,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          「きろく」と「粛清」の高さのすき間だけを、さらに詰めます。 */
     /* ★「粛清」と「完了」の下の位置を、ぴったりそろえます（ご指示・2026/11/13）。
        ルビを「浮かせて」置くので、漢字の並びは1つも動きません。 */
-    t(/\.fab\.done rt\{position:absolute/.test(cs),
-      '★★★ルビを浮かせて、漢字の下の位置をそろえている');
-    t(/\.fab\.done ruby\{position:relative;display:inline-block/.test(cs),
-      '　 ルビの置き場も、そのために決めてある');
+    t(/\.fab\.done \.k i\{position:absolute/.test(cs),
+      '★★★「きろく」だけを浮かせて、漢字の下の位置をそろえている');
+    t(/\.fab\.done \.k\{position:relative;display:inline-block\}/.test(cs),
+      '　 その置き場も、そのために決めてある');
+    t(/bottom:100%/.test(cs), '　 「粛清」の真上に付ける');
+    t(!/\.fab\.done rt\{/.test(cs), '　 前のルビの決まりは、残っていない');
     t(!/\.fab\.done\{[^}]*border-radius:50%/.test(cs), '★★★丸にはしない（前の形に戻した）');
     t(/\.fab\.done\{[^}]*height:56px/.test(cs), '　 高さも前の形');
   }
@@ -2347,8 +2355,28 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
             「ミナミって書いてるのに、他エリアにあるのおかしくないですか？
               どうして気づかないのでしょうか。
               また、ミナミ15は、ドン15と同じ扱いですので、ドン15に統一してください」 */
-  t(/ミナミ\|ﾐﾅﾐ\|みなみ/.test(app), '★★★「ミナミ」は、南エリアに入れる');
-  t(/ドン\|ﾄﾞﾝ/.test(app), '★★★ミナミの乗り場「ドン〇〇」も、南エリア');
+  /* ★2026/11/13：振り分けを、記録用スプレッドシートの表（categoryOf_）
+       そのままに写しました（ご指摘「もっとスプシのタブを参照してください」）。 */
+  t(/"ミナミ","ﾐﾅﾐ","みなみ"/.test(app), '★★★「ミナミ」は、南エリアに入れる');
+  t(/v\.indexOf\('ドン'\) !== -1/.test(app), '★★★ミナミの乗り場「ドン〇〇」も、南エリア');
+  t(/const NORTH_WORDS = \[/.test(app) && /const SOUTH_WORDS = \[/.test(app),
+    '★★★北と南のことばの表が、そのまま入っている');
+  t(/function toHalfW\(/.test(app) && /function matchWord\(/.test(app),
+    '　 全角半角・「〜通」のそろえ方も、スプシと同じ');
+  {
+    /* ★スプシ側（001-Code.gs）と、1語でもずれていないかを見ます。
+         ずれると、スプシのタブと台帳の中身が食い違います。 */
+    const gas = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+    const pick = function (src, name) {
+      const i = src.indexOf('const ' + name + ' = [');
+      const j = src.indexOf('];', i);
+      return src.slice(i, j).replace(/\s/g, '');
+    };
+    ['NORTH_WORDS', 'SOUTH_WORDS'].forEach(function (nm) {
+      t(pick(app, nm) === pick(gas, nm),
+        '★★★' + nm + ' が、スプシ側とぴったり同じ');
+    });
+  }
   t(/const PLACE_ALIAS = \[/.test(app), '★★★同じ所を、1つの名前にそろえる表がある');
   t(/function aliasPlace\(/.test(app), '　 そろえる係もある');
   t(/list\.forEach\(function \(r\)\{ if \(r\.place\) r\.place = aliasPlace\(r\.place\); \}\)/.test(app),
@@ -2371,17 +2399,33 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     t(vm.runInContext('aliasPlace("ミナミ")', box3) === 'ミナミ', '　 番号の無い「ミナミ」は、変えない');
   }
   {
-    const m0 = app.indexOf('const PLACE_CATS'), m1 = app.indexOf('/* 大きな分け方の並び');
+    /* 中身を、そのまま動かして確かめます（スプシの振り分けと同じか） */
+    const m0 = app.indexOf('const NORTH_WORDS'), m1 = app.indexOf('/* 大きな分け方の並び');
+    const k0 = app.indexOf('function placeCat(p){');
+    let d2 = 0, k1 = k0;
+    while (true) { const c = app[k1]; if (c === '{') d2++; else if (c === '}') { d2--; if (!d2) break; } k1++; }
     const box4 = {}; vm.createContext(box4);
-    vm.runInContext(app.slice(m0, m1) +
-      ';function placeCat(p){const v=String(p||"");' +
-      'for(let i=0;i<PLACE_CATS.length;i++)if(PLACE_CATS[i].t.test(v))return PLACE_CATS[i].k;return "ほか";}', box4);
-    [['ミナミ15番', 'ﾐﾅﾐ'], ['ドン15', 'ﾐﾅﾐ'], ['ドン2', 'ﾐﾅﾐ'], ['難波', 'ﾐﾅﾐ'],
-     ['新地7', '北7'], ['新地4', '北4'], ['大丸', 'ほか']].forEach(function (x) {
+    vm.runInContext(app.slice(m0, m1) + '\n' + app.slice(k0, k1 + 1), box4);
+    [['ミナミ15番', 'ﾐﾅﾐ'], ['ドン15', 'ﾐﾅﾐ'], ['ドン２', 'ﾐﾅﾐ'], ['難波', 'ﾐﾅﾐ'],
+     ['大丸', 'ﾐﾅﾐ'], ['センタラ', 'ﾐﾅﾐ'], ['八幡出口', 'ﾐﾅﾐ'], ['夕陽丘', 'ﾐﾅﾐ'],
+     ['新地7', '北7'], ['新地4', '北4'], ['新地17', '北他'],
+     ['お初', '北他'], ['ガチマネプラ', '北他'], ['キタ', '北他'], ['西梅田', '北他'],
+     ['コナン像前', 'ほか'], ['京橋', 'ほか']].forEach(function (x) {
       const got = vm.runInContext('placeCat(' + JSON.stringify(x[0]) + ')', box4);
       t(got === x[1], '★★★' + x[0] + ' は ' + x[1], got);
     });
   }
+
+  /* ⑥-23 横棒グラフも、スプシのタブごとに（ご指示・2026/11/13）
+          「横棒グラフも、スプシに合わせて 北7、北4…と
+            スプシに作られてるタブ通りのカテゴリーごとで作ってください。
+            自分ですきにカスタムできるようにする機能も残してください」 */
+  t(/function tlChart\(R\)\{/.test(app), '★★★1枚ぶんの横棒グラフを、別々に作れる');
+  t(/CAT_ORDER\.forEach\(function \(k\)\{[\s\S]{0,300}tlChart\(rows\)/.test(app),
+    '★★★スプシのタブと同じ分け方・同じ並びで、1枚ずつ出す');
+  t((app.match(/<h2>乗り場をえらぶ<\/h2>/g) || []).length === 2,
+    '★★★横棒グラフにも「乗り場をえらぶ」がある（折線グラフと合わせて2つ）');
+  t(/tlChart\(picked\)/.test(app), '　 えらんだ乗り場だけで、1枚にまとめる');
 
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
@@ -2555,12 +2599,14 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
-  t(/const PLACE_CATS = \[/.test(app), '★★★大きな分け方がある');
+  /* ★2026/11/13：振り分けは、記録用スプレッドシートの表をそのまま写しました
+       （PLACE_CATS という思いつきの表は、やめました）。 */
+  t(/function placeCat\(p\)\{/.test(app), '★★★大きな分け方がある');
   /* ★中カテゴリーの並び（ご指示・2026/11/12で、北・南・他の下に入りました） */
   t(/const CAT_ORDER = \['北7', '北4', '北他', 'ﾐﾅﾐ', '関空', 'ﾊﾞﾗｼ', 'ほか'\]/.test(app),
     '★★★中分類の並びは 北7／北4／北他／ﾐﾅﾐ／関空／ﾊﾞﾗｼ／ほか');
   ['北7','北4','北他','ﾐﾅﾐ'].forEach(function (k) {
-    t(app.indexOf("k:'" + k + "'") !== -1, '　 ' + k + ' がある');
+    t(app.indexOf("'" + k + "'") !== -1, '　 ' + k + ' がある');
   });
   t(/return 'ほか';/.test(app), '　 どれにも当たらないものは「ほか」');
   /* ★関空とバラシは、乗り場の名前ではなく「他」の欄で決めます
@@ -2588,8 +2634,8 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   vm.runInContext(
     'let records = [];' +
     app.slice(app.indexOf('function pkey('), app.indexOf('/** 1字違いまでの近さ')) +
-    app.slice(app.indexOf('const PLACE_CATS = ['), app.indexOf('function placeOptions()'))
-       .replace(/\/\* ---[\s\S]*?--- \*\//, ''), box);
+    app.slice(app.indexOf('const NORTH_WORDS'), app.indexOf('function placeOptions()'))
+       .replace(/\/\* ---[\s\S]*?--- \*\//g, ''), box);
   const C = v => vm.runInContext('placeCat(' + JSON.stringify(v) + ')', box);
   const R2 = (place, note) => vm.runInContext(
     'recCat(' + JSON.stringify({ place: place, note: note }) + ')', box);
