@@ -327,6 +327,48 @@ function placeSuggest(name){
   }
   return bd <= 1 ? best : '';
 }
+/* ------------------------------------------------------------
+ *  乗り場の名前を、きれいに並べる
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「こういう、新地〇〇なら、ちゃんと順番通りに並べて欲しいです。
+ *      ドン〇〇など、各番号があるものは同様で、
+ *      しっかり綺麗に整列を徹底してください」
+ *
+ *  ★番号の付いた名前（新地4・新地17…）は、番号の小さい順に。
+ *  ★同じ呼び名のまとまり（新地／ドン…）ごとに、ひとかたまりにします。
+ *  ★まとまりの順は、記録の多い順。よく行く所が、上に来ます。
+ *    （1〜2件しか無い所が、名前の順で上に来ると使えません）
+ * ---------------------------------------------------------- */
+/** 名前を「呼び名」と「番号」に分けます（新地17 → 新地 / 17） */
+function placeSplit(p){
+  const t = String(p == null ? '' : p).trim();
+  const m = t.match(/^(.*?)[ 　]*(\d+)[ 　]*([^\d]*)$/);
+  if (!m || !m[1]) return { base: t, num: -1, tail: '' };
+  return { base: m[1].trim(), num: +m[2], tail: (m[3] || '').trim() };
+}
+/** [{p, n}] を、まとまりごと・番号の小さい順に並べます */
+function sortPlaces(rows){
+  const g = {}, order = [];
+  rows.forEach(function (o){
+    const sp = placeSplit(o.p);
+    const k = sp.base || String(o.p);
+    if (!g[k]) { g[k] = { k: k, n: 0, items: [] }; order.push(k); }
+    g[k].n += (+o.n || 0);
+    g[k].items.push({ o: o, s: sp });
+  });
+  return order.map(function (k){ return g[k]; })
+    .sort(function (a, b){ return b.n - a.n || (a.k < b.k ? -1 : 1); })
+    .reduce(function (acc, grp){
+      grp.items.sort(function (x, y){
+        if (x.s.num !== y.s.num) return x.s.num - y.s.num;
+        return (String(x.o.p) < String(y.o.p)) ? -1 : 1;
+      });
+      grp.items.forEach(function (it){ acc.push(it.o); });
+      return acc;
+    }, []);
+}
+
 /** 「このままでよい」と言われた名前は、二度と聞きません */
 const placeAskOk = {};
 
@@ -1387,10 +1429,9 @@ function paneHeat(noChips){
     /* 中カテゴリーの順 → その中は件数の多い順 */
     const pls = [];
     bg.subs.forEach(function (sub){
-      [...new Set(rows.filter(r => recCat(r) === sub).map(r => r.place).filter(Boolean))]
-        .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }))
-        .sort((x,y) => y.n - x.n || (x.p < y.p ? -1 : 1))
-        .forEach(o => pls.push(o.p));
+      const sub2 = [...new Set(rows.filter(r => recCat(r) === sub).map(r => r.place).filter(Boolean))]
+        .map(p => ({ p: p, n: rows.filter(r => r.place === p).length }));
+      sortPlaces(sub2).forEach(o => pls.push(o.p));
     });
     if (!pls.length) return;
     body += `<div class="card"><h2>${esc(bg.k)}エリア</h2>
@@ -2426,9 +2467,8 @@ function paneSc(){
   });
 
   /* ★好きな乗り場をえらんで、1枚にする（ご指示・2026/11/13） */
-  const pls = [...new Set(R.map(r => r.place).filter(Boolean))]
-    .map(p => ({ p: p, n: R.filter(r => r.place === p).length }))
-    .sort((a,b) => b.n - a.n || (a.p < b.p ? -1 : 1));
+  const pls = sortPlaces([...new Set(R.map(r => r.place).filter(Boolean))]
+    .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
   const picked = R.filter(r => scPicks.indexOf(r.place) !== -1);
   const custom = `<div class="card"><h2>乗り場をえらぶ</h2>
     <p class="note">見たい乗り場を押してください。えらんだぶんだけで、1枚にまとめます。</p>
@@ -2952,9 +2992,8 @@ function paneRatio(){
     bg.subs.forEach(function (sub){
       const sr = rows.filter(r => recCat(r) === sub);
       if (!sr.length) return;
-      const pls = [...new Set(sr.map(r => r.place).filter(Boolean))]
-        .map(p => ({ p: p, n: sr.filter(r => r.place === p).length }))
-        .sort((x, y) => y.n - x.n || (x.p < y.p ? -1 : 1));
+      const pls = sortPlaces([...new Set(sr.map(r => r.place).filter(Boolean))]
+        .map(p => ({ p: p, n: sr.filter(r => r.place === p).length })));
       /* ★3件に届かない乗り場は、割合を出しません（ご指示・2026/11/13 の考え方）。
            1件を「ロング100%」と書くと、それを見て走った人の売上が変わります。
            名前と件数だけを、下に1行で出します。 */
@@ -3051,7 +3090,7 @@ function whenAgg(rows){
     const p = r.place || '（無記入）';
     (m[p] = m[p] || []).push(r);
   });
-  return Object.keys(m).map(function (p){
+  const out0 = Object.keys(m).map(function (p){
     const rs = m[p].filter(hasDep);
     const hm = {};
     rs.forEach(function (r){ const h = Math.floor(r.dep); hm[h] = (hm[h] || 0) + 1; });
@@ -3062,7 +3101,8 @@ function whenAgg(rows){
              nf: f.length,
              wait: (function (){ const w = m[p].filter(function (r){ return !isUnk(r.wait); });
                return w.length ? w.reduce(function (a, r){ return a + (+r.wait || 0); }, 0) / w.length : 0; })() };
-  }).sort(function (a, b){ return b.n - a.n || (a.p < b.p ? -1 : 1); });
+  });
+  return sortPlaces(out0);
 }
 
 /** 時間帯の帯（どの時間に多いかを、横に並べます） */

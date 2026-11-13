@@ -2317,6 +2317,31 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/localStorage\.setItem\(FOLD_KEY/.test(app),
     '★★★どこを閉じたかを覚える（画面を作り直しても、開き直さない）');
 
+  /* ⑥-21 乗り場の名前を、きれいに並べる（ご指示・2026/11/13）
+          「こういう、新地〇〇なら、ちゃんと順番通りに並べて欲しいです。
+            ドン〇〇など、各番号があるものは同様で、
+            しっかり綺麗に整列を徹底してください」 */
+  t(/function placeSplit\(/.test(app), '★★★名前を「呼び名」と「番号」に分ける');
+  t(/function sortPlaces\(/.test(app), '★★★まとまりごと・番号順に並べる係がある');
+  t(/x\.s\.num - y\.s\.num/.test(app), '★★★同じ呼び名の中は、番号の小さい順');
+  t((app.match(/sortPlaces\(/g) || []).length >= 5,
+    '★★★表グラフ・エリアごと・バラシ関空・乗り場えらびで、ぜんぶ同じ並べ方',
+    (app.match(/sortPlaces\(/g) || []).length + 'か所');
+  t(!/\.sort\(\(x,y\) => y\.n - x\.n \|\| \(x\.p < y\.p \? -1 : 1\)\)/.test(app),
+    '　 前の「件数だけで並べる」書き方は、残っていない');
+  {
+    /* 中身を、そのまま動かして確かめます */
+    const i0 = app.indexOf('function placeSplit'), i1 = app.indexOf("/** 「このままでよい」");
+    const box2 = {}; vm.createContext(box2);
+    vm.runInContext(app.slice(i0, i1), box2);
+    const got = vm.runInContext(
+      'sortPlaces([{p:"新地7",n:50},{p:"新地4",n:35},{p:"新地17",n:3},{p:"新地5",n:2},' +
+      '{p:"新地12",n:1},{p:"ドン10",n:6},{p:"ドン2",n:4},{p:"ドン1",n:2},{p:"天満",n:9}])' +
+      '.map(function(o){return o.p;}).join(",")', box2);
+    t(got === '新地4,新地5,新地7,新地12,新地17,ドン1,ドン2,ドン10,天満',
+      '★★★新地は 4→5→7→12→17、ドンは 1→2→10 の順になる', got);
+  }
+
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');
   t(/scroll-snap-type:x/.test(css), '★★★区切りの良い位置で止まる');
