@@ -676,9 +676,11 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
   /* ★題の行は、1行だけの横ならびにしました（ご指摘・2026/11/12
        「スクロールがバグってます」）。高さを変えないためです。
        版・一文・称号は、その下（.hsub）に出しています。 */
-  t(/header\{[^}]*display:flex/.test(css),
+  /* ★2026/11/13 から、題の行（.hmain）は 貼り付く行の中の1段目です。
+       その下に 版・灰色のブロック・▼ が続きます。 */
+  t(/\.hmain\{display:flex/.test(css),
     '★★★題の行は、横ならび（回り込ませない）');
-  t(/header\{[^}]*flex-wrap:nowrap/.test(css),
+  t(/\.hmain\{[^}]*flex-wrap:nowrap/.test(css),
     '★★★ふきだしと ≡ は、題と同じ行（1行で固定）');
   /*
    * ★まーく様のご指摘（2026/11/11）
@@ -689,7 +691,7 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
    *   ★広さが決まるのは「題の幅」だけ。中の字では変わらないので、
    *     ひとことが入れ替わっても、ふきだしは動きません。
    */
-  t(/header > \.saymount\{[^}]*flex:1 1 auto/.test(css),
+  t(/\.hmain > \.saymount\{[^}]*flex:1 1 auto/.test(css),
     '★★★ふきだしは、余っている幅いっぱいまで広がる');
   t(/\.saymount \.bubble\{[^}]*flex:1 1 auto/.test(css),
     '★★★中のふきだしも、伸びる形になっている');
@@ -1218,19 +1220,24 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(!/body\.scrolled/.test(cs), '★★★下に進んでも、高さは変えない');
     t(!/classList\.toggle\('scrolled'/.test(app), '　 そのための仕掛けも、残っていない');
     t(/\.hsub\{/.test(cs), '★★★版・一文・称号は、貼り付けない所に置く');
-    t(/header\{[^}]*flex-wrap:nowrap/.test(cs), '★★★貼り付ける行は、折り返さない（1行で固定）');
+    t(/\.hmain\{[^}]*flex-wrap:nowrap/.test(cs), '★★★題の行は、折り返さない（1行で固定）');
     t(/body\{padding-bottom:\d+px\}/.test(cs), '★★★下の固定ボタンに、中身が隠れない');
     const h2 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
     t(h2.indexOf('<header>') < h2.indexOf('id="fabMenu"') &&
       h2.indexOf('id="fabMenu"') < h2.indexOf('</header>'),
       '★★★≡ は、題の行の中にある');
-    t(/header > #fabMenu\{flex:none;margin-left:auto\}/.test(cs),
+    t(/\.hmain > #fabMenu\{flex:none;margin-left:auto\}/.test(cs),
       '★★★題の行の、いちばん右に入れる');
-    t(/body\[data-hand="l"\] header > #fabMenu\{order:-1/.test(cs),
+    t(/body\[data-hand="l"\] \.hmain > #fabMenu\{order:-1/.test(cs),
       '★★★左利きのときは、いちばん左に入れる');
+    /* ★2026/11/13 のご指示で、灰色のブロックは 貼り付く行の中へ
+         （「固定スクロールとドッキングさせる形
+           （スクロール後も、タップすると、下が開く）」）。 */
     const h5 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-    t(h5.indexOf('</header>') < h5.indexOf('class="hsub"'),
-      '★★★版・一文・称号は、題の行の外にある');
+    t(h5.indexOf('class="hsub"') < h5.indexOf('</header>'),
+      '★★★灰色のブロックは、貼り付く行の中にある');
+    t(h5.indexOf('class="hver"') < h5.indexOf('class="hsub"'),
+      '★★★版は、ロゴのすぐ下（ブロックをしまっても見える）');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
@@ -1320,8 +1327,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/nav button\{[^}]*width:100%/.test(cs), '★★★1つ1つを、同じ幅にする');
     t(/nav button b\{[^}]*white-space:nowrap/.test(cs), '　 名前は折り返さない');
     const h3 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-    const subs = (h3.match(/<i>([^<]*)<\/i>/g) || []).map(x => x.replace(/<\/?i>/g, ''));
-    t(subs.length === 8, '★★★メニューは8つ', subs.length);
+    /* ★タブの中の <i> だけを数えます（▼のつまみは、タブではありません） */
+    const navH = h3.slice(h3.indexOf('<nav id="tabs">'), h3.indexOf('</nav>'));
+    const subs = (navH.match(/<i>([^<]*)<\/i>/g) || []).map(x => x.replace(/<\/?i>/g, ''));
+    /* ★2026/11/13 に「バラシ」「関空」を足して10こ。
+         フィードバックは ≡ の中なので、ここには数えません。 */
+    t(subs.length === 10, '★★★メニューは10こ', subs.length);
     t(subs.every(x => x.length <= 6), '★★★そえる字は6文字まで（ます目からはみ出さない）',
       subs.filter(x => x.length > 6).join('/'));
   }
@@ -1349,8 +1360,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     /* ★2026/11/13 のご指示で、前の形（角の丸い横長）に戻しました
          （「なんで、丸になってるんですか。前の形に戻してください」）。
          「きろく」と「粛清」の高さのすき間だけを、さらに詰めます。 */
-    t(/\.fab\.done rt\{[\s\S]{0,140}line-height:\.9;transform:translateY\(4px\)\}/.test(cs),
-      '★★★ルビと字のすき間を、ぎりぎりまで詰めている');
+    /* ★「粛清」と「完了」の下の位置を、ぴったりそろえます（ご指示・2026/11/13）。
+       ルビを「浮かせて」置くので、漢字の並びは1つも動きません。 */
+    t(/\.fab\.done rt\{position:absolute/.test(cs),
+      '★★★ルビを浮かせて、漢字の下の位置をそろえている');
+    t(/\.fab\.done ruby\{position:relative;display:inline-block/.test(cs),
+      '　 ルビの置き場も、そのために決めてある');
     t(!/\.fab\.done\{[^}]*border-radius:50%/.test(cs), '★★★丸にはしない（前の形に戻した）');
     t(/\.fab\.done\{[^}]*height:56px/.test(cs), '　 高さも前の形');
   }
@@ -2101,11 +2116,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* 一番上を、ひとつのブロックに */
   t(/<div class="hsub" id="hsub">/.test(idx), '★★★上のブロックに、まとめる入れものがある');
   t(/id="hgrab"/.test(idx), '★★★指で開け閉めするつまみがある');
-  t(/\.hsub\.cl > \.hrow\{display:none\}/.test(css), '　 閉じたら、2行目が隠れる');
+  t(/\.hsub\.cl\{[^}]*max-height:0/.test(css), '　 閉じたら、灰色のブロックが まるごと消える');
   t(/function hsubWire\(/.test(app), '★★★開け閉めの動きがある');
   t(/addEventListener\('touchend'/.test(app), '★★★指で上下に払って開け閉めできる');
   t(/Math\.abs\(dy\) < 18/.test(app), '　 少し触れただけでは閉じない');
-  t(/localStorage\.setItem\(HSUB_KEY/.test(app), '　 閉じたままかを覚えている');
+  /* ★2026/11/13 のご指示で「1番初めは、開いたままの状態で」。
+       覚えておく形はやめ、開くたびに 開いた形から始めます。 */
+  t(/h\.classList\.remove\('cl'\);/.test(app), '　 はじめは、いつも開いたまま');
+  t(/window\.scrollY > 60/.test(app), '　 下にスクロールしたら、1回だけ自動で閉じる');
 
   /* 過去の記録は、記録の画面だけ */
   t(/ktop\.hidden = \(tab !== 'in'\)/.test(app),
@@ -2179,6 +2197,46 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* 乗り場の候補タグは2行まで */
   t(/function placeChipsFit\(/.test(app), '★★★候補タグを2行までに絞る係がある');
   t(/if \(tops\.length > 2\) b\.hidden = true/.test(app), '　 3行目に回ったものは出さない');
+
+  /* ⑥-18 2026/11/13（3回目）のご指示 */
+
+  /* 灰色のブロックを、貼り付く行にドッキング */
+  t(idx.indexOf('class="hsub"') < idx.indexOf('</header>'),
+    '★★★灰色のブロックは、貼り付く行の中（下まで進んでも ▼ で開く）');
+  t(/<i>▼<\/i>/.test(idx), '★★★▼ のつまみがある（押すと下に開く）');
+  t(/\.hsub:not\(\.cl\) \+ \.hgrab i\{transform:rotate\(180deg\)\}/.test(css),
+    '　 開いているときは ▲（押すと しまう）');
+  t(/<div class="hver">/.test(idx), '★★★版は、ロゴのすぐ下');
+  t(idx.indexOf('class="hver"') < idx.indexOf('class="hsub"'),
+    '　 ブロックをしまっても、版は見える');
+  t(!/HSUB_KEY/.test(app), '★★★閉じたままは覚えない（はじめは いつも開いたまま）');
+
+  /* イベントは、種類ごとに大きな見出し＋時間の早い順 */
+  t(/const EV_ORDER = \[/.test(app), '★★★イベントを、種類ごとに分ける');
+  t(/'🎤 イベント'[\s\S]{0,200}'🔧 バラシ（搬出）'[\s\S]{0,200}'🚚 搬入（設営）'/.test(app),
+    '★★★イベント → バラシ → ホテル宴会 → 搬入 の順');
+  t(/sort\(\(a, b\) => tmin\(a\) - tmin\(b\)\)/.test(app),
+    '★★★その中は、時間の早い順に並べる');
+  t(/<div class="evgrp"><h3>/.test(app), '★★★大きな見出しを付ける');
+  t(/この日は 設営だけ。夜の人出は ありません。/.test(app),
+    '　 搬入の日は、お客が来ないと必ず書く');
+  t(/\.evgrp > h3\{/.test(css), '　 その見出しの見た目がある');
+
+  /* バラシ・関空の くわしい表 */
+  t(/function whenPane\(/.test(app), '★★★バラシ・関空の表を作る係がある');
+  t(/function paneBara\(/.test(app) && /function paneKix\(/.test(app),
+    '★★★バラシと関空、それぞれの画面がある');
+  t(/data-t="bara"/.test(idx) && /data-t="kix"/.test(idx), '　 タブからも行ける');
+  t(/bara:paneBara, kix:paneKix/.test(app), '　 画面の割りふりにも入っている');
+  t(/whenPane\('ﾊﾞﾗｼ', 'バラシ', '会場'/.test(app), '★★★バラシは、会場ごとに出す');
+  t(/whenPane\('関空', '関空', 'ホテル'/.test(app), '★★★関空は、ホテルごとに出す');
+  t(/function whenAgg\(/.test(app), '　 場所 × 時間帯に数える');
+  t(/o\.nd >= HOT_MIN_N/.test(app),
+    '★★★3件に届かない所は、時間帯を出さない（1件を言い切らない）');
+  t(/記録がたまるほど、当たるようになります。/.test(app),
+    '★★★いま何件から出しているかを、必ず書く');
+  t(/まだ数が足りない/.test(app), '　 足りない所も、件数だけは出す（黙って消さない）');
+  t(/\.wbar\{/.test(css) && /\.wcell\{/.test(css), '　 時間帯の帯の見た目がある');
 
   /* ⑦ 横スクロールの案内と、区切りの良い位置 */
   t(/横にスクロールできます/.test(app), '★★★横に動かせることを、ことばで出す');

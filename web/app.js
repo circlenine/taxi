@@ -709,7 +709,8 @@ function render(){
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
        ほかの乗務員の方には、要らない画面です。 */
   const PANES = { in: () => paneInRecent() + (ME.profile.is_admin ? paneOut() : ''), hot:paneHot, heat:paneHeat,
-    tl:paneTl, sc:paneSc, ratio:paneRatio, news:paneNews, ev:paneEv, fb:paneFb };
+    tl:paneTl, sc:paneSc, ratio:paneRatio, bara:paneBara, kix:paneKix,
+    news:paneNews, ev:paneEv, fb:paneFb };
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13） */
@@ -2889,6 +2890,138 @@ function paneRatio(){
   return out + compareCard();
 }
 
+/* ============================================================
+ *  バラシ・関空の くわしい表（ご指示・2026/11/13）
+ *
+ *  ★まーく様のご指示
+ *    「バラシと、関空についての詳細データページが作られていません。
+ *      バラシは、会場ごとに、何時帯に呼ばれる可能性が高いのか。
+ *      関空は、どのホテルが何時帯に呼ばれる可能性が高いのか。
+ *      スプシ情報と照らし合わせて、
+ *      データが増える事に精度を上げていくシステムにしたいです」
+ *
+ *  ★出すのは、自分たちの記録だけです。買ってきた数字は1つも使いません。
+ *  ★3件に届かない所は、割合を出しません。件数だけを出します。
+ *    1件を「この時間」と言い切ると、それを見て走った方の売上が変わります。
+ *  ★記録がたまるほど、当たるようになります。
+ *    いま何件から出しているかを、必ず画面に書きます。
+ * ========================================================== */
+
+/** その組を「場所 × 時間帯」に数えます */
+function whenAgg(rows){
+  const m = {};
+  rows.forEach(function (r){
+    const p = r.place || '（無記入）';
+    (m[p] = m[p] || []).push(r);
+  });
+  return Object.keys(m).map(function (p){
+    const rs = m[p].filter(hasDep);
+    const hm = {};
+    rs.forEach(function (r){ const h = Math.floor(r.dep); hm[h] = (hm[h] || 0) + 1; });
+    const hrs = Object.keys(hm).map(Number).sort(function (a, b){ return hm[b] - hm[a] || a - b; });
+    const f = m[p].filter(hasFare);
+    return { p: p, n: m[p].length, nd: rs.length, hm: hm, hrs: hrs,
+             avg: f.length ? f.reduce(function (a, r){ return a + (+r.fare || 0); }, 0) / f.length : 0,
+             nf: f.length,
+             wait: (function (){ const w = m[p].filter(function (r){ return !isUnk(r.wait); });
+               return w.length ? w.reduce(function (a, r){ return a + (+r.wait || 0); }, 0) / w.length : 0; })() };
+  }).sort(function (a, b){ return b.n - a.n || (a.p < b.p ? -1 : 1); });
+}
+
+/** 時間帯の帯（どの時間に多いかを、横に並べます） */
+function whenBar(o, hrs){
+  const mx = Math.max.apply(null, hrs.map(function (h){ return o.hm[h] || 0; }).concat([1]));
+  return '<div class="wbar">' + hrs.map(function (h){
+    const n = o.hm[h] || 0;
+    const t = n ? (0.18 + (n / mx) * 0.82) : 0;
+    return '<span class="wcell' + (n ? ' on' : '') + '" title="' + h + '時台 ' + n + '件">' +
+      '<i style="background:rgba(240,163,59,' + t.toFixed(2) + ')"></i>' +
+      '<b>' + (h % 24) + '</b></span>';
+  }).join('') + '</div>';
+}
+
+/**
+ * バラシ・関空の表を1枚作ります。
+ *   cat   … 'ﾊﾞﾗｼ' か '関空'
+ *   label … 画面に出す言い方（会場／ホテル）
+ */
+function whenPane(cat, title, label, lead){
+  const R = visible().filter(function (r){ return recCat(r) === cat; });
+  const head = '<div class="card"><h2>' + esc(title) + '</h2>' +
+    '<p class="note">' + lead +
+    '<b>記録がたまるほど、当たるようになります。</b>' +
+    'いまは ' + R.length + '件 から出しています。' +
+    HOT_MIN_N + '件に届かない' + label + 'は、時間帯を出しません。</p>' +
+    filterChips(true) + '</div>';
+  if (!R.length) return head + emptyCard('該当データがありません');
+
+  const D = R.filter(hasDep);
+  const hs = D.map(function (r){ return Math.floor(r.dep); });
+  const hrs = [];
+  if (hs.length) for (let h = Math.min.apply(null, hs); h <= Math.max.apply(null, hs); h++) hrs.push(h);
+
+  const rows = whenAgg(R);
+  const fat  = rows.filter(function (o){ return o.nd >= HOT_MIN_N; });
+  const thin = rows.filter(function (o){ return o.nd <  HOT_MIN_N; });
+
+  let body = '';
+  fat.forEach(function (o){
+    const top = o.hrs.slice(0, 3).map(function (h){
+      return (h % 24) + '時台 ' + o.hm[h] + '件';
+    }).join('／');
+    body += '<div class="wrow">' +
+      '<div class="wh"><b>' + esc(o.p) + '</b>' +
+      '<a class="mini" href="' + mapUrl(o.p) + '" target="_blank" rel="noopener">📍 地図</a></div>' +
+      '<div class="wtop">呼ばれやすい時間　<b>' + esc(top) + '</b></div>' +
+      whenBar(o, hrs) +
+      '<div class="wmeta">' + o.n + '件' +
+      (o.nf ? '／1本の平均 ' + yen(o.avg) : '') +
+      (o.wait ? '／平均 待ち ' + Math.round(o.wait) + '分' : '') + '</div></div>';
+  });
+  if (!body) body = '<div class="empty">まだ ' + HOT_MIN_N + '件そろった' + label + 'がありません</div>';
+
+  let out = head + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
+    '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +
+    body +
+    (hrs.length ? '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
+      (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div>' : '') +
+    '</div>';
+
+  if (thin.length) {
+    out += '<div class="card"><h2>まだ数が足りない' + esc(label) + '</h2>' +
+      '<p class="note">' + HOT_MIN_N + '件たまったら、上の表に出ます。</p>' +
+      '<div class="wthin">' + thin.map(function (o){
+        return '<span>' + esc(o.p) + ' <i>' + o.n + '件</i></span>';
+      }).join('') + '</div></div>';
+  }
+
+  /* 時間帯ぜんたいの山（どの時間に、この種類が多いか） */
+  if (hrs.length) {
+    const hm = {};
+    D.forEach(function (r){ const h = Math.floor(r.dep); hm[h] = (hm[h] || 0) + 1; });
+    const o = { hm: hm };
+    const best = hrs.slice().sort(function (a, b){ return (hm[b] || 0) - (hm[a] || 0) || a - b; })[0];
+    out += '<div class="card"><h2>' + esc(title) + 'ぜんたいの 時間帯</h2>' +
+      ((hm[best] || 0) >= HOT_MIN_N
+        ? '<p class="note">いまのところ、一番多いのは <b>' + (best % 24) + '時台</b>（' +
+          hm[best] + '件）です。</p>'
+        : '<p class="note">まだ どの時間も ' + HOT_MIN_N + '件に届きません。</p>') +
+      whenBar(o, hrs) +
+      '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
+      (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div></div>';
+  }
+  return out;
+}
+
+function paneBara(){
+  return whenPane('ﾊﾞﾗｼ', 'バラシ', '会場',
+    '公演のあと、お客が出てくる時間です。会場ごとに、何時台に呼ばれているかを並べます。');
+}
+function paneKix(){
+  return whenPane('関空', '関空', 'ホテル',
+    'どのホテルから、何時台に呼ばれているかを並べます。');
+}
+
 /* ---- 書き出し・取り込み（「記録」の下に出します） ---- */
 function paneOut(){
   return `<div class="card"><h2>書き出し</h2>
@@ -3069,31 +3202,36 @@ function tocBuild(){
 }
 
 /* ------------------------------------------------------------
- *  一番上の灰色のブロックを、指で開いたり閉じたりする
+ *  一番上の灰色のブロックを、しまったり 広げたりする
  *
  *  ★まーく様のご指示（2026/11/13）
- *    「灰背景ぶぶんですが、指で上下に動かしたら、
- *      開いたり閉じたりできる仕様にできませんか？」
+ *    「この灰背景全てをしまったり、広げたりしたい」
+ *    「固定スクロールとドッキングさせる形
+ *      （スクロール後も、タップすると、下が開く）」
+ *    「▼か、なにかわかりませんが 押すと下に開くとわかりやすい作りに」
+ *    「1番初めは、開いたままの状態で」
+ *    「下にスクロールすると自動で閉じる形にしてください」
  *
- *  ★上に払うと閉じ、下に払うと開きます。つまみを押しても同じです。
- *    閉じたかどうかは覚えておき、次に開いたときも同じ形で出します。
+ *  ★貼り付く行の中に入れてあるので、下まで進んでも
+ *    ▼を押せば その場で開きます。
+ *  ★自動で閉じるのは、1回だけ。行ったり来たりすると、画面がガタつくためです。
  * ---------------------------------------------------------- */
-const HSUB_KEY = 'tn_hsub_closed';
+let hsubAuto = false;
 function hsubSet(cl){
   const h = document.getElementById('hsub');
   if (!h) return;
   h.classList.toggle('cl', cl);
-  try { localStorage.setItem(HSUB_KEY, cl ? '1' : '0'); } catch (e) {}
 }
 function hsubWire(){
   const h = document.getElementById('hsub');
   if (!h || h.dataset.wired) return;
   h.dataset.wired = '1';
-  let cl = false;
-  try { cl = localStorage.getItem(HSUB_KEY) === '1'; } catch (e) {}
-  h.classList.toggle('cl', cl);
+  h.classList.remove('cl');                 /* はじめは開いたまま */
   const g = document.getElementById('hgrab');
-  if (g) g.onclick = function (e) { e.preventDefault(); hsubSet(!h.classList.contains('cl')); };
+  if (g) g.onclick = function (e) {
+    e.preventDefault(); hsubAuto = true; hsubSet(!h.classList.contains('cl'));
+  };
+  /* 指で上下に払っても、開いたり閉じたりします */
   let y0 = null;
   h.addEventListener('touchstart', function (e) {
     y0 = (e.touches && e.touches[0]) ? e.touches[0].clientY : null;
@@ -3103,9 +3241,14 @@ function hsubWire(){
     const y1 = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : y0;
     const dy = y1 - y0;
     y0 = null;
-    /* ★押したつもりが閉じてしまわないよう、18px 以上 動いたときだけにします */
-    if (Math.abs(dy) < 18) return;
-    hsubSet(dy < 0);                      /* 上へ払ったら閉じる */
+    if (Math.abs(dy) < 18) return;          /* 押したつもりで閉じない */
+    hsubAuto = true;
+    hsubSet(dy < 0);                        /* 上へ払ったら閉じる */
+  }, { passive: true });
+  /* 下にスクロールしたら、1回だけ 自動で閉じます */
+  window.addEventListener('scroll', function () {
+    if (hsubAuto) return;
+    if (window.scrollY > 60) { hsubAuto = true; hsubSet(true); }
   }, { passive: true });
 }
 
@@ -3914,8 +4057,6 @@ function evRows(day){
   const sp = evSplit(day);
   if (!sp.show.length && !sp.hid.length) return '<div class="empty">該当データがありません</div>';
   if (!sp.show.length) return '<div class="empty">該当データがありません</div>' + evHidNote(sp.hid);
-  const kind = { event:'🎤 イベント', barasi:'🔧 バラシ',
-                 hanyu:'🚚 搬入', hotel:'🍽 ホテル宴会' };
   /*
    * ★一番上に出すのは「開演の時刻」です
    *   （まーく様のご指示・2026/11/12）。
@@ -3928,8 +4069,45 @@ function evRows(day){
    *   ★着ける時刻の目安は、消さずに下に残します。
    *     判断の材料として、あったほうがよいからです。
    */
-  return sp.show.map(x => `<div class="evrow">
-    <div class="evhead">${esc(x.v || '')}<span class="evkind">${esc(kind[x.k] || '')}</span></div>
+  /* ★種類ごとに大きな見出しを付け、その中は時間の早い順に並べます
+       （ご指示・2026/11/13）
+         「搬入なら、搬入と大きく見出しをつけて
+           イベントなら、イベントと大きく見出しをつけて
+           その他(バラシ)も合わせて
+           カテゴリーごとの順番、かつ、時間が早い順に、毎回並び替えて」
+     ★搬入は一番下に置きます。その日は公演が無く、お客は1人も来ないためです
+       （記録用スプレッドシートの決まりと同じ）。 */
+  const EV_ORDER = [
+    { k: 'event',  n: '🎤 イベント' },
+    { k: 'barasi', n: '🔧 バラシ（搬出）' },
+    { k: 'hotel',  n: '🍽 ホテル宴会' },
+    { k: 'hanyu',  n: '🚚 搬入（設営）' }
+  ];
+  const tmin = x => {
+    const t = String(x.s || x.e || '');
+    const m = /^(\d{1,2}):(\d{2})/.exec(t);
+    return m ? (+m[1] * 60 + +m[2]) : 9999;     /* 時刻が無いものは、後ろへ */
+  };
+  let out = '';
+  EV_ORDER.forEach(function (g){
+    const rows = sp.show.filter(x => (x.k || 'event') === g.k)
+      .slice().sort((a, b) => tmin(a) - tmin(b));
+    if (!rows.length) return;
+    out += '<div class="evgrp"><h3>' + esc(g.n) +
+      '<span>' + rows.length + '件</span></h3>' +
+      (g.k === 'hanyu'
+        ? '<p class="note">この日は 設営だけ。夜の人出は ありません。</p>' : '') +
+      evCards(rows) + '</div>';
+  });
+  return out + evHidNote(sp.hid);
+}
+
+/** 1件ずつの札 */
+function evCards(list){
+  return list.map(x => `<div class="evrow">
+    <!-- ★種類は、上の大きな見出しに出しています（ご指示・2026/11/13）。
+           ここでくり返すと、字が増えるだけです。 -->
+    <div class="evhead">${esc(x.v || '')}</div>
     ${evTimeLine(x)}
     <div class="evt">${esc(x.t || '')}</div>
     ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
@@ -3939,7 +4117,7 @@ function evRows(day){
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
       <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
     </div>
-  </div>`).join('') + evHidNote(sp.hid);
+  </div>`).join('');
 }
 
 /** 時刻が分からず、出さなかったもの（名前だけ1行） */
