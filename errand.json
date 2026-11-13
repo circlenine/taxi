@@ -1,6 +1,8 @@
 {
-  "id": "2026-11-12-evlink1",
-  "do": ["event-test", "web-events"],
-  "day": "あす",
-  "note": "①あすの分を、まーく様の個人LINEにだけ送る（テスト）②イベント情報を、リンク付きで台帳へ渡し直す"
+  "id": "2026-11-13-johall",
+  "go": true,
+  "jobs": [
+    { "name": "event-test" },
+    { "name": "web-events" }
+  ]
 }

@@ -2,7 +2,13 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V112ver  （2026/11/13）  ★★★
+ *  ★★★  V113ver  （2026/11/13）  ★★★
+ *
+ *  [V113ver]
+ *   ・🎤 大阪城ホールを、専用の読み方にした（ご指摘・2026/11/13）
+ *     ★催しの名前の代わりに、ページの飾り「EVENT イベント」を
+ *       拾っていました。アーティスト名が1つも出ていませんでした。
+ *     ★いまは U-KNOW・米津玄師 のように、名前と開演の時刻が出ます。
  *
  *  [V112ver]
  *   ・🔑 受け口の住所を、台帳（web/data/gas.json）にも置くようにした
@@ -1802,7 +1808,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V112ver";
+const VN_VERSION = "V113ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -1835,7 +1841,14 @@ const VN_NOT_TITLE = new RegExp(
  * kind … "event"（イベント）/ "barasi"（バラシ）/ "hotel"（ホテル）
  */
 const VN_SOURCES = [
-  { name: "大阪城ホール",         kind: "event",  url: "https://www.osaka-johall.com/event/" },
+  /* ★大阪城ホールは、専用の読み方をします（ご指摘・2026/11/13
+       「イベント情報の大阪城ホールのアーティスト情報、なにも掲載されていません。
+         これ何回言ったらわかるのですか、マストなので必ずこういう情報は載せてください」）。
+       ふだんの読み方では、催しの名前の代わりに
+       ページの飾り（「EVENT イベント」）を拾っていました。
+       このページは中身の形がはっきりしているので、そこから直に取ります。 */
+  { name: "大阪城ホール",         kind: "event",  own: "johall",
+    url: "https://www.osaka-johall.com/event/" },
   { name: "京セラドーム",         kind: "event",  url: "https://www.kyoceradome-osaka.jp/schedule/" },
   { name: "インテックス大阪",     kind: "event",  url: "https://www.intex-osaka.com/jp/event/" },
   /*
@@ -8243,6 +8256,53 @@ function vnScrapeIcs_(src, day) {
   return out;
 }
 
+/**
+ * 大阪城ホールの、専用の読み方。
+ *
+ * ★ページの中は、こういう形でならんでいます。
+ *     <li class="event-detail …">
+ *       <li class="event-date"><span class="date-num">14</span>（土）</li>
+ *       <dt class="event-ttl"><a …>U-KNOW</a></dt>
+ *       <span class="d-ttl">開場</span><span class="d-txt">16:00</span>
+ *       <span class="d-ttl">開演</span><span class="d-txt">17:00</span>
+ *   だから、ここから 日・催しの名前・開演の時刻を 直に取ります。
+ * ★取れなかったときは、1件も返しません（まちがった名前を流さないため）。
+ */
+function vnJohall_(src, day, html) {
+  const out = { events: [], note: "", size: String(html || "").length, code: 200 };
+  const d = day.getDate();
+  const blocks = String(html).split(/<li class="event-detail/);
+  const strip = function (t) {
+    return String(t || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&")
+      .replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  };
+  for (let i = 1; i < blocks.length; i++) {
+    const b = blocks[i];
+    const dm = b.match(/class="date-num"[^>]*>\s*(\d{1,2})/);
+    if (!dm || Number(dm[1]) !== d) continue;
+    const tm = b.match(/class="event-ttl"[^>]*>([\s\S]*?)<\/dt>/);
+    const title = tm ? strip(tm[1]) : "";
+    if (!title) continue;
+    /* 開演の時刻（無ければ開場） */
+    let st = null;
+    const hit = b.match(/開演[\s\S]{0,120}?class="d-txt"[^>]*>\s*(\d{1,2}):(\d{2})/);
+    const hit2 = b.match(/開場[\s\S]{0,120}?class="d-txt"[^>]*>\s*(\d{1,2}):(\d{2})/);
+    const h = hit || hit2;
+    if (h) st = Number(h[1]) * 60 + Number(h[2]);
+    const gm = b.match(/class="event-genre[^"]*"[^>]*>([\s\S]*?)<\/li>/);
+    out.events.push({
+      venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
+      title: title, artist: title, runText: "",
+      fee: 0, feeFree: false, genre: gm ? strip(gm[1]) : "",
+      start: st, startKind: (hit ? "開演" : (hit2 ? "開場" : "")),
+      end: null, endGuess: false, endSure: false, people: 0,
+      url: vnSrcUrl_(src, day), raw: strip(b).slice(0, 400)
+    });
+  }
+  if (!out.events.length) out.note = "この日は、ページに催しが出ていません";
+  return out;
+}
+
 function vnScrapeOne_(src, day, htmlIn) {
   // ★公開カレンダーから読む会場（ワントゥワンなど）は、こちらで読みます
   if (src && src.ics && src.ics.length) {
@@ -8293,6 +8353,18 @@ function vnScrapeOne_(src, day, htmlIn) {
   if (src.page && String(html).indexOf(src.page) === -1) {
     out.note = "❌ ちがうページが返ってきました（「" + src.page + "」が見あたりません）";
     return out;
+  }
+
+  /* ★専用の読み方がある会場は、こちらで読みます（大阪城ホールなど） */
+  if (src.own === "johall") {
+    try {
+      const j = vnJohall_(src, day, html);
+      j.code = out.code; j.size = out.size;
+      return j;
+    } catch (e) {
+      out.note = "❌ 専用の読み取りでつまずきました（" + ((e && e.message) || e) + "）";
+      return out;
+    }
   }
 
   let lines = vnLines_(html);

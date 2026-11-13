@@ -4093,5 +4093,52 @@ console.log('■ イベント情報を台帳へ渡すのは、1日2回まで（2
   ctx.UrlFetchApp = { fetch: realFetch };
 }
 
+/* ============================================================
+ *  大阪城ホールの、専用の読み方（ご指摘・2026/11/13）
+ *    「イベント情報の大阪城ホールのアーティスト情報、
+ *      なにも掲載されていません。これ何回言ったらわかるのですか、
+ *      マストなので必ずこういう情報は載せてください」
+ *
+ *  ★ふだんの読み方では、催しの名前の代わりに
+ *    ページの飾り（「EVENT イベント」）を拾っていました。
+ * ========================================================== */
+console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る');
+{
+  const src2 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  eq(/own: "johall"/.test(src2), true, '★★★大阪城ホールに、専用の読み方が付いている');
+  eq(/function vnJohall_\(/.test(src2), true, '★★★その読み方がある');
+  eq(/src\.own === "johall"/.test(src2), true, '　 読むときに、そちらへ回している');
+  eq(/class="event-ttl"/.test(src2), true, '　 催しの名前の場所を見ている');
+  eq(src2.indexOf('開演') !== -1, true, '　 開演の時刻も取っている');
+
+  /* 中身を、そのまま動かして確かめます */
+  const i0 = src2.indexOf('function vnJohall_');
+  let d0 = 0, j0 = i0;
+  while (true) { const c = src2[j0]; if (c === '{') d0++; else if (c === '}') { d0--; if (!d0) break; } j0++; }
+  const box2 = { vnSrcUrl_: function (s3) { return s3.url; } };
+  vm.createContext(box2);
+  vm.runInContext(src2.slice(i0, j0 + 1), box2);
+  const page =
+    '<li class="event-detail place-arena"><ul><li class="event-date">' +
+    '<span class="date-num">14</span><span class="date-weekly">（土）</span></li>' +
+    '<li class="event-name"><dl class="event-ttl-box">' +
+    '<dt class="event-ttl"><a href="x">U-KNOW</a></dt>' +
+    '<dd class="event-schedule"><ul class="inner-list">' +
+    '<li><span class="d-ttl">開場</span><span class="d-txt">16:00</span></li>' +
+    '<li><span class="d-ttl">開演</span><span class="d-txt">17:00</span></li>' +
+    '</ul></dd></dl></li><li class="event-genre text-c">音楽・芸能</li></ul></li>';
+  const got = vm.runInContext(
+    'vnJohall_({name:"大阪城ホール",kind:"event",url:"x"}, new Date(2026,10,14), ' +
+    JSON.stringify(page) + ')', box2);
+  eq(got.events.length, 1, '★★★その日のぶんを1件 取れる');
+  eq(got.events[0] ? got.events[0].title : '', 'U-KNOW',
+     '★★★催しの名前（アーティスト名）が入る');
+  eq(got.events[0] ? got.events[0].start : 0, 17 * 60, '★★★開演の時刻も入る');
+  const none = vm.runInContext(
+    'vnJohall_({name:"大阪城ホール",kind:"event",url:"x"}, new Date(2026,10,15), ' +
+    JSON.stringify(page) + ')', box2);
+  eq(none.events.length, 0, '　 ちがう日のぶんは、取らない');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
