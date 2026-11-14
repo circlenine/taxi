@@ -1,5 +1,5 @@
 {
- "at": "2026-11-14 03:08",
+ "at": "2026-11-14 15:00",
  "days": [
   {
    "d": "2026-11-14",
@@ -129,48 +129,6 @@
        "u": "http://www.theshadowsofficial.com"
       }
      ]
-    },
-    {
-     "v": "グランキューブ大阪",
-     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "BUDDiiS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://buddiis.com/"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/buddiis.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
-      }
-     ]
-    },
-    {
-     "v": "グランキューブ大阪",
-     "t": "SENRA LIVE TOUR 2026 Caleaの公演詳細 | 公演を探す",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://kyodo-osaka.co.jp/search/detail/12842",
-     "al": []
     },
     {
      "v": "新歌舞伎座",
@@ -407,6 +365,18 @@
      "a": "",
      "r": "",
      "u": "https://gorillahall.jp/",
+     "al": []
+    },
+    {
+     "v": "グランキューブ大阪",
+     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
      "al": []
     },
     {
