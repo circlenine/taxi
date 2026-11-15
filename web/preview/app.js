@@ -5320,10 +5320,12 @@ function evArtHTML(x){
   const who = (al[0] && al[0].l === 'name') ? al[0].n : '';
   const links = al.filter(y => y && y.u);
   if (!links.length) return '';
-  return '<div class="evart">' +
-    (who ? '<span class="evwho">🎤 ' + esc(who) + '</span>' : '') +
+  /* ★行を分けず、下の【くわしく見る】【地図】と同じ1行に並べます
+       （ご指摘・2026/11/14「高さの隙間が広すぎる」）。
+       1件につき1行 減るので、1画面に入る件数が増えます。 */
+  return (who ? '<span class="evwho">🎤 ' + esc(who) + '</span>' : '') +
     links.map(y => '<a class="mini" href="' + esc(y.u) + '" target="_blank" rel="noopener">' +
-      esc(y.l) + '</a>').join('') + '</div>';
+      esc(y.l) + '</a>').join('');
 }
 
 function evRows(day){
@@ -5385,8 +5387,8 @@ function evCards(list){
     <div class="evt">${esc(x.t || '')}</div>
     ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
     ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
-    ${evArtHTML(x)}
-    <div class="evlinks">
+    <div class="evlinks evart">
+      ${evArtHTML(x)}
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
       <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
     </div>

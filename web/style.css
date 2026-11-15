@@ -778,9 +778,13 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
 .saymount .bubble{position:relative;background:#17171A;border:1px solid var(--line);
   color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
   letter-spacing:.02em}
-.saymount .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
+/* ★しっぽは、ふきだしの「外」に出します（ご指摘・2026/11/15
+     「しっぽが吹き出しの中に入ってる状態」）。
+     見える三角は left+w から left+2w までなので、
+     ふきだしの左はし（0）に base をそろえるには left:-2w が要ります。 */
+.saymount .bubble:before{content:"";position:absolute;left:-10px;top:50%;margin-top:-5px;
   width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
-.saymount .bubble:after{content:"";position:absolute;left:-4.5px;top:50%;margin-top:-4px;
+.saymount .bubble:after{content:"";position:absolute;left:-7px;top:50%;margin-top:-4px;
   width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
 /* ★すうっと消えて、すうっと出す（ご指示・2026/11/10）。
    動かさず、濃さだけを変えます。目が休まります。 */
@@ -792,9 +796,9 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
 .saybox .bubble{position:relative;background:#17171A;border:1px solid var(--line);
   color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
   max-width:190px;letter-spacing:.02em}
-.saybox .bubble:before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;
+.saybox .bubble:before{content:"";position:absolute;left:-10px;top:50%;margin-top:-5px;
   width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
-.saybox .bubble:after{content:"";position:absolute;left:-4.5px;top:50%;margin-top:-4px;
+.saybox .bubble:after{content:"";position:absolute;left:-7px;top:50%;margin-top:-4px;
   width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
 /* ★入れ替わるときだけ、ふわっと出します（うるさくしない） */
 .saybox.pop .face,.saybox.pop .bubble{animation:sayin .34s ease-out}
@@ -998,10 +1002,12 @@ header > h1, .login .head > h1{white-space:nowrap}
      前より大きくして、ひと目で分かるようにします（ご指示・2026/11/11）。
      ・:before … ふちの色の三角（外がわ）
      ・:after  … 中の色の三角（内がわ）。重ねて「ふちのある三角」にする */
-.saymount .bubble:before{right:auto;left:-9px;margin-top:-7px;
-  border-width:7px;border-left-color:transparent;border-right-color:#6E6E7A}
-.saymount .bubble:after{right:auto;left:-7px;margin-top:-6px;
-  border-width:6px;border-left-color:transparent;border-right-color:#17171A}
+/* ★ここも、外に出します（上と同じ考え方で left:-2w）。
+     外がわ w=6 → -12px、内がわ w=5 → ふちの1px ぶん内へ入れて -9px。 */
+.saymount .bubble:before{right:auto;left:-12px;margin-top:-6px;
+  border-width:6px;border-left-color:transparent;border-right-color:#6E6E7A}
+.saymount .bubble:after{right:auto;left:-9px;margin-top:-5px;
+  border-width:5px;border-left-color:transparent;border-right-color:#17171A}
 
 /* ★「乗せてよかった」ひとことのときだけ、ふちを明るくします。
      ぼやきと、ぱっと見で見分けられるようにするためです。 */
@@ -1697,3 +1703,45 @@ header{padding-left:33px;padding-right:33px}
   font-family:var(--mono);font-size:11.5px;font-weight:700;line-height:1.5}
 .bpct span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .bpct i{width:8px;height:8px;border-radius:2px;flex:none}
+
+/* ============================================================
+   イベントの高さを詰める（ご指摘・2026/11/14
+     「イベント、高さの隙間が広すぎるので もっとスマートにして、
+       出来るかぎり1画面で済むようにできないですか」）
+   1件あたりの余白と行間を削り、アーティストの行と
+   【くわしく見る】【地図】を同じ1行に入れました。
+   ============================================================ */
+.evrow{padding:7px 2px}
+.evhead{font-size:13.5px;gap:7px}
+.evgo{margin-top:2px;font-size:14px;letter-spacing:0}
+.evt{margin-top:2px;font-size:12.5px;line-height:1.45}
+.evsub{margin-top:1px;font-size:11.5px;line-height:1.45}
+.evlinks{margin-top:4px;gap:6px;flex-wrap:wrap;align-items:center}
+.evlinks .mini{padding:3px 8px;font-size:11px}
+.evwho{font-size:11.5px}
+.evgrp{margin-top:10px}
+.evgrp > h3{margin:0 0 3px}
+@media(max-width:640px){
+  .evt{font-size:12.5px}
+  .evsub{font-size:11.5px}
+  .evgo{font-size:14px}
+}
+
+/* ★しっぽが外に出たぶん、顔とのすき間を広げます（ご指摘・2026/11/15）。
+     すき間が足りないと、しっぽが顔に重なって汚く見えます。
+     しっぽの幅（12px）と ちょうど同じにして、顔にぴたりと届かせます。 */
+@media(max-width:640px){
+  .saymount{gap:13px}
+}
+
+/* ★長いひとことは、ふきだしだけを1行ぶん下へおろして、幅いっぱいで出します
+     （2026/11/15）。題のとなりに並べたままだと、19字のひとことが
+     7px まで小さくなって、走りながらでは読めませんでした。
+     短いひとことは、これまでどおり題のとなりに並びます。 */
+.hmain{flex-wrap:wrap;row-gap:5px}
+/* ふきだしが下の行へ回ったときは、≡ を題と同じ行へ上げます。
+   上げないと ≡ だけが3行目に落ちて、見出しが高くなります。 */
+.hmain.saywide > #fabMenu{order:1}
+.hmain.saywide > .saymount{order:2;flex:1 1 100%;min-width:0}
+body[data-hand="l"] .hmain.saywide > #fabMenu{order:-1}
+.saymount.wide .bubble{max-width:none}

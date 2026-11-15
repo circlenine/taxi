@@ -291,7 +291,11 @@ const SAY_BAD = [
   'おぅ、しばくぞぉ？',
   'ドパらせてくれぇ！',
   '松田ァー！誰を乗せてるゥー！',
-  'ロングゥー？ふざけるなァ！'
+  'ロングゥー？ふざけるなァ！',
+  /* ここから下は、まーく様が後から足されたものです（2026/11/15） */
+  'おらァ！教習所からやり直せ！',
+  'もう、帰りたいよォ！',
+  '敗北者じゃけェ…'
 ];
 
 /* 乗せてよかった、と思えるひとこと */
@@ -302,7 +306,11 @@ const SAY_GOOD = [
   'やるんだなライナー！',
   'ええとこ行っとるやん！',
   '新世界(大阪)の神だァ！',
-  '出た！合わせてロングマァン！'
+  '出た！合わせてロングマァン！',
+  /* ここから下は、まーく様が後から足されたものです（2026/11/15） */
+  'ジャストポイント？オーケー？',
+  'もうちょっと頑張ろ？あと６時間！',
+  '今から車を動かす！･･･何度で～もっ♬'
 ];
 
 /*
@@ -332,7 +340,20 @@ function sayAddSet(bad, good){
  *   いちばん細い機種（320px）で、全角14文字までは切れません。
  *   15文字にすると切れます。だから14で止めます。
  */
-const SAY_MAX = 14;
+/*
+ * ★ひとことは、ふきだしに入りきらなければ 字を小さくします。
+ *   ただし、ここより小さくはしません（2026/11/15）。
+ *   暗い車内で、走りながら読むものです。7px では読めません。
+ *   小さくしても入らないときは、下の「ふきだしだけ1行ぶん下へおろす」
+ *   （wide）で、幅を広げて読める大きさに戻します。
+ */
+const SAY_MIN_PX = 9;
+/*
+ * ★入れる欄で打てる字数（2026/11/15 に 14 → 20 へ）。
+ *   まーく様が足されたひとことに、16字・19字のものがあったためです。
+ *   長いものは、ふきだしが1行ぶん下へおりて、幅いっぱいで出ます。
+ */
+const SAY_MAX = 20;
 
 /* 必ず交互に出します（ぼやき → ありがとう → ぼやき → …） */
 let _sayTurn = 0;
@@ -465,7 +486,7 @@ function sayShrink(t, size){
     rg.selectNodeContents(t);
     const need = rg.getBoundingClientRect().width;
     if (!(need > box - 0.6)) return;             // 入っている
-    const v = Math.max(6, Math.floor((size * (box - 1) / need) * 10) / 10);
+    const v = Math.max(SAY_MIN_PX, Math.floor((size * (box - 1) / need) * 10) / 10);
     t.style.fontSize = v + 'px';
   } catch (e) {}
 }
@@ -476,19 +497,17 @@ function sayFit(mount){
     const t  = bu && bu.querySelector('.t');
     if (!t) return;
     const keep = t.textContent;
+    mount.classList.remove('wide');             // いったん、ふつうの並びに戻して測る
+    if (mount.parentElement) mount.parentElement.classList.remove('saywide');
     t.style.fontSize = '';                      // いったん、きまりどおりの大きさへ
     let size = parseFloat(getComputedStyle(bu).fontSize) || 12;
-    /* ★「字数がいちばん多いもの」＝「いちばん幅を食うもの」ではありません。
-         カタカナと ひらがな では、太さがちがうためです。
-         なので、はじめの1回だけ、ぜんぶ測って いちばん太いものを選びます。 */
-    if (!_sayWidest) {
-      let wmax = -1;
-      _sayB.concat(_sayG).forEach(function (x) {
-        t.textContent = x;
-        if (t.scrollWidth > wmax) { wmax = t.scrollWidth; _sayWidest = x; }
-      });
-    }
-    t.textContent = _sayWidest;
+    /*
+     * ★大きさは、**いま出すひとことだけ**で決めます（2026/11/15）。
+     *   前は「ぜんぶの中で いちばん幅を食うもの」に合わせていました。
+     *   そろって見えるのは良いのですが、長いひとことが1つ増えるたびに
+     *   **短いひとことまで小さく**なり、どれも読みにくくなります。
+     *   長いものだけが小さくなる形にして、短いものは大きいまま出します。
+     */
     /*
      * ★はみ出しは、小数のまま測ります（2026/11/14）。
      *   scrollWidth は整数に丸められるので、中身 98.4px・枠 97.8px の
@@ -504,7 +523,7 @@ function sayFit(mount){
       } catch (e) { return t.scrollWidth > t.clientWidth + 1; }
     };
     let guard = 0;
-    while (over() && size > 6 && guard++ < 48) {
+    while (over() && size > SAY_MIN_PX && guard++ < 48) {
       size -= 0.5;
       t.style.fontSize = size + 'px';
     }
@@ -517,7 +536,7 @@ function sayFit(mount){
      */
     t.textContent = keep;
     guard = 0;
-    while (over() && size > 6 && guard++ < 48) {
+    while (over() && size > SAY_MIN_PX && guard++ < 48) {
       size -= 0.5;
       t.style.fontSize = size + 'px';
     }
@@ -534,6 +553,40 @@ function sayFit(mount){
      *   作っている途中は、ふきだしの幅がまだ決まっていないことがあり、
      *   そのときに測ると、広いつもりで大きいままになります。
      */
+    /*
+     * ★それでも読める大きさに入らなければ、ふきだしだけを
+     *   **1行ぶん下へおろして、幅いっぱい**にします（2026/11/15）。
+     *   題のとなりに並べたままだと、19字のひとことは 7px まで
+     *   小さくなって、走りながらでは読めませんでした。
+     *   短いひとことは、これまでどおり題のとなりに並びます。
+     */
+    const need2 = function () {
+      try {
+        const rg = document.createRange(); rg.selectNodeContents(t);
+        return rg.getBoundingClientRect().width;
+      } catch (e) { return 0; }
+    };
+    /*
+     * ★ふきだしが、題と同じ行に入りきらずに 下へ回ったときは、
+     *   ≡ のボタンを 題と同じ行へ上げます（2026/11/15）。
+     *   上げないと、≡ だけが3行目に落ちて、見出しが高くなります。
+     *   見分け方は「題の上はしと、ふきだしの上はしが そろっているか」。
+     */
+    const row = mount.parentElement;
+    if (row) {
+      const h1 = row.querySelector('h1');
+      const down = !!(h1 && Math.abs(mount.getBoundingClientRect().top -
+                                     h1.getBoundingClientRect().top) > 4);
+      row.classList.toggle('saywide', down);
+      mount.classList.toggle('wide', down);
+      if (down) {                       /* 幅が変わったので、測り直します */
+        t.style.fontSize = '';
+        let s2 = parseFloat(getComputedStyle(bu).fontSize) || 12;
+        let g2 = 0;
+        while (over() && s2 > SAY_MIN_PX && g2++ < 48) { s2 -= 0.5; t.style.fontSize = s2 + 'px'; }
+        sayShrink(t, s2);
+      }
+    }
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(function () {
         try { sayShrink(t, parseFloat(t.style.fontSize) || size); } catch (e) {}
