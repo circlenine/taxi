@@ -1391,13 +1391,16 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          （ご指示「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。画面に出るのは8こ。 */
     /* ★2026/11/13：3つのグラフを1つにまとめ、「地図」を足したので7こ */
-    t(subs.length === 7, '★★★画面のメニューは7こ', subs.length);
+    /* ★2026/11/15：バラシと関空を【特定】1つにまとめたので6こ */
+    t(subs.length === 6, '★★★画面のメニューは6こ', subs.length);
     t(/data-t="ev" aria-selected="false" hidden/.test(h3),
       '★★★イベントは、画面のメニューには出さない');
     t(/data-t="news" aria-selected="false" hidden/.test(h3),
       '★★★お知らせも、画面のメニューには出さない');
-    t(subs.every(x => x.length <= 7), '★★★そえる字は7文字まで（ます目からはみ出さない）',
-      subs.filter(x => x.length > 7).join('/'));
+    /* ★「ます目からはみ出さない」が目的です。字数は目安で、
+         実際にはみ出していないことは、画面を測って確かめています。 */
+    t(subs.every(x => x.length <= 11), '★★★そえる字は11文字まで（ます目からはみ出さない）',
+      subs.filter(x => x.length > 11).join('/'));
   }
 
   /* ★ふきだしが出ているあいだは、固定ボタンを出しません
@@ -2574,7 +2577,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★新規の記録 → 過去の記録 の順');
   t(idx.indexOf('id="ktop"') < idx.indexOf('id="panes"'),
     '★★★過去の記録 → 直近の記録 の順');
-  t(/\(tab === 'in'\) \? \(paneInRecent\(\) \+ paneInNew\(\)\) : ''/.test(app),
+  t(/\(tab === 'in'\) \? \(leadCard\('in'\) \+ paneInRecent\(\) \+ paneInNew\(\)\) : ''/.test(app),
     '★★★記録の画面は 直近の記録 → 新規の記録 → 過去の記録 の順');
 
   /* 目次 */
@@ -2639,7 +2642,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/function whenPane\(/.test(app), '★★★バラシ・関空の表を作る係がある');
   t(/function paneBara\(/.test(app) && /function paneKix\(/.test(app),
     '★★★バラシと関空、それぞれの画面がある');
-  t(/data-t="bara"/.test(idx) && /data-t="kix"/.test(idx), '　 タブからも行ける');
+  /* ★2026/11/15 から、バラシ・関空・チケットは1つの押しどころ【特定】です */
+  t(/data-t="tok"/.test(idx), '　 タブからも行ける');
+  t(/function paneTok\(/.test(app) && /gMenu\(TOK_KINDS, tokKind, 'data-tk'\)/.test(app),
+    '★★★バラシ・関空・チケットを、1つのメニューでえらべる');
+  t(/function isTicket\(r\)/.test(app) && /\/チケ\/\.test/.test(app),
+    '★★★「他」の欄に「チケ」と書いたものが、チケット乗車');
+  t(/if \(tab === 'bara' \|\| tab === 'kix'\) \{ tokKindSet\(tab\); tab = 'tok'; tabSave\(\); \}/.test(app),
+    '　 前の押しどころで来ても、同じ画面に行ける');
   t(/bara:paneBara, kix:paneKix/.test(app), '　 画面の割りふりにも入っている');
   t(/whenPane\('ﾊﾞﾗｼ', 'バラシ', '会場'/.test(app), '★★★バラシは、会場ごとに出す');
   t(/whenPane\('関空', '関空', 'ホテル'/.test(app), '★★★関空は、ホテルごとに出す');
@@ -3247,9 +3257,18 @@ console.log('\n■ グラフを１ページに、地図にピン（ご指示・2
        表はそれぞれ1つだけ表示して
        好きにカスタムできる検索欄的なものを設けて出す形に」 */
   t(/function paneG\(\)/.test(app), '★★★グラフは1つの画面にまとめた');
-  t(/const G_KINDS = \[\{ k:'heat', n:'表グラフ' \}, \{ k:'tl', n:'横棒グラフ' \},\s*\{ k:'sc', n:'折線グラフ' \}\]/.test(app),
-    '★★★中で 3つの形をえらべる');
-  t(/data-gk="\$\{x\.k\}"/.test(app) && /b\.dataset\.gk/.test(app), '　 そのタグが押せる');
+  /* ★名前は、まーく様のご指示で付け替えました（2026/11/15）
+       「線グラフ 棒グラフ 表グラフ という表記にして
+         各サブタイトル(わかりやすい説明)も端的にだしてください」 */
+  t(/\{ k:'sc',\s+n:'線グラフ', s:'/.test(app)
+    && /\{ k:'tl',\s+n:'棒グラフ', s:'/.test(app)
+    && /\{ k:'heat', n:'表グラフ', s:'/.test(app),
+    '★★★中で 3つの形をえらべる（線・棒・表。説明つき）');
+  t(/const gMenu = /.test(app)
+    && /\.gmenu\{display:grid/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★えらび方は、メニューの形（ご指示・2026/11/15「もっとメニューぽくして」）');
+  t(/gMenu\(G_KINDS, gKind, 'data-gk'\)/.test(app) && /b\.dataset\.gk/.test(app),
+    '　 そのタグが押せる');
   t(/function gKindSet\(k\)/.test(app) && /localStorage\.setItem\(G_KEY, k\)/.test(app),
     '　 えらんだ形を、その端末に覚える');
   t(/g:paneG, heat:paneG, tl:paneG, sc:paneG/.test(app),

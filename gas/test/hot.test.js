@@ -45,6 +45,8 @@ vm.runInContext(`
   function visible(){ return REC; }
   function render(){ drawn++; }
   function filterChips(){ return '<!--chips-->'; }
+  /* 「このページを見てわかること」は、ここでは中身を見ないので置きかえます */
+  function leadCard(){ return '<!--lead-->'; }
 `, ctx);
 vm.runInContext(hotSrc, ctx);
 

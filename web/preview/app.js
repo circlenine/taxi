@@ -807,10 +807,12 @@ function render(){
        前の押しどころを覚えている方のために、heat/tl/sc も同じ画面へ回します。 */
   const PANES = { in: () => (ME.profile.is_admin ? paneOut() : '') + paneSays(), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
-    ratio:paneRatio, bara:paneBara, kix:paneKix,
+    ratio:paneRatio, tok:paneTok, bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
+  /* バラシ・関空は、1つのメニューにまとめました（ご指示・2026/11/15） */
+  if (tab === 'bara' || tab === 'kix') { tokKindSet(tab); tab = 'tok'; tabSave(); }
   if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
@@ -818,7 +820,7 @@ function render(){
   /* ★並びは 直近の記録 → 新規の記録 → 過去の記録（ご指示・2026/11/13） */
   const pt = $('#panesTop');
   if (pt) pt.innerHTML = gasWakeBar() +
-    ((tab === 'in') ? (paneInRecent() + paneInNew()) : '');
+    ((tab === 'in') ? (leadCard('in') + paneInRecent() + paneInNew()) : '');
   /* ★作り直したあとに、乗り場のプルダウンへ中身を入れ直します。
        これを忘れると、iPhoneで「オプションなし」と出ます（2026/11/14）。 */
   placeSelFill_();
@@ -839,6 +841,68 @@ const impMsgHTML = id => `<span class="msg ${impMsgBad?'bad':''}" id="${id}">${e
 const ibad = t => { impMsg = t; impMsgBad = true;  render(); };
 const iok  = t => { impMsg = t; impMsgBad = false; render(); };
 const emptyCard = t => `<div class="card"><div class="empty">${t}</div></div>`;
+
+/* ------------------------------------------------------------
+ *  「このページを見てわかること」（ご指示・2026/11/15）
+ *
+ *  ★まーく様のご指示
+ *    「各ページの1番上に、説明書きとして
+ *      『このページを見てわかること』を載せて、
+ *      わかりやすい説明や根拠、計算方法を提示してください」
+ *
+ *  ★短くします（走りながら読むものなので、長いと壁になります）。
+ *    ・わかること … 3つまで
+ *    ・もと … どの記録から出しているか
+ *    ・数え方 … どう計算しているか
+ * ---------------------------------------------------------- */
+const LEADS = {
+  in: { w: ['きょうまでの記録を、新しい順に見られます',
+            '営業月（16日〜翌15日）ごとの、件数と売上',
+            '入れ間違いは、その場で直せます'],
+        m: '自分たちが入れた乗車の記録。LINEと台帳の両方から入ります。',
+        c: '合計は、金額の入った記録だけを足した数です。「不明」は数えません。' },
+  hot:{ w: ['いまの時刻に、どこへ行くとよいか',
+            'この先 翌4時までの、1時間ごとの狙い目',
+            'いまの天気と、雨雲の動き'],
+        m: '自分たちの記録（この1か月＋去年の同じ月）と、気象庁の天気。',
+        c: '同じ時間帯の記録を集めて、1本の平均金額が大きい順に並べます。3件に届かない乗り場は出しません。' },
+  g:  { w: ['時間帯ごとに、どの乗り場が強いか（表グラフ）',
+            '1本ずつの、待ち時間と乗車の流れ（棒グラフ）',
+            '時刻と金額の ちらばり（線グラフ）'],
+        m: '絞り込みで選んだ期間・乗り場の記録だけ。',
+        c: '表グラフのマスは「その枠の1本の平均金額」、下は件数です。金額が「不明」の記録は、平均から外します。' },
+  map:{ w: ['えらんだ時間帯・金額の記録が、どのあたりに多いか',
+            '1本 乗せたあと、次をどこで拾えているか'],
+        m: '自分たちの記録と、無料の地図（OpenStreetMap）。',
+        c: 'ピンは乗り場のあるあたりです。丸の大きさは件数、色は1本の平均金額です。' },
+  ratio:{ w: ['ロング（¥10,000以上）が出やすい乗り場と時間帯',
+              'ショート・ミドル・ロングの割合'],
+        m: '金額の入った記録だけ。「不明」は外します。',
+        c: '割合は「その乗り場の記録のうち、その金額帯が何％か」。3件に届かない乗り場は出しません。' },
+  tok:{ w: ['バラシ・関空・チケットの乗車が、何時台に多いか',
+            '会場やホテルごとの、呼ばれやすい時間'],
+        m: '「他」の欄に バラシ／関空／チケ と書いた記録だけ。',
+        c: 'ここだけは1件からでも出します（数が少ないので）。少ないところには「まだ○件」と書きます。' },
+  rep:{ w: ['同じお客様と思われる、くり返しの乗車',
+            'その曜日・時刻・乗り場の、くり返しかた'],
+        m: '「他」の欄に 〇回目・再現性 などと書いた記録と、同じ乗り場・同じ時間帯のくり返し。',
+        c: '2回以上 同じ組み合わせがあるものだけ出します。1回は、たまたまです。' },
+  ev: { w: ['きょう・あすの催しと、開演・終演の時刻',
+            '会場の場所（押すと地図）'],
+        m: '会場の公式ページと、職場で回ってくる予定表。',
+        c: '終演が公式に出ていないときは、同じ会場の例から見当を出し「（予定）」と書きます。' },
+  news:{ w: ['使い方と、直したところのお知らせ'], m: '', c: '' },
+  fb: { w: ['気づいたことを書いて送れます'], m: '', c: '' }
+};
+function leadCard(k){
+  const L = LEADS[k];
+  if (!L) return '';
+  return '<div class="card lead"><h2>このページを見てわかること</h2>' +
+    '<ul class="leadw">' + L.w.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+    (L.m ? '<p class="note"><b>もとにしているもの</b>　' + esc(L.m) + '</p>' : '') +
+    (L.c ? '<p class="note"><b>数え方</b>　' + esc(L.c) + '</p>' : '') +
+    '</div>';
+}
 
 /* ---- 記録する ---- */
 /*
@@ -1711,8 +1775,14 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
  *  同じような表が並ぶと、どれを見ればよいのか分からなくなります。
  *  いまは「形をえらぶ」「絞り込む」で、**1枚だけ**を出します。
  * ---------------------------------------------------------- */
-const G_KINDS = [{ k:'heat', n:'表グラフ' }, { k:'tl', n:'横棒グラフ' },
-                 { k:'sc', n:'折線グラフ' }];
+/* ★名前と並びは、まーく様のご指示のとおりです（2026/11/15）。
+     「線グラフ 棒グラフ 表グラフ という表記にして
+       各サブタイトル(わかりやすい説明)も端的にだしてください」 */
+const G_KINDS = [
+  { k:'sc',   n:'線グラフ', s:'時刻と金額の ちらばり' },
+  { k:'tl',   n:'棒グラフ', s:'1本ずつの 時間の流れ' },
+  { k:'heat', n:'表グラフ', s:'時間帯 × 乗り場の平均' }
+];
 const G_KEY = 'tsukemachi.gkind';
 let gKind = (function (){
   try { const v = localStorage.getItem(G_KEY);
@@ -1724,6 +1794,10 @@ const G_NOTE = {
   heat: '時間帯ごとに、どの乗り場が強いかを並べた表です。マスの数字は1本の平均金額、下は件数です。',
   tl:   '1件ずつを、時刻の線の上に並べた図です。細い線が待ち時間、太い帯が乗せていた時間です。',
   sc:   '横は乗せた時刻（25＝翌1時）、縦は金額です。日付ごとに色を変えています。' };
+/* えらぶところ（メニューの形）。押すと、その形の1枚に切り替わります */
+const gMenu = (list, now, attr) => '<div class="gmenu">' + list.map(x =>
+  '<button class="gm' + (now === x.k ? ' on' : '') + '" ' + attr + '="' + x.k + '">' +
+  '<b>' + esc(x.n) + '</b><i>' + esc(x.s) + '</i></button>').join('') + '</div>';
 
 function paneG(){
   const kind = gKind;
@@ -1734,11 +1808,9 @@ function paneG(){
     .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
   if (scPicks.length) R = R.filter(r => scPicks.indexOf(r.place) !== -1);
 
-  const head = `<div class="card"><h2>グラフ</h2>
+  const head = leadCard('g') + `<div class="card"><h2>グラフ</h2>
     <p class="note">${G_NOTE[kind]}</p>
-    <div class="chips gkind">
-      ${G_KINDS.map(x => `<button class="chip ${gKind === x.k ? 'on' : ''}" data-gk="${x.k}">${x.n}</button>`).join('')}
-    </div>
+    ${gMenu(G_KINDS, gKind, 'data-gk')}
     ${kind === 'sc' ? `<div class="toolbar">
       <button class="chip ${scOpt.line ? 'on' : ''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label ? 'on' : ''}" data-opt="label">金額を出す</button>
@@ -1907,7 +1979,7 @@ function paneMap(){
   const G = mapGroups(R);
   const missNames = Object.keys(G.miss);
 
-  const head = `<div class="card"><h2>地図</h2>
+  const head = leadCard('map') + `<div class="card"><h2>地図</h2>
     <p class="note">えらんだ時間帯と金額に当てはまる記録を、乗り場のあたりにピンで出します。
       丸が大きいほど件数が多く、赤いほど1本が大きい乗り場です。</p>
     <div class="chips maph">
@@ -2671,7 +2743,8 @@ function paneHot(now){
     wxNowHTML() + wxHoursHTML() + '</div>' + radarCard();
 
   /* ① 一番上 … いまの時刻と、その時刻の狙い目 */
-  const clock = '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
+  const clock = leadCard('hot') +
+    '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
     '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
     '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
     '全期間の表は【表グラフ】のほうです。</p>' +
@@ -3497,7 +3570,7 @@ const longHead = '<div class="lhead"><span class="li"></span><span class="lp">�
  */
 function paneRatio(){
   const R = visible();
-  const head = '<div class="card"><h2>パーセント</h2>' +
+  const head = leadCard('ratio') + '<div class="card"><h2>パーセント</h2>' +
     '<p class="note">ロング（¥10,000以上）が<b>出やすい所と時間</b>を探す画面です。' +
     'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。' +
     '<b>3件に届かない乗り場は、割合を出しません。</b></p>' +
@@ -3778,15 +3851,18 @@ function whenBar(o, hrs){
  *   cat   … 'ﾊﾞﾗｼ' か '関空'
  *   label … 画面に出す言い方（会場／ホテル）
  */
-function whenPane(cat, title, label, lead){
-  const R = visible().filter(function (r){ return recCat(r) === cat; });
+function whenPane(cat, title, label, lead, test, noLead){
+  /* test が渡されていれば、そちらで選びます（チケットなど） */
+  const R = visible().filter(test ? test
+    : function (r){ return recCat(r) === cat; });
   /* ★ここだけは「3件そろってから」の決まりを外します
        （ご指示・2026/11/13「バラシタブ、関空タブにおいては
          3件ルールは除いてください（圧倒的に情報が少ないので）」）。
      ★そのかわり、出す数字は「件数」です。割合は出しません。
        件数は、たまたまでも たしかにあった事実なので、嘘になりません。
      ★1件・2件のところには「まだ○件」と、はっきり添えます。 */
-  const head = '<div class="card"><h2>' + esc(title) + '</h2>' +
+  const head = (noLead ? '' : leadCard('tok')) +
+    '<div class="card"><h2>' + esc(title) + '</h2>' +
     '<p class="note">' + lead +
     '<b>記録がたまるほど、当たるようになります。</b>' +
     'いまは ' + R.length + '件 から出しています。' +
@@ -3875,14 +3951,51 @@ function whenPane(cat, title, label, lead){
   return out;
 }
 
-function paneBara(){
-  return whenPane('ﾊﾞﾗｼ', 'バラシ', '会場',
-    '公演のあと、お客が出てくる時間です。会場ごとに、何時台に呼ばれているかを並べます。');
+/* ------------------------------------------------------------
+ *  バラシ・関空・チケット（1つのメニューにまとめました）
+ *
+ *  ★まーく様のご指示（2026/11/15）
+ *    「バラシと関空は、メニューをひとまとめにして良いです」
+ *    「手書きで『チケ』と書いてるものは、チケット扱いです。
+ *      チケット乗車のデータも、バラシや関空と同様に
+ *      まとめてわかるようにしたいので」
+ *
+ *  ★チケットは、乗り場の名前ではなく「他」の欄で見分けます
+ *    （バラシ・関空と同じ考え方。会場の名前で決めると、
+ *      ただの流しの1本まで入ってしまうためです）。
+ * ---------------------------------------------------------- */
+const TOK_KINDS = [
+  { k:'bara',  n:'バラシ',   s:'公演のあと、お客が出てくる時間' },
+  { k:'kix',   n:'関空',     s:'どのホテルから、何時台に呼ばれるか' },
+  { k:'ticket',n:'チケット', s:'チケットの乗車が、何時台に多いか' }
+];
+const TOK_KEY = 'tsukemachi.tok';
+let tokKind = (function (){
+  try { const v = localStorage.getItem(TOK_KEY);
+    return TOK_KINDS.some(x => x.k === v) ? v : 'bara'; } catch (e) { return 'bara'; }
+})();
+function tokKindSet(k){ tokKind = k; try { localStorage.setItem(TOK_KEY, k); } catch (e) {} }
+
+/* 「他」の欄に「チケ」と書いてあるものが、チケット乗車です */
+function isTicket(r){
+  return /チケ/.test(String((r && r.note) || ''));
 }
-function paneKix(){
-  return whenPane('関空', '関空', 'ホテル',
-    'どのホテルから、何時台に呼ばれているかを並べます。');
+
+function paneTok(){
+  const k = tokKind;
+  const head = leadCard('tok') + '<div class="card"><h2>バラシ・関空・チケット</h2>' +
+    '<p class="note">見たいものを、下からえらんでください。</p>' +
+    gMenu(TOK_KINDS, tokKind, 'data-tk') + '</div>';
+  if (k === 'kix')    return head + whenPane('関空', '関空', 'ホテル',
+    'どのホテルから、何時台に呼ばれているかを並べます。', null, true);
+  if (k === 'ticket') return head + whenPane('', 'チケット', '乗り場',
+    'チケットの乗車が、どこで・何時台に多いかを並べます。', isTicket, true);
+  return head + whenPane('ﾊﾞﾗｼ', 'バラシ', '会場',
+    '公演のあと、お客が出てくる時間です。会場ごとに、何時台に呼ばれているかを並べます。', null, true);
 }
+/* 前の押しどころを覚えている方のために、残してあります */
+function paneBara(){ tokKind = 'bara'; return paneTok(); }
+function paneKix(){  tokKind = 'kix';  return paneTok(); }
 
 /* ------------------------------------------------------------
  *  ふきだしに足す（ご指示・2026/11/14）
@@ -4495,6 +4608,9 @@ function wire(){
   /* グラフの形のえらび（表／横棒／折線）。1ページにまとめたので、ここで切り替えます */
   document.querySelectorAll('[data-gk]').forEach(function (b) {
     b.onclick = function () { gKindSet(b.dataset.gk); render(); };
+  });
+  document.querySelectorAll('[data-tk]').forEach(function (b) {
+    b.onclick = function () { tokKindSet(b.dataset.tk); render(); };
   });
   document.querySelectorAll('[data-scp]').forEach(function (b) {
     b.onclick = function () {
@@ -5170,7 +5286,7 @@ function paneNews(){
       '<ul class="newsl">' + (n.items || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
   }).join('');
 
-  return '<div class="card"><h2>使い方</h2>' +
+  return leadCard('news') + '<div class="card"><h2>使い方</h2>' +
     '<p class="note">知りたい所だけ読めば大丈夫です。いま動いているのは <b>' +
     esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + '</b> です。</p>' +
     '<div class="gwrap">' + cards + '</div></div>' +
@@ -5410,7 +5526,7 @@ function paneEv(){
        （ご指示・2026/11/11「今日のお知らせをオフにした人も
          再度見れる形にしてください」）。 */
   const hid = evHiddenToday();
-  return `<div class="card"><h2>${evTitleHTML(d)}</h2>
+  return leadCard('ev') + `<div class="card"><h2>${evTitleHTML(d)}</h2>
     <p class="note">${evStale(d) ? '<b class="evold">' + esc(evStale(d)) + '</b><br>' : ''}
       一番上は<b>開演の時刻</b>（分かっていれば終演も）。
       車を着ける時刻の目安は、その下に小さく置いています。
@@ -5456,7 +5572,7 @@ function evNextCard(d){
 let fbText = '';
 
 function paneFb(){
-  return `<div class="card"><h2>フィードバック</h2>
+  return leadCard('fb') + `<div class="card"><h2>フィードバック</h2>
     <p class="note">使っていて「ここが使いにくい」「これが欲しい」と思ったことを、
       そのまま書いてください。書き方は自由です。直したものは【お知らせ】に出ます。</p>
     <div class="grid">

@@ -251,7 +251,7 @@ body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
   color:#FFFFFF;font-size:10.5px;line-height:1.3;text-align:left;
   padding:3px 1px;cursor:pointer;min-width:0}
 .tocit > span{min-width:0;overflow:hidden;display:-webkit-box;
-  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+  -webkit-line-clamp:3;-webkit-box-orient:vertical}
 .tocit.tabto{border-top-color:var(--meter)}
 .tocit em{font-style:normal;font-size:10.5px;opacity:.6;flex:none;
   font-variant-numeric:tabular-nums}
@@ -1745,3 +1745,40 @@ header{padding-left:33px;padding-right:33px}
 .hmain.saywide > .saymount{order:2;flex:1 1 100%;min-width:0}
 body[data-hand="l"] .hmain.saywide > #fabMenu{order:-1}
 .saymount.wide .bubble{max-width:none}
+
+/* ============================================================
+   「このページを見てわかること」（ご指示・2026/11/15）
+   ============================================================ */
+.card.lead{border-color:#3A4A6E}
+.card.lead > h2{color:#FFFFFF}
+.leadw{margin:0 0 6px;padding:0 0 0 1.1em;list-style:disc;
+  font-size:12.5px;line-height:1.6;color:#FFFFFF}
+.leadw li{margin:1px 0}
+.card.lead .note{margin:2px 0 0;font-size:11.5px;line-height:1.55}
+.card.lead .note b{color:#FFFFFF}
+
+/* メニューらしい えらび方（ご指示・2026/11/15「もっとメニューぽくして」） */
+.gmenu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 2px}
+.gm{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;min-height:46px;padding:6px 4px;cursor:pointer;
+  background:#0C1422;border:1px solid var(--line);border-radius:9px;color:#FFFFFF}
+.gm b{font-size:13px;font-weight:700;letter-spacing:.02em}
+.gm i{font-style:normal;font-size:9.5px;line-height:1.3;text-align:center;opacity:.85}
+.gm.on{background:var(--andon);border-color:var(--andon);color:#14100A}
+.gm.on i{opacity:.9}
+@media(max-width:360px){
+  .gm b{font-size:12px}
+  .gm i{font-size:9px}
+}
+
+/* 目次のマスは、上の線をやめて「ボタンらしい箱」にします
+   （ご質問・2026/11/15「この真ん中の白い線はなんなのですか？」）。
+   マスごとに線を引いていたため、2行になったマスがあると
+   線の高さがそろわず、途中で切れた白い線に見えていました。 */
+.tocit{border-top:0;background:#121A2B;border-radius:7px;padding:5px 6px}
+.tocg{gap:4px}
+
+/* ★そえる字が長いときは、ます目の中で2行に折り返します（2026/11/15）。
+     1行のままだと、となりのます目にはみ出して見えます。 */
+nav button i{white-space:normal;line-height:1.25;text-align:center;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
