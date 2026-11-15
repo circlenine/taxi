@@ -807,7 +807,8 @@ function render(){
        前の押しどころを覚えている方のために、heat/tl/sc も同じ画面へ回します。 */
   const PANES = { in: () => (ME.profile.is_admin ? (paneOut() + gasStatCard()) : '') + paneSays(), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
-    ratio:paneRatio, tok:paneTok, rep:paneRep, bara:paneBara, kix:paneKix,
+    ratio:paneRatio, tok:paneTok, rep:paneRep, nippo:paneNippo,
+    bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
@@ -891,6 +892,10 @@ const LEADS = {
             '会場の場所（押すと地図）'],
         m: '会場の公式ページと、職場で回ってくる予定表。',
         c: '終演が公式に出ていないときは、同じ会場の例から見当を出し「（予定）」と書きます。' },
+  nippo:{ w: ['紙の日報を写した写真から、1行ずつ読み取ったもの',
+              'いまの記録と 比べて、入っているか・まだかが分かります'],
+        m: '置いた写真と、台帳の記録。',
+        c: '営業日・時刻（5分まで）・金額が同じなら「もう入っています」。読んだだけでは記録に入りません。' },
   news:{ w: ['使い方と、直したところのお知らせ'], m: '', c: '' },
   fb: { w: ['気づいたことを書いて送れます'], m: '', c: '' }
 };
@@ -4336,6 +4341,167 @@ function paneRep(){
 }
 
 /* ------------------------------------------------------------
+ *  日報（紙）の写真を読む
+ *
+ *  ★まーく様のご指示（2026/11/15）
+ *    「紙の日報データが毎日作られていて、写真を撮って記録している」
+ *    「写真をアップロードして、反映する機能を追加して欲しいです」
+ *
+ *  ★読んだものを、そのまま記録に入れることは **しません**。
+ *    手書きの字は、どうしても読みちがえます。
+ *    間違った金額が売上に入ると、あとから分からなくなります。
+ *    必ず、この画面で見てから【足す】を押していただきます。
+ *  ★写真は、小さくしてから置きます（そのままだと重いためです）。
+ *  ★見られるのは、置いた本人と まーく様だけです（台帳の側でも止めています）。
+ * ---------------------------------------------------------- */
+let nippos = [];          /* 置いた写真の一覧（写真そのものは持ちません） */
+let nippoPick = {};       /* 画面でえらんだ行 */
+let nippoBusy = '';
+
+async function nippoLoad(){
+  try {
+    const { data, error } = await db.from('nippo_scan')
+      .select('id,work_date,state,note,rows_json,created_at,user_id')
+      .order('created_at', { ascending: false }).limit(20);
+    nippos = error ? [] : (data || []);
+  } catch (e) { nippos = []; }
+}
+
+/** 写真を小さくして、文字（データURL）にします */
+function nippoShrink(file){
+  return new Promise(function (ok, ng){
+    try {
+      const fr = new FileReader();
+      fr.onerror = function (){ ng(new Error('写真を読めませんでした')); };
+      fr.onload = function (){
+        const im = new Image();
+        im.onerror = function (){ ng(new Error('写真を開けませんでした')); };
+        im.onload = function (){
+          try {
+            const MAX = 1400;
+            let w = im.width, h = im.height;
+            if (w > MAX || h > MAX) {
+              const k = MAX / Math.max(w, h);
+              w = Math.round(w * k); h = Math.round(h * k);
+            }
+            const cv = document.createElement('canvas');
+            cv.width = w; cv.height = h;
+            cv.getContext('2d').drawImage(im, 0, 0, w, h);
+            ok(cv.toDataURL('image/jpeg', 0.75));
+          } catch (e) { ng(e); }
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    } catch (e) { ng(e); }
+  });
+}
+
+async function nippoSend(file, date){
+  if (!file) { bad('写真をえらんでください'); return; }
+  nippoBusy = '写真を小さくしています…'; render();
+  try {
+    const img = await nippoShrink(file);
+    nippoBusy = '置いています…'; render();
+    const { error } = await db.from('nippo_scan')
+      .insert({ user_id: ME.user.id, work_date: date || today(), img: img, state: 'new' });
+    if (error) {
+      const m = String(error.message || '');
+      bad(/relation|does not exist|schema cache/i.test(m)
+          ? '日報の置き場が、まだ台帳にありません（少し待ってから、もう一度）'
+          : jaError(error));
+      nippoBusy = ''; render(); return;
+    }
+    nippoBusy = '';
+    await nippoLoad();
+    ok('置きました。読み終わるまで、3分ほどかかります');
+    render();
+  } catch (e) { nippoBusy = ''; bad(jaError(e)); }
+}
+
+/** えらんだ行を、記録に足します */
+async function nippoAdd(id){
+  const x = nippos.filter(function (y){ return y.id === id; })[0];
+  if (!x) return;
+  let rows = [];
+  try { rows = JSON.parse(x.rows_json || '[]') || []; } catch (e) { rows = []; }
+  const put = [];
+  rows.forEach(function (r, i){
+    if (!nippoPick[id + ':' + i]) return;
+    if (r.dep == null || r.fare == null) return;
+    put.push({ user_id: ME.user.id, work_date: x.work_date,
+      place: String(r.place || '').trim(),
+      dep: +Number(r.dep).toFixed(2), wait_min: null, ride_min: null,
+      fare: Number(r.fare),
+      method: '', note: r.ticket ? 'チケット' : '' });
+  });
+  if (!put.length) { bad('足す行をえらんでください'); return; }
+  try {
+    const { error } = await db.from('rides').insert(put);
+    if (error) { bad(jaError(error)); return; }
+    await db.from('nippo_scan').update({ state: 'done' }).eq('id', id);
+    nippoPick = {};
+    await nippoLoad();
+    await reload();
+    ok(put.length + '件を記録に足しました');
+  } catch (e) { bad(jaError(e)); }
+}
+
+function nippoRowsHTML(x){
+  let rows = [];
+  try { rows = JSON.parse(x.rows_json || '[]') || []; } catch (e) { rows = []; }
+  if (!rows.length) return '<div class="empty">読み取れた行がありませんでした。</div>';
+  const can = canDelSay({ user_id: x.user_id });
+  return '<div class="scroll"><table><thead><tr>' +
+    (can ? '<th class="n">足す</th>' : '') +
+    '<th class="n">時刻</th><th>乗り場</th><th class="n">金額</th>' +
+    '<th>つき合わせ</th></tr></thead><tbody>' +
+    rows.map(function (r, i){
+      const k = x.id + ':' + i;
+      const bad2 = (r.dep == null || r.fare == null);
+      return '<tr>' +
+        (can ? ('<td class="n">' + (r.dup || bad2 ? '—' :
+          '<input type="checkbox" data-nip="' + esc(k) + '"' +
+          (nippoPick[k] ? ' checked' : '') + '>') + '</td>') : '') +
+        '<td class="n">' + esc(String(r.time || '')) + '</td>' +
+        '<td>' + (r.place ? esc(String(r.place)) : UNK) + '</td>' +
+        '<td class="n">' + (r.fare == null ? UNK : yen(r.fare)) + '</td>' +
+        '<td>' + (r.dup
+          ? '<span class="nipdup">もう入っています' +
+            (r.dup.place ? '（' + esc(r.dup.place) + '）' : '') + '</span>'
+          : (bad2 ? '<span class="nipng">読めませんでした</span>'
+                  : '<span class="nipnew">まだ入っていません</span>')) +
+        '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    (can ? '<div class="actions">' +
+      '<button class="btn" data-nipadd="' + esc(x.id) + '">えらんだ分を記録に足す</button>' +
+      '</div>' : '');
+}
+
+function paneNippo(){
+  const head = leadCard('nippo') + `<div class="card"><h2>日報（写真）読み込み</h2>
+    <p class="note">紙の日報を写した写真を置くと、1行ずつ読んで、
+      いまの記録とつき合わせます。<b>読んだだけでは記録に入りません。</b>
+      下の表で見てから【足す】を押してください。</p>
+    <label><span>営業日</span>
+      <input type="date" id="nipDate" value="${esc(today())}"></label>
+    <div class="ktfind"><input type="file" id="nipFile" accept="image/*"></div>
+    <div class="actions"><button class="btn" id="nipSend">置く</button>
+      ${nippoBusy ? '<span class="msg">' + esc(nippoBusy) + '</span>' : ''}</div>
+    <p class="note">置いてから、読み終わるまで3分ほどかかります。
+      このページを開き直すと、読めたものが出ます。</p>
+    ${msgHTML('msgnip')}</div>`;
+  if (!nippos.length) return head + emptyCard('まだ、置かれた写真はありません。');
+  return head + nippos.map(function (x){
+    const st = x.state === 'new' ? '読んでいます…'
+             : x.state === 'done' ? '記録に入れました' : '読み終わりました';
+    return '<div class="card"><h2>' + esc(fmtD(x.work_date || '')) + '　' + st + '</h2>' +
+      (x.note ? '<p class="note">' + esc(String(x.note)) + '</p>' : '') +
+      (x.state === 'new' ? '' : nippoRowsHTML(x)) + '</div>';
+  }).join('');
+}
+
+/* ------------------------------------------------------------
  *  ふきだしに足す（ご指示・2026/11/14）
  *    「吹き出しに追加したい一言 みたいな検索枠も付けて
  *      自由にふやせるようにしてください」
@@ -4889,6 +5055,8 @@ function wire(){
   if (tab === 'hot') radarBoot(); else radarStop();
   /* ピンの地図も、その画面にいるときだけ組み立てます */
   if (tab === 'map') mapBoot(); else mapStop();
+  /* 日報の画面を開いたら、置いた写真の様子を読み直します */
+  if (tab === 'nippo' && !nippoBusy && !nippos.length) nippoLoad().then(render);
   const dep = $('#f_dep');
   const upd = () => {
     const d = parseT(dep ? dep.value : '');
@@ -4946,6 +5114,16 @@ function wire(){
   /* グラフの形のえらび（表／横棒／折線）。1ページにまとめたので、ここで切り替えます */
   document.querySelectorAll('[data-gk]').forEach(function (b) {
     b.onclick = function () { gKindSet(b.dataset.gk); render(); };
+  });
+  if ($('#nipSend')) $('#nipSend').onclick = function (){
+    const f = $('#nipFile'), d = $('#nipDate');
+    nippoSend(f && f.files && f.files[0], d ? d.value : '');
+  };
+  document.querySelectorAll('[data-nip]').forEach(function (b) {
+    b.onclick = function (){ nippoPick[b.dataset.nip] = b.checked; };
+  });
+  document.querySelectorAll('[data-nipadd]').forEach(function (b) {
+    b.onclick = function (){ nippoAdd(b.dataset.nipadd); };
   });
   document.querySelectorAll('[data-tk]').forEach(function (b) {
     b.onclick = function () { tokKindSet(b.dataset.tk); render(); };

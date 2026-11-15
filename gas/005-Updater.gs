@@ -12155,6 +12155,160 @@ function webPullTick_() {
   }
 }
 
+/* ============================================================
+ *  日報（紙）の写真を読んで、記録とつき合わせる
+ *
+ *  ★まーく様のご指示（2026/11/15）
+ *    「乗降場所を記載した、紙の日報データが毎日作られていて、
+ *      写真を撮って記録しているのですが、その写真を読み込み
+ *      lineと乗車時間、乗車場所、金額と照らし合わせて
+ *      被っているもの除外、line送信してない、手打ち送信でも
+ *      載ってないものは、追加というシステムを構築できるでしょうか」
+ *
+ *  ★ここでやるのは「読む」と「つき合わせる」までです。
+ *    読んだものを、そのまま記録に入れることは **しません**。
+ *    手書きの字は、どうしても読みちがえます。
+ *    まちがった金額が売上に入ると、あとから分からなくなります。
+ *    だから、台帳の【日報】の画面で まーく様が確かめてから入れます。
+ *
+ *  ★乗り場の名前は、日報のほうが不確かだと伺っています。
+ *    同じ乗車が見つかったときは、台帳の名前を残します。
+ * ============================================================ */
+const NIPPO_PROMPT =
+  "この写真は、タクシー乗務員が手書きでつけた日報です。" +
+  "1行ずつ『乗せた時刻』『乗せた場所』『金額』が書かれています。" +
+  "読み取れた行だけを、次のJSONの配列だけで返してください。説明は書かないでください。" +
+  '[{"time":"20:35","place":"新地7","money":5800}]' +
+  "・time は 24時間の HH:MM。深夜1時は 01:00 と書いてください。" +
+  "・money は数字だけ（円記号やカンマは入れない）。" +
+  "・読み取れない欄は、その項目を空文字 \"\" にしてください。" +
+  "・『チケ』『チケット』と書かれていれば、その行に \"ticket\":true を足してください。" +
+  "・推測で埋めないでください。読めないものは空のままにしてください。";
+
+/** Supabase の行を書きかえる（PATCH） */
+function sbPatch_(path, body) {
+  const conf = sbWakeConf_(), tok = sbToken_();
+  if (!conf || !tok) return false;
+  try {
+    const res = UrlFetchApp.fetch(conf.url + "/rest/v1/" + path, {
+      method: "patch",
+      headers: { "apikey": conf.key, "Authorization": "Bearer " + tok,
+                 "Prefer": "return=minimal" },
+      contentType: "application/json",
+      payload: JSON.stringify(body),
+      muteHttpExceptions: true
+    });
+    return res.getResponseCode() < 300;
+  } catch (e) { return false; }
+}
+
+/** 「20:35」を、記録と同じ数え方の小数の「時」にする（翌1時＝25.0） */
+function nippoDep_(hm) {
+  const m = String(hm || "").match(/(\d{1,2})\D(\d{2})/);
+  if (!m) return null;
+  let v = Number(m[1]) + Number(m[2]) / 60;
+  if (v <= 6) v += 24;                 /* 0〜6時は、その夜の続き */
+  if (v >= 36) return null;
+  return v;
+}
+
+/** 写真を1枚、Geminiに読ませる。返すのは行の配列 */
+function nippoRead_(b64, mime) {
+  const g = geminiReady_();
+  const out = UrlFetchApp.fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/" + g.model +
+    ":generateContent?key=" + encodeURIComponent(g.key),
+    { method: "post", contentType: "application/json", muteHttpExceptions: true,
+      payload: JSON.stringify({ contents: [{ parts: [
+        { text: NIPPO_PROMPT },
+        { inline_data: { mime_type: mime || "image/jpeg", data: b64 } }
+      ]}]})});
+  if (out.getResponseCode() !== 200) {
+    let why = out.getContentText().slice(0, 150);
+    try { why = JSON.parse(out.getContentText()).error.message; } catch (e) {}
+    throw new Error("AIが読めませんでした（" + out.getResponseCode() + "）" + why);
+  }
+  let text = "";
+  try {
+    text = JSON.parse(out.getContentText()).candidates[0].content.parts[0].text;
+  } catch (e) { throw new Error("AIの返事を読めませんでした"); }
+  const m = text.match(/\[[\s\S]*\]/);
+  if (!m) return [];
+  let arr;
+  try { arr = JSON.parse(m[0]); } catch (e) { throw new Error("AIの返事がJSONではありませんでした"); }
+  return Array.isArray(arr) ? arr : [];
+}
+
+/**
+ * 置かれた日報の写真を、1枚だけ読んでつき合わせる。
+ * ★1回に1枚だけにします（6分で切られないため）。
+ */
+function nippoTick_() {
+  try {
+    const conf = sbWakeConf_();
+    if (!conf || !sbToken_()) return false;
+    const list = sbGet_("nippo_scan?state=eq.new&select=id,user_id,work_date,img&order=created_at.asc&limit=1");
+    if (!list || !list.length) return false;
+    const it = list[0];
+    const raw = String(it.img || "");
+    if (!raw) {
+      sbPatch_("nippo_scan?id=eq." + it.id, { state: "read", note: "写真が入っていません" });
+      return true;
+    }
+    /* data:image/jpeg;base64,xxxx の形で入っています */
+    const mm = raw.match(/^data:([^;]+);base64,(.*)$/);
+    const mime = mm ? mm[1] : "image/jpeg";
+    const b64  = mm ? mm[2] : raw;
+
+    let rows = [];
+    try {
+      rows = nippoRead_(b64, mime);
+    } catch (e) {
+      sbPatch_("nippo_scan?id=eq." + it.id,
+        { state: "read", note: String((e && e.message) || e).slice(0, 180) });
+      return true;
+    }
+
+    /* その営業日の記録と、つき合わせます */
+    const d = String(it.work_date || "");
+    const have = d
+      ? (sbGet_("rides?work_date=eq." + encodeURIComponent(d) +
+                "&select=dep,fare,place,user_id&limit=2000") || [])
+      : [];
+    const out = rows.map(function (x){
+      const dep  = nippoDep_(x && x.time);
+      const fare = (x && x.money != null && x.money !== "")
+        ? Number(String(x.money).replace(/[^\d]/g, "")) : null;
+      let dup = null;
+      if (dep != null && fare != null) {
+        for (let i = 0; i < have.length; i++) {
+          const r = have[i];
+          if (r.fare == null || r.dep == null) continue;
+          if (Number(r.fare) !== fare) continue;
+          if (Math.abs(Number(r.dep) - dep) > 5 / 60) continue;   /* 5分まで */
+          dup = { place: String(r.place || ""), dep: Number(r.dep) };
+          break;
+        }
+      }
+      return { time: String((x && x.time) || ""), dep: dep,
+               place: String((x && x.place) || ""), fare: fare,
+               ticket: !!(x && x.ticket), dup: dup };
+    });
+    const nd = out.filter(function (x){ return !x.dup; }).length;
+    sbPatch_("nippo_scan?id=eq." + it.id, {
+      state: "read",
+      rows_json: JSON.stringify(out),
+      note: out.length + "行 読みました（まだ入っていないもの " + nd + "行）"
+    });
+    try { updErrandLog_("📄 日報を1枚 読みました：" + out.length + "行／新しいもの " + nd + "行"); } catch (e) {}
+    return true;
+  } catch (e) {
+    try { logErr_("nippoTick", e); } catch (e2) {}
+    return false;
+  }
+}
+
+
 /** おつかいの控えに、1行 足す。失敗しても、頼まれごとは止めない */
 function updErrandLog_(line) {
   try {
@@ -12572,6 +12726,7 @@ const UPD_ERRAND_OK = {
    */
   "web-pull-try": "台帳→スプシの下見（書かずに、行数だけ数える）",
   "web-pull-go":  "台帳→スプシへ、ほんとうに戻す",
+  "nippo-read":   "置かれた日報の写真を、1枚 読んでつき合わせる",
   /*
    * ★スクリプトプロパティ（GASの控え）の一覧を、ドライブに置く。
    *   50個を超えると、画面からは読むだけになり、足せなくなります。
@@ -13110,6 +13265,8 @@ function updErrandTick_() {
       out = webPullPush_(false);
     } else if (task === "web-pull-go") {
       out = webPullPush_(true);
+    } else if (task === "nippo-read") {
+      out = nippoTick_() ? "📄 日報を1枚 読みました。" : "📄 読むものが、ありませんでした。";
     } else if (task === "web-events") {
       if (typeof vnFeedPush_ === "function") {
         out = vnFeedPush_(true) ? "📡 イベント情報を台帳へ渡しました。"
@@ -13362,6 +13519,15 @@ function updAutoPullTick_() {
    */
   try { updWorkTick_(); } catch (e) {
     try { logErr_("updWork", e); } catch (e2) {}
+  }
+  /*
+   * ★日報の写真が置かれていたら、1枚だけ読みます
+   *   （ご指示・2026/11/15「写真をアップロードして、反映する機能を」）。
+   *   1回に1枚だけにして、6分で切られないようにします。
+   *   読むだけで、記録には入れません（画面で確かめてから入れます）。
+   */
+  try { if (typeof nippoTick_ === "function") nippoTick_(); } catch (e) {
+    try { logErr_("nippoTick", e); } catch (e2) {}
   }
   try { return updAutoPull_(); } catch (e) {
     try { logErr_("updAutoPullTick", e); } catch (e2) {}

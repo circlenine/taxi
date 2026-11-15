@@ -129,3 +129,75 @@ select '出た！合わせてロングマァン！', true,
 where exists (select 1 from public.says)
   and not exists (select 1 from public.says
                   where text = '出た！合わせてロングマァン！');
+
+-- ------------------------------------------------------------
+-- ⑥ ふきだしのひとことを、6つ足す（2026/11/15・まーく様のご指示）
+--      おらァ！教習所からやり直せ！／ジャストポイント？オーケー？／
+--      もうちょっと頑張ろ？あと６時間！／もう、帰りたいよォ！／
+--      敗北者じゃけェ…／今から車を動かす！･･･何度で～もっ♬
+--
+--    ★台帳に1つでも入っていると、画面は台帳のほうだけを出します。
+--      なので、コードに足すだけでは出ません。ここで入れます。
+--    ★同じものが入っていれば、何もしません（二重に入れない）。
+--    ★good は「ほめ（true）」か「ぼやき（false）」。
+--      交互に出す決まりが、かたよらないように分けてあります。
+-- ------------------------------------------------------------
+insert into public.says (text, good, user_id)
+select v.t, v.g, (select user_id from public.says limit 1)
+from (values
+  ('おらァ！教習所からやり直せ！', false),
+  ('もう、帰りたいよォ！',         false),
+  ('敗北者じゃけェ…',             false),
+  ('ジャストポイント？オーケー？', true),
+  ('もうちょっと頑張ろ？あと６時間！', true),
+  ('今から車を動かす！･･･何度で～もっ♬', true)
+) as v(t, g)
+where exists (select 1 from public.says)
+  and not exists (select 1 from public.says s where s.text = v.t);
+
+-- ------------------------------------------------------------
+-- ⑦ 日報（紙）の写真を読むための置き場（2026/11/15・まーく様のご指示）
+--      「紙の日報データが毎日作られていて、写真を撮って記録している」
+--      「写真をアップロードして、反映する機能を追加して欲しいです」
+--
+--    ★写真は、ここに小さくして置きます（別の置き場は作りません）。
+--    ★見られるのは、置いた本人と まーく様だけです（下の決まり）。
+--      売上の記録なので、人に見える形には絶対にしません。
+--    ★読んだ結果は rows_json に入ります。
+--      そのままでは記録に入りません。画面で確かめてから入れます。
+-- ------------------------------------------------------------
+create table if not exists public.nippo_scan (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  work_date  date,
+  img        text not null default '',    -- 写真（小さくしたもの）
+  state      text not null default 'new', -- new → read → done
+  note       text not null default '',    -- 読めなかった理由など
+  rows_json  text not null default '',    -- 読み取った行（JSON）
+  created_at timestamptz not null default now()
+);
+alter table public.nippo_scan enable row level security;
+
+drop policy if exists nippo_select on public.nippo_scan;
+create policy nippo_select on public.nippo_scan
+  for select to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists nippo_insert on public.nippo_scan;
+create policy nippo_insert on public.nippo_scan
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists nippo_update on public.nippo_scan;
+create policy nippo_update on public.nippo_scan
+  for update to authenticated
+  using      (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists nippo_delete on public.nippo_scan;
+create policy nippo_delete on public.nippo_scan
+  for delete to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+grant select, insert, update, delete on public.nippo_scan to authenticated;
+create index if not exists nippo_scan_state_idx on public.nippo_scan (state, created_at);

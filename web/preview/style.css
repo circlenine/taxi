@@ -1807,3 +1807,9 @@ nav button i{white-space:normal;line-height:1.25;text-align:center;
 /* 仕組みの様子（まーく様だけ・2026/11/15） */
 .gsok{color:#6FD8A8;font-size:14px}
 .gsng{color:var(--kusha);font-size:14px}
+
+/* 日報（写真）読み込み（ご指示・2026/11/15） */
+.nipdup{color:#8FA3C4;font-size:11px}
+.nipnew{color:var(--andon);font-weight:700;font-size:11px}
+.nipng{color:var(--kusha);font-size:11px}
+#nipFile{width:100%;color:#FFFFFF;font-size:13px}

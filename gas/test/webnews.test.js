@@ -1391,8 +1391,8 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          （ご指示「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。画面に出るのは8こ。 */
     /* ★2026/11/13：3つのグラフを1つにまとめ、「地図」を足したので7こ */
-    /* ★2026/11/15：バラシと関空を【特定】にまとめ、【再現】を足したので7こ */
-    t(subs.length === 7, '★★★画面のメニューは7こ', subs.length);
+    /* ★2026/11/15：【特定】にまとめ、【再現】【日報】を足したので8こ */
+    t(subs.length === 8, '★★★画面のメニューは8こ', subs.length);
     t(/data-t="ev" aria-selected="false" hidden/.test(h3),
       '★★★イベントは、画面のメニューには出さない');
     t(/data-t="news" aria-selected="false" hidden/.test(h3),
@@ -3472,6 +3472,62 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
   }
   t(/スクリプトの画面そのものは、ここには出せません/.test(app),
     '★★★出せない理由も、画面に書いてある');
+}
+
+
+console.log('\n■ 日報（写真）読み込み（ご指示・2026/11/15）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8');
+  const upd = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+
+  t(/data-t="nippo"[^>]*><b>日報</.test(ix), '★★★【日報】の押しどころがある');
+  t(/function paneNippo\(\)/.test(app) && /nippo:paneNippo/.test(app), '★★★その画面がある');
+  /* ★読んだだけでは、記録に入れません */
+  t(/<b>読んだだけでは記録に入りません。<\/b>/.test(app),
+    '★★★「読んだだけでは記録に入りません」と、画面に書いてある');
+  t(/data-nipadd/.test(app) && /function nippoAdd\(id\)/.test(app),
+    '★★★えらんだ行だけを、押してから足す');
+  t(/if \(r\.dep == null \|\| r\.fare == null\) return;/
+    .test(app.slice(app.indexOf('async function nippoAdd'))),
+    '★★★読めなかった行は、足さない');
+  /* ★写真は小さくしてから置く */
+  t(/function nippoShrink\(file\)/.test(app) && /const MAX = 1400;/.test(app),
+    '★★★写真は、小さくしてから置く');
+
+  /* ★台帳の側：置き場と、見られる人の制限 */
+  t(/create table if not exists public\.nippo_scan/.test(sql), '★★★台帳に置き場ができる');
+  t(/alter table public\.nippo_scan enable row level security/.test(sql),
+    '★★★台帳の側でも、見られる人を止めている');
+  t(/create policy nippo_select[\s\S]{0,160}user_id = auth\.uid\(\) or public\.is_admin\(\)/.test(sql),
+    '★★★見られるのは、置いた本人と まーく様だけ');
+
+  /* ★GASの側：読む係 */
+  t(/function nippoTick_\(\)/.test(upd) && /const NIPPO_PROMPT =/.test(upd),
+    '★★★GASに、写真を読む係がある');
+  t(/limit=1/.test(upd.slice(upd.indexOf('function nippoTick_'))),
+    '★★★1回に1枚だけ読む（6分で切られないため）');
+  t(/state: "read"/.test(upd) && !/from\('rides'\)/.test(upd),
+    '★★★GASは読むだけで、記録には入れない');
+  t(/"nippo-read":/.test(upd) && /task === "nippo-read"/.test(upd),
+    '　 おつかいからも 呼べる');
+
+  /* ★つき合わせの決まり（5分まで・同じ金額） */
+  const fn = upd.slice(upd.indexOf('function nippoTick_'));
+  t(/Math\.abs\(Number\(r\.dep\) - dep\) > 5 \/ 60/.test(fn),
+    '★★★時刻は5分までを「同じ乗車」と見る');
+  t(/Number\(r\.fare\) !== fare/.test(fn), '★★★金額が違えば、別の乗車');
+
+  /* ★深夜の時刻の数え方 */
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext(upd.slice(upd.indexOf('function nippoDep_'),
+                            upd.indexOf('function nippoRead_')), box);
+  const dp = vm.runInContext('nippoDep_', box);
+  t(dp('20:35') === 20 + 35/60, '★★★20:35 は 20.58', dp('20:35'));
+  t(dp('01:00') === 25, '★★★深夰1時は 25（その夜の続き）', dp('01:00'));
+  t(dp('') === null, '★★★読めなければ null');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
