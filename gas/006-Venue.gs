@@ -7,6 +7,9 @@
  *  [V118ver]
  *  ・🔁 台帳で直したものを、スプシへ戻す係（webPullTick_）を
  *    1日1回の仕事に足した（スプシ→台帳の あと）
+ *  ・🩺 仕組みの様子を、台帳の画面にも出す紙を置くようにした（vnStatusPush_）
+ *  ・🎬 終演の見当を、催しの種類（野球・舞台・ライブ…）で分けるようにした
+ *    ★会場が終演を出していないときの「見当」です。例年の実績ではありません。
  *
  *  [V117ver]
  *   ・🎤 大阪城ホールに、終わりの時刻の見積もりを足した
@@ -4693,7 +4696,7 @@ function vnCard_(ev, idx, day, noBells, budget) {
      *   公演の終わりを手がかりに、だいたいの見当を添えます。
      */
     if (ev.kind === "barasi" || ev.hasBarasi) {
-      const owari = ev.end || vnGuessEnd_(ev.venue, ev.start);
+      const owari = ev.end || vnGuessEnd_(ev.venue, ev.start, ev.title || ev.name || "");
       rows.push({ "type": "text",
                   "text": owari
                     ? "🔧 搬出は、公演の終わり（" + owari + "ごろ）のあと"
@@ -7263,7 +7266,8 @@ function vnScrapeDeep_(src, day, html) {
       end = "";
     }
     let guessed = false;
-    if (!end) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
+    /* ★催しの種類で見当を分けます（ご質問・2026/11/15）。その行の字から見ます */
+    if (!end) { end = vnGuessEnd_(src.name, start, text); guessed = !!end; }
     /*
      * ★名前は、まず **そのページの題** を使います（2026/11/10 に直しました）。
      *   リンクの字だけを使っていたので、
@@ -7696,13 +7700,48 @@ function vnTitleOf_(block) {
 }
 
 /** 会場の種類から、終わりのおおよその時刻を見積もる（書いていないとき用） */
-function vnGuessEnd_(venue, start) {
+/*
+ * ★終演の見当について（まーく様のご質問・2026/11/15）
+ *     「きちんと例年の終演時間に沿ったもののみを提示してるのですか？
+ *       アーティストごとで、時間も変わってくると思いますが」
+ *
+ *   正直に書きます。**例年の実績ではありません。**
+ *   会場が終演を出していないときに、
+ *   「開演＋催しの種類ごとの決め打ち」で出している、ただの見当です。
+ *   だから画面では必ず「（予定）」と付けています。
+ *
+ *   それでも、会場の種類だけで決めるより、
+ *   **催しの種類（野球・舞台・ライブ…）**で分けたほうが近くなります。
+ *   2026/11/15 に、そう直しました。
+ *   はっきり書いてある終演（fin）があるときは、こちらは使いません。
+ */
+const VN_END_ADD = [
+  [/プロ野球|バファローズ|タイガース|ベースボール|野球/, 3.0],
+  [/ミュージカル|劇団|舞台|歌舞伎|演劇|宝塚/,           2.75],
+  [/オペラ|バレエ/,                                     3.0],
+  [/交響|オーケストラ|フィルハーモニー|クラシック|リサイタル/, 2.0],
+  [/落語|寄席|お笑い|漫才/,                             2.0],
+  [/Jリーグ|ガンバ|セレッソ|サッカー|ラグビー|バスケ|Bリーグ|エヴェッサ/, 2.0],
+  [/相撲|格闘技|ボクシング|プロレス/,                   2.5],
+  [/展示|見本市|フェア|商談/,                           1.0],
+  [/ライブ|コンサート|LIVE|TOUR|ツアー/i,               2.5]
+];
+function vnGuessEnd_(venue, start, title) {
   const v = VN_VENUES[venue] || {};
   const h = vnHourOf_(start);
   if (h === null) return "";
-  const add = v.type === "スタジアム" ? 2.0
-            : v.type === "ドーム" || v.type === "ホール" || v.type === "野外" ? 2.5
-            : v.type === "展示場" ? 1.0 : 2.0;
+  let add = null;
+  const t0 = String(title || "");
+  if (t0) {
+    for (let i = 0; i < VN_END_ADD.length; i++) {
+      if (VN_END_ADD[i][0].test(t0)) { add = VN_END_ADD[i][1]; break; }
+    }
+  }
+  if (add === null) {
+    add = v.type === "スタジアム" ? 2.0
+        : v.type === "ドーム" || v.type === "ホール" || v.type === "野外" ? 2.5
+        : v.type === "展示場" ? 1.0 : 2.0;
+  }
   const t = h + add;
   const hh = Math.floor(t) % 24, mm = Math.round((t % 1) * 60);
   return ("0" + hh).slice(-2) + ":" + ("0" + mm).slice(-2);
@@ -8361,7 +8400,7 @@ function vnJohall_(src, day, html) {
      */
     let en = "", gu = false;
     if (st && typeof vnGuessEnd_ === "function") {
-      en = vnGuessEnd_(src.venue || src.name, st);
+      en = vnGuessEnd_(src.venue || src.name, st, b);
       gu = !!en;
     }
     const gm = b.match(/class="event-genre[^"]*"[^>]*>([\s\S]*?)<\/li>/);
@@ -8637,7 +8676,10 @@ function vnScrapeOne_(src, day, htmlIn) {
     if (!start && !end) return;
 
     let guessed = false;
-    if (!end && start) { end = vnGuessEnd_(src.name, start); guessed = !!end; }
+    if (!end && start) {
+      end = vnGuessEnd_(src.name, start, vnTitleOf_(nameLines) || "");
+      guessed = !!end;
+    }
 
     let theTitle = vnTitleOf_(nameLines) || "（名前を読み取れませんでした）";
     /*

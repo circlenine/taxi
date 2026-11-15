@@ -4122,6 +4122,10 @@ console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る')
        作った形が「ほんとうに通る形か」まで確かめるためです。 */
   box2.VN_VENUES = {}; box2.VN_MIN_PEOPLE = 0;
   box2.VN_FROM_HOUR = 17.5; box2.VN_TO_HOUR = 28;
+  /* ★終演の見当は、催しの種類でも分けます（ご質問・2026/11/15）。
+       その表も、本物をそのまま入れます。 */
+  vm.runInContext(src2.slice(src2.indexOf('const VN_END_ADD = ['),
+                             src2.indexOf('function vnGuessEnd_')), box2);
   ['vnGuessEnd_', 'vnHourOf_', 'vnHasTime_', 'vnInTimeRange_',
    'vnBigEnough_', 'vnFromHour_', 'vnToHour_'].forEach(function (fn) {
     const a1 = src2.indexOf('function ' + fn);
@@ -4181,6 +4185,53 @@ console.log('■ 大阪城ホールは、催しの名前を ちゃんと取る')
     'vnJohall_({name:"大阪城ホール",kind:"event",url:"x"}, new Date(2026,10,15), ' +
     JSON.stringify(page) + ')', box2);
   eq(none.events.length, 0, '　 ちがう日のぶんは、取らない');
+}
+
+console.log('\n■ 終演の見当は、催しの種類で分ける（ご質問・2026/11/15）');
+{
+  /*
+   * ★まーく様のご質問
+   *   「きちんと例年の終演時間に沿ったもののみを
+   *     提示してるのですか？アーティストごとで、
+   *     時間も変わってくると思いますが」
+   *
+   * ★答え：例年の実績ではありません。
+   *   会場が終演を出していないときだけ、
+   *   「開演＋催しの種類ごとの決め打ち」で出す見当です。
+   *   だから必ず「（予定）」と付けています。
+   */
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const box = { VN_VENUES: { "大阪城ホール": { type: "ホール" } } };
+  vm.createContext(box);
+  {
+    const a = src.indexOf('function vnHourOf_');
+    let d = 0, j = a;
+    while (true) { const c = src[j]; if (c === '{') d++; else if (c === '}') { d--; if (!d) break; } j++; }
+    vm.runInContext(src.slice(a, j + 1), box);
+  }
+  vm.runInContext(src.slice(src.indexOf('const VN_END_ADD = ['),
+                            src.indexOf('function vnGuessEnd_')), box);
+  {
+    const a = src.indexOf('function vnGuessEnd_');
+    let d = 0, j = a;
+    while (true) { const c = src[j]; if (c === '{') d++; else if (c === '}') { d--; if (!d) break; } j++; }
+    vm.runInContext(src.slice(a, j + 1), box);
+  }
+  const G = vm.runInContext('vnGuessEnd_', box);
+  eq(G("大阪城ホール", "18:00", ""), "20:30",
+     '★★★種類が分からなければ、会場の種類で（ホール＝2.5時間）');
+  eq(G("大阪城ホール", "18:00", "ミュージカル『レミゼラブル』"), "20:45",
+     '★★★舞台・ミュージカルは、幕間を見て 2時間45分');
+  eq(G("大阪城ホール", "18:00", "プロ野球　バファローズ戦"), "21:00",
+     '★★★野球は 3時間');
+  eq(G("大阪城ホール", "18:00", "Jリーグ　ガンバ大阪"), "20:00",
+     '★★★サッカーは 2時間');
+  eq(G("大阪城ホール", "10:00", "国際展示会"), "11:00",
+     '★★★展示は 1時間');
+  eq(G("大阪城ホール", "18:00", "LIVE TOUR 2026"), "20:30",
+     '★★★ライブは 2時間30分');
+  eq(G("大阪城ホール", "", "ライブ"), "",
+     '★★★開演が分からなければ、何も出さない');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
