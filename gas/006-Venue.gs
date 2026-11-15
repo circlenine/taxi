@@ -11577,6 +11577,81 @@ function vnGasPush_() {
   } catch (e) { return false; }
 }
 
+/* ------------------------------------------------------------
+ *  仕組みの様子を、台帳（ウェブ）にも出す
+ *
+ *  ★まーく様のご質問（2026/11/15）
+ *    「また、Googleスクリプトのページを、
+ *      webサイトの方にも表示させることはできないのでしょうか」
+ *
+ *  ★スクリプトの画面そのものは、出せません。
+ *    Googleのログインが要るうえ、よそのページの中には
+ *    出せない決まりになっているためです。
+ *  ★そのかわり「いまの様子」を、ここで小さな紙に書き出します。
+ *    台帳の【管理】の画面に出ます（まーく様だけ）。
+ *  ★秘密は1文字も書きません。
+ *    鍵・住所・しくじりの中身は書かず、数と○×だけにします
+ *    （この紙は、だれでも開けるところに置かれるためです）。
+ * ---------------------------------------------------------- */
+const VN_STATUS_PATH = "web/data/status.json";
+function vnStatusPush_() {
+  try {
+    if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
+
+    let trig = 0;
+    try { trig = ScriptApp.getProjectTriggers().length; } catch (e) { trig = -1; }
+    let web = false;
+    try { web = !!(typeof updWebAppUrl_ === "function" && updWebAppUrl_()); } catch (e) {}
+    let errN = 0;
+    try {
+      const l = JSON.parse(PropertiesService.getScriptProperties()
+        .getProperty("LAST_ERRORS") || "[]");
+      errN = (l && l.length) || 0;
+    } catch (e) {}
+    const body = {
+      at:   Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm"),
+      ver:  (typeof UPD_VERSION === "string" ? UPD_VERSION : "") + " / " +
+            (typeof VN_VERSION  === "string" ? VN_VERSION  : ""),
+      trig: trig,          /* 見張りの数 */
+      web:  web,           /* 受け口が生きているか */
+      errN: errN           /* 直近のしくじりの「数」だけ（中身は書きません） */
+    };
+
+    const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_STATUS_PATH;
+    const ref  = encodeURIComponent(updBranch_());
+    let sha = "", prev = "";
+    try {
+      const got = updGhTry_(base + "?ref=" + ref);
+      if (got.code === 200) {
+        const j = JSON.parse(got.body);
+        sha = j.sha || "";
+        try {
+          prev = Utilities.newBlob(
+            Utilities.base64Decode(String(j.content || "").replace(/\s/g, ""))
+          ).getDataAsString("UTF-8");
+        } catch (e) { prev = ""; }
+      }
+    } catch (e) {}
+    /* 中身（時刻いがい）が同じなら、置き直しません */
+    try {
+      const old = JSON.parse(prev);
+      if (old && old.ver === body.ver && old.trig === body.trig &&
+          old.web === body.web && old.errN === body.errN) return true;
+    } catch (e) {}
+
+    const payload = { message: "仕組みの様子を置き直した（じどう）",
+      content: Utilities.base64Encode(JSON.stringify(body, null, 1), Utilities.Charset.UTF_8),
+      branch: updBranch_() };
+    if (sha) payload.sha = sha;
+    const res = UrlFetchApp.fetch(base, {
+      method: "put", headers: updGhHeaders_(false),
+      contentType: "application/json",
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    return res.getResponseCode() < 300;
+  } catch (e) { return false; }
+}
+
 function vnFeedPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
@@ -12216,6 +12291,13 @@ function venueDailyJob() {
      */
     try { if (typeof webPullTick_ === "function") webPullTick_(); }
     catch (e) { if (typeof logErr_ === "function") logErr_("webPullTick", e); }
+
+    /* ★仕組みの様子を、台帳の【管理】の画面にも出します
+         （ご質問・2026/11/15「Googleスクリプトのページを、
+           webサイトの方にも表示させることはできないのでしょうか」）。
+         秘密は1文字も書きません（数と○×だけ）。 */
+    try { if (typeof vnStatusPush_ === "function") vnStatusPush_(); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnStatusPush", e); }
 
     /*
      * ★イベント情報を、TAXI NOTE（ウェブ）にも渡します

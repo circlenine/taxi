@@ -805,7 +805,7 @@ function render(){
        ほかの乗務員の方には、要らない画面です。 */
   /* ★グラフは3つを1ページにまとめました（ご指示・2026/11/13）。
        前の押しどころを覚えている方のために、heat/tl/sc も同じ画面へ回します。 */
-  const PANES = { in: () => (ME.profile.is_admin ? paneOut() : '') + paneSays(), hot:paneHot,
+  const PANES = { in: () => (ME.profile.is_admin ? (paneOut() + gasStatCard()) : '') + paneSays(), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, tok:paneTok, rep:paneRep, bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
@@ -3932,11 +3932,49 @@ function paneRatio(){
  *    イベントの紙が20時間より古ければ、一番上に赤い帯を出します。
  * ========================================================== */
 let gasInfo = null;
+let gasStat = null;
 async function gasLoad(){
   try {
     const r = await fetch('data/gas.json', { cache: 'no-store' });
     if (r.ok) gasInfo = await r.json();
   } catch (e) { gasInfo = null; }
+  /* ★仕組みの様子（ご質問・2026/11/15
+       「Googleスクリプトのページを、webサイトの方にも表示させることは
+         できないのでしょうか」）。無くても、ほかは動きます。 */
+  try {
+    const r2 = await fetch('data/status.json', { cache: 'no-store' });
+    if (r2.ok) gasStat = await r2.json();
+  } catch (e) { gasStat = null; }
+}
+
+/*
+ * 仕組みの様子（まーく様だけ）。
+ * ★スクリプトの画面そのものは、ここには出せません。
+ *   Googleのログインが要るうえ、よそのページの中には
+ *   出せない決まりになっているためです。
+ *   そのかわり「いまの様子」と、押しどころを出します。
+ */
+function gasStatCard(){
+  if (!(ME.profile && ME.profile.is_admin)) return '';
+  const u = (gasInfo && gasInfo.exec) ? String(gasInfo.exec) : '';
+  const s2 = gasStat || {};
+  const ok = function (b){ return b ? '<b class="gsok">○</b>' : '<b class="gsng">×</b>'; };
+  return '<div class="card"><h2>仕組みの様子</h2>' +
+    '<p class="note">スクリプトの画面そのものは、ここには出せません' +
+    '（Googleのログインが要るためです）。いまの様子と、押しどころを出しています。</p>' +
+    '<div class="scroll"><table><tbody>' +
+    '<tr><td>書いた時刻</td><td>' + esc(String(s2.at || '不明')) + '</td></tr>' +
+    '<tr><td>中身の版</td><td>' + esc(String(s2.ver || '不明')) + '</td></tr>' +
+    '<tr><td>見張りの数</td><td>' + (s2.trig == null ? '不明' : s2.trig) + '</td></tr>' +
+    '<tr><td>受け口</td><td>' + (s2.web == null ? '不明' : ok(s2.web)) + '</td></tr>' +
+    '<tr><td>直近のしくじり</td><td>' + (s2.errN == null ? '不明' : (s2.errN + '件')) + '</td></tr>' +
+    '</tbody></table></div>' +
+    (u ? '<div class="actions">' +
+      '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">仕掛けを起こす</a>' +
+      '</div><p class="note">押すと新しい画面が開いて、見張りの立て直し・新しい中身の取り込み・' +
+      '頼まれごとを、まとめて走らせます。</p>'
+      : '<p class="note">受け口の住所が、まだ届いていません。</p>') +
+    '</div>';
 }
 /** 仕掛けが止まっていそうか（イベントの紙の古さで見ます） */
 function gasStale(){

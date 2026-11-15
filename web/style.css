@@ -1803,3 +1803,7 @@ nav button i{white-space:normal;line-height:1.25;text-align:center;
   font-family:var(--mono);font-size:9px;color:#FFFFFF;opacity:.9;width:30px}
 .rdrleg i{display:block;width:28px;height:7px;border-radius:2px;margin-bottom:1px}
 .rdrleg small{font-size:9px;color:#FFFFFF;opacity:.7;margin-left:4px}
+
+/* 仕組みの様子（まーく様だけ・2026/11/15） */
+.gsok{color:#6FD8A8;font-size:14px}
+.gsng{color:var(--kusha);font-size:14px}

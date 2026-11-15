@@ -1998,7 +1998,7 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
        自由にふやせるようにしてください」 */
   t(/placeholder="吹き出しに追加したい一言"/.test(app),
     '★★★入れる枠がある（そのままの言い方で）');
-  t(/function paneSays\(\)/.test(app) && /paneOut\(\) : ''\) \+ paneSays\(\)/.test(app),
+  t(/function paneSays\(\)/.test(app) && /\) : ''\) \+ paneSays\(\)/.test(app),
     '★★★【記録】の画面に出る');
   /* ★探さなくても行けること（ご質問・2026/11/14
        「ふきだし追加したい時のやつ、どこにあるんですか？」）。
@@ -3448,6 +3448,30 @@ console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
     t(M([n(x)]).length === 1, '★★★「' + x + '」は印として拾う');
   });
   t(M([n('梅田まで')]).length === 0, '　 そうでないメモは拾わない');
+}
+
+
+console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026/11/15）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const vn  = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  t(/function gasStatCard\(\)/.test(app), '★★★様子を出す欄がある');
+  t(/gasStatCard\(\)/.test(app) && /is_admin \? \(paneOut\(\) \+ gasStatCard\(\)\)/.test(app),
+    '★★★まーく様だけに出る');
+  t(/data\/status\.json/.test(app), '★★★小さな紙を読んでいる');
+  t(/function vnStatusPush_\(\)/.test(vn) && /VN_STATUS_PATH = "web\/data\/status\.json"/.test(vn),
+    '★★★GASが、その紙を置きにいく');
+  /* ★この紙は、だれでも開けるところに置かれます。
+       鍵・住所・しくじりの中身は、1文字も書きません。 */
+  {
+    const fn = vn.slice(vn.indexOf('function vnStatusPush_'), vn.indexOf('function vnFeedPush_'));
+    t(!/LAST_ERRORS[\s\S]{0,200}msg/.test(fn), '★★★しくじりの中身は書かない（数だけ）');
+    t(!/updWebAppUrl_\(\)\s*\)?\s*;?\s*\n[\s\S]{0,120}exec/.test(fn),
+      '★★★受け口の住所も、この紙には書かない');
+    t(/errN: errN/.test(fn) && /trig: trig/.test(fn), '　 数と○×だけを書いている');
+  }
+  t(/スクリプトの画面そのものは、ここには出せません/.test(app),
+    '★★★出せない理由も、画面に書いてある');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
