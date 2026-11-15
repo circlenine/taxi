@@ -1,168 +1,9 @@
 {
- "at": "2026-11-15 15:00",
+ "at": "2026-11-16 00:00",
  "days": [
-  {
-   "d": "2026-11-15",
-   "list": [
-    {
-     "v": "大阪城ホール",
-     "t": "U-KNOW",
-     "k": "event",
-     "s": "16:00",
-     "e": "18:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.osaka-johall.com/event/",
-     "al": []
-    },
-    {
-     "v": "京セラドーム大阪",
-     "t": "INI（公演日）　📅 2日中の最終日［コンサート］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
-    {
-     "v": "インテックス大阪",
-     "t": "STU48（公演日）　📅 2日中の最終日［イベント］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
-    {
-     "v": "フェスティバルホール",
-     "t": "平原綾香 Concert Tour 2026 with Orchestra",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": []
-    },
-    {
-     "v": "Zepp Namba",
-     "t": "WATWING Zepp Live Tour「love」",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
-     "al": []
-    },
-    {
-     "v": "Zepp Osaka Bayside",
-     "t": "PARK JINYOUNG 1ST CONCERT TOUR [CODE#] IN JAPAN",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
-     "al": []
-    },
-    {
-     "v": "BIGCAT",
-     "t": "EIR AOI LIVE TOUR 2026-2027 “UNBOUND”",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "http://bigcat-live.com/schedule/",
-     "al": []
-    },
-    {
-     "v": "GORILLA HALL OSAKA",
-     "t": "ポルカドットスティングレイ ポルフェス125 #STILL PINK TOUR 2026",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:00",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://gorillahall.jp/",
-     "al": []
-    },
-    {
-     "v": "オリックス劇場",
-     "t": "2026 KIM JI WON FANMEETING ＜WONEDERLAND＞ in JAPAN",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
-     "al": []
-    },
-    {
-     "v": "フェニーチェ堺",
-     "t": "Little Glee Monster Live Tour 2026-2027 “BREATH”",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://www.fenice-sacay.jp/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "Little Glee Monster"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://www.littlegleemonster.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/LittleGleeMonst"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/littlegleemonster_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCC2M6-jBjWuVtrTZZg-ymjg"
-      }
-     ]
-    }
-   ]
-  },
   {
    "d": "2026-11-16",
    "list": [
-    {
-     "v": "大阪城ホール",
-     "t": "米津玄師（搬入（初日））　📅 公演は 11/18 から2日間［コンサート］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
     {
      "v": "京セラドーム大阪",
      "t": "2026 MAMA AWARDS（搬入（初日））　📅 公演は 11/20 から2日間［コンサート］",
@@ -173,7 +14,55 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "MAMA AWARDS"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.mwave.me/en/mama/about"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/mnetmama"
+      }
+     ]
+    },
+    {
+     "v": "大阪城ホール",
+     "t": "米津玄師（搬入（初日））　📅 公演は 11/18 から2日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "米津玄師"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://reissuerecords.net/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/hachi_08"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/hachi_08/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCUCeZaZeJbEYAAzvMgrKOPQ"
+      }
+     ]
     },
     {
      "v": "クールジャパンパーク大阪 WWホール",
@@ -217,6 +106,149 @@
      "k": "event",
      "s": "18:30",
      "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://www.sankeihallbreeze.com/schedule/",
+     "al": []
+    }
+   ]
+  },
+  {
+   "d": "2026-11-17",
+   "list": [
+    {
+     "v": "大阪城ホール",
+     "t": "米津玄師（搬入（初日））　📅 公演は 11/18 から2日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "米津玄師"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://reissuerecords.net/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/hachi_08"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/hachi_08/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCUCeZaZeJbEYAAzvMgrKOPQ"
+      }
+     ]
+    },
+    {
+     "v": "京セラドーム大阪",
+     "t": "2026 MAMA AWARDS（搬入（初日））　📅 公演は 11/20 から2日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "MAMA AWARDS"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.mwave.me/en/mama/about"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/mnetmama"
+      }
+     ]
+    },
+    {
+     "v": "フェスティバルホール",
+     "t": "辰巳ゆうとスペシャルコンサートツアー2026-Transformation",
+     "k": "event",
+     "s": "16:00",
+     "e": "18:30",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://www.festivalhall.jp/events/list/2026/11/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "辰巳ゆうと"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/tatsumi_yuto"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/tatsumi_yuto_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UC24Df8W87PfXACozFRqWQqw"
+      }
+     ]
+    },
+    {
+     "v": "Zepp Osaka Bayside",
+     "t": "乃⽊坂46 6期⽣全国ツアー2026",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "📅 2日中の初日",
+     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
+     "al": []
+    },
+    {
+     "v": "BIGCAT",
+     "t": "「ひかりと、せかい」（後編）",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "http://bigcat-live.com/schedule/",
+     "al": []
+    },
+    {
+     "v": "GORILLA HALL OSAKA",
+     "t": "ベリーグッドマン ベリーグッドマン 結成13周年記念 & HiDEX生誕38周年お祝いライブ",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
+     "g": true,
+     "a": "",
+     "r": "",
+     "u": "https://gorillahall.jp/",
+     "al": []
+    },
+    {
+     "v": "サンケイホールブリーゼ",
+     "t": "栗たわわなる東阪岩岐漫才興行2026",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:30",
      "g": true,
      "a": "",
      "r": "",
