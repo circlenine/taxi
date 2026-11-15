@@ -1950,7 +1950,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U175ver";
+const UPD_VERSION = "U176ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
