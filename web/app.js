@@ -826,7 +826,7 @@ function render(){
   placeSelFill_();
   /* 題の下の一文（前日の万収をほめる） */
   const sb = $('#sub');
-  if (sb) { sb.textContent = subLine(); subFit(sb); }
+  subSet(sb);
   if (tab === 'news') newsSeen();
   /* ★イベントを開いたら、赤い点は消します（ご指摘・2026/11/12
        「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
@@ -1535,12 +1535,149 @@ function kana(v){
 }
 
 /* ------------------------------------------------------------
- *  題の下の一文（まーく様のご指示・2026/11/12）
+ *  題の下の一文（ご指示・2026/11/15）
  *
- *    「昨日(日付、曜日)の完全万収ライナーは〝○○くん〟です！」
- *    前日に1万円以上の乗車があった人を、ほめたたえます。
- *    万収が無かった日は、これまでどおりの一文にします
- *    （2026/11/13 のご指示で「キラ」に戻しました）。
+ *  ★まーく様のご指示
+ *    「完全万収ライナーは、やめて
+ *      乗り場が、メンバーの中で多く付けている人に対して
+ *      例) 最多付け待ちの為、江坂駅タクシー乗り場のLは〝○○〟です
+ *      みたいにしてください
+ *      2行になったり、はみ出したりしないように調整してください
+ *      ここの文章に限り、乗り場名が長すぎる場合は｢…｣もつけて良いものとします
+ *      ただし、メンバーに偏りがないように
+ *      メンバーが2回同時に出ないような形で順に表示させる形にしてください
+ *      更新する度に切り替わる形で良いです」
+ *
+ *  ★「最多」と言い切れるときだけ出します。
+ *    1件しかない乗り場や、同じ数で並んでいる乗り場は出しません。
+ *    言い切れないことを言うと、人の間に きれつが生まれます。
+ * ---------------------------------------------------------- */
+const MANSHU = 10000;        /* 万収（1万円以上）。ほかの画面で使っています */
+
+/** 乗り場ごとの「一番多く付けている人」 */
+function lordList(){
+  const by = {};
+  (records || []).forEach(function (r){
+    const p = canonPlace(String((r && r.place) || '').trim());
+    if (!p) return;
+    const k = kunName(r.user_id);
+    if (!k) return;
+    by[p] = by[p] || {};
+    by[p][k] = (by[p][k] || 0) + 1;
+  });
+  const out = [];
+  Object.keys(by).forEach(function (p){
+    const m = by[p];
+    const ks = Object.keys(m).sort(function (a, b){
+      return m[b] - m[a] || (a < b ? -1 : 1);
+    });
+    const top = ks[0];
+    if (!top || m[top] < 2) return;                     /* 1件は、たまたまの1本 */
+    if (ks.length > 1 && m[ks[1]] === m[top]) return;   /* 同じ数なら「最多」と言えない */
+    out.push({ p: p, who: top, n: m[top] });
+  });
+  return out;
+}
+
+/**
+ * 出す順番を決めます。
+ *  ・同じ人が続けて出ないように
+ *  ・人にかたよらないように（残りの多い人から出す）
+ */
+function lordOrder(list){
+  const by = {};
+  list.forEach(function (x){ (by[x.who] = by[x.who] || []).push(x); });
+  Object.keys(by).forEach(function (k){
+    by[k].sort(function (a, b){ return b.n - a.n; });   /* 件数の多い乗り場から */
+  });
+  const out = [];
+  let prev = '';
+  for (let guard = 0; guard < 500; guard++) {
+    const left = Object.keys(by).filter(function (k){ return by[k].length; });
+    if (!left.length) break;
+    let ks = left.filter(function (k){ return k !== prev; });
+    if (!ks.length) ks = left;                          /* 残りが1人だけのとき */
+    ks.sort(function (a, b){ return by[b].length - by[a].length || (a < b ? -1 : 1); });
+    out.push(by[ks[0]].shift());
+    prev = ks[0];
+  }
+  /*
+   * ★ぐるっと一周して、最後と先頭が同じ人になることがあります。
+   *   そのままだと、開き直したときに同じ人が2回続きます。
+   *   「続いている所」の数が減る入れ替えを、減らなくなるまで探します。
+   */
+  const bads = function (L){
+    let c = 0;
+    for (let i = 0; i < L.length; i++) if (L[i].who === L[(i + 1) % L.length].who) c++;
+    return c;
+  };
+  for (let g = 0; g < 200 && out.length > 2; g++) {
+    const now = bads(out);
+    if (!now) break;
+    let done = false;
+    for (let i = 0; i < out.length && !done; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        const t = out[i]; out[i] = out[j]; out[j] = t;
+        if (bads(out) < now) { done = true; break; }
+        const u = out[i]; out[i] = out[j]; out[j] = u;     /* 戻す */
+      }
+    }
+    if (!done) break;                /* これ以上は減らせません（人が片寄りすぎ） */
+  }
+  return out;
+}
+
+/* ★「更新する度に切り替わる形で良いです」。開き直すたびに1つ進めます */
+const LORD_KEY = 'tsukemachi.lord';
+let lordSeq = 0;
+function lordSeqInit(){
+  try {
+    lordSeq = (parseInt(localStorage.getItem(LORD_KEY) || '0', 10) || 0) + 1;
+    localStorage.setItem(LORD_KEY, String(lordSeq));
+  } catch (e) { lordSeq = 1; }
+}
+/** きょう出す1つ（無ければ null） */
+function lordPick(){
+  const L = lordOrder(lordList());
+  if (!L.length) return null;
+  return L[((lordSeq % L.length) + L.length) % L.length];
+}
+
+/* 字が枠からはみ出しているか（小数のまま測ります） */
+function subOver(el){
+  try {
+    const rg = document.createRange();
+    rg.selectNodeContents(el);
+    return rg.getBoundingClientRect().width > el.getBoundingClientRect().width - 0.6;
+  } catch (e) { return el.scrollWidth > el.clientWidth; }
+}
+
+/**
+ * 題の下の一文を入れます。
+ * ★乗り場の名前が長いときは、ここだけ「…」で短くしてよい、とのご指示です。
+ */
+function subSet(el){
+  if (!el) return;
+  const x = lordPick();
+  if (!x) { el.textContent = subLine(); subFit(el); return; }
+  const mk = function (p){
+    return '最多付け待ちの為、' + p + 'のLは〝' + x.who + '〟です';
+  };
+  const ch = [...String(x.p)];
+  el.style.fontSize = '';
+  el.textContent = mk(x.p);
+  for (let n = ch.length - 1; n >= 2 && subOver(el); n--) {
+    el.textContent = mk(ch.slice(0, n).join('') + '…');
+  }
+  subFit(el);                       /* それでも入らなければ、字を小さくします */
+}
+
+/* ------------------------------------------------------------
+ *  名前の出し方（まーく様のご指示・2026/11/12）
+ *
+ *  ★前は「昨日の万収ライナー」をほめる一文を出していましたが、
+ *    2026/11/15 のご指示でやめました。いまは上の subSet のとおりです。
+ *    この表（KUN）は、そちらでも使っています。
  *
  *  ★スマホで1行に収めます。折り返すと、題の位置が下がって
  *    まわりがずれます（これまでに何度も起きています）。
@@ -1557,22 +1694,12 @@ function kunName(uid){
   for (const k in KUN) if (n.indexOf(k) !== -1) return KUN[k];
   return '';
 }
-/** 万収（1万円以上）＝ ほめる相手 */
-const MANSHU = 10000;
+/*
+ * ★「完全万収ライナー」の一文は、やめました（ご指示・2026/11/15）。
+ *   いまは「最多付け待ちの為、〇〇のLは〝△△〟です」を出します（subSet）。
+ *   ここは、その一文が出せないとき（記録がまだ足りないとき）の控えです。
+ */
 function subLine(){
-  try {
-    const y = prevYmd(today());
-    const win = [];
-    records.forEach(function (r) {
-      if (r.date !== y || isUnk(r.fare) || +r.fare < MANSHU) return;
-      const k = kunName(r.user_id);
-      if (k && win.indexOf(k) === -1) win.push(k);
-    });
-    if (win.length) {
-      return '昨日（' + fmtD(y) + '）の完全万収ライナーは〝' +
-             win.join('〟〝') + '〟です！';
-    }
-  } catch (e) {}
   /* ★スマホで1行に収めるため、短い言い方にしました（ご指示・2026/11/13）。
        前は「近日中、誰かがワンメータを乗せたら、〜」で29字あり、
        390px の画面で おしりが「…」で切れていました。 */
@@ -5666,6 +5793,9 @@ function evPopup(d){
 /* ★イベントの紙と、受け口の住所を 読みます。
      住所は【仕掛けを起こす】のボタンに使います（ご指示・2026/11/13）。 */
 async function bootLoad(){
+  /* ★題の下の一文は「開き直すたびに切り替わる」ので、ここで1つ進めます
+       （ご指示・2026/11/15「更新する度に切り替わる形で良いです」）。 */
+  lordSeqInit();
   await gasLoad();
   await loadEv();
 }

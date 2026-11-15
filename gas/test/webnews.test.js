@@ -2936,61 +2936,84 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
 
 
 
-console.log('■ 題の下の一文（ご指示・2026/11/12）');
+console.log('■ 題の下の一文（ご指示・2026/11/15）');
 {
   /*
-   * ★まーく様のご指示（2026/11/12）
-   *     「昨日(日付、曜日)の完全万収ライナーは〝○○くん〟です！」
-   *     「万収がなかった場合は、～キラです にしてほしいですが、
-   *       キラの部分をベルトルトに修正してください」
+   * ★まーく様のご指示（2026/11/15）
+   *   「完全万収ライナーは、やめて
+   *     乗り場が、メンバーの中で多く付けている人に対して
+   *     例) 最多付け待ちの為、江坂駅タクシー乗り場のLは〝○○〟です
+   *     メンバーに偏りがないように
+   *     メンバーが2回同時に出ないような形で順に表示させる形に
+   *     更新する度に切り替わる形で良いです」
    */
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  t(/完全万収ライナーは〝/.test(app), '★★★前日の万収を、ほめる一文がある');
-  t(/const MANSHU = 10000;/.test(app), '★★★万収は1万円以上');
-  /* ★2026/11/13 のご指示で「キラ」に戻りました。 */
+  t(!/完全万収ライナーは〝/.test(app), '★★★万収ライナーの一文は、もう出さない');
+  t(/最多付け待ちの為、/.test(app), '★★★「最多付け待ちの為、〜Lは」の一文になっている');
+  t(/のLは〝' \+ x\.who \+ '〟です/.test(app), '　 名前は 〝 〟 ではさむ');
+  /* 出せないときの控えは、これまでどおり「キラ」 */
   t(/がキラです/.test(sh) && /がキラです/.test(app),
-    '★★★万収が無い日は「キラ」');
+    '★★★出せないときは「キラ」の一文');
   t(!/ベルトルトです/.test(sh) && !/ベルトルトです/.test(app),
     '　「ベルトルト」は残っていない');
-  t(/prevYmd\(today\(\)\)/.test(app), '★★★見るのは「前の営業日」');
-  t(/function prevYmd/.test(sh), '　 その日を出す係がある');
-  t(/sb\.textContent = subLine\(\)/.test(app), '★★★画面に出している');
+  t(/subSet\(sb\)/.test(app), '★★★画面に出している');
+  t(/function lordSeqInit\(\)/.test(app) && /lordSeqInit\(\);/.test(app),
+    '★★★開き直すたびに、次の1つへ進む');
+  t(/for \(let n = ch\.length - 1; n >= 2 && subOver\(el\); n--\)/.test(app),
+    '★★★乗り場の名前が長ければ、「…」で短くする');
 
   /* 中身を動かして確かめます */
   const box = { console: { log: function(){} } };
   vm.createContext(box);
   vm.runInContext(
-    'const pad=n=>String(n).padStart(2,"0");' +
-    'const WD=["日","月","火","水","木","金","土"];' +
-    'function fmtD(s){const[y,m,d]=s.split("-").map(Number);' +
-    ' return m+"/"+d+"("+WD[new Date(y,m-1,d).getDay()]+")";}' +
-    'function prevYmd(d){const[y,m,dd]=String(d).split("-").map(Number);' +
-    ' const n=new Date(y,m-1,dd-1);' +
-    ' return n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate());}' +
-    'function today(){return "2026-11-12";}' +
-    'function kiraToday(){return "齋藤くん";}' +
-    'const isUnk = v => (v === null || v === undefined || v === "");' +
-    'let names = {u1:"ダイスケ", u2:"マーク"}; let records = [];' +
-    app.slice(app.indexOf('const KUN = {'), app.indexOf('/* ★人ごとの色')), box);
-  const S = rs => { vm.runInContext('records = ' + JSON.stringify(rs) + ';', box);
-    return vm.runInContext('subLine()', box); };
-  t(S([]).indexOf('キラ') !== -1, '★★★万収が無ければ、キラの一文', S([]));
-  const a1 = S([{ date:'2026-11-11', fare:12000, user_id:'u1' }]);
-  t(a1 === '昨日（11/11(水)）の完全万収ライナーは〝齋藤くん〟です！',
-    '★★★前日に万収があれば、その人をほめる', a1);
-  const a2 = S([{ date:'2026-11-11', fare:9999, user_id:'u1' }]);
-  t(a2.indexOf('がキラです') !== -1, '★★★9,999円では、万収にしない', a2);
-  const a3 = S([{ date:'2026-11-10', fare:20000, user_id:'u1' }]);
-  t(a3.indexOf('がキラです') !== -1, '★★★前の日いがいは、数えない', a3);
-  const a4 = S([{ date:'2026-11-11', fare:10000, user_id:'u1' },
-                { date:'2026-11-11', fare:30000, user_id:'u2' }]);
-  t(a4.indexOf('齋藤くん') !== -1 && a4.indexOf('加藤くん') !== -1,
-    '★★★2人以上いれば、2人とも ほめる', a4);
-  const a5 = S([{ date:'2026-11-11', fare:11000, user_id:'u1' },
-                { date:'2026-11-11', fare:15000, user_id:'u1' }]);
-  t((a5.match(/齋藤くん/g) || []).length === 1, '　 同じ人は1回だけ', a5);
+    'let names = {u1:"ダイスケ", u2:"マーク", u3:"シュン"}; let records = [];' +
+    'function canonPlace(p){ return p; }' +
+    app.slice(app.indexOf('const MANSHU = 10000;'), app.indexOf('/* ★人ごとの色')), box);
+  const L = rs => { vm.runInContext('records = ' + JSON.stringify(rs) + ';', box);
+    return vm.runInContext('lordList()', box); };
+  const rec = (u, p) => ({ user_id:u, place:p });
+
+  /* 1件だけの乗り場は、「最多」と言い切れないので出さない */
+  t(L([rec('u1', 'A')]).length === 0, '★★★1件だけの乗り場は出さない');
+  /* 同じ数で並んでいるときも、出さない */
+  t(L([rec('u1','A'), rec('u1','A'), rec('u2','A'), rec('u2','A')]).length === 0,
+    '★★★同じ数で並んでいたら、出さない');
+  /* はっきり多い人がいれば、その人 */
+  const g1 = L([rec('u1','A'), rec('u1','A'), rec('u2','A')]);
+  t(g1.length === 1 && g1[0].who === '齋藤くん' && g1[0].n === 2,
+    '★★★いちばん多く付けている人が出る', JSON.stringify(g1));
+
+  /* 同じ人が続けて出ないこと・かたよらないこと */
+  const ord = vm.runInContext('lordOrder(' + JSON.stringify([
+    { p:'A', who:'齋藤くん', n:9 }, { p:'B', who:'齋藤くん', n:8 },
+    { p:'C', who:'齋藤くん', n:7 }, { p:'D', who:'加藤くん', n:6 },
+    { p:'E', who:'加藤くん', n:5 }, { p:'F', who:'山敷くん', n:4 }
+  ]) + ')', box);
+  t(ord.length === 6, '　 すべてが並ぶ', ord.length);
+  let same = 0;
+  for (let i = 1; i < ord.length; i++) if (ord[i].who === ord[i-1].who) same++;
+  t(same === 0, '★★★同じ人が、続けて出ない', ord.map(x => x.who).join('→'));
+  /* ★ぐるっと一周したときも、同じ人が続かないこと
+       （開き直すと先頭へ戻るので、最後と先頭も見ます） */
+  t(ord[0].who !== ord[ord.length - 1].who,
+    '★★★一周しても、同じ人が続かない', ord.map(x => x.who).join('→'));
+  {
+    const o2 = vm.runInContext('lordOrder(' + JSON.stringify([
+      { p:'A', who:'齋藤くん', n:9 }, { p:'B', who:'齋藤くん', n:8 },
+      { p:'C', who:'加藤くん', n:7 }, { p:'D', who:'山敷くん', n:6 }
+    ]) + ')', box);
+    let bad = 0;
+    for (let i = 0; i < o2.length; i++) {
+      if (o2[i].who === o2[(i + 1) % o2.length].who) bad++;
+    }
+    t(bad === 0, '★★★2つだけ多い人がいても、一周して続かない', o2.map(x => x.who).join('→'));
+  }
+  t(ord.slice(0, 3).map(x => x.who).join('/').indexOf('加藤くん') !== -1,
+    '★★★はじめのうちに、ほかの人も出る（かたよらない）',
+    ord.map(x => x.who).join('→'));
 }
+
 
 
 
