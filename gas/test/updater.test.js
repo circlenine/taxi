@@ -7389,5 +7389,67 @@ console.log('■ スプシ→台帳の自動反映（ご指示・2026/11/10／20
     '★★★1日1回かならず通る道から、try で囲って呼んでいる');
 }
 
+
+console.log('■ 台帳→スプシへ戻す（ご指示・2026/11/15）');
+{
+  /*
+   * ★まーく様のご指示
+   *   「webサイト上で修正をした場合
+   *     該当する乗り場スプシデータも
+   *     自動修正反映できるようにしてほしいです」
+   * ★売上の記録なので、こわさないための守りを見ます。
+   */
+  const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const vn  = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const fn  = src.slice(src.indexOf('function webPullPush_'),
+                        src.indexOf('function webPullTick_'));
+  t(fn.length > 500, '★★★台帳→スプシの係がある');
+
+  /* ★行を消すことは、絶対にしない */
+  t(!/deleteRow|deleteRows|clearContent|clear\(\)/.test(fn),
+    '★★★行を消したり、中身を消したりしない');
+  /* ★作りそこねたときの守り（上限） */
+  t(/const WEB_PULL_MAX  = 200;/.test(src), '★★★1回で直す行に、上限がある');
+  t(/plan\.length \+ add\.length > WEB_PULL_MAX/.test(fn),
+    '★★★上限を超えたら、何もしない');
+  /* ★さわってはいけない欄（送信者・付け時刻・リンク・印） */
+  t(!/C_SENDER|C_START|C_LINK|C_MARK/.test(fn),
+    '★★★A列・C列・J列・K列には、手を出さない');
+  /* ★同じ中身の行が2つあるときは、さわらない */
+  t(/=== -1\) \{ vague\+\+; return; \}/.test(fn),
+    '★★★同じ中身の行が2つあるときは、何もしない');
+  /* ★下見だけもできる */
+  t(/if \(!go\) \{/.test(fn), '★★★書かずに「下見」だけもできる');
+  t(/"web-pull-try": /.test(src) && /"web-pull-go":  /.test(src),
+    '★★★おつかいからも 呼べる');
+  t(/task === "web-pull-try"/.test(src) && /task === "web-pull-go"/.test(src),
+    '　 その振り分けも入っている');
+  /* ★毎日ひとりでに走る（スプシ→台帳の あと） */
+  const tk = src.slice(src.indexOf('function webPullTick_'));
+  t(/if \(h < 7 \|\| h >= 9\) return false;/.test(tk), '★★★朝7時台・8時台だけ');
+  t(tk.indexOf('pr.setProperty(WEB_PULL_DONE, key);') < tk.indexOf('webPullPush_(true)'),
+    '★★★札は先に立てる（6分で切られても、二重に走らせない）');
+  t(/try \{ if \(typeof webPullTick_ === "function"\) webPullTick_\(\); \}/.test(vn)
+    && /logErr_\("webPullTick", e\)/.test(vn),
+    '★★★1日1回かならず通る道から、try で囲って呼んでいる');
+  t(vn.indexOf('webSyncTick_()') < vn.indexOf('webPullTick_()'),
+    '★★★スプシ→台帳の あとに走る（二重に増やさない）');
+
+  /* 実際に引いてみる（時刻の字と、見分ける札） */
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext(src.slice(src.indexOf('function webPullHm_'),
+                            src.indexOf('function webPullPush_')), box);
+  const hm = vm.runInContext('webPullHm_', box);
+  t(hm(20) === '20:00', '★★★20 は 20:00', hm(20));
+  t(hm(25.5) === '1:30', '★★★25.5 は 1:30（翌日）', hm(25.5));
+  t(hm(null) === '', '★★★不明は、空のまま', JSON.stringify(hm(null)));
+  const key = vm.runInContext('webPullKey_', box);
+  t(key('マーク', '2026-11-13', '20:00', 5800) !== key('マーク', '2026-11-13', '20:00', 5900),
+    '★★★金額が違えば、別の札');
+  t(key('マーク', '2026-11-13', '20:00', null).indexOf('|?') !== -1,
+    '★★★「不明」は 0 と区別する');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

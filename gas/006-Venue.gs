@@ -2,7 +2,11 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V117ver  （2026/11/14）  ★★★
+ *  ★★★  V118ver  （2026/11/15）  ★★★
+ *
+ *  [V118ver]
+ *  ・🔁 台帳で直したものを、スプシへ戻す係（webPullTick_）を
+ *    1日1回の仕事に足した（スプシ→台帳の あと）
  *
  *  [V117ver]
  *   ・🎤 大阪城ホールに、終わりの時刻の見積もりを足した
@@ -12200,6 +12204,18 @@ function venueDailyJob() {
      */
     try { if (typeof webSyncTick_ === "function") webSyncTick_(); }
     catch (e) { if (typeof logErr_ === "function") logErr_("webSyncTick", e); }
+
+    /*
+     * ★台帳（ウェブ）で直したものを、スプシへ戻します
+     *   （まーく様のご指示・2026/11/15
+     *     「webサイト上で修正をした場合、該当する乗り場スプシデータも
+     *       自動修正反映できるようにしてほしいです」）。
+     *   ★上の webSyncTick_（スプシ→台帳）の あとに置きます。
+     *     先にスプシの中身を台帳へ移してから戻すと、二重に増えません。
+     *   ★行を消すことは、絶対にしません。
+     */
+    try { if (typeof webPullTick_ === "function") webPullTick_(); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("webPullTick", e); }
 
     /*
      * ★イベント情報を、TAXI NOTE（ウェブ）にも渡します

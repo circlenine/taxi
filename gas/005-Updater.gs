@@ -2,7 +2,16 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U175ver  （2026/11/13）  ★★★
+ *  ★★★  U176ver  （2026/11/15）  ★★★
+ *
+ *   [U176ver]
+ *   ・🔁 台帳（ウェブ）で直したものを、スプシへ戻すようにした
+ *     （ご指示・2026/11/15「webサイト上で修正をした場合、
+ *       該当する乗り場スプシデータも自動修正反映できるように」）
+ *     ★1日1回、朝7時台。スプシ→台帳の あとに走ります。
+ *     ★行を消すことは、絶対にしません。
+ *     ★同じ中身の行が2つあるときは、どちらか分からないので何もしません。
+ *     ★直す行が200を超えたら、あぶないので何もしません。
  *
  *   [U175ver]
  *   ・🔄 スプシの記録を、台帳へ ひとりでに移すようにした（1日1回・朝7時台）
@@ -11885,6 +11894,267 @@ function webSyncPush_(go) {
   }
 }
 
+/* ============================================================
+ *  台帳（ウェブ）で直したものを、記録用スプレッドシートへ戻す
+ *
+ *  ★まーく様のご指示（2026/11/15）
+ *    「webサイト上で修正をした場合
+ *      該当する乗り場スプシデータも自動修正反映できるようにしてほしいです」
+ *
+ *  ★どうやって「同じ乗車」だと分かるか
+ *    スプシの表には、台帳のIDを書く場所がありません
+ *    （K列より右は、作り直すたびに消される決まりです）。
+ *    そこで、ドライブに小さな控え（台帳とスプシの対応.json）を置き、
+ *      台帳のID → そのときの「タブ・営業日・時刻・金額」
+ *    を覚えておきます。直されたら、覚えていた古い中身で
+ *    スプシの行をさがし、新しい中身に書きかえます。
+ *
+ *  ★売上の記録なので、こわさないための決まり
+ *    ・行を消すことは、絶対にしません（消えたものは、控えに書くだけ）
+ *    ・同じ中身の行が2つあるときは、どちらか分からないので何もしません
+ *    ・直す行が200を超えたら、何もしないで控えに書きます
+ *      （作りそこねたときに、売上をまるごと壊さないため）
+ *    ・A列（送信者）・C列（付け時刻）・J列・K列には、手を出しません
+ * ============================================================ */
+const WEB_PULL_MAP  = "台帳とスプシの対応.json";   // ドライブに置く、小さな控え
+const WEB_PULL_DONE = "WEB_PULL_DONE";            // 今日やったという印
+const WEB_PULL_MAX  = 200;                        // 1回で直す上限（守りの数）
+
+/** 控えを読む（無ければ、からっぽ） */
+function webPullMapRead_() {
+  try {
+    const it = DriveApp.getFilesByName(WEB_PULL_MAP);
+    if (!it.hasNext()) return {};
+    const t = it.next().getBlob().getDataAsString("UTF-8");
+    const j = JSON.parse(t);
+    return (j && typeof j === "object") ? j : {};
+  } catch (e) { return {}; }
+}
+/** 控えを書く（共有の設定は触りません） */
+function webPullMapWrite_(m) {
+  try {
+    const t = JSON.stringify(m);
+    const it = DriveApp.getFilesByName(WEB_PULL_MAP);
+    if (it.hasNext()) it.next().setContent(t);
+    else DriveApp.createFile(WEB_PULL_MAP, t, MimeType.PLAIN_TEXT);
+  } catch (e) { try { logErr_("webPullMapWrite", e); } catch (e2) {} }
+}
+
+/** 小数の「時」（25.5）を「1:30」の字にする。分からなければ空 */
+function webPullHm_(dep) {
+  if (dep == null || dep === "") return "";
+  let v = Number(dep);
+  if (!isFinite(v)) return "";
+  if (v >= 24) v -= 24;
+  const h = Math.floor(v + 1e-6);
+  const mi = Math.round((v - h) * 60);
+  return h + ":" + ("0" + (mi === 60 ? 0 : mi)).slice(-2);
+}
+/** 見分けるための札（タブ・営業日・時刻・金額） */
+function webPullKey_(tab, d, hm, fare) {
+  return String(tab) + "|" + String(d) + "|" + String(hm) + "|" +
+         (fare == null || fare === "" ? "?" : String(Number(fare)));
+}
+
+/**
+ * 台帳 → スプシ。go が false のあいだは「下見」だけ（書きません）。
+ * 返すのは、画面や控えに出す短い字です。
+ */
+function webPullPush_(go) {
+  try {
+    const conf = sbWakeConf_();
+    if (!conf) return "台帳の住所と鍵が、まだ入っていません。";
+    if (!sbToken_()) return "台帳に入れません（TAXINOTE_EMAIL / TAXINOTE_PASS を入れてください）。";
+
+    const ps = sbGet_("profiles?select=id,display_name");
+    if (!ps) return "台帳の名前を読めませんでした。";
+    /* 台帳の名前（全角）→ スプシのタブ（半角カナ）。
+       濁点や小さい字をそろえて見くらべます（sbNkey_）。 */
+    const tabOf = {};
+    ps.forEach(function (p) {
+      const k = sbNkey_(p.display_name);
+      for (let i = 0; i < PERSONAL_TABS.length; i++) {
+        if (sbNkey_(PERSONAL_TABS[i]) === k) { tabOf[p.id] = PERSONAL_TABS[i]; break; }
+      }
+    });
+
+    const rides = sbGet_("rides?select=id,user_id,work_date,dep,wait_min,fare,place,method,note&limit=20000");
+    if (!rides) return "台帳の記録を読めませんでした。";
+
+    const ss = mainSS_();
+    /* タブごとに、いまの中身を1回だけ読みます（何度も読むと遅いため） */
+    const book = {};
+    PERSONAL_TABS.forEach(function (tab) {
+      const sh = ss.getSheetByName(tab);
+      if (!sh) return;
+      const last = sh.getLastRow();
+      const rows = (last >= START_ROW)
+        ? sh.getRange(START_ROW, 1, last - START_ROW + 1, LAST_COL).getValues() : [];
+      const byKey = {};
+      rows.forEach(function (r, i) {
+        const d = expDate_(r[C_DATE - 1]);
+        const t = expTime_(r[C_TIME - 1]);
+        const f = expMoney_(r[C_MONEY - 1]);
+        if (!d) return;
+        const k = webPullKey_(tab, d, t, f === "" ? null : f);
+        /* 同じ札の行が2つあるときは、どちらか分からないので印だけ付けます */
+        byKey[k] = (byKey[k] === undefined) ? (START_ROW + i) : -1;
+      });
+      book[tab] = { sh: sh, rows: rows, byKey: byKey };
+    });
+
+    const map = webPullMapRead_();
+    const plan = [];          // 直すもの
+    const add  = [];          // スプシにまだ無いもの
+    let same = 0, vague = 0, nowhere = 0;
+
+    rides.forEach(function (r) {
+      const tab = tabOf[r.user_id];
+      if (!tab || !book[tab]) { nowhere++; return; }
+      const B = book[tab];
+      const d  = String(r.work_date || "");
+      const hm = webPullHm_(r.dep);
+      const fa = (r.fare == null || r.fare === "") ? null : Number(r.fare);
+      const nowKey = webPullKey_(tab, d, hm, fa);
+
+      /* ① 前に見たときの札で、行をさがします */
+      let row = 0;
+      const old = map[r.id];
+      if (old && old.k) {
+        const got = B.byKey[old.k];
+        if (got === -1) { vague++; return; }
+        if (got) row = got;
+      }
+      /* ② 無ければ、いまの中身と同じ行を そのまま引きうけます */
+      if (!row) {
+        const got = B.byKey[nowKey];
+        if (got === -1) { vague++; return; }
+        if (got) {
+          row = got;
+          map[r.id] = { t: tab, k: nowKey };
+          same++;
+          return;                 /* 中身は同じなので、書きかえません */
+        }
+      }
+      if (!row) { add.push({ tab: tab, r: r, k: nowKey }); return; }
+
+      /* ③ 中身がちがうところだけ、書きかえます */
+      const cur = B.rows[row - START_ROW];
+      const want = {};
+      if (expDate_(cur[C_DATE - 1])  !== d)  want[C_DATE]  = d;
+      if (expTime_(cur[C_TIME - 1])  !== hm) want[C_TIME]  = hm;
+      const curF = expMoney_(cur[C_MONEY - 1]);
+      if (curF !== (fa == null ? "" : String(fa))) want[C_MONEY] = fa;
+      const wm = (r.wait_min == null || r.wait_min === "") ? "" : String(Number(r.wait_min));
+      if (expMin_(cur[C_WAIT - 1]) !== wm) want[C_WAIT] = wm;
+      if (String(cur[C_PLACE - 1]  || "").trim() !== String(r.place  || "").trim()) want[C_PLACE]  = String(r.place || "");
+      if (String(cur[C_METHOD - 1] || "").trim() !== String(r.method || "").trim()) want[C_METHOD] = String(r.method || "");
+      if (String(cur[C_OTHER - 1]  || "").trim() !== String(r.note   || "").trim()) want[C_OTHER]  = String(r.note || "");
+      if (!Object.keys(want).length) { map[r.id] = { t: tab, k: nowKey }; same++; return; }
+      plan.push({ tab: tab, row: row, want: want, id: r.id, k: nowKey, cur: cur });
+    });
+
+    if (plan.length + add.length === 0) {
+      webPullMapWrite_(map);
+      return "🔁 スプシへ戻すものは、ありませんでした（同じ " + same + "件）。";
+    }
+    /* ★守りの数。作りそこねたときに、売上をまるごと壊さないため */
+    if (plan.length + add.length > WEB_PULL_MAX) {
+      const m2 = "🔁 直す行が多すぎます（" + (plan.length + add.length) +
+                 "行）。あぶないので、何もしていません。";
+      updErrandLog_(m2);
+      return m2;
+    }
+    if (!go) {
+      return "🔁 下見：直す " + plan.length + "行／足す " + add.length +
+             "行（同じ " + same + "件）。";
+    }
+
+    /* 書きかえ。1セルずつ書きます（まわりの式をこわさないため） */
+    let done = 0;
+    plan.forEach(function (x) {
+      const sh = book[x.tab].sh;
+      Object.keys(x.want).forEach(function (col) {
+        const c = Number(col);
+        let v = x.want[col];
+        /* いま入っているものが「日付／時刻の入れもの」なら、同じ形で書きます */
+        const was = x.cur[c - 1];
+        if (was && typeof was.getTime === "function") {
+          if (c === C_DATE) {
+            const a = String(v).split("-").map(Number);
+            v = new Date(a[0], a[1] - 1, a[2], 12, 0, 0);
+          } else if (c === C_TIME) {
+            const a = String(v).split(":").map(Number);
+            v = new Date(was.getFullYear(), was.getMonth(), was.getDate(), a[0] || 0, a[1] || 0, 0);
+          }
+        }
+        if (v === null) v = "";
+        sh.getRange(x.row, c).setValue(v);
+      });
+      map[x.id] = { t: x.tab, k: x.k };
+      done++;
+    });
+
+    /* 台帳にしか無いものは、いちばん下に足します（消すことはしません） */
+    let added = 0;
+    add.forEach(function (x) {
+      const sh = book[x.tab].sh;
+      const row = sh.getLastRow() + 1;
+      const r = x.r;
+      sh.getRange(row, C_DATE).setValue(
+        (function (){ const a = String(r.work_date).split("-").map(Number);
+          return new Date(a[0], a[1] - 1, a[2], 12, 0, 0); })());
+      sh.getRange(row, C_TIME).setValue(webPullHm_(r.dep));
+      sh.getRange(row, C_WAIT).setValue(
+        (r.wait_min == null || r.wait_min === "") ? "" : Number(r.wait_min));
+      sh.getRange(row, C_MONEY).setValue(
+        (r.fare == null || r.fare === "") ? "" : Number(r.fare));
+      sh.getRange(row, C_PLACE).setValue(String(r.place || ""));
+      sh.getRange(row, C_METHOD).setValue(String(r.method || ""));
+      sh.getRange(row, C_OTHER).setValue(String(r.note || ""));
+      map[r.id] = { t: x.tab, k: x.k };
+      added++;
+    });
+
+    webPullMapWrite_(map);
+    const msg = "🔁 スプシへ戻しました：直した " + done + "行／足した " + added + "行" +
+      (vague ? "／同じ中身の行が2つあって さわれなかった " + vague + "件" : "") +
+      (nowhere ? "／だれのか分からない " + nowhere + "件" : "");
+    updErrandLog_(msg);
+    return msg;
+  } catch (e) {
+    try { logErr_("webPullPush", e); } catch (e2) {}
+    try { updErrandLog_("🔁 戻せませんでした：" + ((e && e.message) || e)); } catch (e2) {}
+    return "🔁 戻せませんでした：" + ((e && e.message) || e);
+  }
+}
+
+/**
+ * 1日1回、台帳で直したものをスプシへ戻す。
+ * ★スプシ→台帳（webSyncTick_）の すぐあとに走らせます。
+ *   先にスプシの中身を台帳へ移してから、台帳の直しを戻すと、
+ *   同じ乗車が二重に増えません。
+ */
+function webPullTick_() {
+  try {
+    const now = new Date();
+    const h = now.getHours();
+    if (h < 7 || h >= 9) return false;          // 朝7時台・8時台だけ
+    const key = Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd");
+    const pr = PropertiesService.getScriptProperties();
+    if (pr.getProperty(WEB_PULL_DONE) === key) return false;
+    pr.setProperty(WEB_PULL_DONE, key);         // 先に札を立てる（二重に走らせない）
+    const out = webPullPush_(true);
+    if (out && typeof updErrandLog_ === "function" && String(out).indexOf("🔁") !== 0) {
+      updErrandLog_("🔁 スプシへ自動で戻す：" + String(out).replace(/\n/g, " ").slice(0, 120));
+    }
+    return true;
+  } catch (e) {
+    try { if (typeof logErr_ === "function") logErr_("webPullTick", e); } catch (e2) {}
+    return false;
+  }
+}
+
 /** おつかいの控えに、1行 足す。失敗しても、頼まれごとは止めない */
 function updErrandLog_(line) {
   try {
@@ -12293,6 +12563,15 @@ const UPD_ERRAND_OK = {
   "web-events":  "イベント情報を、TAXI NOTE（ウェブ）に渡す",
   "web-sync-try": "スプシ→台帳の下見（入れずに、件数だけ数える）",
   "web-sync-go":  "スプシ→台帳へ、ほんとうに移す",
+  /*
+   * ★台帳（ウェブ）で直したものを、スプシへ戻します
+   *   （ご指示・2026/11/15「webサイト上で修正をした場合、
+   *     該当する乗り場スプシデータも自動修正反映できるように」）。
+   *   ふだんは、朝のうちに ひとりでに走ります（webPullTick_）。
+   *   ここの2つは、こちらが確かめたいときのためのものです。
+   */
+  "web-pull-try": "台帳→スプシの下見（書かずに、行数だけ数える）",
+  "web-pull-go":  "台帳→スプシへ、ほんとうに戻す",
   /*
    * ★スクリプトプロパティ（GASの控え）の一覧を、ドライブに置く。
    *   50個を超えると、画面からは読むだけになり、足せなくなります。
@@ -12827,6 +13106,10 @@ function updErrandTick_() {
       out = webSyncPush_(false);
     } else if (task === "web-sync-go") {
       out = webSyncPush_(true);
+    } else if (task === "web-pull-try") {
+      out = webPullPush_(false);
+    } else if (task === "web-pull-go") {
+      out = webPullPush_(true);
     } else if (task === "web-events") {
       if (typeof vnFeedPush_ === "function") {
         out = vnFeedPush_(true) ? "📡 イベント情報を台帳へ渡しました。"
