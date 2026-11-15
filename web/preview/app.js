@@ -807,7 +807,7 @@ function render(){
        前の押しどころを覚えている方のために、heat/tl/sc も同じ画面へ回します。 */
   const PANES = { in: () => (ME.profile.is_admin ? paneOut() : '') + paneSays(), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
-    ratio:paneRatio, tok:paneTok, bara:paneBara, kix:paneKix,
+    ratio:paneRatio, tok:paneTok, rep:paneRep, bara:paneBara, kix:paneKix,
     news:paneNews, ev:paneEv, fb:paneFb };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
@@ -4167,6 +4167,135 @@ function paneTok(){
 /* 前の押しどころを覚えている方のために、残してあります */
 function paneBara(){ tokKind = 'bara'; return paneTok(); }
 function paneKix(){  tokKind = 'kix';  return paneTok(); }
+
+/* ------------------------------------------------------------
+ *  再現性あるかも（くり返しのお客様）
+ *
+ *  ★まーく様のご指示（2026/11/15）
+ *    「定期的な乗車が見受けられるお客様データも載せているため
+ *      〇回目、や、再現性あり、や、細かい指示内容があるお客様は
+ *      別で、再現性あるかも、というメニューを作って
+ *      各乗車や時間など、おそらくのパターンを出せるような形で
+ *      わかりやすくまとめたページを追加してください」
+ *
+ *  ★名前は「再現性あるかも」です。言い切りません。
+ *    2回そろっただけで「必ず来ます」と言うと、空振りを生みます。
+ *  ★1回しかないものは出しません（たまたまの1本です）。
+ * ---------------------------------------------------------- */
+/* 「他」の欄に、くり返しの印があるもの */
+const REP_RE = /[0-9０-９]+\s*回目|再現性|毎週|毎月|定期|いつもの|常連|指名/;
+function repMarked(R){
+  return (R || []).filter(function (r){ return REP_RE.test(String((r && r.note) || '')); });
+}
+/** その日の曜日（0=日） */
+function wdayOf(d){
+  const a = String(d || '').split('-').map(Number);
+  if (a.length < 3) return -1;
+  return new Date(a[0], a[1] - 1, a[2]).getDay();
+}
+/** 日付の差（日数） */
+function dayGap(a, b){
+  const x = String(a).split('-').map(Number), y = String(b).split('-').map(Number);
+  if (x.length < 3 || y.length < 3) return 0;
+  return Math.round((new Date(y[0], y[1] - 1, y[2]) - new Date(x[0], x[1] - 1, x[2])) / 86400000);
+}
+/** 日付に日数を足す */
+function addDays(d, n){
+  const a = String(d).split('-').map(Number);
+  const t = new Date(a[0], a[1] - 1, a[2] + n);
+  return t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate());
+}
+
+/**
+ * くり返していそうな組み合わせ（乗り場 × 曜日 × 時間帯）。
+ * ★2回以上そろったものだけ出します。1回は、たまたまです。
+ */
+function repPatterns(R){
+  const by = {};
+  (R || []).filter(hasDep).forEach(function (r){
+    const p = canonPlace(String((r && r.place) || '').trim());
+    if (!p || !r.date) return;
+    const w = wdayOf(r.date); if (w < 0) return;
+    const h = Math.floor(r.dep);
+    const k = p + '\u0001' + w + '\u0001' + h;
+    by[k] = by[k] || { p: p, w: w, h: h, rows: [] };
+    by[k].rows.push(r);
+  });
+  const out = [];
+  Object.keys(by).forEach(function (k){
+    const o = by[k];
+    if (o.rows.length < 2) return;
+    const ds = [...new Set(o.rows.map(function (r){ return r.date; }))].sort();
+    if (ds.length < 2) return;                 /* 同じ日の2本は、くり返しではありません */
+    const gaps = [];
+    for (let i = 1; i < ds.length; i++) gaps.push(dayGap(ds[i - 1], ds[i]));
+    const mean = gaps.reduce(function (a, b){ return a + b; }, 0) / gaps.length;
+    /* 間がそろっているときだけ「◯日ごと」と言います */
+    const even = gaps.every(function (g){ return Math.abs(g - mean) <= 2; });
+    const F = o.rows.filter(hasFare);
+    out.push({ p: o.p, w: o.w, h: o.h, n: o.rows.length, days: ds.length,
+      last: ds[ds.length - 1],
+      gap: even ? Math.round(mean) : 0,
+      next: even ? addDays(ds[ds.length - 1], Math.round(mean)) : '',
+      lo: F.length ? Math.min.apply(null, F.map(function (r){ return +r.fare; })) : 0,
+      hi: F.length ? Math.max.apply(null, F.map(function (r){ return +r.fare; })) : 0,
+      avg: F.length ? F.reduce(function (a, r){ return a + (+r.fare || 0); }, 0) / F.length : 0,
+      note: (o.rows.map(function (r){ return String(r.note || '').trim(); })
+        .filter(Boolean)[0] || '') });
+  });
+  return out.sort(function (a, b){ return b.n - a.n || b.days - a.days; });
+}
+
+function paneRep(){
+  const R = visible();
+  const head = leadCard('rep') + '<div class="card"><h2>再現性あるかも</h2>' +
+    '<p class="note">同じ乗り場・同じ曜日・同じ時間帯で、2回以上あったものです。' +
+    '言い切れるものではありません。走る順番を決めるときの、手がかりとして見てください。</p>' +
+    filterChips(true) + '</div>';
+
+  const pat = repPatterns(R);
+  const mk = repMarked(R);
+  if (!pat.length && !mk.length) return head + emptyCard('該当データがありません');
+
+  let out = head;
+  if (pat.length) {
+    out += '<div class="card"><h2>くり返していそうな組み合わせ</h2>' +
+      '<p class="note">回数の多い順です。押すと地図が開きます。</p>' +
+      '<div class="scroll"><table><thead><tr><th>乗り場</th><th>曜日</th>' +
+      '<th class="n">時間</th><th class="n">回</th><th class="n">金額</th>' +
+      '<th>次は</th></tr></thead><tbody>' +
+      pat.slice(0, 20).map(function (o){
+        return '<tr><td><a class="plink" href="' + esc(mapUrl(o.p)) +
+          '" target="_blank" rel="noopener">' + esc(o.p) + '</a></td>' +
+          '<td>' + WD[o.w] + '</td>' +
+          '<td class="n">' + o.h + '時台</td>' +
+          '<td class="n">' + o.n + '</td>' +
+          '<td class="n">' + (o.avg ? yen(Math.round(o.avg)) : UNK) + '</td>' +
+          '<td>' + (o.next ? (esc(fmtD(o.next)) + 'ごろ') :
+                    '<i class="wfew">間がそろっていません</i>') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<p class="note">「次は」は、これまでの間かくがそろっているときだけ出しています。' +
+      '間かくがばらばらなものには、日付を書きません。</p></div>';
+  }
+
+  if (mk.length) {
+    const rows = mk.slice().sort(function (a, b){
+      return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    });
+    out += '<div class="card"><h2>印のある乗車（〇回目・再現性 など）</h2>' +
+      '<p class="note">「他」の欄に、くり返しの印が書いてある記録です。</p>' +
+      '<div class="scroll"><table><thead><tr><th>日付</th><th class="n">時刻</th>' +
+      '<th>乗り場</th><th class="n">金額</th><th>他</th></tr></thead><tbody>' +
+      rows.slice(0, 40).map(function (r){
+        return '<tr><td>' + esc(fmtD(r.date)) + '</td>' +
+          '<td class="n">' + showT(r.dep) + '</td>' +
+          '<td>' + (r.place ? esc(canonPlace(r.place)) : UNK) + '</td>' +
+          '<td class="n">' + showYen(r.fare) + '</td>' +
+          '<td class="ja">' + esc(String(r.note || '')) + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+  }
+  return out;
+}
 
 /* ------------------------------------------------------------
  *  ふきだしに足す（ご指示・2026/11/14）

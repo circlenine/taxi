@@ -1391,8 +1391,8 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          （ご指示「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。画面に出るのは8こ。 */
     /* ★2026/11/13：3つのグラフを1つにまとめ、「地図」を足したので7こ */
-    /* ★2026/11/15：バラシと関空を【特定】1つにまとめたので6こ */
-    t(subs.length === 6, '★★★画面のメニューは6こ', subs.length);
+    /* ★2026/11/15：バラシと関空を【特定】にまとめ、【再現】を足したので7こ */
+    t(subs.length === 7, '★★★画面のメニューは7こ', subs.length);
     t(/data-t="ev" aria-selected="false" hidden/.test(h3),
       '★★★イベントは、画面のメニューには出さない');
     t(/data-t="news" aria-selected="false" hidden/.test(h3),
@@ -3397,6 +3397,57 @@ console.log('\n■ 次に拾えた場所（ご指示・2026/11/13）');
     far.push(r('u3', d, 22, 'B', 1000));
   });
   t(nc(far).length === 0, '★★★あきすぎているものは、つながりと数えない');
+}
+
+
+console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/data-t="rep"[^>]*><b>再現</.test(ix), '★★★【再現】の押しどころがある');
+  t(/function paneRep\(\)/.test(app) && /rep:paneRep/.test(app), '★★★その画面がある');
+  t(/<h2>再現性あるかも<\/h2>/.test(app), '★★★題は「再現性あるかも」（言い切らない）');
+  t(/const REP_RE = /.test(app) && /再現性\|毎週/.test(app),
+    '★★★「〇回目」「再現性」などの印を見つける');
+
+  /* 実際に引いてみます */
+  const box = { console: { log: function(){} } };
+  vm.createContext(box);
+  vm.runInContext(
+    'const pad=n=>String(n).padStart(2,"0");' +
+    'function canonPlace(p){ return p; }' +
+    'function hasDep(r){ return r.dep !== null && r.dep !== undefined && r.dep !== ""; }' +
+    'function hasFare(r){ return r.fare !== null && r.fare !== undefined && r.fare !== ""; }' +
+    app.slice(app.indexOf('const REP_RE = '), app.indexOf('function paneRep()')), box);
+  const P = rs => vm.runInContext('repPatterns(' + JSON.stringify(rs) + ')', box);
+  const r = (d, p, h, f) => ({ date:d, place:p, dep:h, fare:f, note:'' });
+
+  /* 1回だけは、くり返しと言わない */
+  t(P([r('2026-11-06','A',20,5000)]).length === 0, '★★★1回だけは出さない');
+  /* 同じ日の2本も、くり返しではない */
+  t(P([r('2026-11-06','A',20,5000), r('2026-11-06','A',20,6000)]).length === 0,
+    '★★★同じ日の2本は、くり返しに数えない');
+  /* 毎週金曜の20時台 → 次は7日後 */
+  const g = P([r('2026-10-30','A',20,5000), r('2026-11-06','A',20,7000),
+               r('2026-11-13','A',20,6000)]);
+  t(g.length === 1 && g[0].n === 3, '★★★3回そろえば出る', JSON.stringify(g[0] || {}));
+  t(g[0].gap === 7 && g[0].next === '2026-11-20',
+    '★★★間かくがそろっていれば「次は」を出す', g[0].next);
+  /* 間かくがばらばらなら、日付を書かない */
+  const g2 = P([r('2026-10-02','B',21,5000), r('2026-11-06','B',21,5000),
+                r('2026-11-13','B',21,5000)]);
+  t(g2.length === 1 && g2[0].gap === 0 && g2[0].next === '',
+    '★★★間かくがばらばらなら、日付を書かない', JSON.stringify(g2[0] || {}));
+  /* 曜日が違えば、別の組み合わせ */
+  t(P([r('2026-11-05','C',22,5000), r('2026-11-06','C',22,5000)]).length === 0,
+    '★★★曜日が違えば、くり返しとは数えない');
+
+  const M = rs => vm.runInContext('repMarked(' + JSON.stringify(rs) + ')', box);
+  const n = x => ({ date:'2026-11-06', place:'A', dep:20, fare:5000, note:x });
+  ['3回目', '３回目', '再現性あり', '毎週くる', '指名'].forEach(function (x){
+    t(M([n(x)]).length === 1, '★★★「' + x + '」は印として拾う');
+  });
+  t(M([n('梅田まで')]).length === 0, '　 そうでないメモは拾わない');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
