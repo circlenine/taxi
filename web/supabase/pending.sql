@@ -201,3 +201,13 @@ create policy nippo_delete on public.nippo_scan
 
 grant select, insert, update, delete on public.nippo_scan to authenticated;
 create index if not exists nippo_scan_state_idx on public.nippo_scan (state, created_at);
+
+-- ------------------------------------------------------------
+-- ⑧ ふきだしのひとことを、もう1つ足す（2026/11/16・まーく様のご指示）
+--      「ガァチィ？！ も、ふきだしに追加してください」
+--    ★同じものが入っていれば、何もしません（二重に入れない）。
+-- ------------------------------------------------------------
+insert into public.says (text, good, user_id)
+select 'ガァチィ？！', true, (select user_id from public.says limit 1)
+where exists (select 1 from public.says)
+  and not exists (select 1 from public.says where text = 'ガァチィ？！');

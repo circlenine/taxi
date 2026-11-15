@@ -782,10 +782,26 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
      「しっぽが吹き出しの中に入ってる状態」）。
      見える三角は left+w から left+2w までなので、
      ふきだしの左はし（0）に base をそろえるには left:-2w が要ります。 */
-.saymount .bubble:before{content:"";position:absolute;left:-10px;top:50%;margin-top:-5px;
-  width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
-.saymount .bubble:after{content:"";position:absolute;left:-7px;top:50%;margin-top:-4px;
-  width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
+/*
+ * ★しっぽは「45度にかたむけた四角」で作ります（2026/11/16・ご指摘
+ *     「しっぽと枠はきちんと太さを合わせて、
+ *       境目などがないように綺麗にくっつけてください」）。
+ *
+ *   前は三角を2つ重ねて作っていました。その作り方だと
+ *   ・ふちの太さが ふきだしと そろわない（ななめのぶん細くなる）
+ *   ・ふきだしの左はしは丸いので、まっすぐな三角との間に すき間ができる
+ *   という2つの理由で、つなぎ目が見えていました。
+ *
+ *   かたむけた四角なら、
+ *   ・ふち（1px）は ふきだしと まったく同じ太さになります
+ *   ・ふきだしに重なるがわは、中の色で ふちの線を そのまま隠します
+ *   ので、継ぎ目が1本も出ません。
+ */
+.saymount .bubble:before{content:"";position:absolute;left:-5px;top:50%;
+  margin-top:-5px;width:10px;height:10px;background:#17171A;
+  border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+  transform:rotate(45deg)}
+.saymount .bubble:after{content:none}
 /* ★すうっと消えて、すうっと出す（ご指示・2026/11/10）。
    動かさず、濃さだけを変えます。目が休まります。 */
 .saymount{transition:opacity .45s ease}
@@ -796,10 +812,11 @@ nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
 .saybox .bubble{position:relative;background:#17171A;border:1px solid var(--line);
   color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
   max-width:190px;letter-spacing:.02em}
-.saybox .bubble:before{content:"";position:absolute;left:-10px;top:50%;margin-top:-5px;
-  width:0;height:0;border:5px solid transparent;border-right-color:var(--line)}
-.saybox .bubble:after{content:"";position:absolute;left:-7px;top:50%;margin-top:-4px;
-  width:0;height:0;border:4px solid transparent;border-right-color:#17171A}
+.saybox .bubble:before{content:"";position:absolute;left:-5px;top:50%;
+  margin-top:-5px;width:10px;height:10px;background:#17171A;
+  border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+  transform:rotate(45deg)}
+.saybox .bubble:after{content:none}
 /* ★入れ替わるときだけ、ふわっと出します（うるさくしない） */
 .saybox.pop .face,.saybox.pop .bubble{animation:sayin .34s ease-out}
 @keyframes sayin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -1002,12 +1019,29 @@ header > h1, .login .head > h1{white-space:nowrap}
      前より大きくして、ひと目で分かるようにします（ご指示・2026/11/11）。
      ・:before … ふちの色の三角（外がわ）
      ・:after  … 中の色の三角（内がわ）。重ねて「ふちのある三角」にする */
-/* ★ここも、外に出します（上と同じ考え方で left:-2w）。
-     外がわ w=6 → -12px、内がわ w=5 → ふちの1px ぶん内へ入れて -9px。 */
-.saymount .bubble:before{right:auto;left:-12px;margin-top:-6px;
-  border-width:6px;border-left-color:transparent;border-right-color:#6E6E7A}
-.saymount .bubble:after{right:auto;left:-9px;margin-top:-5px;
-  border-width:5px;border-left-color:transparent;border-right-color:#17171A}
+/*
+ * ★題の横のふきだしも、同じ作り（かたむけた四角）です。
+ *
+ * ★角の丸みを 9px → 5px にしました（2026/11/16・ご指摘
+ *     「境目などがないように綺麗にくっつけてください」）。
+ *   このふきだしは、題の高さに合わせた うすい形です。
+ *   角を9pxも丸めると、左のふちが **まるごと曲線** になり、
+ *   しっぽの付け根が曲線の途中で終わって、角が見えていました。
+ *   5pxにすると、左にまっすぐなところができて、
+ *   しっぽの付け根が そこにぴたりと収まります。
+ *
+ * ★しっぽの中心は、ふきだしのふちより 少し内がわ（1.4px）に置きます。
+ *   こうすると、しっぽの上と下のかどが ふきだしの中に入り、
+ *   線の切れはしが外に出ません。
+ *
+ * ★色は、ふきだしのふちと **同じもの** を使います。
+ *   前は しっぽだけ #6E6E7A で決め打ちしていたので、
+ *   ぼやきのふきだし（ふちは var(--line)）とのあいだに段差が見えていました。
+ */
+.saymount .bubble{border-radius:5px}
+.saymount .bubble:before{right:auto;left:-3.1px;margin-top:-4.5px;
+  width:8px;height:8px;border-width:0 0 1px 1px}
+.saymount .bubble.good:before{border-color:#6E6E7A}
 
 /* ★「乗せてよかった」ひとことのときだけ、ふちを明るくします。
      ぼやきと、ぱっと見で見分けられるようにするためです。 */
@@ -1727,11 +1761,12 @@ header{padding-left:33px;padding-right:33px}
   .evgo{font-size:14px}
 }
 
-/* ★しっぽが外に出たぶん、顔とのすき間を広げます（ご指摘・2026/11/15）。
+/* ★しっぽが外に出たぶん、顔とのすき間を取ります（2026/11/15）。
      すき間が足りないと、しっぽが顔に重なって汚く見えます。
-     しっぽの幅（12px）と ちょうど同じにして、顔にぴたりと届かせます。 */
+     しっぽは5pxほど出るので、9pxにして 少しだけ間を空けます
+     （広げすぎると、ふきだしの幅が減って 字が小さくなります）。 */
 @media(max-width:640px){
-  .saymount{gap:13px}
+  .saymount{gap:9px}
 }
 
 /* ★長いひとことは、ふきだしだけを1行ぶん下へおろして、幅いっぱいで出します

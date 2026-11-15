@@ -824,19 +824,28 @@ console.log('■ ならびは 題 → 顔 → ふきだし（ご指示・2026/11
   t(/\.saymount \.face\{order:1\}/.test(css) && /\.saymount \.bubble\{order:2\}/.test(css),
     '　 ならびを はっきり決めている');
   /* しっぽは左向き。大きさも前より大きく */
-  const tail1 = (css.match(/\.saymount \.bubble:before\{right:auto;[^}]*\}/) || [''])[0];
-  t(/left:-\d+px/.test(tail1), '★★★しっぽは、ふきだしの左がわ（顔のほうを指す）');
-  t(/border-right-color:#/.test(tail1), '　 左を向いた三角になっている');
-  t(/border-width:([6-9]|1\d)px/.test(tail1), '★★★しっぽを、前より大きくしている', tail1);
-  /* ★しっぽは、ふきだしの「外」に出ていること（ご指摘・2026/11/15
-       「しっぽが吹き出しの中に入ってる状態」）。
-       0×0の箱に枠線だけを付けた三角なので、見える部分は left+w 〜 left+2w。
-       left が -2w より内がわ（大きい）だと、ふきだしに重なります。 */
-  {
-    const w = +(/border-width:(\d+)px/.exec(tail1) || [0, 0])[1];
-    const lf = +(/left:-(\d+)px/.exec(tail1) || [0, 0])[1];
-    t(w > 0 && lf >= w * 2, '★★★しっぽは、ふきだしの外に出ている', 'left:-' + lf + ' / 太さ' + w);
-  }
+  /*
+   * ★しっぽは「45度にかたむけた四角」で作ります（2026/11/16・ご指摘
+   *     「しっぽと枠はきちんと太さを合わせて、
+   *       境目などがないように綺麗にくっつけてください」）。
+   *   三角を2つ重ねる作り方だと、
+   *   ・ふちの太さが ふきだしと そろわない（ななめのぶん細くなる）
+   *   ・ふきだしの左はしが丸いので、まっすぐな三角との間にすき間ができる
+   *   の2つで、つなぎ目が見えていました。
+   */
+  const tail1 = (css.match(/\.saymount \.bubble:before\{content:[^}]*\}/) || [''])[0];
+  t(/transform:rotate\(45deg\)/.test(tail1), '★★★しっぽは、かたむけた四角で作る', tail1);
+  t(/border-left:1px solid var\(--line\)/.test(tail1)
+    && /border-bottom:1px solid var\(--line\)/.test(tail1),
+    '★★★ふちの太さは、ふきだしと同じ1px（ふち色も同じもの）');
+  t(/background:#17171A/.test(tail1), '★★★中は、ふきだしと同じ色（つなぎ目の線を隠す）');
+  t(/\.saymount \.bubble:after\{content:none\}/.test(css),
+    '　 三角を2つ重ねる古い作りは、残っていない');
+  /* 題の横のふきだしは、角の丸みを小さくして、付け根をまっすぐにそろえます */
+  t(/\.saymount \.bubble\{border-radius:5px\}/.test(css),
+    '★★★題の横のふきだしは、角の丸みを5pxにする（付け根がまっすぐ収まる）');
+  t(/\.saymount \.bubble\.good:before\{border-color:#6E6E7A\}/.test(css),
+    '★★★ほめのふきだしでは、しっぽも同じ明るいふち色にする');
   /* ふきだしに overflow:hidden を付けると、しっぽが切り取られる */
   /* ★「書いてある説明」に出てくる字で間違えないよう、説明は先に外します */
   const bub = (css.match(/\.saymount \.bubble\{flex:1 1 auto[^}]*\}/) || [''])[0]
@@ -3528,6 +3537,52 @@ console.log('\n■ 日報（写真）読み込み（ご指示・2026/11/15）');
   t(dp('20:35') === 20 + 35/60, '★★★20:35 は 20.58', dp('20:35'));
   t(dp('01:00') === 25, '★★★深夰1時は 25（その夜の続き）', dp('01:00'));
   t(dp('') === null, '★★★読めなければ null');
+}
+
+
+console.log('\n■ 【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/16）');
+{
+  /*
+   * ★まーく様のご質問
+   *   「仕掛けを起こす、というのは、
+   *     僕にしか見えてないということで大丈夫でしょうか」
+   *   ★出てくる所は3つあります。
+   *     どれも「管理者だけ」になっていることを、ここで押さえます。
+   */
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  /* その係の中だけを切り出します（かっこの数で見ます）。
+     うしろの係まで入れてしまうと、そちらの守りを見て
+     「入っている」と思い込みます（2026/11/16 に、実際にそうなりました）。 */
+  const cut = function (name) {
+    const a = app.indexOf('function ' + name);
+    if (a === -1) return '';
+    let d = 0, j = a;
+    while (j < app.length) {
+      const c = app[j];
+      if (c === '{') d++;
+      else if (c === '}') { d--; if (!d) break; }
+      j++;
+    }
+    return app.slice(a, j + 1);
+  };
+  /* ① 一番上の赤い帯 */
+  t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(cut('gasWakeBar')),
+    '★★★赤い帯は、管理者だけ');
+  /* ② 【記録】の「仕組みの様子」 */
+  t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(cut('gasStatCard')),
+    '★★★「仕組みの様子」も、管理者だけ');
+  t(/is_admin \? \(paneOut\(\) \+ gasStatCard\(\)\) : ''/.test(app),
+    '　 管理者でなければ、この欄ごと出ない');
+  /* ③ ≡ の一覧 */
+  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\?\s*'<a class="fsrow wake"/.test(app),
+    '★★★≡ の一覧でも、管理者だけ');
+  /* 【みんなの記録】は、みなさんに出したまま（ご指示・2026/11/14） */
+  t(/<b>みんなの記録<\/b>/.test(app), '　【みんなの記録】は、みなさんに出すまま');
+  /* 他に「仕掛けを起こす」を出している所が無いこと */
+  t((app.match(/>仕掛けを起こす</g) || []).length +
+    (app.match(/<b>仕掛けを起こす<\/b>/g) || []).length === 3,
+    '★★★出てくる所は3つだけ（どれも管理者だけ）',
+    (app.match(/仕掛けを起こす/g) || []).length);
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
