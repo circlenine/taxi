@@ -405,15 +405,28 @@ console.log('■ 雨雲レーダーを、画面の中に出す（ご指示・202
        「なんか、変な英語出てますが、これは消したり別のサイトの導入はできないのでしょうか」）。
        RainViewer は、拡大すると「Zoom Level Not Supported」という
        英語の絵を返してきます。いまの大きさでは、それしか出ていませんでした。 */
-  ok(/jmatile\/data\/nowc\/targetTimes_N1\.json/.test(appSrc),
+  ok(/www\.jma\.go\.jp\/bosai\/jmatile\/data\//.test(appSrc)
+     && /nowc\/targetTimes_N1\.json/.test(appSrc),
      '★★★雨雲は 気象庁のナウキャスト（無料・鍵なし）');
   ok(/surf\/hrpns\/\{z\}\/\{x\}\/\{y\}\.png/.test(appSrc), '　 その絵の読み先');
   ok(/maxNativeZoom: 10/.test(appSrc), '★★★拡大しても、無いものを取りにいかない');
-  ok(/api\.rainviewer\.com/.test(appSrc), '　 気象庁が読めないときの ひかえもある');
-  ok(/maxNativeZoom: 7/.test(appSrc),
-     '★★★ひかえの RainViewer は、英語の絵が出ない大きさまでにする');
-  ok(/jma\(\)\.catch\(function \(\)\{ rv\(\)/.test(appSrc),
-     '　 気象庁がだめなときだけ、ひかえに落とす');
+  /* ★いまから3時間後までを出します（ご指示・2026/11/15
+       「現在～3時間後のリアルタイムを映すようにしてください」）。
+       ・いま〜1時間後 … 高解像度降水ナウキャスト（5分きざみ）
+       ・1時間後〜3時間後 … 降水15時間予報（1時間きざみ） */
+  ok(/nowc\/targetTimes_N2\.json/.test(appSrc), '★★★1時間後までの予想も出す');
+  ok(/rasrf\/targetTimes\.json/.test(appSrc), '★★★3時間後までの予想も出す');
+  ok(/surf\/rasrf\/\{z\}\/\{x\}\/\{y\}\.png/.test(appSrc), '　 その絵の読み先');
+  ok(/mi > 60 && mi <= 185/.test(appSrc), '★★★3時間より先は出さない');
+  ok(/function radarWhen\(v, base\)/.test(appSrc), '★★★「いま」「30分後」と、そえて出す');
+  /* ★下じきの地図は、色を落として暗くします（ご指示・2026/11/15
+       「もっと、地図ではなく、雨雲マップっぽいものはないのでしょうか」）。
+       道や店の名前が目立つと、雨雲のほうが見えなくなります。 */
+  ok(/className: 'basemap'/.test(appSrc)
+     && /\.wxmap \.basemap\{filter:grayscale/.test(cssSrc),
+     '★★★下じきの地図は、色を落として暗くする');
+  ok(/const RADAR_LEG = \[/.test(appSrc) && /\.rdrleg\{/.test(cssSrc),
+     '★★★雨の強さの色（気象庁と同じ並び）を出す');
   ok(/tile\.openstreetmap\.org/.test(appSrc), '★★★地図は OpenStreetMap（無料・鍵なし）');
   ok(!/api_key|apikey=|token=/i.test(appSrc.slice(appSrc.indexOf('function radarBoot'),
      appSrc.indexOf('function radarBoot') + 2200)), '★★★鍵は、どこにも書いていない');

@@ -2722,16 +2722,32 @@ function wxHoursHTML(){
  *   読めなくても、下の「気象庁で見る」ボタンは残ります（止まらない形）。
  */
 function radarCard(){
-  /* ★雨雲の動きが分かるように、直近35分ぶんを順に出します
-       （ご指摘・2026/11/13「このマップだと雨雲の動きわかりづらいのですが」）。
-       1枚だけだと、近づいているのか 離れているのかが分かりません。 */
+  /*
+   * ★まーく様のご指示（2026/11/15）
+   *   「現在～3時間後のリアルタイムを映すようにしてください」
+   *   「もっと、地図ではなく、雨雲マップっぽいものはないのでしょうか」
+   *
+   * ★出しているもの（どれも気象庁・無料・鍵なし・課金の設定なし）
+   *   ・いま 〜 1時間後 … 高解像度降水ナウキャスト（5分きざみ）
+   *   ・1時間後 〜 3時間後 … 降水15時間予報（1時間きざみ）
+   * ★下じきの地図は、色を落として暗くしています。
+   *   道や店の名前が目立つと、雨雲が見えにくいためです。
+   */
   return '<div class="card"><h2>雨雲レーダー</h2>' +
-    '<p class="note">直近35分の動きを、くり返し出します。指で動かせます。</p>' +
-    '<div id="radarMap" class="radarmap">読み込んでいます…</div>' +
-    '<div class="actions rdr"><span class="msg" id="radarTime"></span>' +
+    '<p class="note">いまから3時間後までの雨雲です。指で動かせます。</p>' +
+    '<div id="radarMap" class="radarmap wxmap">読み込んでいます…</div>' +
+    '<div class="rdrbar"><b id="radarTime">読み込んでいます…</b>' +
+    '<span id="radarWhen"></span></div>' +
+    '<div class="rdrleg">' + RADAR_LEG.map(function (x){
+      return '<span><i style="background:' + x[1] + '"></i>' + x[0] + '</span>';
+    }).join('') + '<small>mm/h</small></div>' +
+    '<div class="actions rdr">' +
     '<button class="mini" id="radarPlay">とめる</button>' +
     '<button class="mini" id="radar">気象庁で見る</button></div></div>';
 }
+/* 気象庁の雨の強さの色（降水強度 mm/h）。本家と同じ並びです */
+const RADAR_LEG = [['1','#A0D2FF'], ['5','#218CFF'], ['10','#0041FF'],
+  ['20','#FAF500'], ['30','#FFB900'], ['50','#FF5000'], ['80','#B40068']];
 
 /* 地図を出す係。1枚の画面に1回だけ組み立てます */
 let radarMap = null;
@@ -2741,93 +2757,121 @@ function radarStop(){
   try { if (radarMap && radarMap._radarTimer) clearInterval(radarMap._radarTimer); } catch (e) {}
   radarMap = null;
 }
+/* 気象庁の時刻の字（20261113070500＝世界の時刻）を、日本の時刻に直します */
+function jmaDate(v){
+  const t = String(v || '');
+  if (t.length < 12) return null;
+  return new Date(Date.UTC(+t.slice(0,4), +t.slice(4,6) - 1, +t.slice(6,8),
+                           +t.slice(8,10), +t.slice(10,12)));
+}
+function jmaHM(v){
+  const d = jmaDate(v);
+  return d ? (pad(d.getHours()) + ':' + pad(d.getMinutes())) : '';
+}
+/** 「いま」「30分後」「2時間後」のような言い方にします */
+function radarWhen(v, base){
+  const d = jmaDate(v); if (!d) return '';
+  const m = Math.round((d.getTime() - base.getTime()) / 60000);
+  if (m <= 2 && m >= -7) return 'いま';
+  if (m < 0) return (-m) + '分前';
+  if (m < 60) return m + '分後';
+  const h = Math.round(m / 60);
+  return (m % 60 === 0 ? h + '時間後' : (Math.floor(m / 60) + '時間' + (m % 60) + '分後'));
+}
+
 function radarBoot(){
   const box = document.getElementById('radarMap');
   if (!box) { radarMap = null; return; }
   if (radarMap && radarMap._box === box) return;
 
-  /* 時刻の字（20261113070500＝世界の時刻）を、日本の時刻に直します */
-  const jstOf = function (v){
-    const t = String(v || '');
-    if (t.length < 12) return '';
-    const d = new Date(Date.UTC(+t.slice(0,4), +t.slice(4,6) - 1, +t.slice(6,8),
-                                +t.slice(8,10), +t.slice(10,12)));
-    return pad(d.getHours()) + ':' + pad(d.getMinutes());
-  };
-
   const go = function (){
     try {
       if (typeof L === 'undefined') { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; return; }
       box.textContent = '';
-      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 11);
+      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 9);
+      /* ★下じきは、色を落として暗くします（className で見た目を変えます）。
+           道や店の名前が目立つと、雨雲のほうが見えなくなります。 */
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 15, attribution: '© OpenStreetMap' }).addTo(m);
+        { maxZoom: 15, className: 'basemap', attribution: '© OpenStreetMap' }).addTo(m);
       m._box = box; radarMap = m;
 
-      /* ★雨雲は、気象庁の「高解像度降水ナウキャスト」を出します
-           （ご指摘・2026/11/13「なんか、変な英語出てますが」）。
-         ★前は RainViewer を出していましたが、あちらは拡大すると
-           「Zoom Level Not Supported」という英語の絵を返してきます。
-           いまの大きさ（10）では、その絵しか出ていませんでした。
-         ★気象庁のものは 鍵も要らず、拡大しても ちゃんと出ます。
-           日本の気象庁が出している、公式のものです。 */
-      const jma = function (){
-        return fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json',
-                     { cache: 'no-store' })
-          .then(r => r.json())
-          .then(function (j){
-            if (!j || !j.length || !j[0].basetime) throw new Error('時刻が取れない');
-            /* ★古いほうから新しいほうへ、順に出します（7枚＝35分ぶん）。
-                 7枚とも先に地図へ置いて、見せる1枚だけ濃くします。
-                 こうすると、こまが変わるたびに読み直さずに済みます。 */
-            const fr = j.slice(0, 7).reverse();
-            const lay = fr.map(function (o){
-              return L.tileLayer('https://www.jma.go.jp/bosai/jmatile/data/nowc/' +
-                o.basetime + '/none/' + o.validtime + '/surf/hrpns/{z}/{x}/{y}.png',
-                { opacity: 0, maxZoom: 15, maxNativeZoom: 10,
-                  attribution: '気象庁ナウキャスト' }).addTo(m);
-            });
-            let i = fr.length - 1;
-            const show = function (){
-              lay.forEach(function (t, k){ try { t.setOpacity(k === i ? .68 : 0); } catch (e) {} });
-              const el = document.getElementById('radarTime');
-              if (el) el.textContent = jstOf(fr[i].validtime) +
-                (i === fr.length - 1 ? ' いま' : '') + '（気象庁）';
-            };
-            show();
-            const tick = function (){ i = (i + 1) % fr.length; show(); };
-            /* いまの絵は、少し長めに見せます（そこが知りたい所なので） */
-            m._radarTimer = setInterval(function (){
-              if (i === fr.length - 1) { m._radarHold = (m._radarHold || 0) + 1;
-                if (m._radarHold < 3) return; m._radarHold = 0; }
-              tick();
-            }, 500);
-            /* とめる・うごかす */
-            const pb = document.getElementById('radarPlay');
-            if (pb) pb.onclick = function (){
-              if (m._radarTimer) { clearInterval(m._radarTimer); m._radarTimer = null;
-                pb.textContent = 'うごかす'; i = fr.length - 1; show(); }
-              else { m._radarTimer = setInterval(tick, 500); pb.textContent = 'とめる'; }
-            };
-          });
+      const J = 'https://www.jma.go.jp/bosai/jmatile/data/';
+      const get = function (u){
+        return fetch(u, { cache: 'no-store' }).then(function (r){ return r.json(); })
+          .catch(function (){ return []; });
       };
-      /* 気象庁が読めなかったときだけ、RainViewer に落とします。
-         そのときは 拡大しすぎないようにして、英語の絵が出ないようにします。 */
-      const rv = function (){
-        return fetch('https://api.rainviewer.com/public/weather-maps.json', { cache: 'no-store' })
-          .then(r => r.json())
-          .then(function (j){
-            const fr = (j && j.radar && j.radar.past) ? j.radar.past : [];
-            const last = fr[fr.length - 1];
-            if (!last) return;
-            L.tileLayer(j.host + last.path + '/256/{z}/{x}/{y}/2/1_1.png',
-              { opacity: 0.65, maxZoom: 15, maxNativeZoom: 7 }).addTo(m);
-            const t = new Date(last.time * 1000);
-            const el = document.getElementById('radarTime');
-            if (el) el.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' の雨雲';
+      /*
+       * ★「いま」から「3時間後」までを、1本につなげます。
+       *   1つ落ちても、残りは出します（止まらない形）。
+       */
+      Promise.all([
+        get(J + 'nowc/targetTimes_N1.json'),     /* いま（実測） */
+        get(J + 'nowc/targetTimes_N2.json'),     /* 〜1時間後（5分きざみ） */
+        get(J + 'rasrf/targetTimes.json')        /* 〜3時間後（1時間きざみ） */
+      ]).then(function (res){
+        const n1 = res[0] || [], n2 = res[1] || [], rs = res[2] || [];
+        if (!n1.length && !n2.length) throw new Error('時刻が取れない');
+        const now = jmaDate((n1[0] || n2[0] || {}).validtime) || new Date();
+        const fr = [];
+        /* ① いま */
+        if (n1[0]) fr.push({ b: n1[0].basetime, v: n1[0].validtime, k: 'nowc' });
+        /* ② 〜1時間後。10分きざみにして、こまを増やしすぎません */
+        const bt2 = (n2[0] || {}).basetime;
+        n2.filter(function (x){ return x.basetime === bt2; })
+          .map(function (x){ return x.validtime; })
+          .sort()
+          .forEach(function (v){
+            const d = jmaDate(v); if (!d) return;
+            const mi = Math.round((d.getTime() - now.getTime()) / 60000);
+            if (mi > 0 && mi <= 60 && mi % 10 === 0) fr.push({ b: bt2, v: v, k: 'nowc' });
           });
-      };
-      jma().catch(function (){ rv().catch(function (){}); });
+        /* ③ 〜3時間後 */
+        const bt3 = (rs[0] || {}).basetime;
+        rs.filter(function (x){ return x.basetime === bt3; })
+          .map(function (x){ return x.validtime; })
+          .sort()
+          .forEach(function (v){
+            const d = jmaDate(v); if (!d) return;
+            const mi = Math.round((d.getTime() - now.getTime()) / 60000);
+            if (mi > 60 && mi <= 185) fr.push({ b: bt3, v: v, k: 'rasrf' });
+          });
+        if (!fr.length) throw new Error('こまが作れない');
+
+        /* こまは先にぜんぶ地図へ置いて、見せる1枚だけ濃くします */
+        const lay = fr.map(function (o){
+          const u = (o.k === 'rasrf')
+            ? J + 'rasrf/' + o.b + '/none/' + o.v + '/surf/rasrf/{z}/{x}/{y}.png'
+            : J + 'nowc/'  + o.b + '/none/' + o.v + '/surf/hrpns/{z}/{x}/{y}.png';
+          return L.tileLayer(u, { opacity: 0, maxZoom: 15, maxNativeZoom: 10,
+            className: 'rainlay', attribution: '気象庁' }).addTo(m);
+        });
+        let i = 0;
+        const show = function (){
+          lay.forEach(function (t, k){ try { t.setOpacity(k === i ? .85 : 0); } catch (e) {} });
+          const el = document.getElementById('radarTime');
+          const wh = document.getElementById('radarWhen');
+          if (el) el.textContent = jmaHM(fr[i].v);
+          if (wh) wh.textContent = radarWhen(fr[i].v, now) +
+            (fr[i].k === 'rasrf' ? '（予想）' : (i === 0 ? '（実測）' : '（予想）'));
+        };
+        show();
+        const tick = function (){ i = (i + 1) % fr.length; show(); };
+        /* いまの絵は、少し長めに見せます（そこが知りたい所なので） */
+        m._radarTimer = setInterval(function (){
+          if (i === 0) { m._radarHold = (m._radarHold || 0) + 1;
+            if (m._radarHold < 3) return; m._radarHold = 0; }
+          tick();
+        }, 600);
+        const pb = document.getElementById('radarPlay');
+        if (pb) pb.onclick = function (){
+          if (m._radarTimer) { clearInterval(m._radarTimer); m._radarTimer = null;
+            pb.textContent = 'うごかす'; i = 0; show(); }
+          else { m._radarTimer = setInterval(tick, 600); pb.textContent = 'とめる'; }
+        };
+      }).catch(function (){
+        const el = document.getElementById('radarTime');
+        if (el) el.textContent = '雨雲が読めませんでした';
+      });
 
       setTimeout(function (){ try { m.invalidateSize(); } catch (e) {} }, 200);
     } catch (e) { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; }

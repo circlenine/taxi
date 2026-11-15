@@ -1782,3 +1782,24 @@ body[data-hand="l"] .hmain.saywide > #fabMenu{order:-1}
      1行のままだと、となりのます目にはみ出して見えます。 */
 nav button i{white-space:normal;line-height:1.25;text-align:center;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ============================================================
+   雨雲レーダー（ご指示・2026/11/15
+     「現在～3時間後のリアルタイムを映すようにしてください」
+     「もっと、地図ではなく、雨雲マップっぽいものはないのでしょうか」）
+   ★下じきの地図は、色を落として暗くします。
+     道や店の名前が目立つと、雨雲のほうが見えなくなります。
+   ============================================================ */
+.wxmap{height:330px;background:#060B16}
+.wxmap .basemap{filter:grayscale(1) brightness(.4) contrast(1.3)}
+/* いまの時刻と「◯分後」 */
+.rdrbar{display:flex;align-items:baseline;gap:8px;margin:7px 0 3px;
+  font-family:var(--mono);color:#FFFFFF}
+.rdrbar b{font-size:16px;font-weight:700}
+.rdrbar span{font-size:12px;opacity:.9}
+/* 雨の強さの色（気象庁と同じ並び） */
+.rdrleg{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:0 0 2px}
+.rdrleg span{display:inline-flex;flex-direction:column;align-items:center;
+  font-family:var(--mono);font-size:9px;color:#FFFFFF;opacity:.9;width:30px}
+.rdrleg i{display:block;width:28px;height:7px;border-radius:2px;margin-bottom:1px}
+.rdrleg small{font-size:9px;color:#FFFFFF;opacity:.7;margin-left:4px}
