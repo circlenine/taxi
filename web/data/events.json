@@ -1,5 +1,5 @@
 {
- "at": "2026-11-15 00:00",
+ "at": "2026-11-15 15:00",
  "days": [
   {
    "d": "2026-11-15",
@@ -14,17 +14,7 @@
      "a": "",
      "r": "",
      "u": "https://www.osaka-johall.com/event/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "U-KNOW"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/yunho2154/"
-      }
-     ]
+     "al": []
     },
     {
      "v": "京セラドーム大阪",
@@ -48,29 +38,7 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "STU48"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.stu48.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/STU48_official_"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/stu48.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCa8GISK9_hsZ8aEJEL1u1Sg"
-      }
-     ]
+     "al": []
     },
     {
      "v": "フェスティバルホール",
@@ -82,29 +50,7 @@
      "a": "",
      "r": "",
      "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "平原綾香"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.camp-a-ya.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/AyakaHirahara1"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/ayaka_hirahara_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCGVlsrjTjC3OlqPL_DKYBzA"
-      }
-     ]
+     "al": []
     },
     {
      "v": "Zepp Namba",
@@ -116,29 +62,7 @@
      "a": "",
      "r": "",
      "u": "https://www.zepp.co.jp/hall/namba/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "WATWING"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://official.watwing.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/watwing_info"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/watwing_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCWZWatauQ4KemO7Upy35fbw"
-      }
-     ]
+     "al": []
     },
     {
      "v": "Zepp Osaka Bayside",
@@ -162,29 +86,7 @@
      "a": "",
      "r": "",
      "u": "http://bigcat-live.com/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "EIR AOI"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://www.aoieir.com/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/eir_ruru"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/aoieir/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCp90rwcTPmdd3HMAQv7K3eA"
-      }
-     ]
+     "al": []
     },
     {
      "v": "GORILLA HALL OSAKA",
@@ -196,18 +98,6 @@
      "a": "",
      "r": "",
      "u": "https://gorillahall.jp/",
-     "al": []
-    },
-    {
-     "v": "グランキューブ大阪",
-     "t": "SENRA LIVE TOUR 2026 Caleaの公演詳細 | 公演を探す",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "a": "",
-     "r": "",
-     "u": "https://kyodo-osaka.co.jp/search/detail/12842",
      "al": []
     },
     {
@@ -262,18 +152,6 @@
    "d": "2026-11-16",
    "list": [
     {
-     "v": "クールジャパンパーク大阪 WWホール",
-     "t": "男性アイドル（搬入（初日））　📅 公演は 11/17 から4日間［コンサート］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": []
-    },
-    {
      "v": "大阪城ホール",
      "t": "米津玄師（搬入（初日））　📅 公演は 11/18 から2日間［コンサート］",
      "k": "hanyu",
@@ -283,29 +161,7 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "米津玄師"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://reissuerecords.net/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/hachi_08"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/hachi_08/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCUCeZaZeJbEYAAzvMgrKOPQ"
-      }
-     ]
+     "al": []
     },
     {
      "v": "京セラドーム大阪",
@@ -317,21 +173,19 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "MAMA AWARDS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.mwave.me/en/mama/about"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/mnetmama"
-      }
-     ]
+     "al": []
+    },
+    {
+     "v": "クールジャパンパーク大阪 WWホール",
+     "t": "男性アイドル（搬入（初日））　📅 公演は 11/17 から4日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": []
     },
     {
      "v": "フェスティバルホール",
