@@ -1,6 +1,6 @@
 {
- "at": "2026-11-17 01:12",
- "ver": "U179ver / V122ver",
+ "at": "2026-11-17 01:30",
+ "ver": "U180ver / V122ver",
  "sync": null,
  "trig": 8,
  "jobs": [
@@ -41,10 +41,10 @@
   }
  ],
  "web": true,
- "beat": "11-17 01:12",
+ "beat": "11-17 01:30",
  "beatMin": 0,
  "stop": false,
- "verNo": 358,
+ "verNo": 359,
  "depMax": 20,
  "depN": 5,
  "errN": 3,
