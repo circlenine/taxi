@@ -1,5 +1,5 @@
 {
- "at": "2026-11-16 15:10",
+ "at": "2026-11-16 15:20",
  "ver": "U176ver / V119ver",
  "trig": 8,
  "jobs": [
@@ -40,10 +40,10 @@
   }
  ],
  "web": true,
- "beat": "11-16 15:10",
+ "beat": "11-16 15:20",
  "beatMin": 1,
  "stop": false,
- "verNo": 354,
+ "verNo": 355,
  "depMax": 20,
  "depN": 5,
  "errN": 2,
