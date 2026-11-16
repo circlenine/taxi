@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261116-effe95b5">
+<link rel="stylesheet" href="style.css?v=20261116-b2199465">
 </head>
 <body>
 <div id="boot" class="boot">
@@ -125,7 +125,12 @@
       <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
       <div class="kpi"><small>1日当たり</small><b id="k2">¥0</b></div>
       <div class="kpi gr"><small>1本の平均金額</small><b id="k3">—</b></div>
-      <div class="kpi"><small>アツい時間帯</small><b id="k4">—</b></div>
+      <!-- ★「アツい時間帯」は やめました（ご指摘・2026/11/16
+             「エリア指定してないのに、アツい時間帯というのはなんなのですか？
+               根拠のないデータは絶対に載せないでください」）。
+           乗り場をしぼっていないと、場所がバラバラの平均になり、
+           どこの話かも言えない数字でした。 -->
+      <div class="kpi"><small>ロングの割合</small><b id="k4">—</b></div>
     </div>
     <div class="kperiod" id="kperiod">—</div>
   </section>
@@ -140,9 +145,9 @@
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261116-effe95b5"></script>
-<script src="news.js?v=20261116-effe95b5"></script>
-<script src="shared.js?v=20261116-effe95b5"></script>
-<script src="app.js?v=20261116-effe95b5"></script>
+<script src="config.js?v=20261116-b2199465"></script>
+<script src="news.js?v=20261116-b2199465"></script>
+<script src="shared.js?v=20261116-b2199465"></script>
+<script src="app.js?v=20261116-b2199465"></script>
 </body>
 </html>
