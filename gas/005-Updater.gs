@@ -2,7 +2,12 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U179ver  （2026/11/16）  ★★★
+ *  ★★★  U180ver  （2026/11/17）  ★★★
+ *
+ *   [U180ver]
+ *   ・📮 残り通数を、LINE自身が数えた数で書くようにした
+ *     ★こちらの数え方（メッセージの個数）は、いつも少なすぎました。
+ *       LINEは「受け取った人の数」で数えるためです
  *
  *   [U179ver]
  *   ・👥 ほかのグループから届いたときの控えを、報告の紙に書くようにした
@@ -1971,7 +1976,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U179ver";
+const UPD_VERSION = "U180ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -10145,10 +10150,28 @@ function updKarteBuild_() {
    */
   try {
     if (typeof lrPushCount_ === "function") {
-      const used = lrPushCount_();
-      const lim  = (typeof LR_PUSH_LIMIT === "number") ? LR_PUSH_LIMIT : 200;
-      put("■ LINEの残り：あと " + Math.max(0, lim - used) + " 通" +
-          "（今月 " + used + "／" + lim + "・こちらから送ったぶんだけ）", true);
+      const mine = lrPushCount_();
+      const lim0 = (typeof LR_PUSH_LIMIT === "number") ? LR_PUSH_LIMIT : 200;
+      /*
+       * ★LINE自身が数えている数を、先に聞きます（2026/11/17）。
+       *   こちらは「送ったメッセージの個数」、LINEは「受け取った人の数」。
+       *   グループに1通 出すと人数ぶん引かれるので、こちらの数は
+       *   いつも少なすぎます。11/15に断られたとき、こちらはまだ30通でした。
+       */
+      let used = null, lim = null;
+      try { if (typeof lrQuotaUsed_  === "function") used = lrQuotaUsed_(); } catch (e) {}
+      try { if (typeof lrQuotaLimit_ === "function") lim  = lrQuotaLimit_(); } catch (e) {}
+      if (used !== null) {
+        const L = (lim === null ? lim0 : lim);
+        put("■ LINEの残り：あと " + Math.max(0, L - used) + " 通" +
+            "（今月 " + used + "／" + L + "・LINEが数えた数）", true);
+        put("　（こちらの数え方では " + mine + "通。" +
+            "LINEはグループの人数ぶんを数えます）", false);
+      } else {
+        put("■ LINEの残り：あと " + Math.max(0, lim0 - mine) + " 通" +
+            "（今月 " + mine + "／" + lim0 + "・こちらの数え方）", true);
+        put("　（LINEに聞けませんでした。本当はもっと使っているはずです）", false);
+      }
     }
   } catch (e) {
     put("■ LINEの残り：調べられませんでした", true);

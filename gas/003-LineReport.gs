@@ -2,7 +2,18 @@
  * ================================================================
  *  LINE画像（Flex Message）＋ まとめスプシ レポート作成
  *
- *  ★★★  L067ver  （2026/11/16）  ★★★
+ *  ★★★  L068ver  （2026/11/17）  ★★★
+ *
+ *   [L068ver]
+ *   ・📮 今月の残り通数を、LINE自身に たずねるようにした
+ *     ★こちらは「送ったメッセージの個数」を数えていましたが、
+ *       LINEは「受け取った人の数」で数えます。
+ *       グループに1通 出すと、人数ぶん引かれます。
+ *       だから、こちらの数はいつも少なすぎました。
+ *     ★実際、11/15にLINEから断られたとき、こちらの数はまだ30通でした。
+ *       これでは「残り30通」の知らせが、間に合いません。
+ *     ★この問い合わせは、通数には数えられません（無料）。
+ *       聞けなかったときは、これまでの数え方に戻ります。
  *
  *   [L067ver]
  *   ・📮 LINEが「429」と断ってきたとき、今月の通数をそえるようにした
@@ -853,7 +864,7 @@
  */
 
 /** このファイルのバージョン */
-const LR_VERSION = "L067ver";
+const LR_VERSION = "L068ver";
 
 
 /* ============ 鍵（コードに書かない） ============ */
@@ -2468,8 +2479,72 @@ function lrPushCount_() {
   } catch (e) { return 0; }
 }
 
-/** 今月の残り（目安） */
-function lrPushLeft_() { return Math.max(0, LR_PUSH_LIMIT - lrPushCount_()); }
+/* ------------------------------------------------------------
+ *  LINE自身に「今月なん通 送ったか」を たずねる（2026/11/17）
+ *
+ *  ★なぜ要るか
+ *    こちらの数え方は「送ったメッセージの個数」です。
+ *    ところが **LINEは「受け取った人の数」で数えます**。
+ *    グループに1通 出すと、人数ぶん（6人なら6通）引かれます。
+ *    だから、こちらの数はいつも **少なすぎ** ます。
+ *    実際、11/15 に LINE から「上限」と断られたとき、
+ *    こちらの数はまだ 30 通でした。合いません。
+ *
+ *  ★この問い合わせは、通数には数えられません（無料）。
+ *    10分だけ覚えておくので、何度も聞きにいきません。
+ *  ★聞けなかったときは null を返します。そのときは
+ *    こちらの数え方に戻ります（止まらないため）。
+ * ---------------------------------------------------------- */
+function lrQuotaAsk_(path, key, pick) {
+  let cc = null;
+  try { cc = CacheService.getScriptCache(); } catch (e) { cc = null; }
+  if (cc) {
+    try {
+      const v = cc.get(key);
+      if (v !== null && v !== undefined) return v === "" ? null : Number(v);
+    } catch (e) {}
+  }
+  let n = null;
+  try {
+    const res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/" + path, {
+      method: "get", muteHttpExceptions: true,
+      headers: { "Authorization": "Bearer " + getLineToken_() }
+    });
+    if (res.getResponseCode() === 200) {
+      const j = JSON.parse(res.getContentText() || "{}");
+      const got = pick(j);
+      if (typeof got === "number" && isFinite(got)) n = got;
+    }
+  } catch (e) {}
+  if (cc) { try { cc.put(key, (n === null ? "" : String(n)), 600); } catch (e) {} }
+  return n;
+}
+
+/** LINEが数えている「今月 送った通数」。聞けなければ null */
+function lrQuotaUsed_() {
+  return lrQuotaAsk_("quota/consumption", "LINE_QUOTA_USED",
+    function (j) { return j.totalUsage; });
+}
+
+/** LINEが決めている「今月の上限」。聞けなければ null（無制限のときも null） */
+function lrQuotaLimit_() {
+  return lrQuotaAsk_("quota", "LINE_QUOTA_LIMIT",
+    function (j) { return (j.type === "limited") ? j.value : null; });
+}
+
+/**
+ * 今月の残り。
+ * ★LINEに聞けたときは、その数を使います（こちらの数より確かです）。
+ *   聞けなかったときだけ、こちらの数え方に戻ります。
+ */
+function lrPushLeft_() {
+  const used = lrQuotaUsed_();
+  if (used !== null) {
+    const lim = lrQuotaLimit_();
+    return Math.max(0, (lim === null ? LR_PUSH_LIMIT : lim) - used);
+  }
+  return Math.max(0, LR_PUSH_LIMIT - lrPushCount_());
+}
 
 /* ================================================================
  *  📣 知らせの通し番号
@@ -2625,7 +2700,11 @@ function lrPushAdd_(n) {
     pr.setProperty(key, String(now));
   } catch (e) { return; }
 
-  const left = Math.max(0, LR_PUSH_LIMIT - now);
+  /* ★残りは、LINEに聞いた数を使います（こちらの数は少なすぎます）。
+       聞けなかったときだけ、こちらの数え方に戻ります。 */
+  let left;
+  try { left = lrPushLeft_(); }
+  catch (e) { left = Math.max(0, LR_PUSH_LIMIT - now); }
   if (left > LR_PUSH_WARN) return;
   try {
     const cc = CacheService.getScriptCache();
@@ -2713,15 +2792,13 @@ function lrPushWhy_(code, body, messages) {
    *   数えてある通数をそえて、どちらなのかが分かるようにします。
    */
   if (code === 429) {
-    let n = -1;
-    try { n = lrPushCount_(); } catch (e) {}
-    const lim  = (typeof LR_PUSH_LIMIT === "number") ? LR_PUSH_LIMIT : 200;
-    const over = (n >= 0 && n >= lim - 2);
-    return over
-      ? ("LINEの送信数が、今月の上限に達しました（" + n + "／" + lim + "）。\n" +
+    let left = -1;
+    try { left = lrPushLeft_(); } catch (e) {}
+    return (left >= 0 && left <= 2)
+      ? ("LINEの送信数が、今月の上限に達しました。\n" +
          "月が変わるまで待つか、送る回数を減らしてください。")
-      : ("LINEが「少し待って」と返しました（今月 " +
-         (n >= 0 ? (n + "／" + lim) : "数え中") + "）。\n" +
+      : ("LINEが「少し待って」と返しました（残り " +
+         (left >= 0 ? (left + "通") : "数え中") + "）。\n" +
          "一度にたくさん送ったときに出ます。上限ではありません。");
   }
   if (code >= 500) return "LINE側で一時的な不具合が起きています（" + code + "）。\n少し待ってから、もう一度送ってください。";

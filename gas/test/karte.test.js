@@ -72,6 +72,12 @@ function build(o){
     ctx.LR_PUSH_LIMIT = 200;
     ctx.lrPushCount_ = () => { if (o.pushThrows) throw new Error('読めません'); return o.pushUsed; };
   }
+  /* ★LINE自身が数えた数（2026/11/17）。
+       o.lineUsed を渡さなければ「LINEに聞けなかった」場面になります。 */
+  if (o.lineUsed !== undefined) {
+    ctx.lrQuotaUsed_  = () => o.lineUsed;
+    ctx.lrQuotaLimit_ = () => (o.lineLimit === undefined ? 200 : o.lineLimit);
+  }
   ctx.updWebAppUrl_ = () => (o.url === undefined ? 'https://x.test/exec' : o.url);
   ctx.updUrlAlive_ = () => !!o.alive;
   ctx.updApi_ = (p, m) => {
@@ -191,6 +197,23 @@ console.log('■ LINEの残り通数が、紙に書いてある');
   const t2 = build({}).updKarteBuild_().text;
   ok(t2.indexOf('LINEの残り') === -1, '数える係が無ければ、その行は出さない');
   ok(t2.indexOf('直近のしくじり') !== -1, '★残りは書けている');
+
+  /* ★LINEに聞けたときは、その数を使います（2026/11/17）。
+       こちらの数え方は「メッセージの個数」で、いつも少なすぎます。 */
+  const tL = build({ pushUsed: 30, lineUsed: 196 }).updKarteBuild_().text;
+  ok(tL.indexOf('■ LINEの残り：あと 4 通') !== -1,
+     '★★★LINEが数えた数で、残りを出す');
+  ok(tL.indexOf('（今月 196／200・LINEが数えた数）') !== -1,
+     '★★★どちらの数え方かを、はっきり書く');
+  ok(tL.indexOf('こちらの数え方では 30通') !== -1,
+     '　 こちらの数も、並べて書く（食い違いに気づけるように）');
+
+  /* LINEに聞けなかったときは、こちらの数え方に戻る */
+  const tN = build({ pushUsed: 30 }).updKarteBuild_().text;
+  ok(tN.indexOf('（今月 30／200・こちらの数え方）') !== -1,
+     '★★★聞けなければ、こちらの数え方に戻る');
+  ok(tN.indexOf('本当はもっと使っているはず') !== -1,
+     '★★★その数が少なすぎることを、はっきり書く');
 
   /* 読めなかったときも、落ちないこと */
   const t3 = build({ pushUsed: 10, pushThrows: true }).updKarteBuild_().text;
