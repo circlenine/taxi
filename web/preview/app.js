@@ -4307,21 +4307,75 @@ function gasStatCard(){
   const u = (gasInfo && gasInfo.exec) ? String(gasInfo.exec) : '';
   const s2 = gasStat || {};
   const ok = function (b){ return b ? '<b class="gsok">○</b>' : '<b class="gsng">×</b>'; };
-  return '<div class="card"><h2>仕組みの様子</h2>' +
-    '<p class="note">スクリプトの画面そのものは、ここには出せません' +
-    '（Googleのログインが要るためです）。いまの様子と、押しどころを出しています。</p>' +
-    '<div class="scroll"><table><tbody>' +
-    '<tr><td>書いた時刻</td><td>' + esc(String(s2.at || '不明')) + '</td></tr>' +
-    '<tr><td>中身の版</td><td>' + esc(String(s2.ver || '不明')) + '</td></tr>' +
-    '<tr><td>見張りの数</td><td>' + (s2.trig == null ? '不明' : s2.trig) + '</td></tr>' +
+  const un = function (v){ return (v == null || v === '') ? '不明' : v; };
+
+  /*
+   * ★まーく様のご質問（2026/11/16）
+   *     「Googleスクリプトへ別ページへ飛ばすのではなく
+   *       webページ上で見る、もしくは同じようなページ作成をするのは
+   *       不可能なのでしょうか」
+   *
+   *   スクリプトの画面そのものは、ここには出せません。
+   *   Googleのログインが要るうえ、よその画面の中に入れることを
+   *   Google 側が断っているためです。
+   *   そこで、その画面で見ていたものを、こちらで同じように並べました。
+   *   （紙に書き出したものを読んでいるだけなので、ログインは要りません）
+   */
+
+  /* ① 一番 知りたいこと＝動いているか */
+  const live = (s2.stop == null) ? null : !s2.stop;
+  const head = '<div class="sysnow ' + (live === null ? '' : (live ? 'ok' : 'ng')) + '">' +
+    '<b>' + (live === null ? '分かりません' : (live ? '動いています' : '止まっているかもしれません')) + '</b>' +
+    '<span>最後に動いた：' + esc(un(s2.beat)) +
+    (s2.beatMin == null ? '' : '（' + s2.beatMin + '分前）') + '</span></div>';
+
+  /* ② 見張りの顔ぶれ */
+  const jobs = (s2.jobs || []);
+  const jobHTML = jobs.length
+    ? '<div class="sysjob">' + jobs.map(function (j){
+        return '<span><b>' + esc(String(j.n || '')) + '</b>' +
+          (j.c > 1 ? '<i>×' + j.c + '</i>' : '') + '</span>';
+      }).join('') + '</div>'
+    : '<p class="note">見張りの顔ぶれは、まだ届いていません。</p>';
+
+  /* ③ 数の表 */
+  const tbl = '<table class="systbl"><tbody>' +
+    '<tr><td>見張りの数</td><td>' + un(s2.trig) + '</td></tr>' +
     '<tr><td>受け口</td><td>' + (s2.web == null ? '不明' : ok(s2.web)) + '</td></tr>' +
+    '<tr><td>版（200で満杯）</td><td>' + un(s2.verNo) + '</td></tr>' +
+    '<tr><td>公開（' + un(s2.depMax) + 'で満杯）</td><td>' + un(s2.depN) + '</td></tr>' +
     '<tr><td>直近のしくじり</td><td>' + (s2.errN == null ? '不明' : (s2.errN + '件')) + '</td></tr>' +
-    '</tbody></table></div>' +
+    '<tr><td>中身の版</td><td>' + esc(String(un(s2.ver))) + '</td></tr>' +
+    '<tr><td>書いた時刻</td><td>' + esc(String(un(s2.at))) + '</td></tr>' +
+    '</tbody></table>';
+
+  /* ④ しくじりは「いつ・どのあたり」だけ（中身は書いていません） */
+  const errs = (s2.errs || []);
+  const errHTML = errs.length
+    ? '<div class="scroll"><table class="systbl"><thead><tr><th>いつ</th><th>どのあたり</th>' +
+      '</tr></thead><tbody>' + errs.map(function (e){
+        return '<tr><td>' + esc(String(e.at || '')) + '</td><td>' +
+               esc(String(e.w || 'そのほか')) + '</td></tr>';
+      }).join('') + '</tbody></table></div>'
+    : '';
+
+  return '<div class="card"><h2>仕組みの様子</h2>' +
+    '<p class="note">スクリプトの画面で見ていたものを、ここに並べています。' +
+    'スクリプトの画面そのものは、ここには出せません（Googleのログインが要るためです）。</p>' +
+    head +
+    '<h3 class="syshd">見張りの顔ぶれ</h3>' + jobHTML +
+    '<h3 class="syshd">数</h3>' + tbl +
+    (errHTML ? '<h3 class="syshd">直近のしくじり</h3>' + errHTML +
+      '<p class="note">どこで起きたかだけを出しています。中身（英語の文）は、' +
+      'だれでも開けるところに置かないようにしています。</p>' : '') +
     (u ? '<div class="actions">' +
       '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">仕掛けを起こす</a>' +
       '</div><p class="note">押すと新しい画面が開いて、見張りの立て直し・新しい中身の取り込み・' +
-      '頼まれごとを、まとめて走らせます。</p>'
+      '頼まれごとを、まとめて走らせます。<b>この欄も、そのとき新しくなります</b>' +
+      '（1分ほどで入れ替わります）。</p>'
       : '<p class="note">受け口の住所が、まだ届いていません。</p>') +
+    '<p class="note">※ 許可のし直しと、中身を書きかえることだけは、' +
+    'どうしてもスクリプトの画面でしかできません（Googleの決まりです）。</p>' +
     '</div>';
 }
 /** 仕掛けが止まっていそうか（イベントの紙の古さで見ます） */

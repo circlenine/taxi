@@ -11643,27 +11643,132 @@ function vnGasPush_() {
  *    （この紙は、だれでも開けるところに置かれるためです）。
  * ---------------------------------------------------------- */
 const VN_STATUS_PATH = "web/data/status.json";
-function vnStatusPush_() {
+/*
+ * ★見張りの名前を、まーく様に分かる言い方へ直します。
+ *   「venueDailyJob」では何のことか分かりません。
+ *   表に無いものは「そのほかの見回り」とだけ書きます
+ *   （中の名前を、だれでも開ける紙に並べないためです）。
+ */
+const VN_JOB_JA = {
+  panelWatch:        "5分ごとの見回り",
+  venueDailyJob:     "1日1回の仕事（催し・天気・台帳）",
+  autoFormatJob:     "記録用スプシの整え",
+  monthlyReportJob:  "月まとめの知らせ",
+  onOpenCheck:       "スプシを開いたときの見張り",
+  onOpenReport:      "スプシを開いたときの知らせ",
+  panelOnEdit:       "スプシを直したときの見張り",
+  updKataFire:       "星人の返し",
+  updResumeFire:     "止まったあとの再開",
+  updWeekFire:       "週の知らせ",
+  updAlienPicJob_:   "星人の絵",
+  updRunFromLine_:   "LINEからの頼まれごと"
+};
+
+/** 何分おき・何時ごろ に動くのかを、短い字にします */
+function vnJobWhen_(t) {
+  try {
+    /* ★見張りの「いつ動くか」は、GASからは細かく読めません。
+         読めるぶん（時計の見張りかどうか）だけを書きます。 */
+    const src = String(t.getEventType ? t.getEventType() : "");
+    if (src.indexOf("CLOCK") !== -1) return "時刻で動く";
+    if (src.indexOf("ON_OPEN") !== -1) return "開いたとき";
+    if (src.indexOf("ON_EDIT") !== -1) return "直したとき";
+    return "";
+  } catch (e) { return ""; }
+}
+
+/*
+ * ★だれでも開ける所に置く紙です。次のものは1文字も書きません。
+ *     ・鍵（LINE・Gemini・GitHub）
+ *     ・受け口の住所
+ *     ・しくじりの中身（英語の文）
+ *   書くのは「数」と「○×」と「時刻」と、日本語に直した見張りの名前だけです。
+ */
+function vnStatusPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
 
-    let trig = 0;
-    try { trig = ScriptApp.getProjectTriggers().length; } catch (e) { trig = -1; }
+    /* ★叩かれるたびに書くと、GitHub の回数を使い切ります。
+         ふつうは5分に1回までにします（force でも、この しぼりは効きます）。 */
+    const pr = PropertiesService.getScriptProperties();
+    try {
+      const last = Number(pr.getProperty("VN_STATUS_AT") || 0);
+      if (last && Date.now() - last < 5 * 60 * 1000) return true;
+    } catch (e) {}
+
+    let trig = 0, jobs = [];
+    try {
+      const ts = ScriptApp.getProjectTriggers();
+      trig = ts.length;
+      const seen = {};
+      ts.forEach(function (t) {
+        let fn = "";
+        try { fn = String(t.getHandlerFunction() || ""); } catch (e) { fn = ""; }
+        const n = VN_JOB_JA[fn] || "そのほかの見回り";
+        if (seen[n]) { seen[n].n2++; return; }
+        seen[n] = { n: n, w: vnJobWhen_(t), n2: 1 };
+        jobs.push(seen[n]);
+      });
+      jobs = jobs.map(function (x) { return { n: x.n, w: x.w, c: x.n2 }; });
+    } catch (e) { trig = -1; }
+
     let web = false;
     try { web = !!(typeof updWebAppUrl_ === "function" && updWebAppUrl_()); } catch (e) {}
-    let errN = 0;
+
+    /* 最後に動いた時刻（止まっているかどうかの、いちばん確かな手がかり） */
+    let beat = "", beatMin = null, stop = null;
     try {
-      const l = JSON.parse(PropertiesService.getScriptProperties()
-        .getProperty("LAST_ERRORS") || "[]");
-      errN = (l && l.length) || 0;
+      const v = Number(pr.getProperty("PANEL_WATCH_AT") || 0);
+      if (v) {
+        beat = Utilities.formatDate(new Date(v), "Asia/Tokyo", "MM-dd HH:mm");
+        beatMin = Math.round((Date.now() - v) / 60000);
+        stop = beatMin > 25;
+      }
     } catch (e) {}
+
+    /* 版と公開（どちらも満杯になると、新しい中身をLINEに覚えさせられません） */
+    let verNo = null, depN = null;
+    try {
+      const vs = (updApi_("/versions", "get", null).versions) || [];
+      let top = 0;
+      vs.forEach(function (v) { if (Number(v.versionNumber) > top) top = Number(v.versionNumber); });
+      verNo = top;
+    } catch (e) {}
+    try {
+      const ds = (updApi_("/deployments", "get", null).deployments) || [];
+      depN = ds.filter(function (d) {
+        return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
+      }).length;
+    } catch (e) {}
+
+    /* しくじりは「いつ・どのあたりか」だけ。英語の文は1文字も書きません */
+    let errN = 0, errs = [];
+    try {
+      const l = JSON.parse(pr.getProperty("LAST_ERRORS") || "[]");
+      errN = (l && l.length) || 0;
+      errs = (l || []).slice(0, 5).map(function (x) {
+        let at = String((x && x.at) || "");
+        try { at = Utilities.formatDate(new Date(x.at), "Asia/Tokyo", "MM-dd HH:mm"); } catch (e) {}
+        const w = String((x && x.where) || "");
+        return { at: at, w: VN_JOB_JA[w] || vnErrJa_(w) };
+      });
+    } catch (e) {}
+
     const body = {
       at:   Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm"),
       ver:  (typeof UPD_VERSION === "string" ? UPD_VERSION : "") + " / " +
             (typeof VN_VERSION  === "string" ? VN_VERSION  : ""),
       trig: trig,          /* 見張りの数 */
-      web:  web,           /* 受け口が生きているか */
-      errN: errN           /* 直近のしくじりの「数」だけ（中身は書きません） */
+      jobs: jobs,          /* 見張りの顔ぶれ（日本語に直したもの） */
+      web:  web,           /* 受け口が生きているか（住所は書きません） */
+      beat: beat,          /* 最後に動いた時刻 */
+      beatMin: beatMin,    /* その何分前か */
+      stop: stop,          /* 止まっていそうか */
+      verNo: verNo,        /* いちばん新しい版の番号（200で満杯） */
+      depMax: (typeof UPD_DEPLOY_MAX === "number" ? UPD_DEPLOY_MAX : null),
+      depN: depN,          /* 公開の数 */
+      errN: errN,          /* 直近のしくじりの数 */
+      errs: errs           /* その時刻と、だいたいの場所（中身は書きません） */
     };
 
     const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_STATUS_PATH;
@@ -11681,12 +11786,22 @@ function vnStatusPush_() {
         } catch (e) { prev = ""; }
       }
     } catch (e) {}
-    /* 中身（時刻いがい）が同じなら、置き直しません */
-    try {
-      const old = JSON.parse(prev);
-      if (old && old.ver === body.ver && old.trig === body.trig &&
-          old.web === body.web && old.errN === body.errN) return true;
-    } catch (e) {}
+    /*
+     * ★ふだんは、中身（時刻いがい）が変わったときだけ置き直します。
+     *   force が立っているとき（まーく様が【仕掛けを起こす】を押したとき）は、
+     *   時刻を新しくするために、変わっていなくても置き直します。
+     */
+    if (!force) {
+      try {
+        const old = JSON.parse(prev);
+        const cut = function (x) {
+          const y = JSON.parse(JSON.stringify(x || {}));
+          delete y.at; delete y.beat; delete y.beatMin;
+          return JSON.stringify(y);
+        };
+        if (old && cut(old) === cut(body)) return true;
+      } catch (e) {}
+    }
 
     const payload = { message: "仕組みの様子を置き直した（じどう）",
       content: Utilities.base64Encode(JSON.stringify(body, null, 1), Utilities.Charset.UTF_8),
@@ -11697,9 +11812,23 @@ function vnStatusPush_() {
       contentType: "application/json",
       payload: JSON.stringify(payload), muteHttpExceptions: true
     });
-    return res.getResponseCode() < 300;
+    const okk = res.getResponseCode() < 300;
+    if (okk) { try { pr.setProperty("VN_STATUS_AT", String(Date.now())); } catch (e) {} }
+    return okk;
   } catch (e) { return false; }
 }
+
+/** しくじりの場所を、ざっくり日本語にします（中の名前は出しません） */
+function vnErrJa_(w) {
+  const t = String(w || "");
+  if (/^vn|venue/i.test(t))  return "催し集め";
+  if (/^upd/i.test(t))       return "新しい中身の取り込み";
+  if (/^lr|line/i.test(t))   return "LINEの知らせ";
+  if (/^web|nippo|sb/i.test(t)) return "台帳とのやりとり";
+  if (/^panel/i.test(t))     return "見回り";
+  return "そのほか";
+}
+
 
 /* ============================================================
  *  いま、調べられている場所（話題のとどき具合）

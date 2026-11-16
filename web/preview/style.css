@@ -1972,3 +1972,26 @@ td.n.hi{color:#FFD54A;font-weight:700}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .buzzt th.n,.buzzt td.n{text-align:right;width:52px;font-family:var(--mono)}
 .buzzt td{color:#FFFFFF}
+
+/* ★「仕組みの様子」（まーく様だけ）。
+     スクリプトの画面を開かなくても、同じことが分かるようにしています
+     （ご質問・2026/11/16）。 */
+.sysnow{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;
+  margin:6px 0;padding:8px 10px;border-radius:8px;
+  background:#121A2B;border:1px solid var(--line)}
+.sysnow b{font-size:14px;color:#FFFFFF}
+.sysnow span{font-size:11.5px;color:#FFFFFF}
+.sysnow.ok{border-color:#2E7D52}
+.sysnow.ng{border-color:var(--andon);background:#2A1216}
+.syshd{margin:10px 0 4px;font-size:12px;color:#FFFFFF;
+  letter-spacing:.06em;font-weight:700}
+.sysjob{display:flex;flex-wrap:wrap;gap:4px}
+.sysjob span{display:inline-flex;align-items:baseline;gap:3px;
+  background:#121A2B;border:1px solid var(--line);border-radius:999px;
+  padding:3px 9px;font-size:11px;color:#FFFFFF}
+.sysjob i{font-style:normal;opacity:.7;font-size:10px}
+.systbl{width:100%;table-layout:fixed;border-collapse:collapse}
+.systbl td,.systbl th{padding:5px 4px;font-size:12px;color:#FFFFFF;
+  border-bottom:1px solid #33456B;text-align:left;word-break:break-all}
+.systbl td:last-child{text-align:right;font-family:var(--mono)}
+.systbl th{font-size:11px}

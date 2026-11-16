@@ -3623,12 +3623,12 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
   t(/gasStatCard\(\)/.test(app) && /is_admin \? \(paneOut\(\) \+ gasStatCard\(\)\)/.test(app),
     '★★★まーく様だけに出る');
   t(/data\/status\.json/.test(app), '★★★小さな紙を読んでいる');
-  t(/function vnStatusPush_\(\)/.test(vn) && /VN_STATUS_PATH = "web\/data\/status\.json"/.test(vn),
+  t(/function vnStatusPush_\(force\)/.test(vn) && /VN_STATUS_PATH = "web\/data\/status\.json"/.test(vn),
     '★★★GASが、その紙を置きにいく');
   /* ★この紙は、だれでも開けるところに置かれます。
        鍵・住所・しくじりの中身は、1文字も書きません。 */
   {
-    const fn = vn.slice(vn.indexOf('function vnStatusPush_'), vn.indexOf('function vnFeedPush_'));
+    const fn = vn.slice(vn.indexOf('function vnStatusPush_'), vn.indexOf('function vnErrJa_'));
     t(!/LAST_ERRORS[\s\S]{0,200}msg/.test(fn), '★★★しくじりの中身は書かない（数だけ）');
     t(!/updWebAppUrl_\(\)\s*\)?\s*;?\s*\n[\s\S]{0,120}exec/.test(fn),
       '★★★受け口の住所も、この紙には書かない');
@@ -3636,6 +3636,35 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
   }
   t(/スクリプトの画面そのものは、ここには出せません/.test(app),
     '★★★出せない理由も、画面に書いてある');
+
+  /* ------------------------------------------------------------
+   *  ★スクリプトの画面を開かなくても済むように、中身を増やしました
+   *    （ご質問・2026/11/16
+   *      「Googleスクリプトへ別ページへ飛ばすのではなく
+   *        webページ上で見る、もしくは同じようなページ作成をするのは
+   *        不可能なのでしょうか」）。
+   * ---------------------------------------------------------- */
+  {
+    const fn = vn.slice(vn.indexOf('function vnStatusPush_'), vn.indexOf('function vnErrJa_'));
+    t(/const VN_JOB_JA = \{/.test(vn),
+      '★★★見張りの名前は、日本語に直してから書く');
+    t(/jobs: jobs/.test(fn), '★★★見張りの顔ぶれを書く');
+    t(/beat: beat/.test(fn) && /stop: stop/.test(fn),
+      '★★★最後に動いた時刻と、止まっていそうかを書く');
+    t(/verNo: verNo/.test(fn) && /depN: depN/.test(fn),
+      '★★★版と公開の数も書く（200・20で満杯になるため）');
+    t(/errs: errs/.test(fn), '★★★しくじりは、いつ・どのあたりかだけ書く');
+    t(!/x\.msg|e2\.msg/.test(fn), '★★★しくじりの中身（英語の文）は、やはり書かない');
+    t(!/exec|\/exec/.test(fn), '★★★受け口の住所も、やはり書かない');
+    t(/Date\.now\(\) - last < 5 \* 60 \* 1000/.test(fn),
+      '★★★5分に1回まで（叩かれるたびに書かない）');
+    const wa = fs.readFileSync(path.join(__dirname, '..', '004-WebApp.gs'), 'utf8');
+    t(/vnStatusPush_\(true\)/.test(wa),
+      '★★★【仕掛けを起こす】を押すと、紙が新しくなる');
+    /* 画面の側 */
+    t(/最後に動いた/.test(app) && /見張りの顔ぶれ/.test(app),
+      '★★★画面でも、同じものが見られる');
+  }
 }
 
 
