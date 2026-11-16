@@ -1,5 +1,5 @@
 {
- "at": "2026-11-16 00:00",
+ "at": "2026-11-16 15:00",
  "days": [
   {
    "d": "2026-11-16",
@@ -14,21 +14,7 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "MAMA AWARDS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.mwave.me/en/mama/about"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/mnetmama"
-      }
-     ]
+     "al": []
     },
     {
      "v": "大阪城ホール",
@@ -40,29 +26,7 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "米津玄師"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://reissuerecords.net/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/hachi_08"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/hachi_08/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCUCeZaZeJbEYAAzvMgrKOPQ"
-      }
-     ]
+     "al": []
     },
     {
      "v": "クールジャパンパーク大阪 WWホール",
@@ -93,7 +57,7 @@
      "t": "「歌う星ツアー2026」",
      "k": "event",
      "s": "19:00",
-     "e": "21:00",
+     "e": "21:30",
      "g": true,
      "a": "",
      "r": "",
@@ -127,29 +91,7 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "米津玄師"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://reissuerecords.net/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/hachi_08"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/hachi_08/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCUCeZaZeJbEYAAzvMgrKOPQ"
-      }
-     ]
+     "al": []
     },
     {
      "v": "京セラドーム大阪",
@@ -161,21 +103,7 @@
      "a": "",
      "r": "",
      "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "MAMA AWARDS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.mwave.me/en/mama/about"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/mnetmama"
-      }
-     ]
+     "al": []
     },
     {
      "v": "フェスティバルホール",
@@ -187,32 +115,14 @@
      "a": "",
      "r": "",
      "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "辰巳ゆうと"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/tatsumi_yuto"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/tatsumi_yuto_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UC24Df8W87PfXACozFRqWQqw"
-      }
-     ]
+     "al": []
     },
     {
      "v": "Zepp Osaka Bayside",
      "t": "乃⽊坂46 6期⽣全国ツアー2026",
      "k": "event",
      "s": "19:00",
-     "e": "21:00",
+     "e": "21:30",
      "g": true,
      "a": "",
      "r": "📅 2日中の初日",
@@ -236,7 +146,7 @@
      "t": "ベリーグッドマン ベリーグッドマン 結成13周年記念 & HiDEX生誕38周年お祝いライブ",
      "k": "event",
      "s": "19:00",
-     "e": "21:00",
+     "e": "21:30",
      "g": true,
      "a": "",
      "r": "",
@@ -248,7 +158,7 @@
      "t": "栗たわわなる東阪岩岐漫才興行2026",
      "k": "event",
      "s": "19:00",
-     "e": "21:30",
+     "e": "21:00",
      "g": true,
      "a": "",
      "r": "",
