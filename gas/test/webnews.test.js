@@ -114,7 +114,7 @@ console.log('■ 読み込むだけで、画面をいじらない');
   });
 }
 
-console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
+console.log('■ ひとこと（ご指示・2026/11/11）／描いていた顔は やめた（2026/11/16）');
 {
   /*
    * ★まーく様のご指示（2026/11/11）
@@ -124,23 +124,20 @@ console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
    *   顔も、ひとことに合わせて しかめ顔／笑い顔 に分かれます。
    */
   const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  const a = code.indexOf('const FACE_BAD_EYES');
+  const a = code.indexOf('/* ------------------------------------------------------------\n *  ひとこと（ふきだし）');
   const b = code.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
-  t(a !== -1 && b > a, '★顔とひとことの中身が、ちゃんと見つかる');
+  /* ★描いていた顔（目×口の100通り）は、まるごと やめました
+       （ご指摘・2026/11/16「顔はもう使ってないのに、どうして載せてるのですか？」）。
+     2026/11/14 から、顔は まーく様からいただいた絵です。 */
+  t(!/FACE_BAD_EYES|FACE_GOOD_EYES|function faceSvg/.test(code),
+    '★★★もう使っていない「描く顔」は、1行も残っていない');
+  t(a !== -1 && b > a, '★ひとことの中身が、ちゃんと見つかる');
   if (a !== -1 && b > a) {
     const box = { console: { log: function(){} } };
     vm.createContext(box);
     vm.runInContext(code.slice(a, b) + `
-      globalThis.OUT = { be:FACE_BAD_EYES.length, bm:FACE_BAD_MOUTH.length,
-        ge:FACE_GOOD_EYES.length, gm:FACE_GOOD_MOUTH.length,
-        bp:FACE_BAD_PATTERNS, gp:FACE_GOOD_PATTERNS,
-        sb:SAY_BAD.length, sg:SAY_GOOD.length,
-        kaoB:faceSvg(false), kaoG:faceSvg(true),
-        kasanari: FACE_BAD_EYES.filter(function(x){ return FACE_GOOD_EYES.indexOf(x)!==-1; }).length
-                + FACE_BAD_MOUTH.filter(function(x){ return FACE_GOOD_MOUTH.indexOf(x)!==-1; }).length };`, box);
+      globalThis.OUT = { sb:SAY_BAD.length, sg:SAY_GOOD.length };`, box);
     const o = box.OUT;
-    t(o.bp === 100, '★★★ぼやきの顔が、ちょうど100通り', o.bp);
-    t(o.gp === 100, '★★★ありがとうの顔が、ちょうど100通り', o.gp);
     /* ★ひとことは、まーく様がお決めになったものに入れ替えました
          （ご指示・2026/11/14「ふきだしのセリフを以下にしてください」）。
        数は決め打ちにしません。画面から いくつでも足せるためです。
@@ -151,10 +148,6 @@ console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
          片方が極端に少ないと、すぐ同じものが戻るので、そこだけ見ます。 */
     t(o.sb <= o.sg * 2 && o.sg <= o.sb * 2,
       '★★★ぼやきとほめ、どちらかに かたよりすぎていない', [o.sb, o.sg]);
-    t(o.be === 10 && o.bm === 10 && o.ge === 10 && o.gm === 10,
-      '　 どれも 目10 × 口10 で数えている', [o.be, o.bm, o.ge, o.gm]);
-    t(o.kasanari === 0, '★★★しかめ顔と笑い顔に、同じ部品を混ぜていない', o.kasanari);
-    t(/<svg/.test(o.kaoB) && /<svg/.test(o.kaoG), '　 どちらの顔も、ちゃんと描ける');
   }
   /* 顔は、ひとことの気分に合わせて変える */
   const sh = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
@@ -173,7 +166,7 @@ console.log('■ 顔100×2・ひとこと100×2（ご指示・2026/11/11）');
     '★★★ひとことの気分（ぼやき／ほめ）で、ふきだしを切りかえている');
   t(/:has\(\.bubble\.good\) \.kiraface/.test(css2),
     '　 顔のまわりの光も、気分で変える');
-  t(/function faceSvg\(good\)/.test(sh), '　 描いていた顔も、一覧のために残してある');
+  t(!/function faceSvg/.test(sh), '★★★描いていた顔は、もう作らない');
   /* 「できれば、はははのトランジションもあると嬉しいです」 */
   t(/<span class="hahafx"[^>]*><i>は<\/i><i>は<\/i><i>は<\/i><\/span>/.test(sh),
     '★★★ひとことが変わると「ははは」が出る');
@@ -196,11 +189,11 @@ console.log('■ 顔とひとことの一覧（ご指示・2026/11/11）');
   const html = path.join(W, 'say.html');
   t(fs.existsSync(html), '★★★一覧のページがある（/say）');
   const faces = path.join(W, 'shared-faces.js');
-  t(fs.existsSync(faces), '★★★一覧が読む、顔とひとことの紙がある');
+  t(fs.existsSync(faces), '★★★一覧が読む、ひとことの紙がある');
   if (fs.existsSync(faces)) {
     const src = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
     const cut = fs.readFileSync(faces, 'utf8');
-    const a2 = src.indexOf('const FACE_BAD_EYES');
+    const a2 = src.indexOf('/* ------------------------------------------------------------\n *  ひとこと（ふきだし）');
     const b2 = src.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
     const want = src.slice(a2, b2).replace(/\s+$/, '');
     t(cut.indexOf(want) !== -1,
@@ -233,15 +226,14 @@ console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・
    *   pick() を何百回も回して、1回でも「2回続けて同じ」が出たら こけます。
    */
   const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  const a = code.indexOf('const FACE_BAD_EYES');
+  const a = code.indexOf('/* ------------------------------------------------------------\n *  ひとこと（ふきだし）');
   const b = code.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
   if (a !== -1 && b > a) {
     const box = { console: { log: function(){} } };
     vm.createContext(box);
     vm.runInContext(code.slice(a, b) + `
       globalThis.OUT = (function(){
-        var bad = 0, seen = {}, arrs = [FACE_BAD_EYES, FACE_BAD_MOUTH,
-          FACE_GOOD_EYES, FACE_GOOD_MOUTH, SAY_BAD, SAY_GOOD, KIRA_NAMES];
+        var bad = 0, seen = {}, arrs = [SAY_BAD, SAY_GOOD, KIRA_NAMES];
         for (var k = 0; k < arrs.length; k++) {
           var prev = null, kinds = {};
           for (var i = 0; i < 2500; i++) {
@@ -255,13 +247,11 @@ console.log('■ 続けて同じ顔・同じセリフは出ない（ご指示・
       })();`, box);
     const o = box.OUT;
     t(o.bad === 0, '★★★2回続けて同じものは、1度も出ない', o.bad);
-    t(o.kinds[0] === 10 && o.kinds[1] === 10 && o.kinds[2] === 10 && o.kinds[3] === 10,
-      '　 それでも、目も口も ぜんぶ出てくる（しかめ顔・笑い顔とも）', o.kinds);
-    t(o.kinds[4] >= 5 && o.kinds[5] >= 5,
-      '　 ひとことも、ぜんぶ出てくる', [o.kinds[4], o.kinds[5]]);
-    t(o.kinds[6] === 6 && o.kira === 6, '　 キラの名前は6人ぶん', o.kira);
+    t(o.kinds[0] >= 5 && o.kinds[1] >= 5,
+      '　 ひとことも、ぜんぶ出てくる', [o.kinds[0], o.kinds[1]]);
+    t(o.kinds[2] === 6 && o.kira === 6, '　 キラの名前は6人ぶん', o.kira);
   } else {
-    t(false, '★顔の中身が見つからない');
+    t(false, '★ひとことの中身が見つからない');
   }
 }
 
@@ -448,7 +438,7 @@ console.log('■ ふきだしは ぼやき→ありがとう の交互（ご指�
    *       連続するようにしてください」
    */
   const code = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
-  const a = code.indexOf('const FACE_BAD_EYES');
+  const a = code.indexOf('/* ------------------------------------------------------------\n *  ひとこと（ふきだし）');
   const b = code.indexOf('/* ------------------------------------------------------------\n *  ふきだしの字の大きさ');
   t(a !== -1 && b > a, '★ひとことの中身が見つかる');
   if (a !== -1 && b > a) {
@@ -1475,7 +1465,13 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     '★★★「粛清」の上に「きろく」がある');
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-    t(/\.fab\.done \.k i\{/.test(cs), '　 その見た目も入っている');
+    /* ★2026/11/16：【記録する】のボタンも、同じ見た目にそろえました
+         （ご指示「記録するも きろく／粛清完了 に合わせてください」）。
+       決まりは2つの場所で使うので、まとめて1つに書いてあります。 */
+    t(/\.fab\.done \.k i,\.btn \.k i\{/.test(cs), '　 その見た目も入っている');
+    t(/'<span class="lab"><span class="k">粛清<i>きろく<\/i><\/span>完了<\/span>'/
+      .test(fs.readFileSync(path.join(W, 'app.js'), 'utf8')),
+      '★★★【記録する】のボタンも、同じ言い方にそろえてある');
     /* ★離れているとルビに見えません（ご指示・2026/11/13）。
        ★形も、角丸の長方形ではなく ほんとうの楕円にします。 */
     /* ★2026/11/13 のご指示で、前の形（角の丸い横長）に戻しました
@@ -1483,9 +1479,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          「きろく」と「粛清」の高さのすき間だけを、さらに詰めます。 */
     /* ★「粛清」と「完了」の下の位置を、ぴったりそろえます（ご指示・2026/11/13）。
        ルビを「浮かせて」置くので、漢字の並びは1つも動きません。 */
-    t(/\.fab\.done \.k i\{position:absolute/.test(cs),
+    t(/\.fab\.done \.k i,\.btn \.k i\{position:absolute/.test(cs),
       '★★★「きろく」だけを浮かせて、漢字の下の位置をそろえている');
-    t(/\.fab\.done \.k\{position:relative;display:inline-block\}/.test(cs),
+    t(/\.fab\.done \.k,\.btn \.k\{position:relative;display:inline-block\}/.test(cs),
       '　 その置き場も、そのために決めてある');
     t(/bottom:100%/.test(cs), '　 「粛清」の真上に付ける');
     t(!/\.fab\.done rt\{/.test(cs), '　 前のルビの決まりは、残っていない');
@@ -2021,12 +2017,12 @@ console.log('■ 乗り場のプルダウンが、からっぽにならない（
      中身を入れたあとに その場所を作り直していたため、
      【直近の記録】の中のものが、毎回 からっぽになっていました。 */
   t(/function placeSelFill_\(\)/.test(app), '★★★中身を入れる係がある');
-  const a1 = app.indexOf("pt.innerHTML = gasWakeBar()");
+  const a1 = app.indexOf("if (pt) pt.innerHTML =");
   const a2 = app.indexOf('placeSelFill_();', a1);
   t(a1 > 0 && a2 > a1 && a2 - a1 < 400,
     '★★★作り直した「あと」に、中身を入れ直している');
   t((app.match(/placeSelFill_\(\);/g) || []).length >= 2,
-    '　 上の欄と、直近の記録の欄の両方で呼んでいる');
+    '　 画面を組み立てる前と、あとの両方で呼んでいる');
   t(!/\[\$\('#ktPlace'\), \$\('#ktPlace2'\)\]\.forEach\(function \(kpl\) \{\s*\n\s*if \(!kpl\) return;\s*\n\s*kpl\.innerHTML = placeOptions\(\);[\s\S]{0,120}\}\);\s*\n\s*const kcl/.test(app),
     '　 前の「入れてから作り直す」書き方は残っていない');
 }
@@ -2707,7 +2703,11 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
             「乗り場の選択は、プルダウン以外に検索で。
               検索の該当文字が含んでいたら、候補を表示する形にしてください」 */
   t(/id="ktFind" data-find="ktSug"/.test(idx), '★★★上の欄に、乗り場をさがす入力がある');
-  t(/id="ktFind2" data-find="ktSug2"/.test(app), '　 直近の記録のほうにもある');
+  /* ★2026/11/16：「直近の記録」の欄は なくしました（ご指示
+       「直近の記録は非表示にしてください」）。同じ乗り場えらび・
+       同じ絞り込みが2つ並んでいたためです。表は「過去の記録」の中へ。 */
+  t(!/id="ktFind2"/.test(app) && !/id="ktPlace2"/.test(idx),
+    '★★★同じさがす欄が、2つ並んでいない');
   t(/pkey\(n\)\.indexOf\(q\) !== -1/.test(app), '★★★打った字が入っている乗り場を、候補に出す');
   t(/data-fp="/.test(app), '　 候補を押すと、その乗り場で絞り込める');
   t(/見つかりません/.test(app), '　 当たらないときは、そう出す');
@@ -2800,8 +2800,11 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★過去の記録 → 直近の記録 の順');
   /* ★2026/11/16：新規の記録を、直近の記録より上にしました（ご指示
        「新規の記録の方が、直近の記録より上にしてください」） */
-  t(/\(tab === 'in'\) \? \(leadCard\('in'\) \+ paneInNew\(\) \+ paneInRecent\(\)\) : ''/.test(app),
-    '★★★記録の画面は 新規の記録 → 直近の記録 → 過去の記録 の順');
+  t(/\(tab === 'in'\) \? \(leadCard\('in'\) \+ paneInNew\(\)\) : ''/.test(app),
+    '★★★記録の画面は 新規の記録 → 過去の記録（表つき）の順');
+  t(/<div id="ktTbl"><\/div>/.test(idx) &&
+    /ktb\.innerHTML = \(tab === 'in'\) \? paneInRecent\(\) : ''/.test(app),
+    '★★★記録の表は「過去の記録」の中に出す');
 
   /* 目次 */
   t(/function tocBuild\(/.test(app), '★★★目次を作る係がある');
@@ -3165,8 +3168,19 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★「今日」「明日」の赤い札を出す');
   t(!/evkyo">きょう</.test(app), '　「きょう」は残っていない');
   /* ⑫ イベントを開いたら、赤い点は消える */
-  t(/if \(tab === 'ev'\) \{ const d2 = \$\('#evDot'\); if \(d2\) d2\.hidden = true; \}/.test(app),
+  t(/if \(tab === 'ev'\) evSeeToday\(\);/.test(app),
     '★★★イベントを開いたら、赤い点が消える');
+  /* ★その日に1回 見たら、もう出しません（ご指示・2026/11/16） */
+  t(/function evSeenToday\(\)/.test(app) && /EV_SEEN_KEY/.test(app),
+    '★★★「その夜、もう見た」を覚えている');
+  t(/dot\.hidden = !n \|\| evSeenToday\(\)/.test(app),
+    '★★★見たあとは、開き直しても赤い点は付かない');
+  t(/function evHideToday\(\)\{[\s\S]{0,400}?evSeeToday\(\);/.test(app),
+    '★★★「もう表示しない」にしたら、赤い点も消える');
+  /* ★≡ の一覧にも、赤い丸を出します（ご指示・2026/11/16） */
+  t(/const dt = b\.querySelector\('\.dot'\);/.test(app) &&
+    /'<b>' \+ nd \+ esc\(nm\)/.test(app),
+    '★★★≡ を開いたときも、どれが新着か分かる');
 
   /* ⑪ 分のタグは90分まで、45までが1行目 */
   t(/MIN_CHIPS = \[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95\]/.test(app),
@@ -3383,8 +3397,8 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
     '★★★書き方がゆれていても、同じ所として絞れる');
   t(/placeLink\(canonPlace\(r\.place\)\)/.test(app),
     '★★★表でも、そろえた書き方で出す');
-  t(/id="ktPlace2"/.test(app) && /ktPlace2/.test(app),
-    '★★★「直近の記録」でも、乗り場を選べる');
+  t(/id="ktPlace"/.test(html),
+    '★★★「過去の記録」で、乗り場を選べる（欄は1つにまとめた）');
   /* ★「過去の記録」でも、全員／自分だけを切り替えられる（ご指示・2026/11/12） */
   t(/<div class="chips ktmine">/.test(html), '★★★「過去の記録」でも、全員／自分だけ');
   t(/\.ktmine \[data-mine\]/.test(app), '　 いまの形に合わせて、色が変わる');
@@ -4143,6 +4157,78 @@ console.log('\n■ 【仕掛けを起こす】は、まーく様だけ（ご質�
     (app.match(/<b>仕掛けを起こす<\/b>/g) || []).length === 3,
     '★★★出てくる所は3つだけ（どれも管理者だけ）',
     (app.match(/仕掛けを起こす/g) || []).length);
+}
+
+/* ============================================================
+ *  2026/11/16 のご指示（まとめて）
+ * ============================================================ */
+console.log('\n■ 2026/11/16 のご指示');
+{
+  const app  = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const idx  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const css  = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+
+  /* ① 別のページが開くものには、必ず印と一言を付ける */
+  t(/function extMark_\(\)/.test(app), '★★★別のページが開くものに、印を付ける係がある');
+  t(/extMark_\(\);/.test(app), '　 画面を組み立てるたびに呼んでいる');
+  t(/a\[target="_blank"\]/.test(app), '　 行き先が別ページのものを、ぜんぶ拾っている');
+  t(/別のページが開きます/.test(app), '★★★言い方は「別のページが開きます」');
+  t(/a\.ext::after\{content:'↗'/.test(css), '　 その印の見た目も入っている');
+  t(/c\.textContent\.indexOf\('別のページが開きます'\) >= 0\) return;/.test(app),
+    '　 同じ説明を、1つの欄で2回 出さない');
+
+  /* ② 名前の色は「名」の欄だけ */
+  t(!/\.scroll\.tbl tr\.fresh td\{background/.test(css),
+    '★★★新着でも、行ぜんたいは塗らない');
+  t(/\.scroll\.tbl tr\.fresh td\.c-who\{background/.test(css),
+    '★★★色を付けるのは「名」の欄だけ');
+
+  /* ③ 赤い帯は、目次より上 */
+  t(/<div id="wakeTop"><\/div>/.test(idx), '★★★赤い帯の入れものがある');
+  t(idx.indexOf('id="wakeTop"') < idx.indexOf('id="panesTop"'),
+    '★★★赤い帯は、目次（#panesTop の上に入る）より上');
+  t(/wt\.innerHTML = gasWakeBar\(\);/.test(app), '　 そこに帯を出している');
+
+  /* ④ 乗車金額のタグ … 0 は1段目のおしり */
+  t(/<button class="chip" data-fa="\$\{v\}">\$\{v\}<\/button>`\)\.join\(''\)\}<button\s*\n\s*class="chip" data-fa="0">0<\/button>/.test(app),
+    '★★★乗車金額の「0」は、1段目のおしりにある');
+  t(/FARE_ZEROS\.slice\(1\)/.test(app), '　 2段目は 00・000・0000 の3つ');
+
+  /* ⑤ 天気 … 記録が足りないときは、見出しごと出さない */
+  {
+    const i = app.indexOf('★見出しごと出しません');
+    const seg = app.slice(i, i + 900);
+    t(i > 0 && !/<h2>/.test(seg), '★★★記録が足りないときは、見出しも出さない');
+    t(/filterChips\(\)/.test(seg), '　 絞り込みの操作だけは残す');
+  }
+
+  /* ⑥ 地図 … 「すべて」が2つ並ばない／はじめの絞り込み */
+  t(/<div class="flab">時間帯<\/div>/.test(app) && /<div class="flab">金額<\/div>/.test(app),
+    '★★★「すべて」が何の「すべて」かを書いてある');
+  t(/\.flab\{/.test(css), '　 その見た目も入っている');
+  t(/mfn === 'すべて' \? '金額すべて' : mfn/.test(app),
+    '　 まとめの見出しでも「すべて」が2つ並ばない');
+  t(/function mapDefault_\(\)/.test(app), '★★★地図の はじめの絞り込みがある');
+  t(/period = \{ mode: 'c1', from: '', to: '' \};/.test(app),
+    '★★★16日に入れ替わる「終わったばかりの営業月」から出す');
+  t(/onlyMine = true;/.test(app), '　 はじめは「自分だけ」');
+  t(/if \(filtOn\(\)\) return;/.test(app), '　 すでに触っていたら、上書きしない');
+  t(/function myTopPlace_\(/.test(app), '　 一番 付けている乗り場を出している');
+
+  /* ⑦ タブの名前 */
+  t(/<b>日報<\/b><i>写真取込み<\/i>/.test(idx), '★★★日報は「写真取込み」');
+  t(/<b>特定<\/b><i>GO,Uber他<\/i>/.test(idx), '★★★特定は「GO,Uber他」');
+
+  /* ⑧ 右下の固定ボタンは、いったん出さない／ボタン位置は 左利き→右利き */
+  t(/id="fabAdd" hidden data-off="1"/.test(idx), '★★★右下の固定ボタンは出さない');
+  t(/a\.hidden = a\.hasAttribute\('data-off'\) \|\| \(tab !== 'in'\)/.test(app),
+    '　 data-off を外せば、そのまま戻る');
+  t(idx.indexOf('data-hand="l"') < idx.indexOf('data-hand="r"'),
+    '★★★ボタン位置は 左利き → 右利き の順');
+
+  /* ⑨ 顔は、もう使っていない */
+  t(!/faceSvg/.test(app) && !/FACE_EYES/.test(fs.readFileSync(path.join(W, 'shared.js'), 'utf8')),
+    '★★★使っていない顔は、どこにも残っていない');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

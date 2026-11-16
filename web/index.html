@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261116-5ab78d6e">
+<link rel="stylesheet" href="style.css?v=20261116-c11efc18">
 </head>
 <body>
 <div id="boot" class="boot">
@@ -59,8 +59,9 @@
       </div>
       <div class="hrow">
         <span>ボタン位置</span>
-        <button class="chip" data-hand="r">右利き</button>
+        <!-- ★並びは 左利き → 右利き（ご指示・2026/11/16） -->
         <button class="chip" data-hand="l">左利き</button>
+        <button class="chip" data-hand="r">右利き</button>
         <span class="whoR">
           <a class="mini" id="toAdmin" href="/admin" hidden style="text-decoration:none">管理</a>
           <button class="mini" id="out">ログアウト</button>
@@ -85,8 +86,8 @@
     <button data-t="map" aria-selected="false"><b>地図</b><i>ピンで見る</i></button>
     <button data-t="g" aria-selected="false"><b>グラフ</b><i>線・棒・表</i></button>
     <button data-t="ratio" aria-selected="false"><b>％</b><i>ロング率</i></button>
-    <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真で入力</i></button>
-    <button data-t="tok" aria-selected="false"><b>特定</b><i>バラシ他</i></button>
+    <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真取込み</i></button>
+    <button data-t="tok" aria-selected="false"><b>特定</b><i>GO,Uber他</i></button>
     <button data-t="rep" aria-selected="false"><b>再現</b><i>くり返し</i></button>
     <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
     <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
@@ -97,6 +98,11 @@
        ≡ は この札を見て行き先の一覧を作るので、目に見えない形で残します。
        まだ読んでいないものがあるときは、≡ に赤い丸が付きます。 -->
   <!-- ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13） -->
+  <!-- ★「仕掛けが止まっているかもしれません」の帯は、目次より上に出します
+       （ご指示・2026/11/16）。止まっているときに一番先に見るものなので、
+       目次の下にあると気づけません。目次は #panesTop の上に差し込まれるので、
+       帯だけを さらに上の入れものに分けています。 -->
+  <div id="wakeTop"></div>
   <div id="panesTop"></div>
   <section class="card blk" id="ktop">
     <h2>過去の記録</h2>
@@ -133,6 +139,12 @@
       <div class="kpi"><small>ロングの割合</small><b id="k4">—</b></div>
     </div>
     <div class="kperiod" id="kperiod">—</div>
+    <!-- ★記録の表は、ここに出します（ご指示・2026/11/16
+           「直近の記録は非表示にしてください」）。
+         「直近の記録」という別の欄に、同じ乗り場えらび・同じ絞り込みが
+         もう一組ならんでいて、2つの欄が同じことをしていました。
+         欄を1つにして、絞り込みの すぐ下に表を置きます。 -->
+    <div id="ktTbl"></div>
   </section>
   <div id="panes"></div>
 
@@ -142,12 +154,14 @@
 </div>
 <div class="tip" id="tip"></div>
 
-<!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
-<button class="fab done" id="fabAdd" hidden><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
+<!-- ★右下の固定ボタンは、いったん外しました（ご指示・2026/11/16
+       「また、右下の固定ボタンは一旦取り除いてください」）。
+     ★消してはいません。hidden を外せば、そのまま戻ります。 -->
+<button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261116-5ab78d6e"></script>
-<script src="news.js?v=20261116-5ab78d6e"></script>
-<script src="shared.js?v=20261116-5ab78d6e"></script>
-<script src="app.js?v=20261116-5ab78d6e"></script>
+<script src="config.js?v=20261116-c11efc18"></script>
+<script src="news.js?v=20261116-c11efc18"></script>
+<script src="shared.js?v=20261116-c11efc18"></script>
+<script src="app.js?v=20261116-c11efc18"></script>
 </body>
 </html>

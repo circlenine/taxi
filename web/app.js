@@ -1008,9 +1008,19 @@ function render(){
      仕掛けが止まっていそうなときは、その上に 赤い帯を出します。 */
   /* ★並びは 新規の記録 → 直近の記録 → 過去の記録（ご指示・2026/11/16
        「新規の記録の方が、直近の記録より上にしてください」） */
+  /* ★赤い帯だけは、目次より上の入れものに出します（ご指示・2026/11/16
+       「仕掛けが止まっているかもしれませんの表示は、目次より上にしてください」）。 */
+  const wt = $('#wakeTop');
+  if (wt) wt.innerHTML = gasWakeBar();
   const pt = $('#panesTop');
-  if (pt) pt.innerHTML = gasWakeBar() +
-    ((tab === 'in') ? (leadCard('in') + paneInNew() + paneInRecent()) : '');
+  /* ★「直近の記録」は出しません（ご指示・2026/11/16
+       「直近の記録は非表示にしてください」）。
+     すぐ下の「過去の記録」の表に、同じものが新しい順で並ぶためです。 */
+  if (pt) pt.innerHTML =
+    ((tab === 'in') ? (leadCard('in') + paneInNew()) : '');
+  /* 記録の表は「過去の記録」の中へ（欄を2つに分けません） */
+  const ktb = $('#ktTbl');
+  if (ktb) ktb.innerHTML = (tab === 'in') ? paneInRecent() : '';
   /* ★作り直したあとに、乗り場のプルダウンへ中身を入れ直します。
        これを忘れると、iPhoneで「オプションなし」と出ます（2026/11/14）。 */
   placeSelFill_();
@@ -1021,9 +1031,50 @@ function render(){
   /* ★イベントを開いたら、赤い点は消します（ご指摘・2026/11/12
        「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
      見たのに点が残ると、いつまでも新しいものがあるように見えます。 */
-  if (tab === 'ev') { const d2 = $('#evDot'); if (d2) d2.hidden = true; }
+  if (tab === 'ev') evSeeToday();
   menuDot();
+  extMark_();
   wire();
+}
+
+/* ------------------------------------------------------------
+ *  別のページが開くものに、印と一言を付けます
+ *  （ご指示・2026/11/16「別ページへ飛ぶものに関しては、必ず
+ *    別ページへ飛びます（もっと良い一般的な言い方があれば合わせます）
+ *    と必ずつけてください」）
+ *
+ *  ★一つずつ手で書かず、画面を組み立てたあとに まとめて付けます。
+ *    手で書くと、新しい行き先を足したときに必ず付け忘れるためです。
+ *    ここで自動で付くので、付け忘れが起きません。
+ *  ★言い方は「別のページが開きます」にしました。
+ *    「別ウィンドウ」「新しいタブ」より、ふだん使う言葉だからです。
+ * ---------------------------------------------------------- */
+function extMark_(){
+  try {
+    const ins = ['#wakeTop', '#panesTop', '#panes', '#ktop', '#fabSheet'];
+    ins.forEach(function (sel){
+      const box = document.querySelector(sel);
+      if (!box) return;
+      box.querySelectorAll('a[target="_blank"]').forEach(function (a){
+        a.classList.add('ext');
+        /* 読み上げでも分かるようにします */
+        if (!a.getAttribute('aria-label')) {
+          a.setAttribute('aria-label',
+            (a.textContent || '').trim() + '（別のページが開きます）');
+        }
+      });
+    });
+    /* 印の意味は、その欄の一番下に1行だけ添えます。
+       すでに同じことが書いてある欄には、くり返しません。 */
+    document.querySelectorAll('#panesTop .card,#panes .card,#ktop').forEach(function (c){
+      if (!c.querySelector('a.ext')) return;
+      if (c.textContent.indexOf('別のページが開きます') >= 0) return;
+      const p = document.createElement('p');
+      p.className = 'note extnote';
+      p.textContent = '※ ↗ が付いたものは、別のページが開きます。';
+      c.appendChild(p);
+    });
+  } catch (e) {}
 }
 const msgHTML = id => `<span class="msg ${msgBad?'bad':''}" id="${id}">${esc(msg)}</span>`;
 let impMsg = '', impMsgBad = false;
@@ -1180,9 +1231,14 @@ function paneInNew(){
                「1、2、3、4、5、6、7、8、9／0、00、000、0000、00000
                  という形で、数値追加できる形にしてください」
                押すたびに、うしろに足されます。打ち込むより速いためです。 -->
-        <div class="chips fares">${FARE_KEYS.map(v =>
-          `<button class="chip" data-fa="${v}">${v}</button>`).join('')}</div>
-        <div class="chips fares z0">${FARE_ZEROS.map(v =>
+        <!-- ★「0」1つだけは、1段目のおしりに入れます（ご指示・2026/11/16
+               「乗車金額タブも 0がら1個だけのやつは1行目にしてください」）。
+             待ち時間の並びと同じ 1〜9＋0 になり、押す場所を覚え直さずに済みます。
+             2段目は 00・000・0000 の3つだけです。 -->
+        <div class="chips fares w10">${FARE_KEYS.map(v =>
+          `<button class="chip" data-fa="${v}">${v}</button>`).join('')}<button
+          class="chip" data-fa="0">0</button></div>
+        <div class="chips fares z0">${FARE_ZEROS.slice(1).map(v =>
           `<button class="chip" data-fa="${v}">${v}</button>`).join('')}</div>
         <div class="chips fares z">
           <button class="chip" data-fa="BS">←1つ消す</button>
@@ -1229,7 +1285,10 @@ function paneInNew(){
           <button class="chip rst" data-clr="note">リセット</button></div></div>
     </div>
     <div class="actions">
-      <button class="btn" id="add">${editId ? '書きかえる' : '記録する'}</button>
+      <!-- ★右下の固定ボタンと、同じ言い方にそろえます（ご指示・2026/11/16
+             「記録するも きろく／粛清完了 に合わせてください」） -->
+      <button class="btn" id="add">${editId ? '書きかえる'
+        : '<span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span>'}</button>
       ${editId ? `<button class="btn ghost" id="cancel">やめる</button>` : ''}
       ${msgHTML('msg')}
     </div>
@@ -1238,27 +1297,21 @@ function paneInNew(){
   `;
 }
 
+/* ------------------------------------------------------------
+ *  記録の表（ご指示・2026/11/16「直近の記録は非表示にしてください」）
+ *
+ *  ★前は「直近の記録」という別の欄にしていました。
+ *    その欄の中に、乗り場えらび・さがす欄・絞り込みが もう一組あり、
+ *    すぐ上の「過去の記録」と まったく同じものが2つ並んでいました。
+ *  ★欄をなくして、表だけを「過去の記録」の中に置きます。
+ *    操作は1か所になり、記録を直す・消すは そのまま使えます。
+ * ---------------------------------------------------------- */
 function paneInRecent(){
-  return `
-  <div class="card">
-    <h2>直近の記録</h2>
-    <!-- ★ここでも乗り場を選べるようにします（ご指示・2026/11/12） -->
-    <div class="ktplace">
-      <select class="fsel" id="ktPlace2"></select>
-    </div>
-    <div class="ktfind">
-      <input class="ja" id="ktFind2" data-find="ktSug2" placeholder="乗り場をさがす（例：梅田）">
-      <div class="fsug" id="ktSug2"></div>
-    </div>
-    <p class="note">${records.length ? '新しく入れたものが上から10件。見出しを押すと、並べ替えられます。' : 'まだ1件も入っていません。'}</p>
-    ${filterChips()}
-    ${(function (){
-      const L = tableSort(tblFilter(visible()));
-      if (!visible().length) return '<div class="empty">該当データがありません。</div>';
-      if (!L.length) return tableHTML([]) + '<div class="empty">絞り込みに当てはまる記録がありません。</div>';
-      return tableHTML(L.slice(0, 10));
-    })()}
-  </div>`;
+  const L = tableSort(tblFilter(visible()));
+  if (!visible().length) return '<div class="empty">該当データがありません。</div>';
+  if (!L.length) return tableHTML([]) + '<div class="empty">絞り込みに当てはまる記録がありません。</div>';
+  return '<p class="note">新しく入れたものが上から10件。見出しを押すと、並べ替えられます。</p>' +
+    tableHTML(L.slice(0, 10));
 }
 /* ------------------------------------------------------------
  *  しぼり込みの操作（まーく様のご指示・2026/11/12）
@@ -2539,7 +2592,51 @@ function nextCard(R){
     }).join('') + '</tbody></table></div></div>';
 }
 
+/* ------------------------------------------------------------
+ *  地図の はじめの絞り込み（ご指示・2026/11/16）
+ *
+ *  ★まーく様のご指示
+ *    「地図のデフォルトは、各メンバーにあわせて 各メンバー記録で、
+ *      一番のりばにつけているもので 当月期間としてください」
+ *    「16日のリセット時には、なんのデータもありませんので
+ *      今日～15日まで、前月分の記録を表示
+ *      16日なったら、次の記録、を繰り返してください」
+ *
+ *  ★営業月は 16日〜翌15日 の区切りです。16日になった日は
+ *    新しい月に1件も記録がないので、**終わったばかりの月**を出します。
+ *    16日が来たら、ひとりでに次の月へ移ります（c1＝1つ前の営業月）。
+ *  ★記録は「自分だけ」から始めます。自分がどこに付けているかが、
+ *    一番すぐ使える形だからです。上の切り替えで、全員にも戻せます。
+ *  ★開いたときに1回だけ入れます。そのあとに触られた絞り込みは、
+ *    上書きしません（せっかく変えたものが戻ると困るためです）。
+ * ---------------------------------------------------------- */
+let mapDefDone = false;
+function mapDefault_(){
+  if (mapDefDone) return;
+  mapDefDone = true;
+  /* すでに絞り込みを触っておられるときは、何も上書きしません */
+  if (filtOn()) return;
+  try {
+    period = { mode: 'c1', from: '', to: '' };
+    onlyMine = true;
+    filtSave();
+  } catch (e) {}
+}
+
+/** 自分が一番 付けている乗り場（いまの絞り込みの中で） */
+function myTopPlace_(R){
+  const by = {};
+  R.forEach(function (r){
+    if (String(r.user_id || '') !== String((ME.user && ME.user.id) || '')) return;
+    const p = canonPlace(r.place); if (!p) return;
+    by[p] = (by[p] || 0) + 1;
+  });
+  const ks = Object.keys(by).sort(function (a, b){ return by[b] - by[a]; });
+  return ks.length ? { p: ks[0], n: by[ks[0]] } : null;
+}
+
 function paneMap(){
+  mapDefault_();
   const R0 = visible().filter(hasDep);
   const hrs = [...new Set(R0.map(r => Math.floor(r.dep)))].sort(function (a, b){ return a - b; });
   const R = mapRows();
@@ -2548,10 +2645,15 @@ function paneMap(){
 
   const head = leadCard('map') + `<div class="card"><h2>地図</h2>
     <p class="note">えらんだ時間帯と金額に当てはまる記録を、乗り場のあたりにピンで出します。</p>
+    <!-- ★「すべて」が2つ並んでいて、どちらの「すべて」か分かりませんでした
+           （ご指摘・2026/11/16「なぜ、すべてのタブが2つあるのですか？」）。
+         時間帯のぶんと金額のぶんなので、それぞれに名前を付けます。 -->
+    <div class="flab">時間帯</div>
     <div class="chips maph">
       <button class="chip ${mapHour === '' ? 'on' : ''}" data-mh="">すべて</button>
       ${hrs.map(h => `<button class="chip ${String(mapHour) === String(h) ? 'on' : ''}" data-mh="${h}">${h}時</button>`).join('')}
     </div>
+    <div class="flab">金額</div>
     <div class="chips">
       ${MAP_FARES.map(f => `<button class="chip ${mapMin === f.v ? 'on' : ''}" data-mf="${f.v}">${f.n}</button>`).join('')}
     </div>
@@ -2562,10 +2664,15 @@ function paneMap(){
     </div>
     ${filterChips(true)}</div>`;
 
+  /* ★見出しでも「すべて」が2つ並ばないようにします（ご指摘・2026/11/16） */
+  const mfn = (MAP_FARES.filter(f => f.v === mapMin)[0] || MAP_FARES[0]).n;
   const sum = `<div class="card"><h2>${mapHour === '' ? 'すべての時間帯' : mapHour + '時台'}　${
-    (MAP_FARES.filter(f => f.v === mapMin)[0] || MAP_FARES[0]).n}</h2>
+    mfn === 'すべて' ? '金額すべて' : mfn}</h2>
     <p class="note">${R.length}件・ピンの立つ乗り場 ${G.hit.length}か所。
       ピンは、乗り場のあるあたりを指しています。1件ごとの正確な場所ではありません。</p>
+    ${(function(){ const t = myTopPlace_(R); return t
+      ? '<p class="note">この中で、あなたが一番 付けているのは <b>' + esc(t.p) +
+        '</b>（' + t.n + '件）です。</p>' : ''; })()}
     <div id="pinMap" class="radarmap pinmap wxmap">読み込んでいます…</div>
     <!-- ★色と大きさの見方を、はっきり書きます（ご指示・2026/11/16
            「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
@@ -3507,9 +3614,12 @@ function paneHot(now){
    *   （この画面の絵は「日・祝」でしぼったまま、月曜に見ておられました）
    */
   if (!got.rows.length) {
+    /* ★見出しごと出しません（ご指示・2026/11/16
+         「記録が足りないなら、見出し含めて非表示にしてください」）。
+       日づけと時刻の見出しを出すと、中身があるように見えてしまいます。
+       絞り込みの操作だけは残します（曜日や期間を変えて出し直せるように）。 */
     return leadCard('hot') +
-      '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
-      '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
+      '<div class="card">' +
       '<p class="note">' +
       (filtOn() ? 'この絞り込みでは、まだ記録が足りません。下の「絞り込みを解除」で元に戻ります。'
                 : 'この時間は、まだ記録が足りません。') + '</p>' +
@@ -4647,7 +4757,7 @@ function gasStatCard(){
       'だれでも開けるところに置かないようにしています。</p>' : '') +
     (u ? '<div class="actions">' +
       '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">仕掛けを起こす</a>' +
-      '</div><p class="note">押すと新しい画面が開いて、見張りの立て直し・新しい中身の取り込み・' +
+      '</div><p class="note">別のページが開きます。見張りの立て直し・新しい中身の取り込み・' +
       '頼まれごとを、まとめて走らせます。<b>この欄も、そのとき新しくなります</b>' +
       '（1分ほどで入れ替わります）。</p>'
       : '<p class="note">受け口の住所が、まだ届いていません。</p>') +
@@ -4679,7 +4789,7 @@ function gasWakeBar(){
     '<span>イベントの紙が ' + esc(String(evData.at)) + ' のままです。</span>' +
     '<a class="btn" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
     '仕掛けを起こす</a>' +
-    '<span class="note">押すと、新しい画面が開いて 自動で直します。' +
+    '<span class="note">別のページが開きます。押すと自動で直ります。' +
     '戻ってきたら、この帯は消えます。</span></div>';
 }
 
@@ -5554,8 +5664,14 @@ function fabWire(){
         const t = b.dataset.t;
         const nm = (b.querySelector('b') || {}).textContent || (b.textContent || '').trim();
         const sb = (b.querySelector('i') || {}).textContent || '';
+        /* ★新着の赤い丸も、ここに持ってきます（ご指示・2026/11/16
+             「三を開いた時にも、新着が赤丸ついてないと、
+               どれが新着なのか分かりません」）。
+           上のタブは画面から外してあるので、ここに出さないと気づけません。 */
+        const dt = b.querySelector('.dot');
+        const nd = (dt && !dt.hidden) ? '<span class="dot"></span>' : '';
         return '<button class="fsrow ' + (t === tab ? 'on' : '') + '" data-go="' + t + '">' +
-               '<b>' + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
+               '<b>' + nd + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
       }).join('') +
         /* ★【仕掛けを起こす】は、いつでも ここから押せます
              （ご指示・2026/11/13「スプシにおいても色々やらないといけないの面倒」）。
@@ -5569,12 +5685,12 @@ function fabWire(){
            開いたついでに、止まっている仕掛けも自動で直ります。 */
         ((gasInfo && gasInfo.exec)
           ? '<a class="fsrow" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-            '<b>みんなの記録</b><i>記録カード・立ち回り・ロング</i></a>' +
+            '<b>みんなの記録</b><i>記録カード・ロング（別のページが開きます）</i></a>' +
             /* ★【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/14）。
                  仕組みの手当てなので、乗務員の方々には出しません。 */
             ((ME.profile && ME.profile.is_admin)
               ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-                '<b>仕掛けを起こす</b><i>止まったときに、ここを押すだけ</i></a>'
+                '<b>仕掛けを起こす</b><i>止まったときに押す（別のページが開きます）</i></a>'
               : '')
           : '');
       sheet.hidden = false;
@@ -5588,7 +5704,10 @@ function fabWire(){
   }
   const a = document.getElementById('fabAdd');
   if (a) {
-    a.hidden = (tab !== 'in');
+    /* ★右下の固定ボタンは、いったん出しません（ご指示・2026/11/16
+         「また、右下の固定ボタンは一旦取り除いてください」）。
+       data-off を外せば、そのまま戻ります。 */
+    a.hidden = a.hasAttribute('data-off') || (tab !== 'in');
     a.onclick = function () { const b = document.getElementById('add'); if (b) b.click(); };
   }
   document.querySelectorAll('.hrow [data-hand]').forEach(function (b) {
@@ -6680,7 +6799,7 @@ function paneNews(){
     '<div class="card"><h2>お知らせ</h2>' + (news || '<div class="note">まだありません。</div>') +
     '<div class="actions">' +
     '<a class="btn ghost" href="/say" target="_blank" rel="noopener" style="text-decoration:none">' +
-    '右上の顔とひとこと、すべて見る</a></div></div>';
+    'ひとことを、すべて見る</a></div></div>';
 }
 
 /* ★ここも、画面の無いところで落ちないようにします */
@@ -7035,6 +7154,30 @@ function evHiddenToday(){
 }
 function evHideToday(){
   try { localStorage.setItem(EV_KEY, evNight()); } catch (e) {}
+  /* ★「もう表示しない」にしたら、赤い丸も消します（ご指示・2026/11/16
+       「もう表示しないにチェックした場合は、赤丸も消してください」）。
+     出さないと決めたものに印が付いたままだと、見落としたように見えます。 */
+  evSeeToday();
+}
+
+/* ------------------------------------------------------------
+ *  イベントの「見た」を、その夜のぶんだけ覚えます
+ *  （ご指示・2026/11/16「新着の赤丸は、その日に1回確認(既読)したら、
+ *    もう赤丸は付けないでください」）
+ *
+ *  ★前は、催しが1件でもあれば いつでも赤い丸が出ていました。
+ *    開き直すたびに付き直すので、見たのかどうか分かりませんでした。
+ *  ★日が変わると（夜のくくりが変わると）、また出ます。
+ * ---------------------------------------------------------- */
+const EV_SEEN_KEY = 'tsukemachi.ev.seen';
+function evSeenToday(){
+  try { return localStorage.getItem(EV_SEEN_KEY) === evNight(); } catch (e) { return false; }
+}
+function evSeeToday(){
+  try { localStorage.setItem(EV_SEEN_KEY, evNight()); } catch (e) {}
+  const d = document.getElementById('evDot');
+  if (d) d.hidden = true;
+  menuDot();
 }
 /* 箱は出さず、赤い点だけを付け直します（【更新】のとき） */
 function evDotOnly_(){
@@ -7042,7 +7185,7 @@ function evDotOnly_(){
     const d = evToday();
     const n = (d && d.list) ? d.list.length : 0;
     const dot = document.getElementById('evDot');
-    if (dot) dot.hidden = !n;
+    if (dot) dot.hidden = !n || evSeenToday();
     menuDot();
   } catch (e) {}
 }
@@ -7051,7 +7194,7 @@ function evBoot(){
     const d = evToday();
     const n = (d && d.list) ? d.list.length : 0;
     const dot = document.getElementById('evDot');
-    if (dot) dot.hidden = !n;
+    if (dot) dot.hidden = !n || evSeenToday();
     menuDot();
     if (!n || evHiddenToday()) return;
     evPopup(d);

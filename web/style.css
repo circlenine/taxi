@@ -1257,7 +1257,13 @@ header > h1, .login .head > h1{white-space:nowrap}
      ﾀﾞｲｽｹ のように濁点が入ると 半角5文字ぶんになるので、そこに合わせます。 */
 .scroll.tbl th:nth-child(2),.scroll.tbl td.c-who{width:28px;min-width:28px;
   font-family:var(--mono);font-size:10px;white-space:nowrap;letter-spacing:-.02em}
-.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:32px;min-width:32px}
+/* ★付・発は「20:45」の5文字が入る広さにします（ご指摘・2026/11/16
+     「発がはみ出てます、こういうの本当にやめてください」）。
+   32pxだと最後の1文字が欄の外へ出ていました。字も少し詰めます。 */
+.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:36px;min-width:36px}
+.scroll.tbl td:nth-child(3),.scroll.tbl td:nth-child(5){font-size:9.5px;
+  font-family:var(--mono);letter-spacing:-.04em;padding-left:1px;padding-right:1px;
+  white-space:nowrap;overflow:hidden}
 /* ★待は「半角英数3文字」ぶん（ご指示・2026/11/16）。
      「不明」が入ることがあるので、その字だけ小さくして欄に収めます。 */
 .scroll.tbl th:nth-child(4){width:22px;min-width:22px}
@@ -1298,7 +1304,9 @@ header > h1, .login .head > h1{white-space:nowrap}
   font-style:normal;line-height:1.4;vertical-align:middle}
 /* 表の中では、名前の上の行に置きます（横に並べると欄からはみ出します） */
 .scroll.tbl td.c-who .nw{display:block;margin:0 0 1px}
-.scroll.tbl tr.fresh td{background:rgba(255,213,74,.10)}
+/* ★色を付けるのは「名」の欄だけ（ご指示・2026/11/16
+     「名前の色変えは名の部分だけで良いと伝えましたよね？」）。
+   行ぜんたいを薄く塗っていたので、名前の色が行に広がって見えていました。 */
 .scroll.tbl tr.fresh td.c-who{background:rgba(255,213,74,.22)}
 
 /* ★日が変わるところの空き（ご指示・2026/11/16
@@ -1515,9 +1523,14 @@ body.modalon .fab{display:none}
      （2026/11/13・申し訳ありませんでした）。
      いまは、ふだんの字の流れの中に置き、「きろく」だけを
      「粛清」の真上に浮かせています。漢字は1ミリも動きません。 */
-.fab.done .lab{display:inline-block;position:relative;line-height:1;white-space:nowrap}
-.fab.done .k{position:relative;display:inline-block}
-.fab.done .k i{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);
+.fab.done .lab,.btn .lab{display:inline-block;position:relative;line-height:1;white-space:nowrap}
+.fab.done .k,.btn .k{position:relative;display:inline-block}
+/* 【粛清完了】のボタンも、固定ボタンと同じ見た目にそろえます
+   （ご指示・2026/11/16）。「きろく」の字は漢字の真上に浮くので、
+   その分だけ上の余白を広げて、切れないようにしています。 */
+.btn .lab{margin-top:1px}
+.btn:has(.lab){padding-top:16px;padding-bottom:12px}
+.fab.done .k i,.btn .k i{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);
   font-style:normal;font-size:9px;font-weight:700;letter-spacing:.06em;
   line-height:1;white-space:nowrap;margin-bottom:1px;opacity:.95}
 body[data-hand="r"] .fab.done{right:16px}
@@ -2177,3 +2190,23 @@ a.chip{display:inline-flex}
 /* ★そえ書きも 真っ白にします（ご指示・2026/11/11「字は、ぜんぶ真っ白に」）。
      うすい灰色は、暗い車内では読めません。 */
 .evnote{display:block;font-style:normal;font-size:10px;color:#FFFFFF;line-height:1.4}
+
+/* ------------------------------------------------------------
+   ★別のページが開くものには、必ず印を付けます（ご指示・2026/11/16
+     「別ページへ飛ぶものに関しては、必ず 別ページへ飛びます
+       と必ずつけてください」）。
+   印の意味は、その欄の一番下に1行だけ添えます（extnote）。
+ ---------------------------------------------------------- */
+a.ext::after{content:'↗';font-size:.82em;margin-left:2px;opacity:.95;
+  font-family:var(--body)}
+.scroll.tbl a.ext::after{font-size:.7em;margin-left:1px}
+p.extnote{margin-top:8px}
+/* ★≡ の一覧でも、赤い丸は名前の前に置きます（ご指示・2026/11/16） */
+.fsrow b .dot{margin-left:0;margin-right:5px}
+
+/* ★タグの列が何のためのものかを、短く書きます（ご指摘・2026/11/16
+     「なぜ、すべてのタブが2つあるのですか？」）。
+   「すべて」だけが2つ並ぶと、どちらの「すべて」か分かりません。 */
+.flab{font-size:11px;color:#FFFFFF;opacity:.8;letter-spacing:.08em;
+  margin:10px 0 0;font-weight:700}
+.flab + .chips{margin-top:5px}
