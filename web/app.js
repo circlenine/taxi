@@ -4790,22 +4790,33 @@ function whenPane(cat, title, label, lead, test, noLead){
          これは分かりやすく表示してください」）。
      ★件数が少ないので、平均や割合より「いつ・何時・いくら」が役に立ちます。
        新しい順に、そのまま出します。 */
+  /*
+   * ★ここは「並べただけ」の形をやめ、**表**にしました（ご指摘・2026/11/16
+   *     「各位置がバラバラです(日付の文字数が違った際に、一気にズレてしまってます)
+   *       表と同じように構成見直ししてください」）。
+   *   字を横に流して置いていたので、日付が「11/15(日)」と「8/30(日)」で
+   *   1字 違うだけで、そのあとの 時刻・乗り場・金額が ぜんぶ ずれていました。
+   *   欄の幅を決めた表にすれば、どの行も たてにそろいます。
+   */
   let plain = '<div class="card"><h2>' + esc(title) + 'の記録（新しい順）</h2>' +
-    '<p class="note">日付・曜日・時刻・' + esc(label) + '・金額を、そのまま並べています。</p>' +
-    '<div class="wlist">' +
+    '<p class="note">日付・時刻・' + esc(label) + '・金額を、そのまま並べています。</p>' +
+    '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
+    '<div class="scroll tbl wtbl"><table><thead><tr>' +
+    '<th>日</th><th class="n">時刻</th><th>' + esc(label) + '</th>' +
+    '<th class="n">金</th><th class="n">待</th></tr></thead><tbody>' +
     R.slice().sort(function (a2, b2){
       if (a2.date !== b2.date) return (a2.date < b2.date ? 1 : -1);
       return (+b2.dep || 0) - (+a2.dep || 0);
     }).map(function (r){
-      return '<div class="wli">' +
-        '<b>' + esc(fmtD(r.date)) + '</b>' +
-        '<span class="wd ' + dayCls(r.date) + '">' + esc(dayName(r.date)) + '</span>' +
-        '<span class="wt">' + showT(r.dep) + '</span>' +
-        '<span class="wp">' + esc(r.place || '（無記入）') + '</span>' +
-        '<span class="wy">' + showYen(r.fare) + '</span>' +
-        (isUnk(r.wait) ? '' : '<span class="ww">待ち' + r.wait + '分</span>') +
-        '</div>';
-    }).join('') + '</div></div>';
+      return '<tr>' +
+        '<td class="c-date ' + dayCls(r.date) + '">' +
+          esc(String(fmtD(r.date)).replace(/\((.)\)/, '$1')) + '</td>' +
+        '<td class="n">' + showT(r.dep) + '</td>' +
+        '<td class="c-place">' + esc(r.place || '（無記入）') + '</td>' +
+        '<td class="n c-fare ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
+        '<td class="n ' + waitCls(r.wait) + '">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
+        '</tr>';
+    }).join('') + '</tbody></table></div></div>';
 
   let out = head + plain + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
     '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +

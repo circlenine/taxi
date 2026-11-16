@@ -2124,3 +2124,17 @@ a.chip{display:inline-flex}
 .chip.rst{padding:0 11px}
 /* 題のとなりの小さいものだけは、小さいまま そろえます */
 .hrow .chip,.handbar .chip{height:26px;min-height:26px;padding:0 9px}
+
+/* ★【特定】の記録一覧も、表にそろえました（ご指摘・2026/11/16
+     「各位置がバラバラです(日付の文字数が違った際に、一気にズレてしまってます)
+       表と同じように構成見直ししてください」）。
+     欄は5つだけなので、直近の記録の表とは別に幅を決めます。
+     日42＋時刻40＋乗り場(のこり)＋金56＋待24。 */
+.scroll.tbl.wtbl table{min-width:320px}
+.scroll.tbl.wtbl th:nth-child(1),.scroll.tbl.wtbl td:nth-child(1){width:42px;min-width:42px}
+.scroll.tbl.wtbl th:nth-child(2),.scroll.tbl.wtbl td:nth-child(2){width:40px;min-width:40px}
+.scroll.tbl.wtbl th:nth-child(3),.scroll.tbl.wtbl td.c-place{width:auto;min-width:96px;
+  text-align:left;padding-left:6px}
+.scroll.tbl.wtbl th:nth-child(4),.scroll.tbl.wtbl td:nth-child(4){width:56px;min-width:56px}
+.scroll.tbl.wtbl th:nth-child(5),.scroll.tbl.wtbl td:nth-child(5){width:26px;min-width:26px;
+  font-size:9px}
