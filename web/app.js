@@ -3461,13 +3461,26 @@ function paneHot(now){
     '自分たちの記録からの傾向です。いま何人いるかを測っているのではありません。</p>' +
     filterChips();
 
+  /*
+   * ★記録がたまっていないときは、**何も並べません**（ご指示・2026/11/16
+   *     「だから、データとして溜まってない状態なら非表示にしてください」）。
+   *
+   *   前は、大きな空の箱と「参考（件数が足りません）：○○ 1件・…」まで
+   *   出していました。1件は たまたまの1本なので、出してはいけない数です。
+   *   「読むときの注意」も、読むものが無いのに出していました。
+   *
+   * ★残すのは、しぼり込みの操作だけです。
+   *   これまで消すと、曜日や期間を変えて 出し直すことができなくなります。
+   *   （この画面の絵は「日・祝」でしぼったまま、月曜に見ておられました）
+   */
   if (!got.rows.length) {
-    return clock +
-      '<div class="empty">この時間の記録が、まだ ' + HOT_MIN_N + '件 たまっていません。<br>' +
-      '1件は、たまたまの1本なので、出しません。</div>' +
-      (got.thin.length ? '<div class="note" style="margin:0">参考（件数が足りません）：' +
-        got.thin.slice(0, 5).map(function (x){ return esc(x.p) + ' ' + x.n + '件'; }).join('・') + '</div>' : '') +
-      '</div>' + hotPlanCard(plan, c.early) + head + hotNoteCard(got);
+    return leadCard('hot') +
+      '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
+      '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
+      '<p class="note">' +
+      (filtOn() ? 'この絞り込みでは、まだ記録が足りません。下の「絞り込みを解除」で元に戻ります。'
+                : 'この時間は、まだ記録が足りません。') + '</p>' +
+      filterChips() + '</div>' + hotPlanCard(plan, c.early) + head;
   }
 
   /* ★カードごと押すと、地図が開きます（ご指示・2026/11/12） */
@@ -4377,20 +4390,18 @@ function paneRatio(){
       if (!o.n) return;
       const wide = D.filter(r => Math.abs(Math.floor(r.dep) - h) <= 1);
       const rk = longRank(wide);
-      /* 3件に届かない乗り場は、割合を出さずに「件数」だけ 参考に出します。
-         1件を「100%」と書くと、それを見て走った人の売上が変わります。 */
-      const thin = [...new Set(t.map(r => r.place).filter(Boolean))]
-        .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
-        .sort((a2, b2) => b2.n - a2.n).slice(0, 5);
+      /*
+       * ★3件そろっていない時間は、まるごと出しません（ご指示・2026/11/16
+       *     「だから、データとして溜まってない状態なら非表示にしてください」）。
+       *   前は「まだ3件そろった乗り場がありません。この時間に入っている所：
+       *   ○○ 1件・…」と並べていました。1件は たまたまの1本なので、
+       *   出してはいけない数です。
+       */
+      if (!rk.length) return;
       hb += '<div class="hblk' + (hourPick !== '' && +hourPick === h ? ' on' : '') + '">' +
         '<div class="hbh"><b>' + h + '時台</b>' +
         '<span>ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t)) + '</span></div>' +
-        (rk.length
-          ? '<div class="hbn">' + (h - 1) + '〜' + (h + 1) + '時の記録から</div>' + longRows(rk, 3)
-          : (thin.length
-              ? '<div class="hbn">まだ3件そろった乗り場がありません。この時間に入っている所（件数）：' +
-                thin.map(x => esc(x.p) + ' ' + x.n).join('・') + '</div>'
-              : '<div class="hbn">まだ記録がありません。</div>')) +
+        '<div class="hbn">' + (h - 1) + '〜' + (h + 1) + '時の記録から</div>' + longRows(rk, 3) +
         '</div>';
     });
     if (hb) {

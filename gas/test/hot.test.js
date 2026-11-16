@@ -45,6 +45,7 @@ vm.runInContext(`
   function visible(){ return REC; }
   function render(){ drawn++; }
   function filterChips(){ return '<!--chips-->'; }
+  function filtOn(){ return false; }
   /* 「このページを見てわかること」は、ここでは中身を見ないので置きかえます */
   function leadCard(){ return '<!--lead-->'; }
 `, ctx);
@@ -158,8 +159,16 @@ console.log('■ 記録がまったく無いとき');
 {
   set([]);
   const html = H.paneHot(new Date(2026, 9, 28, 1, 0));
-  ok(html.indexOf('たまっていません') !== -1, '空でも落ちず、足りないと書く');
-  ok(html.indexOf('たまたまの1本') !== -1, '1件を平均と呼ばない理由も書く');
+  /* ★2026/11/16：たまっていないときは、何も並べません（ご指示
+       「だから、データとして溜まってない状態なら非表示にしてください」）。
+     大きな空の箱も、「参考（件数が足りません）：○○ 1件」も出しません。 */
+  ok(html.indexOf('まだ記録が足りません') !== -1, '空でも落ちず、1行だけ書く');
+  ok(html.indexOf('参考（件数が足りません）') === -1,
+     '★★★1件しかない場所を、参考として並べない');
+  ok(html.indexOf('読むときの注意') === -1,
+     '★★★読むものが無いのに「読むときの注意」を出さない');
+  ok(html.indexOf('<!--chips-->') !== -1,
+     '★★★しぼり込みの操作だけは残す（曜日や期間を変えて出し直せるように）');
 }
 
 console.log('■ 翌4時までの見当（ご指示・2026/11/12）');
