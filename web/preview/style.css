@@ -2161,3 +2161,19 @@ a.chip{display:inline-flex}
 .wkd.d-sat{background:#16344A}
 .wkd.d-sun{background:#4A1A20}
 .wkd.top{border-color:#FFFFFF}
+
+/* ★イベント1件ずつの「くわしいこと」（ご依頼・2026/11/16
+     「アーティスト情報や、客層、客数など もっとタクシーに必要となる
+       詳細データを、載せて分かりやすくしてもらえませんか？」）。
+     札を頭に付けて1行ずつ。無いものは、その行ごと出しません。 */
+.evdet{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.evdr{display:flex;gap:6px;align-items:baseline;margin-top:4px;
+  font-size:12px;line-height:1.5;color:#FFFFFF}
+.evdr b{flex:none;min-width:4.6em;text-align:center;font-size:10px;font-weight:700;
+  background:rgba(255,255,255,.14);border-radius:4px;padding:2px 4px;color:#FFFFFF}
+.evdr span{min-width:0}
+.evdr.cap b{background:rgba(255,213,74,.22)}
+.evdr.av b{background:rgba(200,35,43,.30)}
+/* ★そえ書きも 真っ白にします（ご指示・2026/11/11「字は、ぜんぶ真っ白に」）。
+     うすい灰色は、暗い車内では読めません。 */
+.evnote{display:block;font-style:normal;font-size:10px;color:#FFFFFF;line-height:1.4}

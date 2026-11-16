@@ -3893,6 +3893,29 @@ console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
      前は ふつうの字で1行書くだけで、曜日は1文字も出していませんでした。 */
   t(/<span class="wkl">時間<\/span>/.test(app), '★★★時間帯の札がある');
   t(/<span class="wkl">曜日<\/span>/.test(app), '★★★曜日の札もある（前は1文字も無かった）');
+
+  /* ------------------------------------------------------------
+   *  ★イベント1件ずつの「くわしいこと」（ご依頼・2026/11/16
+   *    「ポップアップではなく、ページ内であれば アーティスト情報や、
+   *      客層、客数など もっとタクシーに必要となる詳細データを、
+   *      載せて分かりやすくしてもらえませんか？」）
+   * ---------------------------------------------------------- */
+  t(/function evDetail\(x\)/.test(app) && /\$\{evDetail\(x\)\}/.test(app),
+    '★★★1件ずつ、ページの中に くわしいことを出す');
+  t(/'満席なら'/.test(app) && /'客層'/.test(app) && /'話のタネ'/.test(app) && /'ひかえる'/.test(app),
+    '★★★満席なら・客層・話のタネ・ひかえる の4つ');
+  t(/会場の席数です。その日の人数ではありません/.test(app),
+    '★★★席数は「その日の人数ではない」と、はっきり書く');
+  t(/客層[\s\S]{0,80}見当です/.test(app), '★★★客層は「見当」と書く');
+  t(!/台/.test(app.slice(app.indexOf('function evDetail'),
+      app.indexOf('function evDetail') + 1400)),
+    '★★★台数の目安は、出さない（ご判断・2026/10/16）');
+  t(/if \(!rows\.length\) return '';/.test(app.slice(app.indexOf('function evDetail'),
+      app.indexOf('function evDetail') + 1400)),
+    '★★★無いものは、その行ごと出さない');
+  t(/\.evnote\{[^}]*color:#FFFFFF/
+      .test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '　 そえ書きも 真っ白');
   t(/const dm = \{\};[\s\S]{0,200}dayCls\(r\.date\)/.test(app),
     '★★★乗り場ごとに、曜日の区分を数えている');
   t(/dm: dm, dys: dys/.test(app), '　 その数を、画面へ渡している');

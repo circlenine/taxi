@@ -2,7 +2,13 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V120ver  （2026/11/16）  ★★★
+ *  ★★★  V121ver  （2026/11/16）  ★★★
+ *
+ *  [V121ver]
+ *  ・🎤 台帳のイベント欄に「客層の見当・話のタネ・触れない方がよいこと・
+ *    会場の席数」を渡すようにした（ご依頼・2026/11/16）
+ *    ★AIにたずね直しません。夕方の知らせが取った控えが残っていれば、それを使います
+ *    ★席数は会場が公表している数。その日 何人来るかではありません
  *
  *  [V120ver]
  *  ・🔄 スプシ→台帳の自動反映の結果（いつ・何件）を、台帳の紙にも書くようにした
@@ -1848,7 +1854,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V120ver";
+const VN_VERSION = "V121ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -5594,6 +5600,98 @@ function vnClean_(v) {
 /** 年代・男女比だけがほしいとき（今までの呼び名を残しておく） */
 function vnAudienceGuess_(title, venue) {
   return vnTopicInfo_(title, venue).audience;
+}
+
+/*
+ * ★控えに「もう入っているものだけ」を返します（たずね直しません）。
+ *
+ *   まーく様のご依頼（2026/11/16）
+ *     「アーティスト情報や、客層、客数など
+ *       もっとタクシーに必要となる詳細データを、載せて分かりやすく
+ *       してもらえませんか？」
+ *
+ *   台帳（ウェブ）にも出したいのですが、そのために AI へ たずね直すと、
+ *   スクショの読み取りの無料枠を食います（CLAUDE.md の決まり）。
+ *   夕方の知らせが同じ公演を見にいったときの控えが残っているので、
+ *   **その控えだけ**を使います。無ければ、その行を出さないだけです。
+ */
+function vnTopicCached_(title) {
+  const empty = { audience: "", know: "", avoid: "" };
+  try {
+    const key = vnAudKey_(String(title || ""));
+    if (!key) return empty;
+    const all = vnAudAllRead_();
+    let j = all[key];
+    if (j === undefined) {
+      const raw = PropertiesService.getScriptProperties().getProperty(key);
+      if (!raw) return empty;
+      j = JSON.parse(raw);
+    }
+    if (j && j.v) {
+      const keep = (typeof VN_TOPIC_KEEP_MS === "number") ? VN_TOPIC_KEEP_MS : 3 * 24 * 3600 * 1000;
+      if (j.at && Date.now() - Number(j.at) > keep) return empty;
+      return { audience: String(j.v.audience || ""), know: String(j.v.know || ""),
+               avoid: String(j.v.avoid || "") };
+    }
+    if (j && (j.audience || j.know || j.avoid)) {
+      return { audience: String(j.audience || ""), know: String(j.know || ""),
+               avoid: String(j.avoid || "") };
+    }
+  } catch (e) {}
+  return empty;
+}
+
+/* ============================================================
+ *  会場の席数（公表されている収容人数）
+ *
+ *  ★まーく様のご依頼（2026/11/16）で足しました。
+ *    「満席なら何人か」が分かると、台数の見当がつけやすくなります。
+ *  ★ここに書いてあるのは **会場が公表している席数** です。
+ *    その日 何人来るかではありません。画面にも、そう書きます。
+ *  ★台数の目安は出しません（ご判断・2026/10/16
+ *    「やっぱり人数目安やめてください」）。人数までです。
+ * ========================================================== */
+const VN_CAP = {
+  "京セラドーム大阪":        36000,
+  "大阪城ホール":            16000,
+  "Asueアリーナ大阪":         10000,
+  "舞洲アリーナ":             7000,
+  "大阪国際会議場":           2754,
+  "グランキューブ大阪":       2754,
+  "フェスティバルホール":     2700,
+  "オリックス劇場":           2400,
+  "梅田芸術劇場":             1905,
+  "NHK大阪ホール":            1417,
+  "サンケイホールブリーゼ":   910,
+  "森ノ宮ピロティホール":     1030,
+  "大阪松竹座":               1033,
+  "新歌舞伎座":               1638,
+  "COOL JAPAN PARK OSAKA":    1138,
+  "ZeppNamba":                2200,
+  "Zepp Namba":               2200,
+  "Zepp Osaka Bayside":       2882,
+  "なんばHatch":              1500,
+  "BIGCAT":                   700,
+  "umeda TRAD":               800,
+  "Shangri-La":               600,
+  "ヤンマースタジアム長居":   47000,
+  "ヨドコウ桜スタジアム":     24481,
+  "パナソニックスタジアム吹田": 39694,
+  "花園ラグビー場":           26544,
+  "東和薬品RACTABドーム":     30000,
+  "インテックス大阪":         0,
+  "大阪城音楽堂":             3000
+};
+/** 会場の席数（分からなければ 0） */
+function vnCapOf_(venue) {
+  const v = String(venue || "").trim();
+  if (!v) return 0;
+  if (VN_CAP[v]) return VN_CAP[v];
+  const keys = Object.keys(VN_CAP);
+  for (let i = 0; i < keys.length; i++) {
+    if (VN_CAP[keys[i]] && v.indexOf(keys[i]) !== -1) return VN_CAP[keys[i]];
+  }
+  return 0;
 }
 
 /* ============ ホテルの資料（LINEに送られた画像）============ */
@@ -11550,7 +11648,20 @@ function vnFeedDay_(day) {
          */
         u: String((typeof vnOkUri_ === "function" ? vnOkUri_(ev.url) : (ev.url || "")) || ""),
         /* アーティストの公式リンク（ウェブの台帳で、1件ずつに出します） */
-        al: vnFeedArtLinks_(ev)
+        al: vnFeedArtLinks_(ev),
+        /*
+         * ★台帳の画面で、1件ずつ出す「くわしいこと」（ご依頼・2026/11/16）。
+         *   au … 客層の見当（年代・男女のおおよその比率）
+         *   kn … 知っておくと話が弾むこと
+         *   av … 触れない方がよいこと
+         *   cap… 会場の席数（満席なら何人か。その日の人数ではありません）
+         * ★au・kn・av は、**控えに もう入っているものだけ**を使います。
+         *   ここで AI にたずね直すと、スクショの読み取りの枠を食うためです。
+         */
+        au: (function (){ try { return vnTopicCached_(ev.title).audience; } catch (e){ return ""; } })(),
+        kn: (function (){ try { return vnTopicCached_(ev.title).know;     } catch (e){ return ""; } })(),
+        av: (function (){ try { return vnTopicCached_(ev.title).avoid;    } catch (e){ return ""; } })(),
+        cap: (function (){ try { return vnCapOf_(ev.venue); } catch (e){ return 0; } })()
       });
     } catch (e) {}
   });

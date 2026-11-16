@@ -4278,5 +4278,32 @@ console.log('\n■ いま、調べられている場所（ご依頼・2026/11/15
   ok(ctx2.vnBuzzSum_(null) === null, '　 読めなければ null');
 }
 
+console.log('\n■ イベントの くわしいこと（ご依頼・2026/11/16）');
+{
+  const ok = (v, msg, more) => eq(!!v, true, msg + (more ? '　→ ' + more : ''));
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  /* ★台帳の画面に、客層・話のタネ・席数を渡します */
+  ok(/au: \(function \(\)\{ try \{ return vnTopicCached_/.test(src), '★★★客層を渡している');
+  ok(/kn: \(function \(\)\{ try \{ return vnTopicCached_/.test(src), '★★★話のタネも渡している');
+  ok(/av: \(function \(\)\{ try \{ return vnTopicCached_/.test(src), '★★★触れない方がよいことも渡している');
+  ok(/cap: \(function \(\)\{ try \{ return vnCapOf_/.test(src), '★★★会場の席数も渡している');
+  /* ★AIには たずね直しません（スクショの読み取りの無料枠を食うため） */
+  {
+    const fn = src.slice(src.indexOf('function vnTopicCached_'),
+                         src.indexOf('const VN_CAP = {'));
+    ok(fn.indexOf('generativelanguage') === -1,
+       '★★★控えを読むだけ。AIには たずね直さない');
+    ok(fn.indexOf('UrlFetchApp') === -1, '　 外へも出ていかない');
+  }
+  /* 席数は、会場が公表している数 */
+  const ctx3 = { console };
+  vm.createContext(ctx3);
+  vm.runInContext(src.slice(src.indexOf('const VN_CAP = {'),
+                            src.indexOf('function vnFeedPush_')), ctx3);
+  eq(ctx3.vnCapOf_('大阪城ホール'), 16000, '★★★大阪城ホールは 16000席');
+  eq(ctx3.vnCapOf_('フェスティバルホール'), 2700, '★★★フェスティバルホールは 2700席');
+  eq(ctx3.vnCapOf_('知らない会場'), 0, '★★★知らない会場は 0（出さない）');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

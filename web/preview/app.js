@@ -6890,12 +6890,45 @@ function evCards(list){
     <div class="evt">${esc(x.t || '')}</div>
     ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
     ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
+    ${evDetail(x)}
     <div class="evlinks evart">
       ${evArtHTML(x)}
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
       <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
     </div>
   </div>`).join('');
+}
+
+/* ------------------------------------------------------------
+ *  1件ずつの くわしいこと（ご依頼・2026/11/16）
+ *
+ *  ★まーく様のご依頼
+ *    「イベント情報ですが、ポップアップではなく、ページ内であれば
+ *      アーティスト情報や、客層、客数など
+ *      もっとタクシーに必要となる詳細データを、載せて分かりやすく
+ *      してもらえませんか？」
+ *
+ *  ★出すのは4つ。どれも「何をもとにした数か」が言えるものだけです。
+ *    ・満席なら … 会場が公表している席数。**その日 何人来るかではありません**
+ *    ・客層 … 見当です。そう書きます
+ *    ・話のタネ … 車内での話の種
+ *    ・ひかえる … 触れない方がよいこと
+ *  ★台数の目安は出しません（ご判断・2026/10/16）。
+ *  ★無いものは、その行ごと出しません。
+ * ---------------------------------------------------------- */
+function evDetail(x){
+  const rows = [];
+  if (x.cap > 0) {
+    rows.push(['満席なら', Number(x.cap).toLocaleString('ja-JP') + '人' +
+      '<i class="evnote">会場の席数です。その日の人数ではありません</i>', 'cap']);
+  }
+  if (x.au) rows.push(['客層', esc(String(x.au)) + '<i class="evnote">見当です</i>', 'au']);
+  if (x.kn) rows.push(['話のタネ', esc(String(x.kn)), 'kn']);
+  if (x.av) rows.push(['ひかえる', esc(String(x.av)), 'av']);
+  if (!rows.length) return '';
+  return '<div class="evdet">' + rows.map(function (r){
+    return '<div class="evdr ' + r[2] + '"><b>' + r[0] + '</b><span>' + r[1] + '</span></div>';
+  }).join('') + '</div>';
 }
 
 /** 時刻が分からず、出さなかったもの（名前だけ1行） */
