@@ -5286,10 +5286,22 @@ function placeChipsFit(){
  *    （タグを押すたびに ぜんぶ開き直すと、使いものになりません）
  * ---------------------------------------------------------- */
 const FOLD_KEY = 'tn_folds';
+/* はじめから たたんでおく欄（ご指示・2026/11/16）。見出しの字で見分けます */
+const FOLD_SHUT = ['このページを見てわかること'];
+const FOLD_OPEN_KEY = 'tn_fold_open';
+let foldOpen = (function (){
+  try { return JSON.parse(localStorage.getItem(FOLD_OPEN_KEY) || '[]') || []; }
+  catch (e) { return []; }
+})();
 /* 目次そのものを たたんでいるか（高さを食わせないため） */
 const TOC_KEY = 'tn_toc_fold';
+/*
+ * ★目次は、はじめから たたんでおきます（ご指示・2026/11/16
+ *     「目次とこのページを見てわかることは、デフォルトは折りたたんでください」）。
+ *   いちど開けば、その端末は開いたままを覚えます（'0' が入ります）。
+ */
 function tocFolded(){
-  try { return localStorage.getItem(TOC_KEY) === '1'; } catch (e) { return false; }
+  try { return localStorage.getItem(TOC_KEY) !== '0'; } catch (e) { return true; }
 }
 let foldSet = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '[]') || []; }
@@ -5312,7 +5324,15 @@ function foldWire(){
         i.className = 'fmark'; i.textContent = '▼';
         h.appendChild(i);
       }
-      card.classList.toggle('fold', foldSet.indexOf(k) !== -1);
+      /*
+       * ★「このページを見てわかること」は、はじめから たたんでおきます
+       *   （ご指示・2026/11/16
+       *     「目次とこのページを見てわかることは、デフォルトは折りたたんでください」）。
+       *   いちど開けば、その端末は開いたままを覚えます
+       *   （開いた印を FOLD_OPEN に入れます）。
+       */
+      const def = (FOLD_SHUT.indexOf(k) !== -1) && foldOpen.indexOf(k) === -1;
+      card.classList.toggle('fold', def || foldSet.indexOf(k) !== -1);
       h.style.cursor = 'pointer';
       h.onclick = function () {
         const on = !card.classList.contains('fold');
@@ -5320,6 +5340,13 @@ function foldWire(){
         const i2 = foldSet.indexOf(k);
         if (on && i2 === -1) foldSet.push(k);
         if (!on && i2 !== -1) foldSet.splice(i2, 1);
+        /* はじめから たたんである欄は、開いたことも覚えます */
+        if (FOLD_SHUT.indexOf(k) !== -1) {
+          const i3 = foldOpen.indexOf(k);
+          if (!on && i3 === -1) foldOpen.push(k);
+          if (on && i3 !== -1) foldOpen.splice(i3, 1);
+          try { localStorage.setItem(FOLD_OPEN_KEY, JSON.stringify(foldOpen)); } catch (e) {}
+        }
         foldSave();
       };
     });

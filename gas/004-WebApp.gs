@@ -2,12 +2,19 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W015ver  （2026/11/16）  ★★★
+ *  ★★★  W016ver  （2026/11/16）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *
+ *  [W016ver] 売上ランキングを、まるごと やめた（ご指示・2026/11/16
+ *            「ランキングは、ストレスの発端となるため除外とします
+ *              ランキングをつけるにしても、決して売上ランキングではなく
+ *              付け待ち回数ランキング(期間分けも)などにしてほしいです」）
+ *            ・人と人の売上をならべる画面（ロングランキング・中身くらべ）を外した
+ *            ・かわりに「乗り場ごとの付け待ち回数」を出す（期間は上で切り替え）
+ *            ・乗り場のならびも、平均売上の順から 付け待ち回数の順にした
  *  [W015ver] 受け口を叩いたときに、いまの様子を台帳の画面へ書き出すようにした
  *            （ご質問・2026/11/16「Googleスクリプトへ別ページへ飛ばすのではなく
  *              webページ上で見る…のは不可能なのでしょうか」）
@@ -69,7 +76,7 @@
  * ================================================================
  */
 
-const WB_VERSION = "W015ver";
+const WB_VERSION = "W016ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
@@ -955,7 +962,7 @@ nav button.on{color:var(--blue)}
 <nav>
   <button id="nav-a" class="on" onclick="go('a')"><span class="ic">📊</span>立ち回り</button>
   <button id="nav-b" onclick="go('b')"><span class="ic">📋</span>記録</button>
-  <button id="nav-c" onclick="go('c')"><span class="ic">🏆</span>ランキング</button>
+  <button id="nav-c" onclick="go('c')"><span class="ic">📍</span>付け待ち</button>
 </nav>
 
 <script>
@@ -1109,7 +1116,7 @@ function go(t) {
   tab = t;
   ['a','b','c'].forEach(k =>
     document.getElementById('nav-' + k).classList.toggle('on', k === t));
-  document.getElementById('member').style.display = (t === 'c') ? 'none' : '';
+  document.getElementById('member').style.display = '';
   document.getElementById('dayChips').style.display = (t === 'b') ? 'none' : '';
   window.scrollTo(0, 0);
   draw();
@@ -1165,7 +1172,7 @@ function viewA(s) {
                v: g.length ? g.reduce((a, r) => a + r.m, 0) / g.length : 0 };
     }), true));
 
-  H.push(placeCard('📍 乗り場ランキング（自社）', rows, '平均売上の高い順。3件以上のみ'));
+  H.push(placeCard('📍 乗り場（自社）', rows, '付け待ち回数の多い順。3件以上のみ'));
 
   // ロングマップ（オプチャ込み・件数）
   const map = s.own.concat(s.opu).filter(r => band(r.m) === 'l');
@@ -1209,7 +1216,12 @@ function placeCard(title, rows, sub) {
     const waits = g.filter(r => r.wt != null).map(r => r.wt);
     const w = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
     return { p: p, n: g.length, avg: sum / g.length, c: c, w: w };
-  }).filter(x => x.n >= 3).sort((a, b) => b.avg - a.avg).slice(0, 12);
+  /* ★並べるのは「付け待ち回数の多い順」です（ご指示・2026/11/16
+         「ランキングは、ストレスの発端となるため除外とします
+           ランキングをつけるにしても、決して売上ランキングではなく
+           付け待ち回数ランキング(期間分けも)などにしてほしいです」）。
+       平均売上の順に並べると、それも売上ランキングになります。 */
+  }).filter(x => x.n >= 3).sort((a, b) => b.n - a.n || b.avg - a.avg).slice(0, 12);
 
   if (!list.length) return '<div class="card"><div class="chead"><b>' + title +
     '</b></div>' + empty('3件以上ある乗り場がまだありません') + '</div>';
@@ -1304,68 +1316,60 @@ function rideCard(r) {
     (r.o ? '<div class="r3">' + esc(r.o) + '</div>' : '') + '</div>';
 }
 
-/* ===== ③ ランキング ===== */
+/* ===== ③ 付け待ち回数 =====
+ *
+ *  ★まーく様のご指示（2026/11/16）
+ *    「ランキングは、ストレスの発端となるため除外とします
+ *      ランキングをつけるにしても、決して売上ランキングではなく
+ *      付け待ち回数ランキング(期間分けも)などにしてほしいです」
+ *
+ *  ★人と人の売上を並べる画面は、まるごと やめました。
+ *    （前は「ロングランキング」「中身くらべ」を出していました）
+ *  ★いま出しているのは、**乗り場ごとの付け待ち回数**だけです。
+ *    期間は、画面のいちばん上のえらびで切り替えられます。
+ */
 function viewC(s) {
   const rows = D.own.filter(r => r.d >= s.p.from && r.d <= s.p.to
     && (dayType === '全部' || r.y === dayType));
   if (!rows.length) return empty('この期間の記録がありません');
 
+  /* 乗り場ごとに、付け待ちをした回数を数えます */
   const by = {};
-  rows.forEach(r => {
-    by[r.w] = by[r.w] || { n: 0, sum: 0, l: 0, days: {} };
-    by[r.w].n++; by[r.w].sum += r.m; by[r.w].days[r.d] = 1;
-    if (band(r.m) === 'l') by[r.w].l++;
-  });
-  const list = Object.keys(by).map(w => {
-    const x = by[w];
-    const days = Object.keys(x.days).length;
-    return { w: w, n: x.n, sum: x.sum, avg: x.sum / x.n,
-             lr: x.l / x.n * 100, days: days, per: x.sum / days };
-  }).sort((a, b) => b.sum - a.sum);
-
-  const medal = ['🥇','🥈','🥉'];
+  rows.forEach(r => { const p = r.p || '（不明）'; by[p] = (by[p] || 0) + 1; });
+  const list = Object.keys(by).map(p => ({ p: p, n: by[p] }))
+    .sort((a, b) => b.n - a.n || (a.p < b.p ? -1 : 1));
+  const top = list.length ? list[0].n : 1;
 
   const H = ['<div class="kpis">' +
-    kpi('のべ件数', rows.length + '<small>件</small>') +
-    kpi('合計売上', yen(rows.reduce((a, r) => a + r.m, 0))) +
-    kpi('全体平均', yen(rows.reduce((a, r) => a + r.m, 0) / rows.length)) +
+    kpi('付け待ち回数', rows.length + '<small>回</small>') +
+    kpi('乗り場の数', list.length + '<small>か所</small>') +
+    kpi('一番 多い所', '<small>' + esc(list.length ? list[0].p : '—') + '</small>') +
     '</div>'];
 
-  /* ★売上ランキングは「その日のロング」だけにします（ご指示・2026/11/13）
-         「売上ランキングは、データを入れた順ではなく
-           その日の、ロングのランキングのみに絞ってください」
-         「データは僕が多く入れていて、量としてのランキングは
-           かたよりがあるので参考になりません」
-       人ごとの合計で並べると、たくさん入れた人が必ず上に来ます。
-       だから、記録のある一番新しい日の ロング（高額）だけを、
-       金額の高い順に並べます。1本ずつ出すので、かたよりが出ません。 */
-  const lgs  = rows.filter(r => band(r.m) === 'l');
-  const dayL = (lgs.length ? lgs : rows).map(r => r.d).sort().pop();
-  const top  = lgs.filter(r => r.d === dayL).sort((a, b) => b.m - a.m);
-  const topM = top.length ? top[0].m : 1;
-  H.push('<div class="card"><div class="chead"><b>🏆 ロングランキング</b>' +
-    '<span class="sub">' + dLabel(dayL) + '</span></div>' +
-    (top.length
-      ? '<div class="rank">' + top.map((r, i) =>
-          '<div class="rrow"><div class="t"><span class="nm">' +
-          (medal[i] || (i + 1) + '.') + ' ' + esc(r.w) + '</span>' +
-          '<span class="r">' + esc(r.t) + ' / ' + esc(r.p || '不明') +
-          ' <b>' + yen(r.m) + '</b></span></div>' +
-          '<div class="track"><i class="seg-l" style="width:' +
-          (r.m / topM * 100) + '%"></i></div></div>').join('') + '</div>'
-      : '<div class="note">この日のロングはありません。</div>') +
-    '<div class="note">ロング＝' + yen(D.longMin) + '以上。記録のある一番新しい日の分です。</div></div>');
-
-  H.push('<div class="card"><div class="chead"><b>📈 中身くらべ</b>' +
-    '<span class="sub">1回あたり・1日あたり</span></div><div class="rank">' +
-    list.slice().sort((a, b) => b.avg - a.avg).map(x =>
-      '<div class="rrow"><div class="t"><span class="nm">' + esc(x.w) + '</span>' +
-      '<span class="r">日' + yen(x.per) + ' / ロング' + Math.round(x.lr) + '% ' +
-      '<b>' + yen(x.avg) + '</b></span></div>' +
+  H.push('<div class="card"><div class="chead"><b>📍 付け待ち回数</b>' +
+    '<span class="sub">' + esc(dLabel(s.p.from)) + '〜' + esc(dLabel(s.p.to)) + '</span></div>' +
+    '<div class="rank">' + list.map((x, i) =>
+      '<div class="rrow"><div class="t"><span class="nm">' +
+      (i + 1) + '. ' + esc(x.p) + '</span>' +
+      '<span class="r"><b>' + x.n + '回</b></span></div>' +
       '<div class="track"><i class="seg-m" style="width:' +
-      (x.avg / list.reduce((a, b) => Math.max(a, b.avg), 1) * 100) + '%"></i></div>' +
-      '</div>').join('') + '</div>' +
-    '<div class="note">太字は1回あたりの平均売上。日＝出勤1日あたり。</div></div>');
+      (x.n / top * 100) + '%"></i></div></div>').join('') + '</div>' +
+    '<div class="note">付け待ちをした回数の順です。売上の順ではありません。' +
+    '期間は、上のえらびで切り替えられます。</div></div>');
+
+  /* 時間帯ごとの付け待ち回数（どの時間に多く付けているか） */
+  const slots = [];
+  for (let x = 17; x <= 29; x++) slots.push(x);
+  const hs = slots.map(x => ({ k: slotLabel(x), n: rows.filter(r => r.s === x).length }));
+  const hmax = Math.max.apply(null, hs.map(h => h.n).concat([1]));
+  H.push('<div class="card blue"><div class="chead"><b>⏰ 時間帯べつ</b>' +
+    '<span class="sub">付け待ち回数</span></div>' +
+    '<div class="bars">' + hs.map(h =>
+      '<div class="bar' + (h.n === hmax && h.n > 0 ? ' top' : '') + '">' +
+      (h.n > 0 ? '<span class="n">' + h.n + '</span>' : '') +
+      '<span class="fill" style="height:' + (h.n / hmax * 100) + '%"></span></div>').join('') +
+    '</div><div class="xaxis">' + hs.map(h => '<span>' + esc(h.k) + '</span>').join('') +
+    '</div><div class="note">棒の上は回数です。</div></div>');
 
   return H.join('');
 }

@@ -2131,10 +2131,19 @@ console.log('■ ふきだしのひとことが、最後まで読める（ご指
      いまは「題と≡が1行目、顔とふきだしが2行目」と決め打ちです。 */
   t(!/saywide/.test(sh) && !/saywide/.test(css),
     '★★★開くたびに場所が変わる仕掛けは、もう無い');
-  t(/\.hmain > \.saymount\{order:2;flex:0 0 100%/.test(css),
-    '★★★ふきだしは、いつも2行目で幅いっぱい');
-  t(/\.hmain > #fabMenu\{order:1;flex:none;margin-left:auto\}/.test(css),
-    '　 ≡ は、いつも題と同じ行の右はし');
+  /* ★2026/11/16 のご指示
+       「顔とふきだしは、ロゴの右横にしてほしいです
+         幅がどうしても難しいなら TAXI / NOTE などにして、
+         もっと、ロゴをぎゅっとしてください」 */
+  t(/\.hmain\{flex-wrap:nowrap;/.test(css), '★★★題・顔とふきだし・≡ を、1行に並べる');
+  t(/\.hmain > h1\{flex:none;min-width:0;width:min-content/.test(css),
+    '★★★題は2段（TAXI / NOTE）にして、いちばん細くする');
+  t(/\.hmain > \.saymount\{flex:1 1 0/.test(css),
+    '★★★顔とふきだしは、題の右横で のこりの幅ぜんぶ');
+  t(/\.saymount \.bubble \.t\{[^}]*text-overflow:ellipsis/.test(css),
+    '★★★9pxまで小さくしても入らないときは、おしりを「…」にする');
+  t(/@media\(max-width:360px\)\{[^}]*--logo:clamp\(10px/.test(css.replace(/\n/g, '')),
+    '★★★一番 細い機種では、題をさらに ぎゅっとする');
 }
 
 console.log('■ 割合の帯の数字が、帯からはみ出さない（2026/11/13）');
@@ -2731,6 +2740,13 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/\.toc\.fold \.tocg\{display:none\}/.test(css),
     '★★★「目次」を押せば たためる（高さを食わない）');
   t(/localStorage\.setItem\(TOC_KEY/.test(app), '　 たたんだままを覚える');
+  /* ★はじめから たたんでおきます（ご指示・2026/11/16
+       「目次とこのページを見てわかることは、デフォルトは折りたたんでください」） */
+  t(/localStorage\.getItem\(TOC_KEY\) !== '0'/.test(app),
+    '★★★目次は、はじめから たたんである');
+  t(/const FOLD_SHUT = \['このページを見てわかること'\]/.test(app),
+    '★★★「このページを見てわかること」も、はじめから たたんである');
+  t(/FOLD_OPEN_KEY/.test(app), '　 いちど開けば、開いたままを覚える');
   t(/card\.classList\.contains\('fold'\)\) el\.click\(\)/.test(app),
     '★★★閉じてある区切りへ飛ぶときは、開いてから動く');
 
