@@ -2,7 +2,13 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U176ver  （2026/11/15）  ★★★
+ *  ★★★  U177ver  （2026/11/16）  ★★★
+ *
+ *   [U177ver]
+ *   ・🔄 スプシ→台帳の自動反映の結果（いつ・何件）を控えるようにした
+ *     （ご指示・2026/11/16で、手で取り込む欄を台帳の画面から外したため。
+ *       ひとりでに移せているかを【仕組みの様子】で見られるようにする）
+ *     ★人の名前は控えません。この控えは、だれでも開ける紙に写されます
  *
  *   [U176ver]
  *   ・🔁 台帳（ウェブ）で直したものを、スプシへ戻すようにした
@@ -1950,7 +1956,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U176ver";
+const UPD_VERSION = "U177ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11781,6 +11787,20 @@ function webSyncTick_() {
     if (out && typeof updErrandLog_ === "function") {
       updErrandLog_("🔄 台帳へ自動反映：" + String(out).replace(/\n/g, " ").slice(0, 120));
     }
+    /*
+     * ★結果を、台帳の【仕組みの様子】にも出せるように控えます
+     *   （ご指示・2026/11/16。手で取り込む欄を画面から外したので、
+     *     ひとりでに移せているかが、ひと目で分かるようにしておきます）。
+     *   残すのは「いつ」と「何件」だけです。人の名前は残しません
+     *   （この控えは、だれでも開ける紙に写されます）。
+     */
+    try {
+      const m = /移しました：(\d+)件/.exec(String(out || ""));
+      pr.setProperty("WEB_SYNC_LAST", JSON.stringify({
+        at: Utilities.formatDate(now, "Asia/Tokyo", "MM-dd HH:mm"),
+        n:  m ? Number(m[1]) : null
+      }));
+    } catch (e) {}
     return true;
   } catch (e) {
     try { if (typeof logErr_ === "function") logErr_("webSyncTick", e); } catch (e2) {}

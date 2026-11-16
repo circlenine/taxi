@@ -2,7 +2,10 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V119ver  （2026/11/16）  ★★★
+ *  ★★★  V120ver  （2026/11/16）  ★★★
+ *
+ *  [V120ver]
+ *  ・🔄 スプシ→台帳の自動反映の結果（いつ・何件）を、台帳の紙にも書くようにした
  *
  *  [V119ver]
  *  ・🌏 「いま、調べられている場所」を1日1回しらべて、紙に置くようにした
@@ -1845,7 +1848,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V119ver";
+const VN_VERSION = "V120ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -11754,10 +11757,15 @@ function vnStatusPush_(force) {
       });
     } catch (e) {}
 
+    /* スプシから台帳へ、ひとりでに移せているか（いつ・何件だけ） */
+    let sync = null;
+    try { sync = JSON.parse(pr.getProperty("WEB_SYNC_LAST") || "null"); } catch (e) {}
+
     const body = {
       at:   Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm"),
       ver:  (typeof UPD_VERSION === "string" ? UPD_VERSION : "") + " / " +
             (typeof VN_VERSION  === "string" ? VN_VERSION  : ""),
+      sync: sync,
       trig: trig,          /* 見張りの数 */
       jobs: jobs,          /* 見張りの顔ぶれ（日本語に直したもの） */
       web:  web,           /* 受け口が生きているか（住所は書きません） */
