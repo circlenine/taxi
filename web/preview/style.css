@@ -1882,6 +1882,16 @@ body[data-hand="l"] .hmain > #fabMenu{order:-1;margin-left:0;margin-right:0}
 .leadw li{margin:1px 0}
 .card.lead .note{margin:2px 0 0;font-size:11.5px;line-height:1.55}
 .card.lead .note b{color:#FFFFFF}
+/* ★「もと／数え方／注意」は、札を頭に付けて1行ずつ並べます
+     （ご指示・2026/11/16「読む時の注意なども、このページを見てわかることと
+       まとめて もっと端的に読みやすくしてください」）。
+     別の欄に分けると、同じような説明が2か所に出て、どちらも読まれません。 */
+.leadr{display:flex;gap:6px;align-items:baseline;margin-top:3px;
+  font-size:11.5px;line-height:1.5;color:#FFFFFF}
+.leadr b{flex:none;min-width:3.6em;text-align:center;font-size:10px;
+  background:rgba(255,255,255,.14);border-radius:4px;padding:1px 4px;
+  color:#FFFFFF;font-weight:700}
+.leadr span{min-width:0}
 
 /* メニューらしい えらび方（ご指示・2026/11/15「もっとメニューぽくして」） */
 .gmenu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 2px}

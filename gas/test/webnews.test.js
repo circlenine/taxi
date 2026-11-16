@@ -2828,6 +2828,38 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/const FOLD_SHUT = \['このページを見てわかること'\]/.test(app),
     '★★★「このページを見てわかること」も、はじめから たたんである');
   t(/FOLD_OPEN_KEY/.test(app), '　 いちど開けば、開いたままを覚える');
+
+  /* ------------------------------------------------------------
+   *  ★「読むときの注意」を、ここにまとめました（ご指示・2026/11/16
+   *    「読む時の注意なども、このページを見てわかることとまとめて
+   *      もっと端的に読みやすくしてください」）
+   * ---------------------------------------------------------- */
+  {
+    t(!/function hotNoteCard/.test(app),
+      '★★★「読むときの注意」の欄は、もう無い（説明を2か所に分けない）');
+    t(/line\('注意', L\.n\)/.test(app), '★★★注意は、わかることと同じ欄に出す');
+    t(/\.leadr\{display:flex/.test(css), '　 札を頭に付けて、1行ずつ並べる');
+    /* 端的に。どの行も短く言い切ります */
+    const box2 = {};
+    vm.createContext(box2);
+    vm.runInContext(app.slice(app.indexOf('const LEADS = {'),
+                              app.indexOf('function leadCard(k)')), box2);
+    const L = vm.runInContext('LEADS', box2);
+    const ks = Object.keys(L);
+    t(ks.length >= 10, '★★★どのページにも、わかることがある', ks.length);
+    const long = [];
+    ks.forEach(function (k){
+      (L[k].w || []).forEach(function (x){ if ([...x].length > 26) long.push(k + ':' + x); });
+      ['m', 'c', 'n'].forEach(function (f){
+        const v = L[k][f] || '';
+        if ([...v].length > 34) long.push(k + '.' + f + ':' + v);
+      });
+    });
+    t(!long.length, '★★★どの行も、1行で言い切る（長い説明は【お知らせ】へ）',
+      long.join(' / '));
+    t(ks.every(function (k){ return !/。.*。/.test(L[k].c || ''); }),
+      '　 数え方は、1文だけ');
+  }
   t(/card\.classList\.contains\('fold'\)\) el\.click\(\)/.test(app),
     '★★★閉じてある区切りへ飛ぶときは、開いてから動く');
 
