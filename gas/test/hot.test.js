@@ -334,7 +334,14 @@ console.log('■ いちばん上の天気（ご指示・2026/11/12）');
   ok(Math.round(o.temp) === 17, 'いまの気温を出す', o.temp);
   ok(o.icon === '☁️' && o.name === 'くもり', '天気の記号と呼び名', o.icon + o.name);
   ok(Math.round(o.max) === 21 && Math.round(o.min) === 12, '本日の最高・最低', [o.max, o.min]);
-  ok(o.hours.length === 3, '17時・18時・翌3時だけ拾う（16時と翌5時は外）', o.hours.map(x => x.h));
+  /* ★17時〜翌4時で切るのを やめました（ご指示・2026/11/17
+       「翌4時までとか別にいらないので…表示できる分はすべて表示してください」）。
+     いまの時間（17時）から先を、取れるだけ拾います。
+     16時は過ぎているので外れ、翌5時までぜんぶ入ります。 */
+  ok(o.hours.length === 4, '★★★いまから先を、取れるだけ拾う（過ぎた16時は外）',
+     o.hours.map(x => x.h));
+  ok(o.hours.map(x => x.h).join(',') === '17,18,3,5', '　 翌5時台も落とさない',
+     o.hours.map(x => x.h).join(','));
   ok(o.hours[0].now === true, 'いまの時間に印が付く');
   ok(o.hours[1].pop === 70 && o.hours[1].icon === '🌧', '1時間ごとの雨と記号', o.hours[1]);
   ok(H.omRead({}, new Date()).ok === false, '形がちがっても落ちない');

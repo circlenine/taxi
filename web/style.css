@@ -2026,9 +2026,14 @@ nav button i{font-size:9px;white-space:nowrap;-webkit-line-clamp:1}
      「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
        どこに丸されてるかすぐに見分けできませんし」）。
      うすい丸をやめ、白いふち付きの塗りつぶしにして、中に件数を入れます。 */
+/* ★地図を暗くするのをやめたので、丸のほうを目立たせます（2026/11/17）。
+     白いふち＋黒い影で、明るい地図の上でも浮いて見えます。
+     中は すこし透けさせて、下の道や地名が読めるようにしています。 */
 .pindot span{display:flex;align-items:center;justify-content:center;
-  border-radius:999px;border:2px solid #FFFFFF;color:#0B0B0D;font-weight:700;
-  font-size:12px;line-height:1;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
+  border-radius:999px;border:3px solid #FFFFFF;color:#0B0B0D;font-weight:700;
+  font-size:12px;line-height:1;
+  box-shadow:0 0 0 2px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.5);
+  text-shadow:0 1px 0 rgba(255,255,255,.6)}
 /* 有名な場所とホテルは「白いひし形」。記録のピンとまぎれないようにします */
 .pinspot span{display:block;width:12px;height:12px;margin:2px;
   background:#FFFFFF;border:1px solid #0B0B0D;transform:rotate(45deg);
@@ -2197,9 +2202,8 @@ a.chip{display:inline-flex}
        と必ずつけてください」）。
    印の意味は、その欄の一番下に1行だけ添えます（extnote）。
  ---------------------------------------------------------- */
-a.ext::after{content:'↗';font-size:.82em;margin-left:2px;opacity:.95;
-  font-family:var(--body)}
-.scroll.tbl a.ext::after{font-size:.7em;margin-left:1px}
+/* ★↗ の印は、やめました（ご指摘・2026/11/17）。
+     地図は 📍 だけ。そのほかは、ボタンの文に その場で書いてあります。 */
 /* ★地図は「📍」だけ（ご指示・2026/11/17）。↗ は付けません。
      表の中では、字が欄からはみ出さないように小さくします。 */
 a.extmap::after{content:none}
@@ -2245,3 +2249,23 @@ p.extnote{margin-top:8px}
      色は記録の画面の【種類】と同じ考え方（GO／Uber）。 */
 .rich-go{color:#9ECBFF;font-weight:700;white-space:nowrap}
 .rich-uber{color:#FFD54A;font-weight:700;white-space:nowrap}
+
+/* ★4つの数の下に、もとにした本数をそえます（ご指摘・2026/11/17
+     「これ、記録数も出さないと、ロング数出せないのじゃないですか？」）。 */
+.kpi b .kpsub{display:block;font-family:var(--body);font-size:11px;
+  font-weight:400;color:#FFFFFF;opacity:.85;margin-top:2px;letter-spacing:0}
+
+/* ------------------------------------------------------------
+   ★横に流れる表が、欄の外へ はみ出して見えていました
+     （ご指摘・2026/11/17「表に対してめちゃくちゃはみ出てて、最悪です」）。
+   枠の角を丸めて、そこでぴたりと切れるようにします。
+   右のはしに うすい影を出して、まだ先があることを見せます。
+ ---------------------------------------------------------- */
+.scroll.tbl{border-radius:10px;border:1px solid var(--line);
+  position:relative;background:rgba(255,255,255,.015)}
+.scroll.tbl table{margin:0}
+/* 右のはしの影（スクロールしても ついてきます） */
+.tblwrap{position:relative}
+.tblwrap::after{content:'';position:absolute;top:0;right:0;width:18px;height:100%;
+  pointer-events:none;border-radius:0 10px 10px 0;
+  background:linear-gradient(to right,rgba(11,11,13,0),rgba(11,11,13,.92))}

@@ -1083,11 +1083,32 @@ function extMark_(){
         if (isMap) {
           a.classList.add('extmap');
           if ((a.textContent || '').indexOf('📍') === -1) {
-            a.insertBefore(document.createTextNode('📍'), a.firstChild);
+            /*
+             * ★印は「最初の中身の中」に入れます（ご指摘・2026/11/17
+             *     「平均が縦文字になって、変なスペースがうまれてしまってます、
+             *       何故ですか？」）。
+             *
+             *   原因はこれでした。並びを ます目（グリッド）で組んでいる行に、
+             *   印を**直に**足したので、ます目が1つ増えて、
+             *   中身が ぜんぶ1つ右へずれていました。
+             *   その結果、最後の「平均 ¥7,717」が細い欄に押し込まれて、
+             *   「平」「均」と縦に折れていました。
+             *   中身の中に入れれば、ます目は増えません。
+             */
+            const first = a.firstElementChild;
+            if (first) first.insertBefore(document.createTextNode('📍'), first.firstChild);
+            else a.insertBefore(document.createTextNode('📍'), a.firstChild);
           }
-        } else {
-          a.classList.add('ext');
         }
+        /*
+         * ★↗ の印は、やめました（ご指摘・2026/11/17
+         *     「※ ↗ は、別のページが開きます。が残ってますが…」
+         *      その前に「↗️ これを使ってるのが非常に多いですが
+         *      非常に分かりづらいです」）。
+         *   どの行にも付いていて、何の印か分からなくなっていました。
+         *   地図は 📍 だけ。そのほかの行き先は、ボタンの文に
+         *   「別のページが開きます」と、その場で書いてあります。
+         */
         /* 読み上げでも分かるようにします */
         if (!a.getAttribute('aria-label')) {
           a.setAttribute('aria-label',
@@ -1096,20 +1117,9 @@ function extMark_(){
         }
       });
     });
-    /* 印の意味は、その欄の一番下に1行だけ添えます。
-       すでに同じことが書いてある欄には、くり返しません。 */
-    document.querySelectorAll('#panesTop .card,#panes .card,#ktop').forEach(function (c){
-      const hasExt = !!c.querySelector('a.ext');
-      const hasMap = !!c.querySelector('a.extmap');
-      if (!hasExt && !hasMap) return;
-      if (c.textContent.indexOf('別のページが開きます') >= 0) return;
-      const p = document.createElement('p');
-      p.className = 'note extnote';
-      /* 印は2つだけ。📍＝地図、↗＝そのほかのページ */
-      p.textContent = (hasMap ? '※ 📍 は地図が開きます。' : '') +
-        (hasExt ? '※ ↗ は、別のページが開きます。' : '');
-      c.appendChild(p);
-    });
+    /* ★印の意味を書いた1行も、やめました（ご指摘・2026/11/17）。
+         📍 は見れば分かります。どの欄にも同じ注が付いていて、
+         そのぶん 画面が長くなっていました。 */
   } catch (e) {}
 }
 const msgHTML = id => `<span class="msg ${msgBad?'bad':''}" id="${id}">${esc(msg)}</span>`;
@@ -1150,7 +1160,7 @@ const LEADS = {
         c: '合計は、金額の入った記録だけ',
         n: '「不明」は数えません' },
   hot:{ w: ['いまの時刻に、どこへ行くとよいか',
-            '翌4時までの、1時間ごとの狙い目',
+            '夜ぜんたいの、1時間ごとの狙い目',
             'いまの天気と、雨雲の動き'],
         m: 'この1か月＋去年の同じ月の記録と、気象庁の天気',
         c: '3件以上そろった乗り場だけ。数字は1本の平均金額',
@@ -1910,10 +1920,12 @@ function tableHTML(rows){
          「スクロールできることや、横画面推奨を載せてください」） */
     '<div class="snote">← 横にスクロールできます（横画面推奨）。' +
       '見出しを押すと、その欄で並べ替えます。</div>' +
-    '<div class="scroll tbl"><table><thead><tr>' + ths +
+    /* ★枠の角で ぴたりと切れるように、1枚 くるみます（2026/11/17）。
+         右のはしの影も、この入れものが出します。 */
+    '<div class="tblwrap"><div class="scroll tbl"><table><thead><tr>' + ths +
     '<th class="ops">修正<br>削除</th></tr>' +
     (tblFilOpen ? '<tr class="filrow">' + fils + '<th class="ops"></th></tr>' : '') +
-    '</thead><tbody>' + body + '</tbody></table></div>' +
+    '</thead><tbody>' + body + '</tbody></table></div></div>' +
     /* ★色の見方を、端的に1行で（ご指示・2026/11/13
          「表の色変えの説明も端的に(長文にならないように)載せてください」）。 */
     '<div class="clegend">' +
@@ -2328,10 +2340,11 @@ const G_KINDS = [
  * ★いまは「棒グラフ」だけを出します（ご指示・2026/11/17
  *     「グラフ、何が参考になるのかまったくわからなくなってきたので
  *       一旦棒グラフだけにして、ほかは非表示にしてください」）。
- *   線グラフ・表グラフは、消さずに残してあります。
- *   ここに 'sc' や 'heat' を書き足せば、そのまま戻ります。
+ *   ★2026/11/17 のご指示で「折れ線グラフだけ」にしました。
+ *   棒グラフ・表グラフは、消さずに残してあります。
+ *   ここに 'tl' や 'heat' を書き足せば、そのまま戻ります。
  */
-const G_SHOW = ['tl'];
+const G_SHOW = ['sc'];
 const G_KINDS_ON = G_KINDS.filter(x => G_SHOW.indexOf(x.k) !== -1);
 const G_KEY = 'tsukemachi.gkind';
 let gKind = (function (){
@@ -2525,114 +2538,70 @@ function buzzPct(o){
  *    （ご指示・2026/11/16「不要なものは極力非表示に」）。
  * ---------------------------------------------------------- */
 /* ------------------------------------------------------------
- *  富裕層のお客が多い所（ご指示・2026/11/17）
+ *  「富裕層のお客が多い所」の欄は、なくしました（ご指示・2026/11/17）
  *
  *  ★まーく様のご指示
- *    「Wikipediaを観光する人が見ると思いますか？
- *      また、道頓堀やら、大阪城やら、USJやら、大枠の部分だけ
- *      挙げられても、まるで意味がありません
- *      もっと細かく切り込んだアツい詳細スポットを出すために
- *      観光に関しての有名サイトをもう一度再精査してください
- *      ここで大事なのは 富裕層が利用しがちなレストラン、ホテル
- *      その中で、日本人が多めか、海外客が多いかで
- *      GO(日本人)、Uber(海外)で分類していってください」
+ *    「こんな、情報は既に周知です
+ *      私たちが知りたいのは 今後に向けての、注目度が高まってる、
+ *      新しいレストランだったり、エンタメ施設(夜)のことです
+ *      …こんな一般的な情報は、タクシードライバーの侮辱なので
+ *      消してください」
  *
- *  ★おっしゃるとおりでした。前に出していたのは
- *    「ウィキペディアが何回ひらかれたか」でした。
- *    旅行をする人がウィキペディアを見るとは限りませんし、
- *    「道頓堀」のような大きなくくりでは、どこに着ければよいのか
- *    1つも分かりません。
+ *  ★おっしゃるとおりでした。リッツ・カールトンやミシュランの星は、
+ *    乗務の方なら みなさんご存じです。知らせる値打ちがありません。
+ *    出すべきは「まだ知られていない、これから人が集まる所」でした。
  *
- *  ★いまは、**名前のついた1軒ずつ**を出します。
- *    ホテルは、玄関の車寄せに着けられます。
- *
- *  ★GO／Uber の見分けは、**ホテルだけ**に付けています。
- *    ・外資系ブランド … 海外で予約され、海外から来られます。
- *      海外のお客様は、母国で使っている Uber をそのまま使われます
- *      （GOは日本だけのアプリなので、入れておられません）
- *    ・国内ブランド … 日本のお客様が多く、GOが多くなります
- *    これは**見当**です。そう画面にも書いています。
- *
- *  ★レストランには、GO／Uber を付けていません。
- *    根拠になるものが見つからなかったためです。
- *    見当で付けると、数字が一人歩きします（数字を出すときの決まり）。
- *
- *  ★大阪タクシーA地区の中だけです。
+ *  ★いま出せるものが無いので、**何も出しません**。
+ *    見当で並べるくらいなら、出さないほうがよいためです。
+ *    どうやって集めるかの策は、IDEAS.md に書いてあります。
  * ---------------------------------------------------------- */
-const RICH_SPOTS = [
-  /* ---- ホテル（外資系＝海外のお客が多め） ---- */
-  { k:'h', n:'ザ・リッツ・カールトン大阪',       a:'梅田',        u:'uber', w:'外資系' },
-  { k:'h', n:'コンラッド大阪',                   a:'中之島',      u:'uber', w:'外資系' },
-  { k:'h', n:'セント レジス ホテル 大阪',        a:'本町・御堂筋', u:'uber', w:'外資系' },
-  { k:'h', n:'W大阪',                            a:'南船場',      u:'uber', w:'外資系' },
-  { k:'h', n:'インターコンチネンタルホテル大阪', a:'大阪駅・うめきた', u:'uber', w:'外資系' },
-  { k:'h', n:'ウォルドーフ・アストリア大阪',     a:'うめきた',    u:'uber', w:'外資系' },
-  { k:'h', n:'パティーナ大阪',                   a:'うめきた',    u:'uber', w:'外資系' },
-  { k:'h', n:'ヒルトン大阪',                     a:'梅田',        u:'uber', w:'外資系' },
-  { k:'h', n:'スイスホテル南海大阪',             a:'難波',        u:'uber', w:'外資系' },
-  { k:'h', n:'シェラトン都ホテル大阪',           a:'上本町',      u:'uber', w:'外資系' },
-  { k:'h', n:'大阪マリオット都ホテル',           a:'天王寺',      u:'uber', w:'外資系' },
-  { k:'h', n:'ハイアット リージェンシー 大阪',   a:'南港',        u:'uber', w:'外資系' },
-  /* ---- ホテル（国内ブランド＝日本のお客が多め） ---- */
-  { k:'h', n:'帝国ホテル大阪',                   a:'天満橋・桜ノ宮', u:'go', w:'国内ブランド' },
-  { k:'h', n:'リーガロイヤルホテル',             a:'中之島',      u:'go',   w:'国内ブランド' },
-  { k:'h', n:'ホテルニューオータニ大阪',         a:'大阪城・京橋', u:'go',  w:'国内ブランド' },
-  { k:'h', n:'ホテルグランヴィア大阪',           a:'大阪駅',      u:'go',   w:'国内ブランド' },
-  { k:'h', n:'ホテル阪急インターナショナル',     a:'茶屋町',      u:'go',   w:'国内ブランド' },
-  /* ---- レストラン（ミシュランガイド京都・大阪2026 の星付き）---- */
-  { k:'r', n:'太庵',               a:'心斎橋',   s:'★★★', w:'日本料理' },
-  { k:'r', n:'Hajime',             a:'肥後橋',   s:'★★★', w:'イノベーティブ' },
-  { k:'r', n:'柏屋 大阪千里山',     a:'吹田市',   s:'★★★', w:'日本料理' },
-  { k:'r', n:'ラ・シーム',          a:'本町',     s:'★★',  w:'フランス料理' },
-  { k:'r', n:'カハラ',             a:'北新地',   s:'★★',  w:'イノベーティブ' },
-  { k:'r', n:'フジヤ 1935',        a:'本町',     s:'★★',  w:'イノベーティブ' },
-  { k:'r', n:'弧柳',               a:'北新地',   s:'★★',  w:'日本料理' },
-  { k:'r', n:'天神橋 青木',         a:'天神橋',   s:'★★',  w:'日本料理' },
-  { k:'r', n:'宮本',               a:'北新地',   s:'★★',  w:'日本料理' },
-  { k:'r', n:'老松 ひさ乃',         a:'北新地',   s:'★★',  w:'日本料理' },
-  { k:'r', n:'照屋',               a:'北新地',   s:'★★',  w:'日本料理' },
-  { k:'r', n:'鮨 原正',            a:'北新地',   s:'★★',  w:'寿司' },
-  { k:'r', n:'旬彩天つちや',        a:'北新地',   s:'★★',  w:'天ぷら' },
-  { k:'r', n:'幽玄',               a:'北新地',   s:'★★',  w:'日本料理' },
-  { k:'r', n:'ぬま田',             a:'中崎町',   s:'★★',  w:'天ぷら' }
-];
-
-/* そろえた言い方（画面のどこでも同じ字にするため） */
-const RICH_U = { uber:'Uber寄り', go:'GO寄り' };
+/* ------------------------------------------------------------
+ *  新しく人が集まり出した乗り場
+ *
+ *  ★自分たちの記録だけで出します。よそから買うものは一つもありません。
+ *  ★見つけ方：**これまで1件も無かった乗り場に、記録が付きはじめた**。
+ *    ・はじめての記録が、この60日のうち
+ *    ・いまは3件以上たまっている
+ *  ★3件に届かない所は出しません（1件は、たまたまの1本）。
+ *  ★当てはまる所が無ければ、見出しごと出しません。
+ * ---------------------------------------------------------- */
+const NEWP_DAYS = 60;       /* 「新しい」と見るのは、この日数のうち */
+function newPlaces(){
+  const by = {};
+  records.forEach(function (r){
+    const p = canonPlace(r.place); if (!p || !r.date) return;
+    const o = by[p] = by[p] || { p: p, first: r.date, n: 0, rows: [] };
+    if (r.date < o.first) o.first = r.date;
+    o.n++; o.rows.push(r);
+  });
+  const lim = (function (){
+    const d = new Date(); d.setDate(d.getDate() - NEWP_DAYS);
+    return ymd(d);
+  })();
+  return Object.keys(by).map(function (k){ return by[k]; })
+    .filter(function (o){ return o.first >= lim && o.n >= HOT_MIN_N; })
+    .sort(function (a, b){ return (b.first < a.first ? -1 : b.first > a.first ? 1 : b.n - a.n); });
+}
 
 function buzzCard(){
-  const hs = RICH_SPOTS.filter(function (x){ return x.k === 'h'; });
-  const rs = RICH_SPOTS.filter(function (x){ return x.k === 'r'; });
-  const row = function (x){
-    return '<tr><td><a class="plink" href="' + esc(mapUrl(x.n)) +
-      '" target="_blank" rel="noopener">' + esc(x.n) + '</a></td>' +
-      '<td>' + esc(x.a) + '</td>' +
-      '<td>' + esc(x.s || x.w) + '</td>' +
-      (x.u ? '<td class="rich-' + x.u + '">' + esc(RICH_U[x.u]) + '</td>' : '') +
-      '</tr>';
-  };
-  return '<div class="card"><h2>富裕層のお客が多い所（ホテル・レストラン）</h2>' +
-    '<p class="note">1軒ずつの名前で出しています。押すと地図が開きます。</p>' +
-
-    '<h3 class="syshd">ホテル（玄関の車寄せに着けられます）</h3>' +
-    '<p class="note"><b>GO／Uber は見当です。</b>' +
-    '外資系ブランドは海外から来られる方が多く、' +
-    '母国で使っている Uber をそのまま使われます。' +
-    'GOは日本だけのアプリなので、入れておられません。</p>' +
-    '<div class="scroll"><table><thead><tr><th>ホテル</th><th>エリア</th>' +
-    '<th>ブランド</th><th>どちらが多いか</th></tr></thead><tbody>' +
-    hs.map(row).join('') + '</tbody></table></div>' +
-
-    '<h3 class="syshd">レストラン（ミシュランガイド京都・大阪2026 の星付き）</h3>' +
-    '<p class="note">星の数は、2026年版のものです。' +
-    '<b>GO／Uber は付けていません。</b>どちらが多いかの根拠が、' +
-    '見つからなかったためです。</p>' +
-    '<div class="scroll"><table><thead><tr><th>店</th><th>エリア</th>' +
-    '<th>星</th></tr></thead><tbody>' +
-    rs.map(row).join('') + '</tbody></table></div>' +
-
-    '<p class="note">大阪タクシーA地区の中だけを出しています。' +
-    'お客様の人数ではありません。</p></div>';
+  const L = newPlaces();
+  if (!L.length) return '';
+  return '<div class="card"><h2>新しく人が集まり出した乗り場</h2>' +
+    '<p class="note">この' + NEWP_DAYS + '日のうちに <b>はじめて記録がつき</b>、' +
+    'いまは' + HOT_MIN_N + '件以上たまっている乗り場です。' +
+    '自分たちの記録だけから出しています。</p>' +
+    '<div class="tblwrap"><div class="scroll tbl"><table><thead><tr>' +
+    '<th>乗り場</th><th>はじめて</th><th class="n">件</th>' +
+    '<th class="n">1本の平均</th></tr></thead><tbody>' +
+    L.slice(0, 12).map(function (o){
+      const a = agg(o.rows);
+      return '<tr><td><a class="plink" href="' + esc(mapUrl(o.p)) +
+        '" target="_blank" rel="noopener">' + esc(o.p) + '</a></td>' +
+        '<td>' + esc(fmtD(o.first)) + '</td>' +
+        '<td class="n">' + o.n + '</td>' +
+        '<td class="n">' + (a.fare ? yen(a.fare) : UNK) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>' +
+    '<p class="note">お客様の人数ではありません。付けた本数です。</p></div>';
 }
 
 /* ------------------------------------------------------------
@@ -2769,13 +2738,11 @@ function mapDefault_(){
   mapDefDone = true;
   /* すでに絞り込みを触っておられるときは、何も上書きしません */
   if (filtOn()) return;
-  try {
-    /* ★期間は、もう ぜんぶの画面で「終わったばかりの営業月」です。
-         ここで触る必要がなくなりました（PERIOD_DEF）。
-       地図だけの既定は「自分の記録から見る」ことです。 */
-    onlyMine = true;
-    filtSave();
-  } catch (e) {}
+  /*
+   * ★地図の はじめは、**何も絞りません**（ご指示・2026/11/17
+   *     「地図に関しては 範囲は乗り場の指定がない状態がデフォルトで良いです」）。
+   *   期間だけは、ぜんぶの画面と同じ「終わったばかりの営業月」です。
+   */
 }
 
 /** 自分が一番 付けている乗り場（いまの絞り込みの中で） */
@@ -2828,7 +2795,7 @@ function paneMap(){
     ${(function(){ const t = myTopPlace_(R); return t
       ? '<p class="note">この中で、あなたが一番 付けているのは <b>' + esc(t.p) +
         '</b>（' + t.n + '件）です。</p>' : ''; })()}
-    <div id="pinMap" class="radarmap pinmap wxmap">読み込んでいます…</div>
+    <div id="pinMap" class="radarmap pinmap">読み込んでいます…</div>
     <!-- ★色と大きさの見方を、はっきり書きます（ご指示・2026/11/16
            「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
              どこに丸されてるかすぐに見分けできませんし
@@ -2884,14 +2851,19 @@ function mapBoot(){
         .setView([34.6900, 135.5000], 12);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 17, attribution: '© OpenStreetMap' }).addTo(m);
-      /* ★下じきの地図は暗くします。明るいままだと、ピンが地図に紛れて
-           「どこに丸されてるか すぐに見分けできません」（ご指摘・2026/11/16）。 */
-      try {
-        const mp2 = m.getPane('mapPane');
-        const w1 = document.createElement('div'); w1.className = 'mapveil v1';
-        const w2 = document.createElement('div'); w2.className = 'mapveil v2';
-        mp2.appendChild(w1); mp2.appendChild(w2);
-      } catch (e) {}
+      /*
+       * ★この地図は、暗くしません（ご指摘・2026/11/17
+       *     「この部分は地域がどこか見ないといけないので
+       *       薄暗くしてたら見づらいです、もっと工夫してください」）。
+       *
+       *   おっしゃるとおりでした。雨雲は「雨を目立たせる」ための地図ですが、
+       *   こちらは **どこの乗り場かを読む** ための地図です。
+       *   地名が読めなければ、何の役にも立ちません。
+       *
+       * ★代わりに、ピンのほうを目立たせます。
+       *   ・丸に白いふちと影を付ける（地図の上に浮いて見えます）
+       *   ・色の濃さを少し落として、下の地名が透けるようにします
+       */
       m._box = box; pinMap = m;
       const G = mapGroups(mapRows());
       const mxn = Math.max.apply(null, G.hit.map(o => o.rows.length).concat([1]));
@@ -2904,10 +2876,13 @@ function mapBoot(){
         const a = agg(o.rows);
         const col = a.fare >= 10000 ? BANDS[2].c : (a.fare >= 5000 ? BANDS[1].c : BANDS[0].c);
         const d = 26 + Math.round(22 * Math.sqrt(o.rows.length / mxn));
+        /* ★丸は、すこし透けさせます（ご指摘・2026/11/17
+             「丸が透明度無くなってるため、細かい範囲が丸で分かりません」）。
+           下の道や地名が透けるので、どのあたりなのかが読めます。 */
         const ic = L.divIcon({ className: 'pindot', iconSize: [d, d],
           iconAnchor: [d / 2, d / 2],
-          html: '<span style="background:' + col + ';width:' + d + 'px;height:' + d + 'px">' +
-                o.rows.length + '</span>' });
+          html: '<span style="background:' + col + ';width:' + d + 'px;height:' + d + 'px' +
+                ';opacity:.72">' + o.rows.length + '</span>' });
         L.marker([o.lat, o.lon], { icon: ic, zIndexOffset: 200 })
           .bindPopup('<b>' + esc(o.key) + 'のあたり</b><br>' + o.rows.length + '件' +
             '<br>1本の平均 ' + (a.fare ? yen(a.fare) : '不明') +
@@ -3305,8 +3280,13 @@ function omRead(j, now){
     const nowH = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).getTime();
     /* 営業日（朝6時までは前の日の夜） */
     const biz  = (d.getHours() < 6) ? new Date(d.getTime() - 864e5) : d;
-    const from = Math.max(nowH, new Date(biz.getFullYear(), biz.getMonth(), biz.getDate(), 17).getTime());
-    const end  = new Date(biz.getFullYear(), biz.getMonth(), biz.getDate() + 1, 4).getTime();
+    /* ★17時〜翌4時で切るのを やめました（ご指示・2026/11/17
+         「天気ですが、翌4時までとか別にいらないので
+           (出勤前に、早めに予定確認したいばあいもあるので)
+           表示できる分はすべて表示してください」）。
+       いまの時間から先を、取れるだけ出します。 */
+    const from = nowH;
+    const end  = nowH + 30 * 3600 * 1000;
     const hours = [];
     for (let i = 0; i < ts.length; i++) {
       const q = String(ts[i]).split(/[-T:]/).map(Number);
@@ -3318,7 +3298,7 @@ function omRead(j, now){
                    temp: hy.temperature_2m ? hy.temperature_2m[i] : null,
                    pop: (pp === null || pp === undefined) ? null : Math.round(pp),
                    now: t === nowH });
-      if (hours.length >= 14) break;
+      if (hours.length >= 30) break;
     }
     /* 15分ごと（これから先の分だけ） */
     const q = [];
@@ -3414,7 +3394,7 @@ function omDays(o, n){
   return (o.days || []).slice(0, n);
 }
 
-/** 営業時間（17時〜翌4時）の、1時間ごとの天気。横に流して見ます */
+/** 1時間ごとの天気（いまから先を、取れるだけ）。横に流して見ます */
 function wxHoursHTML(){
   const o = hotOm;
   if (!o || !o.ok) return wxNextHTML(hotWx);
@@ -3460,7 +3440,7 @@ function wxHoursHTML(){
         '<span class="' + (x.pop !== null && x.pop >= 50 ? 'rain' : '') + '">' + pop + '</span>' +
         '</div>';
     }).join('');
-    note = '翌4時まで。横にスクロールできます。';
+    note = 'いまから先を、取れるだけ出しています。横にスクロールできます。';
   }
   return tabs + '<div class="scroll fb"><div class="wxhs">' + cells + '</div></div>' +
          '<p class="note">' + note + '</p>';
@@ -3557,7 +3537,10 @@ function radarBoot(){
     try {
       if (typeof L === 'undefined') { box.textContent = '地図が読めませんでした。下のボタンから見られます。'; return; }
       box.textContent = '';
-      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 9);
+      /* ★ひらき（拡大率）は 10 にします（ご指示・2026/11/17
+           「雨雲レーダーの拡大率、これくらいを、デフォルトにしてください」）。
+         9 だと広すぎて、大阪市のあたりが小さくしか映りませんでした。 */
+      const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 10);
       /* ★下じきは、色を落として暗くします（className で見た目を変えます）。
            道や店の名前が目立つと、雨雲のほうが見えなくなります。 */
       /* ★雨雲は、別の「層」に置きます。
@@ -5182,7 +5165,7 @@ function whenPane(cat, title, label, lead, test, noLead){
   let plain = '<div class="card"><h2>' + esc(title) + 'の記録（新しい順）</h2>' +
     '<p class="note">日付・時刻・' + esc(label) + '・金額を、そのまま並べています。</p>' +
     '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
-    '<div class="scroll tbl wtbl"><table><thead><tr>' +
+    '<div class="tblwrap"><div class="scroll tbl wtbl"><table><thead><tr>' +
     '<th>日</th><th class="n">時刻</th><th>' + esc(label) + '</th>' +
     '<th class="n">金</th><th class="n">待</th></tr></thead><tbody>' +
     R.slice().sort(function (a2, b2){
@@ -5197,7 +5180,7 @@ function whenPane(cat, title, label, lead, test, noLead){
         '<td class="n c-fare ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
         '<td class="n ' + waitCls(r.wait) + '">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
         '</tr>';
-    }).join('') + '</tbody></table></div></div>';
+    }).join('') + '</tbody></table></div></div></div>';
 
   let out = head + plain + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
     '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +
@@ -5621,16 +5604,12 @@ function paneNippo(){
     <p class="note">紙の日報を写した写真を置くと、1行ずつ読んで、
       いまの記録とつき合わせます。<b>読んだだけでは記録に入りません。</b>
       下の表で見てから【足す】を押してください。</p>
-    <!-- ★営業日は、写真から読みます（ご質問・2026/11/17
-           「複数選択できるようにするのに、なぜ営業日のしていを
-             しなければいけないのですか？」）。
-         何日分も まとめて置けるのに、営業日は1つしか指定できず、
-         ほかの日のぶんが全部ずれていました。
-         ここに入れた日は、写真から読めなかったときだけ使います。 -->
-    <div class="filt"><div class="frow"><label>営業日</label>
-      <input type="date" id="nipDate" value="${esc(today())}"></div></div>
-    <p class="note">営業日は、<b>写真から読みます</b>。
-      上の日づけは、写真に日付が無いときだけ使います。</p>
+    <!-- ★営業日の欄は、まるごと なくしました（ご指摘・2026/11/17
+           「だから、営業日の選択が残ってるのは何故ですか？」）。
+         おっしゃるとおりでした。写真から読む形にしたのに、
+         えらぶ欄だけ残っていては、何を入れればよいのか分かりません。
+         写真に日付が無いときは、置いた日を受け皿にします（中で持ちます）。 -->
+    <p class="note">営業日は、<b>写真から読みます</b>。えらぶ所はありません。</p>
     <!-- ★複数えらべます。えらんだ写真は控えてあるので、
            画面が作り直されても消えません（ご指摘・2026/11/16）。 -->
     <div class="nippick">
@@ -6350,11 +6329,12 @@ function wire(){
     render();
   };
   if ($('#nipSend')) $('#nipSend').onclick = function (){
-    const d = $('#nipDate');
     /* 控えが空でも、えらんだ直後なら input から拾えます（取りこぼしを防ぎます） */
     const el = $('#nipFile');
     const L = nippoFiles.length ? nippoFiles : [...((el && el.files) || [])];
-    nippoSend(L, d ? d.value : '');
+    /* ★営業日は写真から読みます。読めなかったときの受け皿として、
+         置いた日だけを渡します（画面ではえらばせません）。 */
+    nippoSend(L, today());
   };
   document.querySelectorAll('[data-nip]').forEach(function (b) {
     b.onclick = function (){ nippoPick[b.dataset.nip] = b.checked; };
@@ -7089,7 +7069,7 @@ function paneNews(){
     '<div class="card"><h2>お知らせ</h2>' + (news || '<div class="note">まだありません。</div>') +
     '<div class="actions">' +
     '<a class="btn ghost" href="/say" target="_blank" rel="noopener" style="text-decoration:none">' +
-    'ひとことを、すべて見る</a></div></div>';
+    'ひとことを、すべて見る（別のページが開きます）</a></div></div>';
 }
 
 /* ★ここも、画面の無いところで落ちないようにします */
