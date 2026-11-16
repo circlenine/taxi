@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261115-bea412b2">
+<link rel="stylesheet" href="style.css?v=20261116-1ec1dfd0">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
@@ -77,33 +77,27 @@
        ≡ は、この札を見て行き先の一覧を作ります。
        上の行からは消しましたが、目に見えない形でここに残します。 -->
   <button class="chip fbtab" data-t="fb" aria-selected="false" hidden>フィードバック</button>
+  <!-- ★≡ の一覧にあったものも、ここに並べました（ご指示・2026/11/16
+         「三メニューにある 記録～お知らせまでを ページ内にも載せてください」）。
+       10個あるので 5列×2段。そえる字は5文字までにして、
+       ます目の中で折り返さないようにしています。 -->
   <nav id="tabs">
-    <button data-t="in" aria-selected="true"><b>記録</b><i>入れる・直す</i></button>
-    <button data-t="hot" aria-selected="false"><b>狙い目</b><i>いま行く所</i></button>
-    <!-- ★3つのグラフは1ページにまとめました（ご指示・2026/11/13
-           「比較表が沢山あっても訳が分からなくなるので…同じページにまとめて
-             表はそれぞれ1つだけ表示して」）。中で形をえらびます。 -->
+    <button data-t="in" aria-selected="true"><b>記録</b><i>入力・修正</i></button>
+    <button data-t="hot" aria-selected="false"><b>狙い目</b><i>今おすすめ</i></button>
     <button data-t="g" aria-selected="false"><b>グラフ</b><i>線・棒・表</i></button>
     <button data-t="map" aria-selected="false"><b>地図</b><i>ピンで見る</i></button>
-    <button data-t="ratio" aria-selected="false"><b>パーセント</b><i>ロング率</i></button>
-    <!-- ★バラシ・関空・チケットは、1つのメニューにまとめました
-           （ご指示・2026/11/15「バラシと関空は、メニューをひとまとめにして良いです」
-             「チケット乗車のデータも、バラシや関空と同様にまとめて」） -->
-    <button data-t="tok" aria-selected="false"><b>特定</b><i>バラシ・関空・チケット</i></button>
-    <!-- ★くり返しのお客様（ご指示・2026/11/15
-           「〇回目、や、再現性あり、や、細かい指示内容があるお客様は
-             別で、再現性あるかも、というメニューを作って」） -->
-    <button data-t="rep" aria-selected="false"><b>再現</b><i>くり返す乗車</i></button>
-    <!-- ★紙の日報を写した写真から、記録を取り込む（ご指示・2026/11/15） -->
-    <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真から読む</i></button>
+    <button data-t="ratio" aria-selected="false"><b>％</b><i>ロング率</i></button>
+    <button data-t="tok" aria-selected="false"><b>特定</b><i>バラシ他</i></button>
+    <button data-t="rep" aria-selected="false"><b>再現</b><i>くり返し</i></button>
+    <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真で入力</i></button>
+    <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
+    <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
   </nav>
   <!-- ★【イベント】と【お知らせ】は、画面のメニューからは外しました
          （ご指示・2026/11/13「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。
        ≡ は この札を見て行き先の一覧を作るので、目に見えない形で残します。
        まだ読んでいないものがあるときは、≡ に赤い丸が付きます。 -->
-  <button data-t="ev" aria-selected="false" hidden><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
-  <button data-t="news" aria-selected="false" hidden><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
   <!-- ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13） -->
   <div id="panesTop"></div>
   <section class="card blk" id="ktop">
@@ -148,9 +142,9 @@
 <!-- ★記録の画面だけに出る「粛清完了」（ご指示・2026/11/12） -->
 <button class="fab done" id="fabAdd" hidden><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261115-bea412b2"></script>
-<script src="news.js?v=20261115-bea412b2"></script>
-<script src="shared.js?v=20261115-bea412b2"></script>
-<script src="app.js?v=20261115-bea412b2"></script>
+<script src="config.js?v=20261116-1ec1dfd0"></script>
+<script src="news.js?v=20261116-1ec1dfd0"></script>
+<script src="shared.js?v=20261116-1ec1dfd0"></script>
+<script src="app.js?v=20261116-1ec1dfd0"></script>
 </body>
 </html>

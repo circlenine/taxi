@@ -1179,7 +1179,13 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/i === 0 \? ' now' : ''/.test(app), '★★★いまの枠は、見た目で分かる');
   t(/\.blk3\.now\{/.test(css), '　 その見た目も入っている');
   t(/longRows\(rk, 3\)/.test(app), '★★★1つの枠に出すのは3か所だけ');
-  t(/この枠の記録が、まだありません/.test(app), '　 空の枠でも、黙らない');
+  /* ★2026/11/16：3件そろっていない枠は、まるごと出さないことにしました
+       （ご指示「不要なもの(データ参考にならないもの)は極力非表示にして、
+         必要最低限だけがパッと可視化できることを全ページで徹底してください」） */
+  t(/if \(!rk\.length\) return;/.test(app), '★★★そろっていない枠は、まるごと出さない');
+  t(!/この枠の記録が、まだありません/.test(app), '　「記録なし」の枠は、並べない');
+  t(/if \(!L\.length\) return '';/.test(app),
+    '★★★【次に拾えた場所】も、そろっていなければ見出しごと出さない');
   t(!/乗り場べつ アツい時間帯/.test(app),
     '★★★前の「ずらっと並ぶ形」は、残っていない');
   /* ★「どこを、何時に」ではなく「何時は、どこ」（ご指示・2026/11/12）。
@@ -1387,8 +1393,8 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
        「ちゃんと、メニューらしく 横幅を画面幅に揃えて、作り直してください」） */
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-    t(/nav\{display:grid;grid-template-columns:repeat\(4,1fr\)/.test(cs),
-      '★★★メニューは4つずつの ます目');
+    t(/nav\{display:grid;grid-template-columns:repeat\(5,1fr\)/.test(cs),
+      '★★★メニューは5つずつの ます目（10個を2段で）');
     t(/nav button\{[^}]*width:100%/.test(cs), '★★★1つ1つを、同じ幅にする');
     t(/nav button b\{[^}]*white-space:nowrap/.test(cs), '　 名前は折り返さない');
     const h3 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
@@ -1401,11 +1407,16 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
            三の方には追加したままで」）。画面に出るのは8こ。 */
     /* ★2026/11/13：3つのグラフを1つにまとめ、「地図」を足したので7こ */
     /* ★2026/11/15：【特定】にまとめ、【再現】【日報】を足したので8こ */
-    t(subs.length === 8, '★★★画面のメニューは8こ', subs.length);
-    t(/data-t="ev" aria-selected="false" hidden/.test(h3),
-      '★★★イベントは、画面のメニューには出さない');
-    t(/data-t="news" aria-selected="false" hidden/.test(h3),
-      '★★★お知らせも、画面のメニューには出さない');
+    /* ★2026/11/16：イベント・お知らせも画面に戻し、5つずつ2段の10こ
+         （ご指示「三メニューにある 記録～お知らせまでを ページ内にも
+           載せてください…10個になるため、上手い具合に調整してください」） */
+    t(subs.length === 10, '★★★画面のメニューは10こ（5つ×2段）', subs.length);
+    t(/data-t="ev"(?! [^>]*hidden)/.test(h3),
+      '★★★イベントも、画面のメニューに出す');
+    t(/data-t="news"(?! [^>]*hidden)/.test(h3),
+      '★★★お知らせも、画面のメニューに出す');
+    t((h3.match(/data-t="(?:ev|news)"/g) || []).length === 2,
+      '　 同じタブを二重に置いていない');
     /* ★「ます目からはみ出さない」が目的です。字数は目安で、
          実際にはみ出していないことは、画面を測って確かめています。 */
     t(subs.every(x => x.length <= 11), '★★★そえる字は11文字まで（ます目からはみ出さない）',
@@ -1693,7 +1704,9 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
        集計→割合／全記録はなくす。 */
   /* ★2026/11/13 のご指示で、表グラフ・横棒グラフ・折線グラフは
        「グラフ」1つにまとめ、ピンの「地図」を足しました。 */
-  ['記録', '狙い目', 'グラフ', '地図', 'パーセント'].forEach(function (n) {
+  /* ★2026/11/16：「パーセント」は「％」に縮めました（ご指示
+       「パーセントは｢％｣でもよいです 他に短くできそうな所は短くしてください」） */
+  ['記録', '狙い目', 'グラフ', '地図', '％'].forEach(function (n) {
     t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
   });
   t(tabs.indexOf('全記録') === -1 && tabs.indexOf('集計') === -1,
@@ -1802,9 +1815,9 @@ console.log('■ タブは、横スクロールさせない（ご指示・2026/1
    */
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   const nav = (css.match(/\nnav\{[^}]*\}/) || [''])[0];
-  /* ★いまは、ます目（4つずつ2段）で組んでいます。
+  /* ★いまは、ます目（5つずつ2段）で組んでいます。
        横に流さず、画面の幅ぴったりに収まります。 */
-  t(/grid-template-columns:repeat\(4,1fr\)/.test(nav),
+  t(/grid-template-columns:repeat\(5,1fr\)/.test(nav),
     '★★★入りきらなければ、2段にする（ます目）', nav.slice(0, 70));
   t(!/overflow-x:auto/.test(nav), '★★★横スクロールは、させない');
   t(!/nav::-webkit-scrollbar/.test(css), '　 スクロールバーを隠す細工も、残っていない');
@@ -2112,11 +2125,16 @@ console.log('■ ふきだしのひとことが、最後まで読める（ご指
     '★★★はみ出しは、小数のまま測る（整数だと 0.6px の切れを見逃す）');
   t(/while \(over\(\) && size > SAY_MIN_PX/.test(sh),
     '　 入るまで、字を小さくする');
-  /* 入りきらなければ、ふきだしだけを1行ぶん下へおろして、幅いっぱいにする */
-  t(/row\.classList\.toggle\('saywide', down\)/.test(sh),
-    '★★★入りきらないときは、ふきだしを下の行へおろす');
-  t(/\.hmain\.saywide > #fabMenu\{order:1\}/.test(css),
-    '　 そのとき ≡ は、題と同じ行へ上げる（3行にしない）');
+  /* ★ふきだしの置き場所は、もう測りません（ご指摘・2026/11/16
+       「ふきだし、バグって表示が画像のように色々ズレてしまってます」）。
+     測ってから並べ替えていたので、開くたびに場所が変わっていました。
+     いまは「題と≡が1行目、顔とふきだしが2行目」と決め打ちです。 */
+  t(!/saywide/.test(sh) && !/saywide/.test(css),
+    '★★★開くたびに場所が変わる仕掛けは、もう無い');
+  t(/\.hmain > \.saymount\{order:2;flex:0 0 100%/.test(css),
+    '★★★ふきだしは、いつも2行目で幅いっぱい');
+  t(/\.hmain > #fabMenu\{order:1;flex:none;margin-left:auto\}/.test(css),
+    '　 ≡ は、いつも題と同じ行の右はし');
 }
 
 console.log('■ 割合の帯の数字が、帯からはみ出さない（2026/11/13）');
@@ -2140,7 +2158,9 @@ console.log('■ 雨雲レーダーの動き（ご指摘・2026/11/13）');
   /* ★2026/11/15 のご指示で「いま〜3時間後」に変えました */
   t(/mi > 0 && mi <= 60 && mi % 10 === 0/.test(app),
     '★★★1時間後までは、10分きざみで出す');
-  t(/mi > 60 && mi <= 185/.test(app), '★★★3時間後までを出す（それより先は出さない）');
+  t(/mi > 60 && mi <= 215/.test(app), '★★★3時間後を必ず越えるところまで出す');
+  t(/\/3000\$\/\.test\(b\)/.test(app),
+    '★★★1〜6時間後を持っている出し元を使う（前は空でした）');
   t(/t\.setOpacity\(k === i \? \.85 : 0\)/.test(app),
     '　 見せる1枚だけ濃くする（毎回 読み直さない）');
   t(/id="radarPlay"/.test(app) && />とめる</.test(app) && /'うごかす'/.test(app),
@@ -2150,8 +2170,36 @@ console.log('■ 雨雲レーダーの動き（ご指摘・2026/11/13）');
     '★★★ほかの画面に移ったら、こま送りを止める（電池を食わない）');
   t(!/if \(tab === 'hot'\) radarBoot\(\); else radarMap = null;/.test(app),
     '　 前の「止めずに捨てる」書き方は残っていない');
-  t(/いまから3時間後までの雨雲です/.test(app),
-    '　 画面にも、いつの分かが書いてある');
+  /* ★「3時間後まで」と決め打ちで書いていたので、
+       1時間ぶんしか出ていないのに そう書いていました（ご指摘・2026/11/16
+       「矛盾したことは全ページ通して絶対に書かないでください」）。 */
+  t(!/いまから3時間後までの雨雲です/.test(app),
+    '★★★決め打ちの「3時間後まで」は、もう書いていない');
+  t(/id="radarRange"/.test(app) && /'いまから ' \+ radarWhen/.test(app),
+    '★★★出せた所までを数えてから、画面に書く');
+  t(/雨が降っていないときは、地図だけが映ります/.test(app),
+    '　 雨雲が1つも無いときのことも、書いてある');
+  {
+    const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    /* ★「白い線」は、絵と絵のつぎ目でした（ご指摘・2026/11/16）。
+         ① 地図そのものへの色づけ（filter）をやめ、上から幕をかける
+         ② 絵を にじませずに引きのばす
+       の2つで消えることを、実際に測って確かめました。 */
+    t(!/\.wxmap \.basemap\{filter:/.test(cs) &&
+      !/\.wxmap \.leaflet-tile-pane\{filter:/.test(cs),
+      '★★★地図そのものへの色づけは、やめた（つぎ目に線が出るため）');
+    t(/\.wxmap \.mapveil\.v1\{[^}]*mix-blend-mode:saturation/.test(cs),
+      '★★★上から幕をかけて、色を落とす');
+    t(/\.wxmap \.mapveil\.v2\{[^}]*rgba\(3,7,16/.test(cs), '　 もう1枚で、暗くする');
+    t(/\.wxmap \.leaflet-tile-pane img\{image-rendering:pixelated\}/.test(cs),
+      '★★★絵を にじませずに引きのばす（つぎ目の線が消える）');
+    t(/\.leaflet-container\{background:#060B16\}/.test(cs),
+      '　 地図の下じきも、暗くしておく');
+    t(/m\.createPane\('rain'\)/.test(app) && /pane: 'rain'/.test(app),
+      '★★★雨雲は、幕より上の層に置く（暗くならない）');
+    t(/v1\.className = 'mapveil v1'/.test(app) && /v2\.className = 'mapveil v2'/.test(app),
+      '　 幕を、地図に置いている');
+  }
 }
 
 console.log('■ 読み込み中の絵（ご指示・2026/11/13）');
@@ -2195,10 +2243,64 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   /* ① 並びは、記録用スプレッドシートと同じ */
-  const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種・他)<\/th>/g) || [])
-    .map(x => x.replace(/<[^>]+>/g, '').replace('修正削除', '操作'));
+  const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種<br>他)<\/th>/g) || [])
+    .map(x => x.replace(/<[^>]+>/g, '').replace('修正削除', '操作').replace('種他', '種・他'));
   t(th.join('/') === '名/付/待/発/金/乗/種・他/操作',
     '★★★並びは 名→付→待→発→金→乗→種・他→操作', th.join('/'));
+
+  /* ------------------------------------------------------------
+   *  ★表の並びと見た目（ご指示・2026/11/16）
+   *    「スプシにならって(順序は逆) まず、日付が新しいものが上に来る形にして
+   *      順番は、エリア順でわけてください
+   *      また、ドン〇〇や、新地〇〇なども、順番が1が先に来て、
+   *      番号が多いものが下に来る形にしてください」
+   *    「金額は右揃えにしてください」
+   *    「種・他がはみ出てます しっかり直してください
+   *      ホテルとかはタグ付けするにしてもしっかり分けてください」
+   *    「新規の記録を1番上にしてください」
+   * ---------------------------------------------------------- */
+  t(/function tableSort\(list\)/.test(app), '★★★表の並びを決める係がある');
+  t(/tableHTML\(tableSort\(visible\(\)\)/.test(app),
+    '★★★表は、その並びで出している');
+  t(/function placeKey\(/.test(app) && /\('0000' \+ d\)\.slice\(-4\)/.test(app),
+    '★★★乗り場の数字は、数として比べる（ドン2 → ドン15）');
+  t(/td class="n c-fare/.test(app), '★★★金額の欄に、しるしを付けている');
+  t(/\.scroll\.tbl td\.c-fare\{text-align:right/.test(css),
+    '★★★金額は右にそろえる');
+  t(/\.scroll\.tbl td\.c-note \.mtag\{display:block/.test(css),
+    '★★★種（乗せ方）は、1行目に単独で出す');
+  t(/\.scroll\.tbl td\.c-note \.ntxt\{display:-webkit-box/.test(css),
+    '★★★他（書きそえ）は、その下の行に分けて出す');
+  t(/<tr class="ahead">/.test(app), '★★★エリアの区切りを入れる');
+  t(/function newestId\(\)/.test(app) && /<i class="nw">新<\/i>/.test(app),
+    '★★★最後に入れた記録に「新」を付ける');
+
+  /* ★並びを、app.js の中身そのままで動かして確かめます。
+       検査のほうに書き写すと、本物を直し忘れても気づけません。 */
+  {
+    const src = ('/*' + (app.match(/--tsort-start--[\s\S]*?--tsort-end--/) || [''])[0] + '*/')
+      .replace(/^\/\*--tsort-start--/, '/*').replace(/--tsort-end--\*\/$/, '*/');
+    t(src.length > 100, '★★★並びの係を、app.js から取り出せる');
+    const CAT_ORDER = ['北7', '北4', '北他', 'ﾐﾅﾐ', '関空', 'ﾊﾞﾗｼ', 'ほか'];
+    const toHalfW = v => String(v || '');
+    const canonPlace = v => String(v || '');
+    const recCat = r => (/新地\s*7(?!\d)/.test(r.place) ? '北7'
+      : /新地/.test(r.place) ? '北他' : /ドン/.test(r.place) ? 'ﾐﾅﾐ' : 'ほか');
+    const fn = new Function('CAT_ORDER', 'toHalfW', 'canonPlace', 'recCat',
+      src + '; return tableSort;')(CAT_ORDER, toHalfW, canonPlace, recCat);
+    const L = fn([
+      { date: '2026-11-10', place: 'ドン15', dep: 20 },
+      { date: '2026-11-12', place: 'ドン15', dep: 20 },
+      { date: '2026-11-12', place: 'ドン2',  dep: 20 },
+      { date: '2026-11-12', place: '新地7',  dep: 20 },
+      { date: '2026-11-12', place: '新地1',  dep: 20 }
+    ]).map(r => r.date.slice(5) + ' ' + r.place);
+    t(L[0] === '11-12 新地7', '★★★一番上は、新しい日の「北7」', L.join(' / '));
+    t(L[1] === '11-12 新地1', '　 次は「北他」', L.join(' / '));
+    t(L[2] === '11-12 ドン2' && L[3] === '11-12 ドン15',
+      '★★★ドン2 が ドン15 より上（字ではなく、数で比べている）', L.join(' / '));
+    t(L[4] === '11-10 ドン15', '★★★古い日は、一番下（新しい日が上）', L.join(' / '));
+  }
   t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('<th>種・他</th>'),
     '★★★修正・削除が、表の右端（ご指示・2026/11/12）');
   /* ★8つの欄が、390px の画面に ぜんぶ入る（ご指示・2026/11/13
@@ -2607,14 +2709,21 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
        「ただし、もくじだけで、そんなに高さを埋めたくない」 */
   t(/<button class="toch" id="tocH">目次/.test(app),
     '★★★「目次」の字は、1段目に 単独で置く');
-  /* ★4列3段に変えました（ご指示・2026/11/13
-       「イベント お知らせ フィードバック も追加して、4列、3段にしてください」） */
-  t(/\.tocg\{display:grid;grid-template-columns:repeat\(4,1fr\)/.test(css),
-    '★★★見出しは、1段に4つずつ');
-  t(/\.tocit\{[^}]*min-height:34px/.test(css), '★★★押しやすい大きさ（34px）');
-  t(/const TOC_TABS = \[\{ k:'ev', n:'イベント' \}, \{ k:'news', n:'お知らせ' \},\s*\{ k:'fb', n:'フィードバック' \}\]/.test(app),
-    '★★★イベント・お知らせ・フィードバックも、目次から行ける');
-  t(/data-tocto/.test(app), '　 押すと、そのページへ移る');
+  /* ★1段に2つ、1行ずつに戻しました（ご指摘・2026/11/16
+       「変なとこで改行されてたり、見づらいです」）。
+       4列にすると、見出しがます目の途中で折り返して読めませんでした。 */
+  t(/\.tocg\{display:grid;grid-template-columns:1fr 1fr/.test(css),
+    '★★★見出しは、1段に2つずつ');
+  t(/\.tocit > span\{[^}]*text-overflow:ellipsis;white-space:nowrap/.test(css),
+    '★★★長い見出しは「…」にして、必ず1行に収める（変な折り返しを作らない）');
+  t(/\.tocit\{[^}]*min-height:32px/.test(css), '★★★押しやすい大きさ（32px）');
+  /* ★イベント・お知らせへの行き先は、目次から外しました（ご指示・2026/11/16
+       押しどころの行に10個ぜんぶ出したので、目次にも出すと二重になります。
+       「不要なもの(データ参考にならないもの)は極力非表示に」） */
+  t(!/TOC_TABS|data-tocto/.test(app),
+    '★★★目次に、別ページへの行き先を二重に出さない');
+  t(/if \(hs\.length < 2\) return;/.test(app),
+    '★★★見出しが1つしかない画面では、目次を出さない');
   t(/<em>' \+ \(i \+ 1\) \+ '<\/em>/.test(app), '　 番号を振る（目次らしく）');
   t(/\.toc\.fold \.tocg\{display:none\}/.test(css),
     '★★★「目次」を押せば たためる（高さを食わない）');
@@ -3515,6 +3624,21 @@ console.log('\n■ 日報（写真）読み込み（ご指示・2026/11/15）');
   /* ★GASの側：読む係 */
   t(/function nippoTick_\(\)/.test(upd) && /const NIPPO_PROMPT =/.test(upd),
     '★★★GASに、写真を読む係がある');
+
+  /* ★写真えらびの直し（ご指摘・2026/11/16
+       「写真選択したのに、読み込みできてないですし、複数選択ができません」）。
+     画面を作り直すと <input type="file"> も作り直され、えらんだ写真が消えていました。 */
+  t(/id="nipFile"[^>]*multiple/.test(app), '★★★写真は、何枚でもえらべる');
+  t(/let nippoFiles = \[\]/.test(app), '★★★えらんだ写真を、画面の外に控える');
+  t(/\$\('#nipFile'\)\.onchange/.test(app), '★★★えらんだ ところで、すぐ控える');
+  t(/nippoFiles\.length\s*\?\s*nippoFiles\s*:/.test(app),
+    '　 控えが空のときは、えらんだ欄からも拾う（取りこぼさない）');
+  t(/枚 えらびました/.test(app), '★★★えらべたことが、画面で分かる');
+  t(/async function nippoSend\(files, date\)/.test(app),
+    '★★★まとめて置く（1枚ずつではない）');
+  t(/for \(let i = 0; i < L\.length; i\+\+\)/.test(app),
+    '★★★1枚しくじっても、残りは置く');
+  t(/id="nipClear"/.test(app), '　 えらび直せる');
   t(/limit=1/.test(upd.slice(upd.indexOf('function nippoTick_'))),
     '★★★1回に1枚だけ読む（6分で切られないため）');
   t(/state: "read"/.test(upd) && !/from\('rides'\)/.test(upd),

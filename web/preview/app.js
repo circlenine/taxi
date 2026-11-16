@@ -543,6 +543,9 @@ const rowToRec = r => ({
        0と不明を混ぜると、平均も時間単価も狂うためです。 */
   dep: (r.dep == null ? null : +r.dep), wait: r.wait_min, ride: r.ride_min, fare: r.fare,
   method: r.method || '', note: r.note || '',
+  /* ★入れた時刻。「どれが今いれた記録か」を出すために持ちます
+       （ご指示・2026/11/16「新規の記録を1番上にしてください」） */
+  made: r.created_at || '',
   get who(){ return names[this.user_id] || '—'; }
 });
 /**
@@ -690,6 +693,57 @@ const visible = () => records.filter(r =>
   inPeriod(r));
 const canEdit = r => r.user_id === ME.user.id || ME.profile.is_admin;
 const sorted  = () => [...visible()].sort((a,b) => a.date === b.date ? b.dep - a.dep : (a.date < b.date ? 1 : -1));
+
+/* ------------------------------------------------------------
+ *  表の並び（ご指示・2026/11/16）
+ *
+ *  ★まーく様のご指示
+ *    「これ、どういう順番なのですか？
+ *      スプシにならって(順序は逆) まず、日付が新しいものが上に来る形にして
+ *      順番は、エリア順でわけてください
+ *      また、ドン〇〇や、新地〇〇なども、順番が1が先に来て、
+ *      番号が多いものが下に来る形にしてください」
+ *
+ *  ① 営業日が新しい順（記録用スプレッドシートの逆）
+ *  ② 同じ日の中は、エリアの近い順（CAT_ORDER）
+ *  ③ 同じエリアの中は、乗り場の名前順。数字は数として比べます
+ *     （新地1 → 新地7 → 新地8、ドン1 → ドン15）
+ *  ④ 同じ乗り場の中は、遅い時刻が上
+ * ---------------------------------------------------------- */
+
+/* --tsort-start-- ここから下は gas/test/webnews.test.js が取り出して検査します */
+/**
+ * 乗り場の名前を、並べるための形にします。
+ * ★数字は4桁にそろえて書き直します。
+ *   字のまま比べると「ドン15」が「ドン2」より前に来てしまいます。
+ */
+function placeKey(p){
+  const v = toHalfW(String(p == null ? '' : p)).trim();
+  return v.replace(/\d+/g, function (d){ return ('0000' + d).slice(-4); });
+}
+
+/** 表に出す順に並べ替えます */
+function tableSort(list){
+  return [...list].sort(function (a, b){
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;        /* ① 新しい日が上 */
+    const ca = CAT_ORDER.indexOf(recCat(a)), cb = CAT_ORDER.indexOf(recCat(b));
+    if (ca !== cb) return (ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb);  /* ② エリア順 */
+    const pa = placeKey(canonPlace(a.place)), pb = placeKey(canonPlace(b.place));
+    if (pa !== pb) return pa < pb ? -1 : 1;                         /* ③ 乗り場の名前・番号順 */
+    return (b.dep == null ? -1 : b.dep) - (a.dep == null ? -1 : a.dep);  /* ④ 遅い時刻が上 */
+  });
+}
+
+/* --tsort-end-- */
+
+/** 一番あとに入れた記録の id（表の上に「新」と出します） */
+function newestId(){
+  let id = '', at = '';
+  (records || []).forEach(function (r){
+    if (r.made && r.made > at) { at = r.made; id = r.id; }
+  });
+  return id;
+}
 const places  = () => [...new Set(records.map(r => r.place).filter(Boolean))];
 const DCOL = ['#F0A33B','#E4573D','#6FD8A8','#7FA9F0','#C98BE0','#E8D06A','#5FBFC4','#EF8FA8'];
 const dcol = d => { const ds = [...new Set(visible().map(r => r.date))].sort(); return DCOL[ds.indexOf(d) % DCOL.length]; };
@@ -880,9 +934,9 @@ const LEADS = {
               'ショート・ミドル・ロングの割合'],
         m: '金額の入った記録だけ。「不明」は外します。',
         c: '割合は「その乗り場の記録のうち、その金額帯が何％か」。3件に届かない乗り場は出しません。' },
-  tok:{ w: ['バラシ・関空・チケットの乗車が、何時台に多いか',
+  tok:{ w: ['バラシ・関空・チケット・Uberの乗車が、何時台に多いか',
             '会場やホテルごとの、呼ばれやすい時間'],
-        m: '「他」の欄に バラシ／関空／チケ と書いた記録だけ。',
+        m: '「他」の欄に バラシ／関空／チケ と書いた記録と、種類が Uber の記録だけ。',
         c: 'ここだけは1件からでも出します（数が少ないので）。少ないところには「まだ○件」と書きます。' },
   rep:{ w: ['同じお客様と思われる、くり返しの乗車',
             'その曜日・時刻・乗り場の、くり返しかた'],
@@ -1038,9 +1092,9 @@ function paneInRecent(){
       <input class="ja" id="ktFind2" data-find="ktSug2" placeholder="乗り場をさがす（例：梅田）">
       <div class="fsug" id="ktSug2"></div>
     </div>
-    <p class="note">${records.length ? '新しい順に10件。全員分が1つの台帳に入ります。' : 'まだ1件も入っていません。'}</p>
+    <p class="note">${records.length ? '新しい日が上。同じ日の中はエリア順・乗り場の番号順に10件。' : 'まだ1件も入っていません。'}</p>
     ${filterChips()}
-    ${visible().length ? tableHTML(sorted().slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
+    ${visible().length ? tableHTML(tableSort(visible()).slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
   </div>`;
 }
 /* ------------------------------------------------------------
@@ -1480,42 +1534,59 @@ function tsuke(r){
   return v < 0 ? v + 24 : v;
 }
 function tableHTML(rows){
-  let last = '';
+  let last = '', lastCat = '';
+  const fresh = newestId();
   const body = rows.map(function (r) {
     let head = '';
     if (r.date !== last) {
-      last = r.date;
+      last = r.date; lastCat = '';
       head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="8">' +
              esc(fmtD(r.date)) + '　<small>' + esc(dayName(r.date)) + '</small></td></tr>';
     }
-    return head + '<tr>' +
-      '<td class="c-who ' + whoCls(r.user_id) + '">' + esc(kana(r.who)) + '</td>' +
+    /* ★エリアが変わったところに、細い見出しを入れます（ご指示・2026/11/16
+         「順番は、エリア順でわけてください」）。
+         どこまでが同じエリアかが、一目で分かります。 */
+    const cat = recCat(r);
+    if (cat !== lastCat) {
+      lastCat = cat;
+      head += '<tr class="ahead"><td colspan="8">' + esc(cat) + '</td></tr>';
+    }
+    return head + '<tr' + (r.id === fresh ? ' class="fresh"' : '') + '>' +
+      '<td class="c-who ' + whoCls(r.user_id) + '">' +
+        (r.id === fresh ? '<i class="nw">新</i>' : '') + esc(kana(r.who)) + '</td>' +
       '<td class="n">' + showT(tsuke(r)) + '</td>' +
       '<td class="n ' + waitCls(r.wait) + '">' + (isUnk(r.wait) ? UNK : r.wait) + '</td>' +
       '<td class="n">' + showT(r.dep) + '</td>' +
-      '<td class="n ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
+      /* ★金額は右にそろえます（ご指示・2026/11/16「金額は右揃えにしてください」）。
+           桁がそろうので、高い・安いが一目で分かります。 */
+      '<td class="n c-fare ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
       '<td class="c-place">' + (r.place ? placeLink(canonPlace(r.place)) : UNK) + '</td>' +
-      /* ★種と他は、1つの欄にまとめます（ご指示・2026/11/12「種・他」） */
+      /* ★種（乗せ方）と 他（書きそえ）は、同じ欄でも**上下に分けて**出します
+           （ご指摘・2026/11/16「種・他がはみ出てます しっかり直してください
+             ホテルとかはタグ付けするにしてもしっかり分けてください」）。
+           横に並べていたので、欄からはみ出して、隣の行と重なって見えていました。
+         ★「ホテル」は“乗り場の種類”ではなく、**乗せ方**の1つです
+           （ホテルの方から呼ばれた乗車）。場所とは別のものです。 */
       '<td class="ja c-note">' +
-        /* ★書き方のゆれは、出すときにもそろえます（ご質問・2026/11/13）。
-             前に「付け待ち」で入れた記録も、「乗り場」として出します。 */
         (r.method ? '<span class="mtag ' + mcls(r.method) + '">' +
-          esc(normMethod(r.method)) + '</span> ' : '') +
-        esc(r.note || '') + '</td>' +
+          esc(normMethod(r.method)) + '</span>' : '') +
+        (r.note ? '<span class="ntxt">' + esc(r.note) + '</span>' : '') +
+        (!r.method && !r.note ? '<span class="ntxt dim">—</span>' : '') + '</td>' +
       /* ★修正・削除は、表の右端に置きます（ご指示・2026/11/12） */
       '<td class="ops">' + (canEdit(r)
         ? '<button class="mini" data-edit="' + r.id + '">修正</button>' +
           '<button class="mini del" data-del="' + r.id + '">削除</button>' : '') + '</td></tr>';
   }).join('');
-  return '<div class="snote">← 横にスクロールできます（乗り場・種・他・修正／削除は右側です）</div>' +
+  return '<div class="snote">← 横にスクロールできます（種・他と修正／削除は右側です）</div>' +
     '<div class="scroll tbl"><table><thead><tr>' +
     '<th>名</th><th class="n">付</th><th class="n">待</th>' +
-    '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種・他</th>' +
+    '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種<br>他</th>' +
     '<th class="ops">修正<br>削除</th>' +
     '</tr></thead><tbody>' + body + '</tbody></table></div>' +
     /* ★色の見方を、端的に1行で（ご指示・2026/11/13
          「表の色変えの説明も端的に(長文にならないように)載せてください」）。 */
     '<div class="clegend">' +
+    '<span><b class="nw">新</b>最後に入れた記録</span>' +
     '<span>名＝人ごとの色</span>' +
     '<span><i class="lw1"></i>待ち10分以内</span>' +
     '<span><i class="lw2"></i>30分以内</span>' +
@@ -1665,8 +1736,11 @@ function subSet(el){
   if (!el) return;
   const x = lordPick();
   if (!x) { el.textContent = subLine(); subFit(el); return; }
+  /* ★はじめに、対象の日付（曜日）を入れます（ご指示・2026/11/16
+       「これ系については 初めに、対象の日付(曜)も入れてください」）。
+       いつ見ている話なのかが、一目で分かるようにするためです。 */
   const mk = function (p){
-    return '最多付け待ちの為、' + p + 'のLは〝' + x.who + '〟です';
+    return fmtD(today()) + '　最多付け待ちの為、' + p + 'のLは〝' + x.who + '〟です';
   };
   const ch = [...String(x.p)];
   el.style.fontSize = '';
@@ -1996,6 +2070,91 @@ function gChart(kind, R){
 }
 
 /* ------------------------------------------------------------
+ *  有名な観光地・高級ホテル（地図のピン）
+ *
+ *  ★まーく様のご指示（2026/11/16）
+ *    「有名観光サイトや、高級レストランを…
+ *      チケット利用の可能性、Uber利用の可能性を…導き出して欲しいです」
+ *
+ *  ★場所は、こちらで1つずつ入れています（お金も、AIも使いません）。
+ *  ★乗り場のピンとは、色を分けます。乗り場は「記録のある所」、
+ *    こちらは「人が集まる所」で、意味がまったく違うためです。
+ *  ★wj / we は、話題の伸びを調べるときの見出し語です
+ *    （日本語版・海外版。分からないものは空にしてあります）。
+ * ---------------------------------------------------------- */
+const SPOT_GEO = [
+  /* 観光 */
+  ['大阪城',            34.6873, 135.5262, '観光', '大阪城', 'Osaka_Castle'],
+  ['通天閣',            34.6525, 135.5063, '観光', '通天閣', 'Tsutenkaku'],
+  ['道頓堀',            34.6687, 135.5013, '観光', '道頓堀', 'Dōtonbori'],
+  ['心斎橋',            34.6745, 135.5010, '観光', '心斎橋', 'Shinsaibashi'],
+  ['黒門市場',          34.6652, 135.5063, '観光', '黒門市場', 'Kuromon_Market'],
+  ['海遊館',            34.6545, 135.4289, '観光', '海遊館', 'Osaka_Aquarium_Kaiyukan'],
+  ['USJ',               34.6654, 135.4323, '観光', 'ユニバーサル・スタジオ・ジャパン', 'Universal_Studios_Japan'],
+  ['梅田スカイビル',    34.7054, 135.4902, '観光', '梅田スカイビル', 'Umeda_Sky_Building'],
+  ['あべのハルカス',    34.6457, 135.5133, '観光', 'あべのハルカス', 'Abeno_Harukas'],
+  ['四天王寺',          34.6543, 135.5165, '観光', '四天王寺', 'Shitennō-ji'],
+  ['なんばパークス',    34.6610, 135.5020, '観光', 'なんばパークス', 'Namba_Parks'],
+  ['万博記念公園',      34.8073, 135.5302, '観光', '万博記念公園', ''],
+  ['天保山',            34.6550, 135.4320, '観光', '天保山', ''],
+  ['アメリカ村',        34.6723, 135.4983, '観光', 'アメリカ村', 'Amerikamura'],
+  ['大阪市中央公会堂',  34.6936, 135.5020, '観光', '大阪市中央公会堂', ''],
+  ['中之島',            34.6926, 135.5020, '観光', '中之島 (大阪府)', ''],
+  ['法善寺横丁',        34.6680, 135.5020, '観光', '法善寺横丁', ''],
+  ['住吉大社',          34.6126, 135.4931, '観光', '住吉大社', 'Sumiyoshi-taisha'],
+  /* 高級ホテル（送迎・チケットの乗車が出やすい所） */
+  ['リッツ・カールトン大阪',   34.6995, 135.4915, 'ホテル', '', ''],
+  ['コンラッド大阪',           34.6928, 135.4930, 'ホテル', '', ''],
+  ['セントレジス大阪',         34.6798, 135.5008, 'ホテル', '', ''],
+  ['インターコンチネンタル大阪', 34.7060, 135.4930, 'ホテル', '', ''],
+  ['帝国ホテル大阪',           34.7033, 135.5147, 'ホテル', '', ''],
+  ['リーガロイヤルホテル',     34.6900, 135.4882, 'ホテル', '', ''],
+  ['ウェスティンホテル大阪',   34.7055, 135.4895, 'ホテル', '', ''],
+  ['スイスホテル南海大阪',     34.6640, 135.5020, 'ホテル', '', ''],
+  ['ヒルトン大阪',             34.7005, 135.4938, 'ホテル', '', '']
+];
+
+/* 観光地・ホテルのピンを出すかどうか（その端末に覚えます） */
+const SPOT_KEY = 'tsukemachi.spot';
+let spotOn = (function (){
+  try { return localStorage.getItem(SPOT_KEY) === '1'; } catch (e) { return false; }
+})();
+function spotSet(v){ spotOn = !!v; try { localStorage.setItem(SPOT_KEY, v ? '1' : '0'); } catch (e) {} }
+
+/*
+ * ★「話題の伸び」（ご指示・2026/11/16 の代わりの案）
+ *
+ *   SNSや記事をずっと追うには、お金のかかる窓口が要ります。
+ *   そこで、**ウィキペディアが公開している「調べられた回数」**を使います。
+ *   無料・鍵なし・課金の設定なしで、日本語版と海外版（英語）を
+ *   別々に数えられるので、「日本の人が調べている所」と
+ *   「海外の人が調べている所」を 分けて見られます。
+ *
+ *   ★これは「調べられた回数」です。**人出ではありません。**
+ *     何人いるか、とは書きません（数字が嘘になります）。
+ *   ★数字は きのうまでの分です（出てくるのが1日おくれるためです）。
+ */
+let buzzData = null;
+async function buzzLoad(){
+  try {
+    const r = await fetch('data/buzz.json', { cache: 'no-store' });
+    buzzData = r.ok ? await r.json() : null;
+  } catch (e) { buzzData = null; }
+}
+/** 伸び（直近7日 ÷ その前7日）。片方でも0なら null */
+function buzzUp(o){
+  if (!o || !o.now || !o.prev) return null;
+  if (!(o.prev > 0)) return null;
+  return o.now / o.prev;
+}
+function buzzPct(o){
+  const u = buzzUp(o);
+  if (u === null) return '—';
+  const v = Math.round((u - 1) * 100);
+  return (v > 0 ? '+' : '') + v + '%';
+}
+
+/* ------------------------------------------------------------
  *  地図（ピンで見る）
  *
  *  ★まーく様のご指示（2026/11/13）
@@ -2084,11 +2243,12 @@ function nextChains(R){
 
 function nextCard(R){
   const L = nextChains(R);
-  if (!L.length) {
-    return '<div class="card"><h2>次に拾えた場所</h2>' +
-      '<p class="note">1本 降ろしたあと、次の1本をどこで拾えているかです。</p>' +
-      '<div class="empty">まだ ' + HOT_MIN_N + '件 そろった組み合わせがありません。</div></div>';
-  }
+  /* ★そろっていないときは、見出しごと出しません（ご指示・2026/11/16
+       「たまってないのなら、この見出し自体は非表示にしてください
+         不要なもの(データ参考にならないもの)は極力非表示にして、
+         必要最低限だけがパッと可視化できることを全ページで徹底してください」）。
+       空っぽの枠が並ぶと、見るところが分からなくなります。 */
+  if (!L.length) return '';
   return '<div class="card"><h2>次に拾えた場所</h2>' +
     '<p class="note">1本 乗せたあと、次の1本を <b>どこで・何分後に</b> 拾えているかです。' +
     HOT_MIN_N + '件以上そろった組み合わせだけを出しています。押すと地図が開きます。</p>' +
@@ -2739,7 +2899,14 @@ function radarCard(){
    *   道や店の名前が目立つと、雨雲が見えにくいためです。
    */
   return '<div class="card"><h2>雨雲レーダー</h2>' +
-    '<p class="note">いまから3時間後までの雨雲です。指で動かせます。</p>' +
+    /* ★ここに「3時間後まで」と決め打ちで書いていたため、
+         実際には1時間ぶんしか出ていないのに、3時間と書いていました
+         （ご指摘・2026/11/16「本当に3時間進んでますか？
+           1時間程度しか進んでいるように見えませんが？
+           矛盾したことは全ページ通して絶対に書かないでください」）。
+       いまは、出せた こま を数えてから、ここに書き直します。 */
+    '<p class="note" id="radarRange">読み込んでいます…</p>' +
+    '<p class="note">雨が降っていないときは、地図だけが映ります。</p>' +
     '<div id="radarMap" class="radarmap wxmap">読み込んでいます…</div>' +
     '<div class="rdrbar"><b id="radarTime">読み込んでいます…</b>' +
     '<span id="radarWhen"></span></div>' +
@@ -2784,6 +2951,13 @@ function radarWhen(v, base){
   return (m % 60 === 0 ? h + '時間後' : (Math.floor(m / 60) + '時間' + (m % 60) + '分後'));
 }
 
+/* 日本時刻の Date を、気象庁の字（20261116013000＝世界の時刻）に直します */
+function jmaStamp(d){
+  const u = new Date(d.getTime());
+  return String(u.getUTCFullYear()) + pad(u.getUTCMonth() + 1) + pad(u.getUTCDate()) +
+         pad(u.getUTCHours()) + pad(u.getUTCMinutes()) + '00';
+}
+
 function radarBoot(){
   const box = document.getElementById('radarMap');
   if (!box) { radarMap = null; return; }
@@ -2796,8 +2970,29 @@ function radarBoot(){
       const m = L.map(box, { attributionControl: true, zoomControl: true }).setView([34.7025, 135.4959], 9);
       /* ★下じきは、色を落として暗くします（className で見た目を変えます）。
            道や店の名前が目立つと、雨雲のほうが見えなくなります。 */
+      /* ★雨雲は、別の「層」に置きます。
+           下じきの地図だけを暗くしたいのですが、絵の1枚ずつに色づけをすると、
+           絵と絵のつぎ目に 細い線が出てしまいます
+           （ご指摘・2026/11/16「この白い線はなんですか？」）。
+           層ごと まとめて暗くすれば、つぎ目は出ません。 */
+      m.createPane('rain');
+      m.getPane('rain').style.zIndex = 450;
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 15, className: 'basemap', attribution: '© OpenStreetMap' }).addTo(m);
+        { maxZoom: 15, attribution: '© OpenStreetMap' }).addTo(m);
+      /*
+       * ★下じきの地図は、上から「幕」をかけて暗くします。
+       *   前は 地図そのものに色づけ（filter）をしていましたが、
+       *   絵と絵のつぎ目に 細い線が出ていました
+       *   （ご指摘・2026/11/16「この白い線はなんですか？」）。
+       *   幕は1枚の板なので、つぎ目ができません。
+       *   雨雲は幕より上の層に置くので、暗くなりません。
+       */
+      try {
+        const mp = m.getPane('mapPane');
+        const v1 = document.createElement('div'); v1.className = 'mapveil v1';
+        const v2 = document.createElement('div'); v2.className = 'mapveil v2';
+        mp.appendChild(v1); mp.appendChild(v2);
+      } catch (e) {}
       m._box = box; radarMap = m;
 
       const J = 'https://www.jma.go.jp/bosai/jmatile/data/';
@@ -2809,11 +3004,19 @@ function radarBoot(){
        * ★「いま」から「3時間後」までを、1本につなげます。
        *   1つ落ちても、残りは出します（止まらない形）。
        */
+      /* その こま の絵が、ほんとうに置いてあるかを1枚だけ確かめます。
+           気象庁は、表に出てから少しのあいだ 絵が無いことがあります。
+           確かめずに使うと、その時間ぶんが まるごと白くなります。 */
+      const tileOK = function (b, v){
+        return fetch(J + 'rasrf/' + b + '/none/' + v + '/surf/rasrf/8/223/101.png',
+                     { cache: 'no-store' })
+          .then(function (r){ return !!r.ok; }).catch(function (){ return false; });
+      };
       Promise.all([
         get(J + 'nowc/targetTimes_N1.json'),     /* いま（実測） */
         get(J + 'nowc/targetTimes_N2.json'),     /* 〜1時間後（5分きざみ） */
-        get(J + 'rasrf/targetTimes.json')        /* 〜3時間後（1時間きざみ） */
-      ]).then(function (res){
+        get(J + 'rasrf/targetTimes.json')        /* 1時間後から先（1時間きざみ） */
+      ]).then(async function (res){
         const n1 = res[0] || [], n2 = res[1] || [], rs = res[2] || [];
         if (!n1.length && !n2.length) throw new Error('時刻が取れない');
         const now = jmaDate((n1[0] || n2[0] || {}).validtime) || new Date();
@@ -2830,17 +3033,62 @@ function radarBoot(){
             const mi = Math.round((d.getTime() - now.getTime()) / 60000);
             if (mi > 0 && mi <= 60 && mi % 10 === 0) fr.push({ b: bt2, v: v, k: 'nowc' });
           });
-        /* ③ 〜3時間後 */
-        const bt3 = (rs[0] || {}).basetime;
-        rs.filter(function (x){ return x.basetime === bt3; })
-          .map(function (x){ return x.validtime; })
-          .sort()
-          .forEach(function (v){
-            const d = jmaDate(v); if (!d) return;
-            const mi = Math.round((d.getTime() - now.getTime()) / 60000);
-            if (mi > 60 && mi <= 185) fr.push({ b: bt3, v: v, k: 'rasrf' });
-          });
+        /*
+         * ③ 1時間後から 3時間ほど先まで（降水短時間予報）
+         *
+         * ★ここが、ずっと空っぽでした（ご指摘・2026/11/16
+         *     「本当に3時間進んでますか？1時間程度しか進んでいるように見えませんが？」）。
+         *   気象庁の表には、**ちょうどの時刻**と**30分の時刻**の2つの出し元が
+         *   混じっています。ちょうどの時刻のほうは、
+         *   いまから7時間より先の絵しか持っていません。
+         *   前は、ならびの1番目（＝ちょうどの時刻）をそのまま使っていたため、
+         *   1〜3時間後の こま が1枚も作れず、1時間ぶんで止まっていました。
+         * ★いまは「30分の時刻」の出し元を使います。
+         *   1時間後から6時間後まで、1時間ごとに持っています。
+         * ★表に出たばかりの出し元は、まだ絵が置かれていないことがあるので、
+         *   1枚 試してから使います。だめなら30分前の出し元に下がります。
+         */
+        const base30 = (function (){
+          const L = {};
+          rs.forEach(function (x){ (L[x.basetime] = L[x.basetime] || []).push(x.validtime); });
+          const ks = Object.keys(L).filter(function (b){
+            return /3000$/.test(b) && L[b].length > 1;
+          }).sort();
+          return ks.length ? ks[ks.length - 1] : '';
+        })();
+        if (base30) {
+          const b0 = jmaDate(base30);
+          /* 新しいほうから順に、絵が置いてある出し元をさがします（3つまで） */
+          for (let back = 0; back < 3; back++) {
+            const bd = new Date(b0.getTime() - back * 30 * 60000);
+            const bs = jmaStamp(bd);
+            const vs = [];
+            for (let h = 1; h <= 6; h++) {
+              const vd = new Date(bd.getTime() + h * 60 * 60000);
+              const mi = Math.round((vd.getTime() - now.getTime()) / 60000);
+              /* いま〜1時間後は ナウキャストで出しているので、その先だけ。
+                 3時間後を必ず越えるところまで入れます（215分） */
+              if (mi > 60 && mi <= 215) vs.push(jmaStamp(vd));
+            }
+            if (!vs.length) continue;
+            /* eslint-disable no-await-in-loop */
+            const okTile = await tileOK(bs, vs[0]);
+            if (!okTile) continue;
+            vs.forEach(function (v){ fr.push({ b: bs, v: v, k: 'rasrf' }); });
+            break;
+          }
+        }
         if (!fr.length) throw new Error('こまが作れない');
+
+        /* ★出せた所までを、そのまま書きます（決め打ちで「3時間」と書かない） */
+        {
+          const rg = document.getElementById('radarRange');
+          const lastv = jmaDate(fr[fr.length - 1].v);
+          if (rg && lastv) {
+            rg.textContent = 'いまから ' + radarWhen(fr[fr.length - 1].v, now) +
+              ' までの雨雲です（' + fr.length + 'こま）。指で動かせます。';
+          }
+        }
 
         /* こまは先にぜんぶ地図へ置いて、見せる1枚だけ濃くします */
         const lay = fr.map(function (o){
@@ -2848,7 +3096,7 @@ function radarBoot(){
             ? J + 'rasrf/' + o.b + '/none/' + o.v + '/surf/rasrf/{z}/{x}/{y}.png'
             : J + 'nowc/'  + o.b + '/none/' + o.v + '/surf/hrpns/{z}/{x}/{y}.png';
           return L.tileLayer(u, { opacity: 0, maxZoom: 15, maxNativeZoom: 10,
-            className: 'rainlay', attribution: '気象庁' }).addTo(m);
+            pane: 'rain', className: 'rainlay', attribution: '気象庁' }).addTo(m);
         });
         let i = 0;
         const show = function (){
@@ -2985,12 +3233,13 @@ function hotPlanReady_(plan){
 /** 翌4時までの見当（横に流して見ます） */
 function hotPlanCard(plan, early){
   if (!hotPlanReady_(plan)) return '';
+  /* ★記録の足りない時間は、まるごと出しません（ご指示・2026/11/16）。
+       「記録が足りない」ばかりが並ぶと、見るところが分からなくなります。 */
   return '<div class="card"><h2>翌4時までの予想</h2>' +
-    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。' +
-    '空いている時間は、記録がまだ足りません。</p>' +
+    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。</p>' +
     '<div class="scroll fb"><div class="plan">' + plan.map(function (s, i){
+      if (!s.top) return '';
       const head = '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>';
-      if (!s.top) return '<div class="pl">' + head + '<b class="thin">—</b><span>記録が足りない</span></div>';
       return '<a class="pl" href="' + hotMap(s.top.p) + '" target="_blank" rel="noopener">' + head +
         '<b>' + esc(s.top.p) + '</b><span>平均 ' + yen(s.top.avg) + '・' + s.top.n + '件</span></a>';
     }).join('') + '</div></div></div>';
@@ -3692,20 +3941,18 @@ function hourPlanCard(D){
     });
     const rk = longRank(t);
     const o = bandCount(t);
-    const thin = [...new Set(t.map(r => r.place).filter(Boolean))]
-      .map(p => ({ p: p, n: t.filter(r => r.place === p).length }))
-      .sort((x, y) => y.n - x.n).slice(0, 5);
+    /* ★3件そろっていない時間の枠は、まるごと出しません（ご指示・2026/11/16
+         「不要なもの(データ参考にならないもの)は極力非表示にして、
+           必要最低限だけがパッと可視化できることを全ページで徹底してください」）。
+         「記録なし」の枠が並ぶと、見るところが分からなくなります。 */
+    if (!rk.length) return;
     bb += '<div class="blk3' + (i === 0 ? ' now' : '') + '">' +
       /* ★「いま／次／そのあと」の札は、出しません（ご指示・2026/11/12）。
            時刻だけで分かります。いまの枠は、赤い枠で見分けます。 */
       '<div class="b3h"><b>' + bk.a + '〜' + bk.b + '時</b>' +
       '<span>' + (o.n ? ('ロング ' + bandPct(o, 'L') + '%・' + o.n + '件・平均 ' + yen(bandAvg(t))) : '記録なし') + '</span>' +
       '</div>' +
-      (rk.length ? longRows(rk, 3)
-        : (thin.length
-            ? '<div class="hbn">まだ3件そろった乗り場がありません。この枠に入っている所（件数）：' +
-              thin.map(x => esc(x.p) + ' ' + x.n).join('・') + '</div>'
-            : '<div class="hbn">この枠の記録が、まだありません。</div>')) +
+      longRows(rk, 3) +
       '</div>';
   });
   if (!bb) return '';
@@ -4181,7 +4428,10 @@ function whenPane(cat, title, label, lead, test, noLead){
 const TOK_KINDS = [
   { k:'bara',  n:'バラシ',   s:'公演のあと、お客が出てくる時間' },
   { k:'kix',   n:'関空',     s:'どのホテルから、何時台に呼ばれるか' },
-  { k:'ticket',n:'チケット', s:'チケットの乗車が、何時台に多いか' }
+  { k:'ticket',n:'チケット', s:'チケットの乗車が、何時台に多いか' },
+  /* ★Uberが出やすい乗り場・時間帯（ご指示・2026/11/16）。
+       よその情報は使いません。自分たちの記録の「種類」から出します。 */
+  { k:'uber',  n:'Uber',     s:'Uberの乗車が、何時台に多いか' }
 ];
 const TOK_KEY = 'tsukemachi.tok';
 let tokKind = (function (){
@@ -4194,16 +4444,22 @@ function tokKindSet(k){ tokKind = k; try { localStorage.setItem(TOK_KEY, k); } c
 function isTicket(r){
   return /チケ/.test(String((r && r.note) || ''));
 }
+/* 種類が Uber の乗車（書き方のゆれは normMethod がそろえます） */
+function isUber(r){
+  return normMethod(String((r && r.method) || '')) === 'Uber';
+}
 
 function paneTok(){
   const k = tokKind;
-  const head = leadCard('tok') + '<div class="card"><h2>バラシ・関空・チケット</h2>' +
+  const head = leadCard('tok') + '<div class="card"><h2>バラシ・関空・チケット・Uber</h2>' +
     '<p class="note">見たいものを、下からえらんでください。</p>' +
-    gMenu(TOK_KINDS, tokKind, 'data-tk') + '</div>';
+    gMenu(TOK_KINDS, tokKind, 'data-tk').replace('class="gmenu"', 'class="gmenu g4"') + '</div>';
   if (k === 'kix')    return head + whenPane('関空', '関空', 'ホテル',
     'どのホテルから、何時台に呼ばれているかを並べます。', null, true);
   if (k === 'ticket') return head + whenPane('', 'チケット', '乗り場',
     'チケットの乗車が、どこで・何時台に多いかを並べます。', isTicket, true);
+  if (k === 'uber')   return head + whenPane('', 'Uber', '乗り場',
+    'Uberの乗車が、どこで・何時台に多いかを並べます。', isUber, true);
   return head + whenPane('ﾊﾞﾗｼ', 'バラシ', '会場',
     '公演のあと、お客が出てくる時間です。会場ごとに、何時台に呼ばれているかを並べます。', null, true);
 }
@@ -4357,6 +4613,14 @@ function paneRep(){
 let nippos = [];          /* 置いた写真の一覧（写真そのものは持ちません） */
 let nippoPick = {};       /* 画面でえらんだ行 */
 let nippoBusy = '';
+/*
+ * ★えらんだ写真は、ここに控えます（ご指摘・2026/11/16
+ *     「写真選択したのに、読み込みできてないですし、複数選択ができません」）。
+ *   画面を作り直すと <input type="file"> も作り直されるので、
+ *   えらんだ写真が ひとりでに消えていました。
+ *   控えておけば、画面が作り直されても消えません。
+ */
+let nippoFiles = [];
 
 async function nippoLoad(){
   try {
@@ -4397,26 +4661,41 @@ function nippoShrink(file){
   });
 }
 
-async function nippoSend(file, date){
-  if (!file) { bad('写真をえらんでください'); return; }
-  nippoBusy = '写真を小さくしています…'; render();
-  try {
-    const img = await nippoShrink(file);
-    nippoBusy = '置いています…'; render();
-    const { error } = await db.from('nippo_scan')
-      .insert({ user_id: ME.user.id, work_date: date || today(), img: img, state: 'new' });
-    if (error) {
-      const m = String(error.message || '');
-      bad(/relation|does not exist|schema cache/i.test(m)
+/**
+ * えらんだ写真を、まとめて置きます（ご指摘・2026/11/16「複数選択ができません」）。
+ * ★1枚ずつ置きます。1枚しくじっても、残りは置きます。
+ * ★どこまで進んだかを出します（写真は小さくするのに時間がかかります）。
+ */
+async function nippoSend(files, date){
+  const L = (files || []).filter(Boolean);
+  if (!L.length) { bad('写真をえらんでください'); return; }
+  let done = 0; const ng = [];
+  for (let i = 0; i < L.length; i++) {
+    nippoBusy = (L.length > 1 ? (i + 1) + '枚目／' + L.length + '枚　' : '') +
+                '写真を小さくしています…';
+    render();
+    try {
+      const img = await nippoShrink(L[i]);
+      nippoBusy = (L.length > 1 ? (i + 1) + '枚目／' + L.length + '枚　' : '') + '置いています…';
+      render();
+      const { error } = await db.from('nippo_scan')
+        .insert({ user_id: ME.user.id, work_date: date || today(), img: img, state: 'new' });
+      if (error) {
+        const m = String(error.message || '');
+        ng.push(/relation|does not exist|schema cache/i.test(m)
           ? '日報の置き場が、まだ台帳にありません（少し待ってから、もう一度）'
           : jaError(error));
-      nippoBusy = ''; render(); return;
-    }
-    nippoBusy = '';
-    await nippoLoad();
-    ok('置きました。読み終わるまで、3分ほどかかります');
-    render();
-  } catch (e) { nippoBusy = ''; bad(jaError(e)); }
+      } else done++;
+    } catch (e) { ng.push(jaError(e)); }
+  }
+  nippoBusy = '';
+  nippoFiles = [];                       /* 置き終わったので、控えを空にします */
+  const el = $('#nipFile'); if (el) { try { el.value = ''; } catch (e) {} }
+  try { await nippoLoad(); } catch (e) {}
+  if (done && !ng.length) ok(done + '枚 置きました。読み終わるまで、3分ほどかかります');
+  else if (done) bad(done + '枚 置きました。' + (L.length - done) + '枚は置けません（' + ng[0] + '）');
+  else bad(ng[0] || '置けませんでした');
+  render();
 }
 
 /** えらんだ行を、記録に足します */
@@ -4485,8 +4764,18 @@ function paneNippo(){
       下の表で見てから【足す】を押してください。</p>
     <label><span>営業日</span>
       <input type="date" id="nipDate" value="${esc(today())}"></label>
-    <div class="ktfind"><input type="file" id="nipFile" accept="image/*"></div>
-    <div class="actions"><button class="btn" id="nipSend">置く</button>
+    <!-- ★複数えらべます。えらんだ写真は控えてあるので、
+           画面が作り直されても消えません（ご指摘・2026/11/16）。 -->
+    <div class="nippick">
+      <label class="btn nipbtn" for="nipFile">写真をえらぶ（何枚でも）</label>
+      <input type="file" id="nipFile" accept="image/*" multiple>
+      <div class="nipsel">${nippoFiles.length
+        ? esc(nippoFiles.length + '枚 えらびました：' +
+            nippoFiles.map(f => f.name || '写真').join('、').slice(0, 60))
+        : 'まだ えらんでいません'}</div>
+    </div>
+    <div class="actions"><button class="btn" id="nipSend"${nippoBusy ? ' disabled' : ''}>置く</button>
+      ${nippoFiles.length ? '<button class="btn sub" id="nipClear">えらび直す</button>' : ''}
       ${nippoBusy ? '<span class="msg">' + esc(nippoBusy) + '</span>' : ''}</div>
     <p class="note">置いてから、読み終わるまで3分ほどかかります。
       このページを開き直すと、読めたものが出ます。</p>
@@ -4895,10 +5184,6 @@ function foldWire(){
  *    押すと、その見出しまで すっと動きます。
  *    一番上の行（貼り付いている行）のぶんだけ、下げて止めます。
  * ---------------------------------------------------------- */
-/* 目次の下につける、別ページへの行き先（ご指示・2026/11/13） */
-const TOC_TABS = [{ k:'ev', n:'イベント' }, { k:'news', n:'お知らせ' },
-  { k:'fb', n:'フィードバック' }];
-
 function tocBuild(){
   const old = document.getElementById('toc');
   if (old) old.remove();
@@ -4909,9 +5194,8 @@ function tocBuild(){
   const hs = [...document.querySelectorAll('#panesTop .card > h2, #ktop > h2, #panes .card > h2')]
     .filter(function (h) { return !h.closest('[hidden]'); });
 
-  /* ★イベント・お知らせ・フィードバックは いつも足すので、
-       この画面の見出しが1つでも、目次は出します（ご指示・2026/11/13）。 */
-  if (!hs.length) return;
+  /* 見出しが1つしかない画面では、目次は出しません（かえって邪魔になります） */
+  if (hs.length < 2) return;
   hs.forEach(function (h, i) { if (!h.id) h.id = 'sec' + i; });
   const nav = document.createElement('div');
   nav.className = 'toc' + (tocFolded() ? ' fold' : '');
@@ -4923,15 +5207,6 @@ function tocBuild(){
       return '<button class="tocit" data-toc="' + h.id + '">' +
         '<em>' + (i + 1) + '</em>' +
         '<span>' + esc(h.textContent.replace(/[▼▲]/g, '').trim()) + '</span></button>';
-    }).join('') +
-    /* ★イベント・お知らせ・フィードバックも、目次から行けるようにします
-         （ご指示・2026/11/13「イベント お知らせ フィードバック も追加して、
-           4列、3段にしてください」）。
-         この3つは別のページなので、押すとそのページへ移ります。 */
-    TOC_TABS.map(function (x, j) {
-      return '<button class="tocit tabto" data-tocto="' + x.k + '">' +
-        '<em>' + (hs.length + j + 1) + '</em>' +
-        '<span>' + x.n + '</span></button>';
     }).join('') + '</div>';
   const host = document.getElementById('panesTop') || document.getElementById('panes');
   host.parentNode.insertBefore(nav, host);
@@ -4942,12 +5217,6 @@ function tocBuild(){
     nav.classList.toggle('fold', on);
     try { localStorage.setItem(TOC_KEY, on ? '1' : '0'); } catch (e) {}
   };
-  nav.querySelectorAll('[data-tocto]').forEach(function (b) {
-    b.onclick = function () {
-      tab = b.dataset.tocto; tabSave(); render();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-  });
   nav.querySelectorAll('[data-toc]').forEach(function (b) {
     b.onclick = function () {
       const el = document.getElementById(b.dataset.toc);
@@ -5115,9 +5384,23 @@ function wire(){
   document.querySelectorAll('[data-gk]').forEach(function (b) {
     b.onclick = function () { gKindSet(b.dataset.gk); render(); };
   });
+  /* ★えらんだ写真を、すぐ控えます。
+       画面が作り直されても、えらんだものが消えないようにするためです。 */
+  if ($('#nipFile')) $('#nipFile').onchange = function (){
+    nippoFiles = [...(this.files || [])];
+    render();
+  };
+  if ($('#nipClear')) $('#nipClear').onclick = function (){
+    nippoFiles = [];
+    const el = $('#nipFile'); if (el) { try { el.value = ''; } catch (e) {} }
+    render();
+  };
   if ($('#nipSend')) $('#nipSend').onclick = function (){
-    const f = $('#nipFile'), d = $('#nipDate');
-    nippoSend(f && f.files && f.files[0], d ? d.value : '');
+    const d = $('#nipDate');
+    /* 控えが空でも、えらんだ直後なら input から拾えます（取りこぼしを防ぎます） */
+    const el = $('#nipFile');
+    const L = nippoFiles.length ? nippoFiles : [...((el && el.files) || [])];
+    nippoSend(L, d ? d.value : '');
   };
   document.querySelectorAll('[data-nip]').forEach(function (b) {
     b.onclick = function (){ nippoPick[b.dataset.nip] = b.checked; };

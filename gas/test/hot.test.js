@@ -417,14 +417,30 @@ console.log('■ 雨雲レーダーを、画面の中に出す（ご指示・202
   ok(/nowc\/targetTimes_N2\.json/.test(appSrc), '★★★1時間後までの予想も出す');
   ok(/rasrf\/targetTimes\.json/.test(appSrc), '★★★3時間後までの予想も出す');
   ok(/surf\/rasrf\/\{z\}\/\{x\}\/\{y\}\.png/.test(appSrc), '　 その絵の読み先');
-  ok(/mi > 60 && mi <= 185/.test(appSrc), '★★★3時間より先は出さない');
+  /* ★2026/11/16：1〜3時間後が1枚も出ていませんでした（ご指摘
+       「本当に3時間進んでますか？1時間程度しか進んでいるように見えませんが？」）。
+       気象庁の表には「ちょうどの時刻」と「30分の時刻」の2つの出し元があり、
+       ちょうどの時刻のほうは、7時間より先の絵しか持っていません。
+       前は ならびの1番目（＝ちょうどの時刻）を使っていたため、空でした。 */
+  ok(/\/3000\$\/\.test\(b\)/.test(appSrc),
+     '★★★1〜6時間後を持っている「30分の時刻」の出し元を使う');
+  ok(/mi > 60 && mi <= 215/.test(appSrc), '★★★3時間後を必ず越えるところまで出す');
+  ok(/const tileOK = function/.test(appSrc),
+     '★★★絵が置いてあるかを、1枚ためしてから使う');
+  ok(/back < 3/.test(appSrc), '　 だめなら、30分前の出し元に下がる');
+  ok(/id="radarRange"/.test(appSrc) && /'いまから ' \+ radarWhen/.test(appSrc),
+     '★★★出せた所までを、そのまま書く（「3時間」と決め打ちしない）');
   ok(/function radarWhen\(v, base\)/.test(appSrc), '★★★「いま」「30分後」と、そえて出す');
   /* ★下じきの地図は、色を落として暗くします（ご指示・2026/11/15
        「もっと、地図ではなく、雨雲マップっぽいものはないのでしょうか」）。
        道や店の名前が目立つと、雨雲のほうが見えなくなります。 */
-  ok(/className: 'basemap'/.test(appSrc)
-     && /\.wxmap \.basemap\{filter:grayscale/.test(cssSrc),
-     '★★★下じきの地図は、色を落として暗くする');
+  /* ★2026/11/16：地図そのものへの色づけはやめました（ご指摘「この白い線はなんですか？」）。
+       絵と絵のつぎ目に、細い線が出ていたためです。上から幕をかけます。 */
+  ok(/\.wxmap \.mapveil\.v1\{[^}]*mix-blend-mode:saturation/.test(cssSrc)
+     && /\.wxmap \.mapveil\.v2\{[^}]*rgba\(3,7,16/.test(cssSrc),
+     '★★★下じきの地図は、上から幕をかけて暗くする');
+  ok(/\.wxmap \.leaflet-tile-pane img\{image-rendering:pixelated\}/.test(cssSrc),
+     '★★★絵を にじませずに引きのばす（つぎ目の線が消える）');
   ok(/const RADAR_LEG = \[/.test(appSrc) && /\.rdrleg\{/.test(cssSrc),
      '★★★雨の強さの色（気象庁と同じ並び）を出す');
   ok(/tile\.openstreetmap\.org/.test(appSrc), '★★★地図は OpenStreetMap（無料・鍵なし）');

@@ -498,8 +498,6 @@ function sayFit(mount){
     const t  = bu && bu.querySelector('.t');
     if (!t) return;
     const keep = t.textContent;
-    mount.classList.remove('wide');             // いったん、ふつうの並びに戻して測る
-    if (mount.parentElement) mount.parentElement.classList.remove('saywide');
     t.style.fontSize = '';                      // いったん、きまりどおりの大きさへ
     let size = parseFloat(getComputedStyle(bu).fontSize) || 12;
     /*
@@ -568,26 +566,15 @@ function sayFit(mount){
       } catch (e) { return 0; }
     };
     /*
-     * ★ふきだしが、題と同じ行に入りきらずに 下へ回ったときは、
-     *   ≡ のボタンを 題と同じ行へ上げます（2026/11/15）。
-     *   上げないと、≡ だけが3行目に落ちて、見出しが高くなります。
-     *   見分け方は「題の上はしと、ふきだしの上はしが そろっているか」。
+     * ★ふきだしの置き場所は、**いつも同じ**にしました（2026/11/16・ご指摘
+     *     「ふきだし、バグって表示が画像のように色々ズレてしまってます」）。
+     *
+     *   前は「入りきらなかったら下の行へおろす」を、画面を測って
+     *   その場で決めていました。字の太さが決まる前に測ってしまう回があり、
+     *   開くたびに 1行だったり 2行だったり 3行だったりしました。
+     *   いまは **題と≡が1行目、顔とふきだしが2行目** と決め打ちです。
+     *   測って決めるのをやめたので、ズレません。
      */
-    const row = mount.parentElement;
-    if (row) {
-      const h1 = row.querySelector('h1');
-      const down = !!(h1 && Math.abs(mount.getBoundingClientRect().top -
-                                     h1.getBoundingClientRect().top) > 4);
-      row.classList.toggle('saywide', down);
-      mount.classList.toggle('wide', down);
-      if (down) {                       /* 幅が変わったので、測り直します */
-        t.style.fontSize = '';
-        let s2 = parseFloat(getComputedStyle(bu).fontSize) || 12;
-        let g2 = 0;
-        while (over() && s2 > SAY_MIN_PX && g2++ < 48) { s2 -= 0.5; t.style.fontSize = s2 + 'px'; }
-        sayShrink(t, s2);
-      }
-    }
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(function () {
         try { sayShrink(t, parseFloat(t.style.fontSize) || size); } catch (e) {}

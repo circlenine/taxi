@@ -242,17 +242,17 @@ body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
 .toch em{font-style:normal;font-size:10.5px;opacity:.7;margin-left:7px}
 .toch .fmark{margin-left:auto}
 .toc.fold .toch .fmark{transform:rotate(-90deg)}
-.tocg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 5px}
+.tocg{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px}
 .toc.fold .tocg{display:none}
-/* ★4列3段に並べます（ご指示・2026/11/13）。1マスが細いので、
-     字は小さくし、2行までは折り返して出します。 */
-.tocit{display:flex;align-items:center;gap:4px;min-height:34px;
-  background:none;border:0;border-top:1px solid var(--ink3);
-  color:#FFFFFF;font-size:10.5px;line-height:1.3;text-align:left;
-  padding:3px 1px;cursor:pointer;min-width:0}
-.tocit > span{min-width:0;overflow:hidden;display:-webkit-box;
-  -webkit-line-clamp:3;-webkit-box-orient:vertical}
-.tocit.tabto{border-top-color:var(--meter)}
+/* ★1段に2つ、1行ずつ出します（ご指摘・2026/11/16
+     「変なとこで改行されてたり、見づらいです」）。
+     4列にすると、見出しがます目の途中で折り返して読めませんでした。
+     長い見出しは、おしりを「…」にして、必ず1行に収めます。 */
+.tocit{display:flex;align-items:center;gap:5px;min-height:32px;
+  background:none;border:0;
+  color:#FFFFFF;font-size:12px;line-height:1.3;text-align:left;
+  padding:3px 2px;cursor:pointer;min-width:0}
+.tocit > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tocit em{font-style:normal;font-size:10.5px;opacity:.6;flex:none;
   font-variant-numeric:tabular-nums}
 /* ★目次の見出しが、おしりで切れていました（2026/11/13）。
@@ -433,7 +433,7 @@ a.chip.off{opacity:.45;pointer-events:none}
      （ご指示・2026/11/12「ちゃんと、メニューらしく
        横幅を画面幅に揃えて、作り直してください」）。
      右側だけ空いていて、並びがばらばらに見えていました。 */
-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:18px 0 14px;
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:18px 0 14px;
   background:var(--ink2);padding:5px;border-radius:11px;border:1px solid var(--ink3)}
 nav button{flex:0 1 auto;white-space:nowrap;background:none;border:0;color:var(--chipoff);
   padding:9px 11px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
@@ -1231,8 +1231,8 @@ header > h1, .login .head > h1{white-space:nowrap}
        どうしても無理なら、見切れない幅調整をしてください」）。
    前は 9つの欄のころの幅が残っていて、合計 514px ありました。
    画面は 390px なので、右が切れていました。
-   いまは 名30＋付32＋待26＋発32＋金46＋乗46＋種他42＋操作40＝294、
-   すき間をふくめて 352px。390px の画面に収まります。
+   いまは 名30＋付32＋待26＋発32＋金46＋乗46＋種他54＋操作38＝304、
+   すき間をふくめて 362px。390px の画面に収まります。
    並びは 名→付→待→発→金→乗→種・他→操作（ご指示・2026/11/12）。 */
 .scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:30px;min-width:30px;
   font-family:var(--mono);font-size:10.5px;white-space:nowrap}
@@ -1247,9 +1247,36 @@ header > h1, .login .head > h1{white-space:nowrap}
 .scroll.tbl th:nth-child(5){width:46px;min-width:46px}
 .scroll.tbl th:nth-child(6),.scroll.tbl td.c-place{width:46px;min-width:46px;
   white-space:normal;word-break:break-all;line-height:1.35}
-.scroll.tbl th:nth-child(7),.scroll.tbl td.c-note{width:42px;min-width:42px;
-  white-space:normal;word-break:break-all;line-height:1.35}
-.scroll.tbl th.ops,.scroll.tbl td.ops{width:40px;min-width:40px}
+/* ★種（乗せ方）と 他（書きそえ）は、上下に分けて出します
+     （ご指摘・2026/11/16「種・他がはみ出てます しっかり直してください
+       ホテルとかはタグ付けするにしてもしっかり分けてください」）。
+     横に並べていたので、欄からはみ出して、隣の行と重なって見えていました。 */
+.scroll.tbl th:nth-child(7),.scroll.tbl td.c-note{width:54px;min-width:54px;
+  white-space:normal;word-break:break-all;line-height:1.3;overflow:hidden}
+.scroll.tbl td.c-note .mtag{display:block;margin:0 auto;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scroll.tbl td.c-note .ntxt{display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;margin-top:2px;font-size:9.5px;
+  line-height:1.25;color:#FFFFFF;overflow:hidden}
+.scroll.tbl td.c-note .ntxt.dim{color:var(--ink2)}
+.scroll.tbl th.ops,.scroll.tbl td.ops{width:38px;min-width:38px}
+
+/* ★エリアの区切り（ご指示・2026/11/16「エリア順でわけてください」）。
+     日付の見出しより ひとまわり細くして、高さを食わないようにします。 */
+.scroll.tbl tr.ahead td{background:#101722;color:#FFFFFF;font-size:10px;
+  font-weight:700;letter-spacing:.06em;padding:2px 7px;text-align:left;
+  border-top:1px solid var(--line)}
+
+/* ★最後に入れた記録に「新」を付けます（ご指示・2026/11/16
+     「新規の記録を1番上にしてください」）。
+     並びはエリア順なので、どこに入ったかが分かるように印を付けます。 */
+.nw{display:inline-block;background:#FFD54A;color:#111;font-size:8.5px;
+  font-weight:700;border-radius:3px;padding:0 2px;margin-right:2px;
+  font-style:normal;line-height:1.4;vertical-align:middle}
+/* 表の中では、名前の上の行に置きます（横に並べると欄からはみ出します） */
+.scroll.tbl td.c-who .nw{display:block;margin:0 0 1px}
+.scroll.tbl tr.fresh td{background:rgba(255,213,74,.10)}
+.scroll.tbl tr.fresh td.c-who{background:rgba(255,213,74,.22)}
 
 /* 日付の見出し（変わったときだけ）。営業曜日の区分で色を分けます */
 .scroll.tbl tr.dhead td{font-family:var(--mono);font-size:12.5px;font-weight:700;
@@ -1718,6 +1745,16 @@ header{padding-left:33px;padding-right:33px}
 /* 表の中身も、枠のまん中に置きます */
 .scroll.tbl td{text-align:center}
 .scroll.tbl td.c-place,.scroll.tbl td.c-note{text-align:center}
+/* ★金額だけは、右にそろえます（ご指示・2026/11/16「金額は右揃えにしてください」）。
+     桁がそろうので、高い・安いが一目で分かります。
+     ほかの欄は まん中のまま（ご指示・2026/11/11）。 */
+.scroll.tbl td.c-fare{text-align:right;padding-right:5px}
+/* ★一番細い機種（320px）では、時刻と金額の字が欄から1〜2px はみ出していました。
+     少しだけ小さくして、欄の中に収めます（読める大きさは残します）。 */
+@media(max-width:360px){
+  .scroll.tbl td.n{font-size:10.5px}
+  .scroll.tbl td.c-fare{font-size:10.5px;padding-right:3px}
+}
 /* 区切りが見えるように、たての線も入れ、よこの線も明るくします */
 .scroll.tbl th,.scroll.tbl td{border-right:1px solid #33456B}
 .scroll.tbl th:last-child,.scroll.tbl td:last-child{border-right:0}
@@ -1769,17 +1806,19 @@ header{padding-left:33px;padding-right:33px}
   .saymount{gap:9px}
 }
 
-/* ★長いひとことは、ふきだしだけを1行ぶん下へおろして、幅いっぱいで出します
-     （2026/11/15）。題のとなりに並べたままだと、19字のひとことが
-     7px まで小さくなって、走りながらでは読めませんでした。
-     短いひとことは、これまでどおり題のとなりに並びます。 */
-.hmain{flex-wrap:wrap;row-gap:5px}
-/* ふきだしが下の行へ回ったときは、≡ を題と同じ行へ上げます。
-   上げないと ≡ だけが3行目に落ちて、見出しが高くなります。 */
-.hmain.saywide > #fabMenu{order:1}
-.hmain.saywide > .saymount{order:2;flex:1 1 100%;min-width:0}
-body[data-hand="l"] .hmain.saywide > #fabMenu{order:-1}
-.saymount.wide .bubble{max-width:none}
+/* ★見出しの並びは、いつも同じにします（ご指摘・2026/11/16
+     「ふきだし、バグって表示が画像のように色々ズレてしまってます」）。
+       1行目 … 題 と ≡
+       2行目 … 顔 と ふきだし（幅いっぱい）
+     前は「入りきるかどうか」を測って その場で決めていたので、
+     開くたびに並びが変わっていました。決め打ちにして、ズレを無くします。
+     ふきだしが幅いっぱいになったぶん、長いひとことも大きいまま読めます。 */
+.hmain{flex-wrap:wrap;row-gap:6px;align-items:center}
+.hmain > h1{flex:0 1 auto;min-width:0}
+.hmain > #fabMenu{order:1;flex:none;margin-left:auto}
+.hmain > .saymount{order:2;flex:0 0 100%;width:100%;min-width:0}
+.saymount .bubble{max-width:none}
+body[data-hand="l"] .hmain > #fabMenu{order:-1;margin-left:0;margin-right:auto}
 
 /* ============================================================
    「このページを見てわかること」（ご指示・2026/11/15）
@@ -1826,7 +1865,22 @@ nav button i{white-space:normal;line-height:1.25;text-align:center;
      道や店の名前が目立つと、雨雲のほうが見えなくなります。
    ============================================================ */
 .wxmap{height:330px;background:#060B16}
-.wxmap .basemap{filter:grayscale(1) brightness(.4) contrast(1.3)}
+/* ★下じきの地図は、上から「幕」をかけて暗くします
+     （ご指摘・2026/11/16「この白い線はなんですか？」）。
+     地図そのものに色づけをすると、絵と絵のつぎ目に細い線が出ます。
+     幕は1枚の板なので、つぎ目ができません。
+     v1 … 色を落とす（白黒に近づける）　v2 … 暗くする
+     雨雲は、この幕より上の層（rain・z-index 450）に置きます。 */
+.wxmap .mapveil{position:absolute;inset:-4000px;pointer-events:none}
+.wxmap .mapveil.v1{z-index:400;background:#777777;mix-blend-mode:saturation}
+.wxmap .mapveil.v2{z-index:401;background:rgba(3,7,16,.66)}
+/* ★絵と絵のつぎ目に出る、細い線を消します（ご指摘・2026/11/16
+     「この白い線はなんですか？」）。
+     地図の絵は、画面の細かさに合わせて引きのばされます。そのとき
+     絵のふちが にじんで、つぎ目が1本の線に見えていました。
+     にじませずに引きのばすと、線は出ません（実際に測って決めました）。
+     雨雲は別の層なので、にじませたままです（そのほうが なめらかです）。 */
+.wxmap .leaflet-tile-pane img{image-rendering:pixelated}
 /* いまの時刻と「◯分後」 */
 .rdrbar{display:flex;align-items:baseline;gap:8px;margin:7px 0 3px;
   font-family:var(--mono);color:#FFFFFF}
@@ -1848,3 +1902,37 @@ nav button i{white-space:normal;line-height:1.25;text-align:center;
 .nipnew{color:var(--andon);font-weight:700;font-size:11px}
 .nipng{color:var(--kusha);font-size:11px}
 #nipFile{width:100%;color:#FFFFFF;font-size:13px}
+
+/* 【特定】は4つになったので、メニューも4列に（ご指示・2026/11/16） */
+.gmenu.g4{grid-template-columns:repeat(4,1fr)}
+
+/* ★押しどころが10個になったので、5列×2段にします（ご指示・2026/11/16）。
+     1マスが細くなるぶん、字を少し小さくし、そえる字は折り返さない長さに
+     そろえてあります（ます目の中で改行すると、読みづらくなるためです）。 */
+nav button{padding:8px 2px}
+nav button b{font-size:12px}
+nav button i{font-size:9px;white-space:nowrap;-webkit-line-clamp:1}
+@media(max-width:360px){
+  nav{gap:2px}
+  nav button{padding:7px 1px}
+  nav button b{font-size:11px}
+  nav button i{font-size:8.5px}
+}
+
+/* ★日報の写真えらび（ご指摘・2026/11/16
+     「写真選択したのに、読み込みできてないですし、複数選択ができません」）。
+     もとの入力欄は iPhone では小さくて押しにくいので、隠してボタンにします。
+     えらんだ写真の名前を必ず出して、えらべたことが分かるようにします。 */
+.nippick{margin:6px 0}
+.nippick #nipFile{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.nipbtn{display:inline-block;text-align:center;cursor:pointer}
+.btn.sub{background:none;border:1px solid var(--line);color:#FFFFFF}
+.nipsel{margin-top:5px;font-size:11.5px;color:#FFFFFF;line-height:1.4;
+  word-break:break-all}
+
+/* ★地図の「白い線」を消します（ご指摘・2026/11/16「この白い線はなんですか？」）。
+     Leaflet（地図の部品）は、自分の下じきの色を薄い灰色にします。
+     その色が、絵と絵のつぎ目から1本の線になって見えていました。
+     あとから読み込まれる部品の色づけに負けないよう、強く指定します。 */
+.wxmap.leaflet-container,.pinmap.leaflet-container{background:#060B16}
+.leaflet-container{background:#060B16}
