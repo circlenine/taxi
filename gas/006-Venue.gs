@@ -2,7 +2,13 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V122ver  （2026/11/16）  ★★★
+ *  ★★★  V123ver  （2026/11/17）  ★★★
+ *
+ *  [V123ver]
+ *  ・🎢 USJ の時刻の言い方を「開園・閉園」にした
+ *    ★「09:00 開演 ／ 終演 20:00」と出ていました。
+ *      テーマパークに、開演も終演もありません。
+ *    ★題も「営業時間」に短くしました（時刻は すぐ上の行に出るため）
  *
  *  [V122ver]
  *  ・🎢 USJ の閉園時刻を、読めるようにした（ずっと持ち越していたもの）
@@ -1864,7 +1870,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V122ver";
+const VN_VERSION = "V123ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -9028,12 +9034,14 @@ function vnScrapeUsj_(src, day) {
   const nm = src.venue || src.name;
   out.events.push({
     venue: nm, kind: "event", icon: "🎢",
-    title: "閉園（この日は " + hit.close + " まで）",
+    /* ★題は短くします（2026/11/17）。
+         時刻は すぐ上の行に出るので、題にも書くと同じことが2回ならびます。 */
+    title: "営業時間",
     artist: "",
     dinner: false,
     /* ★開園は、根拠として残すだけです。車を着けるのは閉園のほうです。 */
     start: hit.open, startKind: hit.open ? "開園" : "",
-    end: hit.close,
+    end: hit.close, endKind: "閉園",
     endGuess: false,
     /* 会場が出している時刻そのものなので、言い切ってよい（予想ではない） */
     endSure: true,
@@ -11798,6 +11806,12 @@ function vnFeedDay_(day) {
         s: String(ev.start || ""),                       // 開演
         e: String(ev.end || ""),                         // 終演
         g: !!ev.endGuess,                                // 終演が見当かどうか
+        /* ★時刻の言い方（2026/11/17）。
+             ふだんは「開演・終演」ですが、USJは「開園・閉園」です。
+             ホールの言い方を当てると、別のものに見えます。
+             空のときは、画面のほうで「開演・終演」にします。 */
+        sk: String(ev.startKind || ""),                  // 開演 or 開園
+        ek: String(ev.endKind   || ""),                  // 終演 or 閉園
         a: String(arrive || "").replace(/^🚕\s*/, ""),   // 何時に着けるか
         r: String(ev.runText || ""),                     // 何日目か
         /*

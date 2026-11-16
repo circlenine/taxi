@@ -2210,3 +2210,7 @@ p.extnote{margin-top:8px}
 .flab{font-size:11px;color:#FFFFFF;opacity:.8;letter-spacing:.08em;
   margin:10px 0 0;font-weight:700}
 .flab + .chips{margin-top:5px}
+
+/* ★開演・終演は、それぞれ途中で折らない（2026/11/17）。
+     320pxの機種で「終演 21:00（予」「定）」と割れていました。 */
+.evgo1{white-space:nowrap}

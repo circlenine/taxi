@@ -6924,10 +6924,19 @@ function evTimeLine(x){
   /* ★開演は、分かっているかぎり必ず出します（ご指示・2026/11/12）。
      終演は、分かっていればその時刻。計算したものは「（予定）」。
      分からないときは「終演 不明」とだけ書きます。 */
-  const st  = x.s ? (esc(x.s) + ' 開演') : '開演 不明';
-  const end = x.e ? ('終演 ' + esc(x.e) + (x.g ? '（予定）' : '')) : '終演 不明';
+  /* ★言い方は、会場に合わせます（2026/11/17）。
+       USJは「開演・終演」ではなく「開園・閉園」です。
+       ホールの言い方をそのまま当てると、別のものに見えます。 */
+  const sw = esc(String(x.sk || '開演'));
+  const ew = esc(String(x.ek || '終演'));
+  const st  = x.s ? (esc(x.s) + ' ' + sw) : (sw + ' 不明');
+  const end = x.e ? (ew + ' ' + esc(x.e) + (x.g ? '（予定）' : '')) : (ew + ' 不明');
   const dim = (!x.s && !x.e) ? ' evnone' : '';
-  return '<div class="evgo' + dim + '">🎬 ' + st + '　／　' + end + '</div>';
+  /* ★細い機種（320px）で「終演 21:00（予」「定）」と割れていました
+       （2026/11/17）。ひとかたまりずつ、途中で折れないようにします。
+     折り返すのは「開演」と「終演」のあいだだけになります。 */
+  return '<div class="evgo' + dim + '">🎬 <span class="evgo1">' + st +
+         '</span>　／　<span class="evgo1">' + end + '</span></div>';
 }
 
 /**
@@ -6950,7 +6959,16 @@ function evArtHTML(x){
       esc(y.l) + '</a>').join('');
 }
 
-function evRows(day){
+/*
+ * @param {boolean} slim  ふきだし（開いた瞬間に出る箱）で呼ぶときは true。
+ *   ★ご指示・2026/11/17
+ *     「ポップアップでの表示では、イベント数が見たいのがマストなので
+ *       詳細は省き　詳細はページ内だけにしてください」
+ *   箱は「何件あるか・どこで・何時か」を一目で見るためのものです。
+ *   客層・話のタネ・席数・リンクまで入れると、
+ *   1件で画面が埋まって、肝心の件数が見えなくなります。
+ */
+function evRows(day, slim){
   const sp = evSplit(day);
   if (!sp.show.length && !sp.hid.length) return '<div class="empty">該当データがありません</div>';
   if (!sp.show.length) return '<div class="empty">該当データがありません</div>' + evHidNote(sp.hid);
@@ -6994,13 +7012,13 @@ function evRows(day){
       '<span>' + rows.length + '件</span></h3>' +
       (g.k === 'hanyu'
         ? '<p class="note">この日は 設営だけ。夜の人出は ありません。</p>' : '') +
-      evCards(rows) + '</div>';
+      evCards(rows, slim) + '</div>';
   });
   return out + evHidNote(sp.hid);
 }
 
-/** 1件ずつの札 */
-function evCards(list){
+/** 1件ずつの札（slim のときは、くわしいこととリンクを出しません） */
+function evCards(list, slim){
   return list.map(x => `<div class="evrow">
     <!-- ★種類は、上の大きな見出しに出しています（ご指示・2026/11/13）。
            ここでくり返すと、字が増えるだけです。 -->
@@ -7009,12 +7027,11 @@ function evCards(list){
     <div class="evt">${esc(x.t || '')}</div>
     ${x.a ? `<div class="evsub">🚕 着ける目安：${esc(x.a)}</div>` : ''}
     ${x.r ? `<div class="evsub">${esc(x.r)}</div>` : ''}
-    ${evDetail(x)}
-    <div class="evlinks evart">
+    ${slim ? '' : evDetail(x) + `<div class="evlinks evart">
       ${evArtHTML(x)}
       ${x.u ? `<a class="mini" href="${esc(x.u)}" target="_blank" rel="noopener">くわしく見る</a>` : ''}
       <a class="mini" href="${esc(mapUrl(x.v || ''))}" target="_blank" rel="noopener">📍 地図</a>
-    </div>
+    </div>`}
   </div>`).join('');
 }
 
@@ -7206,7 +7223,8 @@ function evPopup(d){
   box.innerHTML = `<div class="modalbox">
     <h2>${evTitleHTML(d)}</h2>
     ${evStale(d) ? `<p class="note evold">${esc(evStale(d))}</p>` : ''}
-    <div class="modalbody">${evRows(d)}</div>
+    <div class="modalbody">${evRows(d, true)}</div>
+    <p class="note">くわしいことは【イベント】の画面で見られます。</p>
     <div class="modalfoot">
       <label class="mchk"><input type="checkbox" id="evHide"> 今日はもう表示しない</label>
       <button class="btn" id="evClose">閉じる</button>
