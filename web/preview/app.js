@@ -1084,9 +1084,9 @@ const LEADS = {
         m: '金額の入った記録だけ',
         c: 'その乗り場の記録のうち、何％か',
         n: '3件に届かない乗り場は出しません' },
-  tok:{ w: ['バラシ・関空・チケット・Uberが、何時台に多いか',
+  tok:{ w: ['種類ごとに、何時台に多いか',
             '会場やホテルごとの、呼ばれやすい時間'],
-        m: '「他」に バラシ／関空／チケ と書いた記録と、Uber の記録',
+        m: 'GO／Uber の記録と、「他」に書いた印の記録',
         c: 'ここだけは1件からでも出します',
         n: '少ない所には「まだ○件」と書いてあります' },
   rep:{ w: ['「他」に印のある、くり返しの乗車',
@@ -4889,18 +4889,23 @@ function whenPane(cat, title, label, lead, test, noLead){
  *    （バラシ・関空と同じ考え方。会場の名前で決めると、
  *      ただの流しの1本まで入ってしまうためです）。
  * ---------------------------------------------------------- */
+/* ★並びは GO → Uber → バラシ → 関空 → チケット（ご指示・2026/11/16
+     「Uberを1番左にしてください」「GOが1番左に来るようにしてください」）。
+   ★5つになったので、ます目は3つずつ（2段）にします。
+     5つ横に並べると、一番細い機種で名前が切れます。 */
 const TOK_KINDS = [
+  { k:'go',    n:'GO',       s:'何時台に多いか' },
+  /* ★Uber・GOが出やすい乗り場・時間帯（ご指示・2026/11/16）。
+       よその情報は使いません。自分たちの記録の「種類」から出します。 */
+  { k:'uber',  n:'Uber',     s:'何時台に多いか' },
   { k:'bara',  n:'バラシ',   s:'公演のあと' },
   { k:'kix',   n:'関空',     s:'ホテルと時間' },
-  { k:'ticket',n:'チケット', s:'何時台に多いか' },
-  /* ★Uberが出やすい乗り場・時間帯（ご指示・2026/11/16）。
-       よその情報は使いません。自分たちの記録の「種類」から出します。 */
-  { k:'uber',  n:'Uber',     s:'何時台に多いか' }
+  { k:'ticket',n:'チケット', s:'何時台に多いか' }
 ];
 const TOK_KEY = 'tsukemachi.tok';
 let tokKind = (function (){
   try { const v = localStorage.getItem(TOK_KEY);
-    return TOK_KINDS.some(x => x.k === v) ? v : 'bara'; } catch (e) { return 'bara'; }
+    return TOK_KINDS.some(x => x.k === v) ? v : 'go'; } catch (e) { return 'go'; }
 })();
 function tokKindSet(k){ tokKind = k; try { localStorage.setItem(TOK_KEY, k); } catch (e) {} }
 
@@ -4912,18 +4917,25 @@ function isTicket(r){
 function isUber(r){
   return normMethod(String((r && r.method) || '')) === 'Uber';
 }
+/* 種類が GO の乗車（ご指示・2026/11/16「GOも追加して欲しい」）。
+   「ゴー」「ｺﾞｰ」などの書き方のゆれは、normMethod がそろえます。 */
+function isGo(r){
+  return normMethod(String((r && r.method) || '')) === 'GO';
+}
 
 function paneTok(){
   const k = tokKind;
-  const head = leadCard('tok') + '<div class="card"><h2>バラシ・関空・チケット・Uber</h2>' +
+  const head = leadCard('tok') + '<div class="card"><h2>種類べつに見る</h2>' +
     '<p class="note">見たいものを、下からえらんでください。</p>' +
-    gMenu(TOK_KINDS, tokKind, 'data-tk').replace('class="gmenu"', 'class="gmenu g4"') + '</div>';
+    gMenu(TOK_KINDS, tokKind, 'data-tk') + '</div>';
   if (k === 'kix')    return head + whenPane('関空', '関空', 'ホテル',
     'どのホテルから、何時台に呼ばれているかを並べます。', null, true);
   if (k === 'ticket') return head + whenPane('', 'チケット', '乗り場',
     'チケットの乗車が、どこで・何時台に多いかを並べます。', isTicket, true);
   if (k === 'uber')   return head + whenPane('', 'Uber', '乗り場',
     'Uberの乗車が、どこで・何時台に多いかを並べます。', isUber, true);
+  if (k === 'go')     return head + whenPane('', 'GO', '乗り場',
+    'GOの乗車が、どこで・何時台に多いかを並べます。', isGo, true);
   return head + whenPane('ﾊﾞﾗｼ', 'バラシ', '会場',
     '公演のあと、お客が出てくる時間です。会場ごとに、何時台に呼ばれているかを並べます。', null, true);
 }

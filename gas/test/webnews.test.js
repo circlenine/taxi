@@ -2950,6 +2950,29 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/data-t="tok"/.test(idx), '　 タブからも行ける');
   t(/function paneTok\(/.test(app) && /gMenu\(TOK_KINDS, tokKind, 'data-tk'\)/.test(app),
     '★★★バラシ・関空・チケットを、1つのメニューでえらべる');
+  /* ★GOを足し、並びを GO → Uber → バラシ → 関空 → チケット にしました
+       （ご指示・2026/11/16「Uberを1番左にしてください」
+         「GOも追加して欲しいのと GOが1番左に来るようにしてください」） */
+  {
+    const bx = {};
+    vm.createContext(bx);
+    vm.runInContext(app.slice(app.indexOf('const TOK_KINDS = ['),
+                              app.indexOf('const TOK_KEY')), bx);
+    const K = vm.runInContext('TOK_KINDS', bx);
+    t(K.map(x => x.k).join(',') === 'go,uber,bara,kix,ticket',
+      '★★★並びは GO → Uber → バラシ → 関空 → チケット',
+      K.map(x => x.n).join('/'));
+    t(K[0].n === 'GO', '★★★GOが 一番左');
+    const longT = K.filter(x => [...x.s].length > 8);
+    t(!longT.length, '　 そえる字は8字まで（ます目の高さが そろう）',
+      longT.map(x => x.s).join('/'));
+  }
+  t(/function isGo\(r\)/.test(app) &&
+    /normMethod\(String\(\(r && r\.method\) \|\| ''\)\) === 'GO'/.test(app),
+    '★★★GOは、記録の「種類」から拾う（書き方のゆれもそろえる）');
+  t(/if \(k === 'go'\)/.test(app), '　 その画面を出している');
+  t(/\? v : 'go'; \} catch \(e\) \{ return 'go'; \}/.test(app),
+    '　 はじめは GO がえらばれている');
   t(/function isTicket\(r\)/.test(app) && /\/チケ\/\.test/.test(app),
     '★★★「他」の欄に「チケ」と書いたものが、チケット乗車');
   t(/if \(tab === 'bara' \|\| tab === 'kix'\) \{ tokKindSet\(tab\); tab = 'tok'; tabSave\(\); \}/.test(app),
