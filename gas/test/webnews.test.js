@@ -2860,6 +2860,38 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     t(ks.every(function (k){ return !/。.*。/.test(L[k].c || ''); }),
       '　 数え方は、1文だけ');
   }
+
+  /* ------------------------------------------------------------
+   *  ★たて方向のリズムと、押すものの高さ（ご指摘・2026/11/16
+   *    「ここら辺の、それぞれの高さの幅めちゃくちゃ過ぎます、
+   *      こういうところはしっかり見直してと何回も伝えてるはずです」）
+   *
+   *  直す前は、かたまりの間が 9・14・2・12・0px、
+   *  チップの高さが 28・29・32・35・36px と ばらばらでした。
+   * ---------------------------------------------------------- */
+  {
+    t(/\.card > \.gmenu,[\s\S]{0,160}\{margin:10px 0 0\}/.test(css),
+      '★★★カードの中の かたまりは、どれも 10px あける');
+    t(/\.card \.filt > \*\{margin-top:7px/.test(css),
+      '★★★絞り込みの中の 段は、どれも 7px あける');
+    t(/\.chips\{align-items:center\}/.test(css),
+      '★★★同じ行の中で、背の高いものに引きのばされない');
+    t(/\.chip\{height:30px;min-height:30px/.test(css),
+      '★★★押すもの（チップ）の高さは、ぜんぶ同じ');
+    t(/\.fsel,\.ktfind input\{height:40px/.test(css),
+      '★★★えらぶ欄と さがす欄も、同じ高さ');
+    t(/\.gm i\{[^}]*white-space:nowrap/.test(css),
+      '★★★メニューにそえる字は、1行に収める（折り返すと高さが そろわない）');
+    /* そえる字は、1行に収まる長さにする */
+    const box3 = {};
+    vm.createContext(box3);
+    vm.runInContext(app.slice(app.indexOf('const G_KINDS = ['),
+                              app.indexOf('const G_KEY')), box3);
+    const G = vm.runInContext('G_KINDS', box3);
+    const longG = G.filter(function (x){ return [...x.s].length > 8; });
+    t(!longG.length, '★★★グラフのメニューにそえる字は8字まで',
+      longG.map(function (x){ return x.s; }).join('/'));
+  }
   t(/card\.classList\.contains\('fold'\)\) el\.click\(\)/.test(app),
     '★★★閉じてある区切りへ飛ぶときは、開いてから動く');
 
