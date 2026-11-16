@@ -1089,11 +1089,11 @@ const LEADS = {
         m: '「他」に バラシ／関空／チケ と書いた記録と、Uber の記録',
         c: 'ここだけは1件からでも出します',
         n: '少ない所には「まだ○件」と書いてあります' },
-  rep:{ w: ['同じお客様と思われる、くり返しの乗車',
-            'その曜日・時刻・乗り場の、くり返しかた'],
-        m: '「他」に 〇回目・再現性 と書いた記録と、同じ組み合わせのくり返し',
-        c: '2回以上あるものだけ',
-        n: '1回は たまたまです。言い切りません' },
+  rep:{ w: ['「他」に印のある、くり返しの乗車',
+            '同じ乗り場・曜日・時間帯に、何度 付けたか'],
+        m: '「他」に 〇回目・再現性 と書いた記録と、付けた枠の数',
+        c: '枠は2回以上。「次は」は3回以上',
+        n: '枠が同じでも、同じお客様とは限りません' },
   ev: { w: ['きょう・あすの催しと、開演・終演の時刻',
             '会場の場所（押すと地図）'],
         m: '会場の公式ページと、職場で回ってくる予定表',
@@ -4905,8 +4905,23 @@ function repPatterns(R){
     const gaps = [];
     for (let i = 1; i < ds.length; i++) gaps.push(dayGap(ds[i - 1], ds[i]));
     const mean = gaps.reduce(function (a, b){ return a + b; }, 0) / gaps.length;
-    /* 間がそろっているときだけ「◯日ごと」と言います */
-    const even = gaps.every(function (g){ return Math.abs(g - mean) <= 2; });
+    /*
+     * ★「次は」を出せる のは、次の3つが そろったときだけです
+     *   （ご指摘・2026/11/16
+     *     「これ、ただ単に乗り場と金額が合致してるものだけで追加してませんか？
+     *       似た金額のものはあるとしても、それは同じお客様とはかぎらないので
+     *       そこはきちんと再精査してください」）。
+     *
+     *   ① 間かくが2つ以上あること（日が3つ以上）
+     *      ★ここが抜けていました。日が2つしかないと 間かくは1つだけで、
+     *        「そろっている」は 必ず true になります。
+     *        つまり、2回あっただけで いつも日付を出していました。
+     *   ② その間かくが、おたがい2日のうちに収まっていること
+     *   ③ 間かくが35日いない（3か月先の日付は、当てになりません）
+     */
+    const even = gaps.length >= 2 &&
+      gaps.every(function (g){ return Math.abs(g - mean) <= 2; }) &&
+      mean <= 35;
     const F = o.rows.filter(hasFare);
     out.push({ p: o.p, w: o.w, h: o.h, n: o.rows.length, days: ds.length,
       last: ds[ds.length - 1],
@@ -4923,9 +4938,15 @@ function repPatterns(R){
 
 function paneRep(){
   const R = visible();
+  /*
+   * ★見出しの下の説明も、言い方を直しました（ご指摘・2026/11/16）。
+   *   前は「同じ乗り場・同じ曜日・同じ時間帯で2回以上あったもの」を
+   *   「再現性あるかも」と呼んでいました。それは走り方の話であって、
+   *   お客様がくり返して来ている、という話ではありません。
+   */
   const head = leadCard('rep') + '<div class="card"><h2>再現性あるかも</h2>' +
-    '<p class="note">同じ乗り場・同じ曜日・同じ時間帯で、2回以上あったものです。' +
-    '言い切れるものではありません。走る順番を決めるときの、手がかりとして見てください。</p>' +
+    '<p class="note">上は「他」の欄に印のある乗車、下は同じ枠に何度も付けた記録です。' +
+    '<b>枠が同じでも、同じお客様とは限りません。</b></p>' +
     filterChips(true) + '</div>';
 
   const pat = repPatterns(R);
@@ -4933,26 +4954,12 @@ function paneRep(){
   if (!pat.length && !mk.length) return head + emptyCard('該当データがありません');
 
   let out = head;
-  if (pat.length) {
-    out += '<div class="card"><h2>くり返していそうな組み合わせ</h2>' +
-      '<p class="note">回数の多い順です。押すと地図が開きます。</p>' +
-      '<div class="scroll"><table><thead><tr><th>乗り場</th><th>曜日</th>' +
-      '<th class="n">時間</th><th class="n">回</th><th class="n">金額</th>' +
-      '<th>次は</th></tr></thead><tbody>' +
-      pat.slice(0, 20).map(function (o){
-        return '<tr><td><a class="plink" href="' + esc(mapUrl(o.p)) +
-          '" target="_blank" rel="noopener">' + esc(o.p) + '</a></td>' +
-          '<td>' + WD[o.w] + '</td>' +
-          '<td class="n">' + o.h + '時台</td>' +
-          '<td class="n">' + o.n + '</td>' +
-          '<td class="n">' + (o.avg ? yen(Math.round(o.avg)) : UNK) + '</td>' +
-          '<td>' + (o.next ? (esc(fmtD(o.next)) + 'ごろ') :
-                    '<i class="wfew">間がそろっていません</i>') + '</td></tr>';
-      }).join('') + '</tbody></table></div>' +
-      '<p class="note">「次は」は、これまでの間かくがそろっているときだけ出しています。' +
-      '間かくがばらばらなものには、日付を書きません。</p></div>';
-  }
 
+  /*
+   * ★並びを入れ替えました（ご指摘・2026/11/16）。
+   *   まーく様がお求めだったのは「印のある乗車」のほうです。
+   *   下の「同じ枠に、何度も付けている」は、お客様の話ではありません。
+   */
   if (mk.length) {
     const rows = mk.slice().sort(function (a, b){
       return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
@@ -4967,7 +4974,34 @@ function paneRep(){
           '<td>' + (r.place ? esc(canonPlace(r.place)) : UNK) + '</td>' +
           '<td class="n">' + showYen(r.fare) + '</td>' +
           '<td class="ja">' + esc(String(r.note || '')) + '</td></tr>';
-      }).join('') + '</tbody></table></div></div>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="snote">← 横にスクロールできます（横画面推奨）</div></div>';
+  }
+
+  if (pat.length) {
+    /*
+     * ★この欄は「お客様」の話ではありません（ご指摘・2026/11/16）。
+     *   同じ乗り場・同じ曜日・同じ時間帯に、何度も付けた という
+     *   **こちらの走り方**の記録です。乗ったお客様は、ばらばらです。
+     *   金額の平均も外しました。出すと「その人の運賃」に見えてしまいます。
+     */
+    out += '<div class="card"><h2>同じ枠に、何度も付けている</h2>' +
+      '<p class="note"><b>同じお客様とは限りません。</b>' +
+      '同じ乗り場・曜日・時間帯に、2回以上 付けたという記録です。</p>' +
+      '<div class="scroll"><table><thead><tr><th>乗り場</th><th>曜日</th>' +
+      '<th class="n">時間</th><th class="n">回</th><th>最後</th>' +
+      '<th>次は</th></tr></thead><tbody>' +
+      pat.slice(0, 20).map(function (o){
+        return '<tr><td><a class="plink" href="' + esc(mapUrl(o.p)) +
+          '" target="_blank" rel="noopener">' + esc(o.p) + '</a></td>' +
+          '<td>' + WD[o.w] + '</td>' +
+          '<td class="n">' + o.h + '時台</td>' +
+          '<td class="n">' + o.n + '</td>' +
+          '<td>' + esc(fmtD(o.last)) + '</td>' +
+          '<td>' + (o.next ? (esc(fmtD(o.next)) + 'ごろ') : '—') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<p class="note">「次は」は、<b>3回以上あって</b>、その間かくがそろっていて、' +
+      '35日いないのときだけ出します。それ以外は「—」です。</p></div>';
   }
   return out;
 }
