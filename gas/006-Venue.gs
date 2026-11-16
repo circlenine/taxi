@@ -2,7 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V118ver  （2026/11/15）  ★★★
+ *  ★★★  V119ver  （2026/11/16）  ★★★
+ *
+ *  [V119ver]
+ *  ・🌏 「いま、調べられている場所」を1日1回しらべて、紙に置くようにした
+ *    （vnBuzzPush_）。ウィキペディアのページが何回ひらかれたか。
+ *    日本語ページと英語ページを別々に数えるので、
+ *    「海外から調べられている所」が分かる。無料・鍵なし・課金の設定なし。
+ *    ★これは「いま何人いるか」ではありません。調べている人の多さです。
  *
  *  [V118ver]
  *  ・🔁 台帳で直したものを、スプシへ戻す係（webPullTick_）を
@@ -1838,7 +1845,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V118ver";
+const VN_VERSION = "V119ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -11694,6 +11701,161 @@ function vnStatusPush_() {
   } catch (e) { return false; }
 }
 
+/* ============================================================
+ *  いま、調べられている場所（話題のとどき具合）
+ *
+ *  ★まーく様のご依頼（2026/11/15）
+ *    「有名観光サイトや、高級レストランを日本国内版と、各海外版とで
+ *      照らし合わせて チケット利用の可能性、Uber利用の可能性を
+ *      最近の記事で…コメントやSNSからも追ったりして、
+ *      人気度や話題性が高いものを、リアルタイムに更新して導き出して欲しいです」
+ *
+ *  ★SNSや記事の本文を追うには、どれも お金のかかる窓口が要ります。
+ *    お金のかからない代わりとして、**ウィキペディアのページが
+ *    何回ひらかれたか**を使います。
+ *      ・無料・鍵なし・課金の設定なし（ウィキメディア財団の公開窓口）
+ *      ・日本語のページと、英語のページを別々に数えられるので、
+ *        「海外から調べられている所」が分かります
+ *      ・1日1回の取りにいきで足ります
+ *
+ *  ★これは「いま何人いるか」ではありません。
+ *    調べている人の多さ（話題のとどき具合）です。画面にもそう書きます。
+ *  ★1か所 読めなくても、残りは出します。窓口ごと落ちたら、
+ *    前に置いた紙がそのまま残ります（画面は黙って消えるだけ）。
+ * ========================================================== */
+const VN_BUZZ_PATH = "web/data/buzz.json";
+
+/* 場所の名前 / 日本語ページの名前 / 英語ページの名前（無ければ空） */
+const VN_BUZZ_SPOTS = [
+  ["大阪城",           "大阪城",                       "Osaka_Castle"],
+  ["通天閣",           "通天閣",                       "Tsutenkaku"],
+  ["道頓堀",           "道頓堀",                       "D\u014dtonbori"],
+  ["心斎橋",           "心斎橋",                       "Shinsaibashi"],
+  ["黒門市場",         "黒門市場",                     ""],
+  ["海遊館",           "海遊館",                       "Osaka_Aquarium_Kaiyukan"],
+  ["USJ",              "ユニバーサル・スタジオ・ジャパン", "Universal_Studios_Japan"],
+  ["梅田スカイビル",   "梅田スカイビル",               "Umeda_Sky_Building"],
+  ["あべのハルカス",   "あべのハルカス",               "Abeno_Harukas"],
+  ["四天王寺",         "四天王寺",                     "Shitenn\u014d-ji"],
+  ["なんばパークス",   "なんばパークス",               "Namba_Parks"],
+  ["万博記念公園",     "万博記念公園",                 ""],
+  ["天保山",           "天保山",                       ""],
+  ["アメリカ村",       "アメリカ村",                   "Amerikamura"],
+  ["大阪市中央公会堂", "大阪市中央公会堂",             ""],
+  ["中之島",           "中之島 (大阪府)",              ""],
+  ["法善寺横丁",       "法善寺横丁",                   ""],
+  ["住吉大社",         "住吉大社",                     "Sumiyoshi-taisha"]
+];
+
+/** 日付を YYYYMMDD の字にします（ウィキメディアの窓口の決まり） */
+function vnBuzzDay_(d) {
+  return d.getFullYear() +
+    ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+}
+
+/**
+ * 1つのページが、何回ひらかれたかを取りにいきます。
+ * 返すのは { "20261110": 123, ... } の形。読めなければ null。
+ */
+function vnBuzzGet_(lang, title) {
+  try {
+    if (!title) return null;
+    const now = new Date();
+    const to  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const fr  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+    const u = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/" +
+      lang + ".wikipedia/all-access/user/" +
+      encodeURIComponent(title).replace(/%2F/g, "%2F") +
+      "/daily/" + vnBuzzDay_(fr) + "/" + vnBuzzDay_(to);
+    const res = UrlFetchApp.fetch(u, {
+      muteHttpExceptions: true,
+      /* ★名乗りに、まーく様のことは1文字も書きません（決まり） */
+      headers: { "User-Agent": "taxinote-bot/1.0", "Accept": "application/json" }
+    });
+    if (res.getResponseCode() !== 200) return null;
+    const j = JSON.parse(res.getContentText());
+    const out = {};
+    (j.items || []).forEach(function (x) {
+      out[String(x.timestamp || "").slice(0, 8)] = +x.views || 0;
+    });
+    return out;
+  } catch (e) { return null; }
+}
+
+/** 直近7日ぶんと、その前の7日ぶんを足します */
+function vnBuzzSum_(map) {
+  if (!map) return null;
+  const now = new Date();
+  let a = 0, b = 0, an = 0, bn = 0;
+  for (let i = 1; i <= 14; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const v = map[vnBuzzDay_(d)];
+    if (v == null) continue;
+    if (i <= 7) { a += v; an++; } else { b += v; bn++; }
+  }
+  if (!an) return null;
+  return { now: a, prev: (bn ? b : null) };
+}
+
+/**
+ * 紙を置き直します（1日1回）。
+ * ★中身が変わっていなければ、置き直しません。
+ */
+function vnBuzzPush_() {
+  try {
+    if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
+
+    const rows = [];
+    VN_BUZZ_SPOTS.forEach(function (sp) {
+      const ja = vnBuzzSum_(vnBuzzGet_("ja", sp[1]));
+      Utilities.sleep(200);                      /* 窓口に、やさしく */
+      const en = sp[2] ? vnBuzzSum_(vnBuzzGet_("en", sp[2])) : null;
+      Utilities.sleep(200);
+      if (!ja && !en) return;                    /* 1か所 読めなくても、残りは出す */
+      rows.push({ n: sp[0], ja: ja, en: en });
+    });
+    if (!rows.length) return false;              /* ぜんぶ読めない日は、前の紙を残す */
+
+    const body = {
+      at: Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd HH:mm"),
+      days: 7,
+      rows: rows
+    };
+
+    const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_BUZZ_PATH;
+    const ref  = encodeURIComponent(updBranch_());
+    let sha = "", prev = "";
+    try {
+      const got = updGhTry_(base + "?ref=" + ref);
+      if (got.code === 200) {
+        const j = JSON.parse(got.body);
+        sha = j.sha || "";
+        try {
+          prev = Utilities.newBlob(
+            Utilities.base64Decode(String(j.content || "").replace(/\s/g, ""))
+          ).getDataAsString("UTF-8");
+        } catch (e) { prev = ""; }
+      }
+    } catch (e) {}
+    /* 中身（時刻いがい）が同じなら、置き直しません */
+    try {
+      const old = JSON.parse(prev);
+      if (old && JSON.stringify(old.rows) === JSON.stringify(body.rows)) return true;
+    } catch (e) {}
+
+    const payload = { message: "話題のとどき具合を置き直した（じどう）",
+      content: Utilities.base64Encode(JSON.stringify(body, null, 1), Utilities.Charset.UTF_8),
+      branch: updBranch_() };
+    if (sha) payload.sha = sha;
+    const res = UrlFetchApp.fetch(base, {
+      method: "put", headers: updGhHeaders_(false),
+      contentType: "application/json",
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    return res.getResponseCode() < 300;
+  } catch (e) { return false; }
+}
+
 function vnFeedPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
@@ -12340,6 +12502,12 @@ function venueDailyJob() {
          秘密は1文字も書きません（数と○×だけ）。 */
     try { if (typeof vnStatusPush_ === "function") vnStatusPush_(); }
     catch (e) { if (typeof logErr_ === "function") logErr_("vnStatusPush", e); }
+
+    /* ★いま、調べられている場所（ご依頼・2026/11/15）。
+         ウィキペディアのページが何回ひらかれたかです（無料・鍵なし）。
+         落ちても、前に置いた紙がそのまま残ります。 */
+    try { if (typeof vnBuzzPush_ === "function") vnBuzzPush_(); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnBuzzPush", e); }
 
     /*
      * ★イベント情報を、TAXI NOTE（ウェブ）にも渡します

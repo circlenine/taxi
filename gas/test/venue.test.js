@@ -4234,5 +4234,49 @@ console.log('\n■ 終演の見当は、催しの種類で分ける（ご質問�
      '★★★開演が分からなければ、何も出さない');
 }
 
+console.log('\n■ いま、調べられている場所（ご依頼・2026/11/15）');
+{
+  const ok = (v, msg, more) => eq(!!v, true, msg + (more ? '　→ ' + more : ''));
+  const src = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  /* ★SNSや記事の窓口は、どれもお金がかかります。
+       お金のかからない代わりに、ウィキペディアの閲覧数を使っています。 */
+  ok(/const VN_BUZZ_PATH = "web\/data\/buzz\.json"/.test(src), '★★★置き場がある');
+  ok(/wikimedia\.org\/api\/rest_v1\/metrics\/pageviews/.test(src),
+     '★★★読み先は ウィキメディア（無料・鍵なし・課金の設定なし）');
+  ok(!/api_key|apikey|token=/.test(
+       src.slice(src.indexOf('VN_BUZZ_PATH'), src.indexOf('function vnFeedPush_'))),
+     '★★★鍵は1文字も要らない');
+  ok(/"User-Agent": "taxinote-bot\/1\.0"/.test(src),
+     '★★★名乗りに、まーく様のことは1文字も書かない');
+  eq(/if \(!ja && !en\) return;/.test(src), true, '★★★1か所 読めなくても、残りは出す');
+  ok(/if \(!rows\.length\) return false;/.test(src),
+     '★★★ぜんぶ読めない日は、前の紙を残す（画面を空にしない）');
+  ok(/if \(old && JSON\.stringify\(old\.rows\) === JSON\.stringify\(body\.rows\)\) return true;/.test(src),
+     '　 中身が同じなら、置き直さない');
+  ok(/vnBuzzPush_\(\); \}\s*\n\s*catch/.test(src.replace(/\r/g, '')) ||
+     /typeof vnBuzzPush_ === "function"\) vnBuzzPush_\(\);/.test(src),
+     '★★★1日1回の仕事から呼んでいる（try で囲ってある）');
+  /* 日本語ページと英語ページを別々に数える（海外から調べられている所が分かる） */
+  ok(/vnBuzzGet_\("ja"/.test(src) && /vnBuzzGet_\("en"/.test(src),
+     '★★★日本語と英語を、別々に数える');
+
+  /* 実際に動かして、足し算を確かめます */
+  const ctx2 = { console };
+  vm.createContext(ctx2);
+  const cut = src.slice(src.indexOf('function vnBuzzDay_'), src.indexOf('function vnBuzzPush_'));
+  vm.runInContext(cut, ctx2);
+  const today = new Date();
+  const day = d => d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+  const m = {};
+  for (let i = 1; i <= 14; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    m[day(d)] = (i <= 7) ? 10 : 5;
+  }
+  const r = ctx2.vnBuzzSum_(m);
+  ok(r && r.now === 70 && r.prev === 35, '★★★直近7日と、その前7日を分けて足す',
+     JSON.stringify(r));
+  ok(ctx2.vnBuzzSum_(null) === null, '　 読めなければ null');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

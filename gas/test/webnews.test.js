@@ -3428,7 +3428,9 @@ console.log('\n■ グラフを１ページに、地図にピン（ご指示・2
   t(/data-mh="\$\{h\}"/.test(app), '★★★時間帯で絞り込める');
   t(/const MAP_FARES = \[\{ v:0[\s\S]{0,160}v:10000/.test(app), '★★★金額でも絞り込める（¥10,000以上まで）');
   t(/v:3000, n:'¥3,000以上'/.test(app), '　 ¥3,000以上もある（ご指示の例）');
-  t(/L\.circleMarker\(/.test(app), '★★★ピンを打つ');
+  /* ★2026/11/16：薄い丸をやめ、白いふち付きの塗りつぶし＋件数の数字にしました */
+  t(/L\.marker\(\[o\.lat, o\.lon\], \{ icon: ic/.test(app), '★★★ピンを打つ');
+  t(!/L\.circleMarker\(/.test(app), '　 前の 薄い丸は、残っていない');
   /* ★お金のかかる地図は使いません（OpenStreetMap・無料・鍵なし） */
   t(/tile\.openstreetmap\.org/.test(app), '★★★地図は無料の OpenStreetMap');
   t(!/googleapis\.com\/maps|mapbox|api_key|apiKey/i.test(app), '★★★お金のかかる地図を使っていない');
@@ -3440,6 +3442,47 @@ console.log('\n■ グラフを１ページに、地図にピン（ご指示・2
   t(/function mapStop\(\)/.test(app) && /if \(tab === 'map'\) mapBoot\(\); else mapStop\(\);/.test(app),
     '　 ほかの画面に移ったら、地図は片づける');
   t(/\.pinmap\{height:360px\}/.test(css), '　 その見た目も入っている');
+
+  /* ★ピンの見分けやすさ（ご指摘・2026/11/16
+       「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
+         どこに丸されてるかすぐに見分けできませんし
+         色の違いの説明もしっかり記載してください」） */
+  t(/className: 'pindot'/.test(app), '★★★ピンは、白いふち付きの塗りつぶし');
+  t(/\.pindot span\{[^}]*border:2px solid #FFFFFF/.test(css), '　 その見た目も入っている');
+  t(/o\.rows\.length \+\s*'<\/span>'/.test(app) || /'">' \+\s*\n?\s*o\.rows\.length/.test(app),
+    '★★★ピンの中に、件数の数字を入れる');
+  t(/class="pinmap wxmap"|class="radarmap pinmap wxmap"/.test(app),
+    '★★★下じきの地図を暗くする（明るいと、ピンが紛れる）');
+  t(/<b>色<\/b>＝その乗り場の、1本の平均/.test(app), '★★★色の意味を、画面に書く');
+  t(/<b>大きさ<\/b>＝件数/.test(app), '★★★大きさの意味も、画面に書く');
+  t(/BANDS\[0\]\.n \}（\$\{ ?BANDS\[0\]\.d/.test(app.replace(/\s+/g,' ')) ||
+    /\$\{BANDS\[0\]\.n\}（\$\{BANDS\[0\]\.d\}）/.test(app),
+    '　 ショート・ミドル・ロングと、金額の幅を並べる');
+  /* ★有名な場所とホテルのピン（ご指示・2026/11/15） */
+  t(/const SPOT_GEO = \[/.test(app), '★★★有名な場所とホテルの一覧がある');
+  t(/id="spotBtn"/.test(app), '★★★出す・出さないを、その場で切り替えられる');
+  t(/className: 'pinspot'/.test(app) && /\.pinspot span\{[^}]*rotate\(45deg\)/.test(css),
+    '★★★記録のピンとは、形を変える（白いひし形）');
+  t(/記録ではありません。場所の目じるしです。/.test(app),
+    '★★★記録ではないと、はっきり書く（数字と混ぜない）');
+
+  /* ★いま、調べられている場所（ご依頼・2026/11/15
+       「有名観光サイトや…人気度や話題性が高いものを、
+         リアルタイムに更新して導き出して欲しいです」）。
+     SNSや記事の窓口は どれもお金がかかるので、
+     ウィキペディアの閲覧数（無料・鍵なし）で代わりにしています。 */
+  t(/function buzzCard\(\)/.test(app), '★★★「いま、調べられている場所」の欄がある');
+  t(/fetch\('data\/buzz\.json'/.test(app), '　 紙から読むだけ（画面からは、よそへ出さない）');
+  t(/お客の人数ではありません/.test(app),
+    '★★★「人数ではない」と、はっきり書く（数字を嘘にしない）');
+  {
+    const bz = app.slice(app.indexOf('function buzzCard'));
+    t(/if \(!L\.length\) return '';/.test(bz.slice(0, bz.indexOf('\nfunction '))),
+      '★★★紙が無い日は、欄ごと出さない');
+  }
+  t(/「英語」＝そのうち英語のページだった割合です/.test(app),
+    '★★★海外から調べられている割合を出し、その意味も書く');
+  t(/buzzLoad\(\)\.then/.test(app), '　 はじめに1回だけ読む（1日1回しか変わらない）');
 
   /* 地図に出す場所の表を、実際に引いてみる */
   const box = {};

@@ -155,6 +155,8 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || perio
    *   天気は30分ごとに読み直します（気象庁・無料）。
    */
   loadWx();
+  /* 「いま、調べられている場所」の紙（1日1回しか変わらないので、1回だけ） */
+  buzzLoad().then(function (){ if (tab === 'map') render(); });
   setInterval(function (){ if (tab === 'hot' || tab === 'ratio') render(); }, 60 * 1000);
   setInterval(loadWx, 30 * 60 * 1000);
 })();
@@ -2155,6 +2157,58 @@ function buzzPct(o){
 }
 
 /* ------------------------------------------------------------
+ *  いま、調べられている場所
+ *
+ *  ★まーく様のご依頼（2026/11/15）
+ *    「有名観光サイトや、高級レストランを日本国内版と、各海外版とで
+ *      照らし合わせて チケット利用の可能性、Uber利用の可能性を…
+ *      人気度や話題性が高いものを、リアルタイムに更新して導き出して欲しいです」
+ *
+ *  ★SNSや記事の本文を追う窓口は、どれもお金がかかります。
+ *    お金のかからない代わりに、**ウィキペディアのページが
+ *    何回ひらかれたか**を使っています（無料・鍵なし・課金の設定なし）。
+ *  ★これは「いま何人いるか」ではありません。
+ *    調べている人の多さです。画面にも、そう書きます。
+ *  ★紙が無い日は、この欄ごと出しません
+ *    （ご指示・2026/11/16「不要なものは極力非表示に」）。
+ * ---------------------------------------------------------- */
+function buzzCard(){
+  const R = (buzzData && buzzData.rows) || [];
+  const L = R.map(function (x){
+    const jn = (x.ja && x.ja.now) || 0;
+    const en = (x.en && x.en.now) || 0;
+    return { n: x.n, jn: jn, en: en, all: jn + en,
+             up: buzzPct(x.ja), eup: buzzPct(x.en),
+             share: (jn + en) ? Math.round(en * 100 / (jn + en)) : 0 };
+  }).filter(function (x){ return x.all > 0; })
+    .sort(function (a, b){ return b.all - a.all; });
+  if (!L.length) return '';
+  return '<div class="card"><h2>いま、調べられている場所</h2>' +
+    '<p class="note">ウィキペディアで、その場所のページが何回ひらかれたかです。' +
+    '<b>お客の人数ではありません。</b>調べている人の多さです。</p>' +
+    '<p class="note">英語のページがよく読まれている場所は、' +
+    '海外のお客が来やすい場所です。チケットや Uber の乗車につながることがあります。</p>' +
+    /* ★見出しは短くします（ご指示・2026/11/16
+         「他に短くできそうな所は短くしてください」）。
+         長いと、細い画面で右が切れます。 */
+    '<table class="buzzt"><thead><tr><th>場所</th>' +
+    '<th class="n">7日</th><th class="n">前週比</th>' +
+    '<th class="n">英語</th></tr></thead><tbody>' +
+    L.slice(0, 12).map(function (x){
+      return '<tr><td>' + esc(x.n) + '</td>' +
+        '<td class="n">' + x.all.toLocaleString('ja-JP') + '</td>' +
+        '<td class="n">' + esc(x.up) + '</td>' +
+        '<td class="n' + (x.share >= 50 ? ' hi' : '') + '">' + x.share + '%</td></tr>';
+    }).join('') + '</tbody></table>' +
+    '<p class="note">「7日」＝この7日間に ひらかれた回数（日本語＋英語）。' +
+    '「前週比」＝その前の7日間と比べた増え方。' +
+    '「英語」＝そのうち英語のページだった割合です。</p>' +
+    '<p class="note">回数の多い順です。' +
+    (buzzData && buzzData.at ? esc(buzzData.at) + ' に調べました。' : '') +
+    '1日に1回、入れ直します。</p></div>';
+}
+
+/* ------------------------------------------------------------
  *  地図（ピンで見る）
  *
  *  ★まーく様のご指示（2026/11/13）
@@ -2272,8 +2326,7 @@ function paneMap(){
   const missNames = Object.keys(G.miss);
 
   const head = leadCard('map') + `<div class="card"><h2>地図</h2>
-    <p class="note">えらんだ時間帯と金額に当てはまる記録を、乗り場のあたりにピンで出します。
-      丸が大きいほど件数が多く、赤いほど1本が大きい乗り場です。</p>
+    <p class="note">えらんだ時間帯と金額に当てはまる記録を、乗り場のあたりにピンで出します。</p>
     <div class="chips maph">
       <button class="chip ${mapHour === '' ? 'on' : ''}" data-mh="">すべて</button>
       ${hrs.map(h => `<button class="chip ${String(mapHour) === String(h) ? 'on' : ''}" data-mh="${h}">${h}時</button>`).join('')}
@@ -2281,17 +2334,33 @@ function paneMap(){
     <div class="chips">
       ${MAP_FARES.map(f => `<button class="chip ${mapMin === f.v ? 'on' : ''}" data-mf="${f.v}">${f.n}</button>`).join('')}
     </div>
+    <!-- ★有名な場所とホテルも、重ねて出せます（ご指示・2026/11/15）。
+           記録ではないので、白いひし形にして、まぎれないようにします。 -->
+    <div class="chips">
+      <button class="chip ${spotOn ? 'on' : ''}" id="spotBtn">有名な場所とホテルも出す</button>
+    </div>
     ${filterChips(true)}</div>`;
 
   const sum = `<div class="card"><h2>${mapHour === '' ? 'すべての時間帯' : mapHour + '時台'}　${
     (MAP_FARES.filter(f => f.v === mapMin)[0] || MAP_FARES[0]).n}</h2>
     <p class="note">${R.length}件・ピンの立つ乗り場 ${G.hit.length}か所。
       ピンは、乗り場のあるあたりを指しています。1件ごとの正確な場所ではありません。</p>
-    <div id="pinMap" class="radarmap pinmap">読み込んでいます…</div>
-    <div class="legend">
-      <span><i style="background:${BANDS[0].c}"></i>平均 ¥5,000未満</span>
-      <span><i style="background:${BANDS[1].c}"></i>¥5,000〜9,999</span>
-      <span><i style="background:${BANDS[2].c}"></i>¥10,000以上</span></div></div>`;
+    <div id="pinMap" class="radarmap pinmap wxmap">読み込んでいます…</div>
+    <!-- ★色と大きさの見方を、はっきり書きます（ご指示・2026/11/16
+           「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
+             どこに丸されてるかすぐに見分けできませんし
+             色の違いの説明もしっかり記載してください」） -->
+    <div class="pinleg">
+      <div class="pl1"><b>色</b>＝その乗り場の、1本の平均</div>
+      <div class="legend">
+        <span><i style="background:${BANDS[0].c}"></i>${BANDS[0].n}（${BANDS[0].d}）</span>
+        <span><i style="background:${BANDS[1].c}"></i>${BANDS[1].n}（${BANDS[1].d}）</span>
+        <span><i style="background:${BANDS[2].c}"></i>${BANDS[2].n}（${BANDS[2].d}）</span>
+      </div>
+      <div class="pl1"><b>大きさ</b>＝件数（大きいほど、たくさん付けています）。
+        ピンの中の数字が件数です。</div>
+      ${spotOn ? '<div class="pl1"><b>白いひし形</b>＝有名な場所とホテル（記録ではありません）</div>' : ''}
+    </div></div>`;
 
   /* ★ピンの立つ上位を、文字でも出します（地図が読めない機種のため） */
   const top = G.hit.slice().sort(function (a, b){ return b.rows.length - a.rows.length; }).slice(0, 10);
@@ -2313,8 +2382,8 @@ function paneMap(){
       `<a class="chip" href="${esc(mapUrl(p))}" target="_blank" rel="noopener">${esc(p)}<span class="cnt">${G.miss[p].length}</span></a>`).join('')}</div>
     </div>` : '';
 
-  if (!R.length) return head + emptyCard('該当データがありません') + missCard;
-  return head + sum + list + nextCard(visible()) + missCard;
+  if (!R.length) return head + emptyCard('該当データがありません') + missCard + buzzCard();
+  return head + sum + list + nextCard(visible()) + missCard + buzzCard();
 }
 
 /** 地図とピンを組み立てます（1枚の画面に1回だけ） */
@@ -2332,22 +2401,49 @@ function mapBoot(){
         .setView([34.6900, 135.5000], 12);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 17, attribution: '© OpenStreetMap' }).addTo(m);
+      /* ★下じきの地図は暗くします。明るいままだと、ピンが地図に紛れて
+           「どこに丸されてるか すぐに見分けできません」（ご指摘・2026/11/16）。 */
+      try {
+        const mp2 = m.getPane('mapPane');
+        const w1 = document.createElement('div'); w1.className = 'mapveil v1';
+        const w2 = document.createElement('div'); w2.className = 'mapveil v2';
+        mp2.appendChild(w1); mp2.appendChild(w2);
+      } catch (e) {}
       m._box = box; pinMap = m;
       const G = mapGroups(mapRows());
       const mxn = Math.max.apply(null, G.hit.map(o => o.rows.length).concat([1]));
       const pts = [];
+      /* ★ピンは、白いふちの付いた「塗りつぶしの丸」に、件数の数字を入れます
+           （ご指摘・2026/11/16「もっとポイントを分かりやすくしてください」）。
+           薄い丸だと、地図の色と見分けがつきませんでした。
+           件数の多い所ほど大きく、1本の平均で色を分けます。 */
       G.hit.forEach(function (o){
         const a = agg(o.rows);
         const col = a.fare >= 10000 ? BANDS[2].c : (a.fare >= 5000 ? BANDS[1].c : BANDS[0].c);
-        const rad = 6 + Math.round(12 * Math.sqrt(o.rows.length / mxn));
-        L.circleMarker([o.lat, o.lon], { radius: rad, color: col, weight: 2,
-          fillColor: col, fillOpacity: .45 })
+        const d = 26 + Math.round(22 * Math.sqrt(o.rows.length / mxn));
+        const ic = L.divIcon({ className: 'pindot', iconSize: [d, d],
+          iconAnchor: [d / 2, d / 2],
+          html: '<span style="background:' + col + ';width:' + d + 'px;height:' + d + 'px">' +
+                o.rows.length + '</span>' });
+        L.marker([o.lat, o.lon], { icon: ic, zIndexOffset: 200 })
           .bindPopup('<b>' + esc(o.key) + 'のあたり</b><br>' + o.rows.length + '件' +
             '<br>1本の平均 ' + (a.fare ? yen(a.fare) : '不明') +
             '<br>' + esc(Object.keys(o.pls).slice(0, 5).join('／')))
           .addTo(m);
         pts.push([o.lat, o.lon]);
       });
+      /* ★有名な場所とホテル。記録ではないので、形も色も変えます
+           （白いひし形）。まぎれると、数字の意味が分からなくなります。 */
+      if (spotOn) {
+        SPOT_GEO.forEach(function (x){
+          const ic = L.divIcon({ className: 'pinspot', iconSize: [16, 16],
+            iconAnchor: [8, 8], html: '<span></span>' });
+          L.marker([x[1], x[2]], { icon: ic, zIndexOffset: 50 })
+            .bindPopup('<b>' + esc(x[0]) + '</b><br>' + esc(x[3]) +
+              '<br><small>記録ではありません。場所の目じるしです。</small>')
+            .addTo(m);
+        });
+      }
       /* 近づきすぎると、丸が重なって読めません。13 までにしておきます */
       if (pts.length > 1) { try { m.fitBounds(pts, { padding: [24, 24], maxZoom: 13 }); } catch (e) {} }
       else if (pts.length === 1) m.setView(pts[0], 14);
@@ -5381,6 +5477,9 @@ function wire(){
     b.onclick = function () { mapMin = +b.dataset.mf; mapStop(); render(); };
   });
   /* グラフの形のえらび（表／横棒／折線）。1ページにまとめたので、ここで切り替えます */
+  if ($('#spotBtn')) $('#spotBtn').onclick = function (){
+    spotSet(!spotOn); mapStop(); render();
+  };
   document.querySelectorAll('[data-gk]').forEach(function (b) {
     b.onclick = function () { gKindSet(b.dataset.gk); render(); };
   });
