@@ -2200,6 +2200,10 @@ a.chip{display:inline-flex}
 a.ext::after{content:'↗';font-size:.82em;margin-left:2px;opacity:.95;
   font-family:var(--body)}
 .scroll.tbl a.ext::after{font-size:.7em;margin-left:1px}
+/* ★地図は「📍」だけ（ご指示・2026/11/17）。↗ は付けません。
+     表の中では、字が欄からはみ出さないように小さくします。 */
+a.extmap::after{content:none}
+.scroll.tbl a.extmap{font-size:.95em}
 p.extnote{margin-top:8px}
 /* ★≡ の一覧でも、赤い丸は名前の前に置きます（ご指示・2026/11/16） */
 .fsrow b .dot{margin-left:0;margin-right:5px}
@@ -2232,3 +2236,12 @@ p.extnote{margin-top:8px}
 @media (max-width:340px){
   .filt .frow > label{flex-basis:64px;font-size:11.5px}
 }
+
+/* ★いまの時間だけ、目で追えるようにします（2026/11/17）。
+     夜ぜんたいを出すようになったので、いまがどこか分からなくなるためです。 */
+.plan .pl.now{border-color:var(--andon);box-shadow:0 0 0 1px var(--andon) inset}
+
+/* ★「どちらが多いか」は、色で一目で分かるようにします（2026/11/17）。
+     色は記録の画面の【種類】と同じ考え方（GO／Uber）。 */
+.rich-go{color:#9ECBFF;font-weight:700;white-space:nowrap}
+.rich-uber{color:#FFD54A;font-weight:700;white-space:nowrap}

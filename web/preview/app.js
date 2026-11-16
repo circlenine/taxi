@@ -23,6 +23,15 @@ function scPicksSave(){
  * ★period    … いつからいつまでを数えるか
  *      mode:'all'  … ぜんぶ
  *      mode:'c0'   … 今期（16日〜翌月15日）。c1 は前期、c2 はその前…
+ *
+ *  ★はじめに出すのは **c1（終わったばかりの営業月）** です
+ *    （ご指示・2026/11/17「現状、新しい締め開けなので ろくにデータが
+ *      たまってないので 昨日～来月15までは、10/16～11/15をデフォルト
+ *      来月16からは、11/16～12/15をデフォルトでだして、
+ *      それを繰り返してください」）。
+ *    16日に新しい月がはじまった直後は、まだ1件も記録がありません。
+ *    そこを出しても、まっさらな画面になるだけです。
+ *    16日が来たら、ひとりでに次の月へ移ります。
  *      mode:'free' … from と to を、自分で決める
  * ★その端末に覚えます。開き直しても、絞ったままです。
  *   絞っていることを忘れると、数字を読みちがえます。
@@ -32,7 +41,9 @@ function scPicksSave(){
      混ざって、見ても意味がありません（ご指示・2026/11/12）。 */
 /* ★onlyCat … 大カテゴリー（関空・バラシ・北7…）だけに絞る（空なら すべて）。
      グラフの画面で、すぐ切り替えられるようにします（ご指示・2026/11/12）。 */
-let onlyPlace = '', onlyCat = '', onlyBig = '', period = { mode: 'c0', from: '', to: '' };
+/* はじめに出す期間（終わったばかりの営業月）。16日で ひとりでに移ります */
+const PERIOD_DEF = 'c1';
+let onlyPlace = '', onlyCat = '', onlyBig = '', period = { mode: PERIOD_DEF, from: '', to: '' };
 /* ★営業曜日の絞り込みは、開いた日に当たる区分からはじめます
      （ご指示・2026/11/13）。平日と金・祝前日では、売上の出方が違うためです。
      ここでは空にしておき、読み込みのときに その日の区分を入れます。 */
@@ -118,8 +129,10 @@ function filtSave(){
         dayAt: today(), mine: onlyMine, period: period, periodAt: today() }));
   } catch (e) {}
 }
-function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyBig = ''; onlyDay = ''; period = { mode:'c0', from:'', to:'' }; filtSave(); }
-const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || period.mode !== 'c0';
+function filtClear(){ onlyPlace = ''; onlyCat = ''; onlyBig = ''; onlyDay = '';
+  period = { mode: PERIOD_DEF, from:'', to:'' }; filtSave(); }
+const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
+  period.mode !== PERIOD_DEF;
 
 /* ---------- 起動 ---------- */
 (async () => {
@@ -155,8 +168,10 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay || perio
    *   天気は30分ごとに読み直します（気象庁・無料）。
    */
   loadWx();
-  /* 「いま、調べられている場所」の紙（1日1回しか変わらないので、1回だけ） */
-  buzzLoad().then(function (){ if (tab === 'map') render(); });
+  /* ★ウィキペディアの紙は、もう読みません（ご指示・2026/11/17
+       「Wikipediaを観光する人が見ると思いますか？」）。
+     いまは、名前のついたホテル・レストランの表を出しています。
+     読む係（buzzLoad）は消していません。あとで戻せるようにしてあります。 */
   setInterval(function (){ if (tab === 'hot' || tab === 'ratio') render(); }, 60 * 1000);
   setInterval(loadWx, 30 * 60 * 1000);
 })();
@@ -1056,22 +1071,43 @@ function extMark_(){
       const box = document.querySelector(sel);
       if (!box) return;
       box.querySelectorAll('a[target="_blank"]').forEach(function (a){
-        a.classList.add('ext');
+        /*
+         * ★地図は「📍」で そろえます（ご指示・2026/11/17
+         *     「↗️ これを使ってるのが非常に多いですが非常に分かりづらいです
+         *       地図なら 📍 で統一してください」）。
+         *   ↗ が どの行にも付いていて、何の印なのか分からなくなっていました。
+         *   行き先が地図のものは、↗ をやめて 📍 だけにします。
+         */
+        const isMap = /google\.[^/]*\/maps|openstreetmap\.org|maps\.app\.goo\.gl/
+          .test(String(a.getAttribute('href') || ''));
+        if (isMap) {
+          a.classList.add('extmap');
+          if ((a.textContent || '').indexOf('📍') === -1) {
+            a.insertBefore(document.createTextNode('📍'), a.firstChild);
+          }
+        } else {
+          a.classList.add('ext');
+        }
         /* 読み上げでも分かるようにします */
         if (!a.getAttribute('aria-label')) {
           a.setAttribute('aria-label',
-            (a.textContent || '').trim() + '（別のページが開きます）');
+            (a.textContent || '').trim() +
+            (isMap ? '（地図が、別のページで開きます）' : '（別のページが開きます）'));
         }
       });
     });
     /* 印の意味は、その欄の一番下に1行だけ添えます。
        すでに同じことが書いてある欄には、くり返しません。 */
     document.querySelectorAll('#panesTop .card,#panes .card,#ktop').forEach(function (c){
-      if (!c.querySelector('a.ext')) return;
+      const hasExt = !!c.querySelector('a.ext');
+      const hasMap = !!c.querySelector('a.extmap');
+      if (!hasExt && !hasMap) return;
       if (c.textContent.indexOf('別のページが開きます') >= 0) return;
       const p = document.createElement('p');
       p.className = 'note extnote';
-      p.textContent = '※ ↗ が付いたものは、別のページが開きます。';
+      /* 印は2つだけ。📍＝地図、↗＝そのほかのページ */
+      p.textContent = (hasMap ? '※ 📍 は地図が開きます。' : '') +
+        (hasExt ? '※ ↗ は、別のページが開きます。' : '');
       c.appendChild(p);
     });
   } catch (e) {}
@@ -2488,40 +2524,115 @@ function buzzPct(o){
  *  ★紙が無い日は、この欄ごと出しません
  *    （ご指示・2026/11/16「不要なものは極力非表示に」）。
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  富裕層のお客が多い所（ご指示・2026/11/17）
+ *
+ *  ★まーく様のご指示
+ *    「Wikipediaを観光する人が見ると思いますか？
+ *      また、道頓堀やら、大阪城やら、USJやら、大枠の部分だけ
+ *      挙げられても、まるで意味がありません
+ *      もっと細かく切り込んだアツい詳細スポットを出すために
+ *      観光に関しての有名サイトをもう一度再精査してください
+ *      ここで大事なのは 富裕層が利用しがちなレストラン、ホテル
+ *      その中で、日本人が多めか、海外客が多いかで
+ *      GO(日本人)、Uber(海外)で分類していってください」
+ *
+ *  ★おっしゃるとおりでした。前に出していたのは
+ *    「ウィキペディアが何回ひらかれたか」でした。
+ *    旅行をする人がウィキペディアを見るとは限りませんし、
+ *    「道頓堀」のような大きなくくりでは、どこに着ければよいのか
+ *    1つも分かりません。
+ *
+ *  ★いまは、**名前のついた1軒ずつ**を出します。
+ *    ホテルは、玄関の車寄せに着けられます。
+ *
+ *  ★GO／Uber の見分けは、**ホテルだけ**に付けています。
+ *    ・外資系ブランド … 海外で予約され、海外から来られます。
+ *      海外のお客様は、母国で使っている Uber をそのまま使われます
+ *      （GOは日本だけのアプリなので、入れておられません）
+ *    ・国内ブランド … 日本のお客様が多く、GOが多くなります
+ *    これは**見当**です。そう画面にも書いています。
+ *
+ *  ★レストランには、GO／Uber を付けていません。
+ *    根拠になるものが見つからなかったためです。
+ *    見当で付けると、数字が一人歩きします（数字を出すときの決まり）。
+ *
+ *  ★大阪タクシーA地区の中だけです。
+ * ---------------------------------------------------------- */
+const RICH_SPOTS = [
+  /* ---- ホテル（外資系＝海外のお客が多め） ---- */
+  { k:'h', n:'ザ・リッツ・カールトン大阪',       a:'梅田',        u:'uber', w:'外資系' },
+  { k:'h', n:'コンラッド大阪',                   a:'中之島',      u:'uber', w:'外資系' },
+  { k:'h', n:'セント レジス ホテル 大阪',        a:'本町・御堂筋', u:'uber', w:'外資系' },
+  { k:'h', n:'W大阪',                            a:'南船場',      u:'uber', w:'外資系' },
+  { k:'h', n:'インターコンチネンタルホテル大阪', a:'大阪駅・うめきた', u:'uber', w:'外資系' },
+  { k:'h', n:'ウォルドーフ・アストリア大阪',     a:'うめきた',    u:'uber', w:'外資系' },
+  { k:'h', n:'パティーナ大阪',                   a:'うめきた',    u:'uber', w:'外資系' },
+  { k:'h', n:'ヒルトン大阪',                     a:'梅田',        u:'uber', w:'外資系' },
+  { k:'h', n:'スイスホテル南海大阪',             a:'難波',        u:'uber', w:'外資系' },
+  { k:'h', n:'シェラトン都ホテル大阪',           a:'上本町',      u:'uber', w:'外資系' },
+  { k:'h', n:'大阪マリオット都ホテル',           a:'天王寺',      u:'uber', w:'外資系' },
+  { k:'h', n:'ハイアット リージェンシー 大阪',   a:'南港',        u:'uber', w:'外資系' },
+  /* ---- ホテル（国内ブランド＝日本のお客が多め） ---- */
+  { k:'h', n:'帝国ホテル大阪',                   a:'天満橋・桜ノ宮', u:'go', w:'国内ブランド' },
+  { k:'h', n:'リーガロイヤルホテル',             a:'中之島',      u:'go',   w:'国内ブランド' },
+  { k:'h', n:'ホテルニューオータニ大阪',         a:'大阪城・京橋', u:'go',  w:'国内ブランド' },
+  { k:'h', n:'ホテルグランヴィア大阪',           a:'大阪駅',      u:'go',   w:'国内ブランド' },
+  { k:'h', n:'ホテル阪急インターナショナル',     a:'茶屋町',      u:'go',   w:'国内ブランド' },
+  /* ---- レストラン（ミシュランガイド京都・大阪2026 の星付き）---- */
+  { k:'r', n:'太庵',               a:'心斎橋',   s:'★★★', w:'日本料理' },
+  { k:'r', n:'Hajime',             a:'肥後橋',   s:'★★★', w:'イノベーティブ' },
+  { k:'r', n:'柏屋 大阪千里山',     a:'吹田市',   s:'★★★', w:'日本料理' },
+  { k:'r', n:'ラ・シーム',          a:'本町',     s:'★★',  w:'フランス料理' },
+  { k:'r', n:'カハラ',             a:'北新地',   s:'★★',  w:'イノベーティブ' },
+  { k:'r', n:'フジヤ 1935',        a:'本町',     s:'★★',  w:'イノベーティブ' },
+  { k:'r', n:'弧柳',               a:'北新地',   s:'★★',  w:'日本料理' },
+  { k:'r', n:'天神橋 青木',         a:'天神橋',   s:'★★',  w:'日本料理' },
+  { k:'r', n:'宮本',               a:'北新地',   s:'★★',  w:'日本料理' },
+  { k:'r', n:'老松 ひさ乃',         a:'北新地',   s:'★★',  w:'日本料理' },
+  { k:'r', n:'照屋',               a:'北新地',   s:'★★',  w:'日本料理' },
+  { k:'r', n:'鮨 原正',            a:'北新地',   s:'★★',  w:'寿司' },
+  { k:'r', n:'旬彩天つちや',        a:'北新地',   s:'★★',  w:'天ぷら' },
+  { k:'r', n:'幽玄',               a:'北新地',   s:'★★',  w:'日本料理' },
+  { k:'r', n:'ぬま田',             a:'中崎町',   s:'★★',  w:'天ぷら' }
+];
+
+/* そろえた言い方（画面のどこでも同じ字にするため） */
+const RICH_U = { uber:'Uber寄り', go:'GO寄り' };
+
 function buzzCard(){
-  const R = (buzzData && buzzData.rows) || [];
-  const L = R.map(function (x){
-    const jn = (x.ja && x.ja.now) || 0;
-    const en = (x.en && x.en.now) || 0;
-    return { n: x.n, jn: jn, en: en, all: jn + en,
-             up: buzzPct(x.ja), eup: buzzPct(x.en),
-             share: (jn + en) ? Math.round(en * 100 / (jn + en)) : 0 };
-  }).filter(function (x){ return x.all > 0; })
-    .sort(function (a, b){ return b.all - a.all; });
-  if (!L.length) return '';
-  return '<div class="card"><h2>いま、世の中で調べられている場所</h2>' +
-    '<p class="note">ウィキペディアで、その場所のページが何回ひらかれたかです。' +
-    '<b>お客の人数ではありません。</b>調べている人の多さです。</p>' +
-    '<p class="note">英語のページがよく読まれている場所は、' +
-    '海外のお客が来やすい場所です。チケットや Uber の乗車につながることがあります。</p>' +
-    /* ★見出しは短くします（ご指示・2026/11/16
-         「他に短くできそうな所は短くしてください」）。
-         長いと、細い画面で右が切れます。 */
-    '<table class="buzzt"><thead><tr><th>場所</th>' +
-    '<th class="n">7日</th><th class="n">前週比</th>' +
-    '<th class="n">英語</th></tr></thead><tbody>' +
-    L.slice(0, 12).map(function (x){
-      return '<tr><td>' + esc(x.n) + '</td>' +
-        '<td class="n">' + x.all.toLocaleString('ja-JP') + '</td>' +
-        '<td class="n">' + esc(x.up) + '</td>' +
-        '<td class="n' + (x.share >= 50 ? ' hi' : '') + '">' + x.share + '%</td></tr>';
-    }).join('') + '</tbody></table>' +
-    '<p class="note">「7日」＝この7日間に ひらかれた回数（日本語＋英語）。' +
-    '「前週比」＝その前の7日間と比べた増え方。' +
-    '「英語」＝そのうち英語のページだった割合です。</p>' +
-    '<p class="note">回数の多い順です。' +
-    (buzzData && buzzData.at ? esc(buzzData.at) + ' に調べました。' : '') +
-    '1日に1回、入れ直します。</p></div>';
+  const hs = RICH_SPOTS.filter(function (x){ return x.k === 'h'; });
+  const rs = RICH_SPOTS.filter(function (x){ return x.k === 'r'; });
+  const row = function (x){
+    return '<tr><td><a class="plink" href="' + esc(mapUrl(x.n)) +
+      '" target="_blank" rel="noopener">' + esc(x.n) + '</a></td>' +
+      '<td>' + esc(x.a) + '</td>' +
+      '<td>' + esc(x.s || x.w) + '</td>' +
+      (x.u ? '<td class="rich-' + x.u + '">' + esc(RICH_U[x.u]) + '</td>' : '') +
+      '</tr>';
+  };
+  return '<div class="card"><h2>富裕層のお客が多い所（ホテル・レストラン）</h2>' +
+    '<p class="note">1軒ずつの名前で出しています。押すと地図が開きます。</p>' +
+
+    '<h3 class="syshd">ホテル（玄関の車寄せに着けられます）</h3>' +
+    '<p class="note"><b>GO／Uber は見当です。</b>' +
+    '外資系ブランドは海外から来られる方が多く、' +
+    '母国で使っている Uber をそのまま使われます。' +
+    'GOは日本だけのアプリなので、入れておられません。</p>' +
+    '<div class="scroll"><table><thead><tr><th>ホテル</th><th>エリア</th>' +
+    '<th>ブランド</th><th>どちらが多いか</th></tr></thead><tbody>' +
+    hs.map(row).join('') + '</tbody></table></div>' +
+
+    '<h3 class="syshd">レストラン（ミシュランガイド京都・大阪2026 の星付き）</h3>' +
+    '<p class="note">星の数は、2026年版のものです。' +
+    '<b>GO／Uber は付けていません。</b>どちらが多いかの根拠が、' +
+    '見つからなかったためです。</p>' +
+    '<div class="scroll"><table><thead><tr><th>店</th><th>エリア</th>' +
+    '<th>星</th></tr></thead><tbody>' +
+    rs.map(row).join('') + '</tbody></table></div>' +
+
+    '<p class="note">大阪タクシーA地区の中だけを出しています。' +
+    'お客様の人数ではありません。</p></div>';
 }
 
 /* ------------------------------------------------------------
@@ -2659,7 +2770,9 @@ function mapDefault_(){
   /* すでに絞り込みを触っておられるときは、何も上書きしません */
   if (filtOn()) return;
   try {
-    period = { mode: 'c1', from: '', to: '' };
+    /* ★期間は、もう ぜんぶの画面で「終わったばかりの営業月」です。
+         ここで触る必要がなくなりました（PERIOD_DEF）。
+       地図だけの既定は「自分の記録から見る」ことです。 */
     onlyMine = true;
     filtSave();
   } catch (e) {}
@@ -2977,14 +3090,25 @@ const HOT_TO = 28;
  * ★3時間だけでは、夜のうしろ半分が見えません（ご指示・2026/11/12）。
  *   横に流して見る形にして、4時台まで出します。
  */
+/*
+ * ★「いまから翌4時まで」ではなく、**出せる時間を ぜんぶ** 出します
+ *   （ご指示・2026/11/17「天気ですが、翌4時までとか別にいらないので
+ *     (出勤前に、早めに予定確認したいばあいもあるので)
+ *     表示できる分はすべて表示してください」）。
+ *
+ *   前は「いまの時刻」から先しか出していませんでした。
+ *   出勤の前に見たときに、夜ぜんたいの流れが分かりませんでした。
+ *   いまは 16時台から 翌5時台まで ひととおり見て、
+ *   記録のそろった時間だけを並べます。
+ */
+const HOT_PLAN_FROM = 16;     /* 夕方の早い時間から */
+const HOT_PLAN_TO   = 29;     /* 翌5時台まで */
 function hotPlan(c, rows){
   const out = [];
-  const s = Math.floor(c.h);
-  const n = Math.max(1, HOT_TO - s + 1);
-  for (let k = 0; k < n; k++) {
-    const cc = { h: s + k, date: c.date, kind: c.kind };
+  for (let h = HOT_PLAN_FROM; h <= HOT_PLAN_TO; h++) {
+    const cc = { h: h, date: c.date, kind: c.kind };
     const g = hotPick(cc, HOT_WIN, true, rows).filter(function (x){ return x.n >= HOT_MIN_N; });
-    out.push({ h: Math.floor((s + k) % 24), top: g[0] || null });
+    out.push({ h: Math.floor(h % 24), hh: h, top: g[0] || null });
   }
   return out;
 }
@@ -3665,7 +3789,7 @@ function paneHot(now){
       '<p class="note">' +
       (filtOn() ? 'この絞り込みでは、まだ記録が足りません。下の「絞り込みを解除」で元に戻ります。'
                 : 'この時間は、まだ記録が足りません。') + '</p>' +
-      filterChips() + '</div>' + hotPlanCard(plan, c.early) + head;
+      filterChips() + '</div>' + hotPlanCard(plan, c.early, c.early ? -1 : Math.floor(c.h)) + head;
   }
 
   /* ★カードごと押すと、地図が開きます（ご指示・2026/11/12） */
@@ -3692,7 +3816,7 @@ function paneHot(now){
     '<div class="note" style="margin:12px 0 0">根拠：' + esc(got.basis) + '（' + esc(when) + '）' +
     (got.loose ? '／この時間ぴったりの記録が足りないので、少し広げました' : '') + '</div>' +
     '</div>' +
-    hotPlanCard(plan, c.early) +
+    hotPlanCard(plan, c.early, c.early ? -1 : Math.floor(c.h)) +
     '<div class="card"><h2>いまの時間帯に強い乗り場</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
     '<th class="n">1本の平均</th><th style="width:34%"></th><th class="n">待ち</th>' +
@@ -3707,22 +3831,28 @@ function paneHot(now){
  *   ほとんどが「記録が足りない」の表は、見ても役に立たないためです。
  *   固まった、の目安は「半分以上の時間に場所が出ていて、3つ以上あること」。
  */
+/* ★「出せる時間が3つ以上あるか」だけを見ます。
+     範囲を広げたので、割合でしぼると かえって出なくなります。 */
 function hotPlanReady_(plan){
-  const n = (plan || []).filter(function (s){ return s && s.top; }).length;
-  return n >= 3 && n * 2 >= (plan || []).length;
+  return (plan || []).filter(function (s){ return s && s.top; }).length >= 3;
 }
 
-/** 翌4時までの見当（横に流して見ます） */
-function hotPlanCard(plan, early){
+/** 夜ぜんたいの、時間帯ごとの狙い目（横に流して見ます） */
+function hotPlanCard(plan, early, nowH){
   if (!hotPlanReady_(plan)) return '';
   /* ★記録の足りない時間は、まるごと出しません（ご指示・2026/11/16）。
        「記録が足りない」ばかりが並ぶと、見るところが分からなくなります。 */
-  return '<div class="card"><h2>翌4時までの 時間帯ごとの狙い目</h2>' +
-    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。</p>' +
-    '<div class="scroll fb"><div class="plan">' + plan.map(function (s, i){
+  const nh = (nowH == null) ? -1 : Math.floor(nowH);
+  return '<div class="card"><h2>時間帯ごとの狙い目（夜ぜんたい）</h2>' +
+    '<p class="note">1時間ごとの、一番強かった場所です。' +
+    '出勤の前でも、夜ぜんたいの流れが分かります。押すと地図が開きます。</p>' +
+    '<div class="scroll fb"><div class="plan">' + plan.map(function (s){
       if (!s.top) return '';
-      const head = '<small>' + (i === 0 && !early ? 'いま' : s.h + '時台') + '</small>';
-      return '<a class="pl" href="' + hotMap(s.top.p) + '" target="_blank" rel="noopener">' + head +
+      /* いまの時間だけ「いま」と出して、目で追えるようにします */
+      const isNow = (s.hh === nh);
+      const head = '<small>' + (isNow ? 'いま' : s.h + '時台') + '</small>';
+      return '<a class="pl' + (isNow ? ' now' : '') + '" href="' + hotMap(s.top.p) +
+        '" target="_blank" rel="noopener">' + head +
         '<b>' + esc(s.top.p) + '</b><span>平均 ' + yen(s.top.avg) + '・' + s.top.n + '件</span></a>';
     }).join('') + '</div></div></div>';
 }

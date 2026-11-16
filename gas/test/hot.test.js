@@ -179,52 +179,61 @@ console.log('■ 記録がまったく無いとき');
      '★★★しぼり込みの操作だけは残す（曜日や期間を変えて出し直せるように）');
 }
 
-console.log('■ 翌4時までの見当（ご指示・2026/11/12）');
+console.log('■ 夜ぜんたいの狙い目（ご指示・2026/11/17）');
 {
+  /* ★「いまから翌4時まで」ではなく、出せる時間を ぜんぶ 出します
+       （ご指示「天気ですが、翌4時までとか別にいらないので
+         (出勤前に、早めに予定確認したいばあいもあるので)
+         表示できる分はすべて表示してください」）。
+     前は いまの時刻から先しか出さず、出勤の前に見ても
+     夜ぜんたいの流れが分かりませんでした。 */
   set([
     rec('2026-10-27', 25.0, 'A', 9000), rec('2026-10-20', 25.0, 'A', 9000), rec('2026-10-13', 25.0, 'A', 9000),
     rec('2026-10-27', 27.0, 'D', 9000), rec('2026-10-20', 27.0, 'D', 9000), rec('2026-10-13', 27.0, 'D', 9000)
   ]);
   const c = H.hotNow(new Date(2026, 9, 28, 1, 0));   // 25時
   const plan = H.hotPlan(c);
-  /* ★25時から翌4時（28時）まで。3時間だけでは、夜のうしろ半分が見えません */
-  ok(plan.length === 4, '25時から4時台まで、4つ返す', plan.length);
-  ok(plan[plan.length - 1].h === 4, '最後は4時台', plan[plan.length - 1].h);
+  /* 16時台から翌5時台まで、いつ見ても同じ並び（14こ） */
+  ok(plan.length === 14, '★★★16時台〜翌5時台を、いつも返す', plan.length);
+  ok(plan[0].hh === 16, '★★★いまが何時でも、16時台から始まる', plan[0].hh);
+  ok(plan[plan.length - 1].hh === 29, '　 最後は翌5時台', plan[plan.length - 1].hh);
+  /* 出勤前（18時より早い時刻）でも、同じだけ返ること */
   const c18 = { h: 18, date: '2026-10-28', kind: '平日' };
-  ok(H.hotPlan(c18).length === 11, '18時からなら、18〜4時の11こ', H.hotPlan(c18).length);
-  ok(plan[0].top && plan[0].top.p === 'A', 'いまは A', plan[0].top && plan[0].top.p);
-  ok(plan[2].top && plan[2].top.p === 'D', '2時間後は D', plan[2].top && plan[2].top.p);
-  ok(plan[1].h === 2, '26時は「2時台」と出す', plan[1].h);
+  ok(H.hotPlan(c18).length === 14, '★★★出勤の前に見ても、同じだけ出る', H.hotPlan(c18).length);
+  /* 中身は、その時間のもの */
+  const at = hh => plan.filter(x => x.hh === hh)[0];
+  ok(at(25).top && at(25).top.p === 'A', '25時台は A', at(25).top && at(25).top.p);
+  ok(at(27).top && at(27).top.p === 'D', '27時台は D', at(27).top && at(27).top.p);
+  ok(at(26).h === 2, '26時は「2時台」と出す', at(26).h);
+  /* 記録の無い時間は、中身が空（画面には出しません） */
+  ok(at(20).top === null, '★★★記録の無い時間は、出さない');
 }
 
-console.log('■ 翌4時までの予想は、固まるまで出さない（ご指示・2026/11/13）');
+console.log('■ 出せる時間が3つそろうまで、見出しごと出さない');
 {
   const tp = p => ({ p: p, avg: 9000, n: 3 });
-  /* からっぽ … 見出しごと出ない */
   ok(H.hotPlanCard([{ h:18, top:null }, { h:19, top:null }, { h:20, top:null }], false) === '',
      '★★★中身が無ければ、見出しも出さない');
-  /* 2つだけ … まだ固まっていないので出ない */
-  ok(H.hotPlanCard([{ h:18, top:tp('A') }, { h:19, top:tp('B') },
-                    { h:20, top:null }, { h:21, top:null }], false) === '',
-     '★★★半分しか無ければ、まだ出さない');
-  /* 3つ以上で、半分以上あれば出す */
+  ok(H.hotPlanCard([{ h:18, top:tp('A') }, { h:19, top:tp('B') }], false) === '',
+     '★★★2つしか無ければ、まだ出さない');
   ok(H.hotPlanCard([{ h:18, top:tp('A') }, { h:19, top:tp('B') },
                     { h:20, top:tp('C') }, { h:21, top:null }], false)
-       .indexOf('翌4時までの 時間帯ごとの狙い目') !== -1,
-     '★★★そろったら、出す');
+       .indexOf('時間帯ごとの狙い目（夜ぜんたい）') !== -1,
+     '★★★3つそろえば、出す');
 }
 
-console.log('■ 見出しの字（「いま」と書いてよいのは乗務中だけ）');
+console.log('■ 「いま」と書くのは、いまの時間だけ');
 {
-  /* ★「翌4時までの予想」は、中身が固まるまで 見出しごと出しません
-       （ご指示・2026/11/13）。なので、ここでは中身の入った plan で見ます。 */
   const tp   = p => ({ p: p, avg: 9000, n: 3 });
-  const plan = [{ h: 18, top: tp('A') }, { h: 19, top: tp('B') }, { h: 20, top: tp('C') }];
-  const now  = H.hotPlanCard(plan, false);
-  const soon = H.hotPlanCard(plan, true);
-  ok(now.indexOf('いま</small>') !== -1, '乗務中は「いま」と書く');
+  const plan = [{ h: 18, hh: 18, top: tp('A') }, { h: 19, hh: 19, top: tp('B') },
+                { h: 20, hh: 20, top: tp('C') }];
+  const now  = H.hotPlanCard(plan, false, 19);
+  const soon = H.hotPlanCard(plan, true, -1);
+  ok(now.indexOf('いま</small>') !== -1, '★★★いまの時間には「いま」と書く');
+  ok(now.indexOf('18時台') !== -1 && now.indexOf('20時台') !== -1,
+     '　 そのほかの時間は、時刻で書く');
   ok(soon.indexOf('いま</small>') === -1 && soon.indexOf('18時台') !== -1,
-     '出庫前は「いま」と書かず、時刻で書く');
+     '★★★出庫前は「いま」と書かず、時刻で書く');
 }
 
 console.log('■ 隠したものは、ちゃんと消える');
