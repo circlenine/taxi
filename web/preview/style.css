@@ -1225,7 +1225,7 @@ header > h1, .login .head > h1{white-space:nowrap}
      「左によりすぎて、幅いっぱいに綺麗に作れてません」）。
    余った幅は、それぞれの欄に分けて配られます。
    細い機種では、下の min-width で守られて 横に動かせます。 */
-.scroll.tbl table{table-layout:fixed;width:100%;min-width:320px}
+.scroll.tbl table{table-layout:fixed;width:100%;min-width:440px}
 .scroll.tbl th,.scroll.tbl td{scroll-snap-align:start;padding:6px 2px;font-size:11.5px;
   vertical-align:middle}
 .scroll.tbl th{font-size:11px;letter-spacing:0;white-space:nowrap;text-align:center;font-weight:700}
@@ -1238,34 +1238,50 @@ header > h1, .login .head > h1{white-space:nowrap}
        どうしても無理なら、見切れない幅調整をしてください」）。
    前は 9つの欄のころの幅が残っていて、合計 514px ありました。
    画面は 390px なので、右が切れていました。
-   いまは 名30＋付32＋待26＋発32＋金46＋乗46＋種他54＋操作38＝304、
-   すき間をふくめて 362px。390px の画面に収まります。
-   並びは 名→付→待→発→金→乗→種・他→操作（ご指示・2026/11/12）。 */
-.scroll.tbl th:nth-child(1),.scroll.tbl td.c-who{width:30px;min-width:30px;
-  font-family:var(--mono);font-size:10.5px;white-space:nowrap}
-.scroll.tbl th:nth-child(2),.scroll.tbl th:nth-child(4){width:32px;min-width:32px}
-/* ★「待」の欄は「不明」が入ることがあります（2026/11/13 に、となりの
-     欄に重なって出ていました）。字がちょうど入る幅にし、
-     万一はみ出しても、欄の外には出ないようにします。 */
-.scroll.tbl th:nth-child(3){width:26px;min-width:26px}
-.scroll.tbl td:nth-child(3){font-size:10px;overflow:hidden}
+   いまは 日42＋名28＋付32＋待22＋発32＋金46＋乗48＋種50＋他62＋操作38＝400、
+   すき間をふくめて 440px。少しはみ出ますが、横にスクロールできます
+   （ご指示・2026/11/16「他の項目からは、少しはみ出ても仕方ないものとしますので、
+     スクロールできることや、横画面推奨を載せてください」）。
+   並びは 名→付→待→発→金→乗→種→他→操作（種と他は、分けました）。 */
+/* ★「日」の欄（2026/11/16）。並びの既定が「新しく入れた順」になり、
+     日づけの見出し行が出なくなったので、ここで必ず見えるようにします。
+     曜日の区分で色を分けます（平日・金・土・日祝）。 */
+.scroll.tbl th:nth-child(1),.scroll.tbl td.c-date{width:42px;min-width:42px;
+  font-family:var(--mono);font-size:9px;white-space:nowrap;letter-spacing:-.04em}
+.scroll.tbl td.c-date{border-radius:4px}
+.scroll.tbl td.c-date.d-wd {background:#20242E}
+.scroll.tbl td.c-date.d-fri{background:#4A3A14}
+.scroll.tbl td.c-date.d-sat{background:#16344A}
+.scroll.tbl td.c-date.d-sun{background:#4A1A20}
+/* ★名は「半角カナ4文字（濁点も考慮）」ぶん（ご指示・2026/11/16）。
+     ﾀﾞｲｽｹ のように濁点が入ると 半角5文字ぶんになるので、そこに合わせます。 */
+.scroll.tbl th:nth-child(2),.scroll.tbl td.c-who{width:28px;min-width:28px;
+  font-family:var(--mono);font-size:10px;white-space:nowrap;letter-spacing:-.02em}
+.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:32px;min-width:32px}
+/* ★待は「半角英数3文字」ぶん（ご指示・2026/11/16）。
+     「不明」が入ることがあるので、その字だけ小さくして欄に収めます。 */
+.scroll.tbl th:nth-child(4){width:22px;min-width:22px}
+.scroll.tbl td:nth-child(4){font-size:9px;overflow:hidden;padding-left:0;padding-right:0}
 /* 種のタグは、表の中では小さくします（ここが広いと、右が切れます） */
 .scroll.tbl .mtag{font-size:9.5px;padding:1px 4px;line-height:1.5}
-.scroll.tbl th:nth-child(5){width:46px;min-width:46px}
-.scroll.tbl th:nth-child(6),.scroll.tbl td.c-place{width:46px;min-width:46px;
+.scroll.tbl th:nth-child(6){width:46px;min-width:46px}
+.scroll.tbl th:nth-child(7),.scroll.tbl td.c-place{width:48px;min-width:48px;
   white-space:normal;word-break:break-all;line-height:1.35}
-/* ★種（乗せ方）と 他（書きそえ）は、上下に分けて出します
-     （ご指摘・2026/11/16「種・他がはみ出てます しっかり直してください
-       ホテルとかはタグ付けするにしてもしっかり分けてください」）。
-     横に並べていたので、欄からはみ出して、隣の行と重なって見えていました。 */
-.scroll.tbl th:nth-child(7),.scroll.tbl td.c-note{width:54px;min-width:54px;
+/* ★種と他は、別々の欄にしました（ご指示・2026/11/16
+     「他の文章が長くなる可能性があるため 種と他は、やっぱりわけてください」） */
+.scroll.tbl th:nth-child(8),.scroll.tbl td.c-meth{width:50px;min-width:50px;
+  white-space:normal;line-height:1.3;overflow:hidden}
+/* ★「途中乗り」のような長い種類は、2行に折り返します。
+     1行に収めようとすると「途…」になって、何のことか分からなくなります。 */
+.scroll.tbl td.c-meth .mtag{display:block;margin:0 auto;max-width:100%;
+  white-space:normal;word-break:break-all;line-height:1.25;
+  border-radius:6px;padding:1px 3px}
+.scroll.tbl th:nth-child(9),.scroll.tbl td.c-note{width:62px;min-width:62px;
   white-space:normal;word-break:break-all;line-height:1.3;overflow:hidden}
-.scroll.tbl td.c-note .mtag{display:block;margin:0 auto;max-width:100%;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scroll.tbl td.c-note .ntxt{display:-webkit-box;-webkit-line-clamp:2;
-  -webkit-box-orient:vertical;margin-top:2px;font-size:9.5px;
-  line-height:1.25;color:#FFFFFF;overflow:hidden}
-.scroll.tbl td.c-note .ntxt.dim{color:var(--ink2)}
+.scroll.tbl td.c-note .ntxt{display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;font-size:9.5px;line-height:1.25;
+  color:#FFFFFF;overflow:hidden}
+.scroll.tbl td .dim,.scroll.tbl td .ntxt.dim{color:var(--ink2)}
 .scroll.tbl th.ops,.scroll.tbl td.ops{width:38px;min-width:38px}
 
 /* ★エリアの区切り（ご指示・2026/11/16「エリア順でわけてください」）。
@@ -1755,7 +1771,7 @@ header{padding-left:33px;padding-right:33px}
   padding:5px 10px 3px;line-height:1.35}
 /* 表の中身も、枠のまん中に置きます */
 .scroll.tbl td{text-align:center}
-.scroll.tbl td.c-place,.scroll.tbl td.c-note{text-align:center}
+.scroll.tbl td.c-place,.scroll.tbl td.c-note,.scroll.tbl td.c-meth{text-align:center}
 /* ★金額だけは、右にそろえます（ご指示・2026/11/16「金額は右揃えにしてください」）。
      桁がそろうので、高い・安いが一目で分かります。
      ほかの欄は まん中のまま（ご指示・2026/11/11）。 */
@@ -2023,3 +2039,16 @@ td.n.hi{color:#FFD54A;font-weight:700}
   border-bottom:1px solid #33456B;text-align:left;word-break:break-all}
 .systbl td:last-child{text-align:right;font-family:var(--mono)}
 .systbl th{font-size:11px}
+
+/* ★表の並べかえと絞り込み（ご指示・2026/11/16
+     「スプシと同じく、フィルタをかけられるようにして、
+       並び替えをできるようにしてください」）。 */
+.tbar{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 2px}
+.scroll.tbl th .thb{display:block;width:100%;background:none;border:0;
+  color:#FFFFFF;font-size:11px;font-weight:700;padding:0;cursor:pointer;
+  white-space:nowrap}
+.scroll.tbl th .sar{font-style:normal;font-size:8px;margin-left:1px;color:#FFD54A}
+.scroll.tbl tr.filrow th{padding:2px 1px;border-bottom:1px solid #4A5F90}
+.scroll.tbl .tfi{width:100%;min-width:0;box-sizing:border-box;
+  background:#0B1220;border:1px solid var(--line);border-radius:4px;
+  color:#FFFFFF;font-size:10px;padding:2px 3px;height:20px}

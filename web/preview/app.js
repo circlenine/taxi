@@ -186,8 +186,15 @@ async function reload(){
      おっしゃるとおり、同じ乗せ方を2つの名前で持っていました。
      2つあると、同じものが別々に数えられます。
      前に「付け待ち」で入れた記録は、下の normMethod で「乗り場」にそろえます。 */
+/* ★「乗り場」は、えらべる種類から外しました（ご質問・2026/11/16
+     「乗車種類の、乗り場タブというのは必要なのでしょうか
+       必要ないならけしてください」）。
+     付け待ちで乗せたことは「待ち」の分数で分かるので、
+     種類にも持つと、同じことを2か所で言うことになります。
+   ★前に「乗り場」「付け待ち」で入れた記録は、そのまま「乗り場」と出ます
+     （消していません）。また要るようになれば、ここに1語 戻すだけです。 */
 const METHODS = ['GO', 'Uber', 'S.Ride', '無線', '流し', '手上げ',
-                 '乗り場', 'ホテル', '途中乗り', '呼び込み', 'エスライド', '道路'];
+                 'ホテル', '途中乗り', '呼び込み', 'エスライド', '道路'];
 
 /* ----------------------------------------------------------
  *  入れるときに、ひと押しで選べるもの（タブ）
@@ -262,8 +269,9 @@ function depSet(v, h, mi){
      タブに出すものは、ここに名前で並べます。
      書き間違えると出なくなるので、検査（webnews.test.js）で
      「7つ ぜんぶ METHODS にある」ことを押さえています。 */
-/* ★S.Ride を Uber の横に。付け待ちは出しません（ご指示・2026/11/12） */
-const METHOD_CHIP_NAMES = ['GO', 'Uber', 'S.Ride', '無線', '手上げ', '乗り場', '途中乗り'];
+/* ★S.Ride を Uber の横に。付け待ちは出しません（ご指示・2026/11/12）
+   ★「乗り場」も外しました（ご質問・2026/11/16） */
+const METHOD_CHIP_NAMES = ['GO', 'Uber', 'S.Ride', '無線', '手上げ', 'ホテル', '途中乗り'];
 const METHOD_CHIPS = METHOD_CHIP_NAMES.filter(m => METHODS.indexOf(m) !== -1);
 
 /* 「他」のタブ。よく書くものを、ひと押しで入れられるように。
@@ -713,6 +721,71 @@ const sorted  = () => [...visible()].sort((a,b) => a.date === b.date ? b.dep - a
  *  ④ 同じ乗り場の中は、遅い時刻が上
  * ---------------------------------------------------------- */
 
+/* ------------------------------------------------------------
+ *  表の並べかえと、絞り込み（ご指示・2026/11/16）
+ *
+ *  ★まーく様のご指示
+ *    「名 付 待 発 金 乗 種･他
+ *      これらは、スプシと同じく、フィルタをかけられるようにして、
+ *      並び替えをできるようにしてください
+ *      並び順のデフォルトは、新しい登録が上から順にしてください」
+ *
+ *  ★並びの既定は「新しく入れたものが上」です（入れた時刻の順）。
+ *    営業日の順ではありません。入れたばかりのものが、必ず一番上に来ます。
+ *  ★見出しを押すと、その欄で並べ直します。もう一度押すと 逆さまになります。
+ *  ★絞り込みは、見出しの下の欄に字を入れるだけです。
+ *    書いてある字が ふくまれていれば残ります（スプシのフィルタと同じ考え方）。
+ * ---------------------------------------------------------- */
+const TBL_SORT_KEY = 'tn_tbl_sort';
+const TBL_FIL_KEY  = 'tn_tbl_fil';
+/* k … どの欄で並べるか　d … 1なら小さい順、-1なら大きい順 */
+let tblSort = (function (){
+  try { return JSON.parse(localStorage.getItem(TBL_SORT_KEY) || 'null') ||
+    { k: 'made', d: -1 }; } catch (e) { return { k: 'made', d: -1 }; }
+})();
+let tblFil = (function (){
+  try { return JSON.parse(localStorage.getItem(TBL_FIL_KEY) || '{}') || {}; }
+  catch (e) { return {}; }
+})();
+let tblFilOpen = false;      /* 絞り込みの欄を出しているか */
+
+function tblSortSet(k){
+  if (tblSort.k === k) tblSort.d = -tblSort.d;
+  else tblSort = { k: k, d: (k === 'made' || k === 'fare' || k === 'dep') ? -1 : 1 };
+  try { localStorage.setItem(TBL_SORT_KEY, JSON.stringify(tblSort)); } catch (e) {}
+}
+function tblFilSet(k, v){
+  if (v) tblFil[k] = v; else delete tblFil[k];
+  try { localStorage.setItem(TBL_FIL_KEY, JSON.stringify(tblFil)); } catch (e) {}
+}
+function tblFilOn(){ return Object.keys(tblFil).length > 0; }
+
+/* 絞り込みに使う「その行の字」を作ります（画面に出ている形と同じにします） */
+function tblCell(r, k){
+  if (k === 'date')   return String(fmtD(r.date || '')).replace(/\((.)\)/, '$1');
+  if (k === 'who')    return kana(r.who);
+  if (k === 'tsuke')  return showT(tsuke(r));
+  if (k === 'wait')   return isUnk(r.wait) ? UNK : String(r.wait);
+  if (k === 'dep')    return showT(r.dep);
+  if (k === 'fare')   return isUnk(r.fare) ? UNK : String(r.fare);
+  if (k === 'place')  return canonPlace(r.place || '');
+  if (k === 'method') return normMethod(r.method || '');
+  if (k === 'note')   return String(r.note || '');
+  return '';
+}
+/** 絞り込みを通します（書いてある字が ふくまれていれば残ります） */
+function tblFilter(list){
+  const ks = Object.keys(tblFil);
+  if (!ks.length) return list;
+  return list.filter(function (r){
+    return ks.every(function (k){
+      const want = toHalfW(String(tblFil[k] || '')).toLowerCase();
+      if (!want) return true;
+      return toHalfW(tblCell(r, k)).toLowerCase().indexOf(want) !== -1;
+    });
+  });
+}
+
 /* --tsort-start-- ここから下は gas/test/webnews.test.js が取り出して検査します */
 /**
  * 乗り場の名前を、並べるための形にします。
@@ -724,15 +797,54 @@ function placeKey(p){
   return v.replace(/\d+/g, function (d){ return ('0000' + d).slice(-4); });
 }
 
-/** 表に出す順に並べ替えます */
+/**
+ * 表に出す順に並べ替えます。
+ *
+ * ★既定は「新しく入れたものが上」です（ご指示・2026/11/16
+ *     「並び順のデフォルトは、新しい登録が上から順にしてください」）。
+ *   営業日の順ではありません。入れたばかりのものが、必ず一番上に来ます。
+ * ★見出しを押すと、その欄で並べ直します。
+ * ★並べ方が決まらないときは、日 → エリア → 乗り場の番号 の順にします。
+ */
 function tableSort(list){
+  const k = (tblSort && tblSort.k) || 'made';
+  const d = (tblSort && tblSort.d) || -1;
+  /* その欄の「並べるための値」。数で比べられるものは数で比べます */
+  const key = function (r){
+    if (k === 'made')   return String(r.made || '');
+    if (k === 'who')    return kana(r.who);
+    if (k === 'tsuke')  { const v = tsuke(r); return v == null ? -1 : v; }
+    if (k === 'wait')   return isUnk(r.wait) ? -1 : +r.wait;
+    if (k === 'dep')    return r.dep == null ? -1 : r.dep;
+    if (k === 'fare')   return isUnk(r.fare) ? -1 : +r.fare;
+    if (k === 'place')  return placeKey(canonPlace(r.place));
+    if (k === 'method') return normMethod(r.method || '');
+    if (k === 'note')   return String(r.note || '');
+    if (k === 'date')   return String(r.date || '');
+    return '';
+  };
+  /* ★「不明」は、どちら向きに並べても 一番 下にします。
+       0として上に出すと、0円・0分だと思われてしまいます
+       （不明と0は、別のものです）。 */
+  const unk = function (r){
+    if (k === 'wait') return isUnk(r.wait);
+    if (k === 'fare') return isUnk(r.fare);
+    if (k === 'dep')  return r.dep == null;
+    if (k === 'tsuke') return tsuke(r) == null;
+    return false;
+  };
   return [...list].sort(function (a, b){
-    if (a.date !== b.date) return a.date < b.date ? 1 : -1;        /* ① 新しい日が上 */
+    const ua = unk(a), ub = unk(b);
+    if (ua !== ub) return ua ? 1 : -1;
+    const ka = key(a), kb = key(b);
+    if (ka !== kb) return (ka < kb ? -1 : 1) * d;
+    /* 同じときの、決まった並び（いつ見ても同じ順になるように） */
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
     const ca = CAT_ORDER.indexOf(recCat(a)), cb = CAT_ORDER.indexOf(recCat(b));
-    if (ca !== cb) return (ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb);  /* ② エリア順 */
+    if (ca !== cb) return (ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb);
     const pa = placeKey(canonPlace(a.place)), pb = placeKey(canonPlace(b.place));
-    if (pa !== pb) return pa < pb ? -1 : 1;                         /* ③ 乗り場の名前・番号順 */
-    return (b.dep == null ? -1 : b.dep) - (a.dep == null ? -1 : a.dep);  /* ④ 遅い時刻が上 */
+    if (pa !== pb) return pa < pb ? -1 : 1;
+    return (b.dep == null ? -1 : b.dep) - (a.dep == null ? -1 : a.dep);
   });
 }
 
@@ -874,10 +986,11 @@ function render(){
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
      仕掛けが止まっていそうなときは、その上に 赤い帯を出します。 */
-  /* ★並びは 直近の記録 → 新規の記録 → 過去の記録（ご指示・2026/11/13） */
+  /* ★並びは 新規の記録 → 直近の記録 → 過去の記録（ご指示・2026/11/16
+       「新規の記録の方が、直近の記録より上にしてください」） */
   const pt = $('#panesTop');
   if (pt) pt.innerHTML = gasWakeBar() +
-    ((tab === 'in') ? (leadCard('in') + paneInRecent() + paneInNew()) : '');
+    ((tab === 'in') ? (leadCard('in') + paneInNew() + paneInRecent()) : '');
   /* ★作り直したあとに、乗り場のプルダウンへ中身を入れ直します。
        これを忘れると、iPhoneで「オプションなし」と出ます（2026/11/14）。 */
   placeSelFill_();
@@ -1094,9 +1207,14 @@ function paneInRecent(){
       <input class="ja" id="ktFind2" data-find="ktSug2" placeholder="乗り場をさがす（例：梅田）">
       <div class="fsug" id="ktSug2"></div>
     </div>
-    <p class="note">${records.length ? '新しい日が上。同じ日の中はエリア順・乗り場の番号順に10件。' : 'まだ1件も入っていません。'}</p>
+    <p class="note">${records.length ? '新しく入れたものが上から10件。見出しを押すと、並べ替えられます。' : 'まだ1件も入っていません。'}</p>
     ${filterChips()}
-    ${visible().length ? tableHTML(tableSort(visible()).slice(0,10)) : `<div class="empty">該当データがありません。</div>`}
+    ${(function (){
+      const L = tableSort(tblFilter(visible()));
+      if (!visible().length) return '<div class="empty">該当データがありません。</div>';
+      if (!L.length) return tableHTML([]) + '<div class="empty">絞り込みに当てはまる記録がありません。</div>';
+      return tableHTML(L.slice(0, 10));
+    })()}
   </div>`;
 }
 /* ------------------------------------------------------------
@@ -1535,25 +1653,51 @@ function tsuke(r){
   const v = (+r.dep) - (+r.wait) / 60;
   return v < 0 ? v + 24 : v;
 }
+/* 表の欄（見出しの字・並べるときの名前・幅のしるし） */
+const TBL_COLS = [
+  /* ★「日」の欄を足しました（2026/11/16）。
+       並びの既定が「新しく入れた順」になったので、
+       日づけの見出し行が出なくなり、いつの記録か分からなくなるためです。
+       ここに出しておけば、並べ替えても絞り込んでも、必ず見えます。 */
+  { k:'date',   n:'日',  c:'c-date' },
+  { k:'who',    n:'名',  c:'c-who'  },
+  { k:'tsuke',  n:'付',  c:'n'      },
+  { k:'wait',   n:'待',  c:'n'      },
+  { k:'dep',    n:'発',  c:'n'      },
+  { k:'fare',   n:'金',  c:'n c-fare' },
+  { k:'place',  n:'乗',  c:'c-place' },
+  /* ★種と他は、やっぱり分けます（ご指示・2026/11/16
+       「他の文章が長くなる可能性があるため 種と他は、やっぱりわけてください」） */
+  { k:'method', n:'種',  c:'c-meth' },
+  { k:'note',   n:'他',  c:'c-note' }
+];
+
 function tableHTML(rows){
   let last = '', lastCat = '';
   const fresh = newestId();
+  /* ★エリアの区切りは、日づけの順に並べているときだけ入れます。
+       ほかの欄で並べ直したときに入れると、区切りがバラバラに出て読めません。 */
+  const byDate = (tblSort.k === 'date');
   const body = rows.map(function (r) {
     let head = '';
-    if (r.date !== last) {
+    if (byDate && r.date !== last) {
       last = r.date; lastCat = '';
-      head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="8">' +
+      head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="10">' +
              esc(fmtD(r.date)) + '　<small>' + esc(dayName(r.date)) + '</small></td></tr>';
-    }
-    /* ★エリアが変わったところに、細い見出しを入れます（ご指示・2026/11/16
-         「順番は、エリア順でわけてください」）。
-         どこまでが同じエリアかが、一目で分かります。 */
-    const cat = recCat(r);
-    if (cat !== lastCat) {
+      const cat = recCat(r);
       lastCat = cat;
-      head += '<tr class="ahead"><td colspan="8">' + esc(cat) + '</td></tr>';
+      head += '<tr class="ahead"><td colspan="10">' + esc(cat) + '</td></tr>';
+    } else if (byDate) {
+      const cat = recCat(r);
+      if (cat !== lastCat) {
+        lastCat = cat;
+        head += '<tr class="ahead"><td colspan="10">' + esc(cat) + '</td></tr>';
+      }
     }
     return head + '<tr' + (r.id === fresh ? ' class="fresh"' : '') + '>' +
+      /* ★かっこは外して「11/15日」の形にします。欄を一番 細くするためです */
+      '<td class="c-date ' + dayCls(r.date) + '">' +
+        esc(String(fmtD(r.date || '')).replace(/\((.)\)/, '$1')) + '</td>' +
       '<td class="c-who ' + whoCls(r.user_id) + '">' +
         (r.id === fresh ? '<i class="nw">新</i>' : '') + esc(kana(r.who)) + '</td>' +
       '<td class="n">' + showT(tsuke(r)) + '</td>' +
@@ -1563,28 +1707,52 @@ function tableHTML(rows){
            桁がそろうので、高い・安いが一目で分かります。 */
       '<td class="n c-fare ' + fareCls(r.fare) + '">' + showYen(r.fare) + '</td>' +
       '<td class="c-place">' + (r.place ? placeLink(canonPlace(r.place)) : UNK) + '</td>' +
-      /* ★種（乗せ方）と 他（書きそえ）は、同じ欄でも**上下に分けて**出します
-           （ご指摘・2026/11/16「種・他がはみ出てます しっかり直してください
-             ホテルとかはタグ付けするにしてもしっかり分けてください」）。
-           横に並べていたので、欄からはみ出して、隣の行と重なって見えていました。
-         ★「ホテル」は“乗り場の種類”ではなく、**乗せ方**の1つです
-           （ホテルの方から呼ばれた乗車）。場所とは別のものです。 */
-      '<td class="ja c-note">' +
-        (r.method ? '<span class="mtag ' + mcls(r.method) + '">' +
-          esc(normMethod(r.method)) + '</span>' : '') +
-        (r.note ? '<span class="ntxt">' + esc(r.note) + '</span>' : '') +
-        (!r.method && !r.note ? '<span class="ntxt dim">—</span>' : '') + '</td>' +
+      /* ★種（乗せ方） */
+      '<td class="c-meth">' + (r.method
+        ? '<span class="mtag ' + mcls(r.method) + '">' + esc(normMethod(r.method)) + '</span>'
+        : '<span class="dim">—</span>') + '</td>' +
+      /* ★他（書きそえ）。長くなることがあるので、別の欄にしています */
+      '<td class="ja c-note">' + (r.note
+        ? '<span class="ntxt">' + esc(r.note) + '</span>'
+        : '<span class="ntxt dim">—</span>') + '</td>' +
       /* ★修正・削除は、表の右端に置きます（ご指示・2026/11/12） */
       '<td class="ops">' + (canEdit(r)
         ? '<button class="mini" data-edit="' + r.id + '">修正</button>' +
           '<button class="mini del" data-del="' + r.id + '">削除</button>' : '') + '</td></tr>';
   }).join('');
-  return '<div class="snote">← 横にスクロールできます（種・他と修正／削除は右側です）</div>' +
-    '<div class="scroll tbl"><table><thead><tr>' +
-    '<th>名</th><th class="n">付</th><th class="n">待</th>' +
-    '<th class="n">発</th><th class="n">金</th><th>乗</th><th>種<br>他</th>' +
-    '<th class="ops">修正<br>削除</th>' +
-    '</tr></thead><tbody>' + body + '</tbody></table></div>' +
+
+  /* 見出し（押すと、その欄で並べ直します） */
+  const arrow = function (k){
+    if (tblSort.k !== k) return '';
+    return '<i class="sar">' + (tblSort.d > 0 ? '▲' : '▼') + '</i>';
+  };
+  const ths = TBL_COLS.map(function (c){
+    return '<th class="' + (c.c.indexOf('n') === 0 ? 'n' : '') + '">' +
+      '<button class="thb" data-sort="' + c.k + '">' + c.n + arrow(c.k) + '</button></th>';
+  }).join('');
+  /* 絞り込みの欄（スプシのフィルタと同じ考え方。字がふくまれていれば残ります） */
+  const fils = TBL_COLS.map(function (c){
+    return '<th class="fil"><input class="tfi" data-fil="' + c.k + '" ' +
+      'value="' + esc(String(tblFil[c.k] || '')) + '" ' +
+      'aria-label="' + c.n + 'で絞り込む"></th>';
+  }).join('');
+
+  return '<div class="tbar">' +
+      '<button class="chip' + (tblFilOpen ? ' on' : '') + '" id="tblFilBtn">絞り込み' +
+        (tblFilOn() ? '<span class="cnt">' + Object.keys(tblFil).length + '</span>' : '') +
+      '</button>' +
+      (tblFilOn() ? '<button class="chip rst" id="tblFilClr">絞り込みを解除</button>' : '') +
+      '<button class="chip' + (tblSort.k === 'made' && tblSort.d === -1 ? ' on' : '') +
+        '" id="tblSortNew">新しい登録が上</button>' +
+    '</div>' +
+    /* ★横に流れることは、必ず先に書きます（ご指示・2026/11/16
+         「スクロールできることや、横画面推奨を載せてください」） */
+    '<div class="snote">← 横にスクロールできます（横画面推奨）。' +
+      '見出しを押すと、その欄で並べ替えます。</div>' +
+    '<div class="scroll tbl"><table><thead><tr>' + ths +
+    '<th class="ops">修正<br>削除</th></tr>' +
+    (tblFilOpen ? '<tr class="filrow">' + fils + '<th class="ops"></th></tr>' : '') +
+    '</thead><tbody>' + body + '</tbody></table></div>' +
     /* ★色の見方を、端的に1行で（ご指示・2026/11/13
          「表の色変えの説明も端的に(長文にならないように)載せてください」）。 */
     '<div class="clegend">' +
@@ -5566,6 +5734,39 @@ function wire(){
   });
   /* ★えらんだ写真を、すぐ控えます。
        画面が作り直されても、えらんだものが消えないようにするためです。 */
+  /* ★表の見出しを押すと、その欄で並べ直します（ご指示・2026/11/16） */
+  document.querySelectorAll('[data-sort]').forEach(function (b){
+    b.onclick = function (){ tblSortSet(b.dataset.sort); render(); };
+  });
+  if ($('#tblFilBtn')) $('#tblFilBtn').onclick = function (){
+    tblFilOpen = !tblFilOpen; render();
+  };
+  if ($('#tblFilClr')) $('#tblFilClr').onclick = function (){
+    tblFil = {};
+    try { localStorage.setItem(TBL_FIL_KEY, '{}'); } catch (e) {}
+    render();
+  };
+  if ($('#tblSortNew')) $('#tblSortNew').onclick = function (){
+    tblSort = { k: 'made', d: -1 };
+    try { localStorage.setItem(TBL_SORT_KEY, JSON.stringify(tblSort)); } catch (e) {}
+    render();
+  };
+  /* ★絞り込みの欄。打つたびに作り直すと字が消えるので、
+       打ち終わり（change）と、間を置いてから（input）動かします。 */
+  document.querySelectorAll('[data-fil]').forEach(function (el){
+    el.oninput = function (){
+      clearTimeout(el._t);
+      el._t = setTimeout(function (){
+        const k = el.dataset.fil, v = el.value;
+        tblFilSet(k, v);
+        render();
+        /* 作り直したあとも、打っていた欄にカーソルを戻します */
+        const again = document.querySelector('[data-fil="' + k + '"]');
+        if (again) { try { again.focus();
+          again.setSelectionRange(again.value.length, again.value.length); } catch (e) {} }
+      }, 450);
+    };
+  });
   if ($('#nipFile')) $('#nipFile').onchange = function (){
     nippoFiles = [...(this.files || [])];
     render();

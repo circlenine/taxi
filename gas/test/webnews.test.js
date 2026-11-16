@@ -332,6 +332,14 @@ console.log('■ 入れる欄のタブ（ご指示・2026/11/11）');
     t(C.m.indexOf('S.Ride') === C.m.indexOf('Uber') + 1,
       '★★★種類のタブ「S.Ride」が Uber のすぐ右にある', C.m.join('/'));
     t(C.m.indexOf('付け待ち') === -1,        '★★★「付け待ち」は出していない（ご指示）', C.m.join('/'));
+    /* ★「乗り場」も外しました（ご質問・2026/11/16
+         「乗車種類の、乗り場タブというのは必要なのでしょうか
+           必要ないならけしてください」）。
+       付け待ちで乗せたことは「待ち」の分数で分かるためです。 */
+    t(C.m.indexOf('乗り場') === -1, '★★★「乗り場」も、えらべる種類から外した', C.m.join('/'));
+    t(/const METHODS = \[[^\]]*\]/.test(app) &&
+      !/const METHODS = \[[^\]]*'乗り場'/.test(app),
+      '　 もとの一覧からも外れている');
     t(C.m.length === C.names.length,
       '★★★タブに並べた名前が、ぜんぶ METHODS にある（書きまちがいなし）',
       C.names.filter(function(x){ return C.ms.indexOf(x) === -1; }).join('/') || 'ぜんぶある');
@@ -1714,7 +1722,7 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
   t(tabs.every(x => x.length <= 7), '★★★どのタブも7字まで', tabs.join('/'));
 
   /* ---- 表でも、乗り場を目立たせる ---- */
-  t(/<th>乗<\/th>/.test(app), '★★★表の見出しは、スプシと同じ短い字');
+  t(/n:'乗'/.test(app), '★★★表の見出しは、スプシと同じ短い字');
   t(/<td class="c-place">/.test(app), '★★★乗り場の欄に、目立つ印がある');
   t(/td\.c-place\{|\.scroll\.tbl td\.c-place/.test(css), '　 その見た目も入っている');
 }
@@ -1965,8 +1973,13 @@ console.log('■ 表は幅いっぱい、いらない案内は出さない（ご
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   /* 「左によりすぎて、幅いっぱいに綺麗に作れてません」
      「横スクロール不要なものは、横スクロールしてという説明などは無しに」 */
-  t(/\.scroll\.tbl table\{table-layout:fixed;width:100%;min-width:320px\}/.test(css),
-    '★★★表は、幅いっぱいまで広がる（余った幅は欄に配る）');
+  /* ★2026/11/16：種と他を分け、日づけの欄を足したので、
+       少しはみ出します（ご指示「他の項目からは、少しはみ出ても仕方ない
+       ものとしますので、スクロールできることや、横画面推奨を載せてください」）。 */
+  t(/\.scroll\.tbl table\{table-layout:fixed;width:100%;min-width:440px\}/.test(css),
+    '★★★表は、幅いっぱいまで広がる（足りなければ、横にスクロールする）');
+  t(/横にスクロールできます（横画面推奨）/.test(app),
+    '★★★横に流れることと、横画面推奨を、先に書いてある');
   t(!/\.scroll\.tbl table\{table-layout:fixed;width:auto\}/.test(css),
     '　 前の「中身の幅のまま」は残っていない');
   t(/function snoteFit\(\)/.test(app)
@@ -2252,10 +2265,13 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   /* ① 並びは、記録用スプレッドシートと同じ */
-  const th = (app.match(/<th[^>]*>(修正<br>削除|名|付|待|発|金|乗|種<br>他)<\/th>/g) || [])
-    .map(x => x.replace(/<[^>]+>/g, '').replace('修正削除', '操作').replace('種他', '種・他'));
-  t(th.join('/') === '名/付/待/発/金/乗/種・他/操作',
-    '★★★並びは 名→付→待→発→金→乗→種・他→操作', th.join('/'));
+  /* ★2026/11/16：種と他を分け、日づけの欄を足しました。
+       並びは 日→名→付→待→発→金→乗→種→他→操作 です。 */
+  const cols = ((app.match(/const TBL_COLS = \[[\s\S]*?\n\];/) || [''])[0]
+    .match(/n:'([^']+)'/g) || []).map(x => x.slice(3, -1));
+  t(cols.join('/') === '日/名/付/待/発/金/乗/種/他',
+    '★★★並びは 日→名→付→待→発→金→乗→種→他', cols.join('/'));
+  t(/<th class="ops">修正<br>削除<\/th>/.test(app), '　 修正・削除は、いちばん右');
 
   /* ------------------------------------------------------------
    *  ★表の並びと見た目（ご指示・2026/11/16）
@@ -2269,20 +2285,47 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
    *    「新規の記録を1番上にしてください」
    * ---------------------------------------------------------- */
   t(/function tableSort\(list\)/.test(app), '★★★表の並びを決める係がある');
-  t(/tableHTML\(tableSort\(visible\(\)\)/.test(app),
-    '★★★表は、その並びで出している');
+  t(/tableSort\(tblFilter\(visible\(\)\)\)/.test(app),
+    '★★★表は、絞り込みを通してから、その並びで出している');
   t(/function placeKey\(/.test(app) && /\('0000' \+ d\)\.slice\(-4\)/.test(app),
     '★★★乗り場の数字は、数として比べる（ドン2 → ドン15）');
   t(/td class="n c-fare/.test(app), '★★★金額の欄に、しるしを付けている');
   t(/\.scroll\.tbl td\.c-fare\{text-align:right/.test(css),
     '★★★金額は右にそろえる');
-  t(/\.scroll\.tbl td\.c-note \.mtag\{display:block/.test(css),
-    '★★★種（乗せ方）は、1行目に単独で出す');
-  t(/\.scroll\.tbl td\.c-note \.ntxt\{display:-webkit-box/.test(css),
-    '★★★他（書きそえ）は、その下の行に分けて出す');
+  /* ★種と他は、別々の欄にしました（ご指示・2026/11/16
+       「他の文章が長くなる可能性があるため 種と他は、やっぱりわけてください」） */
+  t(/\.scroll\.tbl th:nth-child\(8\),\.scroll\.tbl td\.c-meth\{width:50px/.test(css),
+    '★★★種（乗せ方）は、それだけの欄');
+  t(/\.scroll\.tbl th:nth-child\(9\),\.scroll\.tbl td\.c-note\{width:62px/.test(css),
+    '★★★他（書きそえ）も、それだけの欄');
+  t(/class="c-meth"/.test(app) && /class="ja c-note"/.test(app),
+    '　 どちらも、別の欄に出している');
   t(/<tr class="ahead">/.test(app), '★★★エリアの区切りを入れる');
   t(/function newestId\(\)/.test(app) && /<i class="nw">新<\/i>/.test(app),
     '★★★最後に入れた記録に「新」を付ける');
+
+  /* ------------------------------------------------------------
+   *  ★並べ替えと絞り込み（ご指示・2026/11/16）
+   *    「名 付 待 発 金 乗 種･他
+   *      これらは、スプシと同じく、フィルタをかけられるようにして、
+   *      並び替えをできるようにしてください
+   *      並び順のデフォルトは、新しい登録が上から順にしてください」
+   * ---------------------------------------------------------- */
+  t(/const TBL_COLS = \[/.test(app), '★★★欄の一覧がある');
+  t(/data-sort="/.test(app) && /\.thb\{/.test(css),
+    '★★★見出しを押すと、その欄で並べ替えられる');
+  t(/function tblSortSet\(k\)/.test(app) && /tblSort\.d = -tblSort\.d/.test(app),
+    '　 もう一度 押すと、逆さまになる');
+  t(/\{ k: 'made', d: -1 \}/.test(app),
+    '★★★既定は「新しい登録が上」（入れた時刻の順）');
+  t(/data-fil="/.test(app) && /function tblFilter\(list\)/.test(app),
+    '★★★欄ごとに、絞り込みができる');
+  t(/id="tblFilClr"/.test(app), '　 絞り込みを解除できる');
+  t(/localStorage\.setItem\(TBL_SORT_KEY/.test(app) &&
+    /localStorage\.setItem\(TBL_FIL_KEY/.test(app),
+    '　 並べ方と絞り込みは、その端末が覚える');
+  t(/again\.setSelectionRange/.test(app),
+    '★★★絞り込みを打っている最中に、カーソルが飛ばない');
 
   /* ★並びを、app.js の中身そのままで動かして確かめます。
        検査のほうに書き写すと、本物を直し忘れても気づけません。 */
@@ -2295,22 +2338,41 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     const canonPlace = v => String(v || '');
     const recCat = r => (/新地\s*7(?!\d)/.test(r.place) ? '北7'
       : /新地/.test(r.place) ? '北他' : /ドン/.test(r.place) ? 'ﾐﾅﾐ' : 'ほか');
-    const fn = new Function('CAT_ORDER', 'toHalfW', 'canonPlace', 'recCat',
-      src + '; return tableSort;')(CAT_ORDER, toHalfW, canonPlace, recCat);
-    const L = fn([
-      { date: '2026-11-10', place: 'ドン15', dep: 20 },
-      { date: '2026-11-12', place: 'ドン15', dep: 20 },
-      { date: '2026-11-12', place: 'ドン2',  dep: 20 },
-      { date: '2026-11-12', place: '新地7',  dep: 20 },
-      { date: '2026-11-12', place: '新地1',  dep: 20 }
-    ]).map(r => r.date.slice(5) + ' ' + r.place);
+    const isUnk = v => (v == null || v === '');
+    const tsuke = r => r.dep;
+    const kana = v => String(v || '');
+    const fmtD = v => String(v || '');
+    const mk = (sort) => new Function('CAT_ORDER', 'toHalfW', 'canonPlace', 'recCat',
+      'tblSort', 'isUnk', 'tsuke', 'kana', 'fmtD',
+      src + '; return tableSort;')(CAT_ORDER, toHalfW, canonPlace, recCat,
+      sort, isUnk, tsuke, kana, fmtD);
+    const ROWS = [
+      { date: '2026-11-10', place: 'ドン15', dep: 20, made: '2026-11-10T01:00:00', fare: 900 },
+      { date: '2026-11-12', place: 'ドン15', dep: 20, made: '2026-11-12T01:00:00', fare: 5000 },
+      { date: '2026-11-12', place: 'ドン2',  dep: 20, made: '2026-11-12T02:00:00', fare: null },
+      { date: '2026-11-12', place: '新地7',  dep: 20, made: '2026-11-12T03:00:00', fare: 300 },
+      { date: '2026-11-12', place: '新地1',  dep: 20, made: '2026-11-16T09:00:00', fare: 800 }
+    ];
+    /* ① 既定は「新しく入れたものが上」（ご指示・2026/11/16） */
+    const L0 = mk({ k: 'made', d: -1 })(ROWS).map(r => r.place);
+    t(L0[0] === '新地1', '★★★既定は、新しく入れたものが上', L0.join(' / '));
+    t(L0[4] === 'ドン15', '　 入れたのが古いものが、下', L0.join(' / '));
+    /* ② 日づけで並べたときは、日 → エリア → 乗り場の番号 の順 */
+    const L = mk({ k: 'date', d: -1 })(ROWS).map(r => r.date.slice(5) + ' ' + r.place);
     t(L[0] === '11-12 新地7', '★★★一番上は、新しい日の「北7」', L.join(' / '));
     t(L[1] === '11-12 新地1', '　 次は「北他」', L.join(' / '));
     t(L[2] === '11-12 ドン2' && L[3] === '11-12 ドン15',
       '★★★ドン2 が ドン15 より上（字ではなく、数で比べている）', L.join(' / '));
     t(L[4] === '11-10 ドン15', '★★★古い日は、一番下（新しい日が上）', L.join(' / '));
+    /* ③ 金で並べたとき、「不明」は どちら向きでも いちばん下 */
+    const up = mk({ k: 'fare', d: 1 })(ROWS).map(r => r.fare);
+    const dn = mk({ k: 'fare', d: -1 })(ROWS).map(r => r.fare);
+    t(up[0] === 300 && up[4] === null,
+      '★★★小さい順でも、不明は いちばん下', JSON.stringify(up));
+    t(dn[0] === 5000 && dn[4] === null,
+      '★★★大きい順でも、不明は いちばん下（0として上に出さない）', JSON.stringify(dn));
   }
-  t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('<th>種・他</th>'),
+  t(app.indexOf('<th class="ops">修正<br>削除</th>') > app.indexOf('const TBL_COLS'),
     '★★★修正・削除が、表の右端（ご指示・2026/11/12）');
   /* ★8つの欄が、390px の画面に ぜんぶ入る（ご指示・2026/11/13
        「この微妙に右が見切れてのが嫌なので 映せるなら映して欲しいですし、
@@ -2329,14 +2391,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
       });
     const ops = (css.match(/\.scroll\.tbl th\.ops[^{]*\{width:(\d+)px/) || [])[1];
     const pad = (css.match(/\.scroll\.tbl th,\.scroll\.tbl td\{[^}]*padding:6px (\d+)px/) || [])[1];
-    const cols = [wm[1], wm[2], wm[3], wm[4], wm[5], wm[6], wm[7], +ops];
+    /* ★2026/11/16：日づけの欄を足し、種と他を分けたので 10欄になりました。
+         390px には収まりませんが、横にスクロールできます（ご指示）。 */
+    const cols = [wm[1], wm[2], wm[3], wm[4], wm[5], wm[6], wm[7], wm[8], wm[9], +ops];
     const sum  = cols.reduce(function (t, v) { return t + (v || 0); }, 0)
-               + 8 * 2 * (+pad || 0) + 12;
+               + 10 * 2 * (+pad || 0) + 12;
     t(cols.every(function (v) { return v > 0; }),
-      '　 8つの欄すべてに、幅が決まっている', cols);
-    t(sum <= 356, '★★★表の幅の合計が、390pxの画面に収まる', sum);
-    t(!/nth-child\(8\)/.test(css),
-      '　 9つの欄のころの幅（8番目）は、残っていない');
+      '　 10の欄すべてに、幅が決まっている', cols);
+    t(sum <= 460, '★★★表の幅は、横画面に収まる大きさ', sum);
     t(/\.scroll\.tbl \.mtag\{font-size:9\.5px/.test(css),
       '　 種のタグは、表の中では小さくする');
   }
@@ -2344,8 +2406,12 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   const tbl = app.slice(app.indexOf('function tableHTML'), app.indexOf('const KANA_SHORT'));
   t(!/>直す</.test(tbl) && !/>消す</.test(tbl), '　 表に、前の「直す」「消す」は残っていない');
 
-  /* ② 日付は、変わったときだけ */
-  t(/if \(r\.date !== last\)/.test(app), '★★★日付は、変わったときだけ出す');
+  /* ② 日づけは、どの行にも出します（2026/11/16）。
+       並びの既定が「新しく入れた順」になり、日づけの見出し行が
+       出なくなったので、いつの記録か分からなくなるためです。 */
+  t(/class="c-date /.test(app), '★★★日づけは、どの行にも出す');
+  t(/if \(byDate && r\.date !== last\)/.test(app),
+    '　 日づけで並べたときだけ、日づけの見出し行も出す');
   t(/class="dhead /.test(app), '　 その見出しの行がある');
 
   /* ③ 削除は、2回たずねる */
@@ -2700,8 +2766,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★新規の記録 → 過去の記録 の順');
   t(idx.indexOf('id="ktop"') < idx.indexOf('id="panes"'),
     '★★★過去の記録 → 直近の記録 の順');
-  t(/\(tab === 'in'\) \? \(leadCard\('in'\) \+ paneInRecent\(\) \+ paneInNew\(\)\) : ''/.test(app),
-    '★★★記録の画面は 直近の記録 → 新規の記録 → 過去の記録 の順');
+  /* ★2026/11/16：新規の記録を、直近の記録より上にしました（ご指示
+       「新規の記録の方が、直近の記録より上にしてください」） */
+  t(/\(tab === 'in'\) \? \(leadCard\('in'\) \+ paneInNew\(\) \+ paneInRecent\(\)\) : ''/.test(app),
+    '★★★記録の画面は 新規の記録 → 直近の記録 → 過去の記録 の順');
 
   /* 目次 */
   t(/function tocBuild\(/.test(app), '★★★目次を作る係がある');
@@ -3376,7 +3444,8 @@ console.log('\n■ 表・タグ・期間の直し（ご指示・2026/11/13）');
                             app.indexOf("/** 種類ごとの色分け")), box);
   const M = vm.runInContext('METHODS', box);
   t(M.indexOf('付け待ち') === -1, '★★★えらべる種類から、付け待ちは外した');
-  t(M.indexOf('乗り場') !== -1, '　 乗り場は残っている');
+  /* ★「乗り場」も外しました（ご質問・2026/11/16） */
+  t(M.indexOf('乗り場') === -1, '★★★えらべる種類から、乗り場も外した');
   const nm = vm.runInContext('normMethod', box);
   ['付け待ち', '付待ち', 'つけ待ち', 'つけまち'].forEach(function (x) {
     t(nm(x) === '乗り場', '★★★「' + x + '」は「乗り場」にそろえる', nm(x));
@@ -3396,9 +3465,15 @@ console.log('\n■ 表・タグ・期間の直し（ご指示・2026/11/13）');
     '★★★表に、たての区切り線がある');
   t(/\.grid-l\{stroke:#44598A/.test(css), '★★★表グラフの区切りも、明るくした');
   /* 「待」の欄に「不明」が入っても、となりに重ならないこと */
-  t(/\.scroll\.tbl th:nth-child\(3\)\{width:26px/.test(css), '★★★「待」の欄は、不明が入る幅');
-  t(/\.scroll\.tbl td:nth-child\(3\)\{font-size:10px;overflow:hidden\}/.test(css),
-    '　 万が一でも、欄の外に出ない');
+  /* ★「待」は 半角英数3文字ぶんまで詰めました（ご指示・2026/11/16
+       「待は半角英数3文字分くらいまでのスペースで十分かと思います」）。
+     「不明」も入るよう、その欄の字だけ小さくしてあります。 */
+  t(/\.scroll\.tbl th:nth-child\(4\)\{width:22px/.test(css), '★★★「待」の欄は、半角3文字ぶん');
+  t(/\.scroll\.tbl td:nth-child\(4\)\{font-size:9px;overflow:hidden/.test(css),
+    '　 「不明」も欄の外に出ない');
+  /* ★「名」は 半角カナ4文字（濁点も考慮）ぶん（ご指示・2026/11/16） */
+  t(/\.scroll\.tbl th:nth-child\(2\),\.scroll\.tbl td\.c-who\{width:28px/.test(css),
+    '★★★「名」の欄は、半角カナ4文字ぶん');
 
   /* ★期間のめどしは、営業月（ご指示・2026/11/13） */
   t(/o\.period && typeof o\.period\.mode === 'string' && o\.periodAt === today\(\)/.test(app),
