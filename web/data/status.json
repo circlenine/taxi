@@ -1,5 +1,5 @@
 {
- "at": "2026-11-16 15:35",
+ "at": "2026-11-16 15:56",
  "ver": "U177ver / V120ver",
  "sync": null,
  "trig": 8,
@@ -41,8 +41,8 @@
   }
  ],
  "web": true,
- "beat": "11-16 15:35",
- "beatMin": 1,
+ "beat": "11-16 15:56",
+ "beatMin": 0,
  "stop": false,
  "verNo": 356,
  "depMax": 20,
