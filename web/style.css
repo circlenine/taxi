@@ -2138,3 +2138,26 @@ a.chip{display:inline-flex}
 .scroll.tbl.wtbl th:nth-child(4),.scroll.tbl.wtbl td:nth-child(4){width:56px;min-width:56px}
 .scroll.tbl.wtbl th:nth-child(5),.scroll.tbl.wtbl td:nth-child(5){width:26px;min-width:26px;
   font-size:9px}
+
+/* ★「乗り場ごとの 呼ばれやすい時間」の、時間帯と曜日を はっきり出します
+     （ご指示・2026/11/16「もっと、それぞれ曜日と時間帯が目立つように
+       してください」）。前は ふつうの字で1行書くだけ、曜日にいたっては
+     1文字も出していませんでした。 */
+.wkey{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px}
+.wkl{flex:none;width:2.6em;font-size:10px;color:#FFFFFF;font-weight:700;
+  background:rgba(255,255,255,.14);border-radius:4px;padding:2px 0;text-align:center}
+.wk{display:inline-flex;align-items:baseline;gap:2px;border-radius:7px;
+  padding:3px 8px;color:#FFFFFF;font-weight:700;font-size:13px;
+  background:#121A2B;border:1px solid var(--line);white-space:nowrap}
+.wk i{font-style:normal;font-size:10px;font-weight:700;opacity:.9}
+.wk em{font-style:normal;font-size:10px;font-weight:700;opacity:.75;margin-left:3px}
+/* 1番多いものは、ひとまわり大きく・濃く */
+.wk.top{font-size:17px;padding:3px 10px}
+.wkh.top{background:var(--andon);border-color:var(--andon);color:#14100A}
+.wkh.top i,.wkh.top em{opacity:.85}
+/* 曜日は、表の見出しと同じ色分けにします */
+.wkd.d-wd {background:#20242E}
+.wkd.d-fri{background:#4A3A14}
+.wkd.d-sat{background:#16344A}
+.wkd.d-sun{background:#4A1A20}
+.wkd.top{border-color:#FFFFFF}

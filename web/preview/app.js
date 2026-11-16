@@ -4712,8 +4712,17 @@ function whenAgg(rows){
     const hm = {};
     rs.forEach(function (r){ const h = Math.floor(r.dep); hm[h] = (hm[h] || 0) + 1; });
     const hrs = Object.keys(hm).map(Number).sort(function (a, b){ return hm[b] - hm[a] || a - b; });
+    /* ★曜日の区分も数えます（ご指示・2026/11/16
+         「もっと、それぞれ曜日と時間帯が目立つようにしてください」）。
+       前は、この欄に曜日が1文字も出ていませんでした。 */
+    const dm = {};
+    m[p].forEach(function (r){
+      if (!r.date) return;
+      const c = dayCls(r.date); dm[c] = (dm[c] || 0) + 1;
+    });
+    const dys = Object.keys(dm).sort(function (a, b){ return dm[b] - dm[a]; });
     const f = m[p].filter(hasFare);
-    return { p: p, n: m[p].length, nd: rs.length, hm: hm, hrs: hrs,
+    return { p: p, n: m[p].length, nd: rs.length, hm: hm, hrs: hrs, dm: dm, dys: dys,
              avg: f.length ? f.reduce(function (a, r){ return a + (+r.fare || 0); }, 0) / f.length : 0,
              nf: f.length,
              wait: (function (){ const w = m[p].filter(function (r){ return !isUnk(r.wait); });
@@ -4768,16 +4777,33 @@ function whenPane(cat, title, label, lead, test, noLead){
   const fat  = rows.filter(function (o){ return o.nd >= 1; });
   const thin = rows.filter(function (o){ return o.nd <  1; });
 
+  /* 曜日の区分の言い方（色は、表の見出しと同じ分け方です） */
+  const DCLS = [['d-wd', '平日'], ['d-fri', '金・祝前日'], ['d-sat', '土'], ['d-sun', '日・祝']];
+
   let body = '';
   fat.forEach(function (o){
-    const top = o.hrs.slice(0, 3).map(function (h){
-      return (h % 24) + '時台 ' + o.hm[h] + '件';
-    }).join('／');
+    /*
+     * ★時間帯と曜日を、はっきり大きく出します（ご指示・2026/11/16
+     *     「もっと、それぞれ曜日と時間帯が目立つようにしてください」）。
+     *   前は「呼ばれやすい時間　3時台 1件」と、普通の字で1行 書くだけで、
+     *   曜日にいたっては 1文字も出していませんでした。
+     */
+    const hTop = o.hrs.slice(0, 3).map(function (h, i){
+      return '<span class="wk wkh' + (i === 0 ? ' top' : '') + '">' +
+        (h % 24) + '<i>時台</i><em>' + o.hm[h] + '件</em></span>';
+    }).join('');
+    const dTop = DCLS.filter(function (x){ return o.dm[x[0]]; })
+      .sort(function (a, b){ return o.dm[b[0]] - o.dm[a[0]]; })
+      .map(function (x, i){
+        return '<span class="wk wkd ' + x[0] + (i === 0 ? ' top' : '') + '">' +
+          esc(x[1]) + '<em>' + o.dm[x[0]] + '件</em></span>';
+      }).join('');
     body += '<div class="wrow">' +
       '<div class="wh"><b>' + esc(o.p) + '</b>' +
-      '<a class="mini" href="' + mapUrl(o.p) + '" target="_blank" rel="noopener">📍 地図</a></div>' +
-      '<div class="wtop">呼ばれやすい時間　<b>' + esc(top) + '</b>' +
+      '<a class="mini" href="' + mapUrl(o.p) + '" target="_blank" rel="noopener">📍 地図</a>' +
       (o.nd < HOT_MIN_N ? '<i class="wfew">まだ ' + o.nd + '件</i>' : '') + '</div>' +
+      '<div class="wkey"><span class="wkl">時間</span>' + hTop + '</div>' +
+      (dTop ? '<div class="wkey"><span class="wkl">曜日</span>' + dTop + '</div>' : '') +
       whenBar(o, hrs) +
       '<div class="wmeta">' + o.n + '件' +
       (o.nf ? '／1本の平均 ' + yen(o.avg) : '') +

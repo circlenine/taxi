@@ -3865,6 +3865,20 @@ console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
    * ---------------------------------------------------------- */
   t(/<div class="scroll tbl wtbl"><table>/.test(app),
     '★★★記録の一覧は、欄の幅を決めた表にする');
+  /* ★時間帯と曜日を、はっきり大きく出します（ご指示・2026/11/16
+       「もっと、それぞれ曜日と時間帯が目立つようにしてください」）。
+     前は ふつうの字で1行書くだけで、曜日は1文字も出していませんでした。 */
+  t(/<span class="wkl">時間<\/span>/.test(app), '★★★時間帯の札がある');
+  t(/<span class="wkl">曜日<\/span>/.test(app), '★★★曜日の札もある（前は1文字も無かった）');
+  t(/const dm = \{\};[\s\S]{0,200}dayCls\(r\.date\)/.test(app),
+    '★★★乗り場ごとに、曜日の区分を数えている');
+  t(/dm: dm, dys: dys/.test(app), '　 その数を、画面へ渡している');
+  {
+    const cs2 = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+    t(/\.wk\.top\{font-size:17px/.test(cs2), '★★★1番多いものは、ひとまわり大きい');
+    t(/\.wkd\.d-sun\{background:#4A1A20\}/.test(cs2),
+      '★★★曜日は、表の見出しと同じ色分け');
+  }
   t(!/<div class="wli">\s*' \+\s*\n?\s*'<b>' \+ esc\(fmtD\(r\.date\)\)/.test(app),
     '　 字を横に流して置く形は、残っていない');
   t(/\.scroll\.tbl\.wtbl th:nth-child\(1\),\.scroll\.tbl\.wtbl td:nth-child\(1\)\{width:42px/
