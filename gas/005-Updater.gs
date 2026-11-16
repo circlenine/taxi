@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U180ver  （2026/11/17）  ★★★
+ *  ★★★  U181ver  （2026/11/17）  ★★★
+ *
+ *   [U181ver]
+ *   ・📄 日報の営業日を、写真から読むようにした
+ *     ★ご質問：「複数選択できるようにするのに、なぜ営業日の
+ *       していをしなければいけないのですか？」
+ *     ★何日ぶんも まとめて置けるのに、営業日は1つしか指定できず、
+ *       ほかの日のぶんが全部ずれていました
+ *     ★読めなかったときだけ、置いたときの日づけを使います
  *
  *   [U180ver]
  *   ・📮 残り通数を、LINE自身が数えた数で書くようにした
@@ -1976,7 +1984,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U180ver";
+const UPD_VERSION = "U181ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -12282,7 +12290,10 @@ const NIPPO_PROMPT =
   "この写真は、タクシー乗務員が手書きでつけた日報です。" +
   "1行ずつ『乗せた時刻』『乗せた場所』『金額』が書かれています。" +
   "読み取れた行だけを、次のJSONの配列だけで返してください。説明は書かないでください。" +
-  '[{"time":"20:35","place":"新地7","money":5800}]' +
+  '[{"date":"2026-11-16","time":"20:35","place":"新地7","money":5800}]' +
+  "・date は、その日報に書かれている営業日（出庫した日）です。" +
+  "　年が書かれていなければ、年は空のまま \"MM-DD\" で返してください。" +
+  "　どこにも日付が無ければ、date は空文字 \"\" にしてください。" +
   "・time は 24時間の HH:MM。深夜1時は 01:00 と書いてください。" +
   "・money は数字だけ（円記号やカンマは入れない）。" +
   "・読み取れない欄は、その項目を空文字 \"\" にしてください。" +
@@ -12304,6 +12315,45 @@ function sbPatch_(path, body) {
     });
     return res.getResponseCode() < 300;
   } catch (e) { return false; }
+}
+
+/**
+ * 写真から読んだ営業日を、"YYYY-MM-DD" にそろえる。
+ *
+ * ★年が書かれていない日報が多いので、年は「置いたときの日づけ」から
+ *   もらいます。ただし、1月に12月の日報を置くこともあるので、
+ *   **半年より先の日づけになったら、1年 戻します**
+ *   （12/28の日報を 1/5 に置くと、来年の12/28 になってしまうため）。
+ * ★1行でも読めていれば、それを使います。読めなければ空を返します。
+ *   （空のときは、置いたときの日づけを使います）
+ */
+function nippoDate_(rows, fallback) {
+  let raw = "";
+  for (let i = 0; i < (rows || []).length; i++) {
+    const v = String((rows[i] && rows[i].date) || "").trim();
+    if (v) { raw = v; break; }
+  }
+  if (!raw) return "";
+  let y = 0, m = 0, d = 0;
+  let mm = raw.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})$/);
+  if (mm) { y = +mm[1]; m = +mm[2]; d = +mm[3]; }
+  else {
+    mm = raw.match(/^(\d{1,2})\D(\d{1,2})$/);
+    if (!mm) return "";
+    m = +mm[1]; d = +mm[2];
+  }
+  if (m < 1 || m > 12 || d < 1 || d > 31) return "";
+  const base = (function (){
+    const b = String(fallback || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return b ? new Date(+b[1], +b[2] - 1, +b[3]) : new Date();
+  })();
+  if (!y) {
+    y = base.getFullYear();
+    /* 先の日づけになりすぎたら、1年 戻します（年またぎのため） */
+    if (new Date(y, m - 1, d).getTime() - base.getTime() > 180 * 86400000) y -= 1;
+  }
+  const p = function (n){ return ("0" + n).slice(-2); };
+  return y + "-" + p(m) + "-" + p(d);
 }
 
 /** 「20:35」を、記録と同じ数え方の小数の「時」にする（翌1時＝25.0） */
@@ -12373,8 +12423,18 @@ function nippoTick_() {
       return true;
     }
 
-    /* その営業日の記録と、つき合わせます */
-    const d = String(it.work_date || "");
+    /*
+     * ★営業日は、まず**写真から読んだもの**を使います（2026/11/17）。
+     *   ご質問：「日報、複数選択できるようにするのに、
+     *             なぜ営業日のしていをしなければいけないのですか？」
+     *   おっしゃるとおりでした。何日ぶんも まとめて置けるのに、
+     *   営業日は1つしか指定できず、**ほかの日のぶんが全部ずれて**いました。
+     * ★読めなかったときだけ、置くときに入れていただいた日を使います。
+     *   手書きは読み違えるので、画面でご覧になってから【足す】を押す形は
+     *   そのままです（読んだだけでは記録に入りません）。
+     */
+    const dPic = nippoDate_(rows, String(it.work_date || ""));
+    const d = dPic || String(it.work_date || "");
     const have = d
       ? (sbGet_("rides?work_date=eq." + encodeURIComponent(d) +
                 "&select=dep,fare,place,user_id&limit=2000") || [])
@@ -12401,8 +12461,11 @@ function nippoTick_() {
     const nd = out.filter(function (x){ return !x.dup; }).length;
     sbPatch_("nippo_scan?id=eq." + it.id, {
       state: "read",
+      /* 写真から読めた営業日は、ここで書きかえます（画面に出ます） */
+      work_date: d,
       rows_json: JSON.stringify(out),
-      note: out.length + "行 読みました（まだ入っていないもの " + nd + "行）"
+      note: (dPic ? "営業日は写真から読みました。" : "営業日は、置いたときの日づけのままです。") +
+        out.length + "行 読みました（まだ入っていないもの " + nd + "行）"
     });
     try { updErrandLog_("📄 日報を1枚 読みました：" + out.length + "行／新しいもの " + nd + "行"); } catch (e) {}
     return true;

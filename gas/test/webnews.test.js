@@ -1100,7 +1100,7 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/data-filt="from"/.test(app) && /data-filt="to"/.test(app),
     '★★★期間は、自分で決めることもできる');
   t(/id="fClear"/.test(app), '★★★絞っているときは「ぜんぶに戻す」が出る');
-  t(/filtOn\(\) \? '<button class="chip warn rst" id="fClear"/.test(app),
+  t(/filtOn\(\) \? `<div class="fnow">/.test(app),
     '　 絞っていないときは出さない（よけいなものを増やさない）');
 
   /* ---- 絞り込みは、1か所でまとめて効く ---- */
@@ -1143,13 +1143,18 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
        「乗り場ごとに、何時に着けるのがベストなのかというのも
          導き出せるようにしてください」） */
   t(/function bestTimeCard\(/.test(app), '★★★乗り場ごとの「何時がよいか」を出す係がある');
-  t(/<h2>この乗り場は、何時がよいか<\/h2>/.test(app), '★★★その題が出る');
+  /* ★2026/11/17：名前を変えました（ご指示「乗り場別 オススメ時間帯」） */
+  t(/<h2>乗り場別 オススメ時間帯<\/h2>/.test(app), '★★★その題が出る');
+  t(!/この乗り場は、何時がよいか/.test(app), '　 前の名前は、残っていない');
   t(/id="bestPlaceSel"/.test(app), '★★★乗り場を えらべる');
   t(/bestPlace = bps\.value/.test(app), '　 えらんだら切り替わる');
   t(/が一番よさそうです/.test(app), '★★★一番よい時間を、一言で言い切る');
   /* ★2026/11/13 のご指示で、一番上に出す形に変えました
        （「この乗り場は何時が良いかは、1番上にしてください」）。 */
-  t(/bestTimeCard\(D\) \+ hourPlanCard\(D\)/.test(app), '　 画面の一番上に出す');
+  /* ★2026/11/17：ページの一番上に移しました（ご指示） */
+  t(/const topCard = bestTimeCard\(visible\(\)\.filter\(hasDep\)\);/.test(app) &&
+    /leadCard\('ratio'\) \+ topCard \+/.test(app),
+    '★★★画面の一番上に出す');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件そろわない時間帯は出さない');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件より少ない乗り場は、並びに出さない');
   /* ★その1時間だけでは3件に届かないので、前後1時間をふくめて数えます。
@@ -1204,11 +1209,12 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
          すぐ分からないといけません
          なので、時間帯順にして おすすめの乗り場を出す形に」 */
   t(/function hourPlanCard\(/.test(app), '★★★時間順に出す係がある');
-  t(/<h2>時間順の狙い目<\/h2>/.test(app), '★★★題は「時間順の狙い目」');
+  /* ★2026/11/17：中身がそのまま分かる題に直しました（ご指示） */
+  t(/<h2>時間帯ごとの おすすめ乗り場<\/h2>/.test(app), '★★★題は「時間帯ごとの おすすめ乗り場」');
   /* ★一番上は「この乗り場は、何時がよいか」になりました（2026/11/13）。
        時間順の狙い目は、そのすぐ下です。 */
-  t(app.indexOf('bestTimeCard(D) + hourPlanCard(D)') !== -1,
-    '★★★「この乗り場は、何時がよいか」のすぐ下に出る');
+  t(app.indexOf('let out = hourPlanCard(D);') !== -1,
+    '★★★「乗り場別 オススメ時間帯」のすぐ下に出る');
   t(!/狙いどころ（乗り場 × 時間帯）/.test(app),
     '★★★「どこを、何時に」の並びは、残っていない');
   t(!/function spotRank\(/.test(app), '　 その係も、残っていない');
@@ -1519,7 +1525,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   t(/data-t="g"/.test(pv) && /フィードバック/.test(pv),
     '　 下見用のページも、同じ名前になっている');
   t(/pvbar/.test(pv), '　 下見用の赤い帯も、消えていない');
-  t(/<h2>グラフ<\/h2>/.test(app), '　 中の題も「グラフ」');
+  /* ★2026/11/17：いまは棒グラフだけなので、題も「棒グラフ」になります */
+  t(/<h2>\$\{esc\(gk\.n\)\}　\$\{esc\(gk\.s\)\}<\/h2>/.test(app),
+    '　 中の題は、いま出している形の名前');
   t(/<h2>フィードバック<\/h2>/.test(app), '　 中の題も「フィードバック」');
 
   /* ★2つの画面のちがいが、それぞれに書いてあること */
@@ -1882,9 +1890,10 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
   t(/const periodBox = /.test(app), '　 その中身も入っている');
   /* ★グラフの画面でも、期間を切り替えられるようにしました（ご指示・2026/11/12）。
        上まで戻らずに切り替えられることのほうが、大事です。 */
-  t(/\$\{full \? `<div class="chips catch">/.test(app),
-    '★★★グラフの画面には、大カテゴリーのタグも出す');
-  t(/<div class="fperiod">\$\{periodBox\(\)\}<\/div>/.test(app),
+  /* ★2026/11/17：タグではなく、1行ずつのプルダウンになりました（ご指示） */
+  t(/data-fs="big"/.test(app) && /data-fs="cat"/.test(app),
+    '★★★グラフの画面には、エリアと中分類のプルダウンも出す');
+  t(/<div class="frow"><label>期間<\/label>\$\{periodSel\(\)\}<\/div>/.test(app),
     '★★★グラフの画面でも、期間を切り替えられる');
   t(/\.ktperiod\{/.test(css), '　 その見た目も入っている');
 
@@ -2080,8 +2089,8 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
   t(/function sayAutoGood_\(\)/.test(app) &&
     /\.insert\(\{ text: t, good: sayAutoGood_\(\), user_id: ME\.id \}\)/.test(app),
     '★★★どちらに入れるかは、こちらで釣り合うように決める');
-  t(/<h2>ふきだしに追加したい文言<\/h2>/.test(app),
-    '★★★見出しは「ふきだしに追加したい文言」');
+  t(/<h2>ふきだしに ひとことを足す<\/h2>/.test(app),
+    '★★★見出しは「ふきだしに ひとことを足す」');
   t(!/>ほめ<\/button>/.test(app) && !/>ぼやき<\/button>/.test(app),
     '　 ほめ・ぼやきのボタンは出ていない');
   t(/data-sayedit=/.test(app) && />直す</.test(app), '　 行ごとに【直す】が出る');
@@ -2692,10 +2701,13 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/function scChart\(R\)\{/.test(app), '★★★1枚ぶんの図を、別々に作れるようにした');
   /* ★2026/11/13 のご指示で、1枚ずつ出すのはやめ、絞り込みで1枚だけにしました。
        中分類でえらべること自体は、絞り込みのタグに残しています。 */
-  t(/data-cat="\$\{esc\(k\)\}"/.test(app),
+  t(/data-fs="cat"/.test(app),
     '★★★中分類（北7・北4・北他・ﾐﾅﾐ・関空・ﾊﾞﾗｼ・ほか）で、絞り込める');
-  t(/<div class="chips" id="scpBox">/.test(app), '★★★好きな乗り場をえらぶ欄がある');
-  t(/data-scp="/.test(app), '　 乗り場を押してえらべる');
+  /* ★2026/11/17：乗り場も、タグではなくプルダウンになりました（ご指示） */
+  t(/<select class="fsel \$\{scPicks\.length \? 'on' : ''\}" id="scpSel">/.test(app),
+    '★★★好きな乗り場をえらぶ欄がある');
+  t(/scPicks = v \? \[v\] : \[\];/.test(app), '　 えらぶと、その乗り場だけになる');
+  t(/data-filt-sel="scpSel"/.test(app), '　 字でも さがせる');
   t(/scPicks\.indexOf\(r\.place\) !== -1/.test(app), '　 えらんだ乗り場だけで1枚にする');
   t(/data-scp-clear/.test(app), '　 えらんだものを、まとめて戻せる');
   t(/localStorage\.setItem\(SCP_KEY/.test(app), '　 次に開いたときも覚えている');
@@ -2727,9 +2739,9 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
        「この乗り場は、何時がよいか」→「時間順の狙い目」と続けます。 */
   t(/return head \+ rankCard \+ out \+ compareCard\(\);/.test(app),
     '★★★「時間帯べつ 乗り場ランキング」が一番上');
-  t(/let out = bestTimeCard\(D\) \+ hourPlanCard\(D\);/.test(app),
-    '★★★その次が「この乗り場は、何時がよいか」→「時間順の狙い目」');
-  t(/rankCard = '<div class="card"><h2>時間帯べつ 乗り場ランキング<\/h2>'/.test(app),
+  t(/let out = hourPlanCard\(D\);/.test(app),
+    '★★★そのあとが「時間帯ごとの おすすめ乗り場」');
+  t(/rankCard = '<div class="card"><h2>時間帯別 乗り場ランキング<\/h2>'/.test(app),
     '　 ランキングは、あとから一番上に置き直している');
 
   /* ⑥-16 2026/11/13 のまとめてのご指示 */
@@ -3233,15 +3245,18 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
   });
   t(app.indexOf("n:'全曜日'") === -1, '★★★「全曜日」のタグは出さない（リセットに任せる）');
   t(/DAY_CHIPS = \[\{ k:'d-wd', n:'平日' \}/.test(app), '★★★平日が一番左');
-  t(/data-day=""[^>]*>リセット/.test(app), '★★★曜日の列に【リセット】がある');
+  /* ★2026/11/17：営業曜日もプルダウンになりました。
+       「すべて」をえらべば、リセットと同じです（ご指示）。 */
+  t(/fOpt\('', onlyDay, 'すべて'\)/.test(app),
+    '★★★営業曜日は「すべて」に戻せる');
   t(/onlyDay = dayCls\(today\(\)\)/.test(app),
     '★★★開いた日に当たる区分が、はじめから選ばれている');
   t(/o\.dayAt === today\(\)/.test(app), '　 同じ夜のうちは、押して選んだものが残る');
   t(/dayAt: today\(\)/.test(app), '　 いつの夜に選んだかも覚える');
   t(/\(!onlyDay   \|\| dayCls\(r\.date\) === onlyDay\) &&/.test(app),
     '★★★えらぶと、どの画面でも その曜日だけになる');
-  t(/data-day=/.test(app), '　 押せるようになっている');
-  t(/onlyDay = b\.dataset\.day/.test(app), '　 押したら切り替わる');
+  t(/data-fs="day"/.test(app), '　 えらべるようになっている');
+  t(/if \(k === 'day'\)  onlyDay  = v;/.test(app), '　 えらんだら切り替わる');
   t(/day: onlyDay/.test(app), '　 えらんだ形を覚える');
   t(/filtOn = \(\) => !!onlyPlace \|\| !!onlyCat \|\| !!onlyBig \|\| !!onlyDay/.test(app),
     '★★★曜日や大カテゴリーで絞っているときも「絞り込みを解除」が出る');
@@ -3693,9 +3708,15 @@ console.log('\n■ グラフを１ページに、地図にピン（ご指示・2
   t(/const gMenu = /.test(app)
     && /\.gmenu\{display:grid/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
     '★★★えらび方は、メニューの形（ご指示・2026/11/15「もっとメニューぽくして」）');
-  t(/gMenu\(G_KINDS, gKind, 'data-gk'\)/.test(app) && /b\.dataset\.gk/.test(app),
-    '　 そのタグが押せる');
-  t(/function gKindSet\(k\)/.test(app) && /localStorage\.setItem\(G_KEY, k\)/.test(app),
+  /* ★2026/11/17：いまは棒グラフだけを出します（ご指示
+       「一旦棒グラフだけにして、ほかは非表示にしてください」）。
+     線グラフ・表グラフは消さずに残してあり、G_SHOW に書き足せば戻ります。 */
+  t(/const G_SHOW = \['tl'\];/.test(app), '★★★いまは棒グラフだけ');
+  t(/G_KINDS_ON\.length > 1 \? gMenu\(G_KINDS_ON, gKind, 'data-gk'\) : ''/.test(app),
+    '★★★1つだけのときは、えらぶところを出さない');
+  t(/const G_KINDS = \[[\s\S]{0,300}k:'sc'[\s\S]{0,300}k:'heat'/.test(app),
+    '　 線グラフ・表グラフは、消さずに残してある');
+  t(/function gKindSet\(k\)/.test(app) && /localStorage\.setItem\(G_KEY, gKind\)/.test(app),
     '　 えらんだ形を、その端末に覚える');
   t(/g:paneG, heat:paneG, tl:paneG, sc:paneG/.test(app),
     '★★★前の押しどころで来ても、同じ画面に行ける');
@@ -3849,7 +3870,10 @@ console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
   const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
   t(/data-t="rep"[^>]*><b>再現</.test(ix), '★★★【再現】の押しどころがある');
   t(/function paneRep\(\)/.test(app) && /rep:paneRep/.test(app), '★★★その画面がある');
-  t(/<h2>再現性あるかも<\/h2>/.test(app), '★★★題は「再現性あるかも」（言い切らない）');
+  /* ★2026/11/17：中身がそのまま分かる題に直しました（ご指示）。
+       「あるかも」の弱さは、中の文に残してあります。 */
+  t(/<h2>くり返している付け待ち<\/h2>/.test(app), '★★★題は「くり返している付け待ち」');
+  t(/言い切れません|とはかぎりません|かもしれません/.test(app), '　 言い切らない書き方は残っている');
   t(/const REP_RE = /.test(app) && /再現性\|毎週/.test(app),
     '★★★「〇回目」「再現性」などの印を見つける');
 

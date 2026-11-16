@@ -2214,3 +2214,21 @@ p.extnote{margin-top:8px}
 /* ★開演・終演は、それぞれ途中で折らない（2026/11/17）。
      320pxの機種で「終演 21:00（予」「定）」と割れていました。 */
 .evgo1{white-space:nowrap}
+
+/* ------------------------------------------------------------
+   ★絞り込みは、1行に1つのプルダウン（ご指示・2026/11/17
+     「選択する内容は、タブ形式ではなく、
+       全て1行ずつのプルダウン形式にしてください」）。
+   タグを横に並べていたので、画面の広さで折り返し方が変わり、
+   どれが同じ仲間なのか分かりませんでした。
+   左に名前、右にプルダウン。上から順に読むだけで分かります。
+ ---------------------------------------------------------- */
+.filt .frow{display:flex;align-items:center;gap:8px;margin-top:7px}
+.filt .frow > label{flex:0 0 76px;font-size:12px;color:#FFFFFF;
+  letter-spacing:.04em;line-height:1.3}
+.filt .frow > select,.filt .frow > input{flex:1 1 auto;min-width:0;height:40px}
+.filt .frow.one{justify-content:flex-start}
+/* 一番細い機種（320px）では、名前の欄を少し詰めます */
+@media (max-width:340px){
+  .filt .frow > label{flex-basis:64px;font-size:11.5px}
+}

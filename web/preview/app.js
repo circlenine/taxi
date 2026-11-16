@@ -1674,14 +1674,15 @@ const DAY_CHIPS = [{ k:'d-wd', n:'平日' }, { k:'d-fri', n:'金・祝前日' },
   { k:'d-sat', n:'土' }, { k:'d-sun', n:'日・祝' }];
 
 /* 期間の切り替え（上の区切りの中に出します・ご指示・2026/11/12） */
-const periodBox = () => `
-  <select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>
-  ${period.mode === 'free' ? `<div class="filt2 prange">
+const periodSel = () =>
+  `<select class="fsel ${period.mode!=='all'?'on':''}" data-filt="period">${periodOptions()}</select>`;
+const prangeBox = () => (period.mode === 'free' ? `<div class="filt2 prange">
     <label><span>はじめの日</span>
       <input type="date" data-filt="from" value="${esc(period.from)}"></label>
     <label><span>おわりの日</span>
       <input type="date" data-filt="to" value="${esc(period.to)}"></label>
-  </div>` : ''}`;
+  </div>` : '');
+const periodBox = () => periodSel() + prangeBox();
 
 /* 大カテゴリーのタグ（ご指示・2026/11/12）。'' は「すべて」 */
 const CAT_CHIPS = [''].concat(CAT_ORDER);
@@ -1691,36 +1692,58 @@ const CAT_CHIPS = [''].concat(CAT_ORDER);
  *   full を true にすると、大カテゴリーと期間も出します。
  *   ★グラフの画面では、上まで戻らずに切り替えられることが大事です。
  */
+/*
+ * 絞り込み。
+ *   full を true にすると、エリア・中分類・期間も出します。
+ *
+ * ★ご指示・2026/11/17
+ *   「選択する内容は、タブ形式ではなく、
+ *     全て1行ずつのプルダウン形式にしてください」
+ *
+ *   タグを横に並べていたので、画面の広さで折り返し方が変わり、
+ *   どれが同じ仲間なのか分かりませんでした。
+ *   1行に「名前」と「プルダウン」を1つずつ置くと、
+ *   上から順に読むだけで、いま何で絞っているかが分かります。
+ */
+const fOpt = (v, now, label) =>
+  '<option value="' + esc(v) + '"' + (String(now) === String(v) ? ' selected' : '') +
+  '>' + esc(label) + '</option>';
+
 const filterChips = (full) => `<div class="filt">
-  <div class="chips">
-    <button class="chip ${onlyMine?'':'on'}" data-mine="0">全員</button>
-    <button class="chip ${onlyMine?'on':''}" data-mine="1">自分だけ</button>
-    ${filtOn() ? '<button class="chip warn rst" id="fClear">絞り込みを解除</button>' : ''}
-  </div>
-  <!-- ★営業曜日の区分でも、すぐ切り替えられるようにします（ご指示・2026/11/12）。
+  <div class="frow"><label>だれの記録</label>
+    <select class="fsel ${onlyMine?'on':''}" data-fs="mine">
+      ${fOpt('0', onlyMine?'1':'0', '全員')}${fOpt('1', onlyMine?'1':'0', '自分だけ')}
+    </select></div>
+  <!-- ★営業曜日でも絞れます（ご指示・2026/11/12）。
        平日と土日祝では、売上の出方がまるで違うためです。 -->
-  <div class="chips daych">
-    ${DAY_CHIPS.map(d => `<button class="chip ${onlyDay===d.k?'on':''}" data-day="${d.k}">${d.n}</button>`).join('')}
-    <button class="chip rst" data-day="">リセット</button>
-  </div>
-  <!-- ★いま何で絞っているかを、タグのすぐ下に出します。
+  <div class="frow"><label>営業曜日</label>
+    <select class="fsel ${onlyDay?'on':''}" data-fs="day">
+      ${fOpt('', onlyDay, 'すべて')}
+      ${DAY_CHIPS.map(d => fOpt(d.k, onlyDay, d.n)).join('')}
+    </select></div>
+  ${full ? `<div class="frow"><label>エリア</label>
+    <select class="fsel ${onlyBig?'on':''}" data-fs="big">
+      ${fOpt('', onlyBig, 'すべて')}
+      ${BIG_ORDER.map(k => fOpt(k, onlyBig, k)).join('')}
+    </select></div>
+  <div class="frow"><label>中分類</label>
+    <select class="fsel ${onlyCat?'on':''}" data-fs="cat">
+      ${fOpt('', onlyCat, onlyBig ? onlyBig + '：すべて' : 'すべて')}
+      ${(onlyBig ? (BIG_CATS.filter(b => b.k === onlyBig)[0] || {subs:[]}).subs : CAT_ORDER)
+        .map(k => fOpt(k, onlyCat, k)).join('')}
+    </select></div>
+  <div class="frow"><label>期間</label>${periodSel()}</div>
+  ${prangeBox()}` : ''}
+  <!-- ★いま何で絞っているかを、すぐ下に出します。
        絞ったまま忘れると、数字を読み違えます。 -->
   ${filtOn() ? `<div class="fnow">いま：${
     [onlyBig ? esc(onlyBig) : '', onlyCat ? esc(onlyCat) : '',
      onlyPlace ? esc(splitSel(onlyPlace).place || onlyPlace) : '',
      (DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n || '',
      periodLabel()].filter(Boolean).join('／')
-  }</div>` : ''}
-  ${full ? `<div class="chips catch">
-    <button class="chip ${!onlyBig?'on':''}" data-big="">すべて</button>
-    ${BIG_ORDER.map(k => `<button class="chip big ${onlyBig===k?'on':''}" data-big="${esc(k)}">${k}</button>`).join('')}
-  </div>
-  <div class="chips catch sub">
-    <button class="chip ${!onlyCat?'on':''}" data-cat="">${onlyBig ? onlyBig + '：すべて' : '中分類：すべて'}</button>
-    ${(onlyBig ? (BIG_CATS.filter(b => b.k === onlyBig)[0] || {subs:[]}).subs : CAT_ORDER)
-      .map(k => `<button class="chip ${onlyCat===k?'on':''}" data-cat="${esc(k)}">${k}</button>`).join('')}
-  </div>
-  <div class="fperiod">${periodBox()}</div>` : ''}
+  }</div>
+  <div class="frow one">
+    <button class="chip warn rst" id="fClear">絞り込みを解除</button></div>` : ''}
 </div>`;
 
 /** 場所の名前を、地図で開けるようにして返す（押すと新しいタブ） */
@@ -2265,12 +2288,25 @@ const G_KINDS = [
   { k:'tl',   n:'棒グラフ', s:'1本ずつの流れ' },
   { k:'heat', n:'表グラフ', s:'時間帯×乗り場' }
 ];
+/*
+ * ★いまは「棒グラフ」だけを出します（ご指示・2026/11/17
+ *     「グラフ、何が参考になるのかまったくわからなくなってきたので
+ *       一旦棒グラフだけにして、ほかは非表示にしてください」）。
+ *   線グラフ・表グラフは、消さずに残してあります。
+ *   ここに 'sc' や 'heat' を書き足せば、そのまま戻ります。
+ */
+const G_SHOW = ['tl'];
+const G_KINDS_ON = G_KINDS.filter(x => G_SHOW.indexOf(x.k) !== -1);
 const G_KEY = 'tsukemachi.gkind';
 let gKind = (function (){
   try { const v = localStorage.getItem(G_KEY);
-    return G_KINDS.some(x => x.k === v) ? v : 'heat'; } catch (e) { return 'heat'; }
+    return G_SHOW.indexOf(v) !== -1 ? v : G_SHOW[0]; } catch (e) { return G_SHOW[0]; }
 })();
-function gKindSet(k){ gKind = k; try { localStorage.setItem(G_KEY, k); } catch (e) {} }
+function gKindSet(k){
+  /* 出していない形がえらばれたら、出している形に戻します */
+  gKind = (G_SHOW.indexOf(k) !== -1) ? k : G_SHOW[0];
+  try { localStorage.setItem(G_KEY, gKind); } catch (e) {}
+}
 
 const G_NOTE = {
   heat: '時間帯ごとに、どの乗り場が強いかを並べた表です。マスの数字は1本の平均金額、下は件数です。',
@@ -2290,19 +2326,25 @@ function paneG(){
     .map(p => ({ p: p, n: R.filter(r => r.place === p).length })));
   if (scPicks.length) R = R.filter(r => scPicks.indexOf(r.place) !== -1);
 
-  const head = leadCard('g') + `<div class="card"><h2>グラフ</h2>
+  const gk = G_KINDS.filter(x => x.k === kind)[0] || G_KINDS[1];
+  const head = leadCard('g') + `<div class="card"><h2>${esc(gk.n)}　${esc(gk.s)}</h2>
     <p class="note">${G_NOTE[kind]}</p>
-    ${gMenu(G_KINDS, gKind, 'data-gk')}
+    ${G_KINDS_ON.length > 1 ? gMenu(G_KINDS_ON, gKind, 'data-gk') : ''}
     ${kind === 'sc' ? `<div class="toolbar">
       <button class="chip ${scOpt.line ? 'on' : ''}" data-opt="line">線でつなぐ</button>
       <button class="chip ${scOpt.label ? 'on' : ''}" data-opt="label">金額を出す</button>
     </div>` : ''}
     ${filterChips(true)}
-    <div class="ktfind"><input class="ja" data-filt-chip="scpBox"
-      placeholder="乗り場をさがす（例：梅田）"></div>
-    <div class="chips" id="scpBox">
-      ${pls0.map(x => `<button class="chip ${scPicks.indexOf(x.p) !== -1 ? 'on' : ''}" data-scp="${esc(x.p)}">${esc(x.p)}<span class="cnt">${x.n}</span></button>`).join('')}
-      ${scPicks.length ? '<button class="chip rst" data-scp-clear="1">リセット</button>' : ''}
+    <!-- ★乗り場も、タグではなくプルダウンにしました（ご指示・2026/11/17）。
+           さがす欄に字を打つと、下のプルダウンの中身が そのぶんだけになります。 -->
+    <div class="filt">
+      <div class="frow"><label>乗り場</label>
+        <select class="fsel ${scPicks.length ? 'on' : ''}" id="scpSel">
+          <option value=""${scPicks.length ? '' : ' selected'}>すべて</option>
+          ${pls0.map(x => `<option value="${esc(x.p)}"${scPicks.indexOf(x.p) !== -1 ? ' selected' : ''}>${esc(x.p)}（${x.n}件）</option>`).join('')}
+        </select></div>
+      <div class="frow"><label>さがす</label>
+        <input class="ja" data-filt-sel="scpSel" placeholder="例：梅田"></div>
     </div></div>`;
   if (!R.length) return head + emptyCard('該当データがありません');
 
@@ -2457,7 +2499,7 @@ function buzzCard(){
   }).filter(function (x){ return x.all > 0; })
     .sort(function (a, b){ return b.all - a.all; });
   if (!L.length) return '';
-  return '<div class="card"><h2>いま、調べられている場所</h2>' +
+  return '<div class="card"><h2>いま、世の中で調べられている場所</h2>' +
     '<p class="note">ウィキペディアで、その場所のページが何回ひらかれたかです。' +
     '<b>お客の人数ではありません。</b>調べている人の多さです。</p>' +
     '<p class="note">英語のページがよく読まれている場所は、' +
@@ -2577,7 +2619,7 @@ function nextCard(R){
          必要最低限だけがパッと可視化できることを全ページで徹底してください」）。
        空っぽの枠が並ぶと、見るところが分からなくなります。 */
   if (!L.length) return '';
-  return '<div class="card"><h2>次に拾えた場所</h2>' +
+  return '<div class="card"><h2>1本のあと、次に拾えた乗り場</h2>' +
     '<p class="note">1本 乗せたあと、次の1本を <b>どこで・何分後に</b> 拾えているかです。' +
     HOT_MIN_N + '件以上そろった組み合わせだけを出しています。押すと地図が開きます。</p>' +
     '<div class="scroll"><table><thead><tr><th>この乗り場のあと</th><th>次に拾えた所</th>' +
@@ -2643,7 +2685,7 @@ function paneMap(){
   const G = mapGroups(R);
   const missNames = Object.keys(G.miss);
 
-  const head = leadCard('map') + `<div class="card"><h2>地図</h2>
+  const head = leadCard('map') + `<div class="card"><h2>乗り場の地図（ピン）</h2>
     <p class="note">えらんだ時間帯と金額に当てはまる記録を、乗り場のあたりにピンで出します。</p>
     <!-- ★「すべて」が2つ並んでいて、どちらの「すべて」か分かりませんでした
            （ご指摘・2026/11/16「なぜ、すべてのタブが2つあるのですか？」）。
@@ -2692,7 +2734,7 @@ function paneMap(){
 
   /* ★ピンの立つ上位を、文字でも出します（地図が読めない機種のため） */
   const top = G.hit.slice().sort(function (a, b){ return b.rows.length - a.rows.length; }).slice(0, 10);
-  const list = top.length ? `<div class="card"><h2>件数の多い順</h2>
+  const list = top.length ? `<div class="card"><h2>ピンの立つ乗り場（件数の多い順）</h2>
     <div class="scroll"><table><thead><tr><th>あたり</th><th class="n">件</th>
     <th class="n">1本の平均</th><th>乗り場</th></tr></thead><tbody>${
       top.map(function (o){
@@ -3651,7 +3693,7 @@ function paneHot(now){
     (got.loose ? '／この時間ぴったりの記録が足りないので、少し広げました' : '') + '</div>' +
     '</div>' +
     hotPlanCard(plan, c.early) +
-    '<div class="card"><h2>今の時間帯に強い場所</h2>' +
+    '<div class="card"><h2>いまの時間帯に強い乗り場</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
     '<th class="n">1本の平均</th><th style="width:34%"></th><th class="n">待ち</th>' +
     '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
@@ -3675,7 +3717,7 @@ function hotPlanCard(plan, early){
   if (!hotPlanReady_(plan)) return '';
   /* ★記録の足りない時間は、まるごと出しません（ご指示・2026/11/16）。
        「記録が足りない」ばかりが並ぶと、見るところが分からなくなります。 */
-  return '<div class="card"><h2>翌4時までの予想</h2>' +
+  return '<div class="card"><h2>翌4時までの 時間帯ごとの狙い目</h2>' +
     '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。</p>' +
     '<div class="scroll fb"><div class="plan">' + plan.map(function (s, i){
       if (!s.top) return '';
@@ -3705,7 +3747,7 @@ function wxNextHTML(wx){
     ? '<b style="color:var(--kusha)">☔ ' + esc(wx.worse.label) + ' ごろから崩れる見込み（' +
       wx.worse.pop + '%）</b>'
     : '<b style="color:var(--meter)">このあと、大きく崩れる見込みはありません</b>';
-  return '<div class="card" style="margin-top:12px"><h2>このあとの空</h2>' +
+  return '<div class="card" style="margin-top:12px"><h2>このあとの天気</h2>' +
     '<p class="note">' + head + '<br>' +
     '気象庁の「' + esc(wx.area || '大阪府') + '」の予報。6時間ごとの降水確率です。' +
     '何時何分から降るかは、気象庁からも出ていません。</p>' +
@@ -4331,7 +4373,7 @@ function bestTimeCard(D){
     '<div class="fsug" id="bestSug"></div></div>';
 
   if (!rows.length) {
-    return '<div class="card"><h2>この乗り場は、何時がよいか</h2>' +
+    return '<div class="card"><h2>乗り場別 オススメ時間帯</h2>' +
       '<div class="bsel">' + sel + '</div>' +
       '<div class="empty">' + esc(pick) + ' は、3件以上そろった時間帯が、まだありません。</div></div>';
   }
@@ -4347,7 +4389,7 @@ function bestTimeCard(D){
       '<span class="btm">平均 ' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></div>';
   }).join('');
 
-  return '<div class="card"><h2>この乗り場は、何時がよいか</h2>' +
+  return '<div class="card"><h2>乗り場別 オススメ時間帯</h2>' +
     '<div class="bsel">' + sel +
     '<a class="mini" href="' + mapUrl(pick) + '" target="_blank" rel="noopener">📍 地図</a></div>' +
     '<p class="note"><b>' + esc(pick) + ' は、' + top.h + '時台</b>が一番よさそうです' +
@@ -4390,7 +4432,7 @@ function hourPlanCard(D){
       '</div>';
   });
   if (!bb) return '';
-  return '<div class="card plan3"><h2>時間順の狙い目</h2>' +
+  return '<div class="card plan3"><h2>時間帯ごとの おすすめ乗り場</h2>' +
     '<p class="note">いま ' + esc(fmtD(c.date)) + ' ' + esc(c.clock) + '。' +
     (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時からの枠で出しています。' : '') +
     '<b>時間の順</b>に並べています。一番上が、いま走る枠です。押すと地図が開きます。</p>' +
@@ -4427,7 +4469,13 @@ const longHead = '<div class="lhead"><span class="li"></span><span class="lp">�
  */
 function paneRatio(){
   const R = visible();
-  const head = leadCard('ratio') + '<div class="card"><h2>パーセント</h2>' +
+  /* ★「乗り場別 オススメ時間帯」を、ページの一番上に出します
+       （ご指示・2026/11/17「何時が良いかのやつは、
+         ページの1番上に移動してください」）。
+     走る前に一番に見たいのは「自分の乗り場を、何時に狙うか」だからです。 */
+  const topCard = bestTimeCard(visible().filter(hasDep));
+  const head = leadCard('ratio') + topCard +
+    '<div class="card"><h2>ロングが出やすい所と時間</h2>' +
     '<p class="note">ロング（¥10,000以上）が<b>出やすい所と時間</b>を探す画面です。' +
     'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。' +
     '<b>3件に届かない乗り場は、割合を出しません。</b></p>' +
@@ -4444,18 +4492,20 @@ function paneRatio(){
   /* ★一番上は「何時は、どこ」（ご指示・2026/11/12）。
        「どこを、何時に」ではなく、**時間帯順**に並べて、
        いま走るべき乗り場が、すぐ目に入る形にします。 */
-  /* ★「この乗り場は、何時がよいか」を一番上に（ご指示・2026/11/13） */
+  /* ★「乗り場別 オススメ時間帯」を一番上に（ご指示・2026/11/13、2026/11/17） */
   /* ★「時間帯べつ 乗り場ランキング」を、このページの一番上に出します
        （ご指示・2026/11/13「時間帯別のりばランキングを
          そのページの1番上にしてください」）。
        そのあとは、つながりの近い順に並べます。
          ① 時間帯べつ 乗り場ランキング … いま、どこへ行くか
-         ② この乗り場は、何時がよいか   … その乗り場を、いつ狙うか
+         ② 乗り場別 オススメ時間帯     … その乗り場を、いつ狙うか
          ③ 時間順の狙い目               … 夜ぜんたいの流れ
          ④ ロングが出やすい乗り場／時間帯
          ⑤ エリアごと／前の期間と比べる */
   let rankCard = '';
-  let out = bestTimeCard(D) + hourPlanCard(D);
+  /* ★オススメ時間帯は、もう一番上に出してあります（上の topCard）。
+       ここでくり返すと、同じ表が2つ ならびます。 */
+  let out = hourPlanCard(D);
 
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
   out +=
@@ -4542,7 +4592,7 @@ function paneRatio(){
         '</div>';
     });
     if (hb) {
-      rankCard = '<div class="card"><h2>時間帯べつ 乗り場ランキング</h2>' +
+      rankCard = '<div class="card"><h2>時間帯別 乗り場ランキング</h2>' +
         '<p class="note">その時間に、ロングが出やすかった乗り場の上位3か所です。' +
         '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
         hb + '</div>';
@@ -4585,7 +4635,7 @@ function paneRatio(){
     });
   });
   if (pbody) {
-    out += '<div class="card"><h2>エリアごと</h2>' +
+    out += '<div class="card"><h2>エリア別のロング割合</h2>' +
       '<p class="note">北・南・他のまとまりで見ています。</p>' + pbody +
       '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
   }
@@ -4746,7 +4796,7 @@ function gasStatCard(){
       }).join('') + '</tbody></table></div>'
     : '';
 
-  return '<div class="card"><h2>仕組みの様子</h2>' +
+  return '<div class="card"><h2>仕組みの様子（まーく様だけ）</h2>' +
     '<p class="note">スクリプトの画面で見ていたものを、ここに並べています。' +
     'スクリプトの画面そのものは、ここには出せません（Googleのログインが要るためです）。</p>' +
     head +
@@ -5035,7 +5085,7 @@ function isGo(r){
 
 function paneTok(){
   const k = tokKind;
-  const head = leadCard('tok') + '<div class="card"><h2>種類べつに見る</h2>' +
+  const head = leadCard('tok') + '<div class="card"><h2>種類別（GO・Uber・バラシ・関空・チケット）</h2>' +
     '<p class="note">見たいものを、下からえらんでください。</p>' +
     gMenu(TOK_KINDS, tokKind, 'data-tk') + '</div>';
   if (k === 'kix')    return head + whenPane('関空', '関空', 'ホテル',
@@ -5154,7 +5204,7 @@ function paneRep(){
    *   「再現性あるかも」と呼んでいました。それは走り方の話であって、
    *   お客様がくり返して来ている、という話ではありません。
    */
-  const head = leadCard('rep') + '<div class="card"><h2>再現性あるかも</h2>' +
+  const head = leadCard('rep') + '<div class="card"><h2>くり返している付け待ち</h2>' +
     '<p class="note">上は「他」の欄に印のある乗車、下は同じ枠に何度も付けた記録です。' +
     '<b>枠が同じでも、同じお客様とは限りません。</b></p>' +
     filterChips(true) + '</div>';
@@ -5378,12 +5428,20 @@ function nippoRowsHTML(x){
 }
 
 function paneNippo(){
-  const head = leadCard('nippo') + `<div class="card"><h2>日報（写真）読み込み</h2>
+  const head = leadCard('nippo') + `<div class="card"><h2>日報の写真を読み込む</h2>
     <p class="note">紙の日報を写した写真を置くと、1行ずつ読んで、
       いまの記録とつき合わせます。<b>読んだだけでは記録に入りません。</b>
       下の表で見てから【足す】を押してください。</p>
-    <label><span>営業日</span>
-      <input type="date" id="nipDate" value="${esc(today())}"></label>
+    <!-- ★営業日は、写真から読みます（ご質問・2026/11/17
+           「複数選択できるようにするのに、なぜ営業日のしていを
+             しなければいけないのですか？」）。
+         何日分も まとめて置けるのに、営業日は1つしか指定できず、
+         ほかの日のぶんが全部ずれていました。
+         ここに入れた日は、写真から読めなかったときだけ使います。 -->
+    <div class="filt"><div class="frow"><label>営業日</label>
+      <input type="date" id="nipDate" value="${esc(today())}"></div></div>
+    <p class="note">営業日は、<b>写真から読みます</b>。
+      上の日づけは、写真に日付が無いときだけ使います。</p>
     <!-- ★複数えらべます。えらんだ写真は控えてあるので、
            画面が作り直されても消えません（ご指摘・2026/11/16）。 -->
     <div class="nippick">
@@ -5466,7 +5524,7 @@ function sayPush(){
 function paneSays(){
   const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
   const now = [...sayText].length;
-  return `<div class="card" id="sayCard"><h2>ふきだしに追加したい文言</h2>
+  return `<div class="card" id="sayCard"><h2>ふきだしに ひとことを足す</h2>
     <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。
       ふきだしを押すと、ここへ来られます。</p>
     <div class="ktfind">
@@ -5562,7 +5620,7 @@ async function sayDel(id){
 
 /* ---- 書き出し・取り込み（「記録」の下に出します） ---- */
 function paneOut(){
-  return `<div class="card"><h2>書き出し</h2>
+  return `<div class="card"><h2>記録を書き出す（CSV）</h2>
     <p class="note">いま出している${onlyMine?'自分の':'全員の'}記録を、CSVに書き出します。スプレッドシートで数えたいときや、控えを残したいときに使ってください。</p>
     <div class="actions">
       <button class="btn ghost" id="csvout">CSVを書き出す</button>
@@ -5975,7 +6033,7 @@ function wire(){
     document.body.classList.toggle('modalon', !!document.querySelector('.modal'));
   } catch (e) {}
   fabWire();
-  /* 「この乗り場は、何時がよいか」の乗り場えらび */
+  /* 「乗り場別 オススメ時間帯」の乗り場えらび */
   const bps = document.getElementById('bestPlaceSel');
   if (bps) bps.onchange = function () { bestPlace = bps.value; render(); };
   /* ★時間帯の棒を押すと、その時間の乗り場だけになります（ご指示・2026/11/12） */
@@ -6131,6 +6189,23 @@ function wire(){
   document.querySelectorAll('[data-mine]').forEach(b => b.onclick = () => {
     grab(); onlyMine = b.dataset.mine === '1'; filtSave(); render(); });
   /*
+   * ★絞り込みは、ぜんぶプルダウンになりました（ご指示・2026/11/17）。
+   *   えらんだ瞬間に、画面ぜんたいが そのぶんだけになります。
+   * ★エリアをえらんだら、中分類と乗り場の指定は外します。
+   *   どちらも効かせると、どちらで絞ったのか分からなくなるためです。
+   */
+  document.querySelectorAll('[data-fs]').forEach(function (el) {
+    el.onchange = function () {
+      grab();
+      const k = el.dataset.fs, v = String(el.value || '');
+      if (k === 'mine') onlyMine = (v === '1');
+      if (k === 'day')  onlyDay  = v;
+      if (k === 'cat')  { onlyCat = v; onlyPlace = ''; }
+      if (k === 'big')  { onlyBig = v; onlyCat = ''; onlyPlace = ''; }
+      filtSave(); render();
+    };
+  });
+  /*
    * ★しぼり込み（乗り場・期間）。ご指示・2026/11/12
    *   選んだら、その場で画面ぜんぶが そのぶんだけになります。
    */
@@ -6213,7 +6288,7 @@ function wire(){
     };
     inp.addEventListener('input', show);
   });
-  /* ★「この乗り場は、何時がよいか」の字で探す欄（ご指示・2026/11/13） */
+  /* ★「乗り場別 オススメ時間帯」の字で探す欄（ご指示・2026/11/13） */
   document.querySelectorAll('[data-pick]').forEach(function (inp) {
     const box = document.getElementById(inp.dataset.pick);
     if (!box) return;
@@ -6236,6 +6311,32 @@ function wire(){
   /* ★「乗り場をえらぶ」のタグを、字でしぼります（ご指示・2026/11/13）。
        画面を作り直すと打っている途中で指が離れるので、
        タグを隠したり出したりするだけにします。 */
+  /*
+   * ★さがす欄は、プルダウンの中身をしぼります（ご指示・2026/11/17）。
+   *   タグを隠していたころと同じ考え方です。打った字が入っている
+   *   乗り場だけが、プルダウンに残ります。
+   *   ★いまえらんでいるものは、字に合わなくても残します
+   *     （消えると、何でしぼっているのか分からなくなるため）。
+   */
+  document.querySelectorAll('[data-filt-sel]').forEach(function (inp) {
+    const sel = document.getElementById(inp.dataset.filtSel);
+    if (!sel) return;
+    inp.addEventListener('input', function () {
+      const q = pkey(inp.value);
+      [...sel.options].forEach(function (o) {
+        if (!o.value) return;                       /* 「すべて」は いつも出す */
+        const nm = String(o.textContent || '').replace(/（\d+件）$/, '');
+        o.hidden = !!q && !o.selected && pkey(nm).indexOf(q) === -1;
+      });
+    });
+  });
+  const scs = document.getElementById('scpSel');
+  if (scs) scs.onchange = function () {
+    grab();
+    const v = String(scs.value || '');
+    scPicks = v ? [v] : [];
+    scPicksSave(); render();
+  };
   document.querySelectorAll('[data-filt-chip]').forEach(function (inp) {
     const box = document.getElementById(inp.dataset.filtChip);
     if (!box) return;
