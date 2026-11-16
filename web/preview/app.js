@@ -4021,7 +4021,14 @@ async function loadWx(){
 /* ---- 一夜の流れ ---- */
 /** 1枚ぶんの横棒グラフを作ります（えらんだ記録だけで描きます） */
 function tlChart(R){
-  const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,7);
+  /*
+   * ★夜の数を 14 に戻しました（ご指示・2026/11/17）。
+   *   ふるくんの引き継ぎのときは 14夜ならべてありました。
+   *   7夜に減らしていたので、**縦に見たときの「重なり」**が
+   *   分かりにくくなっていました。
+   * ★夜が多いときは、1行を細くします（画面に収めるため）。
+   */
+  const ds = [...new Set(R.map(r => r.date))].sort().reverse().slice(0,14);
   /* ★19時より前の記録が、左端に積み上がって見えていました（2026/11/12）。
        最も早い記録に合わせて、横じくの始まりを決めます。 */
   const st = R.map(r => r.dep - (+r.wait || 0) / 60);
@@ -4037,14 +4044,18 @@ function tlChart(R){
   /* ★左をもっと詰めました（ご指示・2026/11/13「もっと左をスマートに詰められませんか」）。
        日付を10pxにしたので、52pxで「10/30 金」まで入ります。
        48pxにしたら「10/30」の1が切れました（2026/11/13・実際に測って直し）。 */
-  const L = 52, Rp = 12, rowH = 54, TOPH = 30;
+  /* 夜が8つ以上ならんだら、1行を細くします（引き継ぎのときと同じ高さ） */
+  const L = 52, Rp = 12, rowH = (ds.length > 7 ? 38 : 54), TOPH = 30;
+  const slim = (rowH < 54);
+  /* 「重なり」の帯の高さ（一番下、時刻の線の上に出します） */
+  const DENS = 52;
   /* ★1時間ぶんの幅は、表グラフと同じ考え方で決めます。
        22時までは、横にスクロールせずに見られる大きさにします。 */
   const vwT  = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
   const need = Math.max(1, Math.min(x1 - x0, 22 - x0));
   const cwT  = Math.max(30, Math.min(52, Math.floor((vwT - L - Rp) / need)));
   const W = L + Rp + Math.max(1, (x1 - x0)) * cwT;
-  const H = TOPH + ds.length*rowH + 26;
+  const H = TOPH + ds.length*rowH + DENS + 26;
   /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
        左の端より外には、はみ出させません。 */
   const sx = v => Math.max(L, Math.min(W - Rp, L + (v-x0)/(x1-x0)*(W-L-Rp)));
@@ -4068,28 +4079,79 @@ function tlChart(R){
     /* 「11/11(水)」は長いので、かっこを外して「11/11 水」にします */
     s += `<text class="axis" x="${L-6}" y="${y+23}" text-anchor="end" fill="${dcol(d)}"
       style="font-size:10px">${esc(fmtD(d).replace('(', ' ').replace(')', ''))}</text>
-      <text class="axis" x="${L-6}" y="${y+36}" text-anchor="end"
-      style="font-size:9px;opacity:.8">${rows.length}件</text>
-      <text class="axis" x="${L-6}" y="${y+46}" text-anchor="end"
-      style="font-size:9px;opacity:.8">${yen(sum)}</text>`;
+      ` + (slim
+        ? `<text class="axis" x="${L-6}" y="${y+33}" text-anchor="end"
+             style="font-size:8.5px;opacity:.8">${rows.length}件</text>`
+        : `<text class="axis" x="${L-6}" y="${y+36}" text-anchor="end"
+             style="font-size:9px;opacity:.8">${rows.length}件</text>
+           <text class="axis" x="${L-6}" y="${y+46}" text-anchor="end"
+             style="font-size:9px;opacity:.8">${yen(sum)}</text>`);
     rows.forEach(r => {
       const a = sx(r.dep - (+r.wait||0)/60), b = sx(r.dep), c = sx(r.dep + (+r.ride||0)/60);
       const bd = band(r), bw = Math.max(3, c-b);
       const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}・${bd[1]}`;
       s += `<g data-tip="${tip}">
-        <rect x="${a}" y="${y+19}" width="${Math.max(1,b-a)}" height="7" rx="3.5" fill="#8FA3C4"/>
-        <rect x="${b}" y="${y+11}" width="${bw}" height="23" rx="5" fill="${bd[0]}"/>`;
+        <rect x="${a}" y="${y+(slim?15:19)}" width="${Math.max(1,b-a)}" height="${slim?5:7}" rx="3.5" fill="#8FA3C4"/>
+        <rect x="${b}" y="${y+(slim?9:11)}" width="${bw}" height="${slim?17:23}" rx="5" fill="${bd[0]}"/>`;
       /* ③ 乗り場の名前は、帯の中に。入りきらないときは出しません */
       const nm = String(r.place || '');
       if (nm && bw >= nm.length*10 + 10)
-        s += `<text class="tlin" x="${b+5}" y="${y+27}" style="font-size:9.5px">${esc(nm)}</text>`;
+        s += `<text class="tlin" x="${b+5}" y="${y+(slim?22:27)}" style="font-size:9.5px">${esc(nm)}</text>`;
       /* ★名前が入らない細い帯でも、金額だけは出します（ご指摘・2026/11/13
            「パッと見、よく分からない」）。いくらの1本かが、一番知りたい所です。 */
       else if (hasFare(r) && bw >= String(yen(r.fare)).length * 5.6 + 6)
-        s += `<text class="tlin" x="${b+4}" y="${y+27}" style="font-size:8.5px">${yen(r.fare)}</text>`;
+        s += `<text class="tlin" x="${b+4}" y="${y+(slim?22:27)}" style="font-size:8.5px">${yen(r.fare)}</text>`;
       s += `<rect x="${a-1}" y="${y+6}" width="${Math.max(6,c-a+2)}" height="32" fill="transparent"/></g>`;
     });
   });
+  /* ------------------------------------------------------------
+   *  ★「重なり」の帯（ご指示・2026/11/17）
+   *
+   *    まーく様のご指示：
+   *      「恐らく横グラフ？で、アツい部分の重なりみたいなものを
+   *        可視化できるようなシステム構築がされてたと思いますが…
+   *        あれを上手く復活させて欲しいのですが」
+   *
+   *    夜を14こ ならべると、同じ時間に帯がそろう所が「濃く」見えます。
+   *    それが「重なり」です。目で数えるのは大変なので、
+   *    **1時間ごとに、その時間に動いていた本数**を帯にして出します。
+   *
+   *    ★数えるのは「付け待ちを始めてから、降ろすまで」です。
+   *      その時間に、実際に手がふさがっていた本数です。
+   *    ★本数です。お客様の人数ではありません。
+   * ---------------------------------------------------------- */
+  const dens = [];
+  for (let h = x0; h < x1; h++) {
+    let n = 0;
+    ds.forEach(function (d){
+      R.filter(function (r){ return r.date === d; }).forEach(function (r){
+        const a2 = r.dep - (+r.wait || 0) / 60;
+        const c2 = r.dep + (+r.ride || 0) / 60;
+        if (a2 < h + 1 && c2 > h) n++;
+      });
+    });
+    dens.push(n);
+  }
+  const dmx = Math.max.apply(null, dens.concat([1]));
+  const dy0 = TOPH + ds.length * rowH + 6;          /* 帯のてっぺん */
+  const dh  = DENS - 18;                             /* 帯の高さ */
+  s += `<text class="axis" x="${L-6}" y="${dy0+dh/2+4}" text-anchor="end"
+    style="font-size:9.5px">重なり</text>`;
+  dens.forEach(function (n, i){
+    const h = x0 + i;
+    const xa = sx(h), xb = sx(h + 1);
+    const bw2 = Math.max(2, xb - xa - 2);
+    const hh2 = Math.max(1, Math.round(dh * n / dmx));
+    /* 一番 重なっている時間だけ、色を変えて目立たせます */
+    const top = (n === dmx && n > 0);
+    s += `<g data-tip="${h}時台&#10;この時間に動いていた ${n}本（${ds.length}夜ぶん）">
+      <rect x="${xa+1}" y="${dy0 + dh - hh2}" width="${bw2}" height="${hh2}" rx="2"
+        fill="${top ? BANDS[2].c : '#8FA3C4'}" opacity="${top ? 1 : .75}"/>
+      ${n ? `<text class="axis" x="${xa + bw2/2 + 1}" y="${dy0 + dh + 11}"
+        text-anchor="middle" style="font-size:8.5px;opacity:.9">${n}</text>` : ''}
+    </g>`;
+  });
+
   /* ④ 一番下にも、時刻の数字と線を出します（上まで戻らせないため） */
   s += `<line class="axis-l" x1="${L}" x2="${W-Rp}" y1="${H-22}" y2="${H-22}"/>`;
   for (let h = x0; h <= x1; h++) s += `<line class="axis-l" x1="${sx(h)}" x2="${sx(h)}" y1="${H-22}" y2="${H-18}"/>
@@ -4097,7 +4159,10 @@ function tlChart(R){
   s += '</svg>';
   return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
     <div class="scroll fb">${s}</div>
-    <div class="legend"><span><i style="background:#8FA3C4"></i>待ち時間</span>${BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.n}</span>`).join('')}<span><i style="background:#5A6273"></i>不明</span><span>横軸は時。25＝翌1時</span></div>`;
+    <div class="legend"><span><i style="background:#8FA3C4"></i>待ち時間</span>${BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.n}</span>`).join('')}<span><i style="background:#5A6273"></i>不明</span><span>横軸は時。25＝翌1時</span></div>
+    <p class="note">一番下の<b>「重なり</b>」は、その時間に動いていた<b>本数</b>です
+      （${ds.length}夜ぶんを合わせた数）。付け待ちを始めてから、降ろすまでを数えています。
+      一番多い時間だけ、色を変えています。<b>お客様の人数ではありません。</b></p>`;
 }
 
 /* ------------------------------------------------------------
