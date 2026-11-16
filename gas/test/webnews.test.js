@@ -2433,6 +2433,15 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/if \(byDate && r\.date !== last\)/.test(app),
     '　 日づけで並べたときだけ、日づけの見出し行も出す');
   t(/class="dhead /.test(app), '　 その見出しの行がある');
+  /* ★日が変わるところに、1行ぶんの空きを入れます（ご指示・2026/11/16
+       「日付をまたぐさい、日付の境目の高さ空白を、ほかと同じくらいの
+         高さ分あけて、区切りがわかるようにしてください」） */
+  t(/if \(last\) head \+= '<tr class="dgap">/.test(app),
+    '★★★日が変わるところに、空きの行を入れる');
+  t(/\.scroll\.tbl tr\.dgap td\{height:42px;padding:0;border:0;background:none\}/.test(css),
+    '★★★その空きは、ふつうの1行ぶんくらい（線も背景も付けない）');
+  t(/if \(last\) head/.test(app),
+    '　 一番上の日の前には入れない（見出しのすぐ下なので要らない）');
 
   /* ③ 削除は、2回たずねる */
   const del = app.slice(app.indexOf('async function delRec'), app.indexOf('async function delRec') + 1200);

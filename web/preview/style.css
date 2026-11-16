@@ -1301,6 +1301,13 @@ header > h1, .login .head > h1{white-space:nowrap}
 .scroll.tbl tr.fresh td{background:rgba(255,213,74,.10)}
 .scroll.tbl tr.fresh td.c-who{background:rgba(255,213,74,.22)}
 
+/* ★日が変わるところの空き（ご指示・2026/11/16
+     「日付の境目の高さ空白を、ほかと同じくらいの高さ分あけて、
+       区切りがわかるようにしてください」）。
+     ふつうの1行と同じくらいの高さを、まるごと空けます。
+     線も背景も付けないので、そこだけ ぽっかり空いて見えます。 */
+.scroll.tbl tr.dgap td{height:42px;padding:0;border:0;background:none}
+
 /* 日付の見出し（変わったときだけ）。営業曜日の区分で色を分けます */
 .scroll.tbl tr.dhead td{font-family:var(--mono);font-size:12.5px;font-weight:700;
   padding:5px 7px;color:#FFFFFF;border-top:1px solid var(--line)}

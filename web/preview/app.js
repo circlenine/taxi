@@ -1724,8 +1724,14 @@ function tableHTML(rows){
   const body = rows.map(function (r) {
     let head = '';
     if (byDate && r.date !== last) {
+      /* ★日が変わるところに、1行ぶんの空きを入れます（ご指示・2026/11/16
+           「日付をまたぐさい、日付の境目の高さ空白を、ほかと同じくらいの
+             高さ分あけて、区切りがわかるようにしてください」）。
+         表のつめっぷりが同じだと、どこで日が変わったのか分かりませんでした。
+         一番上の日には入れません（見出しのすぐ下なので、要りません）。 */
+      if (last) head += '<tr class="dgap"><td colspan="10"></td></tr>';
       last = r.date; lastCat = '';
-      head = '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="10">' +
+      head += '<tr class="dhead ' + dayCls(r.date) + '"><td colspan="10">' +
              esc(fmtD(r.date)) + '　<small>' + esc(dayName(r.date)) + '</small></td></tr>';
       const cat = recCat(r);
       lastCat = cat;
