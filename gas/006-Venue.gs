@@ -2,7 +2,17 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V121ver  （2026/11/16）  ★★★
+ *  ★★★  V122ver  （2026/11/16）  ★★★
+ *
+ *  [V122ver]
+ *  ・🎢 USJ の閉園時刻を、読めるようにした（ずっと持ち越していたもの）
+ *    ★ホームページは、開いたあとに中身をこしらえる作りで、
+ *      字をいくら読んでも時刻が1つも出てきませんでした。
+ *      ページ自身が読みにいっている置き場が見つかりました。
+ *    ★閉園は日によってまるで違います（22:00の日も19:00の日もある）。
+ *      一度に何千人も出てくるので、1時間ちがうと空振りします。
+ *    ★出すのは閉園だけ。開園は、人が入る時刻です。
+ *    ★人数は書きません（席数も入園者数も分からないため）
  *
  *  [V121ver]
  *  ・🎤 台帳のイベント欄に「客層の見当・話のタネ・触れない方がよいこと・
@@ -1854,7 +1864,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V121ver";
+const VN_VERSION = "V122ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -1970,6 +1980,28 @@ const VN_SOURCES = [
    */
   { name: "大阪城音楽堂", kind: "event", deep: true,
     url: "https://www.osakacastlepark.jp/ongakudo/event/" },
+  /*
+   * ★ユニバーサル・スタジオ・ジャパン（2026/11/16 に足しました）
+   *
+   *   ずっと「ページから字が取れない」と持ち越していた会場です。
+   *   ホームページは、開いたあとに中身をこしらえる作りなので、
+   *   字をいくら読んでも 時刻は1つも出てきませんでした。
+   *   そのページ自身が読みにいっている置き場が見つかりました。
+   *     https://mobile-service.usj.co.jp/api/Venues?city=USJ&pageSize=All
+   *   ここに**1週間先までの開園・閉園の時刻**が、日ごとに入っています。
+   *   無料・鍵なし・課金の設定なしです（ほかの読み先と同じ）。
+   *
+   *   ★閉園の時刻は、日によってまるで違います
+   *     （11/16は22:00、11/17は20:00、11/20は19:00）。
+   *     だから「だいたい何時」では使えません。
+   *   ★出すのは**閉園**です。開園は、車に乗る人が出る時刻ではありません。
+   */
+  { name: "ユニバーサル・スタジオ・ジャパン", kind: "event",
+    usj: "https://mobile-service.usj.co.jp/api/Venues?city=USJ&pageSize=All",
+    /* ★押せる住所は、実際に開いて生きていたものだけにします。
+         営業時間だけのページは、どの住所も「見つかりません」になりました
+         （2026/11/16に4つ試しました）。入口のページは開くので、こちらに。 */
+    url: "https://www.usj.co.jp/web/ja/jp" },
   /*
    * ★フェスティバルホール（まーく様のご指示で追加）
    *   これまでは、月間の公演スケジュール表（紙・PDFの写真）を
@@ -2262,7 +2294,16 @@ const VN_VENUES = {
   "舞洲アリーナ":           { cap: 7000,  near: ["舞洲", "桜島"],                      type: "アリーナ",   city: "大阪市此花区", pref: "大阪府" },
   "Asueアリーナ大阪":       { cap: 10000, near: ["朝潮橋", "弁天町", "八幡屋"],          type: "アリーナ",   city: "大阪市港区", pref: "大阪府" },
   "フェニーチェ堺":         { cap: 2000,  near: ["堺東", "堺市"],                      type: "ホール",     city: "堺市堺区", pref: "大阪府" },
-  "高槻城公園芸術文化劇場": { cap: 1500,  near: ["高槻市", "高槻"],                    type: "ホール",     city: "高槻市",   pref: "大阪府" }
+  "高槻城公園芸術文化劇場": { cap: 1500,  near: ["高槻市", "高槻"],                    type: "ホール",     city: "高槻市",   pref: "大阪府" },
+  /*
+   * ★USJ（2026/11/16 に足しました）
+   *   cap は 0 にしてあります。**人数が分からないから**です。
+   *   ホールのような席数が無く、その日の入園者も公表されていません。
+   *   見当で数を書くと、その数だけが一人歩きします
+   *   （「数字を出すときの決まり」。迷ったら出さない）。
+   */
+  "ユニバーサル・スタジオ・ジャパン":
+                            { cap: 0,     near: ["ユニバーサルシティ", "桜島"],        type: "テーマパーク", city: "大阪市此花区", pref: "大阪府" }
 };
 
 /** 対象にする時間帯（この中に「終わり」か「始まり」が入っていれば出す） */
@@ -8526,6 +8567,16 @@ function vnJohall_(src, day, html) {
 }
 
 function vnScrapeOne_(src, day, htmlIn) {
+  /*
+   * ★USJ は、ホームページの字ではなく「中身の置き場」から読みます
+   *   （2026/11/16）。くわしい訳は、読み先の一覧のところに書いてあります。
+   */
+  if (src && src.usj) {
+    try { return vnScrapeUsj_(src, day); }
+    catch (e) {
+      return { events: [], note: "❌ USJの閉園時刻が読めませんでした", size: 0, code: 0 };
+    }
+  }
   // ★公開カレンダーから読む会場（ワントゥワンなど）は、こちらで読みます
   if (src && src.ics && src.ics.length) {
     try { return vnScrapeIcs_(src, day); }
@@ -8884,6 +8935,115 @@ function vnScrapeOne_(src, day, htmlIn) {
   if (!out.events.length) {
     out.note = "⚠️ 日付は見つかりましたが、時刻が読み取れませんでした（時間不明では出しません）";
   }
+  return out;
+}
+
+/* ================================================================
+ *  🎢 USJ の閉園時刻を読む（2026/11/16）
+ *
+ *  ★ずっと持ち越していたものです。
+ *    「ページから字が取れず、中身の置き場も見つかっていない」
+ *    ホームページを開いたあとに中身をこしらえる作りなので、
+ *    字を読んでも時刻が1つも出てきませんでした。
+ *    ページ自身が読みにいっている置き場を見つけました。
+ *
+ *  ★なぜ大事か
+ *    閉園の時刻が、日によってまるで違います
+ *    （11/16は22:00、11/17は20:00、11/20は19:00）。
+ *    一度に何千人も出てくるので、時刻が1時間ちがうと、空振りします。
+ *
+ *  ★出すのは「閉園」だけです。
+ *    開園は、人が入る時刻です。車に乗るのは、出てくるときです。
+ * ================================================================ */
+
+/**
+ * 置き場から返ってきた中身の中から、その日の 開園・閉園 をえらぶ。
+ *
+ * ★ここは通信をしません（中身を渡すだけ）。
+ *   なので「わざと壊して、ちゃんと気づけるか」を、そのまま試せます。
+ *
+ * @param {Object} data  置き場が返してきたもの
+ * @param {string} ymd   "2026-11-16" の形
+ * @return {?{open:string, close:string}}  見つからなければ null
+ */
+function vnUsjPick_(data, ymd) {
+  if (!data || !ymd) return null;
+  const rs = (data.Results || data.results || []);
+  for (let i = 0; i < rs.length; i++) {
+    const hs = (rs[i] && (rs[i].Hours || rs[i].hours)) || [];
+    for (let j = 0; j < hs.length; j++) {
+      const h = hs[j] || {};
+      if (String(h.Date || h.date || "").slice(0, 10) !== ymd) continue;
+      const o = vnUsjHHMM_(h.OpenTimeString || h.openTimeString);
+      const c = vnUsjHHMM_(h.CloseTimeString || h.closeTimeString);
+      /* 閉園が分からない日は、出しません（時刻の無い知らせは出さない決まり） */
+      if (!c) return null;
+      return { open: o, close: c };
+    }
+  }
+  return null;
+}
+
+/** "2026-11-16T22:00:00+09:00" → "22:00"。読めなければ空 */
+function vnUsjHHMM_(v) {
+  const m = String(v || "").match(/T(\d{2}):(\d{2})/);
+  return m ? (m[1] + ":" + m[2]) : "";
+}
+
+/** その日の閉園を、催しの形にして返す */
+function vnScrapeUsj_(src, day) {
+  const out = { events: [], note: "", size: 0, code: 0 };
+  let res;
+  try {
+    res = UrlFetchApp.fetch(src.usj, {
+      muteHttpExceptions: true, followRedirects: true,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+    });
+  } catch (e) {
+    out.note = "❌ つながりませんでした（" + ((e && e.message) || e) + "）";
+    return out;
+  }
+  out.code = res.getResponseCode();
+  let txt = "";
+  try { txt = res.getContentText(); } catch (e) { txt = ""; }
+  out.size = txt.length;
+  if (out.code !== 200 || !txt) {
+    out.note = "❌ 中身が取れませんでした（" + out.code + "）";
+    return out;
+  }
+  let data = null;
+  try { data = JSON.parse(txt); } catch (e) {
+    out.note = "❌ 中身の形が変わっています（読み方を直す必要があります）";
+    return out;
+  }
+
+  const ymd = Utilities.formatDate(day, "Asia/Tokyo", "yyyy-MM-dd");
+  const hit = vnUsjPick_(data, ymd);
+  if (!hit) {
+    /* 1週間ぶんしか載っていないので、先の日は「まだ出ていない」が普通です */
+    out.note = "（この日の閉園時刻は、まだ出ていません）";
+    return out;
+  }
+
+  const nm = src.venue || src.name;
+  out.events.push({
+    venue: nm, kind: "event", icon: "🎢",
+    title: "閉園（この日は " + hit.close + " まで）",
+    artist: "",
+    dinner: false,
+    /* ★開園は、根拠として残すだけです。車を着けるのは閉園のほうです。 */
+    start: hit.open, startKind: hit.open ? "開園" : "",
+    end: hit.close,
+    endGuess: false,
+    /* 会場が出している時刻そのものなので、言い切ってよい（予想ではない） */
+    endSure: true,
+    people: 0,
+    /* ★住所は、かならず組み立てたあとのものを渡します（2026/11/10のしくじり）。
+         組み立て前のものを渡すと、LINEが絵ごと突き返し、
+         その日の知らせが1通も届かなくなります。 */
+    url: vnSrcUrl_(src, day) || "",
+    raw: ("USJ " + ymd + " " + hit.open + "〜" + hit.close).slice(0, 400)
+  });
   return out;
 }
 

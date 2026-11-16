@@ -4305,5 +4305,95 @@ console.log('\n■ イベントの くわしいこと（ご依頼・2026/11/16�
   eq(ctx3.vnCapOf_('知らない会場'), 0, '★★★知らない会場は 0（出さない）');
 }
 
+/* ============================================================
+ *  🎢 USJ の閉園時刻（2026/11/16 に足しました）
+ *
+ *  ★ずっと「ページから字が取れない」と持ち越していたものです。
+ *    ホームページは開いたあとに中身をこしらえる作りで、
+ *    字を読んでも時刻が1つも出てきませんでした。
+ *    ページ自身が読みにいっている置き場から読みます。
+ *  ★閉園は日によってまるで違います（22:00の日も19:00の日もある）。
+ *    だから「だいたい何時」では使えません。
+ * ========================================================== */
+console.log('■ USJ の閉園時刻');
+{
+  /* ★日づけの形を、ほんものと同じに戻します。
+       すぐ上の検査が「時：分」だけを返す形に差し替えていたので、
+       そのままだと その日のぶんを見つけられません。 */
+  ctx.Utilities.formatDate = function (d, tz, f) {
+    const p = n => ('0' + n).slice(-2);
+    if (String(f).indexOf('yyyy-MM-dd') === 0) {
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  };
+  /* 置き場がほんとうに返してくる形（2026/11/16 に実際に受け取ったもの） */
+  const real = { TotalCount: 1, Results: [{ MblDisplayName: 'Universal Studios Japan',
+    Id: 10251, Hours: [
+      { Date: '2026-11-16', OpenTimeString: '2026-11-16T09:00:00+09:00',
+        CloseTimeString: '2026-11-16T22:00:00+09:00' },
+      { Date: '2026-11-17', OpenTimeString: '2026-11-17T09:00:00+09:00',
+        CloseTimeString: '2026-11-17T20:00:00+09:00' },
+      { Date: '2026-11-20', OpenTimeString: '2026-11-20T08:30:00+09:00',
+        CloseTimeString: '2026-11-20T19:00:00+09:00' }
+    ] }] };
+
+  eq(ctx.vnUsjPick_(real, '2026-11-16'), { open: '09:00', close: '22:00' },
+     '★★★その日の開園・閉園を、正しくえらぶ');
+  eq(ctx.vnUsjPick_(real, '2026-11-20'), { open: '08:30', close: '19:00' },
+     '★★★日によって時刻が違っても、その日のぶんをえらぶ');
+  eq(ctx.vnUsjPick_(real, '2026-12-25'), null,
+     '★★★載っていない日は、出さない（勝手に決めない）');
+  eq(ctx.vnUsjPick_(null, '2026-11-16'), null, '　 中身が無くても落ちない');
+  eq(ctx.vnUsjPick_({ Results: [] }, '2026-11-16'), null, '　 からっぽでも落ちない');
+
+  /* 閉園が空の日は出さない（時刻の無い知らせは出さない決まり） */
+  const noclose = { Results: [{ Hours: [
+    { Date: '2026-11-16', OpenTimeString: '2026-11-16T09:00:00+09:00',
+      CloseTimeString: null }] }] };
+  eq(ctx.vnUsjPick_(noclose, '2026-11-16'), null,
+     '★★★閉園が分からない日は、出さない');
+
+  /* 読む係ぜんたい（通信は、ここで差し替えます） */
+  const U = 'https://mobile-service.usj.co.jp/api/Venues?city=USJ&pageSize=All';
+  const srcUsj = { name: 'ユニバーサル・スタジオ・ジャパン', kind: 'event',
+                   usj: U, url: 'https://www.usj.co.jp/web/ja/jp' };
+  const day = new Date(2026, 10, 16);     // 2026-11-16
+
+  fetched = []; reply = {}; reply[U] = { code: 200, body: JSON.stringify(real) };
+  const r1 = ctx.vnScrapeUsj_(srcUsj, day);
+  eq(r1.events.length, 1, '★★★その日のぶんを1件だけ出す');
+  eq(r1.events[0].end, '22:00', '★★★閉園の時刻を出す');
+  eq(r1.events[0].endSure, true, '★★★会場が出している時刻なので、言い切る');
+  eq(r1.events[0].start, '09:00', '　 開園は、根拠として残す');
+  eq(r1.events[0].startKind, '開園', '　「開演」ではなく「開園」');
+  eq(r1.events[0].people, 0, '★★★台数や人数の目安は出さない');
+  eq(r1.events[0].url, 'https://www.usj.co.jp/web/ja/jp',
+     '★★★押せる住所は、実際に開くものだけ');
+
+  /* つながらない・形が変わった・その日が無い … どれでも落ちない */
+  reply = {}; reply[U] = { code: 503, body: '' };
+  eq(ctx.vnScrapeUsj_(srcUsj, day).events.length, 0, '　 つながらなければ、0件');
+  has(ctx.vnScrapeUsj_(srcUsj, day).note, '中身が取れませんでした', '　 そう書く');
+
+  reply = {}; reply[U] = { code: 200, body: '<html>こんにちは</html>' };
+  const r3 = ctx.vnScrapeUsj_(srcUsj, day);
+  eq(r3.events.length, 0, '★★★形が変わったら、何も出さない');
+  has(r3.note, '形が変わっています', '　 直す必要があると分かるように書く');
+
+  reply = {}; reply[U] = { throw: 'つながりません' };
+  eq(ctx.vnScrapeUsj_(srcUsj, day).events.length, 0, '　 こけても0件（止まらない）');
+
+  /* 読み先の一覧と会場表に、ちゃんと入っているか */
+  const body = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  has(body, 'usj: "https://mobile-service.usj.co.jp/api/Venues', '★★★読み先に入っている');
+  eq(/if \(src && src\.usj\)/.test(body), true, '★★★その読み先だけ、専用の係で読む');
+  /* 会場表には入れる。ただし人数は書かない（分からないため） */
+  has(body, '"ユニバーサル・スタジオ・ジャパン":', '★★★会場表に入っている');
+  eq(ctx.vnCapOf_('ユニバーサル・スタジオ・ジャパン'), 0,
+     '★★★人数は出さない（席数も入園者数も分からないため）');
+  eq(ctx.vnInAreaA_('大阪市此花区'), true, '★★★此花区は、大阪A地区');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

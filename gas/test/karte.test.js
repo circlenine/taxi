@@ -65,6 +65,13 @@ function build(o){
     return (o.trigs || ['panelWatch', 'panelOnEdit', 'venueDailyJob'])
       .map(n => ({ getHandlerFunction: () => n }));
   } };
+  /* ★LINEの残り通数（2026/11/16 に足しました）。
+       o.pushUsed を渡さなければ、数える係そのものが無い状態になります
+       （003-LineReport.gs が読み込まれていない場面を、そのまま写します）。 */
+  if (o.pushUsed !== undefined) {
+    ctx.LR_PUSH_LIMIT = 200;
+    ctx.lrPushCount_ = () => { if (o.pushThrows) throw new Error('読めません'); return o.pushUsed; };
+  }
   ctx.updWebAppUrl_ = () => (o.url === undefined ? 'https://x.test/exec' : o.url);
   ctx.updUrlAlive_ = () => !!o.alive;
   ctx.updApi_ = (p, m) => {
@@ -166,6 +173,29 @@ console.log('■ 1か所 読めなくても、残りは書ける');
 
   const c = build({ driveThrows: true });
   ok(c.updKartePublish_() === false, 'ドライブに置けなければ、false（落ちない）');
+}
+
+/* ------------------------------------------------------------
+ *  LINEの残り通数（2026/11/16）
+ *
+ *  ★11/15に「送信数の上限に達しました」と出たのに、この紙に通数が
+ *    書いていないため、本当に使い切ったのかが こちらから分かりませんでした。
+ * ---------------------------------------------------------- */
+console.log('■ LINEの残り通数が、紙に書いてある');
+{
+  const t = build({ pushUsed: 188 }).updKarteBuild_().text;
+  ok(t.indexOf('■ LINEの残り：あと 12 通') !== -1, '★★★残りの通数が書いてある');
+  ok(t.indexOf('（今月 188／200') !== -1, '★★★使ったぶんと上限も書いてある');
+
+  /* 数える係が無い場面（003が読まれていない）でも、紙は作れること */
+  const t2 = build({}).updKarteBuild_().text;
+  ok(t2.indexOf('LINEの残り') === -1, '数える係が無ければ、その行は出さない');
+  ok(t2.indexOf('直近のしくじり') !== -1, '★残りは書けている');
+
+  /* 読めなかったときも、落ちないこと */
+  const t3 = build({ pushUsed: 10, pushThrows: true }).updKarteBuild_().text;
+  ok(t3.indexOf('LINEの残り：調べられませんでした') !== -1, '読めなければ、そう書く');
+  ok(t3.indexOf('直近のしくじり') !== -1, '★残りは書けている');
 }
 
 console.log('■ お医者さんが、毎回 置き直しているか');
