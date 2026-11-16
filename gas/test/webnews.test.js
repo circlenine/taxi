@@ -1438,6 +1438,13 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
       '★★★お知らせも、画面のメニューに出す');
     t((h3.match(/data-t="(?:ev|news)"/g) || []).length === 2,
       '　 同じタブを二重に置いていない');
+    /* ★並び順（ご指示・2026/11/16
+         「％のあとに、日報、そのあとに、特定…という順番に入れ替えてください」） */
+    const ord = (navH.match(/data-t="([a-z]+)"/g) || [])
+      .map(x => x.replace(/data-t="|"/g, ''));
+    t(ord.join(',') === 'in,hot,g,map,ratio,nippo,tok,rep,ev,news',
+      '★★★並びは 記録→狙い目→グラフ→地図→％→日報→特定→再現→イベント→お知らせ',
+      ord.join(','));
     /* ★「ます目からはみ出さない」が目的です。字数は目安で、
          実際にはみ出していないことは、画面を測って確かめています。 */
     t(subs.every(x => x.length <= 11), '★★★そえる字は11文字まで（ます目からはみ出さない）',
@@ -3870,6 +3877,23 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const vn  = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
   t(/function gasStatCard\(\)/.test(app), '★★★様子を出す欄がある');
+
+  /* ------------------------------------------------------------
+   *  ★台帳を開いた人が、そのまま 仕掛けを起こす（ご指示・2026/11/16
+   *    「これ、何回止まれば気が済むんですか？
+   *      二度と止まらない仕組みづくりにしてください」）
+   *
+   *  これまでは、外から受け口を叩けるのが まーく様だけでした。
+   *  見張りが全部 消えると、気づくまで 止まったままでした。
+   * ---------------------------------------------------------- */
+  t(/function gasPoke\(\)/.test(app), '★★★台帳を開くと、受け口を叩く');
+  t(/mode: 'no-cors'/.test(app), '　 返事は読まない（読めないので、叩くだけ）');
+  t(/30 \* 60 \* 1000/.test(app.slice(app.indexOf('function gasPoke'),
+      app.indexOf('function gasPoke') + 900)),
+    '★★★その端末から叩くのは30分に1回まで');
+  t(/script\\.google\\.com/.test(app),
+    '★★★叩き先は、受け口の住所だけ（よそへは出さない）');
+  t(/gasPoke\(\);/.test(app), '　 読み込みのたびに呼ぶ');
   t(/gasStatCard\(\)/.test(app) && /is_admin \? \(paneOut\(\) \+ gasStatCard\(\)\)/.test(app),
     '★★★まーく様だけに出る');
   t(/data\/status\.json/.test(app), '★★★小さな紙を読んでいる');

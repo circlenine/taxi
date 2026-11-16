@@ -4513,6 +4513,51 @@ async function gasLoad(){
     const r2 = await fetch('data/status.json', { cache: 'no-store' });
     if (r2.ok) gasStat = await r2.json();
   } catch (e) { gasStat = null; }
+  gasPoke();
+}
+
+/* ------------------------------------------------------------
+ *  台帳を開いた人が、そのまま 仕掛けを起こす（ご指示・2026/11/16）
+ *
+ *  ★まーく様のご指示
+ *    「それと、スプシはまた止まってたりしてませんか？
+ *      これ、何回止まれば気が済むんですか？
+ *      二度と止まらない仕組みづくりにしてください」
+ *
+ *  ★これまでの弱点は、はっきりしていました。
+ *    Googleの見張り（決まった時刻にひとりでに動くしかけ）が
+ *    全部 消えると、中からは誰も動かせません。
+ *    外から受け口を叩けば起き上がるのですが、
+ *    **叩く人が まーく様しかいませんでした**。
+ *    だから、止まったことに気づくまで 止まったままでした。
+ *
+ *  ★ここからは、**台帳を開いた人みんな**が、黙って叩きます。
+ *    乗務員の方は、ひと晩に何度も この画面を開かれます。
+ *    開くたびに受け口が叩かれるので、見張りが消えても すぐ戻ります。
+ *
+ *  ★押していただくことは、何もありません。画面も変わりません。
+ *  ★お金はかかりません（受け口は無料のまま。LINEの通数にも入りません）。
+ *  ★その端末から叩くのは 30分に1回までです。
+ *    受け口の側でも、診るのは1時間に1回・取り込みは3分に1回までに
+ *    しぼってあるので、何人が開いても重くなりません。
+ * ---------------------------------------------------------- */
+const GAS_POKE_KEY = 'tn_poke_at';
+function gasPoke(){
+  try {
+    const u = (gasInfo && gasInfo.exec) ? String(gasInfo.exec) : '';
+    if (!u || !/^https:\/\/script\.google\.com\//.test(u)) return;
+    let last = 0;
+    try { last = Number(localStorage.getItem(GAS_POKE_KEY) || 0); } catch (e) {}
+    if (last && Date.now() - last < 30 * 60 * 1000) return;
+    try { localStorage.setItem(GAS_POKE_KEY, String(Date.now())); } catch (e) {}
+    /*
+     * ★返事は読みません（読もうとすると、よその住所なので断られます）。
+     *   こちらは「叩く」だけで用が足ります。
+     *   しくじっても、画面には何も出しません（ふだんは1通も出さない決まり）。
+     */
+    fetch(u, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' })
+      .catch(function (){});
+  } catch (e) {}
 }
 
 /*
