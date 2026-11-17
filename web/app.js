@@ -65,8 +65,34 @@ const FORM_KEY = 'tsukemachi.form';
 const HAND_KEY = 'tsukemachi.hand';
 let hand = 'r';
 
-function tabSave(){ try { localStorage.setItem(TAB_KEY, tab); } catch (e) {} }
+/* ★開き直したときは【天気】から出します（ご指示・2026/11/17
+     「最初の表示を天気ページにしてください」）。
+   ★ただし、見ている最中に画面を更新しただけなら、
+     そのタブのまま戻します（ご指示・2026/11/12
+     「更新した時に、勝手に記録に戻ってしまうので、
+       開いてたままのタブのまま開き直すようにして欲しい」）。
+   ★見分けは「最後に触ってから30分たったかどうか」です。
+     30分あいたら、乗務のはじめに開き直したとみなして【天気】から。 */
+const TAB_AT_KEY   = TAB_KEY + '.at';
+const TAB_HOLD_MIN = 30;
+function tabTouch(){
+  try {
+    const at = Number(localStorage.getItem(TAB_AT_KEY) || 0);
+    if (Date.now() - at > 20000) localStorage.setItem(TAB_AT_KEY, String(Date.now()));
+  } catch (e) {}
+}
+function tabSave(){
+  try {
+    localStorage.setItem(TAB_KEY, tab);
+    localStorage.setItem(TAB_AT_KEY, String(Date.now()));
+  } catch (e) {}
+}
 function tabLoad(){
+  try {
+    const at = Number(localStorage.getItem(TAB_AT_KEY) || 0);
+    /* 30分あいていたら、覚えているタブは使いません（【天気】のまま） */
+    if (!at || (Date.now() - at) > TAB_HOLD_MIN * 60000) return;
+  } catch (e) { return; }
   try { const v = localStorage.getItem(TAB_KEY); if (v) tab = v; } catch (e) {}
 }
 /** 書きかけが1つでもあるか（日付だけなら、書きかけとは見なしません） */
@@ -1025,6 +1051,8 @@ function render(){
    */
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
   htabsFill();
+  /* 見ているあいだは、足あとを新しくしておきます（上の tabLoad の見分けに使います） */
+  tabTouch();
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。

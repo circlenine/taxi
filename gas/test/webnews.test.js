@@ -4430,6 +4430,31 @@ console.log('■ 小さい赤い字を白にする（2026/11/17）');
     '★★★320pxでは、見出しを少しだけ小さくして1行に収める');
 }
 
+/* ------------------------------------------------------------
+ *  開いて最初に出るのは【天気】（ご指示・2026/11/17）
+ *    「最初の表示を天気ページにしてください」
+ *  ★ただし、見ている最中に画面を更新しただけなら、
+ *    そのタブのまま戻します（ご指示・2026/11/12）。
+ *    見分けは「最後に触ってから30分たったかどうか」。
+ * ---------------------------------------------------------- */
+console.log('■ 最初に出るのは【天気】（2026/11/17）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const idx = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/let ME = null, records = \[\], names = \{\}, tab = 'hot'/.test(app),
+    '★★★はじめの行き先は【天気】');
+  t(/if \(!PANES\[tab\]\) tab = 'hot';/.test(app), '　 知らない行き先でも【天気】に戻る');
+  t(/const TAB_HOLD_MIN = 30;/.test(app), '★★★30分あいたら、覚えているタブは使わない');
+  t(/if \(!at \|\| \(Date\.now\(\) - at\) > TAB_HOLD_MIN \* 60000\) return;/.test(app),
+    '★★★そのときは【天気】のまま');
+  t(/function tabTouch\(\)/.test(app) && /\n  tabTouch\(\);/.test(app),
+    '★★★見ているあいだは、足あとを新しくする（更新しても戻らない）');
+  t(/<button data-t="hot" aria-selected="true">/.test(idx),
+    '★★★はじめから【天気】を押した形にしておく');
+  t(/<button data-t="in" aria-selected="false">/.test(idx),
+    '　 【記録】が ひと呼吸 見えることはない');
+}
+
 console.log('■ 見出しの【説明】（2026/11/17）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261117-f36f99c6">
+<link rel="stylesheet" href="style.css?v=20261117-79f8ed72">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
@@ -92,8 +92,11 @@
        10個あるので 5列×2段。そえる字は5文字までにして、
        ます目の中で折り返さないようにしています。 -->
   <nav id="tabs">
-    <button data-t="in" aria-selected="true"><b>記録</b><i>入力・修正</i></button>
-    <button data-t="hot" aria-selected="false"><b>天気</b><i>雨雲と狙い目</i></button>
+    <!-- ★開いて最初に出るのは【天気】です（ご指示・2026/11/17）。
+           はじめから【天気】を押した形にしておき、
+           ひと呼吸だけ【記録】が見えることのないようにします。 -->
+    <button data-t="in" aria-selected="false"><b>記録</b><i>入力・修正</i></button>
+    <button data-t="hot" aria-selected="true"><b>天気</b><i>雨雲と狙い目</i></button>
     <button data-t="map" aria-selected="false"><b>地図</b><i>ピンで見る</i></button>
     <button data-t="g" aria-selected="false"><b>グラフ</b><i>時刻と金額</i></button>
     <button data-t="ratio" aria-selected="false"><b>％</b><i>ロング率</i></button>
@@ -174,9 +177,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261117-f36f99c6"></script>
-<script src="news.js?v=20261117-f36f99c6"></script>
-<script src="shared.js?v=20261117-f36f99c6"></script>
-<script src="app.js?v=20261117-f36f99c6"></script>
+<script src="config.js?v=20261117-79f8ed72"></script>
+<script src="news.js?v=20261117-79f8ed72"></script>
+<script src="shared.js?v=20261117-79f8ed72"></script>
+<script src="app.js?v=20261117-79f8ed72"></script>
 </body>
 </html>
