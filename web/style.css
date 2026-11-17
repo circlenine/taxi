@@ -2269,3 +2269,20 @@ p.extnote{margin-top:8px}
 .tblwrap::after{content:'';position:absolute;top:0;right:0;width:18px;height:100%;
   pointer-events:none;border-radius:0 10px 10px 0;
   background:linear-gradient(to right,rgba(11,11,13,0),rgba(11,11,13,.92))}
+
+/* ------------------------------------------------------------
+   ★▼ の左右の位置を、どの欄でもそろえます（ご指摘・2026/11/17）。
+   目次は欄より内側の余白が狭く、▼ だけ右へずれて見えていました。
+   目次の左右の余白を、欄（card）と同じ16pxにします。
+ ---------------------------------------------------------- */
+.toc{padding-left:16px;padding-right:16px}
+@media (min-width:430px){ .toc{padding-left:18px;padding-right:18px} }
+
+/* ★「このページを見てわかること」の字は、目次と同じ大きさにします
+     （ご指示・2026/11/17）。中身は たたんであるので、
+     見出しが大きいと、そこだけ場所を取ってしまいます。 */
+.card.lead > h2{font-family:var(--body);font-size:11.5px;letter-spacing:.06em;
+  margin-bottom:0}
+.card.lead{padding-top:10px;padding-bottom:11px}
+.card.lead:not(.fold) > h2{margin-bottom:9px}
+.card.lead:not(.fold){padding-bottom:16px}

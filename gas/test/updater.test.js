@@ -7372,13 +7372,21 @@ console.log('■ スプシ→台帳の自動反映（ご指示・2026/11/10／20
   const fn  = src.slice(src.indexOf('function webSyncTick_'),
                         src.indexOf('function webSyncPush_'));
   t(fn.length > 100, '★★★ひとりでに移す係がある');
-  t(/if \(h < 7 \|\| h >= 9\) return false;/.test(fn),
-    '★★★朝7時台・8時台だけ（夜の記録が ぜんぶ入ったあと）');
-  t(/pr\.getProperty\("WEB_SYNC_DONE"\) === key/.test(fn),
-    '★★★1日1回だけ（日づけの札で見分ける）');
-  t(fn.indexOf('pr.setProperty("WEB_SYNC_DONE", key);') <
+  /*
+   * ★2026/11/17 に、朝1回から **15分おき**にしました。
+   *   夜に書いた記録が、次の朝まで台帳に出てこないので、
+   *   見ているほうは「反映されていない」としか分かりませんでした。
+   *   昼（10時〜17時）は、だれも記録を入れないので見にいきません。
+   */
+  t(/if \(h >= 10 && h < 17\) return false;/.test(fn),
+    '★★★昼は見にいかない（持ち時間を残す）');
+  t(/WEB_SYNC_EVERY_MIN \* 60000/.test(fn) && /const WEB_SYNC_EVERY_MIN = 14;/.test(src),
+    '★★★夜のあいだは15分おきに見る');
+  t(fn.indexOf('pr.setProperty("WEB_SYNC_AT"') <
     fn.indexOf('webSyncPush_(true)'),
-    '★★★札は先に立てる（6分で切られても、同じ日に何度も読みに行かない）');
+    '★★★札は先に立てる（6分で切られても、続けて何度も読みに行かない）');
+  t(/移しました：\(\[1-9\]/.test(fn),
+    '★★★控えに書くのは、実際に移せたときだけ（0件を並べない）');
   t(/webSyncPush_\(true\)/.test(fn), '★★★下見ではなく、ほんとうに移す');
   t(/updErrandLog_\("🔄 台帳へ自動反映：/.test(fn),
     '　 控えに1行 残す（走ったかどうかを、こちらから見られる）');
@@ -7449,6 +7457,34 @@ console.log('■ 台帳→スプシへ戻す（ご指示・2026/11/15）');
     '★★★金額が違えば、別の札');
   t(key('マーク', '2026-11-13', '20:00', null).indexOf('|?') !== -1,
     '★★★「不明」は 0 と区別する');
+}
+
+/* ------------------------------------------------------------
+ *  📮 LINEの受け口を、10分おきに見る（2026/11/17）
+ *
+ *  ★受け口が切れているあいだ、LINEに書かれた記録は その場で消えます。
+ *    LINEには「あとから取りにいく窓口」がないので、
+ *    気づくのが遅れたぶんは、まるごと失われます。
+ *    お医者さん（1時間に1回）だけでは、最悪1時間ぶん消えます。
+ * ---------------------------------------------------------- */
+console.log('■ LINEの受け口を10分おきに見る（2026/11/17）');
+{
+  const src = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const fn  = src.slice(src.indexOf('function updHookTick_'),
+                        src.indexOf('const PANEL_HEAL_AT'));
+  t(fn.length > 80, '★★★受け口だけを見る係がある');
+  t(/const UPD_HOOK_MIN = 10;/.test(src), '★★★10分おき');
+  t(fn.indexOf('setProperty(UPD_HOOK_AT') < fn.indexOf('updLineHookCheck_()'),
+    '★★★札は先に立てる（続けて何度も叩かない）');
+  t(/updLineHookCheck_\(\)/.test(fn), '★★★LINE自身に、道が通っているかためしてもらう');
+  t(/if \(h && h\.text\) \{ updDrTell_\(h\.text\); return true; \}/.test(fn),
+    '★★★直したときだけ言う（ふだんは1通も出さない）');
+  t(/catch \(e\) \{ try \{ logErr_\("hookTick", e\)/.test(fn),
+    '★★★しくじっても、ほかの仕事は止めない');
+  /* 1分おきに必ず通る道から、try で囲って呼んでいること */
+  const pw = src.slice(src.indexOf('function panelWatch()'));
+  t(/try \{ if \(updHookTick_\(\)\) return; \} catch \(e\) \{ logErr_\("hookTick", e\); \}/.test(pw),
+    '★★★1分おきの見張りから、try で囲って呼んでいる');
 }
 
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');

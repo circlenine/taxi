@@ -1,7 +1,11 @@
 /* TAXI NOTE 本体 */
 const $ = s => document.querySelector(s);
 
-let ME = null, records = [], names = {}, tab = 'in', form = {}, editId = null, msg = '', msgBad = false;
+/* ★はじめに出すのは【天気】です（ご指示・2026/11/17
+     「天気情報をデフォルトで1番初めに表示する形にしてください」）。
+   走り出す前に、まず空と雨雲を見るためです。
+   いちど別の画面を選べば、その端末は そこを覚えます。 */
+let ME = null, records = [], names = {}, tab = 'hot', form = {}, editId = null, msg = '', msgBad = false;
 let scOpt = { line: true, label: true }, onlyMine = false;
 /* ★折線グラフで、自分でえらんだ乗り場（ご指示・2026/11/13
      「その他にも好きに乗り場をカスタムできる選択肢も追加してください」）。
@@ -920,7 +924,12 @@ function render(){
   {
     const fr2 = rs.filter(hasFare);
     const lg  = fr2.filter(r => (+r.fare || 0) >= 10000).length;
-    $('#k4').textContent = fr2.length ? Math.round(lg * 100 / fr2.length) + '%' : '—';
+    /* ★割合だけでは、何本のうち何本かが分かりません（ご指摘・2026/11/17）。
+         数えたもとの数と、ロングの本数を そえます。 */
+    $('#k4').innerHTML = fr2.length
+      ? (Math.round(lg * 100 / fr2.length) + '%' +
+         '<i class="kpsub">' + fr2.length + '本中 ' + lg + '本</i>')
+      : '—';
   }
   /*
    * ★一番上に「期間」と「合計」。下に小さく「1日当たりではありません」
@@ -1008,7 +1017,10 @@ function render(){
        ほかの乗務員の方には、要らない画面です。 */
   /* ★グラフは3つを1ページにまとめました（ご指示・2026/11/13）。
        前の押しどころを覚えている方のために、heat/tl/sc も同じ画面へ回します。 */
-  const PANES = { in: () => (ME.profile.is_admin ? (paneOut() + gasStatCard()) : '') + paneSays(), hot:paneHot,
+  /* ★「記録を書き出す（CSV）」は出しません（ご指示・2026/11/17）。
+       paneOut は消していません。あとで戻せるようにしてあります。
+     ★「ふきだしにひとことを足す」を一番上にします（ご指示・2026/11/17）。 */
+  const PANES = { in: () => paneSays() + (ME.profile.is_admin ? gasStatCard() : ''), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, tok:paneTok, rep:paneRep, nippo:paneNippo,
     bara:paneBara, kix:paneKix,
@@ -1017,7 +1029,7 @@ function render(){
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
   /* バラシ・関空は、1つのメニューにまとめました（ご指示・2026/11/15） */
   if (tab === 'bara' || tab === 'kix') { tokKindSet(tab); tab = 'tok'; tabSave(); }
-  if (!PANES[tab]) tab = 'in';
+  if (!PANES[tab]) tab = 'hot';
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
      仕掛けが止まっていそうなときは、その上に 赤い帯を出します。 */
@@ -3740,7 +3752,10 @@ function paneHot(now){
     wxNowHTML() + wxHoursHTML() + '</div>' + radarCard();
 
   /* ① 一番上 … いまの時刻と、その時刻の狙い目 */
-  const clock = leadCard('hot') +
+  /* ★天気を、この画面の一番上に出します（ご指示・2026/11/17
+       「天気情報をデフォルトで1番初めに表示する形にしてください」）。
+     出勤の前に、まず空を見てから 乗り場を決めるためです。 */
+  const clock = leadCard('hot') + head +
     '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
     '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
     '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
@@ -3767,12 +3782,12 @@ function paneHot(now){
          「記録が足りないなら、見出し含めて非表示にしてください」）。
        日づけと時刻の見出しを出すと、中身があるように見えてしまいます。
        絞り込みの操作だけは残します（曜日や期間を変えて出し直せるように）。 */
-    return leadCard('hot') +
+    return leadCard('hot') + head +
       '<div class="card">' +
       '<p class="note">' +
       (filtOn() ? 'この絞り込みでは、まだ記録が足りません。下の「絞り込みを解除」で元に戻ります。'
                 : 'この時間は、まだ記録が足りません。') + '</p>' +
-      filterChips() + '</div>' + hotPlanCard(plan, c.early, c.early ? -1 : Math.floor(c.h)) + head;
+      filterChips() + '</div>' + hotPlanCard(plan, c.early, c.early ? -1 : Math.floor(c.h));
   }
 
   /* ★カードごと押すと、地図が開きます（ご指示・2026/11/12） */
@@ -3803,8 +3818,7 @@ function paneHot(now){
     '<div class="card"><h2>いまの時間帯に強い乗り場</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
     '<th class="n">1本の平均</th><th style="width:34%"></th><th class="n">待ち</th>' +
-    '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
-    head;
+    '</tr></thead><tbody>' + bars + '</tbody></table></div></div>';
 }
 
 /*
@@ -6007,7 +6021,9 @@ function placeChipsFit(){
  * ---------------------------------------------------------- */
 const FOLD_KEY = 'tn_folds';
 /* はじめから たたんでおく欄（ご指示・2026/11/16）。見出しの字で見分けます */
-const FOLD_SHUT = ['このページを見てわかること'];
+/* ★はじめから たたんでおく欄（ご指示・2026/11/16、2026/11/17）。
+     開けば、その端末は開いたままを覚えます。 */
+const FOLD_SHUT = ['このページを見てわかること', '新規の記録'];
 const FOLD_OPEN_KEY = 'tn_fold_open';
 let foldOpen = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_OPEN_KEY) || '[]') || []; }

@@ -2047,7 +2047,7 @@ console.log('■ 【仕掛けを起こす】は、まーく様だけ（ご質問
   /* 「仕掛けを起こすというのは、僕だけのアカウントの表示になってますか？」
      仕組みの手当てなので、乗務員の方々には出しません。 */
   const bar = app.slice(app.indexOf('function gasWakeBar()'),
-                        app.indexOf('function gasWakeBar()') + 900);
+                        app.indexOf('function gasWakeBar()') + 1800);
   t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(bar),
     '★★★赤い帯は、まーく様だけに出る');
   t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n\s*\? '<a class="fsrow wake"/.test(app),
@@ -2066,8 +2066,11 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
        自由にふやせるようにしてください」 */
   t(/placeholder="吹き出しに追加したい一言"/.test(app),
     '★★★入れる枠がある（そのままの言い方で）');
-  t(/function paneSays\(\)/.test(app) && /\) : ''\) \+ paneSays\(\)/.test(app),
-    '★★★【記録】の画面に出る');
+  /* ★2026/11/17：一番上に移しました（ご指示「ふきだしにひとことを足す、
+       を1番上にしてください」）。 */
+  t(/function paneSays\(\)/.test(app) &&
+    /in: \(\) => paneSays\(\) \+/.test(app),
+    '★★★【記録】の画面の、一番上に出る');
   /* ★探さなくても行けること（ご質問・2026/11/14
        「ふきだし追加したい時のやつ、どこにあるんですか？」）。
      【記録】の一番下にあって、見つけられませんでした。 */
@@ -2895,8 +2898,8 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
        「目次とこのページを見てわかることは、デフォルトは折りたたんでください」） */
   t(/localStorage\.getItem\(TOC_KEY\) !== '0'/.test(app),
     '★★★目次は、はじめから たたんである');
-  t(/const FOLD_SHUT = \['このページを見てわかること'\]/.test(app),
-    '★★★「このページを見てわかること」も、はじめから たたんである');
+  t(/const FOLD_SHUT = \['このページを見てわかること', '新規の記録'\]/.test(app),
+    '★★★「このページを見てわかること」「新規の記録」は、はじめから たたんである');
   t(/FOLD_OPEN_KEY/.test(app), '　 いちど開けば、開いたままを覚える');
 
   /* ------------------------------------------------------------
@@ -4084,7 +4087,7 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
   t(/script\\.google\\.com/.test(app),
     '★★★叩き先は、受け口の住所だけ（よそへは出さない）');
   t(/gasPoke\(\);/.test(app), '　 読み込みのたびに呼ぶ');
-  t(/gasStatCard\(\)/.test(app) && /is_admin \? \(paneOut\(\) \+ gasStatCard\(\)\)/.test(app),
+  t(/gasStatCard\(\)/.test(app) && /ME\.profile\.is_admin \? gasStatCard\(\) : ''/.test(app),
     '★★★まーく様だけに出る');
   t(/data\/status\.json/.test(app), '★★★小さな紙を読んでいる');
   t(/function vnStatusPush_\(force\)/.test(vn) && /VN_STATUS_PATH = "web\/data\/status\.json"/.test(vn),
@@ -4234,8 +4237,11 @@ console.log('\n■ 【仕掛けを起こす】は、まーく様だけ（ご質�
   /* ② 【記録】の「仕組みの様子」 */
   t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(cut('gasStatCard')),
     '★★★「仕組みの様子」も、管理者だけ');
-  t(/is_admin \? \(paneOut\(\) \+ gasStatCard\(\)\) : ''/.test(app),
+  t(/ME\.profile\.is_admin \? gasStatCard\(\) : ''/.test(app),
     '　 管理者でなければ、この欄ごと出ない');
+  /* ★「記録を書き出す（CSV）」は出しません（ご指示・2026/11/17） */
+  t(!/paneOut\(\) \+/.test(app), '★★★CSVの書き出しは、画面に出さない');
+  t(/function paneOut\(\)/.test(app), '　 中の係は消していない（あとで戻せる）');
   /* ③ ≡ の一覧 */
   t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\?\s*'<a class="fsrow wake"/.test(app),
     '★★★≡ の一覧でも、管理者だけ');

@@ -2,7 +2,19 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U181ver  （2026/11/17）  ★★★
+ *  ★★★  U183ver  （2026/11/17）  ★★★
+ *
+ *   [U183ver]
+ *   ・🔄 台帳への反映を、15分おきにした（朝7時台に1日1回だった）
+ *     ★夜に書いた記録が、次の朝まで台帳に出てきませんでした
+ *   ・📮 LINEの受け口を、10分おきに見るようにした（1時間に1回だった）
+ *     ★切れているあいだ、LINEに書いた記録は その場で消えます。
+ *       あとから取り直せないので、気づくのを早くするしかありません
+ *
+ *   [U182ver]
+ *   ・🔄 スプシ→台帳の自動反映が、いつ・何件 動いたかを報告に書くようにした
+ *     ★「自動反映が全く行われてない」とのお尋ねに、
+ *       こちらから答えられる材料が1つも無かったため
  *
  *   [U181ver]
  *   ・📄 日報の営業日を、写真から読むようにした
@@ -1984,7 +1996,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U181ver";
+const UPD_VERSION = "U183ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -10207,6 +10219,21 @@ function updKarteBuild_() {
     }
   } catch (e) {}
 
+  /* ③-4 スプシ→台帳の自動反映が、いつ・何件 動いたか（2026/11/17）
+         まーく様から「自動反映が全く行われてない」とのお尋ねがありました。
+         動いたかどうかが この紙に無く、こちらから確かめられませんでした。 */
+  try {
+    const w = PropertiesService.getScriptProperties().getProperty("WEB_SYNC_LAST");
+    if (w) {
+      const o = JSON.parse(w);
+      put("■ スプシ→台帳：" + String(o.at || "？") + " に " + (o.n || 0) + "件", true);
+    } else {
+      put("■ スプシ→台帳：まだ1回も動いていません", true);
+    }
+  } catch (e) {
+    put("■ スプシ→台帳：調べられませんでした", true);
+  }
+
   // ④ 版と公開（どちらも20・200で満杯になる）
   try {
     const vs = (updApi_("/versions", "get", null).versions) || [];
@@ -11003,6 +11030,36 @@ function updDoctorTick_() {
  * ★入れ直したときだけ、1通お知らせします。
  *   黙って戻ると、止まっていたことに気づけないためです。
  */
+/* ================================================================
+ *  LINEの受け口だけを、10分おきに見る（2026/11/17）
+ *
+ *  ★お医者さん（updDoctorTick_）は1時間に1回です。
+ *    受け口が切れると、LINEに書かれた記録は その場で消えます。
+ *    LINEには「あとから取りにいく窓口」がないので、
+ *    気づくのが遅れたぶんが、まるごと失われます。
+ *    1時間に1回では、最悪1時間ぶん消えます。
+ *  ★ここで見るのは、受け口が通っているかだけ（通信2回）です。
+ *    10分おきでも、持ち時間は食いません。
+ *  ★ふだんは1通も出しません。直したときだけ言います。
+ * ================================================================ */
+const UPD_HOOK_AT  = "UPD_HOOK_AT";
+const UPD_HOOK_MIN = 10;
+
+function updHookTick_() {
+  const pr = updProps_();
+  try {
+    const at = Number(pr.getProperty(UPD_HOOK_AT) || 0);
+    if (at && (Date.now() - at) < UPD_HOOK_MIN * 60000) return false;
+    pr.setProperty(UPD_HOOK_AT, String(Date.now()));
+  } catch (e) { return false; }
+  try {
+    if (typeof updLineHookCheck_ !== "function") return false;
+    const h = updLineHookCheck_();
+    if (h && h.text) { updDrTell_(h.text); return true; }
+  } catch (e) { try { logErr_("hookTick", e); } catch (e2) {} }
+  return false;
+}
+
 const PANEL_HEAL_AT  = "PANEL_HEAL_AT";
 const PANEL_HEAL_MIN = 10;
 
@@ -11864,19 +11921,30 @@ function sbGet_(path) {
  * ★鍵（TAXINOTE_EMAIL / TAXINOTE_PASS）が入っていなければ、
  *   黙って何もしません。ほかの仕事は止めません。
  */
+/* ★台帳への反映は、15分おきに見ます（2026/11/17）。
+     それまでは「朝7時台に1日1回」でした。夜に書いた記録が、
+     次の朝まで台帳に出てこないので、見ているほうは
+     「反映されていない」としか分かりませんでした。
+   ★昼（10時〜17時）は、だれも記録を入れないので見にいきません。
+     1日90分の持ち時間を、使わずに残しておくためです。 */
+const WEB_SYNC_EVERY_MIN = 14;
+
 function webSyncTick_() {
   try {
     const now = new Date();
     const h = now.getHours();
-    if (h < 7 || h >= 9) return false;          // 朝7時台・8時台だけ
-    const key = Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd");
+    if (h >= 10 && h < 17) return false;        // 昼は見にいきません
     const pr = PropertiesService.getScriptProperties();
-    if (pr.getProperty("WEB_SYNC_DONE") === key) return false;   // きょうはもう移した
+    const at = Number(pr.getProperty("WEB_SYNC_AT") || 0);
+    if (at && (Date.now() - at) < WEB_SYNC_EVERY_MIN * 60000) return false;
     /* 先に札を立てます。途中で6分に当たっても、
-       同じ日に何度も読みに行かないようにするためです。 */
-    pr.setProperty("WEB_SYNC_DONE", key);
+       続けて何度も読みに行かないようにするためです。 */
+    pr.setProperty("WEB_SYNC_AT", String(Date.now()));
     const out = webSyncPush_(true);
-    if (out && typeof updErrandLog_ === "function") {
+    /* ★控えに書くのは、実際に移せたときだけです。
+         「0件」を20分おきに並べると、控えが読めなくなります。 */
+    const moved = /移しました：([1-9]\d*)件/.test(String(out || ""));
+    if (out && moved && typeof updErrandLog_ === "function") {
       updErrandLog_("🔄 台帳へ自動反映：" + String(out).replace(/\n/g, " ").slice(0, 120));
     }
     /*
@@ -13980,6 +14048,13 @@ function panelWatch() {
      *   ★ふだんは何も言いません。直したときだけ、1日1回まで知らせます。
      */
     try { if (updDoctorTick_()) return; } catch (e) { logErr_("doctor", e); }
+
+    /*
+     * ★LINEの受け口だけは、10分おきに見ます（ご指摘・2026/11/17）。
+     *   ここが切れているあいだ、LINEに書いた記録は その場で消えます。
+     *   あとから取り直せないので、気づくのを早くするしかありません。
+     */
+    try { if (updHookTick_()) return; } catch (e) { logErr_("hookTick", e); }
 
     /*
      * ★イベントの見張り（venueDailyJob）が無ければ、ここで作ります。
