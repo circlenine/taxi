@@ -2360,3 +2360,38 @@ p.extnote{margin-top:8px}
   font-size:11.5px;color:#FFFFFF}
 .ktarea span{white-space:nowrap;opacity:.9}
 .ktarea b{font-family:var(--mono);font-weight:700;opacity:1}
+
+/* ================================================================
+ *  小さい赤い字を、白にします（2026/11/17）
+ *
+ *  ★ご指示：「webサイトの文字は全て真っ白文字にしてください、
+ *    まだ視認性が悪いです」。
+ *  ★赤（--andon）は、もともと「塗りに使う」色です。
+ *    暗い背景に小さく置くと、明るさの差が足りず、
+ *    走りながらでは読めません（実際に測って 3.3 しかありません）。
+ *  ★大きい数字（22px前後）は、差があっても読めるので そのままです。
+ *    全部まっ白にすると、どれが大事な数字か分からなくなります。
+ * ================================================================ */
+.ktsum b{color:#FFFFFF}
+.newsv b{color:#FFFFFF}
+.nipnew{color:#FFFFFF}
+.badge.adm{color:#FFFFFF}
+.btrow.top .bth{color:#FFFFFF}
+/* ★【説明】は、走りながらでも押せる高さにします（19px → 28px） */
+.hhelp{min-height:28px;padding:0 10px;display:inline-flex;align-items:center}
+@media (max-width:340px){ .hhelp{min-height:26px;padding:0 8px} }
+
+/* ★【説明】を足したぶん、見出しが2行に折り返していました（2026/11/17）。
+     細い機種では、字の間と すきまを詰めて、1行に収めます。
+     字の大きさは変えません（小さくすると読めなくなります）。 */
+@media (max-width:400px){
+  .card > h2, #ktop > h2{letter-spacing:.02em;gap:5px}
+  .hhelp{font-size:10px;padding:0 7px;margin-right:5px}
+}
+@media (max-width:340px){
+  /* ★一番細い機種では、見出しを少しだけ小さくします。
+       2行に折り返すより、1行で読めるほうが ずっと分かりやすいためです。 */
+  .card > h2, #ktop > h2{letter-spacing:0;gap:4px;font-size:16px}
+  .card h2:before{content:""}
+  .hhelp{font-size:9.5px;padding:0 6px;margin-right:4px}
+}
