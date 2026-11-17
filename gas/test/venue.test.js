@@ -2654,8 +2654,9 @@ console.log('\n■ イベントの見張りは、何もしなくても立ち上�
     require('path').join(__dirname, '..', '005-Updater.gs'), 'utf8');
   eq(src.indexOf("if (typeof vnSelfHeal_ === \"function\") vnSelfHeal_();") !== -1, true,
      '★1分おきのボタンの見張りから、イベントの見張りの面倒を見る');
+  /* ★panelWatch の中に、相乗りする係が増えたので、読む長さを広げました */
   const pw = src.slice(src.indexOf('function panelWatch()'),
-                       src.indexOf('function panelWatch()') + 1800);
+                       src.indexOf('function panelWatch()') + 3600);
   eq(pw.indexOf('vnSelfHeal_') !== -1, true, '  呼んでいるのは panelWatch の中');
 
   // 1日1回しか、実際の点検はしない（持ち時間を食わないため）

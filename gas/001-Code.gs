@@ -1,7 +1,15 @@
 /**
  * ================================================================
  *  僕はグールだ【記録用】 スプレッドシート  統合スクリプト
- *  ★★★  C088ver  （2026/11/17）  ★★★   ← もとは version 232
+ *  ★★★  C089ver  （2026/11/17）  ★★★   ← もとは version 232
+ *
+ *  [C089ver]
+ *   ・📷 取り込みそこねたスクショを、あとで自動で取り込み直すようにした
+ *     ★9/24 に実際に起きた。受け口は受け取っていたのに、
+ *       書き込みでしくじって、そのまま消えていた
+ *     ★1分おきの見張りに相乗りして、3分おきに1件ずつ やり直す。
+ *       うまくいけば黙って入る。何日やってもだめなときだけ、1通 知らせる
+ *     ★同じ記録が2本入ることはない（取り込む係が、同じ行を入れない作り）
  *
  *  [C088ver]
  *   ・🏷 説明の文から「ホテル」「乗り場」「道路」を、乗車種類として
@@ -919,7 +927,7 @@ function なおす() {
 /* ============ 1. 基本設定 ============ */
 
 /** このファイルのバージョン（メニュー「ℹ️ バージョンを確認」に出る） */
-const CODE_VERSION = "C088ver";
+const CODE_VERSION = "C089ver";
 
 /* ================================================================
  *  記録用スプシを開く（くっついていても、離れていても）
@@ -2636,12 +2644,123 @@ function handleOpuchaImage_(ev, sentAt) {
   } catch (e) {
     logErr_("opuchaImage", e);
     r.ng.push(e.message || "スクショを読み取れませんでした");
+    /* ★その場で消えないように、控えておきます（2026/11/17）。
+         1分おきの見張りが、あとで取り込み直します。 */
+    try { imgRetryAdd_(mid, bizD, (e && e.message) || e); } catch (e2) {}
   }
 
   if (dateFromNote && r.ok) r.note = "営業曜日は " + fmtDateW_(bizD) + " で登録しました";
   opuchaReplyBurst_(reply, who, r, set, total);
 }
 
+
+/* ================================================================
+ *  📷 取り込みそこねたスクショを、あとで取り込み直す（2026/11/17）
+ *
+ *  ★9/24 に実際に起きました。受け口はスクショを受け取っていたのに、
+ *    書き込みでしくじって、そのまま消えました。
+ *    売上の記録が1本まるごと消えても、だれも気づけません。
+ *  ★だから、しくじったら その場で控えておいて、
+ *    1分おきの見張りに相乗りして、あとで取り込み直します。
+ *    画像はLINE側に数日残るので、その間なら取り直せます。
+ *  ★同じ記録が2本入ることはありません。
+ *    取り込む係（writeOpuchaRecords_）が、
+ *    すでにある行と同じものは入れない作りになっています。
+ *  ★できないこと：受け口にそもそも届かなかったぶんは拾えません。
+ *    LINEに「過去のメッセージを取りに行く窓口」が無いためです。
+ *    そのときは、まーく様に送り直していただくしかありません。
+ * ================================================================ */
+const IMG_RETRY_KEY  = "IMG_RETRY";     // 控えの置き場
+const IMG_RETRY_AT   = "IMG_RETRY_AT";  // 最後にやり直した時刻
+const IMG_RETRY_MAX  = 30;              // 控えておく上限
+const IMG_RETRY_TRY  = 8;               // 何回まで やり直すか
+const IMG_RETRY_MIN  = 3;               // 何分おきに やり直すか
+const IMG_RETRY_DAYS = 3;               // 何日たったら あきらめるか（LINE側に残る間）
+
+function imgRetryList_() {
+  try {
+    const v = PropertiesService.getScriptProperties().getProperty(IMG_RETRY_KEY);
+    const a = v ? JSON.parse(v) : [];
+    return (a && a.length) ? a : [];
+  } catch (e) { return []; }
+}
+function imgRetrySave_(a) {
+  try {
+    PropertiesService.getScriptProperties()
+      .setProperty(IMG_RETRY_KEY, JSON.stringify((a || []).slice(0, IMG_RETRY_MAX)));
+  } catch (e) {}
+}
+
+/** しくじったスクショを控える */
+function imgRetryAdd_(mid, bizD, why) {
+  if (!mid) return false;
+  const a = imgRetryList_();
+  for (let i = 0; i < a.length; i++) if (a[i].mid === String(mid)) return false;
+  a.push({ mid: String(mid),
+           biz: dateToYmd_(bizD || new Date()),
+           why: String(why == null ? "" : why).slice(0, 120),
+           at:  new Date().toISOString(),
+           n:   0 });
+  imgRetrySave_(a);
+  return true;
+}
+
+/**
+ * 1件だけ、取り込み直す。1分おきの見張り（panelWatch）から呼びます。
+ * 返すのは「何かしたかどうか」。
+ */
+function imgRetryTick_() {
+  const pr = PropertiesService.getScriptProperties();
+  try {
+    const at = Number(pr.getProperty(IMG_RETRY_AT) || 0);
+    if (at && (Date.now() - at) < IMG_RETRY_MIN * 60000) return false;
+  } catch (e) { return false; }
+
+  const a = imgRetryList_();
+  if (!a.length) return false;
+  try { pr.setProperty(IMG_RETRY_AT, String(Date.now())); } catch (e) {}
+
+  const it = a[0];
+  const days = (Date.now() - (Date.parse(it.at || "") || 0)) / 86400000;
+  /* 日づけが読めないものは、残しておいても仕方がないので外します */
+  if (!(days >= 0)) { a.shift(); imgRetrySave_(a); return true; }
+
+  if ((it.n || 0) >= IMG_RETRY_TRY || days > IMG_RETRY_DAYS) {
+    a.shift(); imgRetrySave_(a);
+    imgRetryGiveUp_(it);
+    return true;
+  }
+
+  it.n = (it.n || 0) + 1;
+  try {
+    const list = opuchaFromImage_(it.mid);
+    if (!list || !list.length) {
+      /* 読めたけれど、乗車記録が写っていない。
+         取り込むものが無いので、黙って控えから外します。 */
+      a.shift(); imgRetrySave_(a);
+      return true;
+    }
+    writeOpuchaRecords_(list, it.mid, ymdToDate_(it.biz) || new Date());
+    a.shift(); imgRetrySave_(a);     // 入りました。黙って外します
+  } catch (e) {
+    it.why = String((e && e.message) || e).slice(0, 120);
+    imgRetrySave_(a);                /* 回数だけ増やして、次の回にまわします */
+  }
+  return true;
+}
+
+/**
+ * あきらめたときだけ、1通 知らせます。
+ * ★行き先は まーく様の個人LINEだけです（グループへは1文字も出しません）。
+ *   書き出しの 📷 は VN_ADMIN_HEADS にも入れてあります。
+ */
+function imgRetryGiveUp_(it) {
+  const t = "📷 取り込めなかったスクショがあります。\n" +
+            "・" + String((it && it.biz) || "") + " のぶん\n" +
+            "・" + String((it && it.why) || "読み取れませんでした").slice(0, 60) + "\n" +
+            "・その写真を、もう一度 送っていただけると入ります";
+  try { if (typeof updDrTell_ === "function") updDrTell_(t); } catch (e) {}
+}
 
 /* ============ 3-3. スクショの日付メモ（「0904」「↑0904」）============ */
 
