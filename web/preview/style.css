@@ -1197,8 +1197,12 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* ★前の期間とのくらべ（ご指示・2026/11/12）。
      増えた／減ったが、ひと目で分かるように色を分けます。 */
 /* 1件ずつ、名前・いま・差 の3つに。横スクロールさせません */
-.cmprow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+/* ★左の名前の幅をそろえます（ご指摘・2026/11/17「これ、位置がズレてます」）。
+     auto のままだと「売上の合計」と「記録の数」で幅が変わり、
+     となりの数字の出る場所が、行ごとにずれていました。 */
+.cmprow{display:grid;grid-template-columns:5.4em 1fr auto;align-items:center;
   gap:4px 10px;padding:9px 2px;border-top:1px solid var(--ink3)}
+@media (max-width:340px){ .cmprow{grid-template-columns:5em 1fr auto;gap:4px 6px} }
 .cmprow .cl{font-size:12.5px;color:#FFFFFF;white-space:nowrap}
 .cmprow .cn{font-family:var(--mono);font-size:15px;color:#FFFFFF;text-align:right}
 .cmprow .cn i{display:block;font-style:normal;font-family:var(--body);
@@ -2286,3 +2290,67 @@ p.extnote{margin-top:8px}
 .card.lead{padding-top:10px;padding-bottom:11px}
 .card.lead:not(.fold) > h2{margin-bottom:9px}
 .card.lead:not(.fold){padding-bottom:16px}
+
+/* ================================================================
+ *  ▼ の中の行き先（5列2段）。ご指示・2026/11/17
+ *    「三にあったものは ページ内のメニューと同様に
+ *      ▼を押したら 5列2段のメニューを表示させてください」
+ *  ★ページの中のメニューと同じ形にそろえますが、
+ *    上に貼り付いている行の中なので、余白だけ詰めます。
+ * ================================================================ */
+#htabs{margin:0;padding:4px}
+.hsub > #htabs{margin-left:var(--gut);margin-right:var(--gut)}
+@media (max-width:340px){ .hsub > #htabs{margin-left:7px;margin-right:7px} }
+/* ★赤い丸は ▼ に付けます（行き先が ▼ の中に入ったため） */
+.hgrab{position:relative}
+/* ★:after は、まん中のつまみの線に使っています。
+     こちらを上書きすると つまみが消えるので、:before を使います。 */
+.hgrab.dotted:before{content:"";position:absolute;right:12px;top:5px;
+  width:8px;height:8px;border-radius:50%;background:var(--andon)}
+/* ≡ の中の「アカウントのこと」 */
+#acctBox{padding:4px 2px}
+#acctBox > .subline{display:flex;align-items:center;gap:8px;padding:6px 10px}
+#acctBox > .hrow{padding:6px 10px}
+
+/* ================================================================
+ *  天気の「いまの気温」の行（2026/11/17）
+ *  ★細い機種で、右の数字（最高・最低・降水）が場所を取りすぎて、
+ *    左の天気の名前が1文字ずつ縦に折り返していました。
+ *    入りきらないときは、右の数字を下の行に落とします。
+ * ================================================================ */
+.wxnow{flex-wrap:wrap}
+.wxmain{flex:1 1 auto;min-width:104px}
+.wxside{flex:0 1 auto;min-width:0}
+@media (max-width:399px){
+  .wxside{white-space:normal;line-height:1.6}
+  .wxside > div{white-space:nowrap}
+}
+/* ≡ の中のアカウントの行は、入りきらなければ折り返します
+   （上の行とちがって、幅がせまいため） */
+#acctBox > .hrow{flex-wrap:wrap;row-gap:6px}
+#acctBox > .hrow .whoR{margin-left:auto}
+/* ★折れ線の金額の数字は、線の上に重ねます（2026/11/17）。
+     点や線に重なっても読めるよう、うしろを少しだけ暗くします。 */
+.ylab{paint-order:stroke;stroke:rgba(10,10,12,.85);stroke-width:3px;stroke-linejoin:round}
+
+/* ================================================================
+ *  地図（2026/11/17）
+ *  ★路線図が目立ちすぎる、とのご指摘。
+ *    地図そのものは暗くしません（どこの乗り場かを読むためです）。
+ *    色みだけを落とすと、色のついた線路の線は目立たなくなり、
+ *    黒い字の地名は そのまま読めます。
+ * ================================================================ */
+.pinmap .leaflet-tile-pane{filter:saturate(.22) contrast(1.06)}
+/* ★1件ずつの📍（近づいたときに出ます） */
+.pinone span{display:block;width:14px;height:14px;margin:2px;border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);border:2px solid #FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.55)}
+
+/* ================================================================
+ *  見出しの右の【説明】（ご指示・2026/11/17）
+ *    ▼ の左に置きます。押すと、数え方の箱が出ます。
+ * ================================================================ */
+.hhelp{margin-left:auto;margin-right:8px;background:none;border:1px solid var(--line);
+  color:#FFFFFF;font-size:10.5px;font-weight:700;border-radius:999px;
+  padding:3px 9px;line-height:1;white-space:nowrap;flex:0 0 auto}
+.hhelp + .fmark{margin-left:0}
+@media (max-width:340px){ .hhelp{padding:3px 7px;font-size:10px;margin-right:6px} }

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261117-ef0d433f">
+<link rel="stylesheet" href="style.css?v=20261117-7f35c950">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
@@ -55,7 +55,17 @@
     <!-- ★灰色のブロックは、まるごと しまえます（ご指示・2026/11/13）。
          はじめは開いたまま。下にスクロールすると、1回だけ自動で閉じます。
          そのあとは ▼ を押せば、どこまで下がっていても その場で開きます。 -->
+    <!-- ★▼ を押すと、ページの行き先が 5列2段で出ます（ご指示・2026/11/17）。
+           下へスクロールしても、ここからどのページへでも行けます。
+           中身は下の #tabs から作るので、直すところは1か所だけです。 -->
     <div class="hsub" id="hsub">
+      <nav id="htabs"></nav>
+    </div>
+    <button class="hgrab" id="hgrab" aria-label="開く・閉じる"><i>▼</i></button>
+    <!-- ★称号・ボタン位置・管理・ログアウトは ≡ の中へ移しました
+           （ご指示・2026/11/17）。≡ を開くと、この箱がそのまま中に入ります。
+         先に置いてあるのは、名前や管理の出し入れが、開く前から効くためです。 -->
+    <div id="acctBox" hidden>
       <div class="subline">
         <b class="mytitle" id="me">—</b>
       </div>
@@ -70,7 +80,6 @@
         </span>
       </div>
     </div>
-    <button class="hgrab" id="hgrab" aria-label="開く・閉じる"><i>▼</i></button>
   </header>
 
   <!-- ★フィードバックは、≡ の一覧からだけ行けます（ご指示・2026/11/13
@@ -161,9 +170,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261117-ef0d433f"></script>
-<script src="news.js?v=20261117-ef0d433f"></script>
-<script src="shared.js?v=20261117-ef0d433f"></script>
-<script src="app.js?v=20261117-ef0d433f"></script>
+<script src="config.js?v=20261117-7f35c950"></script>
+<script src="news.js?v=20261117-7f35c950"></script>
+<script src="shared.js?v=20261117-7f35c950"></script>
+<script src="app.js?v=20261117-7f35c950"></script>
 </body>
 </html>

@@ -1011,6 +1011,7 @@ function render(){
    *   （中身は shared.js の andonRoll）
    */
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
+  htabsFill();
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
        前の形を覚えている方のために、「記録」に戻します。 */
   /* ★書き出しと取り込みは、まーく様だけに出します（ご指示・2026/11/12）。
@@ -2884,24 +2885,70 @@ function mapBoot(){
            （ご指摘・2026/11/16「もっとポイントを分かりやすくしてください」）。
            薄い丸だと、地図の色と見分けがつきませんでした。
            件数の多い所ほど大きく、1本の平均で色を分けます。 */
-      G.hit.forEach(function (o){
-        const a = agg(o.rows);
-        const col = a.fare >= 10000 ? BANDS[2].c : (a.fare >= 5000 ? BANDS[1].c : BANDS[0].c);
-        const d = 26 + Math.round(22 * Math.sqrt(o.rows.length / mxn));
-        /* ★丸は、すこし透けさせます（ご指摘・2026/11/17
-             「丸が透明度無くなってるため、細かい範囲が丸で分かりません」）。
-           下の道や地名が透けるので、どのあたりなのかが読めます。 */
-        const ic = L.divIcon({ className: 'pindot', iconSize: [d, d],
-          iconAnchor: [d / 2, d / 2],
-          html: '<span style="background:' + col + ';width:' + d + 'px;height:' + d + 'px' +
-                ';opacity:.72">' + o.rows.length + '</span>' });
-        L.marker([o.lat, o.lon], { icon: ic, zIndexOffset: 200 })
-          .bindPopup('<b>' + esc(o.key) + 'のあたり</b><br>' + o.rows.length + '件' +
-            '<br>1本の平均 ' + (a.fare ? yen(a.fare) : '不明') +
-            '<br>' + esc(Object.keys(o.pls).slice(0, 5).join('／')))
-          .addTo(m);
-        pts.push([o.lat, o.lon]);
-      });
+      /* ================================================================
+       *  ★近づいたら、1件ずつの📍に変わります（ご指示・2026/11/17
+       *      「ひとつひとつもっと正確に📍か何かを立てて
+       *        詳細もわかるようにしてください」）。
+       *    ・遠くから見ているとき … これまでどおり、件数の丸
+       *    ・近づいたとき（ズーム15以上）… 1件に1本の📍
+       *  ★同じ乗り場の記録は、同じ場所に重なってしまいます。
+       *    そのままだと1本しか見えないので、まわりに小さく散らします。
+       *    散らし方は毎回 同じにして、開くたびに動かないようにします。
+       *  ★画面には「乗り場のあるあたりを指しています」と必ず書きます。
+       *    1件ずつでも、場所は乗り場の座標なので、ぴったりの場所ではありません。
+       * ================================================================ */
+      const layer = L.layerGroup().addTo(m);
+      const PIN_ZOOM = 15;
+      const drawPins = function (){
+        layer.clearLayers();
+        const one = m.getZoom() >= PIN_ZOOM;
+        G.hit.forEach(function (o){
+          const a = agg(o.rows);
+          const col = a.fare >= 10000 ? BANDS[2].c : (a.fare >= 5000 ? BANDS[1].c : BANDS[0].c);
+          if (one) {
+            o.rows.forEach(function (r, i){
+              /* 1周を8本ずつにして、外へ外へと重ならないように散らします */
+              const ring = Math.floor(i / 8), k = i % 8;
+              const rad = ring === 0 && o.rows.length === 1 ? 0 : (0.00022 + ring * 0.00024);
+              const th = (k / 8) * Math.PI * 2 + ring * 0.4;
+              const la = o.lat + rad * Math.cos(th);
+              const lo = o.lon + rad * Math.sin(th) / Math.cos(o.lat * Math.PI / 180);
+              /* ★金額が「不明」の記録は、ショートの色にしません。
+                   0円として数えると、短い乗車が増えて嘘になります。 */
+              const c1 = isUnk(r.fare) ? '#8A8F98'
+                : (r.fare >= 10000 ? BANDS[2].c : (r.fare >= 5000 ? BANDS[1].c : BANDS[0].c));
+              const ic1 = L.divIcon({ className: 'pinone', iconSize: [18, 24], iconAnchor: [9, 24],
+                html: '<span style="background:' + c1 + '"></span>' });
+              L.marker([la, lo], { icon: ic1, zIndexOffset: 300 })
+                .bindPopup('<b>' + esc(r.place || o.key) + '</b>' +
+                  '<br>' + esc(fmtD(r.date)) + '　' + showT(r.dep) +
+                  '<br>金額 ' + showYen(r.fare) +
+                  '<br>待ち ' + showMin(r.wait) +
+                  (r.method ? '<br>種類 ' + esc(r.method) : '') +
+                  (r.who ? '<br>記録 ' + esc(kana(r.who)) : ''))
+                .addTo(layer);
+            });
+            return;
+          }
+          const d = 26 + Math.round(22 * Math.sqrt(o.rows.length / mxn));
+          /* ★丸は、すこし透けさせます（ご指摘・2026/11/17
+               「丸が透明度無くなってるため、細かい範囲が丸で分かりません」）。
+             下の道や地名が透けるので、どのあたりなのかが読めます。 */
+          const ic = L.divIcon({ className: 'pindot', iconSize: [d, d],
+            iconAnchor: [d / 2, d / 2],
+            html: '<span style="background:' + col + ';width:' + d + 'px;height:' + d + 'px' +
+                  ';opacity:.72">' + o.rows.length + '</span>' });
+          L.marker([o.lat, o.lon], { icon: ic, zIndexOffset: 200 })
+            .bindPopup('<b>' + esc(o.key) + 'のあたり</b><br>' + o.rows.length + '件' +
+              '<br>1本の平均 ' + (a.fare ? yen(a.fare) : '不明') +
+              '<br>' + esc(Object.keys(o.pls).slice(0, 5).join('／')) +
+              '<br><small>近づけると、1件ずつの📍に変わります</small>')
+            .addTo(layer);
+        });
+      };
+      G.hit.forEach(function (o){ pts.push([o.lat, o.lon]); });
+      drawPins();
+      m.on('zoomend', drawPins);
       /* ★有名な場所とホテル。記録ではないので、形も色も変えます
            （白いひし形）。まぎれると、数字の意味が分からなくなります。 */
       if (spotOn) {
@@ -3020,13 +3067,31 @@ function hotGroup(rs){
     if (!p) return;
     (m[p] = m[p] || []).push(r);
   });
+  /* ================================================================
+   *  ★「不明」は、数に入れません（2026/11/17 に直しました）。
+   *    ここだけ、金額が「不明」の記録を **0円**、
+   *    待ちが「不明」の記録を **0分** として割っていました。
+   *    金額の分からない記録が1本あるだけで、その乗り場の平均が
+   *    実際より安く出ます。待ちも同じで、短く出ます。
+   *    決まり（0円と「不明」は別もの）に反していました。
+   *  ★avg と fare は、同じ「1本の平均金額」です。
+   *    前は中身が違うのに、画面では どちらも「平均」と書いていて、
+   *    同じ乗り場に 違う平均が2つ並んでいました。
+   * ================================================================ */
+  const mean = function (xs){
+    return xs.length ? xs.reduce(function (x,y){ return x+y; }, 0) / xs.length : 0;
+  };
   return Object.keys(m).map(function (p){
     const a = m[p];
     const rt = a.filter(hasFare).map(function (r){ return +r.fare || 0; });
+    const wt = a.filter(function (r){ return !isUnk(r.wait); })
+                .map(function (r){ return +r.wait || 0; });
     return { p: p, n: a.length,
-      avg:  rt.length ? rt.reduce(function (x,y){ return x+y; }, 0) / rt.length : 0,
-      fare: a.reduce(function (x,r){ return x + (+r.fare || 0); }, 0) / a.length,
-      wait: a.reduce(function (x,r){ return x + (+r.wait || 0); }, 0) / a.length };
+      fn: rt.length,          /* 金額の分かっている本数 */
+      wn: wt.length,          /* 待ちの分かっている本数 */
+      avg:  mean(rt),
+      fare: mean(rt),
+      wait: mean(wt) };
   }).sort(function (x,y){ return y.avg - x.avg; });
 }
 
@@ -3796,17 +3861,21 @@ function paneHot(now){
       '" target="_blank" rel="noopener">' +
       '<small>' + (i + 1) + '位' + (i === 0 ? '　一番濃い' : '') + '</small>' +
       '<b>' + esc(x.p) + '</b>' +
-      '<div class="hv"><i>平均</i>' + yen(x.avg) + '</div>' +
-      '<div class="hs">' + x.n + '件・平均 ' + yen(x.fare) + '・待ち ' + Math.round(x.wait) + '分</div>' +
+      '<div class="hv"><i>1本の平均</i>' + (x.fn ? yen(x.avg) : UNK) + '</div>' +
+      /* ★同じ「平均」を2つ並べないようにしました（2026/11/17）。
+           上の数と下の数が 違っていて、どちらを見ればよいのか
+           分からない形になっていました。 */
+      '<div class="hs">' + x.n + '件・待ち ' +
+        (x.wn ? Math.round(x.wait) + '分' : UNK) + '</div>' +
       '<span class="mini">📍 地図</span></a>';
   }).join('');
 
   const bars = got.rows.slice(0, 8).map(function (x){
     return '<tr><td><a class="plink" href="' + hotMap(x.p) + '" target="_blank" rel="noopener">' +
       esc(x.p) + '</a></td><td class="n">' + x.n + '</td>' +
-      '<td class="n" style="color:var(--meter)">平均 ' + yen(x.avg) + '</td>' +
+      '<td class="n" style="color:var(--meter)">' + (x.fn ? yen(x.avg) : UNK) + '</td>' +
       '<td><div class="bar" style="width:' + Math.max(3, x.avg / mx * 100) + '%"></div></td>' +
-      '<td class="n">' + Math.round(x.wait) + '分</td></tr>';
+      '<td class="n">' + (x.wn ? Math.round(x.wait) + '分' : UNK) + '</td></tr>';
   }).join('');
 
   return clock +
@@ -4191,7 +4260,13 @@ function scChart(R){
        前は 70px もとっていて、肝心の中身が狭くなっていました。 */
   /* ★さらに詰めました（ご指示・2026/11/13「もっと左をスマートに詰められませんか」）。
        縦の数字を9pxにしたので、40pxで「¥10,000」まで入ります。 */
-  const L = 40, Rp = 12, T = 12, B = 30;
+  /* ★金額の数字を、線の「上」に重ねました（ご指示・2026/11/17
+       「左側の金額表記をもっとうまいことキュッとさせて、幅を詰めて
+         できるだけ、折れ線グラフがよく見えるように工夫してください」）。
+     左に40pxの帯を空けていたのを 8pxにしたので、
+     そのぶん 折れ線そのものが広く見えます。
+     金額は「¥10,000」のまま。短く書きかえてはいません。 */
+  const L = 8, Rp = 12, T = 16, B = 30;
   const xs = R.map(r => r.dep);
   const x0 = Math.floor(Math.min(...xs) - .5), x1 = Math.ceil(Math.max(...xs) + .5);
   /* ★1時間ぶんの幅は、画面の広さに合わせます。
@@ -4212,7 +4287,7 @@ function scChart(R){
   /* ★縦じくは「¥5,000」のように、そのまま出します（ご指示・2026/11/13）。
        「¥5k」という書き方はやめました。 */
   for (let v = 0; v <= y1; v += step) s += `<line class="grid-l" x1="${L}" x2="${W-Rp}" y1="${sy(v)}" y2="${sy(v)}"/>
-    <text class="axis" x="${L-4}" y="${sy(v)+3}" text-anchor="end" style="font-size:9px">${v ? yen(v) : '0'}</text>`;
+    <text class="axis ylab" x="${L+3}" y="${sy(v)-3}" text-anchor="start" style="font-size:9px">${v ? yen(v) : '0'}</text>`;
   for (let h = x0; h <= x1; h++) s += `<line class="grid-l" x1="${sx(h)}" x2="${sx(h)}" y1="${T}" y2="${H-B}" stroke-dasharray="2 4"/>`;
   /* ★一番下の線と、時刻の数字は、必ず見えるようにします
        （ご指摘・2026/11/13「下のメモリもなにもみえなくなってしまってる」）。
@@ -4796,7 +4871,7 @@ function paneRatio(){
          作る際に、まず考えてください。
          全て一緒くたにしたデータで何がわかるのですか？
          もっと、参考になるデータ作りを必ず前提としてかんがえてくみたててください」
-       乗り場も時間も混ぜた1本の帯からは、どこへ行くかが decide できません。
+       乗り場も時間も混ぜた1本の帯からは、どこへ行くかを決められません。
        これから作るものも、「この数字を見て、何をするか」が
        言えないものは出しません。 */
 
@@ -5707,8 +5782,9 @@ function paneSays(){
   const max = (typeof SAY_MAX !== 'undefined') ? SAY_MAX : 14;
   const now = [...sayText].length;
   return `<div class="card" id="sayCard"><h2>ふきだしに ひとことを足す</h2>
-    <p class="note">題の横のふきだしに出ます。足すと、みんなの画面にも出ます。
-      ふきだしを押すと、ここへ来られます。</p>
+    <p class="note">題の横のふきだしに出ます。ふきだしを押すと、ここへ来られます。</p>
+    <p class="note">いま出ているひとことを書きかえるときは、
+      下の一覧の【直す】を押します。</p>
     <div class="ktfind">
       <input class="ja" id="sayNew" maxlength="${max}"
         placeholder="吹き出しに追加したい一言" value="${esc(sayText)}">
@@ -5893,36 +5969,19 @@ function fabWire(){
   if (m && sheet) {
     m.onclick = function () {
       if (!sheet.hidden) { sheet.hidden = true; return; }
-      /* ★フィードバックは、一番下に出します（ご指示・2026/11/13）。
-           上の行に置いてあるので、そのままだと先頭に来てしまいます。 */
-      const btns = [...document.querySelectorAll('[data-t]')]
-        .sort(function (x, y) {
-          const fx = x.dataset.t === 'fb' ? 1 : 0, fy = y.dataset.t === 'fb' ? 1 : 0;
-          return fx - fy;
-        });
-      sheet.innerHTML = btns.map(function (b) {
-        const t = b.dataset.t;
-        const nm = (b.querySelector('b') || {}).textContent || (b.textContent || '').trim();
-        const sb = (b.querySelector('i') || {}).textContent || '';
-        /* ★新着の赤い丸も、ここに持ってきます（ご指示・2026/11/16
-             「三を開いた時にも、新着が赤丸ついてないと、
-               どれが新着なのか分かりません」）。
-           上のタブは画面から外してあるので、ここに出さないと気づけません。 */
-        const dt = b.querySelector('.dot');
-        const nd = (dt && !dt.hidden) ? '<span class="dot"></span>' : '';
-        return '<button class="fsrow ' + (t === tab ? 'on' : '') + '" data-go="' + t + '">' +
-               '<b>' + nd + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
-      }).join('') +
-        /* ★【仕掛けを起こす】は、いつでも ここから押せます
-             （ご指示・2026/11/13「スプシにおいても色々やらないといけないの面倒」）。
-             押すと、GASの受け口が開いて 自動で直ります。 */
-        /* ★「みんなの記録」も、ここから開けます（ご質問・2026/11/13
-             「このみんなの記録、とても良い感じですが
-               webサイトにはそのページは載らないのですか？」）。
-           同じ中身を2つ持つと、直すたびに2か所 直すことになり、
-           いつか片方が古いまま残ります。だから作り直さず、
-           ここから1回で開ける形にしました。
-           開いたついでに、止まっている仕掛けも自動で直ります。 */
+      /* ================================================================
+       *  ≡ の中身は「アカウントのこと」です（ご指示・2026/11/17）。
+       *    ページの行き先は、▼ のほうに移しました。
+       *  ★称号・ボタン位置・管理・ログアウトの箱は、画面の上に
+       *    すでに作ってあるので、ここへ そのまま移してきます。
+       *    作り直すと、名前の出し方を2か所 直すことになります。
+       * ================================================================ */
+      const box = document.getElementById('acctBox');
+      sheet.innerHTML = '';
+      if (box) { box.hidden = false; sheet.appendChild(box); }
+      sheet.insertAdjacentHTML('beforeend',
+        /* ★「みんなの記録」は、ここから開けます（ご質問・2026/11/13）。
+             同じ中身を2つ持つと、直すたびに2か所 直すことになります。 */
         ((gasInfo && gasInfo.exec)
           ? '<a class="fsrow" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
             '<b>みんなの記録</b><i>記録カード・ロング（別のページが開きます）</i></a>' +
@@ -5932,7 +5991,17 @@ function fabWire(){
               ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
                 '<b>仕掛けを起こす</b><i>止まったときに押す（別のページが開きます）</i></a>'
               : '')
-          : '');
+          : ''));
+      /* 移してきた箱の中のボタンを、もう一度つなぎ直します */
+      sheet.querySelectorAll('[data-hand]').forEach(function (b2) {
+        b2.onclick = function () {
+          hand = b2.dataset.hand;
+          try { localStorage.setItem(HAND_KEY, hand); } catch (e) {}
+          handApply();
+        };
+      });
+      const so = sheet.querySelector('#out');
+      if (so && !so.dataset.wired) { so.dataset.wired = '1'; so.addEventListener('click', signOut); }
       sheet.hidden = false;
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
         b.onclick = function () {
@@ -6049,12 +6118,157 @@ function foldSave(){
 /** 見出しの字から、覚えておくための名前を作ります */
 function foldKey(h){ return String(h.textContent || '').replace(/[▼▲\s]/g, '').slice(0, 24); }
 
+/* ================================================================
+ *  見出しの右の【説明】（ご指示・2026/11/17）
+ *    「計算して出しているものは 各見出しの右側
+ *      （折りたたみの▼の左横くらいに）説明 というタブをつけて、
+ *      タップしたらポップアップで 詳細の計算方法を記載してください」
+ *
+ *  ★中身は、実際のコードと突き合わせて書いています。
+ *    ここと計算が食い違うと、説明のほうが嘘になります。
+ *    計算を直したら、必ずここも直します。
+ *  ★「不明」の扱いは、どこでも同じです。
+ *    金額・待ちが「不明」の記録は、平均にも合計にも入れません。
+ *    0円・0分として数えると、数字がまるごと嘘になります。
+ * ================================================================ */
+const CALC_UNK = '金額や待ちが「不明」の記録は、平均にも合計にも入れていません。' +
+  '0円・0分として数えると、数字が実際より低く出てしまうためです。';
+const CALC_MIN = '1つの乗り場で3件そろわないものは出していません。' +
+  '1件は、たまたまの1本だからです。';
+
+const CALC_HELP = {
+  'いまの時間帯に強い乗り場':
+    ['数えているもの … いまの時刻の前後1時間に出発した記録です。',
+     '曜日は、金土の夜・日曜の夜・平日の夜で分けています。',
+     '同じ曜日で足りないときは前後2時間、それでも足りないときは',
+     '曜日を問わずに広げます。広げたときは、表の下に書いています。',
+     '1本の平均 … 金額の分かっている記録の合計 ÷ その本数です。',
+     '待ち … 待ちの分かっている記録の平均です。',
+     '並び … 1本の平均が高い順です。',
+     CALC_MIN, CALC_UNK],
+  '時間帯ごとの狙い目（夜ぜんたい）':
+    ['16時台から翌5時台まで、1時間ずつ見ています。',
+     'その時間に一番 強かった乗り場を1つだけ出しています。',
+     '数え方は「いまの時間帯に強い乗り場」と同じです。',
+     CALC_MIN, CALC_UNK],
+  '新しく人が集まり出した乗り場':
+    ['この60日のうちに、はじめて記録がついた乗り場です。',
+     'それより前に1件でもあれば、新しいとは見ません。',
+     CALC_MIN],
+  '乗り場別オススメ時間帯':
+    ['えらんだ乗り場の記録を、出発の時刻で分けています。',
+     '乗り場ごとでは件数が少ないので、前後1時間をふくめて数えます。',
+     'ロング率 … ロング（¥10,000以上）の本数 ÷ 金額の分かった本数。',
+     '平均 … 金額の分かっている記録の平均です。',
+     '並び … 時刻の順です。強い順ではありません。',
+     '一番よい時間 … ロング率の高い順、同じならロングの平均が高いほう。',
+     CALC_MIN, CALC_UNK],
+  'ロングが出やすい所と時間':
+    ['ショート … ¥4,999以下　ミドル … ¥5,000〜9,999',
+     'ロング … ¥10,000以上。記録用スプレッドシートと同じ分け方です。',
+     '割合 … それぞれの本数 ÷ 金額の分かった本数です。',
+     CALC_MIN, CALC_UNK],
+  'ロングが出やすい時間帯':
+    ['出発の時刻で、1時間ずつに分けています（前後は広げていません）。',
+     '棒の高さは、その時間のショート・ミドル・ロングの割合です。',
+     '下の数字は、その時間の件数です。',
+     CALC_MIN, CALC_UNK],
+  '時間帯別乗り場ランキング':
+    ['その時間に、ロングが出やすかった乗り場の上位3か所です。',
+     '乗り場ごとでは件数が少ないので、前後1時間をふくめて数えます。',
+     '何時から何時までの記録かは、それぞれの行の下に書いています。',
+     CALC_MIN, CALC_UNK],
+  'エリア別のロング割合':
+    ['北・南・他のまとまりごとに、割合を出しています。',
+     '合計の行は、そのエリアの記録をぜんぶ合わせたものです。',
+     CALC_MIN, CALC_UNK],
+  '前の期間と比べる':
+    ['いまえらんでいる期間と、その1つ前の同じ長さの期間を比べます。',
+     '売上の合計 … 金額の分かっている記録の合計です。',
+     '1日当たり … 合計 ÷ 記録のある日数です。',
+     '　（記録のある日だけを数えます。走っていない日は入れません）',
+     '1本の平均 … 合計 ÷ 金額の分かっている本数です。',
+     '記録の数 … 金額が「不明」のものもふくめた、記録そのものの数です。',
+     CALC_UNK],
+  '1本のあと、次に拾えた乗り場':
+    ['同じ人の、同じ夜の記録を、時刻の順に並べて見ています。',
+     'ある乗り場で乗せた すぐあとに、次に乗せた乗り場を数えています。',
+     '夜をまたぐもの（朝6時より後）は、つなげていません。',
+     CALC_MIN],
+  'くり返しの印がある乗車':
+    ['同じ乗り場・同じ曜日・同じ時間帯に、2回以上あったものです。',
+     '間かくがそろっているときだけ「次は〇／〇ごろ」と添えています。',
+     'くり返すとは限りません。言い切ってはいません。'],
+  '乗り場の地図（ピン）':
+    ['場所の分かっている乗り場にだけ、ピンを立てています。',
+     'ピンは、乗り場のあるあたりを指しています。',
+     '丸の中の数は件数、色は1本の平均（ショート・ミドル・ロング）です。',
+     '近づけると、1件ずつの📍に変わります。',
+     '場所の分からない乗り場は、地図の下に名前を並べています。',
+     CALC_UNK],
+  '過去の記録':
+    ['期間 … 上の期間のえらびに合わせています。',
+     '合計 … 金額の分かっている記録の合計です。',
+     '1日当たりの数ではありません。',
+     CALC_UNK]
+};
+
+/* 見出しの字から、説明をさがします。グラフは題が変わるので、頭の字で見ます */
+function calcHelp(k){
+  if (CALC_HELP[k]) return CALC_HELP[k];
+  if (k.indexOf('表グラフ') === 0)
+    return ['乗り場ごとに、時間帯べつの件数を並べた表です。',
+            '数えているのは、絞り込みに合う記録だけです。',
+            '並び … エリア → 中分類 → 件数の多い順です。',
+            CALC_UNK];
+  if (k.indexOf('横棒グラフ') === 0 || k.indexOf('棒グラフ') === 0)
+    return ['1つの夜を1本にして、乗せた時刻を横に並べたものです。',
+            '重なりの帯は、その時刻に何件そろっていたかの濃さです。',
+            CALC_UNK];
+  if (k.indexOf('線グラフ') === 0)
+    return ['横は乗せた時刻（25＝翌1時）、縦は金額です。',
+            '日付ごとに色を変えています。1つの点が1件です。',
+            '金額が「不明」の記録は、点を打っていません。'];
+  return null;
+}
+
+/** 【説明】の箱を出します */
+function calcPopup(title, lines){
+  const box = document.createElement('div');
+  box.className = 'modal';
+  box.innerHTML = '<div class="modalbox"><h2>' + esc(title) + '　の数え方</h2>' +
+    '<div class="modalbody">' +
+    lines.map(function (x){ return '<p class="note">' + esc(x) + '</p>'; }).join('') +
+    '</div><div class="modalfoot">' +
+    '<button class="btn" id="calcClose">閉じる</button></div></div>';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  box.querySelector('#calcClose').addEventListener('click', close);
+  box.addEventListener('click', function (e){ if (e.target === box) close(); });
+}
+
 function foldWire(){
   document.querySelectorAll('#panesTop .card > h2, #ktop > h2, #panes .card > h2')
     .forEach(function (h){
       const card = h.parentElement;
       if (!card) return;
       const k = foldKey(h);
+      /* ★計算して出しているものには、▼ の左に【説明】を付けます
+           （ご指示・2026/11/17）。押すと、数え方の箱が出ます。 */
+      const help = calcHelp(k);
+      if (help && !h.querySelector('.hhelp')) {
+        const hb = document.createElement('button');
+        hb.className = 'hhelp'; hb.type = 'button'; hb.textContent = '説明';
+        hb.onclick = function (e){
+          e.stopPropagation();                /* 見出しのたたみ込みは動かしません */
+          calcPopup(k, help);
+        };
+        h.appendChild(hb);
+      }
       if (!h.querySelector('.fmark')) {
         const i = document.createElement('i');
         i.className = 'fmark'; i.textContent = '▼';
@@ -6160,6 +6374,30 @@ function tocBuild(){
  *    ▼を押せば その場で開きます。
  *  ★自動で閉じるのは、1回だけ。行ったり来たりすると、画面がガタつくためです。
  * ---------------------------------------------------------- */
+/* ================================================================
+ *  ▼ を押したときの行き先（5列2段）。ご指示・2026/11/17
+ *    下へスクロールしても、ここからどのページへでも行けます。
+ *  ★中身は、ページの中のメニュー（#tabs）から作ります。
+ *    元を1つにしておかないと、増やすたびに2か所 直すことになり、
+ *    いつか片方が古いまま残ります。
+ *  ★id は写しません。同じ id が2つあると、赤い丸の出し入れが
+ *    どちらか片方にしか効かなくなります。
+ * ================================================================ */
+function htabsFill(){
+  const src = document.getElementById('tabs');
+  const box = document.getElementById('htabs');
+  if (!src || !box) return;
+  box.innerHTML = [...src.querySelectorAll('[data-t]')].map(function (b){
+    const nm = (b.querySelector('b') || {}).textContent || (b.textContent || '').trim();
+    const sb = (b.querySelector('i') || {}).textContent || '';
+    const dt = b.querySelector('.dot');
+    const nd = (dt && !dt.hidden) ? '<span class="dot"></span>' : '';
+    return '<button data-t="' + esc(b.dataset.t) + '" aria-selected="' +
+      (b.dataset.t === tab ? 'true' : 'false') + '">' +
+      '<b>' + nd + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
+  }).join('');
+}
+
 let hsubAuto = false;
 function hsubSet(cl){
   const h = document.getElementById('hsub');
@@ -7040,12 +7278,17 @@ function newsSeen(){
  *   代わりに ≡ そのものに付けます。どちらかが未読なら、赤い丸が出ます。
  */
 function menuDot(){
-  const m = document.getElementById('fabMenu');
-  if (!m) return;
   const ev = document.getElementById('evDot');
   const nw = document.getElementById('newsDot');
   const on = (ev && !ev.hidden) || (nw && !nw.hidden);
-  m.classList.toggle('dotted', !!on);
+  /* ★行き先は ▼ の中へ移したので、赤い丸も ▼ に付けます（2026/11/17）。
+       ≡ はアカウントのことだけになったので、新着は出ません。 */
+  const g = document.getElementById('hgrab');
+  if (g) g.classList.toggle('dotted', !!on);
+  const m = document.getElementById('fabMenu');
+  if (m) m.classList.remove('dotted');
+  /* 赤い丸は あとから付くので、▼ の中身も そのときに作り直します */
+  htabsFill();
 }
 
 /** 題のとなりの版の番号と、タブの赤い点をととのえる */

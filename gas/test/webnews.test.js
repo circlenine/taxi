@@ -1416,7 +1416,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/nav button b\{[^}]*white-space:nowrap/.test(cs), '　 名前は折り返さない');
     const h3 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
     /* ★タブの中の <i> だけを数えます（▼のつまみは、タブではありません） */
-    const navH = h3.slice(h3.indexOf('<nav id="tabs">'), h3.indexOf('</nav>'));
+    /* ★▼ の中にも nav（#htabs）があるので、#tabs のほうから数えます */
+    const nav0 = h3.indexOf('<nav id="tabs">');
+    const navH = h3.slice(nav0, h3.indexOf('</nav>', nav0));
     const subs = (navH.match(/<i>([^<]*)<\/i>/g) || []).map(x => x.replace(/<\/?i>/g, ''));
     /* ★2026/11/13：「バラシ」「関空」を足し、
          「イベント」「お知らせ」は画面から外して ≡ だけにしました
@@ -2542,10 +2544,20 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/indexOf\(BIGSEL\)\s*===\s*0/.test(app), '★★★えらんだら、エリアの絞り込みになる');
   t(/onlyBig\s*=\s*v\.slice\(1\)/.test(app), '　 エリアの絞り込みが入る');
 
-  /* ⑥-4 ≡ の一覧は、フィードバックを一番下に。
-         ご指示（2026/11/13）「三を押した時に、フィードバックは1番下にしてください」 */
-  t(/fx = x\.dataset\.t === 'fb' \? 1 : 0[\s\S]{0,90}fy = y\.dataset\.t === 'fb' \? 1 : 0[\s\S]{0,60}return fx - fy/
-    .test(app), '★★★≡ の一覧で、フィードバックを一番下に送る');
+  /* ⑥-4 ≡ と ▼ の中身を入れ替えた（ご指示・2026/11/17
+         「▼を押したら、今はアカウント情報、配置向き、管理、ログアウトと
+           ありますが それらは全て三の方に移して 逆に、三にあったものは
+           ページ内のメニューと同様に ▼を押したら
+           5列2段のメニューを表示させてください」） */
+  const h3b = fs.readFileSync(path.join(__dirname, '..', '..', 'web', 'index.html'), 'utf8');
+  t(/function htabsFill\(/.test(app), '★★★▼ の中に、行き先を並べる係がある');
+  t(/const src = document\.getElementById\('tabs'\)/.test(app),
+    '★★★中身は、ページの中のメニューから作る（元は1つ）');
+  t(/<nav id="htabs"><\/nav>/.test(h3b), '★★★▼ の中に、行き先の入れものがある');
+  t(/getElementById\('acctBox'\)[\s\S]{0,160}sheet\.appendChild\(box\)/.test(app),
+    '★★★≡ の中に、アカウントのことを移してきている');
+  t(/id="acctBox" hidden/.test(h3b), '　 アカウントの箱は、はじめは出さない');
+  t(!/data-go=/.test(app), '★★★≡ からは、行き先の行を外した');
 
   /* ⑥-5 「この地図で合っている」のタグはやめ、初回だけ誘う。
          ご指示（2026/11/13）
@@ -2803,8 +2815,13 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(!/\.ktsum\{[^}]*margin-top:-20px/.test(css), '　 むりやり重ねる書き方は、残っていない');
 
   /* 平均には、必ず「平均」と添える */
-  t(/'<div class="hv"><i>平均<\/i>'/.test(app), '★★★狙い目の金額に「平均」と添える');
-  t(/'<td class="n" style="color:var\(--meter\)">平均 '/.test(app), '　 表の中にも添える');
+  /* ★2026/11/17：同じ「平均」を2つ並べるのをやめました。
+       上の大きい数（1本の平均）と、下の小さい数（これも平均）が
+       別の計算になっていて、どちらを見ればよいのか分かりませんでした。 */
+  t(/'<div class="hv"><i>1本の平均<\/i>'/.test(app), '★★★狙い目の金額に「1本の平均」と添える');
+  t(/'<div class="hs">' \+ x\.n \+ '件・待ち '/.test(app),
+    '★★★下の行には、件数と待ちだけ（平均を2つ出さない）');
+  t(/<th class="n">1本の平均<\/th>/.test(app), '　 表は、見出しのほうに書いてある');
   t(/'平均 ' \+ yen\(avg\)/.test(app), '　 エリアごとの行にも添える');
   t(/<span class="ln">1本の平均金額<\/span>/.test(app), '　 見出しも「1本の平均金額」');
 
@@ -3086,7 +3103,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
 
   /* ≡ の赤い丸（未読があるとき） */
   t(/function menuDot\(/.test(app), '★★★≡ に赤い丸を付ける係がある');
-  t(/m\.classList\.toggle\('dotted', !!on\)/.test(app), '　 未読があるときだけ付ける');
+  /* ★行き先は ▼ の中へ移したので、赤い丸も ▼ に付けます（2026/11/17） */
+  t(/g\.classList\.toggle\('dotted', !!on\)/.test(app), '　 未読があるときだけ ▼ に付ける');
+  t(/m\.classList\.remove\('dotted'\)/.test(app), '　 ≡ には付けない（行き先が無いので）');
+  t(/\.hgrab\.dotted:before\{/.test(css), '　 つまみの線（:after）を消さない形で付けている');
   t(/\.fab\.menu\.dotted:after\{/.test(css), '　 その赤い丸の見た目がある');
   t(/menuDot\(\);/.test(app), '　 開いたら、その場で消す');
 
@@ -3310,8 +3330,16 @@ console.log('■ 営業曜日でも絞れる（ご指示・2026/11/12）');
          縦1画面でできる限り収まる形に」） */
   /* ★2026/11/13 に、もう一段つめました（「もっと左をスマートに詰められませんか
        また、〇と、きんがくをもっと小さくして」） */
-  t(/const L = 40, Rp = 12, T = 12, B = 30;/.test(app),
+  /* ★2026/11/17 に、金額の数字を線の「上」に重ねました（ご指示
+       「左側の金額表記をもっとうまいことキュッとさせて、幅を詰めて
+         できるだけ、折れ線グラフがよく見えるように工夫してください」）。
+     左の帯が 40px → 8px になったぶん、折れ線そのものが広く見えます。 */
+  t(/const L = 8, Rp = 12, T = 16, B = 30;/.test(app),
     '★★★左の数字の場所を、ギリギリまで詰めた');
+  t(/<text class="axis ylab" x="\$\{L\+3\}"[^>]*text-anchor="start"/.test(app),
+    '★★★金額は、線の上に重ねて出す');
+  t(/\.ylab\{[^}]*stroke:/.test(css),
+    '★★★線や点に重なっても読めるよう、字のうしろを暗くしている');
   t(/r="2\.2"/.test(app), '★★★丸を小さくした');
   t(/style="font-size:8px" fill="\$\{c\}"/.test(app), '★★★金額の字も、小さくした');
   t(/const axisBottom = \(\) =>/.test(app) && /\.axis-l\{/.test(css),
@@ -4342,6 +4370,67 @@ console.log('\n■ 2026/11/16 のご指示');
   /* ⑨ 顔は、もう使っていない */
   t(!/faceSvg/.test(app) && !/FACE_EYES/.test(fs.readFileSync(path.join(W, 'shared.js'), 'utf8')),
     '★★★使っていない顔は、どこにも残っていない');
+}
+
+/* ------------------------------------------------------------
+ *  🗺 地図：1件ずつの📍と、路線図の目立ちすぎ（ご指示・2026/11/17）
+ *    「ひとつひとつもっと正確に📍か何かを立てて詳細もわかるように」
+ *    「路線図？が目立ちすぎて、分かりづらすぎます」
+ * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  見出しの右の【説明】（ご指示・2026/11/17）
+ *    「計算して出しているものは 各見出しの右側…説明 というタブをつけて、
+ *      タップしたらポップアップで 詳細の計算方法を記載してください」
+ * ---------------------------------------------------------- */
+console.log('■ 見出しの【説明】（2026/11/17）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/const CALC_HELP = \{/.test(app), '★★★数え方の説明が書いてある');
+  t(/function calcHelp\(k\)/.test(app), '　 見出しの字から、説明をさがす');
+  t(/function calcPopup\(/.test(app), '★★★押すと、箱が出る');
+  t(/hb\.className = 'hhelp'/.test(app), '★★★▼ の左に【説明】を足す');
+  t(/e\.stopPropagation\(\);/.test(app), '★★★押しても、見出しはたたまれない');
+  t(/\.hhelp\{/.test(css) && /\.hhelp \+ \.fmark\{margin-left:0\}/.test(css),
+    '★★★▼ を押しのけない形にしてある');
+  /* ★説明は、実際の計算と合っていること。
+       「不明」を 0 として数えない、という決まりが書いてあること。 */
+  t(/0円・0分として数えると/.test(app), '★★★「不明」の扱いが書いてある');
+  t(/1件は、たまたまの1本だからです。/.test(app), '★★★3件に届かないものの扱いも書いてある');
+  ['いまの時間帯に強い乗り場', '乗り場別オススメ時間帯', '前の期間と比べる',
+   'エリア別のロング割合', '乗り場の地図（ピン）'].forEach(function (k){
+    t(app.indexOf("'" + k + "':") !== -1, '　 ' + k + ' の数え方がある');
+  });
+  /* ★「1日当たり」は、記録のある日だけで割っています（走っていない日は入れない）。
+       説明と計算が食い違うと、説明のほうが嘘になります。 */
+  t(/const days = new Set\(rs\.map\(r => r\.date\)\)\.size;/.test(app),
+    '★★★1日当たりは、記録のある日数で割っている');
+  t(/合計 ÷ 記録のある日数です。/.test(app), '　 説明も、そう書いてある');
+}
+
+console.log('■ 地図のピンと、下じきの地図（2026/11/17）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* 「前の期間と比べる」の位置ズレ（ご指摘・2026/11/17「これ、位置がズレてます」）。
+     左の名前の幅が auto だと、行ごとに数字の出る場所がずれます。 */
+  t(/\.cmprow\{display:grid;grid-template-columns:5\.4em 1fr auto;/.test(css),
+    '★★★「前の期間と比べる」は、左の名前の幅をそろえる');
+  t(/const PIN_ZOOM = 15;/.test(app), '★★★近づいたら、1件ずつの📍にする');
+  t(/const drawPins = function \(\)/.test(app) && /m\.on\('zoomend', drawPins\)/.test(app),
+    '★★★近づく・離れるのたびに、描き直す');
+  t(/className: 'pinone'/.test(app), '★★★1件ずつの📍がある');
+  t(/\.pinone span\{/.test(css), '　 その見た目もある');
+  t(/isUnk\(r\.fare\) \? '#8A8F98'/.test(app),
+    '★★★金額が「不明」の記録を、ショートの色にしない');
+  t(/近づけると、1件ずつの📍に変わります/.test(app),
+    '　 遠くから見ているときに、そう書いてある');
+  /* ★下じきの地図は、暗くしません（どこの乗り場かを読むためです）。
+       色みだけを落として、色のついた線路の線を目立たなくします。 */
+  t(/\.pinmap \.leaflet-tile-pane\{filter:saturate\(/.test(css),
+    '★★★下じきの地図は、色みだけを落とす');
+  t(!/\.pinmap \.leaflet-tile-pane\{[^}]*brightness\(0?\.[0-7]/.test(css),
+    '★★★暗くはしない（地名が読めなくなるため）');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
