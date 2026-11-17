@@ -1,0 +1,90 @@
+/* ================================================================
+ *  見た目の試し（try.css）
+ *
+ *  ★まーく様のご指示（2026/11/17）
+ *    「残っているのは、Taxi-Board を参考にした見た目の作り直し。
+ *      こちらは、比較したいので 本番ではなく、テスト用に作成して」
+ *
+ *  ★このファイルだけが、本番と違うところです。
+ *    中身（動き・計算・記録）は本番とまったく同じものを読んでいます。
+ *    だから、見た目を比べるだけで、記録が食い違うことはありません。
+ *  ★このファイルは、作り直しても消えません。
+ *    ほかのファイルは tools/sync_try.py が本番から作り直します。
+ *
+ *  ★ねらい（走りながら、暗い車内で読むもの）
+ *    ① 線を減らして、面で分ける（枠が多いほど、目が疲れます）
+ *    ② 数字を主役にする（見るのは数字で、飾りではありません）
+ *    ③ 色を減らす。赤は「いま」と「危ないとき」だけに使う
+ *    ④ 押しどころを大きくする
+ *    ⑤ 表は1行おきに色を変え、見出しを上に貼り付ける
+ * ================================================================ */
+
+/* ---- ① 線を減らして、面で分ける ---- */
+.card, #ktop {
+  border: 0;
+  border-radius: 14px;
+  background: #171A20;
+  box-shadow: 0 1px 0 rgba(255,255,255,.045) inset,
+              0 6px 18px rgba(0,0,0,.40);
+  margin-bottom: 16px;
+}
+/* 見出しの左に、細い色の帯を立てます（「— 」の代わり） */
+.card > h2, #ktop > h2 { position: relative; padding-left: 12px; }
+.card h2:before, #ktop > h2:before { content: "" !important; }
+.card > h2:after, #ktop > h2:after {
+  content: ""; position: absolute; left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 1.05em; border-radius: 2px;
+  background: var(--andon); opacity: .9;
+}
+/* 中の小箱は、枠ではなく うすい面で分けます */
+.scroll.tbl, .wli, .cmprow, .hblk, .bcat, .btrow {
+  border-color: rgba(255,255,255,.07);
+}
+
+/* ---- ② 数字を主役にする ---- */
+.kpis { gap: 10px; }
+.kpi {
+  background: #1D2128; border: 0; border-radius: 12px; padding: 12px 10px;
+}
+.kpi small { color: #FFFFFF; opacity: .72; font-size: 10.5px; letter-spacing: .08em; }
+.kpi b { color: #FFFFFF; font-size: 24px; letter-spacing: .01em; }
+/* 「いま一番大事な数」だけ、色を残します */
+.kpi.gr b { color: var(--andon); }
+.ktsum b { font-size: clamp(15px, 4.4vw, 19px); }
+
+/* ---- ③ 色を減らす ---- */
+/* 押していないタグは、ふちだけ。押したものだけ塗ります */
+.chip { border-color: rgba(255,255,255,.16); background: transparent; }
+.chip.on { background: var(--andon); border-color: var(--andon); }
+.mini { border-color: rgba(255,255,255,.16); }
+.fsel { border-color: rgba(255,255,255,.16); background: #1D2128; }
+
+/* ---- ④ 押しどころを大きくする ---- */
+.chip, .mini { min-height: 34px; display: inline-flex; align-items: center; }
+.hhelp { min-height: 30px; }
+nav button { min-height: 52px; }
+.hgrab { height: 26px; }
+
+/* ---- ⑤ 表を読みやすく ---- */
+.scroll table { border-collapse: separate; border-spacing: 0; }
+.scroll thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: #1D2128; color: #FFFFFF;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.scroll tbody tr:nth-child(odd) td { background: rgba(255,255,255,.028); }
+.scroll td, .scroll th { border-bottom: 0; padding-top: 9px; padding-bottom: 9px; }
+.scroll td.n, .scroll th.n { font-variant-numeric: tabular-nums; }
+
+/* ---- 目次と「このページを見てわかること」も、面にそろえます ---- */
+.toc { border: 0; border-radius: 14px; background: #171A20;
+  box-shadow: 0 6px 18px rgba(0,0,0,.40); margin-bottom: 16px; }
+
+/* ---- 試しの帯（本番と見分けるため） ---- */
+.trybar {
+  background: #1B3A6B; color: #FFFFFF; font-size: 12px; line-height: 1.5;
+  padding: 8px 14px; text-align: center;
+}
+.trybar b { color: #FFFFFF; }
+.trybar a { color: #BFD8FF; }

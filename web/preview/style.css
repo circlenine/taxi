@@ -1200,9 +1200,18 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* ★左の名前の幅をそろえます（ご指摘・2026/11/17「これ、位置がズレてます」）。
      auto のままだと「売上の合計」と「記録の数」で幅が変わり、
      となりの数字の出る場所が、行ごとにずれていました。 */
-.cmprow{display:grid;grid-template-columns:5.4em 1fr auto;align-items:center;
+/* 差のらんは、広がりすぎないように上限をつけます。
+   ここを auto にすると、金額のらんが押しつぶされます。 */
+.cmprow{display:grid;grid-template-columns:5.4em minmax(0,1fr) minmax(0,6.4em);
+  align-items:center;
   gap:4px 10px;padding:9px 2px;border-top:1px solid var(--ink3)}
-@media (max-width:340px){ .cmprow{grid-template-columns:5em 1fr auto;gap:4px 6px} }
+@media (max-width:340px){
+  .cmprow{grid-template-columns:5em minmax(0,1fr) minmax(0,6em);gap:4px 6px} }
+/* ★差の字は、入らなければ下の行へ落とします（画面の外へ出さないため） */
+.cmprow .cd{white-space:normal;min-width:0}
+.cmp{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:0 3px}
+.cmp b{font-weight:700}
+.cmp i{font-style:normal;opacity:.85}
 .cmprow .cl{font-size:12.5px;color:#FFFFFF;white-space:nowrap}
 .cmprow .cn{font-family:var(--mono);font-size:15px;color:#FFFFFF;text-align:right}
 .cmprow .cn i{display:block;font-style:normal;font-family:var(--body);

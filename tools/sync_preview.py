@@ -43,3 +43,7 @@ for f in sorted(P.glob('*')):
         t = '\n'.join(L)
     f.write_text(t, encoding='utf-8')
     print('なおした:', f.name)
+
+# ★見た目の試しのページ（web/try/）も、ここから作り直します。
+#   別の道具にしておくと、通し忘れて本番と中身がずれます。
+subprocess.run([sys.executable, str(HERE / 'sync_try.py')], check=True)

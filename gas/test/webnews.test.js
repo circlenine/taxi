@@ -4437,6 +4437,36 @@ console.log('■ 小さい赤い字を白にする（2026/11/17）');
  *    そのタブのまま戻します（ご指示・2026/11/12）。
  *    見分けは「最後に触ってから30分たったかどうか」。
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  見た目の試しのページ（web/try/）・ご指示 2026/11/17
+ *    「比較したいので 本番ではなく、テスト用に作成してもらえますか」
+ *  ★本番と違うのは try.css だけ。中身は本番と同じものを読みます。
+ *  ★帯（trybar）を消すと、本番と見分けがつかなくなります。
+ * ---------------------------------------------------------- */
+console.log('■ 見た目の試しのページ（2026/11/17）');
+{
+  const T = path.join(W, 'try');
+  const tix = fs.readFileSync(path.join(T, 'index.html'), 'utf8');
+  const tcss = fs.readFileSync(path.join(T, 'try.css'), 'utf8');
+  t(/<div class="trybar">/.test(tix), '★★★試しの帯が出ている（本番と見分けがつく）');
+  t(/見た目の試し/.test(tix), '　 そう書いてある');
+  t(/<title>TAXI NOTE（見た目の試し）<\/title>/.test(tix), '★★★題でも見分けがつく');
+  t(/<link rel="stylesheet" href="try\.css\?v=/.test(tix), '★★★試しの上がけを読んでいる');
+  t(tix.indexOf('style.css?v=') < tix.indexOf('try.css?v='),
+    '★★★本番の見た目の「あと」に上がけする');
+  t(/\.trybar \{/.test(tcss), '　 帯の見た目も、そこにある');
+  /* 中身は本番と同じ（ここがずれると、比べる意味がなくなります） */
+  ['app.js', 'shared.js', 'news.js', 'shared-faces.js', 'style.css'].forEach(function (n){
+    t(fs.readFileSync(path.join(T, n), 'utf8') === fs.readFileSync(path.join(W, n), 'utf8'),
+      '★★★' + n + ' は、本番と同じもの');
+  });
+  /* 作り直す道具が、下見と同じ流れから呼ばれていること */
+  const sp = fs.readFileSync(path.join(__dirname, '..', '..', 'tools', 'sync_preview.py'), 'utf8');
+  t(/sync_try\.py/.test(sp), '★★★下見を作り直すと、試しも作り直される（通し忘れない）');
+  const st = fs.readFileSync(path.join(__dirname, '..', '..', 'tools', 'sync_try.py'), 'utf8');
+  t(/if f\.name == 'try\.css'/.test(st), '★★★try.css は、作り直しで消さない');
+}
+
 console.log('■ 最初に出るのは【天気】（2026/11/17）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
@@ -4496,8 +4526,14 @@ console.log('■ 地図のピンと、下じきの地図（2026/11/17）');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   /* 「前の期間と比べる」の位置ズレ（ご指摘・2026/11/17「これ、位置がズレてます」）。
      左の名前の幅が auto だと、行ごとに数字の出る場所がずれます。 */
-  t(/\.cmprow\{display:grid;grid-template-columns:5\.4em 1fr auto;/.test(css),
+  t(/\.cmprow\{display:grid;grid-template-columns:5\.4em minmax\(0,1fr\) minmax\(0,6\.4em\);/.test(css),
     '★★★「前の期間と比べる」は、左の名前の幅をそろえる');
+  /* ★差の字が画面の外へ はみ出していました（320px で4px）。
+       1つながりの字をやめて、入らなければ下の行へ落とします。 */
+  t(/\.cmprow \.cd\{white-space:normal;min-width:0\}/.test(css),
+    '★★★差の字は、入らなければ折り返す（画面の外へ出さない）');
+  t(/<span class="cmp ' \+ cls \+ '"><b>/.test(app),
+    '　 金額と割合を、2つに分けてある');
   t(/const PIN_ZOOM = 15;/.test(app), '★★★近づいたら、1件ずつの📍にする');
   t(/const drawPins = function \(\)/.test(app) && /m\.on\('zoomend', drawPins\)/.test(app),
     '★★★近づく・離れるのたびに、描き直す');

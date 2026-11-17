@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAXI NOTE（見た目の試し）</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#101A2B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20261117-e7df3718">
+<link rel="stylesheet" href="try.css?v=20261117-e7df3718">
+</head>
+<body>
+<div class="trybar">ここは<b>見た目の試し</b>のページです。中身は本番と同じものです。本番は
+  <a href="/">こちら</a>。</div>
+<div id="boot" class="boot">
+<div class="bootart">
+  <div class="bstage" aria-hidden="true">
+    <div class="blines"></div>
+    <div class="bha">
+      <span class="h1">は</span><span class="h2">は</span><span class="h3">は</span>
+      <span class="h4">は</span><span class="h5">は</span><span class="h6">は</span>
+    </div>
+    <img class="bkira" src="img/kira.png" alt="">
+  </div>
+  <div class="bootmsg">読み込んでいます…</div>
+  <div class="bootnote">※これはAIによるロイヤリティフリー画像のはずです</div>
+</div>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <!-- ★貼り付く行（ご指示・2026/11/13）
+         「固定スクロールとドッキングさせる形
+           （スクロール後も、タップすると、下が開く）」
+       1段目：題・ふきだし・≡（いつも見えます）
+       2段目：版 v1.0（ロゴのすぐ下・いつも見えます）
+       3段目：灰色のブロック（▼でしまう・広げる）
+       4段目：▼のつまみ -->
+  <header id="hdr">
+    <div class="hmain">
+      <h1 class="dn">TA<span class="xg">X</span>I NOTE</h1>
+      <div id="saymount" class="saymount"></div>
+      <button class="fab menu" id="fabMenu" aria-label="メニュー">≡</button>
+      <div class="fabsheet" id="fabSheet" hidden></div>
+    </div>
+    <!-- ★版は、ロゴのすぐ下に いつも出します（ご指示・2026/11/13
+           「v1.0をロゴ下にしてください」）。
+         下の灰色のブロックは まるごと しまえるので、
+         しまっても版だけは見えるように、ここへ出します。 -->
+    <!-- ★一文（近日中〜）は、版のとなりに出します（ご指示・2026/11/13
+           「近日中～は v1.0の横に表示させてください」）。 -->
+    <div class="hver"><span class="ver" id="ver"></span>
+      <span class="sub" id="sub">近日、誰か１メーターを引けばキラが決まります</span></div>
+    <!-- ★灰色のブロックは、まるごと しまえます（ご指示・2026/11/13）。
+         はじめは開いたまま。下にスクロールすると、1回だけ自動で閉じます。
+         そのあとは ▼ を押せば、どこまで下がっていても その場で開きます。 -->
+    <!-- ★▼ を押すと、ページの行き先が 5列2段で出ます（ご指示・2026/11/17）。
+           下へスクロールしても、ここからどのページへでも行けます。
+           中身は下の #tabs から作るので、直すところは1か所だけです。 -->
+    <div class="hsub" id="hsub">
+      <nav id="htabs"></nav>
+    </div>
+    <button class="hgrab" id="hgrab" aria-label="開く・閉じる"><i>▼</i></button>
+    <!-- ★称号・ボタン位置・管理・ログアウトは ≡ の中へ移しました
+           （ご指示・2026/11/17）。≡ を開くと、この箱がそのまま中に入ります。
+         先に置いてあるのは、名前や管理の出し入れが、開く前から効くためです。 -->
+    <div id="acctBox" hidden>
+      <div class="subline">
+        <b class="mytitle" id="me">—</b>
+      </div>
+      <div class="hrow">
+        <span>ボタン位置</span>
+        <!-- ★並びは 左利き → 右利き（ご指示・2026/11/16） -->
+        <button class="chip" data-hand="l">左利き</button>
+        <button class="chip" data-hand="r">右利き</button>
+        <span class="whoR">
+          <a class="mini" id="toAdmin" href="/admin" hidden style="text-decoration:none">管理</a>
+          <button class="mini" id="out">ログアウト</button>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ★フィードバックは、≡ の一覧からだけ行けます（ご指示・2026/11/13
+         「フィードバックは三の方にあるので、ここでは消して」）。
+       ≡ は、この札を見て行き先の一覧を作ります。
+       上の行からは消しましたが、目に見えない形でここに残します。 -->
+  <button class="chip fbtab" data-t="fb" aria-selected="false" hidden>フィードバック</button>
+  <!-- ★≡ の一覧にあったものも、ここに並べました（ご指示・2026/11/16
+         「三メニューにある 記録～お知らせまでを ページ内にも載せてください」）。
+       10個あるので 5列×2段。そえる字は5文字までにして、
+       ます目の中で折り返さないようにしています。 -->
+  <nav id="tabs">
+    <!-- ★開いて最初に出るのは【天気】です（ご指示・2026/11/17）。
+           はじめから【天気】を押した形にしておき、
+           ひと呼吸だけ【記録】が見えることのないようにします。 -->
+    <button data-t="in" aria-selected="false"><b>記録</b><i>入力・修正</i></button>
+    <button data-t="hot" aria-selected="true"><b>天気</b><i>雨雲と狙い目</i></button>
+    <button data-t="map" aria-selected="false"><b>地図</b><i>ピンで見る</i></button>
+    <button data-t="g" aria-selected="false"><b>グラフ</b><i>時刻と金額</i></button>
+    <button data-t="ratio" aria-selected="false"><b>％</b><i>ロング率</i></button>
+    <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真取込み</i></button>
+    <button data-t="tok" aria-selected="false"><b>特定</b><i>GO,Uber他</i></button>
+    <button data-t="rep" aria-selected="false"><b>再現</b><i>くり返し</i></button>
+    <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
+    <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
+    </nav>
+  <!-- ★【イベント】と【お知らせ】は、画面のメニューからは外しました
+         （ご指示・2026/11/13「イベントとお知らせは画面では非表示で、
+           三の方には追加したままで」）。
+       ≡ は この札を見て行き先の一覧を作るので、目に見えない形で残します。
+       まだ読んでいないものがあるときは、≡ に赤い丸が付きます。 -->
+  <!-- ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13） -->
+  <!-- ★「仕掛けが止まっているかもしれません」の帯は、目次より上に出します
+       （ご指示・2026/11/16）。止まっているときに一番先に見るものなので、
+       目次の下にあると気づけません。目次は #panesTop の上に差し込まれるので、
+       帯だけを さらに上の入れものに分けています。 -->
+  <div id="wakeTop"></div>
+  <div id="panesTop"></div>
+  <section class="card blk" id="ktop">
+    <h2>過去の記録</h2>
+    <div class="ktplace">
+      <select class="fsel" id="ktPlace"></select>
+      <button class="chip rst" id="ktClear" hidden>すべてに戻す</button>
+    </div>
+    <!-- ★プルダウン以外に、字で探せるようにします（ご指示・2026/11/13）。
+           打った字が入っている乗り場を、候補として下に出します。 -->
+    <div class="ktfind">
+      <input class="ja" id="ktFind" data-find="ktSug" placeholder="乗り場をさがす（例：梅田）">
+      <div class="fsug" id="ktSug"></div>
+    </div>
+    <div class="ktperiod" id="ktPeriodBox"></div>
+    <!-- ★ここでも、全員／自分だけを切り替えられます（ご指示・2026/11/12） -->
+    <div class="chips ktmine">
+      <button class="chip" data-mine="0">全員</button>
+      <button class="chip" data-mine="1">自分だけ</button>
+    </div>
+    <div class="ktline">
+      <div class="ktwhen" id="ktWhen">—</div>
+      <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
+    </div>
+    <div class="ktwho" id="ktWho">—</div>
+    <!-- ★中カテゴリーごとの件数（ご指示・2026/11/17）。
+           まとめスプシのレポートの、上から2行目と同じ形です。
+           「この期間、どこで何本だったか」が、1行で分かります。 -->
+    <div class="ktarea" id="ktArea"></div>
+    <div class="kpis">
+      <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
+      <div class="kpi"><small>1日当たり</small><b id="k2">¥0</b></div>
+      <div class="kpi gr"><small>1本の平均金額</small><b id="k3">—</b></div>
+      <!-- ★「アツい時間帯」は やめました（ご指摘・2026/11/16
+             「エリア指定してないのに、アツい時間帯というのはなんなのですか？
+               根拠のないデータは絶対に載せないでください」）。
+           乗り場をしぼっていないと、場所がバラバラの平均になり、
+           どこの話かも言えない数字でした。 -->
+      <div class="kpi"><small>ロングの割合</small><b id="k4">—</b></div>
+    </div>
+    <div class="kperiod" id="kperiod">—</div>
+    <!-- ★記録の表は、ここに出します（ご指示・2026/11/16
+           「直近の記録は非表示にしてください」）。
+         「直近の記録」という別の欄に、同じ乗り場えらび・同じ絞り込みが
+         もう一組ならんでいて、2つの欄が同じことをしていました。
+         欄を1つにして、絞り込みの すぐ下に表を置きます。 -->
+    <div id="ktTbl"></div>
+  </section>
+  <div id="panes"></div>
+
+  <footer>
+    <div class="copy">©ibakuzo!!!!!! Gevanni!!!!!! ~1night done~</div>
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<!-- ★右下の固定ボタンは、いったん外しました（ご指示・2026/11/16
+       「また、右下の固定ボタンは一旦取り除いてください」）。
+     ★消してはいません。hidden を外せば、そのまま戻ります。 -->
+<button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261117-e7df3718"></script>
+<script src="news.js?v=20261117-e7df3718"></script>
+<script src="shared.js?v=20261117-e7df3718"></script>
+<script src="app.js?v=20261117-e7df3718"></script>
+</body>
+</html>

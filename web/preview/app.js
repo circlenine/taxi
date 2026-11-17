@@ -4459,8 +4459,11 @@ function diffText(now, before){
   const pc = before ? Math.round(d / before * 100) : 0;
   const sign = d > 0 ? '＋' : (d < 0 ? '−' : '±');
   const cls  = d > 0 ? 'up' : (d < 0 ? 'down' : '');
-  return '<span class="cmp ' + cls + '">' + sign + yen(Math.abs(d)) +
-         '（' + sign + Math.abs(pc) + '%）</span>';
+  /* ★細い機種では、金額と割合が1行に入りません（2026/11/17 に直しました）。
+       1つながりの字にしていたので、画面の外へ はみ出していました。
+       2つに分けて、入らないときだけ下の行へ落とします。 */
+  return '<span class="cmp ' + cls + '"><b>' + sign + yen(Math.abs(d)) + '</b>' +
+         '<i>（' + sign + Math.abs(pc) + '%）</i></span>';
 }
 function compareCard(){
   const pr = prevRange();

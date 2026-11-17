@@ -1,0 +1,2406 @@
+/* ============================================================
+ *  色と字（まーく様のご指示・2026/11/10）
+ *    「つけまち台帳じゃなくて、「TAXI NOTE」にしてください、
+ *      そして、全体の雰囲気をもっとデスノートっぽくしてください」
+ *
+ *  ★ねらい：黒い紙に、骨色の字。差し色は血の赤。
+ *    夜の車内で見るものなので、明るい色で光らせない。
+ *  ★名前（--andon など）は、そのまま使います。
+ *    名前を変えると、直すところが何十か所にも散るためです。
+ *    中身の色だけを入れ替えています。
+ * ============================================================ */
+:root{
+  /* ★見やすさを上げました（まーく様のご指示・2026/11/11）
+       「全体が見づらいので 視覚性はもっと上げたデザインにしてください」
+     ・字をはっきりさせる（薄い灰色をやめる）
+     ・枠線を少し明るくして、どこが区切りか分かるようにする
+     ・赤は、字に使うときだけ明るいほうを使う */
+  --ink:#0A0A0B; --ink2:#151518; --ink3:#1F1F23; --line:#3E3E48;
+  --andon:#C8232B;      /* 差し色（血の赤）。塗りに使う */
+  --kusha:#FF6A60;      /* 字に使う赤。暗い地でも読める明るさ */
+  --meter:#FFFFFF;
+  /* ★まーく様のご指示（2026/11/11）
+       「webサイトの文字は全て真っ白文字にしてください、
+         まだ視認性が悪いです
+         ただし、選択前のタグであれば、ちょい薄グレーで良いです」
+     走りながら、暗い車内で読むものです。うすい灰色は読めません。 */
+  --paper:#FFFFFF;      /* ふつうの字。真っ白 */
+  --muted:#FFFFFF;      /* そえ字も、真っ白 */
+  --chipoff:#C9C9C9;    /* まだ押していないタグだけ、ちょい薄グレー */
+  /* ★字は、いちばん見慣れたゴシックにそろえます（ご指示・2026/11/13
+       「how to use とロゴ以外、全フォントをいちばんポピュラー
+         （吉野家のメニュータッチタブレットと同じ）ゴシック体に統一」）。
+     ★iPhone なら ヒラギノ角ゴ。機種にもとから入っている字なので、
+       読み込みを待たずに出ますし、いちばん見慣れた形です。 */
+  --body:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN',
+         'Noto Sans JP','Yu Gothic',Meiryo,system-ui,sans-serif;
+  /* 見出しも、数字も、同じゴシックにします */
+  --disp:var(--body);
+  --mono:var(--body);
+  /* 題（TAXI NOTE）と「HOW TO USE IT」だけ、前の字のまま */
+  --goth:'Cinzel',serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+/* ★数字は、ゴシックでも桁がそろうようにします
+     （表の金額や時刻が、ガタガタ見えないため） */
+body{font-variant-numeric:tabular-nums}
+body{background:var(--ink);color:var(--paper);font-family:var(--body);min-height:100vh;
+  font-size:15px;line-height:1.75;
+  /* ★古い紙のような、ざらついた黒。上から薄あかりが落ちる */
+  background-image:
+    radial-gradient(130% 70% at 50% -15%, #1A1A1D 0%, transparent 62%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.013) 0 1px, transparent 1px 3px);
+  -webkit-text-size-adjust:100%}
+a{color:var(--andon)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--andon);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 14px 60px}
+
+/* 行灯 */
+.andon{width:74px;height:38px;flex:none;border-radius:5px;position:relative;
+  background:linear-gradient(#FFF6E2,#F3DFB4);border:2px solid #0A0F19;
+  box-shadow:0 0 22px rgba(240,163,59,.45), inset 0 -4px 8px rgba(0,0,0,.15)}
+.andon:before{content:"";position:absolute;left:8px;right:8px;bottom:-6px;height:6px;background:#0A0F19;border-radius:0 0 3px 3px}
+.andon span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--disp);
+  font-size:19px;letter-spacing:.14em;color:var(--kusha);transition:color .25s}
+.andon.busy span{color:#1E7A4E}
+
+/* ★行灯を「バスのスーパーサイン」のように回す（まーく様のご指示・2026/11/10）
+   「文字が上へと消え、下から違う文字が現れる感じの、遊び心の入ったデザイン」
+   ★文字がはみ出さないよう、内側に窓（.roll）を作って その中で動かす。
+     行灯そのものに overflow:hidden を掛けると、
+     下に出ている台（:before）まで消えてしまうため。 */
+/* ★版の番号（まーく様のご指示・2026/11/10）。
+   小さく、じゃまをしない大きさで、題のとなりに。 */
+/* ★4つの数が「いつからいつまでの、だれのぶんか」を書く行 */
+/* ★4つの数の下は、短い注意書きだけにします（ご指示・2026/11/12
+     「上の4つは～みたいなやり方は絶対やめてください、見づらすぎます」）。 */
+.kperiod{color:#FFFFFF;font-size:11.5px;letter-spacing:.03em;
+  margin:7px 2px 0;line-height:1.6}
+.kperiod b{color:var(--paper);font-weight:500;font-family:var(--mono)}
+
+/* ★いちばん上の「いつの・いくら・だれの」（ご指示・2026/11/12）
+     1番上に 期間と合計。長い1文にせず、3つに分けて並べます。 */
+/* ★ひと区切りごとに、赤い線の見出しを付けます（ご指示・2026/11/12）。
+     どこからどこまでが ひとまとまりかが、ひと目で分かるように。 */
+.blk{margin-bottom:12px}
+/* ★日付と合計は、同じ高さにそろえます（ご指示・2026/11/13
+     「合計と日付はきちんと同じ高さに合わせてください」）。
+     前は「負の余白」でむりやり重ねていたので、字の大きさが変わると
+     すぐズレました。1つの行に入れて、両端に寄せます。 */
+.ktline{display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-top:9px}
+.ktsum{display:flex;align-items:baseline;gap:5px}
+.ktwhen{font-family:var(--mono);font-size:15px;letter-spacing:.02em;color:#FFFFFF;
+  min-width:0}
+.ktsum{text-align:right;white-space:nowrap}
+.ktsum small{display:inline;font-size:11px;color:#FFFFFF;letter-spacing:.06em;margin-right:5px}
+.ktsum b{display:inline;font-family:var(--mono);font-size:15px;color:var(--andon);
+  line-height:1.2}
+/* ★乗り場は、いちばん大事（ご指示・2026/11/12）。
+     どの画面にいても、ここで切り替えられます。 */
+.ktplace{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+/* ★乗り場を字で探す欄（ご指示・2026/11/13）。
+     打った字が入っている乗り場を、下に候補として出します。 */
+.ktfind{margin-top:8px}
+.ktfind input{width:100%;box-sizing:border-box}
+.fsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fsug:empty{display:none}
+/* ★時刻が分からず、出さなかった催し（ご指示・2026/11/13）。
+     黙って消すと、載っていないことに気づけないので、名前だけ1行。 */
+.evhid{margin-top:10px;font-size:11.5px;color:#FFFFFF;opacity:.72;line-height:1.7}
+/* ★イベントは、種類ごとに大きな見出しを付けます（ご指示・2026/11/13）。
+     その中は、時間の早い順です。 */
+.evgrp{margin-top:14px}
+.evgrp:first-of-type{margin-top:6px}
+.evgrp > h3{display:flex;align-items:baseline;gap:8px;margin:0 0 6px;
+  font-size:16px;color:#FFFFFF;font-weight:700;
+  border-left:4px solid var(--andon);padding-left:9px;line-height:1.4}
+.evgrp > h3 span{font-size:11.5px;opacity:.75;font-weight:400}
+
+/* ★バラシ・関空の くわしい表（ご指示・2026/11/13）。
+     どの会場・どのホテルが、何時台に呼ばれているかを並べます。 */
+.wrow{border-top:1px solid var(--ink3);padding:10px 0 9px}
+.wrow:first-of-type{border-top:none}
+.wh{display:flex;align-items:baseline;gap:8px}
+.wh b{font-size:15px;color:#FFFFFF;font-weight:700}
+.wtop{font-size:12.5px;color:#FFFFFF;margin:4px 0 6px}
+.wtop b{color:var(--meter);font-weight:700}
+.wbar{display:flex;gap:2px;margin:2px 0 5px}
+.wcell{flex:1 1 0;min-width:0;text-align:center}
+.wcell i{display:block;height:18px;border-radius:3px;background:rgba(255,255,255,.05)}
+.wcell b{display:block;font-size:9px;color:#FFFFFF;opacity:.6;font-weight:400;margin-top:2px}
+.wcell.on b{opacity:1;font-weight:700}
+.wmeta{font-size:11.5px;color:#FFFFFF;opacity:.8}
+.wlegend{font-size:11px;color:#FFFFFF;opacity:.7;margin-top:6px}
+.wthin{display:flex;flex-wrap:wrap;gap:6px}
+.wthin span{font-size:12px;color:#FFFFFF;background:rgba(255,255,255,.05);
+  border:1px solid var(--line);border-radius:14px;padding:4px 10px}
+.wthin i{font-style:normal;opacity:.7;font-size:11px}
+
+/* ★仕掛けが止まっていそうなときに出す帯（ご指示・2026/11/13）。
+     押すと、GASの受け口が開いて ひとりでに直ります。
+     スプレッドシートを開く必要は、もうありません。 */
+.wakebar{background:rgba(200,35,43,.18);border:1px solid var(--andon);
+  border-radius:12px;padding:12px 14px;margin:0 0 10px;
+  display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.wakebar b{color:#FFFFFF;font-size:14px}
+.wakebar span{color:#FFFFFF;font-size:12px;line-height:1.7}
+.wakebar .btn{text-decoration:none;display:inline-block}
+/* ≡ の一覧の中の【仕掛けを起こす】 */
+.fsrow.wake{text-decoration:none;border-top:1px solid var(--line);margin-top:4px;padding-top:9px}
+.fsrow.wake b{color:var(--andon)}
+
+/* ★見出しだけで、折りたたむ・広げる（ご指示・2026/11/13）。
+     見出しの右の ▼ が、向きで教えます。 */
+.card > h2, #ktop > h2{display:flex;align-items:center;gap:8px}
+/* ★▼ の形は、どこでも同じにします（ご指摘・2026/11/13
+     「▼ですが、幅がそろってなく、不格好なので 形はしっかり統一してください」）。
+   前は字をそのまま置いていたので、見出しの字の大きさや
+   向きの回転で、大きさが 11.8×14 や 12.7×19.3 とばらついていました。
+   22×22 の同じ枠に入れて、まん中にそろえます。 */
+.fmark{font-style:normal;font-size:11px;line-height:1;opacity:.7;margin-left:auto;
+  transition:transform .18s ease;color:#FFFFFF;
+  width:22px;height:22px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center}
+/* ★見出しと、その下の字との空きを そろえます（ご指摘・2026/11/13
+     「枠があることで下の文字との高さが狭く感じるものがあります。
+       そういった各文字の高さ詰まりがないかを見て
+       きちんと全て徹底してください」）。
+   前は 5px の所と 8px の所が混ざっていました。
+   下の字が持っている「上の空き」を取り消して、
+   見出しの「下の空き」1つだけで決まるようにします。 */
+.card > h2, #ktop > h2{margin-bottom:9px}
+.card > h2 + *, #ktop > h2 + *{margin-top:0}
+.card.fold > h2 .fmark, #ktop.fold > h2 .fmark{transform:rotate(-90deg)}
+.card.fold > *:not(h2), #ktop.fold > *:not(h2){display:none}
+.card.fold, #ktop.fold{padding-bottom:12px}
+/* ★≡ に付く赤い丸（まだ読んでいないものがあるとき・ご指示・2026/11/13） */
+.fab.menu{position:relative}
+/* ★丸の中の右上に入れます（ご指示・2026/11/13
+     「三の赤丸は〇の中の右上あたりに入れてください。
+       今のままだと、なんの赤丸かわけがわかりません」）。
+     外に浮かせていたので、何の印か分かりませんでした。 */
+.fab.menu.dotted:after{content:"";position:absolute;top:9px;right:11px;
+  width:8px;height:8px;border-radius:50%;background:var(--andon)}
+/* ★バラシ・関空で、まだ数が少ないところ */
+.wfew{font-style:normal;margin-left:8px;font-size:11px;color:#FFFFFF;opacity:.75}
+/* ★バラシ・関空は、日付・曜日・時刻をそのまま並べます（ご指示・2026/11/13）。
+     件数が少ないので、平均より「いつ・何時・いくら」が役に立ちます。 */
+.wlist{display:flex;flex-direction:column}
+.wli{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;
+  border-top:1px solid var(--ink3);padding:7px 0;font-size:12.5px;color:#FFFFFF}
+.wli:first-child{border-top:none}
+.wli b{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.wli .wd{font-size:10.5px;padding:1px 6px;border-radius:9px;white-space:nowrap;
+  background:rgba(255,255,255,.08)}
+.wli .wd.d-sat{background:rgba(111,183,255,.22)}
+.wli .wd.d-sun{background:rgba(255,106,96,.22)}
+.wli .wd.d-fri{background:rgba(242,193,78,.22)}
+.wli .wt{font-family:var(--mono);font-size:13px;color:var(--meter);white-space:nowrap}
+.wli .wp{flex:1 1 auto;min-width:0;font-weight:700}
+.wli .wy{font-family:var(--mono);white-space:nowrap}
+.wli .ww{font-size:11px;opacity:.8;white-space:nowrap}
+/* ★タブは10個。4つずつ3段（最後の段は2つ）で出ます。
+     5列にすると、細い機種で字が潰れるので4列のままにします。 */
+/* ★金額には、必ず「平均」と添えます（ご指示・2026/11/13
+     「平均額は、必ず、平均と含めてください。
+       ただ金額があってもなんの金額かわけがわかりません」）。 */
+.hv i{font-style:normal;font-size:10px;opacity:.8;margin-right:4px}
+
+/* ------------------------------------------------------------
+ *  利き手で、押すものの置き場所を入れかえる
+ *
+ *  ★まーく様のご指示（2026/11/13）
+ *    「リセットは全て左寄りにして。
+ *      左利きの場合は、こういう系は右において。
+ *      全て左利きがやりやすいシステムに見直してください」
+ *
+ *  ★並びだけを入れかえます。字も色も、どちらも同じです。
+ * ---------------------------------------------------------- */
+body[data-hand="r"] .rst{order:-1}
+body[data-hand="l"] .rst{order:99}
+/* 管理・ログアウトも、利き手の側へ */
+body[data-hand="r"] .hrow .whoR{margin-left:auto;margin-right:0;order:9}
+body[data-hand="l"] .hrow .whoR{margin-left:0;margin-right:auto;order:-1}
+.ktplace{flex-wrap:wrap}
+
+/* ★目次（ご指示・2026/11/13）。
+     「ただのタブ一覧みたいで、目次っぽくない」とのご指摘で、作り直しました。
+       ・「目次」の字は、1段目に 単独で置く
+       ・見出しは 1段に2つずつ。番号を振って、目次らしく
+       ・押しやすいよう、1つの高さは30px（指で外さない大きさ）
+     ★ただし、目次だけで高さを食わないように：
+       ・字も余白も小さく、1段に2つ（5つなら3段・約110px）
+       ・「目次」を押せば たためる。たたんだら20px。覚えています。 */
+.toc{background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:12px;padding:6px 8px 7px;margin:0 0 10px}
+.toch{display:flex;align-items:center;width:100%;background:none;border:0;
+  color:#FFFFFF;font-size:11.5px;padding:2px 2px 4px;cursor:pointer;
+  letter-spacing:.06em}
+.toch em{font-style:normal;font-size:10.5px;opacity:.7;margin-left:7px}
+.toch .fmark{margin-left:auto}
+.toc.fold .toch .fmark{transform:rotate(-90deg)}
+.tocg{display:grid;grid-template-columns:1fr;gap:3px}
+.toc.fold .tocg{display:none}
+/* ★1段に2つ、1行ずつ出します（ご指摘・2026/11/16
+     「変なとこで改行されてたり、見づらいです」）。
+     4列にすると、見出しがます目の途中で折り返して読めませんでした。
+     長い見出しは、おしりを「…」にして、必ず1行に収めます。 */
+.tocit{display:flex;align-items:center;gap:6px;min-height:30px;
+  background:none;border:0;
+  color:#FFFFFF;font-size:12px;line-height:1.3;text-align:left;
+  padding:3px 2px;cursor:pointer;min-width:0}
+.tocit > span{min-width:0}
+.tocit em{font-style:normal;font-size:10.5px;opacity:.6;flex:none;
+  font-variant-numeric:tabular-nums}
+/* ★見出しは、1段に1つ・1行ずつ出します（ご指摘・2026/11/16
+     「目次は基本的に 1つずつ、業を分けていくものではないのですか？
+       横並びでも、綺麗にうつっているのであれば構いませんが
+       現状は変なとこで改行されてたり、見づらいです」）。
+     2つ横に並べると、細い画面では見出しが字の途中で折り返し、
+     「このページを見てわ／かること」のように読めなくなっていました。
+     1段に1つなら、どの見出しも1行に収まります。 */
+.tocit span{min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;line-height:1.3}
+.ktplace .fsel{flex:1 1 180px;min-width:0;font-size:15px}
+.ktwho{font-size:11.5px;color:#FFFFFF;line-height:1.6;
+  display:flex;flex-wrap:wrap;gap:0 10px}
+/* ひとかたまりの言葉は、途中で切らない */
+.ktwho span{white-space:nowrap}
+/* 区切りの「/」は、前のことばにくっつけます。
+   行のあたまに「/」が取り残されると、読みにくくなります。 */
+.ktwho span:not(:last-child):after{content:" /";opacity:.5}
+/* ★赤枠はやめました（ご指示・2026/11/13
+     「過去の記録も、赤枠にはしなくて良くて、他に合わせてください」）。
+     絞り込んでいることは、下の「いま：〜」の行で分かります。 */
+#ktop .kpis{margin-top:11px}
+
+/* ★版の番号（まーく様のご指示・2026/11/11）
+     「v1.0も、他の文字と同じサイズにして
+       白背景、黒文字で、差別化してください」
+   ★まわりの字は ぜんぶ真っ白なので、ここだけ 白地に黒字にします。
+     大きさは、となりの一文（.sub）と ぴったり同じにそろえます。 */
+.ver{font-family:var(--mono);font-size:clamp(10px,2.9vw,13px);
+  color:var(--ink);background:#FFFFFF;
+  letter-spacing:.06em;border:1px solid #FFFFFF;border-radius:999px;
+  padding:1px 8px;font-weight:700}
+/* ★まだ読んでいないお知らせがあることを、小さな点で知らせる */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--kusha);margin-left:5px;vertical-align:1px}
+.newsv{display:flex;align-items:baseline;gap:9px;margin:0 0 6px}
+.newsv b{font-family:var(--mono);font-size:13px;color:var(--andon)}
+.newsv small{color:var(--muted);font-size:11px}
+.newsl{margin:0 0 18px;padding-left:1.2em;font-size:13.5px;line-height:1.95}
+.newsl li{margin:5px 0}
+.andon .roll{position:absolute;inset:0;overflow:hidden;border-radius:3px}
+.andon .roll span{transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .34s,color .25s}
+.andon .roll span.up{transform:translateY(-118%);opacity:0}
+/* ★下に置き直すときは、動かさずに一瞬で（transition:none）。
+     ここを動かすと、上から下へ落ちていくように見えてしまう */
+.andon .roll span.down{transform:translateY(118%);opacity:0;transition:none}
+@media(prefers-reduced-motion:reduce){
+  .andon .roll span,.andon .roll span.up,.andon .roll span.down{
+    transition:color .25s;transform:none;opacity:1}
+}
+
+/* ★上に貼り付けるのは「題・ふきだし・≡」の1行だけです。
+     ★高さは、いつも同じにします（ご指摘・2026/11/12
+       「スクロールがバグってます」）。
+       下に進むと縮む作りにしていたので、その境目で画面が
+       ガタガタしていました。高さが動かなければ、揺れません。 */
+/* ★貼り付く行には、題・版・灰色のブロック・▼が ぜんぶ入ります
+     （ご指示・2026/11/13「固定スクロールとドッキングさせる形
+       （スクロール後も、タップすると、下が開く）」）。
+     下まで進んでも、▼を押せば その場で開きます。 */
+header{display:block;padding:8px 14px 0;
+  border-bottom:1px solid var(--line);
+  /* ★一番上の行は、どの中身よりも上に出します（ご指摘・2026/11/13）。
+       地図（Leaflet）は、自前で 400〜1000 の重なり順を持っています。
+       ここを 50 のままにしていたため、地図が題の行にかぶさりました。
+       重なり順は、この1か所で決めます。
+         地図の中身 … 1000 まで（地図の箱の中だけに閉じこめます）
+         ふきだし   … 1100
+         一番上の行 … 1200
+         丸いボタン … 1300
+         まん中の箱 … 2000 */
+  position:sticky;top:0;z-index:1200;background:var(--ink);
+  /* 端まで塗って、下の中身が横からのぞかないようにします */
+  margin:0 -14px;width:calc(100% + 28px)}
+/* 1段目：題・ふきだし・≡ */
+.hmain{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
+.hmain > h1{flex:none}
+.hmain > .saymount{flex:1 1 auto;min-width:0}
+.hmain > #fabMenu{flex:none;margin-left:auto}
+body[data-hand="l"] .hmain > #fabMenu{order:-1;margin-left:0;margin-right:auto}
+/* 2段目：版（ロゴのすぐ下・いつも見えます） */
+/* ★版のとなりに一文（ご指示・2026/11/13「近日中～は v1.0の横に」）。
+     入りきらないときは、一文のほうが縮みます。 */
+.hver{margin-top:4px;display:flex;align-items:center;gap:8px;min-width:0}
+.hver > .sub{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;flex:1 1 auto}
+/* ★細い機種（320px など）では、一文の場所をもう少し広く取ります
+     （ご指示・2026/11/13「1画面で収まるようにしてください。
+       これでも収まらなければ、収まるように工夫してください」）。
+   版の札のすき間と内側を詰めて、6px ぶん 一文にまわします。
+   それでも入らないときは、app.js の subFit が字を小さくします。 */
+@media(max-width:345px){
+  .hver{gap:5px}
+  .hver > .ver{padding:1px 5px;letter-spacing:.02em}
+}
+/* ★どうしても1行に入らない一文（万収で名前が2人ぶん並ぶ日など）は、
+     版の札の下に、1行まるごとで出します。題より下なので題は動きません。 */
+.hver.wide{flex-wrap:wrap}
+.hver.wide > .sub{flex:1 0 100%;margin-top:3px;
+  white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
+/* 3段目：灰色のブロック（まるごと しまえます） */
+.hsub{display:flex;flex-direction:column;gap:7px;padding:9px 0 10px;
+  background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:14px;
+  margin:7px 0 0;touch-action:pan-y;overflow:hidden;
+  max-height:220px;opacity:1;
+  transition:max-height .2s ease, opacity .2s ease,
+             padding .2s ease, margin .2s ease, border-width .2s ease}
+/* しまったとき：灰色のブロックぜんたいが消えます */
+.hsub.cl{max-height:0;opacity:0;padding-top:0;padding-bottom:0;
+  margin-top:0;margin-bottom:0;border-width:0}
+/* 4段目：▼のつまみ（押すと、下が開きます） */
+.hgrab{display:block;width:100%;height:20px;border:0;padding:0;margin:0;
+  background:transparent;cursor:pointer;color:#FFFFFF;line-height:1}
+.hgrab i{font-style:normal;font-size:11px;opacity:.75;
+  display:inline-block;transition:transform .2s ease}
+/* 開いているときは ▲（押すと しまう） */
+.hsub:not(.cl) + .hgrab i{transform:rotate(180deg)}
+.hgrab:after{content:"";position:absolute;left:50%;bottom:5px;width:38px;height:3px;
+  margin-left:-19px;border-radius:2px;background:rgba(255,255,255,.34)}
+/* 閉じたときは、1行目（版・称号・ひとこと）だけ残します */
+
+/* ★ボタン位置と、管理・ログアウトを同じ列に（ご指示・2026/11/13） */
+/* ★「ボタン位置」と「管理・ログアウト」を、同じ1列に収めます
+     （ご指示・2026/11/13）。細い機種でも折り返さないよう、
+     字と余白を少しずつ詰めてあります。 */
+.hrow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+  font-size:11px;color:#FFFFFF}
+.hrow > span{white-space:nowrap;font-size:11px;opacity:.85}
+.hrow .chip{padding:4px 8px;font-size:11px;white-space:nowrap}
+.hrow .mini{padding:4px 8px;font-size:11px;white-space:nowrap}
+.hrow .whoR{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* ★称号は、ロゴのすぐ下（1行目）に置きます（ご指示・2026/11/13） */
+.mytitle{color:#FFFFFF;font-weight:600;font-size:12.5px;white-space:nowrap;flex:0 0 auto}
+h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-weight:400}
+/* ★題だけ、黒い書物の字で。大きさは控えめにして、読みにくくしない */
+/* ★題の大きさは、ここ1か所で決めます。
+     ふきだしの高さも、この数から出します（ご指示・2026/11/11
+     「右上のふきだしの枠の高さ幅ですが、
+       TAXI NOTEのフォントの高さに合わせられませんか」）。 */
+:root{--logo:32px}
+h1.dn{font-family:var(--goth);font-weight:700;font-size:var(--logo);letter-spacing:.17em;
+  line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
+h1.dn2{font-family:var(--disp);letter-spacing:.08em}
+/* ★題は、画面の幅に合わせて縮めます（ご指示・2026/11/11）。
+     決め打ちだと、ふきだしと顔を右に置いたときに はみ出します。 */
+/* ★題を小さくして、ふきだしに幅をゆずります（ご指示・2026/11/14）。
+     「題を小さくして、幅をゆずる」をお選びいただきました。
+     ふきだしのひとことが、どの機種でも最後まで読めるようにするためです。 */
+@media(max-width:640px){:root{--logo:clamp(13px,4.4vw,24px)}}
+/* 地図で開ける場所の名前（ご指示・2026/11/11） */
+.plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--chipoff)}
+.plink:hover{border-bottom-color:var(--andon)}
+.okmark{color:var(--meter);font-weight:400}
+a.chip{text-decoration:none;display:inline-block}
+a.chip.off{opacity:.45;pointer-events:none}
+.chip[disabled]{opacity:.45}
+
+/* 見出しの横の、小さなそえ字（「記録の目安時間」） */
+.h2sub{font-family:var(--body);font-size:11.5px;color:var(--chipoff);
+  letter-spacing:.04em;margin-left:8px;font-weight:400}
+
+/* ★スマホで1行に収まるように（ご指示・2026/11/11）。
+     画面が細いほど字を小さくします。折り返すと、題の位置が下がって
+     まわりがズレます。 */
+.sub{color:var(--muted);font-size:clamp(10px,2.9vw,13px);margin-top:3px;line-height:1.5}
+.who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.who b{color:var(--paper);font-weight:500}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 6px}
+.kpi{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;padding:10px 11px}
+.kpi b{display:block;font-family:var(--mono);font-size:22px;color:var(--andon);line-height:1.15}
+.kpi small{color:var(--muted);font-size:10.5px;letter-spacing:.04em}
+.kpi.gr b{color:var(--meter)}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* ★横スクロールはさせません（ご指示・2026/11/12
+     「あまり横スクロール機能は好きじゃないので、なんとかしてください」
+      「PCだと見切れています」）。
+     入りきらないときは、折り返して2段にします。 */
+/* ★メニューらしく、画面の幅いっぱいに、ます目でそろえます
+     （ご指示・2026/11/12「ちゃんと、メニューらしく
+       横幅を画面幅に揃えて、作り直してください」）。
+     右側だけ空いていて、並びがばらばらに見えていました。 */
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:18px 0 14px;
+  background:var(--ink2);padding:5px;border-radius:11px;border:1px solid var(--ink3)}
+nav button{flex:0 1 auto;white-space:nowrap;background:none;border:0;color:var(--chipoff);
+  padding:9px 11px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
+nav button[aria-selected=true]{background:var(--andon);color:#14100A;font-weight:700}
+
+.card{background:var(--ink2);border:1px solid var(--ink3);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{font-family:var(--disp);font-weight:400;font-size:16px;margin:0 0 9px;letter-spacing:.05em}
+.card .note{color:var(--muted);font-size:11.5px;margin:0 0 14px;line-height:1.6}
+
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px}
+/* ★min-width:0 … これが無いと、中の欄が「本来の幅」を主張して
+     わくを押し広げ、画面の外へはみ出します（ご指摘・2026/11/11
+     「営業日の枠が、はみ出てます」）。日付の欄が いちばん幅を取ります。 */
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f.w2{grid-column:span 2}.f.w3{grid-column:span 3}
+.f.w4{grid-column:span 4}.f.w6{grid-column:span 6}
+label{font-size:11px;color:var(--muted);letter-spacing:.05em}
+input,select,textarea{background:#0C1422;border:1px solid var(--line);color:var(--paper);
+  border-radius:6px;padding:9px 10px;font-size:15px;font-family:var(--mono);
+  width:100%;max-width:100%;min-width:0}
+/* ★日付の欄（営業日）が、わくからはみ出す（ご指摘・2026/11/11
+     「営業日の枠が、はみ出てます」）
+   iPhoneの日付の欄は、中の数字が「この幅はどうしても要る」と
+   主張するため、わくを押し広げて外へ出ます。
+   パソコンの画面では起きないので、ここは見た目を自前にして、
+   字を左にそろえ、わくの中へ収めます。
+   ★押したときの日付えらび（くるくる回すあれ）は、そのまま出ます。 */
+input[type=date]{-webkit-appearance:none;appearance:none;
+  width:100%;max-width:100%;min-width:0}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-width:0}
+input[type=date]::-webkit-calendar-picker-indicator{margin:0 0 0 auto;padding:0}
+input.ja,textarea{font-family:var(--body);font-size:14px}
+/* ★まだ何も入れていない欄の見本の字。
+     濃い紺だと、ほぼ見えませんでした（ご指示・2026/11/11）。
+     「まだ入れていない」ものなので、タグと同じ ちょい薄グレーに。 */
+/* ★見本の字は、もっと薄く（ご指示・2026/11/12
+     「記入欄のところの参考表記は、もっと薄くしてください」）。
+     入れた字と見まちがえないように、はっきり差を付けます。 */
+input::placeholder,textarea::placeholder{color:var(--chipoff);opacity:.42}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:#0C1422;border:1px solid var(--line);color:var(--chipoff);border-radius:20px;
+  padding:4px 10px;font-size:11.5px;cursor:pointer}
+.chip:hover{border-color:var(--andon);color:var(--paper)}
+.chip.on{background:var(--andon);color:#14100A;border-color:var(--andon)}
+.hint{font-family:var(--mono);font-size:12px;color:var(--meter);min-height:14px}
+.actions{display:flex;gap:9px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.btn{background:var(--andon);color:#14100A;border:0;border-radius:7px;padding:11px 22px;
+  font-size:14px;font-weight:700;cursor:pointer}
+.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line);font-weight:500}
+.btn.danger{background:none;color:var(--kusha);border:1px solid var(--kusha);font-weight:500}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:active{transform:translateY(1px)}
+.msg{font-size:12px;color:var(--meter)}
+.msg.bad{color:var(--kusha)}
+/* 画面が900pxより細いときは、営業日の欄を広めに取ります。
+   6つ割りのままだと、日付の欄に要る幅ぎりぎりになります。 */
+@media(max-width:900px){.f.fdate{grid-column:span 3}}
+@media(max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.f.w3,.f.w4,.f.w6{grid-column:span 2}
+  /* 営業日は、細い画面では横1列ぜんぶを使います。
+     半分の幅だと、日付の欄が どうしても収まりません。 */
+  .f.fdate{grid-column:1 / -1}}
+
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg{display:block}
+.axis{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.glab{fill:var(--paper);font-family:var(--mono);font-size:10px}
+/* ★区切りが見えないとのご指摘（2026/11/13）。線を明るく・太くしました */
+.grid-l{stroke:#44598A;stroke-width:1.2}
+/* ★一番下と左の線・目盛り。点に隠れないよう、はっきり出します
+     （ご指摘・2026/11/13「下のメモリもなにもみえなくなってしまってる」）。 */
+.axis-l{stroke:#7C8BA6;stroke-width:1.2}
+/* ★横棒グラフの、1日ぶんの下じき。行の区切りが見えるようにします
+     （ご指摘・2026/11/13「パッと見、よく分からない」）。 */
+.trow{fill:#18223A}
+.tlin{fill:#10192B;font-family:var(--mono);font-weight:700}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:var(--muted);font-weight:500;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-size:11px;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid #1D2A42;white-space:nowrap}
+td.n{font-family:var(--mono);text-align:right}
+tbody tr:hover{background:#1B2942}
+.mini{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
+.mini:hover{color:var(--paper);border-color:var(--andon)}
+.empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:13px;line-height:1.8}
+.bar{height:7px;border-radius:4px;background:var(--andon)}
+.tip{position:fixed;pointer-events:none;background:#0A1220;border:1px solid var(--andon);
+  border-radius:6px;padding:7px 10px;font-size:11.5px;line-height:1.6;z-index:1100;opacity:0;transition:opacity .12s;max-width:230px}
+.tip.on{opacity:1}
+footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;line-height:1.8}
+/* ★いちばん下の名前（まーく様のご指示・2026/11/10）。
+   ホームページでよくある形で、小さく、まん中に。 */
+.copy{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:11px;letter-spacing:.08em}
+.warn{background:#2A1C14;border:1px solid var(--kusha);color:#F0BFA8;font-size:11.5px;
+  padding:9px 12px;border-radius:7px;margin-bottom:12px;line-height:1.6}
+.badge{font-size:10px;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:1px 6px;margin-left:6px}
+.badge.adm{border-color:var(--andon);color:var(--andon)}
+
+/* ログイン画面 */
+/* ★ログインの画面は、まわりの余白と箱の幅のぶん、
+     ふきだしに使える幅が少なくなります。
+     題を少しだけ小さくして、ひとことが入るようにします。 */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px;
+  --logo:clamp(19px,5.2vw,24px)}
+.login .box{width:100%;max-width:380px}
+.login .head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.login .card{padding:22px}
+.login .btn{width:100%;padding:13px}
+.login .foot{text-align:center;margin-top:16px;font-size:11.5px;color:var(--muted);line-height:1.9}
+.login .foot a{color:var(--muted);text-decoration:underline}
+.boot{display:grid;place-items:center;min-height:100vh;color:var(--muted);font-size:13px}
+/* ------------------------------------------------------------
+ *  読み込み中の絵（ご指示・2026/11/13）
+ *
+ *  ★まーく様からいただいた絵と、ご指示そのまま
+ *    「透過の人物が中心で／背景にはははをうごかして表示して／
+ *      さらなる背景に画像のような集中線の動きを出してください」
+ *
+ *  ★3枚 重ねています（うしろから）
+ *      ① 集中線 … 回しながら、濃さを脈うたせます
+ *      ② はは   … 外へ飛び出すように、順ぐりに出します
+ *      ③ 人物   … まん中。背景が透けている絵をそのまま置きます
+ *  ★集中線は絵ではなく、その場で描いています（読みに行く物を増やさない）。
+ * ---------------------------------------------------------- */
+.bootart{display:grid;place-items:center;gap:12px;text-align:center}
+/* ★四角く切り取らないこと。切ると、集中線の外わくが四角く見えて、
+     人物の肩も真横で切れます（実際にそうなりました・2026/11/13）。 */
+.bstage{position:relative;width:min(80vw,310px);height:min(80vw,310px);
+  display:grid;place-items:center}
+
+/* ① 集中線。まん中はあけて、人物が沈まないようにします */
+.blines{position:absolute;left:-50%;top:-50%;width:200%;height:200%;
+  background:repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255,255,255,.22) 0deg 0.9deg,
+    rgba(255,255,255,0)   0.9deg 3.4deg);
+  /* まん中はあけ、外へいくほど薄くして、四角いふちを出しません */
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0) 17%, #000 34%, #000 42%, rgba(0,0,0,0) 50%);
+  mask-image:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0) 17%, #000 34%, #000 42%, rgba(0,0,0,0) 50%);
+  animation:bspin 9s linear infinite;will-change:transform}
+@keyframes bspin{to{transform:rotate(360deg)}}
+/* 濃さの脈は、別の箱で（回転と ぶつからないように） */
+.bstage:before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,
+    rgba(226,59,48,.30) 0%, rgba(226,59,48,.10) 42%, transparent 68%);
+  animation:bpulse 1.5s ease-in-out infinite}
+@keyframes bpulse{0%,100%{opacity:.45;transform:scale(.94)}
+  50%{opacity:1;transform:scale(1.06)}}
+
+/* ② はは。外へ飛び出すように、順ぐりに出します */
+.bha{position:absolute;inset:0}
+.bha span{position:absolute;font-weight:900;color:#FFFFFF;
+  font-size:clamp(20px,7vw,30px);line-height:1;opacity:0;
+  text-shadow:0 0 10px rgba(226,59,48,.85),0 2px 0 #7A1510;
+  animation:bha 2.2s ease-out infinite;will-change:transform,opacity}
+.bha .h1{left:4%;top:16%;animation-delay:0s}
+.bha .h2{right:6%;top:10%;animation-delay:.28s}
+.bha .h3{left:0%;top:52%;animation-delay:.56s}
+.bha .h4{right:0%;top:56%;animation-delay:.84s}
+.bha .h5{left:16%;top:80%;animation-delay:1.12s}
+.bha .h6{right:18%;top:82%;animation-delay:1.4s}
+@keyframes bha{
+  0%{opacity:0;transform:scale(.5) translate(0,0)}
+  18%{opacity:1;transform:scale(1.15)}
+  55%{opacity:.95;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.5)}}
+
+/* ③ 人物。背景が透けている絵を、そのまま置きます */
+.bkira{position:relative;z-index:2;width:min(46vw,172px);height:auto;
+  filter:drop-shadow(0 0 16px rgba(226,59,48,.45));
+  /* ★絵の下は、胸のところで真横に切れています。
+       そのままだと「切り取った線」が見えるので、下だけ うすく消します。 */
+  -webkit-mask-image:linear-gradient(#000 76%, rgba(0,0,0,0) 99%);
+  mask-image:linear-gradient(#000 76%, rgba(0,0,0,0) 99%);
+  animation:bkira 1.5s ease-in-out infinite}
+@keyframes bkira{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+
+.bootmsg{font-size:13px;color:#FFFFFF;opacity:.85}
+/* ★絵の出どころの断り書き（ご指示・2026/11/14）。
+     小さく、下に置きます。読み込み中の邪魔をしないためです。 */
+.bootnote{font-size:9.5px;color:#FFFFFF;opacity:.55;margin-top:2px;
+  letter-spacing:.02em;padding:0 16px;text-align:center;line-height:1.5}
+
+/* ★動きを減らす設定の方には、動かさずに出します */
+@media(prefers-reduced-motion:reduce){
+  .blines,.bstage:before,.bha span,.bkira{animation:none}
+  .bha span{opacity:1}
+}
+/* ★隠したものは、必ず消えること。
+ *   （.boot の display:grid が勝ってしまい、読み込みのあとも
+ *     「読み込んでいます…」が画面に残っていました） */
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ------------------------------------------------------------
+ *  種類の色分け（記録用スプレッドシートの H列と同じ考え方）
+ *  2026/10/26 追加
+ * ---------------------------------------------------------- */
+.mtag{display:inline-block;padding:1px 7px;border-radius:999px;
+      font-size:12px;line-height:1.6;white-space:nowrap;
+      background:#eceff3;color:#333}
+.mtag.go{background:#c6f6ff;color:#1155ca}
+.mtag.uber{background:#ffe086;color:#7f6000}
+.mtag.musen{background:#d9ead3;color:#274e13}
+
+/* ------------------------------------------------------------
+ *  いまアツい（2026/10/27 追加）
+ *  ★スマホの細い画面でも、横スクロールさせないこと。
+ *    幅はピクセルで決め打ちせず、割合で分けます。
+ * ---------------------------------------------------------- */
+.wx{font-size:12.5px;line-height:1.7;color:var(--paper);background:#0C1422;
+    border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin:0 0 12px}
+.hot{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hotc{background:#0C1422;border:1px solid var(--line);border-radius:9px;padding:11px 12px;
+      display:flex;flex-direction:column;gap:3px;min-width:0}
+.hotc.top{border-color:var(--andon);box-shadow:0 0 16px rgba(240,163,59,.18)}
+.hotc small{color:var(--muted);font-size:10.5px;letter-spacing:.04em}
+.hotc b{font-size:17px;line-height:1.3;word-break:break-all}
+.hotc .hv{font-family:var(--mono);font-size:21px;color:var(--andon);line-height:1.2}
+.hotc.top .hv{color:var(--meter)}
+.hotc .hs{color:var(--muted);font-size:11px;line-height:1.6}
+.hotc .mini{align-self:flex-start;margin-top:5px;text-decoration:none}
+/* 翌4時までの予想は、横に流して見ます（ご指示・2026/11/12） */
+.plan{display:flex;gap:9px;padding:2px 0}
+.plan .pl{flex:0 0 auto;width:132px;background:#0C1422;border:1px solid var(--line);
+  border-radius:9px;padding:10px 11px;text-decoration:none;color:inherit;display:block}
+.plan .pl small{display:block;color:var(--paper);font-size:11px;margin-bottom:3px}
+.plan .pl b{display:block;font-size:15px;line-height:1.35;word-break:break-all;color:var(--paper)}
+.plan .pl b.thin{color:var(--chipoff)}
+.plan .pl span{display:block;font-family:var(--mono);font-size:11.5px;color:var(--paper);margin-top:2px}
+@media(max-width:640px){.hot{grid-template-columns:1fr}}
+
+/* 大カテゴリーのタグと、期間の切り替え（グラフの画面・2026/11/12 ご指示） */
+.chips.catch{margin-top:6px}
+.fperiod{margin-top:8px}
+.fperiod .fsel{width:100%}
+
+/* 割合（ショート・ミドル・ロング・2026/11/12 ご指示） */
+.bandbar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:#0C1422;
+  border:1px solid var(--line);margin:4px 0}
+.bandbar.big{height:30px;border-radius:10px;margin:10px 0 14px}
+.bandbar span{display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:#14100A;font-weight:700;min-width:0;
+  /* ★中の字が帯より広くなり、3pxほど はみ出していました（2026/11/13）。
+       字のほうを縮めて、帯の中に収めます。 */
+  overflow:hidden;white-space:nowrap}
+.bandbar.big span{font-size:14px}
+.kpis.bandk .kpi small i{font-style:normal;display:block;font-size:10.5px;color:var(--paper);opacity:.75}
+.kpi .bsub{display:block;font-family:var(--mono);font-size:12px;color:var(--paper);margin-top:2px}
+.bcat{font-size:13px;color:var(--kusha);letter-spacing:.08em;margin:14px 0 4px;
+  border-bottom:1px solid var(--line);padding-bottom:3px}
+.brow{display:grid;grid-template-columns:104px 1fr;align-items:center;gap:10px;margin:6px 0}
+.brow .bl{font-size:12.5px;color:var(--paper);white-space:normal;word-break:break-all;line-height:1.4}
+.bmeta{font-family:var(--mono);font-size:11.5px;color:var(--paper);margin-top:2px}
+.bsubh{font-size:12px;color:var(--paper);opacity:.85;margin:10px 0 2px}
+/* ロングが出やすい乗り場の並び */
+.lhead,.lrow{display:grid;grid-template-columns:22px 1fr 60px 82px;align-items:center;gap:6px;
+  padding:7px 2px;border-bottom:1px solid var(--ink3)}
+.lhead{font-size:11px;color:var(--paper);opacity:.8;border-bottom:1px solid var(--line)}
+.lrow{text-decoration:none;color:var(--paper)}
+.lrow .li{font-family:var(--mono);font-size:13px;color:var(--kusha);font-weight:700}
+.lrow .lp{font-size:13.5px;word-break:break-all;line-height:1.35}
+.lrow .lp i{font-style:normal;display:block;font-size:10.5px;opacity:.75}
+.lrow .lv{font-family:var(--mono);font-size:17px;font-weight:700;color:#6FD8A8;text-align:right}
+.lhead .lv,.lhead .ln{text-align:right}
+.lrow .ln{font-family:var(--mono);font-size:13px;text-align:right}
+.lrow .ln i{font-style:normal;display:block;font-size:10.5px;opacity:.75}
+@media(max-width:380px){.brow{grid-template-columns:88px 1fr}
+  .lhead,.lrow{grid-template-columns:20px 1fr 52px 70px}}
+
+/* いまの天気（天気アプリと同じ並べ方・2026/11/12 ご指示） */
+.wxnow{display:flex;align-items:center;gap:12px;margin:12px 0 6px}
+.wxic{font-size:42px;line-height:1}
+.wxmain{display:flex;flex-direction:column;min-width:0}
+.wxmain b{font-family:var(--mono);font-size:34px;line-height:1.05;color:var(--paper)}
+.wxmain span{font-size:13px;color:var(--paper)}
+.wxside{margin-left:auto;text-align:right;font-size:13px;color:var(--paper);line-height:1.8;white-space:nowrap}
+.wxside .hi{color:var(--kusha)}
+.wxside .lo{color:#8FC7FF}
+.wxtip{font-size:13px;color:var(--paper);margin:0 0 10px}
+.actions.rdr{margin:0 0 12px}
+/* 1時間ごとの移り変わり */
+.wxhs{display:flex;gap:8px;padding:2px 0 4px}
+.wxh{flex:0 0 auto;width:66px;text-align:center;background:#0C1422;
+  border:1px solid var(--line);border-radius:10px;padding:8px 4px}
+.wxh.now{border-color:var(--andon);box-shadow:0 0 14px rgba(240,163,59,.18)}
+.wxh small{display:block;font-size:12px;color:var(--paper)}
+.wxh .wi{font-size:22px;line-height:1.3}
+.wxh b{display:block;font-family:var(--mono);font-size:17px;color:var(--paper)}
+.wxh span{font-size:12px;color:var(--paper)}
+.wxh span.rain{color:#8FC7FF;font-weight:700}
+/* 押すと地図が開くところ */
+a.hotc{text-decoration:none;color:inherit}
+.nowk{font-size:13px;margin-left:8px;color:var(--paper);letter-spacing:0}
+.plink{color:var(--paper);text-decoration:none;border-bottom:1px dotted var(--line)}
+
+
+/* ============================================================
+ *  デスノートらしさ（2026/11/10）
+ *  ★やりすぎない。夜に、走る前に見るものなので、
+ *    読みにくくなったら本末転倒。
+ * ============================================================ */
+
+/* 枠は、紙に引いた罫のように細く */
+.card{border-color:#2A2A30;box-shadow:0 0 0 1px rgba(0,0,0,.5) inset}
+.card h2{color:var(--paper);letter-spacing:.09em}
+.card h2:before{content:"— ";color:var(--andon)}
+
+/* 4つの数は、赤で書きつける */
+.kpi{border-color:#2A2A30}
+.kpi b{color:var(--paper);text-shadow:0 0 12px rgba(179,22,29,.22)}
+.kpi.gr b{color:var(--kusha)}
+
+/* 選んでいるタブは、赤く塗る */
+nav{border-color:#2A2A30}
+nav button[aria-selected=true]{background:var(--andon);color:#F2EDE4}
+
+/* 押しボタン */
+.btn{background:var(--andon);color:#F2EDE4;letter-spacing:.06em}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+.chip.on{background:var(--andon);color:#F2EDE4;border-color:var(--andon)}
+
+/* いちばん下の名前 */
+.copy{letter-spacing:.12em;color:#6E6E6C}
+
+/* 行灯だけは、本物の色のまま残す（タクシーのものなので） */
+
+
+/* ============================================================
+ *  変顔と、嫌なお客さんのひとこと（まーく様のご指示・2026/11/10）
+ *  ★細い画面では、ひとことは下へまわり込みます。
+ *    題を押しのけて読めなくなる方が困るためです。
+ * ============================================================ */
+.saymount{display:flex;align-items:center;gap:9px;flex:none}
+.saybox{display:flex;align-items:center;gap:8px;flex:none}
+.saymount .face{color:var(--paper);opacity:.92;flex:none;
+  filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
+.saymount .bubble{position:relative;background:#17171A;border:1px solid var(--line);
+  color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
+  letter-spacing:.02em}
+/* ★しっぽは、ふきだしの「外」に出します（ご指摘・2026/11/15
+     「しっぽが吹き出しの中に入ってる状態」）。
+     見える三角は left+w から left+2w までなので、
+     ふきだしの左はし（0）に base をそろえるには left:-2w が要ります。 */
+/*
+ * ★しっぽは「45度にかたむけた四角」で作ります（2026/11/16・ご指摘
+ *     「しっぽと枠はきちんと太さを合わせて、
+ *       境目などがないように綺麗にくっつけてください」）。
+ *
+ *   前は三角を2つ重ねて作っていました。その作り方だと
+ *   ・ふちの太さが ふきだしと そろわない（ななめのぶん細くなる）
+ *   ・ふきだしの左はしは丸いので、まっすぐな三角との間に すき間ができる
+ *   という2つの理由で、つなぎ目が見えていました。
+ *
+ *   かたむけた四角なら、
+ *   ・ふち（1px）は ふきだしと まったく同じ太さになります
+ *   ・ふきだしに重なるがわは、中の色で ふちの線を そのまま隠します
+ *   ので、継ぎ目が1本も出ません。
+ */
+.saymount .bubble:before{content:"";position:absolute;left:-5px;top:50%;
+  margin-top:-5px;width:10px;height:10px;background:#17171A;
+  border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+  transform:rotate(45deg)}
+.saymount .bubble:after{content:none}
+/* ★すうっと消えて、すうっと出す（ご指示・2026/11/10）。
+   動かさず、濃さだけを変えます。目が休まります。 */
+.saymount{transition:opacity .45s ease}
+.saymount.fade{opacity:0}
+@media(prefers-reduced-motion:reduce){.saymount{transition:none}}
+.saybox .face{color:var(--paper);opacity:.92;flex:none;
+  filter:drop-shadow(0 0 7px rgba(179,22,29,.35))}
+.saybox .bubble{position:relative;background:#17171A;border:1px solid var(--line);
+  color:var(--paper);border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.5;
+  max-width:190px;letter-spacing:.02em}
+.saybox .bubble:before{content:"";position:absolute;left:-5px;top:50%;
+  margin-top:-5px;width:10px;height:10px;background:#17171A;
+  border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+  transform:rotate(45deg)}
+.saybox .bubble:after{content:none}
+/* ★入れ替わるときだけ、ふわっと出します（うるさくしない） */
+.saybox.pop .face,.saybox.pop .bubble{animation:sayin .34s ease-out}
+@keyframes sayin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.saybox.pop .face,.saybox.pop .bubble{animation:none}}
+@media(max-width:560px){.saybox .bubble{max-width:150px;font-size:11.5px}}
+
+
+/* ============================================================
+ *  イベント（きょう・あす）とポップアップ
+ * ============================================================ */
+.evrow{border-top:1px solid var(--line);padding:12px 2px}
+.evrow:first-of-type{border-top:0}
+.evhead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  font-family:var(--disp);font-size:15px;letter-spacing:.05em;color:var(--paper)}
+.evkind{font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:.04em}
+/* ★いちばん大きく出すのは「開演の時刻」（ご指示・2026/11/12）。
+     着ける時刻は、まーく様ご自身がお決めになるので、下に小さく。 */
+.evgo{margin-top:5px;font-size:15px;font-weight:700;color:var(--kusha);letter-spacing:.03em}
+/* 開演が分かっていないときは、あやしい時刻を書かず、そうとだけ書く */
+.evgo.evnone{color:#FFFFFF;font-weight:500}
+.evt{margin-top:4px;font-size:13.5px;line-height:1.7}
+.evsub{margin-top:3px;font-size:12px;color:var(--muted);line-height:1.7}
+/* ★中身が古いまま止まっていたら、赤で はっきり出します
+     （ご指示・2026/11/12「毎回日付を入れてもらえないと、
+       いつのイベントか分かりません」の裏返しで、
+       日付が古いことにも気づける形にしました）。 */
+.evold{color:var(--kusha);font-weight:700}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2000;
+  display:flex;align-items:center;justify-content:center;padding:18px}
+.modalbox{background:var(--ink2);border:1px solid var(--line);border-radius:12px;
+  max-width:560px;width:100%;max-height:86vh;display:flex;flex-direction:column;
+  box-shadow:0 0 50px rgba(0,0,0,.7)}
+.modalbox h2{font-family:var(--disp);font-weight:400;font-size:17px;letter-spacing:.07em;
+  margin:0;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.modalbox h2:before{content:"— ";color:var(--andon)}
+.modalbody{overflow:auto;padding:4px 18px 10px}
+.modalfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:12px 18px 16px;border-top:1px solid var(--line)}
+.mchk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.mchk input{width:auto;margin:0}
+.modalfoot .btn{margin-left:auto}
+@media(max-width:560px){.modalbox h2{font-size:15px}.modalfoot{gap:9px}}
+
+
+/* ============================================================
+ *  見やすさを上げる（まーく様のご指示・2026/11/11）
+ *    「全体が見づらいので 視覚性はもっと上げたデザインにしてください」
+ *  ★走る前に、暗い車内で見るものです。
+ *    細い字・薄い灰色・小さい字を、ぜんぶ やめます。
+ * ============================================================ */
+.sub{font-size:clamp(10px,2.9vw,13px);color:var(--muted)}
+.card{padding:18px}
+/* ★見出しの下の空きは 9px でそろえます（ご指摘・2026/11/13
+     「枠があることで下の文字との高さが狭く感じるものがあります」）。
+   ここが 5px だったので、上で 9px にしても こちらが勝っていました。 */
+.card h2{font-size:17.5px;margin-bottom:9px}
+.card .note{font-size:12.5px;color:var(--muted);line-height:1.85}
+.kpi{padding:12px 13px}
+.kpi small{font-size:11.5px;color:var(--muted);letter-spacing:.05em}
+.kpi b{font-size:24px}
+.kperiod{font-size:12.5px}
+nav button{font-size:13.5px;padding:10px 12px}
+label{font-size:12px;color:var(--muted)}
+input,select,textarea{font-size:16px;padding:11px 12px}   /* 16px：iPhoneで勝手に拡大されない */
+.chip{font-size:13px;padding:8px 13px}
+.btn{font-size:15px;padding:13px 24px}
+table{font-size:13.5px}
+th{font-size:12px;color:var(--muted)}
+footer{font-size:12px;line-height:2}
+.evt{font-size:14.5px}
+.evsub{font-size:12.5px}
+.evgo{font-size:16px}
+.saymount .bubble{font-size:12.5px}
+
+
+/* ============================================================
+ *  ログイン画面の「HOW TO USE IT」（ご指示・2026/11/11）
+ *  ★読めることが先。飾りで読みにくくしない。
+ * ============================================================ */
+.howto{margin-top:18px;border:1px solid var(--line);border-radius:10px;
+  background:linear-gradient(180deg,#121214 0%,#0D0D0F 100%);padding:16px 18px 18px}
+.howhead{font-family:var(--goth);font-weight:700;font-size:15px;letter-spacing:.3em;
+  color:var(--kusha);text-align:center;padding-bottom:10px;margin-bottom:12px;
+  border-bottom:1px solid var(--line)}
+.howlist{margin:0;padding-left:1.35em;font-size:13px;line-height:1.95;color:var(--paper)}
+.howlist li{margin:9px 0}
+.howlist li::marker{color:var(--kusha);font-family:var(--mono)}
+.howlist b{color:var(--kusha);font-weight:700}
+.howlist li.joke{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);
+  color:var(--muted)}
+.howlist li.joke b{color:var(--paper)}
+@media(max-width:560px){.howto{padding:14px 15px 16px}.howlist{font-size:12.5px}}
+
+
+/* ============================================================
+ *  顔とふきだしを、右に固定する（まーく様のご指示・2026/11/11）
+ *    「顔とふきだしは、右に固定にして、顔を1番右にしてください」
+ *    「タイトルがいちいちズレるのが気になります」
+ *
+ *  ★題がずれていたのは、ふきだしが左にあって、
+ *    中の字の長さで幅が変わっていたためです。
+ *    ・右へ寄せる（題は、いつも左のはしから始まる）
+ *    ・ふきだしの幅と高さを、決め打ちにする（伸び縮みしない）
+ *    この2つで、ぴたりと止まります。
+ * ============================================================ */
+/* ============================================================
+ *  ヘッダーの組み方（まーく様のご指示・2026/11/11）
+ *    「TAXI NOTE の下に v1.0
+ *      v1.0 の右に 近日中〜
+ *      TAXI NOTE の右に ふきだしと顔」
+ *    「不自然に左下の空白を開けないような作りにしてください」
+ *
+ *  ★前は、ふきだしが下の段に回り込んでいて、その左が
+ *    ぽっかり空いていました。3段に組み直して、空きを無くします。
+ *      1段目：題（左）と ふきだし・顔（右）
+ *      2段目：版（v1.0）と、その右に一文
+ *      3段目：名前とボタン（右）
+ * ============================================================ */
+.login .head{
+  display:grid;grid-template-columns:auto 1fr;
+  align-items:center;column-gap:12px;row-gap:5px}
+header > h1, .login .head > h1{margin:0}
+/* ★ふきだしは、題の右に余っている幅を ぜんぶ使います（ご指示・2026/11/11）
+     「ふきだしって、13文字分くらいは、ロゴにはみ出さずに入れるんじゃないですか？」
+     幅を決め打ちしていたので、右に余白が残っていました。
+   ★広さが決まるのは「題の幅」だけです。中の字では変わらないので、
+     ひとことが入れ替わっても、ふきだしの大きさは動きません。 */
+.login .head > .saymount{grid-column:2;grid-row:1;justify-self:stretch;min-width:0}
+/* 版と一文は、同じ段に横ならび。min-width:0 が無いと、長い字が外へ出ます */
+.hsub > .subline, .login .head > .subline{
+  display:flex;align-items:center;gap:8px;min-width:0}
+/* ★灰背景は、ブロックぜんたいで1つだけにします（ご指示・2026/11/13
+     「ここはひとつのブロック扱いで、灰背景もひとつでまとめて下さい」）。
+     段ごとの帯はやめました。 */
+.hsub > .subline, .hsub > .hrow{padding:2px 0}
+/* ★一文（近日中〜）は、右へ寄せます（ご指示・2026/11/11）
+     「サブタイトル(近日中～)は、右寄りにしてください」
+     margin-left:auto … 左の余りを ぜんぶ ここで食うので、
+     版（v1.0）は左のまま、一文だけが右へ行きます。
+     版が無い画面（ログイン）でも、同じように右へ寄ります。 */
+.hsub > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
+.login .head > .subline .sub{margin-top:0;min-width:0;margin-left:auto;text-align:right}
+/* ★称号（ポンコツ）だけ左、あとは右（ご指示・2026/11/11）
+     「ポンコツ(称号)だけ、左寄せにしてください」
+     段いっぱいに広げて、左右に振り分けます。 */
+.hsub > .hrow > .whoR{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+  justify-content:flex-end}
+/* 称号は、長くても折り返さずに 1つのかたまりで */
+
+
+/* 題は折り返さない。2行になると、絵との段がずれます */
+header > h1, .login .head > h1{white-space:nowrap}
+
+/* ★スマホでは、版と一文が同じ段に収まるように、少しずつ詰めます。
+     折り返すと、まーく様がおっしゃった「1行」ではなくなります。 */
+@media(max-width:640px){
+  .hsub > .subline .sub, .login .head > .subline .sub,
+  .hsub > .subline .ver, .login .head > .subline .ver{font-size:clamp(9px,2.55vw,12.5px)}
+  .ver{padding:1px 5px;letter-spacing:.04em}
+}
+
+/* ★ならびは「題 → 顔 → ふきだし」（ご指示・2026/11/11）
+     「ロゴ(TAXI NOTE)の右に顔、その横にふきだし」
+   ★顔の位置は、題の幅だけで決まります。
+     ひとことが入れ替わっても、顔は1ミリも動きません
+     （ふきだしのほうが、残った幅ぜんぶに伸びます）。 */
+.saymount{flex-direction:row}
+.saymount .face{order:1}
+.saymount .bubble{order:2}
+
+/* ★幅と高さを決め打ちにする。伸び縮みすると、まわりが動きます。
+     まーく様のご指摘（2026/11/11）
+       「ふきだし、2行の高さで統一してください、高さがズレて、
+         全体がその度ズレるのがイライラします、
+         顔のサイズも統一してください」
+   ★高さは「2行ぶん」ぴったり（行の高さ18px × 2 ＋ 上下の余白）。
+     min-height だと、1行のときと2行のときで高さが変わります。
+   ★行の高さを px で決めています。字の大きさが画面ごとに変わっても、
+     2行ぶんの高さが動かないようにするためです。 */
+/* ★幅は「残っている場所」で決めます（flex-basis を 0 に）。
+     auto のままだと、中の字を小さくすると ふきだしも一緒に縮むので、
+     「入るまで小さくする」がいつまでも終わりません（2026/11/14）。 */
+.saymount .bubble{flex:1 1 0;min-width:0;max-width:260px;
+  /* ★高さは、題の字の高さ（大きさ×1.2）とぴたり同じ */
+  height:calc(var(--logo) * 1.2);
+  min-height:calc(var(--logo) * 1.2);max-height:calc(var(--logo) * 1.2);
+  /* ★overflow:hidden は付けません。付けると、ふきだしの外に出る
+       「しっぽ」が切り取られて、ほとんど見えなくなります
+       （実際に、そうなっていました・2026/11/11）。
+       字のはみ出しは、中の <span> のほうで止めています。 */
+  padding:0 10px;line-height:1;display:flex;align-items:center}
+/* 字は1行。高さを題にそろえたので、2行は入りません */
+/* ★9pxより小さくしない決まりなので、それでも入りきらない長いひとことは
+     おしりを「…」にします。字の途中でぶつ切りにすると、読めません。 */
+.saymount .bubble .t{display:block;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;width:100%}
+
+/* ★顔の大きさを固定。組み合わせが変わっても、ここは動きません */
+.saymount .face{width:34px;height:34px;min-width:34px;flex:0 0 34px}
+
+/* ★ふきだしの しっぽは、左向き（顔のほうを指す）。
+     前より大きくして、ひと目で分かるようにします（ご指示・2026/11/11）。
+     ・:before … ふちの色の三角（外がわ）
+     ・:after  … 中の色の三角（内がわ）。重ねて「ふちのある三角」にする */
+/*
+ * ★題の横のふきだしも、同じ作り（かたむけた四角）です。
+ *
+ * ★角の丸みを 9px → 5px にしました（2026/11/16・ご指摘
+ *     「境目などがないように綺麗にくっつけてください」）。
+ *   このふきだしは、題の高さに合わせた うすい形です。
+ *   角を9pxも丸めると、左のふちが **まるごと曲線** になり、
+ *   しっぽの付け根が曲線の途中で終わって、角が見えていました。
+ *   5pxにすると、左にまっすぐなところができて、
+ *   しっぽの付け根が そこにぴたりと収まります。
+ *
+ * ★しっぽの中心は、ふきだしのふちより 少し内がわ（1.4px）に置きます。
+ *   こうすると、しっぽの上と下のかどが ふきだしの中に入り、
+ *   線の切れはしが外に出ません。
+ *
+ * ★色は、ふきだしのふちと **同じもの** を使います。
+ *   前は しっぽだけ #6E6E7A で決め打ちしていたので、
+ *   ぼやきのふきだし（ふちは var(--line)）とのあいだに段差が見えていました。
+ */
+.saymount .bubble{border-radius:5px}
+.saymount .bubble:before{right:auto;left:-3.1px;margin-top:-4.5px;
+  width:8px;height:8px;border-width:0 0 1px 1px}
+.saymount .bubble.good:before{border-color:#6E6E7A}
+
+/* ★「乗せてよかった」ひとことのときだけ、ふちを明るくします。
+     ぼやきと、ぱっと見で見分けられるようにするためです。 */
+.saymount .bubble.good{border-color:#6E6E7A}
+
+@media(max-width:560px){
+  /* 細い画面でも、2行ぶんの高さで固定（行の高さ17px × 2 ＋ 余白）。
+     幅は、余っているぶんを ぜんぶ使います（決め打ちにしない） */
+  .saymount .bubble{font-size:11.5px;max-width:none}
+  .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
+}
+
+/* ------------------------------------------------------------
+ *  下見用のページの、いちばん上の帯（ご指示・2026/11/11）
+ *    「変更前に、僕に最終確認をとる形にして、
+ *      プレビュー用ページの作成も作るようにしてください」
+ *  ★本番と見分けがつかないと、事故のもとです。はっきり出します。
+ * ---------------------------------------------------------- */
+.pvbar{background:var(--andon);color:#FFFFFF;font-size:13px;
+  padding:9px 16px;text-align:center;letter-spacing:.03em}
+.pvbar a{color:#FFFFFF}
+
+/* ------------------------------------------------------------
+ *  いちばん細い画面（320pxなど）では、題と ふきだしも 少し小さく
+ *
+ *  ★ここは、ファイルのいちばん下に置きます。
+ *    上に書くと、560px のきまりに上書きされて効きません
+ *    （実際に、そうなりました・2026/11/11）。
+ * ---------------------------------------------------------- */
+@media(max-width:380px){
+  h1.dn{letter-spacing:.1em}
+  /* いちばん上の帯も、細い画面では少し小さく（ご指示・2026/11/12） */
+  .ktwhen{font-size:12.5px}
+  .ktsum b{font-size:14px}
+  /* ログインの画面は、まわりの余白が広いぶん、ふきだしが狭くなります。
+     細い画面では余白を詰めて、ひとことが切れないようにします。 */
+  .login{padding:14px}
+  /* 版と一文は、ここでも1行に収めます（ご指示・2026/11/11） */
+  .hsub > .subline, .login .head > .subline{gap:6px}
+  .ver{padding:1px 4px}
+  .hsub > .subline .sub, .login .head > .subline .sub,
+  .hsub > .subline .ver, .login .head > .subline .ver{font-size:clamp(8.4px,2.55vw,12.5px)}
+  .saymount .bubble{font-size:10.5px}
+  .saymount .face{width:24px;height:24px;min-width:24px;flex:0 0 24px}
+  .saymount{gap:6px}
+}
+
+/* ============================================================
+ *  枠の中の字は、ぜんぶ まん中（ご指示・2026/11/11）
+ *    「管理者っていう文字が、枠に対して、上じゃありませんか？
+ *      枠文字は全て、枠に対して中央位置中央高さで徹底してください」
+ *
+ *  ★字は、ふつう「ベースライン」という見えない線にそろいます。
+ *    そのため、枠の中では上に寄って見えます。
+ *    inline-flex にして、たて・よこ とも まん中に置きます。
+ *  ★line-height:1 にしないと、字の行の高さぶん 下がります。
+ * ============================================================ */
+.badge, .mini, .chip, .ver, .btn, .mtag, nav button, .kao small{
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:1;vertical-align:middle;text-align:center}
+/* 1文字でも つぶれないように、最低の高さをそろえます */
+.badge{min-height:16px}
+.mini{min-height:20px}
+.ver{min-height:17px;vertical-align:middle}
+.chip{min-height:22px}
+.mtag{min-height:16px}
+/* 入れものの側も、たて まん中にそろえます */
+.who, .who .whoR, .chips, .actions{align-items:center}
+
+
+/* ============================================================
+ *  しぼり込み（乗り場・期間）とまとめ（ご指示・2026/11/12）
+ *    「各乗り場だけをピンポイントで絞る機能」
+ *    「1ヶ月おきのレポート機能(期間設定も自由変更可能)」
+ *
+ *  ★走りながら片手で触るので、押す所は大きくします。
+ *  ★絞っているものは、赤いふちで ひと目で分かるようにします。
+ *    絞ったまま忘れると、売上をまるごと読みちがえます。
+ * ============================================================ */
+.filt{margin-bottom:12px}
+/* 営業曜日の区分を切り替えるタグ（ご指示・2026/11/12） */
+/* 図は、カードの端いっぱいまで使います（横画面で収めるため） */
+.scroll.fb{margin:0 -16px;width:calc(100% + 32px);padding:0 0 0 16px}
+.chips.ktmine{margin-top:9px}
+.chips.daych{margin-top:6px}
+.chips.daych .chip{font-size:11.5px;padding:5px 9px}
+.filt2{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.filt2 > *{min-width:0}
+.fsel{flex:1 1 150px;max-width:100%;font-size:13px;padding:8px 10px;
+  border-radius:8px;color:#FFFFFF}
+/* えらんでいる所は、赤いふちで はっきりさせます */
+.fsel.on{border-color:var(--andon);color:#FFFFFF}
+/* 日を2つ決めるところ。細い画面では、上下に1つずつ並びます。
+   「〜」だけが行の端に取り残されないよう、ことばで見出しを付けます。 */
+/* ★名前は prange に。記録する画面の .fdate（営業日の欄）と
+     ぶつかって、ぽっかり空いてしまっていました（2026/11/12 に直した）。 */
+.prange label{flex:1 1 140px;display:block;min-width:0}
+.prange label span{display:block;font-size:11px;color:#FFFFFF;margin-bottom:3px}
+.filt2 input[type=date]{width:100%;font-size:13px;padding:8px 10px;color:#FFFFFF}
+/* 「ぜんぶに戻す」。絞っているときだけ出ます */
+.chip.warn{border-color:var(--andon);color:#FFFFFF;background:rgba(200,35,43,.22)}
+/* ★各選択項目の【リセット】（ご指示・2026/11/13）。
+     えらんだものを、その欄だけ 空に戻します。
+     押しまちがえないよう、ふつうのタグより ひとまわり小さく、枠は点線。 */
+/* ★折線グラフで、乗り場をえらぶタグの件数（ご指示・2026/11/13）。
+     どの乗り場に記録が多いかが、押す前に分かります。 */
+.chip .cnt{margin-left:5px;font-size:10.5px;opacity:.72}
+.chip.rst{border-style:dashed;color:#FFFFFF;background:transparent;font-size:12px;padding:5px 11px}
+/* ★はじめての乗り場だけ出す1行（ご指示・2026/11/13）。
+     2回目からは出しません。 */
+.pnew{margin:6px 0 2px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(255,255,255,.05);color:#FFFFFF;font-size:13px;line-height:1.7}
+.pnew b{font-weight:700}
+.pnew .chip{margin-left:6px}
+/* いま何で絞っているか。4つの数のすぐ下にも出ます */
+.fnow{color:var(--kusha);font-weight:700}
+/* この期間のまとめ */
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.rcell{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;
+  padding:10px 11px}
+.rcell small{display:block;color:#FFFFFF;font-size:11px;letter-spacing:.04em}
+.rcell b{display:block;font-family:var(--mono);font-size:19px;color:var(--andon);
+  line-height:1.25;margin-top:3px}
+.rcell i{display:block;font-style:normal;color:#FFFFFF;font-size:10.5px;margin-top:3px}
+
+
+/* ★大きい金額でも、はみ出さないようにします（320pxで確かめ・2026/11/12）。
+     ¥1,477,440 のような長い数が入ると、枠からはみ出していました。 */
+.kpi{min-width:0}
+.kpi b{overflow-wrap:anywhere;font-size:clamp(16px,5.6vw,22px)}
+.ktsum{min-width:0}
+.ktsum b{font-size:clamp(13px,3.9vw,16px)}
+
+/* ★イベントの日付は、いちばん目立たせます（ご指示・2026/11/12） */
+.evday{font-family:var(--mono);font-size:1.22em;font-weight:700;
+  color:var(--kusha);letter-spacing:.02em}
+.evkyo{display:inline-block;background:var(--andon);color:#FFFFFF;
+  font-size:.74em;font-weight:700;border-radius:4px;padding:2px 6px;
+  vertical-align:.18em;margin-right:5px}
+.evcnt{font-size:.82em;margin-left:5px;color:#FFFFFF}
+
+/* ★期間の切り替えは、上の区切りの中（ご指示・2026/11/12） */
+.ktperiod{margin-top:9px}
+.ktperiod .fsel{width:100%;font-size:15px}
+
+/* ★前の期間とのくらべ（ご指示・2026/11/12）。
+     増えた／減ったが、ひと目で分かるように色を分けます。 */
+/* 1件ずつ、名前・いま・差 の3つに。横スクロールさせません */
+/* ★左の名前の幅をそろえます（ご指摘・2026/11/17「これ、位置がズレてます」）。
+     auto のままだと「売上の合計」と「記録の数」で幅が変わり、
+     となりの数字の出る場所が、行ごとにずれていました。 */
+/* 差のらんは、広がりすぎないように上限をつけます。
+   ここを auto にすると、金額のらんが押しつぶされます。 */
+.cmprow{display:grid;grid-template-columns:5.4em minmax(0,1fr) minmax(0,6.4em);
+  align-items:center;
+  gap:4px 10px;padding:9px 2px;border-top:1px solid var(--ink3)}
+@media (max-width:340px){
+  .cmprow{grid-template-columns:5em minmax(0,1fr) minmax(0,6em);gap:4px 6px} }
+/* ★差の字は、入らなければ下の行へ落とします（画面の外へ出さないため） */
+.cmprow .cd{white-space:normal;min-width:0}
+.cmp{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:0 3px}
+.cmp b{font-weight:700}
+.cmp i{font-style:normal;opacity:.85}
+.cmprow .cl{font-size:12.5px;color:#FFFFFF;white-space:nowrap}
+.cmprow .cn{font-family:var(--mono);font-size:15px;color:#FFFFFF;text-align:right}
+.cmprow .cn i{display:block;font-style:normal;font-family:var(--body);
+  font-size:10.5px;color:#FFFFFF;opacity:.6}
+.cmprow .cd{text-align:right;white-space:nowrap}
+.cmp{font-family:var(--mono);font-size:12px}
+.cmp.up{color:var(--meter)}
+.cmp.down{color:var(--kusha)}
+
+/* ============================================================
+ *  記録の表（ご指示・2026/11/12）
+ *    ・並びは記録用スプレッドシートと同じ
+ *    ・1つ1つの幅を狭くして、横に動かす回数を減らす
+ *    ・区切りの良い位置で止まるようにする
+ * ============================================================ */
+.snote{font-size:11px;color:#FFFFFF;opacity:.75;margin:0 0 6px}
+/* 区切りの良い所で止まります（中途半端に切れた列を見せないため） */
+/* ★カードの端いっぱいまで使います。そのほうが1列ぶん多く見えます。 */
+.scroll.tbl{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+  margin:0 -16px;width:calc(100% + 32px)}
+.scroll.tbl th:first-child,.scroll.tbl td:first-child{padding-left:8px}
+.scroll.tbl th:last-child,.scroll.tbl td:last-child{padding-right:8px}
+/* ★幅いっぱいに広げます（ご指摘・2026/11/14
+     「左によりすぎて、幅いっぱいに綺麗に作れてません」）。
+   余った幅は、それぞれの欄に分けて配られます。
+   細い機種では、下の min-width で守られて 横に動かせます。 */
+.scroll.tbl table{table-layout:fixed;width:100%;min-width:440px}
+.scroll.tbl th,.scroll.tbl td{scroll-snap-align:start;padding:6px 2px;font-size:11.5px;
+  vertical-align:middle}
+.scroll.tbl th{font-size:11px;letter-spacing:0;white-space:nowrap;text-align:center;font-weight:700}
+.scroll.tbl td.ops{display:table-cell;white-space:nowrap}
+.scroll.tbl td.ops .mini{display:block;width:100%;min-height:18px;font-size:10px;
+  padding:2px 0;margin:1px 0}
+.scroll.tbl td.ops .mini.del{border-color:var(--andon);color:#FFFFFF}
+/* ★8つの欄を、390px の画面に ぜんぶ入れます（ご指示・2026/11/13
+     「この微妙に右が見切れてのが嫌なので 映せるなら映して欲しいですし、
+       どうしても無理なら、見切れない幅調整をしてください」）。
+   前は 9つの欄のころの幅が残っていて、合計 514px ありました。
+   画面は 390px なので、右が切れていました。
+   いまは 日42＋名28＋付32＋待22＋発32＋金46＋乗48＋種50＋他62＋操作38＝400、
+   すき間をふくめて 440px。少しはみ出ますが、横にスクロールできます
+   （ご指示・2026/11/16「他の項目からは、少しはみ出ても仕方ないものとしますので、
+     スクロールできることや、横画面推奨を載せてください」）。
+   並びは 名→付→待→発→金→乗→種→他→操作（種と他は、分けました）。 */
+/* ★「日」の欄（2026/11/16）。並びの既定が「新しく入れた順」になり、
+     日づけの見出し行が出なくなったので、ここで必ず見えるようにします。
+     曜日の区分で色を分けます（平日・金・土・日祝）。 */
+.scroll.tbl th:nth-child(1),.scroll.tbl td.c-date{width:42px;min-width:42px;
+  font-family:var(--mono);font-size:9px;white-space:nowrap;letter-spacing:-.04em}
+.scroll.tbl td.c-date{border-radius:4px}
+.scroll.tbl td.c-date.d-wd {background:#20242E}
+.scroll.tbl td.c-date.d-fri{background:#4A3A14}
+.scroll.tbl td.c-date.d-sat{background:#16344A}
+.scroll.tbl td.c-date.d-sun{background:#4A1A20}
+/* ★名は「半角カナ4文字（濁点も考慮）」ぶん（ご指示・2026/11/16）。
+     ﾀﾞｲｽｹ のように濁点が入ると 半角5文字ぶんになるので、そこに合わせます。 */
+.scroll.tbl th:nth-child(2),.scroll.tbl td.c-who{width:28px;min-width:28px;
+  font-family:var(--mono);font-size:10px;white-space:nowrap;letter-spacing:-.02em}
+/* ★付・発は「20:45」の5文字が入る広さにします（ご指摘・2026/11/16
+     「発がはみ出てます、こういうの本当にやめてください」）。
+   32pxだと最後の1文字が欄の外へ出ていました。字も少し詰めます。 */
+.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:36px;min-width:36px}
+.scroll.tbl td:nth-child(3),.scroll.tbl td:nth-child(5){font-size:9.5px;
+  font-family:var(--mono);letter-spacing:-.04em;padding-left:1px;padding-right:1px;
+  white-space:nowrap;overflow:hidden}
+/* ★待は「半角英数3文字」ぶん（ご指示・2026/11/16）。
+     「不明」が入ることがあるので、その字だけ小さくして欄に収めます。 */
+.scroll.tbl th:nth-child(4){width:22px;min-width:22px}
+.scroll.tbl td:nth-child(4){font-size:9px;overflow:hidden;padding-left:0;padding-right:0}
+/* 種のタグは、表の中では小さくします（ここが広いと、右が切れます） */
+.scroll.tbl .mtag{font-size:9.5px;padding:1px 4px;line-height:1.5}
+.scroll.tbl th:nth-child(6){width:46px;min-width:46px}
+.scroll.tbl th:nth-child(7),.scroll.tbl td.c-place{width:48px;min-width:48px;
+  white-space:normal;word-break:break-all;line-height:1.35}
+/* ★種と他は、別々の欄にしました（ご指示・2026/11/16
+     「他の文章が長くなる可能性があるため 種と他は、やっぱりわけてください」） */
+.scroll.tbl th:nth-child(8),.scroll.tbl td.c-meth{width:50px;min-width:50px;
+  white-space:normal;line-height:1.3;overflow:hidden}
+/* ★「途中乗り」のような長い種類は、2行に折り返します。
+     1行に収めようとすると「途…」になって、何のことか分からなくなります。 */
+.scroll.tbl td.c-meth .mtag{display:block;margin:0 auto;max-width:100%;
+  white-space:normal;word-break:break-all;line-height:1.25;
+  border-radius:6px;padding:1px 3px}
+.scroll.tbl th:nth-child(9),.scroll.tbl td.c-note{width:62px;min-width:62px;
+  white-space:normal;word-break:break-all;line-height:1.3;overflow:hidden}
+.scroll.tbl td.c-note .ntxt{display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;font-size:9.5px;line-height:1.25;
+  color:#FFFFFF;overflow:hidden}
+.scroll.tbl td .dim,.scroll.tbl td .ntxt.dim{color:var(--ink2)}
+.scroll.tbl th.ops,.scroll.tbl td.ops{width:38px;min-width:38px}
+
+/* ★エリアの区切り（ご指示・2026/11/16「エリア順でわけてください」）。
+     日付の見出しより ひとまわり細くして、高さを食わないようにします。 */
+.scroll.tbl tr.ahead td{background:#101722;color:#FFFFFF;font-size:10px;
+  font-weight:700;letter-spacing:.06em;padding:2px 7px;text-align:left;
+  border-top:1px solid var(--line)}
+
+/* ★最後に入れた記録に「新」を付けます（ご指示・2026/11/16
+     「新規の記録を1番上にしてください」）。
+     並びはエリア順なので、どこに入ったかが分かるように印を付けます。 */
+.nw{display:inline-block;background:#FFD54A;color:#111;font-size:8.5px;
+  font-weight:700;border-radius:3px;padding:0 2px;margin-right:2px;
+  font-style:normal;line-height:1.4;vertical-align:middle}
+/* 表の中では、名前の上の行に置きます（横に並べると欄からはみ出します） */
+.scroll.tbl td.c-who .nw{display:block;margin:0 0 1px}
+/* ★色を付けるのは「名」の欄だけ（ご指示・2026/11/16
+     「名前の色変えは名の部分だけで良いと伝えましたよね？」）。
+   行ぜんたいを薄く塗っていたので、名前の色が行に広がって見えていました。 */
+.scroll.tbl tr.fresh td.c-who{background:rgba(255,213,74,.22)}
+
+/* ★日が変わるところの空き（ご指示・2026/11/16
+     「日付の境目の高さ空白を、ほかと同じくらいの高さ分あけて、
+       区切りがわかるようにしてください」）。
+     ふつうの1行と同じくらいの高さを、まるごと空けます。
+     線も背景も付けないので、そこだけ ぽっかり空いて見えます。 */
+.scroll.tbl tr.dgap td{height:42px;padding:0;border:0;background:none}
+
+/* 日付の見出し（変わったときだけ）。営業曜日の区分で色を分けます */
+.scroll.tbl tr.dhead td{font-family:var(--mono);font-size:12.5px;font-weight:700;
+  padding:5px 7px;color:#FFFFFF;border-top:1px solid var(--line)}
+.scroll.tbl tr.dhead small{font-family:var(--body);font-size:10.5px;opacity:.85;
+  margin-left:6px}
+tr.dhead.d-wd  td{background:#20242E}   /* 平日 */
+tr.dhead.d-fri td{background:#4A3A14}   /* 金・祝前日 */
+tr.dhead.d-sat td{background:#16344A}   /* 土曜 */
+tr.dhead.d-sun td{background:#4A1A20}   /* 日・祝日 */
+
+/* 人ごとの背景（記録用スプレッドシートのタブ色と同じ考え方）。
+   どれも暗めにして、白い字が読めるようにしています。 */
+/* ★色を付けるのは、いちばん左の名前の欄だけ（ご指示・2026/11/12）。
+     行ぜんたいを塗ると、かえって読みにくくなりました。 */
+td.c-who{font-weight:700;border-radius:5px}
+td.w-dai  {background:#14323F}   /* 齊藤さん … 水色 */
+td.w-shun {background:#163A2A}   /* 山敷くん … 緑 */
+td.w-kaito{background:#3C1C30}   /* 山脇くん … 桃 */
+td.w-ana  {background:#40290F}   /* 城越くん … 橙 */
+td.w-jin  {background:#2C1F44}   /* 宮下くん … 紫 */
+td.w-mark {background:#26262A}   /* まーく様 … 灰 */
+
+/* 待ち時間の色（記録用スプレッドシートと同じ分け方） */
+.wt1{color:#9ECBFF}                 /* 10分以内 … 薄い青 */
+.wt2{color:#C9CDD3}                 /* 30分以内 … 薄い灰 */
+
+/* 金額の色（記録用スプレッドシートと同じ分け方） */
+.f1{color:#9AA0A6}                  /* 999円以下 */
+.f2{color:#FFFFFF}                  /* 1000〜4999 */
+.f3{color:#6FB7FF}                  /* 5000〜9999 */
+.f4{color:#F2C14E}                  /* 10000〜19999 */
+.f5{color:#FF6A60;font-weight:700}  /* 20000〜 */
+/* ★色の見方（ご指示・2026/11/13）。端的に1行で、表のすぐ下に出します。 */
+.clegend{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;
+  font-size:10.5px;color:#FFFFFF;opacity:.85;line-height:1.6}
+.clegend span{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.clegend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.clegend .lw1{background:#9ECBFF}
+.clegend .lw2{background:#8C97AD}
+.clegend .lf3{background:#6FB7FF}
+.clegend .lf4{background:#F2C14E}
+.clegend .lf5{background:#FF6A60}
+
+/* 一日の流れ。細かすぎて読めないとのご指摘（2026/11/12）。
+   横に動かす形のまま、字も大きくします。 */
+.axis{font-size:15px}
+.glab{font-size:13px}
+
+/* ★分数のタグ。0〜60分を2行に収めるため、小さく・字は数字だけ
+     （ご指示・2026/11/12「2行分に収まりませんか」）。 */
+/* よく出る金額のタグ（ご指示・2026/11/12）。数が多いので小さめに */
+/* ★数字のタグは、ます目で並べます（ご指示・2026/11/12）。
+     「45までを1段目に」「2段目のギリギリまで」。
+     1行に入る数を機種まかせにすると、45 だけが はみ出したりします。
+     列の数を決めてしまえば、どの機種でも同じ形で収まります。 */
+/* ★2026/11/13 から、金額は「数字を足していく」形です（ご指示）。
+     1段目は 1〜9 の9つ。2段目は 0・00・000・0000・00000 と 消す・リセット。 */
+.chips.fares{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.chips.fares .chip{font-size:13px;padding:8px 0;min-width:0;letter-spacing:0;text-align:center}
+/* ★待ち時間は 1〜9 と 0 で、1段に10個（ご指示・2026/11/14
+     「待ち時間の0のタブは1列目に収められませんか？」）。 */
+.chips.fares.w10{grid-template-columns:repeat(10,1fr);gap:2px}
+.chips.fares.w10 .chip{font-size:12.5px;padding:8px 0}
+.chips.fares.z0{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.chips.fares.z{display:flex;flex-wrap:wrap;gap:4px}
+.chips.fares.z .chip{padding:7px 10px;font-size:12px}
+.chips.mins{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+/* ★発車時間の 時（12個）・分（12個）は、それぞれ1行に収めます
+     （ご指示・2026/11/12「これ、なんとかそれぞれ1行にできないですか」）。 */
+.chips.deps{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
+.chips.deps .chip{font-size:11px;padding:6px 0;min-width:0;letter-spacing:-.04em;border-radius:14px}
+.chips.mins .chip{font-size:12px;padding:6px 0;min-width:0;letter-spacing:0}
+@media(max-width:360px){
+  .chips.fares .chip{font-size:12px}
+  .chips.fares.z .chip{font-size:11px;padding:7px 8px}
+  .chips.mins .chip{font-size:11.5px}
+  .chips.deps .chip{font-size:10px}
+}
+
+/* ★似ている乗り場の名前に気づいたときの確認（ご指示・2026/11/12） */
+.psug{margin-top:7px;padding:8px 10px;border:1px solid var(--andon);border-radius:8px;
+  background:rgba(200,35,43,.12);font-size:12.5px;color:#FFFFFF;line-height:2}
+.psug b{color:var(--kusha)}
+.psug .chip{margin-left:6px}
+
+/* ★表の中でも、乗り場は いちばん大事（ご指示・2026/11/12） */
+td.place{color:#FFFFFF;font-weight:700}
+
+/* ============================================================
+ *  題の「X」が、ときどき光る（ご指示・2026/11/11）
+ *    「TAXINOTEのXは、たまに、ランダムに光を入れることはできますか」
+ *
+ *  ★字そのものは、ずっと真っ白のままです。
+ *    まわりに ぼうっとした光の輪を、一瞬だけ出します。
+ *    （字はもう真っ白なので、色を変えて光らせることはできません）
+ *  ★光るのは「たまに」。7〜25秒に1回、気まぐれに（shared.js）。
+ *  ★大きさも位置も、1ミリも動かしません。
+ *    動かすと、となりの顔とふきだしの段がずれます。
+ * ============================================================ */
+h1.dn .xg{font-style:normal;display:inline-block}
+h1.dn .xg.on{animation:xgleam 1.15s ease-in-out}
+/* ★はじめと終わりは、題のふだんの光（0 0 20px の赤）と同じにします。
+     ここを none にすると、光り終わった瞬間に ぱっと暗くなって
+     見えてしまいます。 */
+@keyframes xgleam{
+  0%  {text-shadow:0 0 20px rgba(200,35,43,.35)}
+  20% {text-shadow:0 0 3px rgba(255,255,255,.9), 0 0 10px #FFFFFF,
+                   0 0 20px var(--kusha)}
+  45% {text-shadow:0 0 4px #FFFFFF, 0 0 16px #FFFFFF,
+                   0 0 34px var(--kusha), 0 0 52px var(--andon)}
+  72% {text-shadow:0 0 3px rgba(255,255,255,.9), 0 0 10px #FFFFFF,
+                   0 0 20px var(--kusha)}
+  100%{text-shadow:0 0 20px rgba(200,35,43,.35)}
+}
+/* 動きが苦手な方の設定（iPhoneの「視差効果を減らす」）では光らせません */
+@media(prefers-reduced-motion:reduce){
+  h1.dn .xg.on{animation:none}
+}
+
+
+/* ------------------------------------------------------------
+ *  字を太く（ご指示・2026/11/12）
+ *  「Uberの文字が細すぎるので、もっと濃くしてください
+ *    他にもアルファベット系で細いものは太くして、視認性を上げて」
+ *  走りながら、暗い車内で読むものなので、細い字は読めません。
+ * ---------------------------------------------------------- */
+.mtag{font-weight:700;letter-spacing:.02em}
+.scroll.tbl td.n,.scroll.tbl td.c-who{font-weight:700}
+.axis,.glab{font-weight:700}
+.kpi b,.hotc .hv,.wxmain b,.wxh b,.ver{font-weight:700}
+.chip,.mini,.btn,nav button{font-weight:700}
+
+
+/* ------------------------------------------------------------
+ *  2026/11/12 のご指示で足した所
+ * ---------------------------------------------------------- */
+
+/* 利き手の切り替え（いちばん上） */
+.handbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:12px;color:var(--paper);
+  flex-wrap:wrap}
+/* フィードバックは、この行の右端に（ご指示・2026/11/12） */
+/* ★細い機種（320px）では、フィードバックが画面の外へ出ていました
+     （2026/11/13 に、ほかのアカウントの形を確かめて見つけました）。
+     入らないときは、折り返して2段にします。
+     入るときは1段のままなので、ふだんの見た目は変わりません。 */
+.handbar{flex-wrap:wrap;row-gap:6px}
+.handbar span{white-space:nowrap;font-size:11.5px}
+.handbar .chip{padding:5px 11px;font-size:12px;white-space:nowrap}
+.handbar .fbtab{margin-left:auto}
+.handbar .fbtab[aria-selected=true]{background:var(--andon);color:#F2EDE4;border-color:var(--andon)}
+.handbar span{opacity:.85}
+
+/* メニュー（タブ）に、何が分かるかを添える */
+nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;line-height:1.25;padding:8px 2px;width:100%;min-width:0;border-radius:8px}
+/* ★新着の赤丸は、名前の左に出します（ご指示・2026/11/12） */
+nav button b{font-size:13px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;gap:4px;white-space:nowrap}
+/* ★赤い点は、ます目の右上に置きます（ご指摘・2026/11/16）。
+     名前の横に並べると、となりのます目とくっついて読みにくくなりました。 */
+nav button{position:relative}
+nav button b .dot{position:absolute;top:4px;right:4px;margin:0;flex:0 0 auto;
+  width:6px;height:6px}
+nav button i{font-style:normal;font-size:9.5px;opacity:.78;letter-spacing:0;white-space:nowrap}
+nav button[aria-selected=true] i{opacity:.95}
+
+
+
+/* どこからでも押せる丸ボタン */
+.fab{position:fixed;z-index:1300;border:none;border-radius:999px;cursor:pointer;
+  font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.55)}
+/* ★赤丸を「丸の中の右上」に置くため、ここを基準にします（2026/11/13） */
+.fab.menu{position:relative;width:42px;height:42px;font-size:21px;line-height:1;
+  background:var(--ink2);color:#FFFFFF;border:1px solid var(--line);
+  margin-left:auto;flex:none;box-shadow:none;align-self:center}
+body[data-hand="l"] .fab.menu{order:-1;margin-left:0;margin-right:auto}
+/* ★題の行は3段の組みです。≡ は、その1段目の右端に入れます
+     （ご指摘・2026/11/12「もっと考えてください」）。
+     画面に浮かせていたので、ふきだしや下の中身と重なっていました。
+     同じ組みの中に入れてしまえば、重なりようがありません。 */
+
+/* ふきだしは、場所が足りなければ縮みます（≡ を押し出さないため） */
+header > .saymount .saybox{min-width:0}
+header > .saymount .bubble{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ★きれいな楕円にします（ご指示・2026/11/13）。
+     角丸の長方形ではなく、ほんとうの楕円（50%）です。
+     字が端で切れないよう、左右の余白を広く取ります。 */
+/* ★前の形（角の丸い横長）に戻しました（ご指示・2026/11/13）
+     「なんで、丸になってるんですか。前の形に戻してください」
+   ★「きろく」と「粛清」の高さの間だけを、ぎりぎりまで縮めます
+     （ご指示・2026/11/13「きろく と 粛清 の高さ幅だけをもっと縮めて」）。
+     漢字そのものの大きさは、ほかのボタンとそろえます。 */
+.fab.done{bottom:18px;height:56px;padding:0 20px;font-size:16px;line-height:1.15;
+  background:var(--andon);color:#F2EDE4;display:flex;align-items:center;justify-content:center}
+
+/* ★ふきだし（イベントの箱）が出ているあいだは、固定ボタンを隠します
+     （ご指示・2026/11/12「ポップアップの時は表示しないでください」）。 */
+body.modalon .fab{display:none}
+/* ★「粛清完了」の上に「きろく」（ご指示・2026/11/12）。
+   ★漢字4つの下の位置は、ぴったりそろえます
+     （ご指示・2026/11/13「粛清完了の漢字同士は、下位置はずらさずに」）。
+   ★ruby（ふりがなの仕組み）はやめました。
+     このボタンは横ならび（flex）なので、ruby の中身が
+     ばらばらの部品として並んでしまい、「きろく」が左下へ落ちました
+     （2026/11/13・申し訳ありませんでした）。
+     いまは、ふだんの字の流れの中に置き、「きろく」だけを
+     「粛清」の真上に浮かせています。漢字は1ミリも動きません。 */
+.fab.done .lab,.btn .lab{display:inline-block;position:relative;line-height:1;white-space:nowrap}
+.fab.done .k,.btn .k{position:relative;display:inline-block}
+/* 【粛清完了】のボタンも、固定ボタンと同じ見た目にそろえます
+   （ご指示・2026/11/16）。「きろく」の字は漢字の真上に浮くので、
+   その分だけ上の余白を広げて、切れないようにしています。 */
+.btn .lab{margin-top:1px}
+.btn:has(.lab){padding-top:16px;padding-bottom:12px}
+.fab.done .k i,.btn .k i{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);
+  font-style:normal;font-size:9px;font-weight:700;letter-spacing:.06em;
+  line-height:1;white-space:nowrap;margin-bottom:1px;opacity:.95}
+body[data-hand="r"] .fab.done{right:16px}
+body[data-hand="l"] .fab.done{left:16px}
+/* ≡ を押したときに出る、行き先の一覧 */
+.fabsheet{position:absolute;z-index:1301;top:100%;max-height:70vh;overflow:auto;
+  background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:6px;
+  box-shadow:0 10px 30px rgba(0,0,0,.6);width:min(260px,76vw)}
+body[data-hand="r"] .fabsheet{right:2px}
+body[data-hand="l"] .fabsheet{left:2px}
+.fsrow{display:block;width:100%;text-align:left;background:none;border:none;
+  color:#FFFFFF;padding:9px 10px;border-radius:8px;cursor:pointer}
+.fsrow.on{background:var(--andon);color:#F2EDE4}
+.fsrow b{display:block;font-size:14px;font-weight:700}
+.fsrow i{font-style:normal;font-size:11px;opacity:.8}
+
+/* 必ず要る欄 */
+em.req{font-style:normal;color:var(--kusha);font-size:11px;margin-left:6px;font-weight:700}
+input.need,textarea.need{border-color:var(--kusha)!important;
+  box-shadow:0 0 0 2px rgba(255,106,96,.35)}
+
+/* イベントの読み先 */
+.evlinks{display:flex;gap:8px;margin-top:6px}
+.evlinks .mini{text-decoration:none}
+
+/* 最後に、細い画面の手当て（ここが最後に来るようにしています） */
+
+/* 時間帯べつの乗り場ランキング（ご指示・2026/11/12） */
+.hblk{border-top:1px solid var(--ink3);padding:10px 0 4px}
+.hblk:first-of-type{border-top:none}
+.hblk.on{background:rgba(240,163,59,.08);border-radius:10px;padding-left:8px;padding-right:8px}
+.hbh{display:flex;align-items:baseline;gap:9px;margin-bottom:4px;flex-wrap:wrap}
+.hbh b{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--kusha)}
+.hbh span{font-size:11.5px;color:#FFFFFF;opacity:.9}
+.hblk .lhead{display:none}
+.hbn{font-size:11.5px;color:#FFFFFF;opacity:.85;line-height:1.6;margin:2px 0 4px}
+
+/* この乗り場は、何時がよいか（ご指示・2026/11/12） */
+.bsel{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+.bsel .fsel{flex:1 1 auto;min-width:0}
+.bsel .mini{flex:none;text-decoration:none}
+.btlist{margin-top:6px}
+.btrow{display:grid;grid-template-columns:58px 1fr 48px 72px;align-items:center;gap:8px;
+  padding:6px 4px;border-bottom:1px solid var(--ink3)}
+.btrow.top{background:rgba(240,163,59,.12);border-radius:9px}
+.btrow .bth{font-family:var(--mono);font-size:14px;font-weight:700;color:#FFFFFF}
+.btrow.top .bth{color:var(--andon)}
+.btrow .btv{font-family:var(--mono);font-size:14px;font-weight:700;color:#6FD8A8;text-align:right}
+.btrow .btm{font-family:var(--mono);font-size:12px;font-weight:700;text-align:right;color:#FFFFFF}
+.btrow .btm i{font-style:normal;display:block;font-size:10px;opacity:.75;font-weight:400}
+@media(max-width:380px){.btrow{grid-template-columns:50px 1fr 42px 62px;gap:6px}}
+
+.blk3{border-top:1px solid var(--ink3);padding:10px 0 4px}
+.blk3:first-of-type{border-top:none}
+.blk3.now{background:rgba(240,163,59,.09);border-radius:10px;padding:10px 9px 6px}
+.b3h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:5px}
+.b3h b{font-family:var(--mono);font-size:17px;font-weight:700;color:#FFFFFF}
+.b3h span{font-size:11.5px;color:#FFFFFF;opacity:.9}
+.blk3 .lhead{display:none}
+
+/* 時間順の狙い目：いまの枠を、一番大きく（ご指示・2026/11/12） */
+.plan3 .blk3.now{background:rgba(179,22,29,.14);border:1px solid var(--kusha);
+  border-radius:12px;padding:12px 11px 8px}
+.plan3 .blk3.now .b3h b{font-size:22px}
+.plan3 .blk3.now .lrow{padding:9px 2px}
+.plan3 .blk3.now .lrow .lp{font-size:15px}
+.plan3 .blk3.now .lrow .lv{font-size:19px}
+.hbh b.pnm{font-family:var(--body);font-size:14.5px;color:#FFFFFF;word-break:break-all}
+.htags{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px}
+.htag{flex:1 1 30%;min-width:98px;background:#0C1422;border:1px solid var(--line);
+  border-radius:9px;padding:8px 9px;text-decoration:none;color:#FFFFFF}
+.htag.top{border-color:var(--andon);box-shadow:0 0 12px rgba(240,163,59,.16)}
+.htag b{display:block;font-family:var(--mono);font-size:15px;font-weight:700}
+.htag .hv{display:block;font-size:12px;color:#6FD8A8;font-weight:700}
+.htag .hm{display:block;font-family:var(--mono);font-size:11px;opacity:.85}
+.hbar.on text{font-weight:700}
+
+@media(max-width:560px){.gwrap{grid-template-columns:1fr}}
+@media(max-width:380px){
+  nav{gap:3px;padding:4px}
+  nav button{padding:7px 1px}
+  nav button b{font-size:12px}
+  nav button i{font-size:8.5px}
+  .fab.done{height:58px;padding:0 26px;font-size:15px}
+}
+
+/* 使い方のカード（ご指摘・2026/11/12「長文はダルすぎる」） */
+.gwrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.gcard{background:#0C1422;border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.gh{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;color:#FFFFFF;
+  margin-bottom:6px;line-height:1.3}
+.gi{font-size:19px;line-height:1}
+.gl{margin:0;padding-left:16px}
+.gl li{font-size:12px;line-height:1.75;color:#FFFFFF;margin:3px 0}
+
+/* 雨雲レーダーと、天気の細かさの切り替え（ご指示・2026/11/12） */
+/* ★地図の重なり順を、この箱の中だけに閉じこめます（ご指摘・2026/11/13）。
+     isolation:isolate を付けると、中の重なり順が外へ出ていきません。
+     これが無いと、地図の部品が 上の行の上に出てきます。 */
+.radarmap{height:240px;border-radius:10px;overflow:hidden;border:1px solid var(--line);
+  position:relative;z-index:0;isolation:isolate;
+  background:#0C1422;color:#FFFFFF;font-size:12px;display:flex;align-items:center;
+  justify-content:center;margin:8px 0}
+.radarmap .leaflet-container{background:#0C1422}
+.chips.wxsp{margin:10px 0 2px}
+.wxh.wide{width:84px}
+.wxh b i{font-style:normal;display:block;font-size:12px;opacity:.8}
+.wxh.d-sun small{color:#FF8A80}
+.wxh.d-sat small{color:#8FC7FF}
+
+/* イベントのアーティスト公式リンク（ご指摘・2026/11/12） */
+.evart{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:6px}
+.evwho{font-size:12.5px;font-weight:700;color:#FFFFFF}
+.evart .mini{text-decoration:none}
+
+/* 下の「粛清完了」に、中身が隠れないようにします */
+body{padding-bottom:84px}
+
+/* ------------------------------------------------------------
+ *  えらぶ欄（プルダウン）を、はっきり分かる形に
+ *  ご指示・2026/11/12
+ *   「プルダウンできるやつ、しっかり右際に▼みたいなのつけて
+ *     わかりやすくしてください
+ *     それに、枠ももう気持ち太くしてください」
+ *  ★iPhone の既定のしるしは小さく、暗い画面では見えませんでした。
+ *    自前の ▼ を、右端に大きめに出します。
+ * ---------------------------------------------------------- */
+input,select,textarea{border-width:2px}
+select{
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 9'%3E%3Cpath d='M1 1.5h12L7 8.5z' fill='%23FFFFFF'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 13px center;
+  background-size:14px 9px;
+  padding-right:40px;
+}
+/* 押せる所だと分かるよう、ふちを少し明るく */
+select{border-color:#5A5A68}
+select:focus{border-color:var(--andon);outline:none}
+.fsel.on{border-color:var(--andon)}
+
+
+/* ------------------------------------------------------------
+ *  左右を、1本の線にそろえる（ご指示・2026/11/13）
+ *   「この左右の文字だったり、枠だったりが揃ってないのは
+ *     不格好なので、ちゃんと徹底してください」
+ *
+ *  ★基準は「カードの中の字」。画面の端から
+ *      ページの余白 14px ＋ カードの内側 16px ＝ 30px
+ *    のところに、どの字の左端も そろえます。
+ *  ★カードの外にあるもの（題の行・版と称号の帯・ボタン位置の行）は、
+ *    自前で 16px の内側を取って、同じ 30px に合わせます。
+ * ---------------------------------------------------------- */
+:root{--gut:19px}
+/* 題の行（端まで塗るので、余白は自前で33px）… ページの余白14 + 19 */
+header{padding-left:33px;padding-right:33px}
+/* 版と一文の帯、称号とボタンの帯 */
+.hsub > .subline, .hsub > .hrow{padding-left:var(--gut);padding-right:var(--gut)}
+
+/* ------------------------------------------------------------
+ *  細い機種（320px など）で、枠から出ないようにする
+ *
+ *  ★まーく様のご指摘（2026/11/13）
+ *    「全アカウントパターン問題ないのでしょうか」
+ *  ★320px の機種で「ログアウト」が画面の外へ出ていました。
+ *    ボタン位置と 管理〜 は同じ行に置いたまま（ご指示・2026/11/13）、
+ *    すき間と字を詰めて、ぜんぶ画面の中に収めます。
+ *  ★ここは、いちばん下に置きます。上のほうに書くと、
+ *    あとから出てくる同じ強さの決まりに負けて、効きません。
+ * ---------------------------------------------------------- */
+@media(max-width:375px){
+  .hsub > .hrow{padding-left:7px;padding-right:7px}
+  .hrow{gap:3px}
+  .hrow > span{font-size:9.5px}
+  .hrow .chip{padding:4px 5px;font-size:10px}
+  .hrow .mini{padding:4px 5px;font-size:10px}
+  .hsub > .hrow > .whoR{gap:3px}
+}
+
+/* ------------------------------------------------------------
+ *  ふきだしに、幅をゆずる（ご指示・2026/11/14）
+ *
+ *  ★ご指示「題を小さくして、幅をゆずる」
+ *    ひとことが「エアコン、ちょうどえ…」のように切れていました。
+ *    題・顔・ふきだし・≡ が1行に並びきらないのが原因です。
+ *  ★顔とすき間も、少しずつ詰めて、ふきだしに回します。
+ *  ★ここは いちばん下に置きます（上に書くと、あとの決まりに負けます）。
+ * ---------------------------------------------------------- */
+@media(max-width:640px){
+  .saymount{gap:6px}
+  .saymount .face{width:30px;height:30px;min-width:30px;flex:0 0 30px}
+  .saymount .bubble{padding:0 7px}
+  .hmain{gap:7px}
+}
+/* 細い機種では、題の行の余白も詰めます（ここだけは そろえ方より中身を優先） */
+@media(max-width:375px){
+  header{padding-left:16px;padding-right:16px}
+}
+
+/* ★題の字づめを、キュッと詰めます（ご質問・2026/11/14
+     「TAXINOTE の文字横幅をもう少しキュッとしても、
+       ふきだしははみ出てしまうのでしょうか」）。
+   字の大きさを小さくするより、字と字のすき間を詰めるほうが、
+   題は読みやすいまま 幅だけが縮みます。
+   .17em → .05em で、390px では 24px ぶん 縮みます。 */
+@media(max-width:640px){
+  h1.dn{letter-spacing:.05em}
+}
+
+/* ------------------------------------------------------------
+ *  ふきだしの顔を、いただいた絵にする（ご指示・2026/11/14）
+ *    「ふきだしの顔は、さっきお渡しした画像を小さくして載せてください、
+ *      できれば、はははのトランジションもあると嬉しいです」
+ *
+ *  ★大きさは、これまでの顔と同じ（30px）。まわりは動きません。
+ *  ★気分は、まわりの光の色で分けます（ほめ＝白っぽく、ぼやき＝赤く）。
+ *  ★ひとことが変わるたびに「ははは」が ふわっと上がります。
+ * ---------------------------------------------------------- */
+.saymount .kiraface{border-radius:50%;object-fit:cover;object-position:50% 22%;
+  background:#0B1220;border:1px solid #3A4458;
+  filter:drop-shadow(0 0 6px rgba(226,59,48,.55))}
+.saymount .bubble.good ~ .kiraface,
+.saymount .kiraface{transition:box-shadow .3s ease}
+/* ほめのときは、ふちを明るく（ふきだしのふちと同じ考え方） */
+.saymount:has(.bubble.good) .kiraface{border-color:#8E99AD;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.35))}
+
+/* ★「ははは」。顔の右上から、ふわっと上がって消えます。
+     中身を作り直すたびに、最初から動きます。 */
+.saymount{position:relative}
+.hahafx{position:absolute;left:14px;top:-2px;display:flex;gap:1px;
+  pointer-events:none;z-index:3}
+.hahafx i{font-style:normal;font-weight:900;font-size:11px;line-height:1;
+  color:#FFFFFF;text-shadow:0 0 6px rgba(226,59,48,.9);opacity:0;
+  animation:hahafx 1.5s ease-out 1 both}
+.hahafx i:nth-child(2){animation-delay:.13s}
+.hahafx i:nth-child(3){animation-delay:.26s}
+@keyframes hahafx{
+  0%{opacity:0;transform:translate(0,4px) scale(.6)}
+  25%{opacity:1;transform:translate(2px,-4px) scale(1.1)}
+  60%{opacity:.9;transform:translate(4px,-10px) scale(1)}
+  100%{opacity:0;transform:translate(7px,-18px) scale(.9)}}
+@media(prefers-reduced-motion:reduce){.hahafx{display:none}}
+
+/* 直している行を、見分けられるようにします（ご指示・2026/11/14） */
+.wli.on{outline:2px solid var(--andon);outline-offset:-2px;border-radius:8px}
+
+/* ============================================================
+   表と タグの読みやすさ（ご指示・2026/11/13）
+     「枠に対して文字は必ず中央にしてください
+       きっちり中央であれば 乗り場、付け待ちなどは
+       気持ちもう少し下にしてください」
+     「表の区切りがよく見えません」
+   ============================================================ */
+/* タグの字を、枠のまん中に置きます。日本語は上に寄って見えるので、
+   下の余白を1px 削って、気持ち下へ下げています。 */
+.chip{display:inline-flex;align-items:center;justify-content:center;
+  padding:5px 10px 3px;line-height:1.35}
+/* 表の中身も、枠のまん中に置きます */
+.scroll.tbl td{text-align:center}
+.scroll.tbl td.c-place,.scroll.tbl td.c-note,.scroll.tbl td.c-meth{text-align:center}
+/* ★金額だけは、右にそろえます（ご指示・2026/11/16「金額は右揃えにしてください」）。
+     桁がそろうので、高い・安いが一目で分かります。
+     ほかの欄は まん中のまま（ご指示・2026/11/11）。 */
+.scroll.tbl td.c-fare{text-align:right;padding-right:5px}
+/* ★一番細い機種（320px）では、時刻と金額の字が欄から1〜2px はみ出していました。
+     少しだけ小さくして、欄の中に収めます（読める大きさは残します）。 */
+@media(max-width:360px){
+  .scroll.tbl td.n{font-size:10.5px}
+  .scroll.tbl td.c-fare{font-size:10.5px;padding-right:3px}
+}
+/* 区切りが見えるように、たての線も入れ、よこの線も明るくします */
+.scroll.tbl th,.scroll.tbl td{border-right:1px solid #33456B}
+.scroll.tbl th:last-child,.scroll.tbl td:last-child{border-right:0}
+.scroll.tbl td{border-bottom:1px solid #33456B}
+.scroll.tbl th{border-bottom:1px solid #4A5F90}
+
+/* 地図のピン（ご指示・2026/11/13） */
+.pinmap{height:360px}
+.chips.maph{max-height:none}
+
+/* パーセントを、帯の下に字でも並べます（ご指示・2026/11/13
+   「グラフ内のパーセンテージが見づらいです」）。
+   帯の中だけだと、細いところの数字が消えてしまうためです。 */
+.bandbar{height:20px;border-radius:10px}
+.bandbar span{font-size:12px}
+.bpct{display:flex;flex-wrap:wrap;gap:2px 10px;margin:3px 0 0;
+  font-family:var(--mono);font-size:11.5px;font-weight:700;line-height:1.5}
+.bpct span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.bpct i{width:8px;height:8px;border-radius:2px;flex:none}
+
+/* ============================================================
+   イベントの高さを詰める（ご指摘・2026/11/14
+     「イベント、高さの隙間が広すぎるので もっとスマートにして、
+       出来るかぎり1画面で済むようにできないですか」）
+   1件あたりの余白と行間を削り、アーティストの行と
+   【くわしく見る】【地図】を同じ1行に入れました。
+   ============================================================ */
+.evrow{padding:7px 2px}
+.evhead{font-size:13.5px;gap:7px}
+.evgo{margin-top:2px;font-size:14px;letter-spacing:0}
+.evt{margin-top:2px;font-size:12.5px;line-height:1.45}
+.evsub{margin-top:1px;font-size:11.5px;line-height:1.45}
+.evlinks{margin-top:4px;gap:6px;flex-wrap:wrap;align-items:center}
+.evlinks .mini{padding:3px 8px;font-size:11px}
+.evwho{font-size:11.5px}
+.evgrp{margin-top:10px}
+.evgrp > h3{margin:0 0 3px}
+@media(max-width:640px){
+  .evt{font-size:12.5px}
+  .evsub{font-size:11.5px}
+  .evgo{font-size:14px}
+}
+
+/* ★しっぽが外に出たぶん、顔とのすき間を取ります（2026/11/15）。
+     すき間が足りないと、しっぽが顔に重なって汚く見えます。
+     しっぽは5pxほど出るので、9pxにして 少しだけ間を空けます
+     （広げすぎると、ふきだしの幅が減って 字が小さくなります）。 */
+@media(max-width:640px){
+  .saymount{gap:9px}
+}
+
+/* ★見出しの並びは、いつも同じにします（ご指摘・2026/11/16
+     「ふきだし、バグって表示が画像のように色々ズレてしまってます」）。
+       1行目 … 題 と ≡
+       2行目 … 顔 と ふきだし（幅いっぱい）
+     前は「入りきるかどうか」を測って その場で決めていたので、
+     開くたびに並びが変わっていました。決め打ちにして、ズレを無くします。
+     ふきだしが幅いっぱいになったぶん、長いひとことも大きいまま読めます。 */
+/* ★2026/11/16 のご指示
+     「顔とふきだしは、ロゴの右横にしてほしいです
+       幅がどうしても難しいなら TAXI / NOTE などにして、
+       もっと、ロゴをぎゅっとしてください」
+   1行に 題 → 顔とふきだし → ≡ の順で並べます。
+   題は2段（TAXI / NOTE）にして、横幅をいちばん細くします
+   （width:min-content なので、空白のところで必ず2段になります）。 */
+.hmain{flex-wrap:nowrap;align-items:center;gap:8px}
+.hmain > h1{flex:none;min-width:0;width:min-content;line-height:1.05}
+.hmain > .saymount{flex:1 1 0;min-width:0;order:0}
+.hmain > #fabMenu{order:1;flex:none;margin-left:0}
+.saymount .bubble{max-width:none}
+body[data-hand="l"] .hmain > #fabMenu{order:-1;margin-left:0;margin-right:0}
+/* 細い画面では、題をもう一段ぎゅっとして、ふきだしに幅をゆずります */
+@media(max-width:640px){
+  :root{--logo:clamp(12px,3.9vw,22px)}
+  .hmain{gap:7px}
+  .saymount{gap:7px}
+  .saymount .face{width:26px;height:26px}
+}
+/* ★一番 細い機種（320px）では、長いひとことが切れていました。
+     題・顔・すき間・≡ を さらに詰めて、ふきだしに幅をゆずります
+     （実際に全部のひとことを測って決めました）。 */
+@media(max-width:360px){
+  :root{--logo:clamp(10px,3.1vw,19px)}
+  .hmain{gap:4px}
+  .saymount{gap:4px}
+  .saymount .face{width:24px;height:24px}
+  .fab.menu{width:36px;height:36px;font-size:18px}
+  .saymount .bubble{padding:0 6px}
+}
+
+/* ============================================================
+   「このページを見てわかること」（ご指示・2026/11/15）
+   ============================================================ */
+.card.lead{border-color:#3A4A6E}
+.card.lead > h2{color:#FFFFFF}
+.leadw{margin:0 0 6px;padding:0 0 0 1.1em;list-style:disc;
+  font-size:12.5px;line-height:1.6;color:#FFFFFF}
+.leadw li{margin:1px 0}
+.card.lead .note{margin:2px 0 0;font-size:11.5px;line-height:1.55}
+.card.lead .note b{color:#FFFFFF}
+/* ★「もと／数え方／注意」は、札を頭に付けて1行ずつ並べます
+     （ご指示・2026/11/16「読む時の注意なども、このページを見てわかることと
+       まとめて もっと端的に読みやすくしてください」）。
+     別の欄に分けると、同じような説明が2か所に出て、どちらも読まれません。 */
+.leadr{display:flex;gap:6px;align-items:baseline;margin-top:3px;
+  font-size:11.5px;line-height:1.5;color:#FFFFFF}
+.leadr b{flex:none;min-width:3.6em;text-align:center;font-size:10px;
+  background:rgba(255,255,255,.14);border-radius:4px;padding:1px 4px;
+  color:#FFFFFF;font-weight:700}
+.leadr span{min-width:0}
+
+/* メニューらしい えらび方（ご指示・2026/11/15「もっとメニューぽくして」） */
+.gmenu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 2px}
+.gm{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;min-height:46px;padding:6px 4px;cursor:pointer;
+  background:#0C1422;border:1px solid var(--line);border-radius:9px;color:#FFFFFF}
+.gm b{font-size:13px;font-weight:700;letter-spacing:.02em}
+.gm i{font-style:normal;font-size:9.5px;line-height:1.3;text-align:center;opacity:.85;
+  /* ★1行に収めます。折り返すと、ます目の高さが そろわなくなります
+       （ご指摘・2026/11/16）。長すぎるときは、おしりを「…」にします。 */
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.gm.on{background:var(--andon);border-color:var(--andon);color:#14100A}
+.gm.on i{opacity:.9}
+@media(max-width:360px){
+  .gm b{font-size:12px}
+  .gm i{font-size:9px}
+}
+
+/* 目次のマスは、上の線をやめて「ボタンらしい箱」にします
+   （ご質問・2026/11/15「この真ん中の白い線はなんなのですか？」）。
+   マスごとに線を引いていたため、2行になったマスがあると
+   線の高さがそろわず、途中で切れた白い線に見えていました。 */
+.tocit{border-top:0;background:#121A2B;border-radius:7px;padding:5px 6px}
+.tocg{gap:4px}
+
+/* ★そえる字が長いときは、ます目の中で2行に折り返します（2026/11/15）。
+     1行のままだと、となりのます目にはみ出して見えます。 */
+nav button i{white-space:normal;line-height:1.25;text-align:center;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ============================================================
+   雨雲レーダー（ご指示・2026/11/15
+     「現在～3時間後のリアルタイムを映すようにしてください」
+     「もっと、地図ではなく、雨雲マップっぽいものはないのでしょうか」）
+   ★下じきの地図は、色を落として暗くします。
+     道や店の名前が目立つと、雨雲のほうが見えなくなります。
+   ============================================================ */
+.wxmap{height:330px;background:#060B16}
+/* ★下じきの地図は、上から「幕」をかけて暗くします
+     （ご指摘・2026/11/16「この白い線はなんですか？」）。
+     地図そのものに色づけをすると、絵と絵のつぎ目に細い線が出ます。
+     幕は1枚の板なので、つぎ目ができません。
+     v1 … 色を落とす（白黒に近づける）　v2 … 暗くする
+     雨雲は、この幕より上の層（rain・z-index 450）に置きます。 */
+.wxmap .mapveil{position:absolute;inset:-4000px;pointer-events:none}
+.wxmap .mapveil.v1{z-index:400;background:#777777;mix-blend-mode:saturation}
+.wxmap .mapveil.v2{z-index:401;background:rgba(3,7,16,.66)}
+/* ★絵と絵のつぎ目に出る、細い線を消します（ご指摘・2026/11/16
+     「この白い線はなんですか？」）。
+     地図の絵は、画面の細かさに合わせて引きのばされます。そのとき
+     絵のふちが にじんで、つぎ目が1本の線に見えていました。
+     にじませずに引きのばすと、線は出ません（実際に測って決めました）。
+     雨雲は別の層なので、にじませたままです（そのほうが なめらかです）。 */
+.wxmap .leaflet-tile-pane img{image-rendering:pixelated}
+/* いまの時刻と「◯分後」 */
+.rdrbar{display:flex;align-items:baseline;gap:8px;margin:7px 0 3px;
+  font-family:var(--mono);color:#FFFFFF}
+.rdrbar b{font-size:16px;font-weight:700}
+.rdrbar span{font-size:12px;opacity:.9}
+/* 雨の強さの色（気象庁と同じ並び） */
+.rdrleg{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:0 0 2px}
+.rdrleg span{display:inline-flex;flex-direction:column;align-items:center;
+  font-family:var(--mono);font-size:9px;color:#FFFFFF;opacity:.9;width:30px}
+.rdrleg i{display:block;width:28px;height:7px;border-radius:2px;margin-bottom:1px}
+.rdrleg small{font-size:9px;color:#FFFFFF;opacity:.7;margin-left:4px}
+
+/* 仕組みの様子（まーく様だけ・2026/11/15） */
+.gsok{color:#6FD8A8;font-size:14px}
+.gsng{color:var(--kusha);font-size:14px}
+
+/* 日報（写真）読み込み（ご指示・2026/11/15） */
+.nipdup{color:#8FA3C4;font-size:11px}
+.nipnew{color:var(--andon);font-weight:700;font-size:11px}
+.nipng{color:var(--kusha);font-size:11px}
+#nipFile{width:100%;color:#FFFFFF;font-size:13px}
+
+/* 【特定】は4つになったので、メニューも4列に（ご指示・2026/11/16） */
+.gmenu.g4{grid-template-columns:repeat(4,1fr)}
+
+/* ★押しどころが10個になったので、5列×2段にします（ご指示・2026/11/16）。
+     1マスが細くなるぶん、字を少し小さくし、そえる字は折り返さない長さに
+     そろえてあります（ます目の中で改行すると、読みづらくなるためです）。 */
+nav button{padding:8px 2px}
+nav button b{font-size:12px}
+nav button i{font-size:9px;white-space:nowrap;-webkit-line-clamp:1}
+@media(max-width:360px){
+  nav{gap:2px}
+  nav button{padding:7px 1px}
+  nav button b{font-size:11px}
+  nav button i{font-size:8.5px}
+}
+
+/* ★日報の写真えらび（ご指摘・2026/11/16
+     「写真選択したのに、読み込みできてないですし、複数選択ができません」）。
+     もとの入力欄は iPhone では小さくて押しにくいので、隠してボタンにします。
+     えらんだ写真の名前を必ず出して、えらべたことが分かるようにします。 */
+.nippick{margin:6px 0}
+.nippick #nipFile{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.nipbtn{display:inline-block;text-align:center;cursor:pointer}
+.btn.sub{background:none;border:1px solid var(--line);color:#FFFFFF}
+.nipsel{margin-top:5px;font-size:11.5px;color:#FFFFFF;line-height:1.4;
+  word-break:break-all}
+
+/* ★地図の「白い線」を消します（ご指摘・2026/11/16「この白い線はなんですか？」）。
+     Leaflet（地図の部品）は、自分の下じきの色を薄い灰色にします。
+     その色が、絵と絵のつぎ目から1本の線になって見えていました。
+     あとから読み込まれる部品の色づけに負けないよう、強く指定します。 */
+.wxmap.leaflet-container,.pinmap.leaflet-container{background:#060B16}
+.leaflet-container{background:#060B16}
+
+/* ★地図のピン（ご指摘・2026/11/16
+     「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
+       どこに丸されてるかすぐに見分けできませんし」）。
+     うすい丸をやめ、白いふち付きの塗りつぶしにして、中に件数を入れます。 */
+/* ★地図を暗くするのをやめたので、丸のほうを目立たせます（2026/11/17）。
+     白いふち＋黒い影で、明るい地図の上でも浮いて見えます。
+     中は すこし透けさせて、下の道や地名が読めるようにしています。 */
+.pindot span{display:flex;align-items:center;justify-content:center;
+  border-radius:999px;border:3px solid #FFFFFF;color:#0B0B0D;font-weight:700;
+  font-size:12px;line-height:1;
+  box-shadow:0 0 0 2px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.5);
+  text-shadow:0 1px 0 rgba(255,255,255,.6)}
+/* 有名な場所とホテルは「白いひし形」。記録のピンとまぎれないようにします */
+.pinspot span{display:block;width:12px;height:12px;margin:2px;
+  background:#FFFFFF;border:1px solid #0B0B0D;transform:rotate(45deg);
+  box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+/* 色と大きさの見方 */
+.pinleg{margin-top:6px}
+.pinleg .pl1{font-size:11.5px;color:#FFFFFF;line-height:1.5;margin:2px 0}
+.pinleg .pl1 b{background:rgba(255,255,255,.14);border-radius:4px;padding:0 4px}
+
+/* 英語のページがよく読まれている所は、目立たせます */
+td.n.hi{color:#FFD54A;font-weight:700}
+
+/* 「いま、調べられている場所」の表。細い画面でも、横に流さず収めます */
+.buzzt{width:100%;table-layout:fixed;border-collapse:collapse}
+.buzzt th,.buzzt td{padding:5px 2px;font-size:12px;border-bottom:1px solid #33456B}
+.buzzt th{font-size:11px;color:#FFFFFF;white-space:nowrap}
+.buzzt th:first-child,.buzzt td:first-child{text-align:left;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.buzzt th.n,.buzzt td.n{text-align:right;width:52px;font-family:var(--mono)}
+.buzzt td{color:#FFFFFF}
+
+/* ★「仕組みの様子」（まーく様だけ）。
+     スクリプトの画面を開かなくても、同じことが分かるようにしています
+     （ご質問・2026/11/16）。 */
+.sysnow{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;
+  margin:6px 0;padding:8px 10px;border-radius:8px;
+  background:#121A2B;border:1px solid var(--line)}
+.sysnow b{font-size:14px;color:#FFFFFF}
+.sysnow span{font-size:11.5px;color:#FFFFFF}
+.sysnow.ok{border-color:#2E7D52}
+.sysnow.ng{border-color:var(--andon);background:#2A1216}
+.syshd{margin:10px 0 4px;font-size:12px;color:#FFFFFF;
+  letter-spacing:.06em;font-weight:700}
+.sysjob{display:flex;flex-wrap:wrap;gap:4px}
+.sysjob span{display:inline-flex;align-items:baseline;gap:3px;
+  background:#121A2B;border:1px solid var(--line);border-radius:999px;
+  padding:3px 9px;font-size:11px;color:#FFFFFF}
+.sysjob i{font-style:normal;opacity:.7;font-size:10px}
+.systbl{width:100%;table-layout:fixed;border-collapse:collapse}
+.systbl td,.systbl th{padding:5px 4px;font-size:12px;color:#FFFFFF;
+  border-bottom:1px solid #33456B;text-align:left;word-break:break-all}
+.systbl td:last-child{text-align:right;font-family:var(--mono)}
+.systbl th{font-size:11px}
+
+/* ★表の並べかえと絞り込み（ご指示・2026/11/16
+     「スプシと同じく、フィルタをかけられるようにして、
+       並び替えをできるようにしてください」）。 */
+.tbar{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 2px}
+.scroll.tbl th .thb{display:block;width:100%;background:none;border:0;
+  color:#FFFFFF;font-size:11px;font-weight:700;padding:0;cursor:pointer;
+  white-space:nowrap}
+.scroll.tbl th .sar{font-style:normal;font-size:8px;margin-left:1px;color:#FFD54A}
+.scroll.tbl tr.filrow th{padding:2px 1px;border-bottom:1px solid #4A5F90}
+.scroll.tbl .tfi{width:100%;min-width:0;box-sizing:border-box;
+  background:#0B1220;border:1px solid var(--line);border-radius:4px;
+  color:#FFFFFF;font-size:10px;padding:2px 3px;height:20px}
+
+/* ============================================================
+   たて方向のリズムを そろえる（ご指摘・2026/11/16
+     「ここら辺の、それぞれの高さの幅めちゃくちゃ過ぎます、
+       こういうところはしっかり見直してと何回も伝えてるはずです」）
+
+   直す前は、かたまりの間が 9・14・2・12・0px と ばらばらでした。
+   くっついている所と、やたら空いている所が となり合って、
+   どこまでが1つのまとまりか 分からなくなっていました。
+
+   ・カードの中の かたまりは、どれも 10px あける
+   ・絞り込みの中の 段は、どれも 7px あける
+   ・押すもの（チップ・えらぶ欄・さがす欄）の高さを そろえる
+   ============================================================ */
+.card > .gmenu,
+.card > .filt,
+.card > .ktfind,
+.card > .ktplace,
+.card > .chips,
+.card > .fperiod,
+.card > .maph{margin:10px 0 0}
+.card > .note{margin:0 0 10px}
+.card > h2, #ktop > h2{margin-bottom:10px}
+.card > h2 + *, #ktop > h2 + *{margin-top:0}
+#ktop > .ktplace,#ktop > .ktfind,#ktop > .chips,#ktop > .filt{margin:10px 0 0}
+/* ボタンの行の下に、よけいな すき間を残さない */
+.card > .actions{margin:12px 0 0}
+
+/* ★印を2つ重ねて書きます（.chips.daych などに負けないため） */
+.card .filt{margin-bottom:0}
+.card .filt > *{margin-top:7px;margin-bottom:0}
+.card .filt > *:first-child{margin-top:0}
+/* 「いま：日・祝／全期間」は、すぐ上の段の続きなので、少しだけ詰めます */
+.card .filt > .fnow{margin-top:4px}
+
+/* 押すものの高さを そろえる（1行ぶんは、どれも28px） */
+.chips{gap:6px}
+.chip{min-height:28px}
+/* えらぶ欄と さがす欄は、同じ高さに */
+.fsel,.ktfind input{height:40px;box-sizing:border-box}
+
+/* ★押すもの（チップ）の高さを、ぜんぶ同じにします（ご指摘・2026/11/16
+     「それぞれの高さの幅めちゃくちゃ過ぎます」）。
+     前は 28・29・32・35・36px が混ざっていました。
+     ならびの中で背の高いものが1つあると、同じ行のものまで
+     引きのばされていたためです（align-items の既定が stretch）。 */
+.chips{align-items:center}
+a.chip{display:inline-flex}
+.chip{height:30px;min-height:30px;padding:0 11px;box-sizing:border-box}
+.chip.rst{padding:0 11px}
+/* 題のとなりの小さいものだけは、小さいまま そろえます */
+.hrow .chip,.handbar .chip{height:26px;min-height:26px;padding:0 9px}
+
+/* ★【特定】の記録一覧も、表にそろえました（ご指摘・2026/11/16
+     「各位置がバラバラです(日付の文字数が違った際に、一気にズレてしまってます)
+       表と同じように構成見直ししてください」）。
+     欄は5つだけなので、直近の記録の表とは別に幅を決めます。
+     日42＋時刻40＋乗り場(のこり)＋金56＋待24。 */
+.scroll.tbl.wtbl table{min-width:320px}
+.scroll.tbl.wtbl th:nth-child(1),.scroll.tbl.wtbl td:nth-child(1){width:42px;min-width:42px}
+.scroll.tbl.wtbl th:nth-child(2),.scroll.tbl.wtbl td:nth-child(2){width:40px;min-width:40px}
+.scroll.tbl.wtbl th:nth-child(3),.scroll.tbl.wtbl td.c-place{width:auto;min-width:96px;
+  text-align:left;padding-left:6px}
+.scroll.tbl.wtbl th:nth-child(4),.scroll.tbl.wtbl td:nth-child(4){width:56px;min-width:56px}
+.scroll.tbl.wtbl th:nth-child(5),.scroll.tbl.wtbl td:nth-child(5){width:26px;min-width:26px;
+  font-size:9px}
+
+/* ★「乗り場ごとの 呼ばれやすい時間」の、時間帯と曜日を はっきり出します
+     （ご指示・2026/11/16「もっと、それぞれ曜日と時間帯が目立つように
+       してください」）。前は ふつうの字で1行書くだけ、曜日にいたっては
+     1文字も出していませんでした。 */
+.wkey{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px}
+.wkl{flex:none;width:2.6em;font-size:10px;color:#FFFFFF;font-weight:700;
+  background:rgba(255,255,255,.14);border-radius:4px;padding:2px 0;text-align:center}
+.wk{display:inline-flex;align-items:baseline;gap:2px;border-radius:7px;
+  padding:3px 8px;color:#FFFFFF;font-weight:700;font-size:13px;
+  background:#121A2B;border:1px solid var(--line);white-space:nowrap}
+.wk i{font-style:normal;font-size:10px;font-weight:700;opacity:.9}
+.wk em{font-style:normal;font-size:10px;font-weight:700;opacity:.75;margin-left:3px}
+/* 1番多いものは、ひとまわり大きく・濃く */
+.wk.top{font-size:17px;padding:3px 10px}
+.wkh.top{background:var(--andon);border-color:var(--andon);color:#14100A}
+.wkh.top i,.wkh.top em{opacity:.85}
+/* 曜日は、表の見出しと同じ色分けにします */
+.wkd.d-wd {background:#20242E}
+.wkd.d-fri{background:#4A3A14}
+.wkd.d-sat{background:#16344A}
+.wkd.d-sun{background:#4A1A20}
+.wkd.top{border-color:#FFFFFF}
+
+/* ★イベント1件ずつの「くわしいこと」（ご依頼・2026/11/16
+     「アーティスト情報や、客層、客数など もっとタクシーに必要となる
+       詳細データを、載せて分かりやすくしてもらえませんか？」）。
+     札を頭に付けて1行ずつ。無いものは、その行ごと出しません。 */
+.evdet{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.evdr{display:flex;gap:6px;align-items:baseline;margin-top:4px;
+  font-size:12px;line-height:1.5;color:#FFFFFF}
+.evdr b{flex:none;min-width:4.6em;text-align:center;font-size:10px;font-weight:700;
+  background:rgba(255,255,255,.14);border-radius:4px;padding:2px 4px;color:#FFFFFF}
+.evdr span{min-width:0}
+.evdr.cap b{background:rgba(255,213,74,.22)}
+.evdr.av b{background:rgba(200,35,43,.30)}
+/* ★そえ書きも 真っ白にします（ご指示・2026/11/11「字は、ぜんぶ真っ白に」）。
+     うすい灰色は、暗い車内では読めません。 */
+.evnote{display:block;font-style:normal;font-size:10px;color:#FFFFFF;line-height:1.4}
+
+/* ------------------------------------------------------------
+   ★別のページが開くものには、必ず印を付けます（ご指示・2026/11/16
+     「別ページへ飛ぶものに関しては、必ず 別ページへ飛びます
+       と必ずつけてください」）。
+   印の意味は、その欄の一番下に1行だけ添えます（extnote）。
+ ---------------------------------------------------------- */
+/* ★↗ の印は、やめました（ご指摘・2026/11/17）。
+     地図は 📍 だけ。そのほかは、ボタンの文に その場で書いてあります。 */
+/* ★地図は「📍」だけ（ご指示・2026/11/17）。↗ は付けません。
+     表の中では、字が欄からはみ出さないように小さくします。 */
+a.extmap::after{content:none}
+.scroll.tbl a.extmap{font-size:.95em}
+p.extnote{margin-top:8px}
+/* ★≡ の一覧でも、赤い丸は名前の前に置きます（ご指示・2026/11/16） */
+.fsrow b .dot{margin-left:0;margin-right:5px}
+
+/* ★タグの列が何のためのものかを、短く書きます（ご指摘・2026/11/16
+     「なぜ、すべてのタブが2つあるのですか？」）。
+   「すべて」だけが2つ並ぶと、どちらの「すべて」か分かりません。 */
+.flab{font-size:11px;color:#FFFFFF;opacity:.8;letter-spacing:.08em;
+  margin:10px 0 0;font-weight:700}
+.flab + .chips{margin-top:5px}
+
+/* ★開演・終演は、それぞれ途中で折らない（2026/11/17）。
+     320pxの機種で「終演 21:00（予」「定）」と割れていました。 */
+.evgo1{white-space:nowrap}
+
+/* ------------------------------------------------------------
+   ★絞り込みは、1行に1つのプルダウン（ご指示・2026/11/17
+     「選択する内容は、タブ形式ではなく、
+       全て1行ずつのプルダウン形式にしてください」）。
+   タグを横に並べていたので、画面の広さで折り返し方が変わり、
+   どれが同じ仲間なのか分かりませんでした。
+   左に名前、右にプルダウン。上から順に読むだけで分かります。
+ ---------------------------------------------------------- */
+.filt .frow{display:flex;align-items:center;gap:8px;margin-top:7px}
+.filt .frow > label{flex:0 0 76px;font-size:12px;color:#FFFFFF;
+  letter-spacing:.04em;line-height:1.3}
+.filt .frow > select,.filt .frow > input{flex:1 1 auto;min-width:0;height:40px}
+.filt .frow.one{justify-content:flex-start}
+/* 一番細い機種（320px）では、名前の欄を少し詰めます */
+@media (max-width:340px){
+  .filt .frow > label{flex-basis:64px;font-size:11.5px}
+}
+
+/* ★いまの時間だけ、目で追えるようにします（2026/11/17）。
+     夜ぜんたいを出すようになったので、いまがどこか分からなくなるためです。 */
+.plan .pl.now{border-color:var(--andon);box-shadow:0 0 0 1px var(--andon) inset}
+
+/* ★「どちらが多いか」は、色で一目で分かるようにします（2026/11/17）。
+     色は記録の画面の【種類】と同じ考え方（GO／Uber）。 */
+.rich-go{color:#9ECBFF;font-weight:700;white-space:nowrap}
+.rich-uber{color:#FFD54A;font-weight:700;white-space:nowrap}
+
+/* ★4つの数の下に、もとにした本数をそえます（ご指摘・2026/11/17
+     「これ、記録数も出さないと、ロング数出せないのじゃないですか？」）。 */
+.kpi b .kpsub{display:block;font-family:var(--body);font-size:11px;
+  font-weight:400;color:#FFFFFF;opacity:.85;margin-top:2px;letter-spacing:0}
+
+/* ------------------------------------------------------------
+   ★横に流れる表が、欄の外へ はみ出して見えていました
+     （ご指摘・2026/11/17「表に対してめちゃくちゃはみ出てて、最悪です」）。
+   枠の角を丸めて、そこでぴたりと切れるようにします。
+   右のはしに うすい影を出して、まだ先があることを見せます。
+ ---------------------------------------------------------- */
+.scroll.tbl{border-radius:10px;border:1px solid var(--line);
+  position:relative;background:rgba(255,255,255,.015)}
+.scroll.tbl table{margin:0}
+/* 右のはしの影（スクロールしても ついてきます） */
+.tblwrap{position:relative}
+.tblwrap::after{content:'';position:absolute;top:0;right:0;width:18px;height:100%;
+  pointer-events:none;border-radius:0 10px 10px 0;
+  background:linear-gradient(to right,rgba(11,11,13,0),rgba(11,11,13,.92))}
+
+/* ------------------------------------------------------------
+   ★▼ の左右の位置を、どの欄でもそろえます（ご指摘・2026/11/17）。
+   目次は欄より内側の余白が狭く、▼ だけ右へずれて見えていました。
+   目次の左右の余白を、欄（card）と同じ16pxにします。
+ ---------------------------------------------------------- */
+.toc{padding-left:16px;padding-right:16px}
+@media (min-width:430px){ .toc{padding-left:18px;padding-right:18px} }
+
+/* ★「このページを見てわかること」の字は、目次と同じ大きさにします
+     （ご指示・2026/11/17）。中身は たたんであるので、
+     見出しが大きいと、そこだけ場所を取ってしまいます。 */
+.card.lead > h2{font-family:var(--body);font-size:11.5px;letter-spacing:.06em;
+  margin-bottom:0}
+.card.lead{padding-top:10px;padding-bottom:11px}
+.card.lead:not(.fold) > h2{margin-bottom:9px}
+.card.lead:not(.fold){padding-bottom:16px}
+
+/* ================================================================
+ *  ▼ の中の行き先（5列2段）。ご指示・2026/11/17
+ *    「三にあったものは ページ内のメニューと同様に
+ *      ▼を押したら 5列2段のメニューを表示させてください」
+ *  ★ページの中のメニューと同じ形にそろえますが、
+ *    上に貼り付いている行の中なので、余白だけ詰めます。
+ * ================================================================ */
+#htabs{margin:0;padding:4px}
+.hsub > #htabs{margin-left:var(--gut);margin-right:var(--gut)}
+@media (max-width:340px){ .hsub > #htabs{margin-left:7px;margin-right:7px} }
+/* ★赤い丸は ▼ に付けます（行き先が ▼ の中に入ったため） */
+.hgrab{position:relative}
+/* ★:after は、まん中のつまみの線に使っています。
+     こちらを上書きすると つまみが消えるので、:before を使います。 */
+.hgrab.dotted:before{content:"";position:absolute;right:12px;top:5px;
+  width:8px;height:8px;border-radius:50%;background:var(--andon)}
+/* ≡ の中の「アカウントのこと」 */
+#acctBox{padding:4px 2px}
+#acctBox > .subline{display:flex;align-items:center;gap:8px;padding:6px 10px}
+#acctBox > .hrow{padding:6px 10px}
+
+/* ================================================================
+ *  天気の「いまの気温」の行（2026/11/17）
+ *  ★細い機種で、右の数字（最高・最低・降水）が場所を取りすぎて、
+ *    左の天気の名前が1文字ずつ縦に折り返していました。
+ *    入りきらないときは、右の数字を下の行に落とします。
+ * ================================================================ */
+.wxnow{flex-wrap:wrap}
+.wxmain{flex:1 1 auto;min-width:104px}
+.wxside{flex:0 1 auto;min-width:0}
+@media (max-width:399px){
+  .wxside{white-space:normal;line-height:1.6}
+  .wxside > div{white-space:nowrap}
+}
+/* ≡ の中のアカウントの行は、入りきらなければ折り返します
+   （上の行とちがって、幅がせまいため） */
+#acctBox > .hrow{flex-wrap:wrap;row-gap:6px}
+#acctBox > .hrow .whoR{margin-left:auto}
+/* ★折れ線の金額の数字は、線の上に重ねます（2026/11/17）。
+     点や線に重なっても読めるよう、うしろを少しだけ暗くします。 */
+.ylab{paint-order:stroke;stroke:rgba(10,10,12,.85);stroke-width:3px;stroke-linejoin:round}
+
+/* ================================================================
+ *  地図（2026/11/17）
+ *  ★路線図が目立ちすぎる、とのご指摘。
+ *    地図そのものは暗くしません（どこの乗り場かを読むためです）。
+ *    色みだけを落とすと、色のついた線路の線は目立たなくなり、
+ *    黒い字の地名は そのまま読めます。
+ * ================================================================ */
+.pinmap .leaflet-tile-pane{filter:saturate(.22) contrast(1.06)}
+/* ★1件ずつの📍（近づいたときに出ます） */
+.pinone span{display:block;width:14px;height:14px;margin:2px;border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);border:2px solid #FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.55)}
+
+/* ================================================================
+ *  見出しの右の【説明】（ご指示・2026/11/17）
+ *    ▼ の左に置きます。押すと、数え方の箱が出ます。
+ * ================================================================ */
+.hhelp{margin-left:auto;margin-right:8px;background:none;border:1px solid var(--line);
+  color:#FFFFFF;font-size:10.5px;font-weight:700;border-radius:999px;
+  padding:3px 9px;line-height:1;white-space:nowrap;flex:0 0 auto}
+.hhelp + .fmark{margin-left:0}
+@media (max-width:340px){ .hhelp{padding:3px 7px;font-size:10px;margin-right:6px} }
+
+/* ★中カテゴリーごとの件数（まとめスプシのレポートと同じ形・2026/11/17） */
+.ktarea{display:flex;flex-wrap:wrap;gap:4px 10px;margin:6px 0 0;
+  font-size:11.5px;color:#FFFFFF}
+.ktarea span{white-space:nowrap;opacity:.9}
+.ktarea b{font-family:var(--mono);font-weight:700;opacity:1}
+
+/* ================================================================
+ *  小さい赤い字を、白にします（2026/11/17）
+ *
+ *  ★ご指示：「webサイトの文字は全て真っ白文字にしてください、
+ *    まだ視認性が悪いです」。
+ *  ★赤（--andon）は、もともと「塗りに使う」色です。
+ *    暗い背景に小さく置くと、明るさの差が足りず、
+ *    走りながらでは読めません（実際に測って 3.3 しかありません）。
+ *  ★大きい数字（22px前後）は、差があっても読めるので そのままです。
+ *    全部まっ白にすると、どれが大事な数字か分からなくなります。
+ * ================================================================ */
+.ktsum b{color:#FFFFFF}
+.newsv b{color:#FFFFFF}
+.nipnew{color:#FFFFFF}
+.badge.adm{color:#FFFFFF}
+.btrow.top .bth{color:#FFFFFF}
+/* ★【説明】は、走りながらでも押せる高さにします（19px → 28px） */
+.hhelp{min-height:28px;padding:0 10px;display:inline-flex;align-items:center}
+@media (max-width:340px){ .hhelp{min-height:26px;padding:0 8px} }
+
+/* ★【説明】を足したぶん、見出しが2行に折り返していました（2026/11/17）。
+     細い機種では、字の間と すきまを詰めて、1行に収めます。
+     字の大きさは変えません（小さくすると読めなくなります）。 */
+@media (max-width:400px){
+  .card > h2, #ktop > h2{letter-spacing:.02em;gap:5px}
+  .hhelp{font-size:10px;padding:0 7px;margin-right:5px}
+}
+@media (max-width:340px){
+  /* ★一番細い機種では、見出しを少しだけ小さくします。
+       2行に折り返すより、1行で読めるほうが ずっと分かりやすいためです。 */
+  .card > h2, #ktop > h2{letter-spacing:0;gap:4px;font-size:16px}
+  .card h2:before{content:""}
+  .hhelp{font-size:9.5px;padding:0 6px;margin-right:4px}
+}
