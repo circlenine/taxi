@@ -65,7 +65,7 @@ const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
 ok(idx.indexOf('id="ver"') !== -1, '★題のとなりに、版を出す場所がある');
 ok(idx.indexOf('data-t="news"') !== -1, '★お知らせのタブがある');
 ok(idx.indexOf('news.js') !== -1, '　 お知らせの中身を読み込んでいる');
-ok(app.indexOf('news:paneNews') !== -1, '★お知らせのタブを押すと、中身が出る');
+ok(app.indexOf('paneSays() + paneNews()') !== -1, '★お知らせのタブを押すと、中身が出る');
 ok(app.indexOf('newsSeen()') !== -1, '　 読んだら、赤い点が消える');
 
 console.log('■ 読み込むだけで、画面をいじらない');
@@ -2068,17 +2068,18 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
        自由にふやせるようにしてください」 */
   t(/placeholder="吹き出しに追加したい一言"/.test(app),
     '★★★入れる枠がある（そのままの言い方で）');
-  /* ★2026/11/17：一番上に移しました（ご指示「ふきだしにひとことを足す、
-       を1番上にしてください」）。 */
+  /* ★2026/11/17：【お知らせ】の一番上に移しました
+       （ご指示「これは、お知らせのページに移動してください」）。 */
   t(/function paneSays\(\)/.test(app) &&
-    /in: \(\) => paneSays\(\) \+/.test(app),
-    '★★★【記録】の画面の、一番上に出る');
+    /news: \(\) => paneSays\(\) \+ paneNews\(\)/.test(app),
+    '★★★【お知らせ】の画面の、一番上に出る');
+  t(!/in: \(\) => paneSays\(\)/.test(app), '★★★【記録】の画面には、もう出さない');
   /* ★探さなくても行けること（ご質問・2026/11/14
        「ふきだし追加したい時のやつ、どこにあるんですか？」）。
      【記録】の一番下にあって、見つけられませんでした。 */
-  t(/sm\.onclick = function \(\) \{\s*\n\s*grab\(\); tab = 'in'; tabSave\(\);[\s\S]{0,260}getElementById\('sayCard'\)/
+  t(/tab = 'news'; tabSave\(\); msg = ''; render\(\);[\s\S]{0,260}getElementById\('sayCard'\)/
     .test(app),
-    '★★★ふきだしを押すと、【記録】を開いて そこへ行ける');
+    '★★★ふきだしを押すと、【お知らせ】を開いて そこへ行ける');
   t(/id="sayCard"/.test(app), '　 行き先の目じるしがある');
   t(/ふきだしを押すと、ここへ来られます。/.test(app), '　 画面にも、そう書いてある');
   t(/db\.from\('says'\)[\s\S]{0,80}\.insert\(/.test(app), '★★★足したものを、台帳に入れる');

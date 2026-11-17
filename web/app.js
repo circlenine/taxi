@@ -1034,11 +1034,13 @@ function render(){
   /* ★「記録を書き出す（CSV）」は出しません（ご指示・2026/11/17）。
        paneOut は消していません。あとで戻せるようにしてあります。
      ★「ふきだしにひとことを足す」を一番上にします（ご指示・2026/11/17）。 */
-  const PANES = { in: () => paneSays() + (ME.profile.is_admin ? gasStatCard() : ''), hot:paneHot,
+  /* ★ひとことを足す欄は、【お知らせ】の一番上に移しました
+       （ご指示・2026/11/17「これは、お知らせのページに移動してください」）。 */
+  const PANES = { in: () => (ME.profile.is_admin ? gasStatCard() : ''), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, tok:paneTok, rep:paneRep, nippo:paneNippo,
     bara:paneBara, kix:paneKix,
-    news:paneNews, ev:paneEv, fb:paneFb };
+    news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
   /* バラシ・関空は、1つのメニューにまとめました（ご指示・2026/11/15） */
@@ -6873,7 +6875,8 @@ function wire(){
     sm.style.cursor = 'pointer';
     sm.setAttribute('title', 'ふきだしに足す');
     sm.onclick = function () {
-      grab(); tab = 'in'; tabSave(); msg = ''; render();
+      /* ★行き先は【お知らせ】です（ご指示・2026/11/17で移しました） */
+      grab(); tab = 'news'; tabSave(); msg = ''; render();
       setTimeout(function () {
         const c = document.getElementById('sayCard');
         if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' });
