@@ -2,7 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V123ver  （2026/11/17）  ★★★
+ *  ★★★  V124ver  （2026/11/17）  ★★★
+ *
+ *  [V124ver]
+ *  ・🎪 大阪城音楽堂を、中身の置き場から読むようにした
+ *    ★一覧のページは、開いたあとに中身をこしらえる作りなので、
+ *      字をいくら読んでも 催しは1件も出てきませんでした
+ *    ★いまは、これからの催しに時刻が1つも入っていません。
+ *      会場が出していないので、時刻の無いものは出しません。
+ *      そうと分かるように、読み取り状況に書きます
  *
  *  [V123ver]
  *  ・🎢 USJ の時刻の言い方を「開園・閉園」にした
@@ -1870,7 +1878,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V123ver";
+const VN_VERSION = "V124ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -1984,7 +1992,19 @@ const VN_SOURCES = [
    *   時刻が見つからなければ、その催しは出しません
    *   （「時間不明」で出すと、行っても意味がないため）。
    */
-  { name: "大阪城音楽堂", kind: "event", deep: true,
+  /*
+   * ★2026/11/17 に調べ直しました。
+   *   一覧のページは、開いたあとに中身をこしらえる作りなので、
+   *   字をいくら読んでも 催しは1件も出てきません（ずっと0件でした）。
+   *   そのページ自身が読みにいっている置き場から読みます。
+   *   （新しい読み先を増やしたのではなく、同じ会場の中の置き場です。
+   *     無料・鍵なし・課金の設定なしです）
+   * ★いまのところ、これからの催しに時刻が1つも入っていません。
+   *   会場が出していないので、決まりどおり、時刻の無いものは出しません。
+   *   時刻が入った日から、ひとりでに出るようになります。
+   */
+  { name: "大阪城音楽堂", kind: "event",
+    ongaku: "https://www.osakacastlepark.jp/api/ongakudo/events.php",
     url: "https://www.osakacastlepark.jp/ongakudo/event/" },
   /*
    * ★ユニバーサル・スタジオ・ジャパン（2026/11/16 に足しました）
@@ -8583,6 +8603,16 @@ function vnScrapeOne_(src, day, htmlIn) {
       return { events: [], note: "❌ USJの閉園時刻が読めませんでした", size: 0, code: 0 };
     }
   }
+  /*
+   * ★大阪城音楽堂も、ホームページの字ではなく「中身の置き場」から読みます
+   *   （2026/11/17）。くわしい訳は、読み先の一覧のところに書いてあります。
+   */
+  if (src && src.ongaku) {
+    try { return vnScrapeOngaku_(src, day); }
+    catch (e) {
+      return { events: [], note: "❌ 大阪城音楽堂の催しが読めませんでした", size: 0, code: 0 };
+    }
+  }
   // ★公開カレンダーから読む会場（ワントゥワンなど）は、こちらで読みます
   if (src && src.ics && src.ics.length) {
     try { return vnScrapeIcs_(src, day); }
@@ -8997,6 +9027,104 @@ function vnUsjHHMM_(v) {
 }
 
 /** その日の閉園を、催しの形にして返す */
+/* ================================================================
+ *  🎪 大阪城音楽堂（2026/11/17）
+ *
+ *  ★ページの字からは1件も取れません（開いたあとに中身をこしらえる作り）。
+ *    ページ自身が読みにいっている置き場から読みます。
+ *  ★時刻は open_time（開場）と curtain_time（開演）だけで、
+ *    終演は出ていません。終演が分からないときは、
+ *    決まりどおり「まだ分かっていません」として出します。
+ *  ★開場も開演も入っていない催しは、出しません。
+ *    時刻の分からないものを出すと、行っても意味がないためです。
+ * ================================================================ */
+function vnScrapeOngaku_(src, day) {
+  const out = { events: [], note: "", size: 0, code: 0 };
+  let res;
+  try {
+    res = UrlFetchApp.fetch(src.ongaku, {
+      muteHttpExceptions: true, followRedirects: true,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; TaxiReport/1.0)" }
+    });
+  } catch (e) {
+    out.note = "❌ つながりませんでした（" + ((e && e.message) || e) + "）";
+    return out;
+  }
+  out.code = res.getResponseCode();
+  let txt = "";
+  try { txt = res.getContentText(); } catch (e) { txt = ""; }
+  out.size = txt.length;
+  if (out.code !== 200 || !txt) {
+    out.note = "❌ 中身が取れませんでした（" + out.code + "）";
+    return out;
+  }
+  let data = null;
+  try { data = JSON.parse(txt); } catch (e) {
+    out.note = "❌ 中身の形が変わっています（読み方を直す必要があります）";
+    return out;
+  }
+  if (!data || !data.length) {
+    out.note = "❌ 催しが1件も入っていません";
+    return out;
+  }
+
+  const ymd = Utilities.formatDate(day, "Asia/Tokyo", "yyyy-MM-dd");
+  const hits = vnOngakuPick_(data, ymd);
+  if (!hits.length) {
+    out.note = "この日は、催しが出ていません";
+    return out;
+  }
+
+  let noTime = 0;
+  hits.forEach(function (e) {
+    const st = vnOngakuHHMM_(e.curtain_time) || vnOngakuHHMM_(e.open_time);
+    if (!st) { noTime++; return; }       // 時刻の無いものは出さない（決まり）
+    out.events.push({
+      venue: src.venue || src.name, kind: src.kind || "event", icon: "🎤",
+      title: String(e.name || "").slice(0, 80),
+      artist: String(e.name || "").slice(0, 80),
+      runText: "", fee: 0, feeFree: false, genre: "",
+      start: st,
+      startKind: vnOngakuHHMM_(e.curtain_time) ? "開演" : "開場",
+      /* 終演は、会場が出していません。見当では書きません（決まり） */
+      end: "", endGuess: false, endSure: false,
+      people: 0,
+      /* ★住所は、かならず組み立てたあとのものを渡します（2026/11/10のしくじり） */
+      url: vnSrcUrl_(src, day) || "",
+      raw: (String(e.name || "") + " " + ymd + " " + st).slice(0, 400)
+    });
+  });
+  if (!out.events.length) {
+    /* ★黙って0件にしません。「読めていない」のか
+         「会場が時刻を出していない」のかが、分かるようにします。 */
+    out.note = "この日の催し（" + noTime + "件）は、会場が時刻を出していません";
+  }
+  return out;
+}
+
+/** その日の催しを拾います（sessions に その日が入っているもの） */
+function vnOngakuPick_(data, ymd) {
+  const out = [];
+  (data || []).forEach(function (e) {
+    if (!e) return;
+    let ss = e.sessions;
+    if (!ss || !ss.length) ss = e.top_session ? [e.top_session] : [];
+    for (let i = 0; i < ss.length; i++) {
+      if (String(ss[i] || "").slice(0, 10) === ymd) { out.push(e); return; }
+    }
+  });
+  return out;
+}
+
+/** "18:00" や "18:00:00" を "18:00" にそろえます。無ければ空 */
+function vnOngakuHHMM_(v) {
+  const m = /(\d{1,2})\s*[:：]\s*(\d{2})/.exec(String(v == null ? "" : v));
+  if (!m) return "";
+  const h = Number(m[1]);
+  if (!(h >= 0 && h <= 29)) return "";
+  return (h < 10 ? "0" + h : String(h)) + ":" + m[2];
+}
+
 function vnScrapeUsj_(src, day) {
   const out = { events: [], note: "", size: 0, code: 0 };
   let res;

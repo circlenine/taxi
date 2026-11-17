@@ -2122,8 +2122,14 @@ console.log('\n■ 見にいく先に、大阪城音楽堂とフェスティバ�
   eq(names.indexOf('大阪城音楽堂') !== -1, true, '★大阪城音楽堂を見にいく');
   eq(one('大阪城音楽堂').url, 'https://www.osakacastlepark.jp/ongakudo/event/',
      '  読み先のアドレス');
-  eq(one('大阪城音楽堂').deep, true,
-     '★詳細のページまで開く（一覧に時刻が無いため。オータニと同じ）');
+  /* ★2026/11/17：一覧のページは、開いたあとに中身をこしらえる作りで、
+       字からは1件も取れませんでした。ページ自身が読みにいっている
+       置き場から読みます（同じ会場の中・無料・鍵なし）。 */
+  eq(one('大阪城音楽堂').ongaku,
+     'https://www.osakacastlepark.jp/api/ongakudo/events.php',
+     '★中身の置き場から読む');
+  eq(!one('大阪城音楽堂').deep, true,
+     '★詳細のページは開かない（一覧そのものが字で読めないため）');
   eq(one('大阪城音楽堂').kind, 'event', '  イベントあつかい');
 
   eq(names.indexOf('フェスティバルホール') !== -1, true, '★フェスティバルホールも見にいく');
@@ -4393,6 +4399,79 @@ console.log('■ USJ の閉園時刻');
   eq(ctx.vnCapOf_('ユニバーサル・スタジオ・ジャパン'), 0,
      '★★★人数は出さない（席数も入園者数も分からないため）');
   eq(ctx.vnInAreaA_('大阪市此花区'), true, '★★★此花区は、大阪A地区');
+}
+
+/* ================================================================
+ *  🎪 大阪城音楽堂（2026/11/17 に読めるようにしました）
+ *
+ *  ★一覧のページは、開いたあとに中身をこしらえる作りなので、
+ *    字をいくら読んでも 催しは1件も出てきませんでした（ずっと0件）。
+ *    ページ自身が読みにいっている置き場から読みます。
+ *  ★会場が終演を出していないので、終演は書きません。
+ *    時刻が1つも無い催しは、出しません（決まり）。
+ * ================================================================ */
+console.log('\n■ 大阪城音楽堂の催し');
+{
+  const O = 'https://www.osakacastlepark.jp/api/ongakudo/events.php';
+  const srcOn = { name: '大阪城音楽堂', kind: 'event', ongaku: O,
+                  url: 'https://www.osakacastlepark.jp/ongakudo/event/' };
+  const day = new Date(2026, 10, 23);     // 2026-11-23
+
+  /* 時刻の読み方 */
+  eq(ctx.vnOngakuHHMM_('18:00'), '18:00', '　「18:00」を読む');
+  eq(ctx.vnOngakuHHMM_('18:00:00'), '18:00', '　「18:00:00」も読む');
+  eq(ctx.vnOngakuHHMM_('9:30'), '09:30', '　 1けたの時は、0を足す');
+  eq(ctx.vnOngakuHHMM_(null), '', '★★★入っていなければ、空のまま');
+  eq(ctx.vnOngakuHHMM_(''), '', '　 空でも落ちない');
+  eq(ctx.vnOngakuHHMM_('未定'), '', '★★★時刻でない字は、時刻にしない');
+
+  /* その日の催しを拾う */
+  const data = [
+    { name: 'A', sessions: ['2026-11-23'], open_time: '17:00', curtain_time: '18:00' },
+    { name: 'B', sessions: ['2026-11-24'], open_time: null, curtain_time: null },
+    { name: 'C', top_session: '2026-11-23', open_time: null, curtain_time: null }
+  ];
+  eq(ctx.vnOngakuPick_(data, '2026-11-23').length, 2, '★その日のものだけ拾う');
+  eq(ctx.vnOngakuPick_(data, '2026-11-25').length, 0, '　 無い日は0件');
+  eq(ctx.vnOngakuPick_(null, '2026-11-23').length, 0, '　 中身が無くても落ちない');
+
+  /* 読む係ぜんたい */
+  fetched = []; reply = {}; reply[O] = { code: 200, body: JSON.stringify(data) };
+  const r1 = ctx.vnScrapeOngaku_(srcOn, day);
+  eq(r1.events.length, 1, '★★★時刻の入っているものだけ出す');
+  eq(r1.events[0].start, '18:00', '★★★開演の時刻を出す');
+  eq(r1.events[0].startKind, '開演', '　 開演と書く');
+  eq(r1.events[0].end, '', '★★★終演は、会場が出していないので書かない');
+  eq(r1.events[0].endGuess, false, '★★★見当でも書かない');
+  eq(r1.events[0].people, 0, '★★★台数や人数の目安は出さない');
+  eq(r1.events[0].url, 'https://www.osakacastlepark.jp/ongakudo/event/',
+     '★★★押せる住所は、実際に開くものだけ');
+
+  /* 開演が無くて開場だけなら、開場を出す */
+  const onlyOpen = [{ name: 'D', sessions: ['2026-11-23'], open_time: '17:00', curtain_time: null }];
+  reply = {}; reply[O] = { code: 200, body: JSON.stringify(onlyOpen) };
+  const r2 = ctx.vnScrapeOngaku_(srcOn, day);
+  eq(r2.events.length, 1, '　 開場だけでも出す');
+  eq(r2.events[0].startKind, '開場', '　 そう書く');
+
+  /* ★時刻が1つも無い日は、黙って0件にしない */
+  const noTime = [{ name: 'E', sessions: ['2026-11-23'], open_time: null, curtain_time: null }];
+  reply = {}; reply[O] = { code: 200, body: JSON.stringify(noTime) };
+  const r3 = ctx.vnScrapeOngaku_(srcOn, day);
+  eq(r3.events.length, 0, '★★★時刻の無い催しは出さない');
+  has(r3.note, '会場が時刻を出していません',
+      '★★★「読めていない」のか「時刻が無い」のかが分かるように書く');
+
+  /* つながらない・形が変わった … どれでも落ちない */
+  reply = {}; reply[O] = { code: 503, body: '' };
+  eq(ctx.vnScrapeOngaku_(srcOn, day).events.length, 0, '　 つながらなければ、0件');
+  reply = {}; reply[O] = { code: 200, body: '<html>こんにちは</html>' };
+  has(ctx.vnScrapeOngaku_(srcOn, day).note, '形が変わっています', '　 直す必要があると分かる');
+  reply = {}; reply[O] = { throw: 'つながりません' };
+  eq(ctx.vnScrapeOngaku_(srcOn, day).events.length, 0, '　 こけても0件（止まらない）');
+
+  const body2 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  eq(/if \(src && src\.ongaku\)/.test(body2), true, '★★★その読み先だけ、専用の係で読む');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
