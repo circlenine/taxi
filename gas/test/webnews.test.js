@@ -4382,6 +4382,26 @@ console.log('\n■ 2026/11/16 のご指示');
  *    「計算して出しているものは 各見出しの右側…説明 というタブをつけて、
  *      タップしたらポップアップで 詳細の計算方法を記載してください」
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  📊 まとめスプシのレポートから取り入れたもの（ご指示・2026/11/17）
+ *    「過去に色々試行錯誤した スプシでのレポートデータも
+ *      参考に取り入れられそうなところは取り入れてください」
+ *    レポートは、題のすぐ下に「北7 8件・北4 22件・…」と
+ *    中カテゴリーごとの件数を1行で置いていました。
+ * ---------------------------------------------------------- */
+console.log('■ 中カテゴリーごとの件数（2026/11/17）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const idx = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/<div class="ktarea" id="ktArea"><\/div>/.test(idx), '★★★件数を出す場所がある');
+  t(/const ka = \$\('#ktArea'\);/.test(app), '★★★そこへ入れている');
+  t(/CAT_ORDER\.filter\(function \(c\)\{ return cnt\[c\]; \}\)/.test(app),
+    '★★★1件も無い分けは出さない（0を並べない）');
+  t(/const c = recCat\(r\)/.test(app), '　 中カテゴリーで数えている');
+  t(/\.ktarea\{/.test(css), '　 その見た目もある');
+}
+
 console.log('■ 見出しの【説明】（2026/11/17）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

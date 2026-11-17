@@ -978,6 +978,19 @@ function render(){
     /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
          「記録のある日 9 ／ 日・10件」のような切れ方をすると、読めません。 */
     $('#ktWho').innerHTML = who.map(x => '<span>' + esc(x) + '</span>').join('');
+    /* ★中カテゴリーごとの件数を、1行で出します（ご指示・2026/11/17）。
+         まとめスプシのレポートが、同じ形で 一番上に置いていました。
+         「この期間、どこで何本だったか」が、これだけで分かります。
+       ★1件も無い分けは、出しません（0が並ぶと読むところが増えます）。 */
+    const ka = $('#ktArea');
+    if (ka) {
+      const cnt = {};
+      rs.forEach(function (r){ const c = recCat(r); cnt[c] = (cnt[c] || 0) + 1; });
+      const line = CAT_ORDER.filter(function (c){ return cnt[c]; })
+        .map(function (c){ return '<span>' + esc(c) + ' <b>' + cnt[c] + '</b>件</span>'; });
+      ka.innerHTML = line.length ? line.join('') : '';
+      ka.hidden = !line.length;
+    }
     /* 乗り場は、どの画面にいても ここで すぐ切り替えられます。
        ★中身を入れるのは placeSelFill_（画面を組み立てたあとに呼びます）。 */
     placeSelFill_();

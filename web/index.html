@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261117-7f35c950">
+<link rel="stylesheet" href="style.css?v=20261117-7c8e0a84">
 </head>
 <body>
 <div id="boot" class="boot">
@@ -136,6 +136,10 @@
       <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
     </div>
     <div class="ktwho" id="ktWho">—</div>
+    <!-- ★中カテゴリーごとの件数（ご指示・2026/11/17）。
+           まとめスプシのレポートの、上から2行目と同じ形です。
+           「この期間、どこで何本だったか」が、1行で分かります。 -->
+    <div class="ktarea" id="ktArea"></div>
     <div class="kpis">
       <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
       <div class="kpi"><small>1日当たり</small><b id="k2">¥0</b></div>
@@ -168,9 +172,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261117-7f35c950"></script>
-<script src="news.js?v=20261117-7f35c950"></script>
-<script src="shared.js?v=20261117-7f35c950"></script>
-<script src="app.js?v=20261117-7f35c950"></script>
+<script src="config.js?v=20261117-7c8e0a84"></script>
+<script src="news.js?v=20261117-7c8e0a84"></script>
+<script src="shared.js?v=20261117-7c8e0a84"></script>
+<script src="app.js?v=20261117-7c8e0a84"></script>
 </body>
 </html>
