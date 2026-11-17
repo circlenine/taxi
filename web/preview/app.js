@@ -6129,7 +6129,22 @@ function foldSave(){
   try { localStorage.setItem(FOLD_KEY, JSON.stringify(foldSet.slice(0, 80))); } catch (e) {}
 }
 /** 見出しの字から、覚えておくための名前を作ります */
-function foldKey(h){ return String(h.textContent || '').replace(/[▼▲\s]/g, '').slice(0, 24); }
+/*
+ * 見出しの字だけを取り出します。
+ * ★あとから足した【説明】と ▼ は、入れません。
+ *   入れてしまうと、2回目から名前が変わって、
+ *   たたんだ覚えが外れ、目次にも「…説明」と出ます。
+ */
+function headText(h){
+  let out = '';
+  [].forEach.call((h && h.childNodes) || [], function (n){
+    if (n.nodeType === 1 && n.classList &&
+        (n.classList.contains('fmark') || n.classList.contains('hhelp'))) return;
+    out += (n.textContent || '');
+  });
+  return out;
+}
+function foldKey(h){ return headText(h).replace(/[▼▲\s]/g, '').slice(0, 24); }
 
 /* ================================================================
  *  見出しの右の【説明】（ご指示・2026/11/17）
@@ -6346,7 +6361,7 @@ function tocBuild(){
     '<div class="tocg">' + hs.map(function (h, i) {
       return '<button class="tocit" data-toc="' + h.id + '">' +
         '<em>' + (i + 1) + '</em>' +
-        '<span>' + esc(h.textContent.replace(/[▼▲]/g, '').trim()) + '</span></button>';
+        '<span>' + esc(headText(h).replace(/[▼▲]/g, '').trim()) + '</span></button>';
     }).join('') + '</div>';
   const host = document.getElementById('panesTop') || document.getElementById('panes');
   host.parentNode.insertBefore(nav, host);

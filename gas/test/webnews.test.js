@@ -4409,6 +4409,15 @@ console.log('■ 見出しの【説明】（2026/11/17）');
   t(/const CALC_HELP = \{/.test(app), '★★★数え方の説明が書いてある');
   t(/function calcHelp\(k\)/.test(app), '　 見出しの字から、説明をさがす');
   t(/function calcPopup\(/.test(app), '★★★押すと、箱が出る');
+  /* ★見出しの名前に【説明】の字を入れません。
+       入れると、2回目から名前が変わって、たたんだ覚えが外れ、
+       目次にも「…説明」と出てしまいます。 */
+  t(/function headText\(h\)/.test(app), '★★★見出しの字だけを取り出す係がある');
+  t(/classList\.contains\('fmark'\) \|\| n\.classList\.contains\('hhelp'\)/.test(app),
+    '★★★【説明】と ▼ は、名前に入れない');
+  t(/function foldKey\(h\)\{ return headText\(h\)/.test(app),
+    '　 たたむ名前も、そこから作る');
+  t(/esc\(headText\(h\)\.replace/.test(app), '★★★目次も、そこから作る');
   t(/hb\.className = 'hhelp'/.test(app), '★★★▼ の左に【説明】を足す');
   t(/e\.stopPropagation\(\);/.test(app), '★★★押しても、見出しはたたまれない');
   t(/\.hhelp\{/.test(css) && /\.hhelp \+ \.fmark\{margin-left:0\}/.test(css),
