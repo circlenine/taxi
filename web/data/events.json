@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19 00:10",
+ "at": "2026-11-19 15:00",
  "days": [
   {
    "d": "2026-11-19",
@@ -135,42 +135,6 @@
      "cap": 910
     },
     {
-     "v": "グランキューブ大阪",
-     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:15",
-     "g": true,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "BUDDiiS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://buddiis.com/"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/buddiis.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
-      }
-     ],
-     "au": "10代から20代の女性が中心。学生や若い社会人が多く、非常に熱心なファン層です。",
-     "kn": "スターダストプロモーション所属の10人組ダンスボーカルグループ。現在開催中のホールツアーで、最新曲のパフォーマンスや演出",
-     "av": "",
-     "cap": 2754
-    },
-    {
      "v": "オリックス劇場",
      "t": "2026 SONG KANG FANMEETING ＜PLAY, SONG KANG＞ IN JAPAN",
      "k": "event",
@@ -259,7 +223,29 @@
      "a": "",
      "r": "",
      "u": "https://www.zepp.co.jp/hall/namba/schedule/",
-     "al": [],
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "LIL LEAGUE"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.ldh.co.jp/management/lil_league"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/LIL_LEAGUE_"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/lil_league_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCGjtw5hEOqP_lBc3I0Bq8gA"
+      }
+     ],
      "au": "10代〜20代の女性が中心。学生や若い社会人のグループが多い。",
      "kn": "LDH所属の平均年齢が若いダンスボーカルグループ。2024年7月発売のシングル「Youth Punk」が好調。",
      "av": "",
