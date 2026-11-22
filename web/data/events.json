@@ -1,12 +1,128 @@
 {
- "at": "2026-11-20 15:00",
+ "at": "2026-11-23 06:00",
  "days": [
   {
-   "d": "2026-11-20",
+   "d": "2026-11-23",
    "list": [
     {
-     "v": "京セラドーム",
-     "t": "2026 MAMA AWARDS Presented by Visa",
+     "v": "大阪城ホール",
+     "t": "TOMOO",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.osaka-johall.com/event/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "TOMOO"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.tomoo.jp/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/Tomoo_628"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/tomoo_ssw/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCFN-7pQE8CUkruAAJ5IFSLw"
+      }
+     ],
+     "au": "20代～30代の女性が中心。感度の高い音楽ファンや、同世代の女性が圧倒的に多い。",
+     "kn": "ピアノ弾き語りを軸にした独自の世界観が人気。今年開催した初の全国ツアーや新曲の反響が話題。",
+     "av": "",
+     "cap": 16000
+    },
+    {
+     "v": "フェスティバルホール",
+     "t": "氷川きよし（公演日）　📅 2日中の最終日［コンサート］",
+     "k": "barasi",
+     "s": "13:00",
+     "e": "15:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "氷川きよし"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://columbia.jp/hikawa/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/KIINA_STAFF"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/hikawa_kiyoshi_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCS_m28vCTOyxahlyx277z8A"
+      }
+     ],
+     "au": "50代から70代以上の女性が中心。熱心なファンが多く、ペンライトで盛り上がる。",
+     "kn": "2022年末からの休養を経て、昨年からコンサート活動を再開。今回は歌手としての圧倒的な歌唱力を披露するステージで、ファン",
+     "av": "かつての活動休止期間のネガティブな経緯や、現在の活動方針に関する詮索は控えるのが無難です。",
+     "cap": 2700
+    },
+    {
+     "v": "ユニバーサル・スタジオ・ジャパン",
+     "t": "営業時間",
+     "k": "event",
+     "s": "09:00",
+     "e": "20:00",
+     "g": false,
+     "sk": "開園",
+     "ek": "閉園",
+     "a": "19:45 に着ける（終演 20:00 の15分前）",
+     "r": "",
+     "u": "https://www.usj.co.jp/web/ja/jp",
+     "al": [],
+     "au": "10代から30代が中心。グループやカップルが多く、女性比率がやや高め。",
+     "kn": "現在開催中の「ユニバーサル・クールジャパン2024」や期間限定イベントの待ち時間が乗客の関心事です。",
+     "av": "長時間の待ち時間による疲労や、特定のアトラクションが運休・終了している話題。",
+     "cap": 0
+    },
+    {
+     "v": "Zepp Namba",
+     "t": "丸山純奈 ONEMAN LIVE 2026",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
+     "al": [],
+     "au": "10代から20代の女性が中心。SNS発の歌唱力で注目され、同世代の女性ファンが多い。",
+     "kn": "圧倒的な歌唱力で人気のシンガー。TikTok等のSNSで話題になったカバー曲から知ったファンも多い。",
+     "av": "",
+     "cap": 2200
+    },
+    {
+     "v": "Zepp Osaka Bayside",
+     "t": "Zepp Tour 2026 \"View From The Soyuz\"",
      "k": "event",
      "s": "18:00",
      "e": "20:30",
@@ -14,142 +130,56 @@
      "sk": "開演",
      "ek": "",
      "a": "",
-     "r": "📅 2日中の初日",
-     "u": "https://www.kyoceradome-osaka.jp/schedule/",
-     "al": [],
-     "au": "10代〜20代の女性が中心。韓国の最新音楽に熱狂するファンの集まり。",
-     "kn": "世界最大級のK-POP授賞式で、推しがパフォーマンスするのか、誰が大賞を取るのかで界隈は大盛り上がりです。",
-     "av": "メンバーの脱退や活動休止、特定のグループ間のファンダムによる対立煽りなどは避けてください。",
-     "cap": 0
-    },
-    {
-     "v": "ユニバーサル・スタジオ・ジャパン",
-     "t": "営業時間",
-     "k": "event",
-     "s": "08:30",
-     "e": "19:00",
-     "g": false,
-     "sk": "開園",
-     "ek": "閉園",
-     "a": "18:45 に着ける（終演 19:00 の15分前）",
      "r": "",
-     "u": "https://www.usj.co.jp/web/ja/jp",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 0
-    },
-    {
-     "v": "フェスティバルホール",
-     "t": "大阪フィルハーモニー交響楽団 第603回定期演奏会",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": [],
-     "au": "60代以上が中心。落ち着いた雰囲気の男女比は概ね4:6。",
-     "kn": "今回は首席指揮者・尾高忠明氏のタクトによる、ブルックナーの交響曲第8番が注目のプログラムです。",
-     "av": "",
-     "cap": 2700
-    },
-    {
-     "v": "Zepp Namba",
-     "t": "LIL LEAGUE",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
+     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
      "al": [
       {
        "l": "name",
        "u": "",
-       "n": "LIL LEAGUE"
+       "n": "Zepp"
       },
       {
        "l": "公式サイト",
-       "u": "https://www.ldh.co.jp/management/lil_league"
+       "u": "http://www.zepp.co.jp/index.php"
       },
       {
        "l": "X",
-       "u": "https://x.com/LIL_LEAGUE_"
+       "u": "https://x.com/zepphallnetwork"
       },
       {
        "l": "Instagram",
-       "u": "https://www.instagram.com/lil_league_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCGjtw5hEOqP_lBc3I0Bq8gA"
+       "u": "https://www.instagram.com/zepphallnetwork/"
       }
      ],
-     "au": "10代〜20代の女性が中心。学生や若い社会人のグループが多い。",
-     "kn": "LDH所属の平均年齢が若いダンスボーカルグループ。2024年7月発売のシングル「Youth Punk」が好調。",
-     "av": "",
-     "cap": 2200
-    },
-    {
-     "v": "Zepp Osaka Bayside",
-     "t": "RESISTANCE SURVIVAL",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
-     "al": [],
-     "au": "10代後半から30代が中心。男女比はやや女性が多めの印象。",
-     "kn": "人気実況者やストリーマーが出演するサバイバルゲーム系イベント。オンライン配信の視聴者も非常に多い。",
+     "au": "",
+     "kn": "",
      "av": "",
      "cap": 2882
     },
     {
      "v": "BIGCAT",
-     "t": "カラフルスクリーム / THE FRANK VOX / デラックス×デラックス",
+     "t": "DOMICO TWOMAN TOUR 2026",
      "k": "event",
      "s": "18:00",
-     "e": "20:00",
+     "e": "20:30",
      "g": true,
      "sk": "開演",
      "ek": "",
      "a": "",
      "r": "",
      "u": "http://bigcat-live.com/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "カラフルスクリーム"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/colorfulscream/"
-      }
-     ],
-     "au": "10代〜30代中心。アイドルファンからバンド好きまで男女比は半々程度。",
-     "kn": "関西を拠点に活躍するアイドルと、個性派バンドの異色対バン。熱量が高く一体感が特徴です。",
+     "al": [],
+     "au": "20代から30代が中心。男女比は半々程度で、ロック好きの若者が多い。",
+     "kn": "ギターとドラムの2人編成とは思えない圧倒的な音圧と、中毒性の高いグルーヴが持ち味のバンドです。",
      "av": "",
      "cap": 700
     },
     {
      "v": "GORILLA HALL OSAKA",
-     "t": "神聖かまってちゃん / ヤバイTシャツ屋さん 神聖かまってちゃんtour2026「17歳の処方箋」",
+     "t": "優利香 Anniversary Oneman Live ”GROWL&GLOW”",
      "k": "event",
-     "s": "19:00",
-     "e": "21:30",
+     "s": "16:00",
+     "e": "18:30",
      "g": true,
      "sk": "開演",
      "ek": "",
@@ -160,174 +190,116 @@
       {
        "l": "name",
        "u": "",
-       "n": "神聖かまってちゃん"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://shinseikamattechan.jp/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/kamattechaninfo"
+       "n": "優利香"
       },
       {
        "l": "Instagram",
-       "u": "https://www.instagram.com/shinsei_kamattechan/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCp6p4QMnrhszX8rhzgy_q2Q"
+       "u": "https://www.instagram.com/yurikassw/"
       }
      ],
-     "au": "20代～30代が中心。男女比は半々程度で、熱心なライブファンが多い層です。",
-     "kn": "神聖かまってちゃんの伝説的な楽曲「17歳」を冠したツアーで、ヤバTとの対バンはかなり熱い組み合わせです。",
-     "av": "過去のメンバー脱退や、バンドの解散・活動休止にまつわる騒動。",
+     "au": "20代から30代が中心。男女比は半々からやや女性が多い印象です。",
+     "kn": "今回のワンマンライブは「優利香」にとって記念すべきアニバーサリー。新曲披露への期待も高まっています。",
+     "av": "",
      "cap": 0
     },
     {
-     "v": "サンケイホールブリーゼ",
-     "t": "“You are you, even if no one fill in about you.”",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.sankeihallbreeze.com/schedule/",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 910
-    },
-    {
      "v": "オリックス劇場",
-     "t": "（名前を読み取れませんでした）",
+     "t": "『関西ジュニア CONCERT 2026 〜僕たち粉もんちゃうで",
      "k": "event",
-     "s": "18:30",
-     "e": "21:00",
+     "s": "18:00",
+     "e": "20:30",
      "g": true,
      "sk": "開演",
      "ek": "",
      "a": "",
      "r": "",
      "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2400
-    },
-    {
-     "v": "新歌舞伎座",
-     "t": "舞台『メイジ・ザ・キャッツアイ』｜公演情報",
-     "k": "event",
-     "s": "16:30",
-     "e": "19:15",
-     "g": true,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.shinkabukiza.co.jp/perf_info/20261114.html",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 1638
-    }
-   ]
-  },
-  {
-   "d": "2026-11-21",
-   "list": [
-    {
-     "v": "京セラドーム",
-     "t": "2026 MAMA AWARDS Presented by Visa",
-     "k": "event",
-     "s": "15:00",
-     "e": "17:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "📅 2日中の最終日",
-     "u": "https://www.kyoceradome-osaka.jp/schedule/",
-     "al": [],
-     "au": "10代〜20代の女性が中心。韓国の最新音楽に熱狂するファンの集まり。",
-     "kn": "世界最大級のK-POP授賞式で、推しがパフォーマンスするのか、誰が大賞を取るのかで界隈は大盛り上がりです。",
-     "av": "メンバーの脱退や活動休止、特定のグループ間のファンダムによる対立煽りなどは避けてください。",
-     "cap": 0
-    },
-    {
-     "v": "パナソニックスタジアム",
-     "t": "2026/27シーズン明治安田J1リーグ ガンバ大阪 VS ファジアーノ岡山",
-     "k": "event",
-     "s": "16:00",
-     "e": "18:00",
-     "g": true,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://suitacityfootballstadium.jp/schedule/",
-     "al": [],
-     "au": "20代から50代が中心で、男女比は7対3程度。家族連れや熱心なサポーターが多いです。",
-     "kn": "岡山が悲願のJ1初昇格を果たし、関西で迎える初の激突として両チームのサポーターが熱く盛り上がっています。",
-     "av": "岡山のJ1昇格までの長年の苦闘や、過去の入れ替え戦での悔しい敗戦の記憶には触れない方が無難です。",
-     "cap": 0
-    },
-    {
-     "v": "大阪城ホール",
-     "t": "第45回全日本小学生バンドフェスティバル（公演日）［コンサート］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [],
-     "au": "小学生の出演者と、その家族や関係者が中心。女性比率がやや高い。",
-     "kn": "全国から予選を勝ち抜いた学校が集結。子供たちの集大成となる演奏や、規律ある行進が見どころです。",
-     "av": "",
-     "cap": 16000
-    },
-    {
-     "v": "京セラドーム大阪",
-     "t": "2026 MAMA AWARDS（公演日）　📅 2日中の最終日［コンサート］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
      "al": [
       {
        "l": "name",
        "u": "",
-       "n": "MAMA AWARDS"
+       "n": "関西ジュニア"
       },
       {
        "l": "公式サイト",
-       "u": "https://www.mwave.me/en/mama/about"
+       "u": "https://jr-official.starto.jp/"
       },
       {
        "l": "X",
-       "u": "https://x.com/mnetmama"
+       "u": "https://x.com/jr_official_X"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/jr_official_/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UC1cHlPIE-kqiPvpyYz2O8rQ"
       }
      ],
-     "au": "10代〜20代の女性が圧倒的多数。韓国や海外からの遠征客も多く見受けられます。",
-     "kn": "世界最大級のK-POP授賞式で、アジアを代表するスターが勢揃いするため、誰のファンかを尋ねると会話が弾みます。",
-     "av": "特定の出演グループの脱退やメンバーの兵役、活動休止に関するネガティブな話題には触れない方が無難です。",
+     "au": "10代〜20代の女性が中心。親子連れも多い。",
+     "kn": "「粉もんちゃうで」という自虐的なタイトルが話題。関西ジュニアの勢いあるパフォーマンスが注目されている。",
+     "av": "",
+     "cap": 2400
+    }
+   ]
+  },
+  {
+   "d": "2026-11-24",
+   "list": [
+    {
+     "v": "京セラドーム大阪",
+     "t": "BIG BANG（搬入（初日））　📅 公演は 11/27 から3日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [],
+     "au": "20代から40代の女性が中心。熱心なファンが多く、韓国文化に馴染みがある層。",
+     "kn": "数年ぶりの来日公演のため、ファンの熱気が非常に高まっています。再会を待ちわびる声が多いです。",
+     "av": "過去のメンバー脱退や、所属事務所のトラブルに関する話題は厳禁です。",
      "cap": 36000
+    },
+    {
+     "v": "Zepp Namba (OSAKA)",
+     "t": "Groove-Method LIVE 2026（公演日）［コンサート］",
+     "k": "barasi",
+     "s": "",
+     "e": "",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 2200
+    },
+    {
+     "v": "サンケイホールブリーゼ",
+     "t": "舞台『ぼくのドラゴンがごはんを食べない!!』（搬入（初日））　📅 公演は 11/27 から10日間［舞台］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [],
+     "au": "20代から40代が中心で、女性比率が7割程度と高めです。",
+     "kn": "人気声優の朗読劇を交えた舞台で、ドラゴンと少年の心の交流を描く物語です。",
+     "av": "",
+     "cap": 910
     },
     {
      "v": "ユニバーサル・スタジオ・ジャパン",
@@ -348,11 +320,29 @@
      "cap": 0
     },
     {
-     "v": "Zepp Namba",
-     "t": "lecca Live Tour 2026 “Lovers&Dreamers”",
+     "v": "フェスティバルホール",
+     "t": "第54回 天王寺楽所 雅亮会 雅楽公演会「江戸幕府と天王寺舞楽」",
      "k": "event",
-     "s": "17:00",
-     "e": "19:30",
+     "s": "18:30",
+     "e": "21:00",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.festivalhall.jp/events/list/2026/11/",
+     "al": [],
+     "au": "60代以上が中心で、男女比は女性がやや多め。伝統文化への関心が高い落ち着いた層。",
+     "kn": "今回は「江戸幕府」との関わりに焦点を当てた演目。四天王寺から続く舞楽の歴史を紐解く貴重な機会です。",
+     "av": "",
+     "cap": 2700
+    },
+    {
+     "v": "Zepp Namba",
+     "t": "SUPER EIGHT 丸山隆平 / 休日課長 / and more",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
      "g": true,
      "sk": "開演",
      "ek": "",
@@ -360,64 +350,64 @@
      "r": "",
      "u": "https://www.zepp.co.jp/hall/namba/schedule/",
      "al": [],
-     "au": "30代から40代が中心。レゲエ好きが多く、男女比は女性がやや多め。",
-     "kn": "2025年に活動20周年を迎えたleccaが、新曲を引っ提げた待望の全国ツアーです。",
+     "au": "20代から40代が中心。女性ファンが圧倒的に多い。",
+     "kn": "丸山さんと休日課長さんという、ベースを弾く二人による異色のセッションが注目されています。",
      "av": "",
      "cap": 2200
     },
     {
-     "v": "Zepp Osaka Bayside",
-     "t": "RESISTANCE",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "📅 2日中の最終日",
-     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2882
-    },
-    {
      "v": "BIGCAT",
-     "t": "株式会社ABCフロンティア：https://abc-frontier.co.jp/contact/music",
+     "t": "WurtS LIVE TOUR – SPARK NIGHT PROM –",
      "k": "event",
-     "s": "17:00",
-     "e": "19:00",
+     "s": "19:00",
+     "e": "21:30",
      "g": true,
      "sk": "開演",
      "ek": "",
      "a": "",
      "r": "",
      "u": "http://bigcat-live.com/schedule/",
-     "al": [],
-     "au": "",
-     "kn": "",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "WurtS"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/wurts2021"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/wurts2021/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UC--vjcNzor5JzYAuqPviltA"
+      }
+     ],
+     "au": "10代後半から20代が中心。男女比は4対6ほどで女性がやや多め。",
+     "kn": "セルフプロデュースで楽曲制作から映像まで手掛ける異色のソロアーティスト。今回のツアーは特にダンスナンバーが熱いと話題。",
      "av": "",
      "cap": 700
     },
     {
-     "v": "GORILLA HALL OSAKA",
-     "t": "色々な十字架",
+     "v": "オリックス劇場",
+     "t": "（名前を読み取れませんでした）",
      "k": "event",
-     "s": "17:30",
+     "s": "17:00",
      "e": "19:30",
      "g": true,
      "sk": "開演",
      "ek": "",
      "a": "",
      "r": "",
-     "u": "https://gorillahall.jp/",
+     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
      "al": [],
-     "au": "20代から40代が中心。男女比は半々だが、独特な世界観を好む女性ファンも目立つ。",
-     "kn": "90年代ヴィジュアル系を現代風に昇華した「V系バンド」として話題。独特な歌詞と世界観が人気。",
+     "au": "",
+     "kn": "",
      "av": "",
-     "cap": 0
+     "cap": 2400
     }
    ]
   }
