@@ -5288,12 +5288,20 @@ function gasStatCard(){
     '</div>';
 }
 /** 仕掛けが止まっていそうか（イベントの紙の古さで見ます） */
-function gasStale(){
+function gasStaleH(){
   const at = (evData && evData.at) ? String(evData.at) : '';
   const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(at);
-  if (!m) return false;
+  if (!m) return 0;
   const t = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime();
-  return (Date.now() - t) > 20 * 3600 * 1000;      /* 20時間より古い */
+  return (Date.now() - t) / 3600000;               /* 止まってからの時間 */
+}
+function gasStale(){
+  return gasStaleH() > 20;                          /* 20時間より古い */
+}
+/** 「2日と13時間」のように書きます（日付だけでは、長さが分かりません） */
+function gasStaleText(h){
+  const d = Math.floor(h / 24), r = Math.floor(h % 24);
+  return d ? (d + '日と' + r + '時間') : (Math.floor(h) + '時間');
 }
 /** 一番上に出す、起こすための帯 */
 function gasWakeBar(){
@@ -5306,13 +5314,26 @@ function gasWakeBar(){
    */
   if (!(ME.profile && ME.profile.is_admin)) return '';
   if (!gasStale() || !gasInfo || !gasInfo.exec) return '';
+  const hrs = gasStaleH();
+  /* ★押しても直らないときの道を、ここに書いておきます（2026/11/22）。
+       押せば直るのが ほとんどですが、Googleの許可が切れていると
+       この受け口も動きません。そのときだけ、スプシを開く形になります。
+       2日たっても止まったままなら、それが起きていると見ます。 */
+  const deep = (hrs > 40)
+    ? '<span class="note wdeep">押しても この帯が消えないときは、' +
+      'Googleの許可が切れています。記録用スプレッドシートを開くと、' +
+      'まん中に なおすボタンの箱が出ます。' +
+      'それでも直らなければ、【拡張機能】→【Apps Script】→' +
+      '関数えらびで「ニア僕の勝ちだ」→【▶実行】です。</span>'
+    : '';
   return '<div class="wakebar">' +
     '<b>仕掛けが止まっているかもしれません。</b>' +
-    '<span>イベントの紙が ' + esc(String(evData.at)) + ' のままです。</span>' +
+    '<span>イベントの紙が ' + esc(String(evData.at)) + ' のままです' +
+    '（' + gasStaleText(hrs) + '）。</span>' +
     '<a class="btn" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
     '仕掛けを起こす</a>' +
     '<span class="note">別のページが開きます。押すと自動で直ります。' +
-    '戻ってきたら、この帯は消えます。</span></div>';
+    '戻ってきたら、この帯は消えます。</span>' + deep + '</div>';
 }
 
 /* ============================================================
