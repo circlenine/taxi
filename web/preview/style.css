@@ -2469,3 +2469,14 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
 .bootwho{display:flex;flex-direction:column;align-items:center;gap:3px}
 .bootwho b{font-size:13px;font-weight:700;color:#FFFFFF;letter-spacing:.08em}
 .bootwho i{font-style:normal;font-size:11.5px;color:#FFFFFF;opacity:.85}
+
+/* ================================================================
+ *  みんなの記録を、この画面の中で開く（ご指示・2026/11/22）
+ *  ★別のページへ移らずに読めるようにします。
+ * ================================================================ */
+.modalbox.tall{height:92vh;max-height:92vh;width:min(96vw,760px)}
+.modalbody.nopad{padding:0;flex:1 1 auto;display:flex;min-height:0}
+.minaf{flex:1 1 auto;width:100%;height:100%;border:0;background:#0C0F14;
+  border-radius:0}
+.modalbox.tall .modalfoot{flex-wrap:wrap;gap:8px}
+.modalbox.tall .modalfoot .mini{margin-right:auto}

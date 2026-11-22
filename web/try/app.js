@@ -6134,8 +6134,8 @@ function fabWire(){
         /* ★「みんなの記録」は、ここから開けます（ご質問・2026/11/13）。
              同じ中身を2つ持つと、直すたびに2か所 直すことになります。 */
         ((gasInfo && gasInfo.exec)
-          ? '<a class="fsrow" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-            '<b>みんなの記録</b><i>記録カード・ロング（別のページが開きます）</i></a>' +
+          ? '<button class="fsrow" id="goMina" type="button">' +
+            '<b>みんなの記録</b><i>記録カード・ロング（この画面の中で開きます）</i></button>' +
             /* ★【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/14）。
                  仕組みの手当てなので、乗務員の方々には出しません。 */
             ((ME.profile && ME.profile.is_admin)
@@ -6153,6 +6153,8 @@ function fabWire(){
       });
       const so = sheet.querySelector('#out');
       if (so && !so.dataset.wired) { so.dataset.wired = '1'; so.addEventListener('click', signOut); }
+      const gm = sheet.querySelector('#goMina');
+      if (gm) gm.onclick = function (){ sheet.hidden = true; minaOpen(); };
       sheet.hidden = false;
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
         b.onclick = function () {
@@ -6399,6 +6401,46 @@ function calcHelp(k){
 }
 
 /** 【説明】の箱を出します */
+/* ================================================================
+ *  📱 みんなの記録を、この画面の中で開く（ご指示・2026/11/22）
+ *
+ *  ★「Googleスクリプト（ランキング除く）は、webサイト上に
+ *      公開できないのですか？ 埋め込みとかでも良いので、
+ *      別ページに移動させない形にして欲しいです」
+ *
+ *  ★ページの作り（GAS側）は、すでに埋め込みを許しています。
+ *    残っているのは「だれが開けるか」の設定だけです。
+ *    いまは Google のログインが要る形なので、ログインの画面は
+ *    ほかのページの中には出せない決まりになっています。
+ *    設定を変えれば、ここにそのまま出ます（まーく様の手で1回）。
+ *  ★出てこないときのために、別のページで開く行も、同じ箱に置きます。
+ *    行き止まりにしないためです。
+ * ================================================================ */
+function minaOpen(){
+  const url = (gasInfo && gasInfo.exec) ? gasInfo.exec : '';
+  if (!url) return;
+  const box = document.createElement('div');
+  box.className = 'modal';
+  box.innerHTML = '<div class="modalbox tall"><h2>みんなの記録</h2>' +
+    '<div class="modalbody nopad">' +
+      '<iframe class="minaf" src="' + esc(url) + '" title="みんなの記録"' +
+      ' loading="lazy" referrerpolicy="no-referrer"></iframe>' +
+    '</div>' +
+    '<div class="modalfoot">' +
+      '<a class="mini" href="' + esc(url) + '" target="_blank" rel="noopener">' +
+      '出てこないときは、別のページで開く</a>' +
+      '<button class="btn" id="minaClose">閉じる</button>' +
+    '</div></div>';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  box.querySelector('#minaClose').addEventListener('click', close);
+  box.addEventListener('click', function (e){ if (e.target === box) close(); });
+}
+
 function calcPopup(title, lines){
   const box = document.createElement('div');
   box.className = 'modal';
