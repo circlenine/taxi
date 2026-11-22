@@ -1244,7 +1244,7 @@ header > h1, .login .head > h1{white-space:nowrap}
      「左によりすぎて、幅いっぱいに綺麗に作れてません」）。
    余った幅は、それぞれの欄に分けて配られます。
    細い機種では、下の min-width で守られて 横に動かせます。 */
-.scroll.tbl table{table-layout:fixed;width:100%;min-width:440px}
+.scroll.tbl table{table-layout:fixed;width:100%;min-width:354px}
 .scroll.tbl th,.scroll.tbl td{scroll-snap-align:start;padding:6px 2px;font-size:11.5px;
   vertical-align:middle}
 .scroll.tbl th{font-size:11px;letter-spacing:0;white-space:nowrap;text-align:center;font-weight:700}
@@ -1257,15 +1257,17 @@ header > h1, .login .head > h1{white-space:nowrap}
        どうしても無理なら、見切れない幅調整をしてください」）。
    前は 9つの欄のころの幅が残っていて、合計 514px ありました。
    画面は 390px なので、右が切れていました。
-   いまは 日42＋名28＋付32＋待22＋発32＋金46＋乗48＋種50＋他62＋操作38＝400、
-   すき間をふくめて 440px。少しはみ出ますが、横にスクロールできます
-   （ご指示・2026/11/16「他の項目からは、少しはみ出ても仕方ないものとしますので、
-     スクロールできることや、横画面推奨を載せてください」）。
+   ★2026/11/23：横に動かさずに、ぜんぶ見えるようにしました
+     （ご指示「表はしっかり、金額面などは1画面で見えるような形に整えて」
+       「なるべくスクロールせず、ストレスを感じない画面を徹底してください」）。
+   日36＋名28＋付34＋待22＋発34＋金46＋乗42＋種40＋他38＋操作34＝354。
+   390px の画面で、欄の中に ちょうど収まります（横に動かさずに見えます）。
+   ★金額の欄（46px）だけは、けずっていません。「¥11,200」が切れるためです。
    並びは 名→付→待→発→金→乗→種→他→操作（種と他は、分けました）。 */
 /* ★「日」の欄（2026/11/16）。並びの既定が「新しく入れた順」になり、
      日づけの見出し行が出なくなったので、ここで必ず見えるようにします。
      曜日の区分で色を分けます（平日・金・土・日祝）。 */
-.scroll.tbl th:nth-child(1),.scroll.tbl td.c-date{width:42px;min-width:42px;
+.scroll.tbl th:nth-child(1),.scroll.tbl td.c-date{width:36px;min-width:36px;
   font-family:var(--mono);font-size:9px;white-space:nowrap;letter-spacing:-.04em}
 .scroll.tbl td.c-date{border-radius:4px}
 .scroll.tbl td.c-date.d-wd {background:#20242E}
@@ -1279,7 +1281,7 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* ★付・発は「20:45」の5文字が入る広さにします（ご指摘・2026/11/16
      「発がはみ出てます、こういうの本当にやめてください」）。
    32pxだと最後の1文字が欄の外へ出ていました。字も少し詰めます。 */
-.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:36px;min-width:36px}
+.scroll.tbl th:nth-child(3),.scroll.tbl th:nth-child(5){width:34px;min-width:34px}
 .scroll.tbl td:nth-child(3),.scroll.tbl td:nth-child(5){font-size:9.5px;
   font-family:var(--mono);letter-spacing:-.04em;padding-left:1px;padding-right:1px;
   white-space:nowrap;overflow:hidden}
@@ -1290,24 +1292,24 @@ header > h1, .login .head > h1{white-space:nowrap}
 /* 種のタグは、表の中では小さくします（ここが広いと、右が切れます） */
 .scroll.tbl .mtag{font-size:9.5px;padding:1px 4px;line-height:1.5}
 .scroll.tbl th:nth-child(6){width:46px;min-width:46px}
-.scroll.tbl th:nth-child(7),.scroll.tbl td.c-place{width:48px;min-width:48px;
+.scroll.tbl th:nth-child(7),.scroll.tbl td.c-place{width:42px;min-width:42px;
   white-space:normal;word-break:break-all;line-height:1.35}
 /* ★種と他は、別々の欄にしました（ご指示・2026/11/16
      「他の文章が長くなる可能性があるため 種と他は、やっぱりわけてください」） */
-.scroll.tbl th:nth-child(8),.scroll.tbl td.c-meth{width:50px;min-width:50px;
+.scroll.tbl th:nth-child(8),.scroll.tbl td.c-meth{width:40px;min-width:40px;
   white-space:normal;line-height:1.3;overflow:hidden}
 /* ★「途中乗り」のような長い種類は、2行に折り返します。
      1行に収めようとすると「途…」になって、何のことか分からなくなります。 */
 .scroll.tbl td.c-meth .mtag{display:block;margin:0 auto;max-width:100%;
   white-space:normal;word-break:break-all;line-height:1.25;
   border-radius:6px;padding:1px 3px}
-.scroll.tbl th:nth-child(9),.scroll.tbl td.c-note{width:62px;min-width:62px;
+.scroll.tbl th:nth-child(9),.scroll.tbl td.c-note{width:38px;min-width:38px;
   white-space:normal;word-break:break-all;line-height:1.3;overflow:hidden}
 .scroll.tbl td.c-note .ntxt{display:-webkit-box;-webkit-line-clamp:3;
   -webkit-box-orient:vertical;font-size:9.5px;line-height:1.25;
   color:#FFFFFF;overflow:hidden}
 .scroll.tbl td .dim,.scroll.tbl td .ntxt.dim{color:var(--ink2)}
-.scroll.tbl th.ops,.scroll.tbl td.ops{width:38px;min-width:38px}
+.scroll.tbl th.ops,.scroll.tbl td.ops{width:34px;min-width:34px}
 
 /* ★エリアの区切り（ご指示・2026/11/16「エリア順でわけてください」）。
      日付の見出しより ひとまわり細くして、高さを食わないようにします。 */
@@ -1491,8 +1493,12 @@ h1.dn .xg.on{animation:xgleam 1.15s ease-in-out}
 nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;line-height:1.25;padding:8px 2px;width:100%;min-width:0;border-radius:8px}
 /* ★新着の赤丸は、名前の左に出します（ご指示・2026/11/12） */
-nav button b{font-size:13px;font-weight:700;display:flex;align-items:center;
-  justify-content:center;gap:4px;white-space:nowrap}
+/* ★ます目の字は、どの札も同じ大きさにします（ご指示・2026/11/23）。
+     「パーセント」のように長い名前が入ると、13pxでは ます目からはみ出します。
+     画面の幅に合わせて ぜんぶ同じだけ小さくすることで、
+     大きさがそろったまま、どの名前も1行に収まります。 */
+nav button b{font-size:clamp(9.5px, 2.8vw, 13px);font-weight:700;display:flex;
+  align-items:center;justify-content:center;gap:4px;white-space:nowrap}
 /* ★赤い点は、ます目の右上に置きます（ご指摘・2026/11/16）。
      名前の横に並べると、となりのます目とくっついて読みにくくなりました。 */
 nav button{position:relative}
@@ -2283,11 +2289,11 @@ p.extnote{margin-top:8px}
 .scroll.tbl{border-radius:10px;border:1px solid var(--line);
   position:relative;background:rgba(255,255,255,.015)}
 .scroll.tbl table{margin:0}
-/* 右のはしの影（スクロールしても ついてきます） */
+/* ★右のはしの黒い影は、やめました（ご指示・2026/11/23
+     「表の右側にある、縦線の黒いブラーみたいなやつはなんなんですか？
+       見づらすぎるにも程があるので、やめてください」）。
+   かわりに、表そのものを画面の幅に収めました（下の幅の指定）。 */
 .tblwrap{position:relative}
-.tblwrap::after{content:'';position:absolute;top:0;right:0;width:18px;height:100%;
-  pointer-events:none;border-radius:0 10px 10px 0;
-  background:linear-gradient(to right,rgba(11,11,13,0),rgba(11,11,13,.92))}
 
 /* ------------------------------------------------------------
    ★▼ の左右の位置を、どの欄でもそろえます（ご指摘・2026/11/17）。
@@ -2313,7 +2319,21 @@ p.extnote{margin-top:8px}
  *  ★ページの中のメニューと同じ形にそろえますが、
  *    上に貼り付いている行の中なので、余白だけ詰めます。
  * ================================================================ */
-#htabs{margin:0;padding:4px}
+/* ★ページの中のメニューと、同じ大きさにします（ご指示・2026/11/23
+     「メニューのサイズ（折りたたみの方）がページ上より小さく載ってるのが
+       許せないので 大きさはきちんと統一して、押しやすいように」）。
+   内側の余白を nav と同じ 5px にそろえてあります。 */
+#htabs{margin:0;padding:5px}
+/* ★ページの中のメニューが見えている間は、▼のメニューを出しません。
+     同じものが2つ並ぶのは、ただの邪魔になります。 */
+body.tabson #hsub, body.tabson .hgrab{display:none}
+/* ★版と、そのとなりの一文を たたむ ▼（ご指示・2026/11/23） */
+.hver > .hvfold{flex:none;background:none;border:0;cursor:pointer;
+  color:var(--paper);opacity:.75;padding:2px 4px;line-height:1;margin-left:auto}
+.hver > .hvfold i{font-style:normal;font-size:11px;display:inline-block;
+  transition:transform .15s}
+.hver.cl > .ver, .hver.cl > .sub{display:none}
+.hver.cl > .hvfold i{transform:rotate(-90deg)}
 .hsub > #htabs{margin-left:var(--gut);margin-right:var(--gut)}
 @media (max-width:340px){ .hsub > #htabs{margin-left:7px;margin-right:7px} }
 /* ★赤い丸は ▼ に付けます（行き先が ▼ の中に入ったため） */

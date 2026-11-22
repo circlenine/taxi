@@ -1054,6 +1054,7 @@ function render(){
   const litTab = (tab === 'best') ? 'ratio' : tab;
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === litTab));
   htabsFill();
+  try { hdrDupe_(); } catch (e) {}
   /* 見ているあいだは、足あとを新しくしておきます（上の tabLoad の見分けに使います） */
   tabTouch();
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
@@ -6771,6 +6772,70 @@ function htabsFill(){
   }).join('');
 }
 
+/* ================================================================
+ *  ページの中のメニューが見えている間は、▼のメニューを出しません
+ *    （ご指示・2026/11/23「ページ上に見えてる時は、
+ *      ▼のメニューは写さないように工夫してください」）
+ *
+ *  ★境目で ちらつかないように、出す線と消す線を16pxずらしてあります。
+ *    ちょうど境目で指を止めても、同じ所で何度も入れ替わりません。
+ *  ★上の行の高さが変わっても、この見分けは ずれません。
+ *    ▼のメニューをしまうと、下の中身も同じだけ上がるので、
+ *    「ます目の下 − 上の行の下」の差は変わらないためです。
+ * ================================================================ */
+let tabsSeen_ = null;
+function hdrDupe_(){
+  const hdr = document.querySelector('header');
+  const src = document.getElementById('tabs');
+  if (!hdr || !src) return;
+  const d = src.getBoundingClientRect().bottom - hdr.getBoundingClientRect().bottom;
+  let seen = tabsSeen_;
+  if (d > 12) seen = true;
+  else if (d < -4) seen = false;
+  if (seen === tabsSeen_) return;
+  tabsSeen_ = seen;
+  try { document.body.classList.toggle('tabson', !!seen); } catch (e) {}
+}
+let hdrTick_ = false;
+function hdrDupeWire_(){
+  if (typeof window === 'undefined' || !window.addEventListener) return;
+  const run = function (){
+    if (hdrTick_) return;
+    hdrTick_ = true;
+    requestAnimationFrame(function (){ hdrTick_ = false; hdrDupe_(); });
+  };
+  window.addEventListener('scroll', run, { passive: true });
+  window.addEventListener('resize', run, { passive: true });
+  hdrDupe_();
+}
+
+/* ================================================================
+ *  版と、そのとなりの一文も ▼ でしまえます（ご指示・2026/11/23）
+ *    「v1.0と、右横のひとことも ▼で折りたたみできるようにしてください」
+ *  ★しまっても ▼ だけは残します。残さないと、二度と戻せません。
+ * ================================================================ */
+const HVER_KEY = 'tn_hver_fold';
+function hverSet_(cl){
+  const h = document.querySelector('.hver');
+  if (!h) return;
+  h.classList.toggle('cl', !!cl);
+  try { localStorage.setItem(HVER_KEY, cl ? '1' : '0'); } catch (e) {}
+}
+function hverWire_(){
+  const h = document.querySelector('.hver');
+  if (!h || h.dataset.wired) return;
+  h.dataset.wired = '1';
+  const b = document.createElement('button');
+  b.className = 'hvfold'; b.type = 'button';
+  b.setAttribute('aria-label', '版とひとことを たたむ');
+  b.innerHTML = '<i>▼</i>';
+  b.onclick = function (){ hverSet_(!h.classList.contains('cl')); };
+  h.appendChild(b);
+  let cl = false;
+  try { cl = (localStorage.getItem(HVER_KEY) === '1'); } catch (e) {}
+  h.classList.toggle('cl', cl);
+}
+
 let hsubAuto = false;
 function hsubSet(cl){
   const h = document.getElementById('hsub');
@@ -6805,6 +6870,8 @@ function hsubWire(){
     if (hsubAuto) return;
     if (window.scrollY > 60) { hsubAuto = true; hsubSet(true); }
   }, { passive: true });
+  hverWire_();
+  hdrDupeWire_();
 }
 
 /* ★書きかけのまま閉じようとしたら、1度だけ確かめます（ご指示・2026/11/12）

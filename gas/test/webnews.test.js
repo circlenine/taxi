@@ -1788,9 +1788,11 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
        集計→割合／全記録はなくす。 */
   /* ★2026/11/13 のご指示で、表グラフ・横棒グラフ・折線グラフは
        「グラフ」1つにまとめ、ピンの「地図」を足しました。 */
-  /* ★2026/11/16：「パーセント」は「％」に縮めました（ご指示
-       「パーセントは｢％｣でもよいです 他に短くできそうな所は短くしてください」） */
-  ['記録', '天気', 'グラフ', '地図', '％'].forEach(function (n) {
+  /* ★2026/11/23：「％」は「パーセント」に戻しました
+       （ご指示「%は、やっぱりパーセントにしてください」）。
+       字が長くなるので、ます目の字は画面の幅に合わせて
+       ぜんぶ同じだけ小さくなります（style.css の clamp）。 */
+  ['記録', '天気', 'グラフ', '地図', 'パーセント'].forEach(function (n) {
     t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
   });
   t(tabs.indexOf('全記録') === -1 && tabs.indexOf('集計') === -1,
@@ -2061,8 +2063,10 @@ console.log('■ 表は幅いっぱい、いらない案内は出さない（ご
   /* ★2026/11/16：種と他を分け、日づけの欄を足したので、
        少しはみ出します（ご指示「他の項目からは、少しはみ出ても仕方ない
        ものとしますので、スクロールできることや、横画面推奨を載せてください」）。 */
-  t(/\.scroll\.tbl table\{table-layout:fixed;width:100%;min-width:440px\}/.test(css),
-    '★★★表は、幅いっぱいまで広がる（足りなければ、横にスクロールする）');
+  /* ★2026/11/23：横に動かさずに、ぜんぶ見えるようにしました（ご指示
+       「表はしっかり、金額面などは1画面で見えるような形に整えてくれないと困ります」）。 */
+  t(/\.scroll\.tbl table\{table-layout:fixed;width:100%;min-width:354px\}/.test(css),
+    '★★★表は、横に動かさずに ぜんぶ見える');
   t(/横にスクロールできます（横画面推奨）/.test(app),
     '★★★横に流れることと、横画面推奨を、先に書いてある');
   t(!/\.scroll\.tbl table\{table-layout:fixed;width:auto\}/.test(css),
@@ -2201,7 +2205,7 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
     '★★★足しても、交互に出る');
   t(/_sayWidest = '';/.test(sh), '　 足したら、幅も測り直す');
   /* まーく様がお決めになったひとこと（ご指示・2026/11/14） */
-  ['やってんねぇ！','ドリーマーやな！','ええやん！','ぃやぁ～！','やるんだなライナー！',
+  ['やってんねぇ！','ドリーマーやな！','ええやん！','ぃやぁ～！','やるんだな…！ライナー…！今…！ここで…ッ！',
    '良い人生でした','ﾌｩｰﾝ、そうだねｪｰ','おぅ、しばくぞぉ？','ええとこ行っとるやん！',
    'ドパらせてくれぇ！'].forEach(function (x) {
     t(sh.indexOf("'" + x + "'") !== -1, '　 「' + x + '」が入っている');
@@ -2387,9 +2391,9 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★金額は右にそろえる');
   /* ★種と他は、別々の欄にしました（ご指示・2026/11/16
        「他の文章が長くなる可能性があるため 種と他は、やっぱりわけてください」） */
-  t(/\.scroll\.tbl th:nth-child\(8\),\.scroll\.tbl td\.c-meth\{width:50px/.test(css),
+  t(/\.scroll\.tbl th:nth-child\(8\),\.scroll\.tbl td\.c-meth\{width:40px/.test(css),
     '★★★種（乗せ方）は、それだけの欄');
-  t(/\.scroll\.tbl th:nth-child\(9\),\.scroll\.tbl td\.c-note\{width:62px/.test(css),
+  t(/\.scroll\.tbl th:nth-child\(9\),\.scroll\.tbl td\.c-note\{width:38px/.test(css),
     '★★★他（書きそえ）も、それだけの欄');
   t(/class="c-meth"/.test(app) && /class="ja c-note"/.test(app),
     '　 どちらも、別の欄に出している');
@@ -4128,7 +4132,10 @@ console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
   {
     const css2 = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
     t(/\.scroll\.tbl\{border-radius:10px/.test(css2), '★★★表は、枠の角で ぴたりと切る');
-    t(/\.tblwrap::after\{/.test(css2), '★★★右のはしに、まだ先があることを見せる');
+    /* ★右のはしの黒い影は、やめました（ご指示・2026/11/23
+         「縦線の黒いブラーみたいなやつ…見づらすぎるにも程があるので、やめてください」）。
+       表そのものが画面に収まったので、先を見せる影も要らなくなりました。 */
+    t(!/\.tblwrap::after\{/.test(css2), '★★★右のはしに、黒い影を出さない');
   }
 
   t(!/くり返していそうな組み合わせ/.test(app),
@@ -4719,6 +4726,42 @@ console.log('\n■ 主軸の3ページのブラッシュアップ（2026/11/22�
   /* ④ エリア別は、はじめから たたむ（上の3つの表が流れないように） */
   t(/FOLD_SHUT = \[[^\]]*'エリア別のロング割合'/.test(app),
     '★★★エリア別のロング割合は、はじめ たたんである');
+}
+
+console.log('\n■ 上の行の作り直し（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+
+  /* ① ページの中のメニューが見えている間は、▼のメニューを出さない */
+  t(/function hdrDupe_\(\)\{/.test(app), '★★★同じメニューが2つ並ばないようにしている');
+  t(/if \(d > 12\) seen = true;[\s\S]{0,60}else if \(d < -4\) seen = false;/.test(app),
+    '★★★境目で ちらつかないよう、出す線と消す線をずらしてある');
+  t(/body\.tabson #hsub, body\.tabson \.hgrab\{display:none\}/.test(css),
+    '★★★見えている間は、▼ のメニューも つまみも出さない');
+  t(/window\.addEventListener\('scroll', run/.test(app) &&
+    /window\.addEventListener\('resize', run/.test(app),
+    '　 動かしたときと、画面の向きを変えたときに見直す');
+
+  /* ② ▼のメニューと、ページの中のメニューは同じ大きさ */
+  const p1 = /#htabs\{margin:0;padding:(\d+)px\}/.exec(css);
+  const p2 = /nav\{display:grid;[\s\S]{0,160}?padding:(\d+)px;/.exec(css);
+  t(!!p1 && !!p2 && p1[1] === p2[1],
+    '★★★▼のメニューの大きさは、ページの中のメニューと同じ',
+    (p1 && p1[1]) + ' / ' + (p2 && p2[1]));
+
+  /* ③ ます目の字は、どの札も同じ大きさで、長い名前も1行に収まる */
+  t(/nav button b\{font-size:clamp\(/.test(css),
+    '★★★ます目の字は、画面の幅に合わせて ぜんぶ同じだけ小さくなる');
+  t(/<b>パーセント<\/b>/.test(ix), '★★★「％」ではなく「パーセント」と書く');
+
+  /* ④ 版と、そのとなりの一文を たためる */
+  t(/function hverWire_\(\)\{/.test(app), '★★★版と一文を ▼ でしまえる');
+  t(/\.hver\.cl > \.ver, \.hver\.cl > \.sub\{display:none\}/.test(css),
+    '　 しまうと、版も一文も消える');
+  t(/\.hver > \.hvfold\{/.test(css) && !/\.hver\.cl > \.hvfold\{display:none/.test(css),
+    '★★★しまっても ▼ は残る（残さないと、二度と戻せません）');
+  t(/localStorage\.setItem\(HVER_KEY/.test(app), '　 しまったままを覚える');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
