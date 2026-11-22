@@ -550,18 +550,67 @@ function sayFit(mount){
   } catch (e) {}
 }
 
+/* ================================================================
+ *  顔は4人。出るたびに、でたらめに1人えらびます（ご指示・2026/11/22）
+ *
+ *  ★「ローディングや、吹き出し横のアイコンですが
+ *      添付画像に、ランダムで変える形にしてください」
+ *  ★だれなのか分かるように、名前も出します。
+ *  ★ふきだしの上に ふわっと出る字（もとは「ははは」）も、
+ *    その人の言い方に変えます。
+ * ================================================================ */
+const FACES = [
+  { k: 'dai',  n: 'ダイスケ', fx: 'あっとございまぁーす！' },
+  { k: 'shun', n: 'シュン',   fx: 'いい人生でした･･･！' },
+  { k: 'jin',  n: 'ジンキチ', fx: 'やんね？やんね？' },
+  /* ★城越さん（アナル）は「理解不能な記号文字」とのご指示です。
+       どの機種にも入っている記号だけを並べます。
+       珍しい字を使うと、豆腐（□）になって出ません。 */
+  { k: 'ana',  n: 'アナル',   fx: '※◆§▲＠◇＃' }
+];
+
 /*
  * ★顔の絵の置き場。
- *   本番は /img/kira.png、下見は /preview/img/kira.png です。
+ *   本番は /img/、下見は /preview/img/ です。
  *   いま開いているページの場所から組み立てるので、どちらでも出ます。
+ * ★small を true にすると、小さい絵（ふきだしの横）を返します。
+ *   3.5KB しかないので、読み込みで待たせません。
  */
-function sayFaceSrc(){
+function faceDir_(){
   try {
     const p = String(location.pathname || '/');
-    const dir = p.slice(0, p.lastIndexOf('/') + 1);
-    return dir + 'img/kira.png';
-  } catch (e) { return 'img/kira.png'; }
+    return p.slice(0, p.lastIndexOf('/') + 1);
+  } catch (e) { return ''; }
 }
+function sayFaceSrc(k, small){
+  const key = k || 'dai';
+  return faceDir_() + 'img/' + key + (small ? '_s' : '') + '.png';
+}
+/* でたらめに1人（続けて同じ人は出しません） */
+function facePick(){
+  const f = pick(FACES);
+  return f || FACES[0];
+}
+
+/*
+ * ★読み込み中の絵も、でたらめに1人にします（ご指示・2026/11/22）。
+ *   名前とひとことも、その人のものに入れ替えます。
+ *   読み込みの画面は一瞬なので、ここは小さい絵ではなく大きい絵です。
+ */
+function bootFace(){
+  try {
+    if (typeof document === 'undefined') return;
+    const img = document.getElementById('bootFace');
+    if (!img) return;
+    const f = pick(FACES) || FACES[0];
+    img.src = sayFaceSrc(f.k, false);
+    const nm = document.getElementById('bootName');
+    if (nm) nm.textContent = f.n;
+    const sy = document.getElementById('bootSay');
+    if (sy) sy.textContent = f.fx;
+  } catch (e) {}
+}
+try { bootFace(); } catch (e) {}
 
 function sayRoll() {
   /* ★画面の無いところ（検査など）でも落ちないようにします */
@@ -623,10 +672,18 @@ function sayRoll() {
        *     「できれば、はははのトランジションもあると嬉しいです」
        *   中身を作り直すたびに、動きは自然に最初から始まります。
        */
+      const fc = facePick();
       mount.innerHTML =
-        '<img class="face kiraface" src="' + sayFaceSrc() + '" alt="" decoding="async">' +
-        '<span class="hahafx" aria-hidden="true"><i>は</i><i>は</i><i>は</i></span>' +
+        '<span class="facebox">' +
+          '<img class="face kiraface" src="' + sayFaceSrc(fc.k, true) + '" alt="" decoding="async">' +
+          '<b class="facen"></b>' +
+        '</span>' +
+        '<span class="hahafx" aria-hidden="true"><i></i></span>' +
         '<div class="bubble' + (say.good ? ' good' : '') + '"><span class="t"></span></div>';
+      /* ★名前と ふわっと出る字は、字として入れます。
+           組み立ての字に混ぜると、記号がそのまま出てしまいます。 */
+      mount.querySelector('.facen').textContent = fc.n;
+      mount.querySelector('.hahafx i').textContent = fc.fx;
       mount.querySelector('.bubble .t').textContent = say.t;
       sayFit(mount);
     } catch (e) {}

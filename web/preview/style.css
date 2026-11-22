@@ -2450,3 +2450,22 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
   .filt .fhead b{font-size:11.5px}
   .filt .fhead i{font-size:10.5px}
 }
+
+/* ================================================================
+ *  顔は4人（ご指示・2026/11/22）
+ *  ★だれなのか分かるように、名前を小さく重ねます。
+ *    絵の上に重ねるので、となりのふきだしの高さは変わりません。
+ * ================================================================ */
+.saymount .facebox{position:relative;flex:0 0 34px;width:34px;height:34px;
+  display:block;order:1}
+.saymount .facebox .face{width:34px;height:34px;min-width:34px}
+.saymount .facen{position:absolute;left:50%;bottom:-3px;transform:translateX(-50%);
+  font-size:9px;line-height:1;font-weight:700;white-space:nowrap;
+  padding:1px 4px;border-radius:5px;background:rgba(10,10,12,.82);
+  color:#FFFFFF;letter-spacing:.02em;z-index:4}
+/* ★ふわっと出る字は、1行まるごとにします（言葉が長くなったため） */
+.hahafx i{white-space:nowrap;font-size:10px}
+/* 読み込み中の、名前とひとこと */
+.bootwho{display:flex;flex-direction:column;align-items:center;gap:3px}
+.bootwho b{font-size:13px;font-weight:700;color:#FFFFFF;letter-spacing:.08em}
+.bootwho i{font-style:normal;font-size:11.5px;color:#FFFFFF;opacity:.85}

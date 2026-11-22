@@ -158,18 +158,36 @@ console.log('■ ひとこと（ご指示・2026/11/11）／描いていた顔�
    *   描いていた顔（faceSvg）は、一覧の画面で使うので残してあります。
    */
   const css2 = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-  t(/<img class="face kiraface" src="' \+ sayFaceSrc\(\)/.test(sh),
+  /* ★2026/11/22：顔は4人になりました。出るたびに でたらめに1人えらび、
+       だれなのか分かるように、名前も重ねます。 */
+  t(/<img class="face kiraface" src="' \+ sayFaceSrc\(fc\.k, true\)/.test(sh),
     '★★★顔は、いただいた絵になっている');
-  t(/function sayFaceSrc\(\)/.test(sh) && /dir \+ 'img\/kira\.png'/.test(sh),
+  t(/function sayFaceSrc\(k, small\)/.test(sh) && /faceDir_\(\) \+ 'img\/'/.test(sh),
     '　 下見用のページからでも、絵が出る');
+  t(/const FACES = \[/.test(sh) && /k: 'dai'/.test(sh) && /k: 'shun'/.test(sh)
+    && /k: 'jin'/.test(sh) && /k: 'ana'/.test(sh), '★★★顔は4人ぶん');
+  t(/function facePick\(\)/.test(sh) && /facePick\(\)/.test(sh),
+    '★★★出るたびに、でたらめに1人えらぶ');
+  t(/\.facen\{textContent|querySelector\('\.facen'\)\.textContent = fc\.n/.test(sh),
+    '★★★だれなのか、名前を出す');
+  t(/\.saymount \.facen\{/.test(css2), '　 その見た目もある');
+  ['ダイスケ', 'シュン', 'ジンキチ', 'アナル'].forEach(function (n){
+    t(sh.indexOf("n: '" + n + "'") !== -1, '　 ' + n + ' が入っている');
+  });
+  t(/fx: 'あっとございまぁーす！'/.test(sh) && /fx: 'いい人生でした･･･！'/.test(sh)
+    && /fx: 'やんね？やんね？'/.test(sh),
+    '★★★ふわっと出る字は、その人の言い方');
   t(/'<div class="bubble' \+ \(say\.good \? ' good' : ''\)/.test(sh),
     '★★★ひとことの気分（ぼやき／ほめ）で、ふきだしを切りかえている');
   t(/:has\(\.bubble\.good\) \.kiraface/.test(css2),
     '　 顔のまわりの光も、気分で変える');
   t(!/function faceSvg/.test(sh), '★★★描いていた顔は、もう作らない');
   /* 「できれば、はははのトランジションもあると嬉しいです」 */
-  t(/<span class="hahafx"[^>]*><i>は<\/i><i>は<\/i><i>は<\/i><\/span>/.test(sh),
-    '★★★ひとことが変わると「ははは」が出る');
+  /* ★2026/11/22：ふわっと出る字は残し、言葉をその人のものに変えました。
+       言葉が長くなったので、1行まるごとで出します。 */
+  t(/<span class="hahafx"[^>]*><i><\/i><\/span>/.test(sh)
+    && /querySelector\('\.hahafx i'\)\.textContent = fc\.fx/.test(sh),
+    '★★★ひとことが変わると、ふわっと字が出る');
   t(/@keyframes hahafx\{/.test(css2) && /animation:hahafx /.test(css2),
     '★★★その「ははは」が、ふわっと上がる');
   t(/prefers-reduced-motion:reduce\)\{\.hahafx\{display:none\}\}/.test(css2),
@@ -2295,8 +2313,12 @@ console.log('■ 読み込み中の絵（ご指示・2026/11/13）');
   /* 「透過の人物が中心で／背景にはははをうごかして表示して／
        さらなる背景に画像のような集中線の動きを出してください」 */
   t(/<div class="bootart">/.test(html), '★★★読み込み中の画面に、絵が入っている');
-  t(/<img class="bkira" src="img\/kira\.png"/.test(html),
+  t(/<img class="bkira" id="bootFace" src="img\/dai\.png"/.test(html),
     '★★★まん中は、いただいた透過の絵');
+  t(/function bootFace\(\)/.test(fs.readFileSync(path.join(W, 'shared.js'), 'utf8')),
+    '★★★読み込み中の絵も、でたらめに1人');
+  t(/id="bootName"/.test(html) && /id="bootSay"/.test(html),
+    '★★★だれなのかと、その人のひとことを出す');
   t(fs.existsSync(path.join(W, 'img', 'kira.png')), '　 その絵が、ちゃんと置いてある');
   t((html.match(/<span class="h\d">は<\/span>/g) || []).length >= 6,
     '★★★背景に「は」が並ぶ');
