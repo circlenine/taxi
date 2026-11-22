@@ -2404,3 +2404,18 @@ p.extnote{margin-top:8px}
   .card h2:before{content:""}
   .hhelp{font-size:9.5px;padding:0 6px;margin-right:4px}
 }
+
+/* ================================================================
+ *  長いひとことは、ふきだしを2行にする（2026/11/22）
+ *
+ *  ★まーく様が足されたひとことに、30字を超えるものが出てきました。
+ *    1行のままだと、9px より小さくしない決まりがあるので、
+ *    おしりが「…」で切れて、何と書いてあるか分かりません。
+ *  ★ふきだしは題の下の段にあるので、2行にしても題は動きません。
+ * ================================================================ */
+.saymount .bubble.two{height:auto;min-height:calc(var(--logo) * 1.2);max-height:none;
+  padding-top:4px;padding-bottom:4px;align-items:center}
+.saymount .bubble.two .t{white-space:normal;line-height:1.26;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  overflow:hidden;text-overflow:ellipsis;word-break:break-word}
+header > .saymount .bubble.two{white-space:normal;overflow:visible}
