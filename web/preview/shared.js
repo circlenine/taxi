@@ -586,6 +586,26 @@ function sayFaceSrc(k, small){
   const key = k || 'dai';
   return faceDir_() + 'img/' + key + (small ? '_s' : '') + '.png';
 }
+/*
+ * ★顔から出る字は、各自で変えられます（ご指示・2026/11/22）。
+ *   台帳（faces）に入っていれば、そちらを使います。
+ *   入っていなければ、上の FACES の字のままです。
+ *   だれかが変えたら、みんなの画面がその字になります。
+ */
+const FACE_MAX = 20;          /* 打てる字数。長いと、顔の横からはみ出します */
+function faceFxSet(rows){
+  try {
+    (rows || []).forEach(function (r){
+      if (!r || !r.k) return;
+      const t = String(r.fx == null ? '' : r.fx).trim();
+      if (!t) return;
+      for (let i = 0; i < FACES.length; i++) {
+        if (FACES[i].k === r.k) { FACES[i].fx = t; return; }
+      }
+    });
+  } catch (e) {}
+}
+
 /* でたらめに1人（続けて同じ人は出しません） */
 function facePick(){
   const f = pick(FACES);

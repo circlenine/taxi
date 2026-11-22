@@ -211,3 +211,38 @@ insert into public.says (text, good, user_id)
 select 'ガァチィ？！', true, (select user_id from public.says limit 1)
 where exists (select 1 from public.says)
   and not exists (select 1 from public.says where text = 'ガァチィ？！');
+
+-- ------------------------------------------------------------
+-- ⑨ 顔から出る字（ははは）を、各自で変えられるようにする
+--      （まーく様のご指示・2026/11/22
+--        「ははは（顔アイコンから出る文字）の部分も
+--          各自で変えたい人もいるかもなので 変える用の欄も
+--          ふきだしの欄の下に入れてください
+--          各自で変更申請したら、全体が統一して変わる仕組みに」）
+--
+--    ★1人1行だけ。だれかが変えたら、みんなの画面がその字になります。
+--    ★だれが変えたかは残します（あとで分かるように）。
+--    ★消せません。字を変えるだけです（顔そのものは増やさないため）。
+-- ------------------------------------------------------------
+create table if not exists public.faces (
+  k          text primary key,            -- dai / shun / jin / ana
+  fx         text not null,               -- 顔から出る字
+  user_id    uuid references auth.users(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+alter table public.faces enable row level security;
+
+drop policy if exists faces_select on public.faces;
+create policy faces_select on public.faces
+  for select to authenticated using (true);
+
+drop policy if exists faces_insert on public.faces;
+create policy faces_insert on public.faces
+  for insert to authenticated with check (user_id = auth.uid());
+
+drop policy if exists faces_update on public.faces;
+create policy faces_update on public.faces
+  for update to authenticated
+  using (true) with check (user_id = auth.uid());
+
+grant select, insert, update on public.faces to authenticated;

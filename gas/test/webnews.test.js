@@ -4544,6 +4544,38 @@ console.log('■ 最初に出るのは【天気】（2026/11/17）');
  *    プルダウンが6本 縦に並び、グラフや表が画面のずっと下へ
  *    押しやられていました。先に見たいのは中身のほうです。
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  顔から出る字を、各自で変えられる（ご指示・2026/11/22）
+ *    「各自で変更申請したら、全体が統一して変わる仕組みに」
+ * ---------------------------------------------------------- */
+console.log('■ 顔から出る字を変える（2026/11/22）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8');
+  t(/function paneFaceFx\(\)/.test(app), '★★★変える欄がある');
+  t(/paneSays[\s\S]{0,40}\}\n*\s*`? ?/.test(app) && /\+ paneFaceFx\(\);/.test(app),
+    '★★★ふきだしの欄の、すぐ下に出す');
+  t(/async function faceSave\(\)/.test(app) && /\.from\('faces'\)\s*\n?\s*\.upsert/.test(app),
+    '★★★変えると、台帳に入る（みんなの画面が同じ字になる）');
+  t(/async function loadFaces\(\)/.test(app) && /loadFaces\(\);/.test(app),
+    '★★★開いたときに、台帳から読む');
+  t(/function faceFxSet\(rows\)/.test(sh), '　 読んだ字を、顔の係に渡す');
+  t(/const FACE_MAX = 20;/.test(sh), '★★★打てる字数に上限がある');
+  t(/字の置き場が、まだ台帳にありません/.test(app),
+    '★★★棚がまだ無くても、何が起きたか分かるように書く');
+  t(/create table if not exists public\.faces/.test(sql), '★★★台帳の棚を足す文がある');
+  t(/alter table public\.faces enable row level security/.test(sql),
+    '★★★台帳の側でも守る');
+  t(/grant select, insert, update on public\.faces to authenticated/.test(sql),
+    '★★★消すことはできない（字を変えるだけ）');
+  /* 顔の絵が4人ぶん、置いてあること */
+  ['dai', 'shun', 'jin', 'ana'].forEach(function (k){
+    t(fs.existsSync(path.join(W, 'img', k + '.png')), '　 ' + k + ' の絵がある');
+    t(fs.existsSync(path.join(W, 'img', k + '_s.png')), '　 ' + k + ' の小さい絵がある');
+  });
+}
+
 console.log('■ 絞り込みを たたむ（2026/11/22）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');

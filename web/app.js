@@ -192,6 +192,7 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   await reload();
   /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
   loadSays();
+  loadFaces();
   /*
    * ★「いまアツい」は時刻で中身が変わるので、
    *   1分ごとに描き直します（通信はしません）。
@@ -5920,6 +5921,20 @@ async function loadSays(){
     sayPush();
   } catch (e) {}
 }
+/*
+ * 顔から出る字を、台帳から読みます（ご指示・2026/11/22）。
+ * ★棚がまだ無くても、黙って元のままにします（止めません）。
+ */
+let faceRows = [];
+async function loadFaces(){
+  try {
+    const { data, error } = await db.from('faces').select('k,fx,user_id').limit(20);
+    if (error || !data) return;
+    faceRows = data;
+    if (typeof faceFxSet === 'function') faceFxSet(data);
+  } catch (e) {}
+}
+
 /* 読んだものを、ふきだしの係に渡します */
 function sayPush(){
   try {
@@ -5955,8 +5970,80 @@ function paneSays(){
       `</div>`).join('') + `</div>`
       : '<div class="empty">まだ足されていません。</div>'}
     ${msgHTML('msgsay')}
+  </div>` + paneFaceFx();
+}
+
+/* ================================================================
+ *  顔から出る字を、各自で変える（ご指示・2026/11/22）
+ *
+ *  ★「ははは（顔アイコンから出る文字）の部分も
+ *      各自で変えたい人もいるかもなので 変える用の欄も
+ *      ふきだしの欄の下に入れてください
+ *      各自で変更申請したら、全体が統一して変わる仕組みに」
+ *
+ *  ★だれかが変えたら、みんなの画面がその字になります。
+ *  ★顔は増やしません。字を変えるだけです。
+ * ================================================================ */
+let faceEdit = '';          /* いま直している人（dai / shun / jin / ana） */
+let faceText = '';
+function paneFaceFx(){
+  const F = (typeof FACES !== 'undefined') ? FACES : [];
+  if (!F.length) return '';
+  const max = (typeof FACE_MAX !== 'undefined') ? FACE_MAX : 20;
+  const now = [...faceText].length;
+  const who = faceEdit || F[0].k;
+  return `<div class="card" id="faceCard"><h2>顔から出る字を変える</h2>
+    <p class="note">顔のまわりに、ふわっと出る字です。
+      変えると、みんなの画面も同じ字になります。</p>
+    <div class="frow"><label>だれの</label>
+      <select class="fsel" id="faceWho">
+        ${F.map(x => '<option value="' + esc(x.k) + '"' +
+          (x.k === who ? ' selected' : '') + '>' + esc(x.n) + '</option>').join('')}
+      </select></div>
+    <div class="ktfind">
+      <input class="ja" id="faceNew" maxlength="${max}"
+        placeholder="顔から出る字" value="${esc(faceText)}">
+    </div>
+    <div class="chips">
+      <button class="btn mini" id="faceSave">変える</button>
+    </div>
+    <p class="note"><b id="faceLeft">${max - now}</b> 文字 入ります（${max}文字まで）。</p>
+    <div class="wlist">${F.map(x =>
+      '<div class="wli">' +
+        '<span class="wp"><b>' + esc(x.n) + '</b>　' + esc(x.fx) + '</span>' +
+        '<button class="mini" data-facego="' + esc(x.k) + '">直す</button>' +
+      '</div>').join('')}</div>
+    ${msgHTML('msgface')}
   </div>`;
 }
+
+/** 顔から出る字を、台帳に入れます（1人1行。あれば書きかえます） */
+async function faceSave(){
+  const max = (typeof FACE_MAX !== 'undefined') ? FACE_MAX : 20;
+  const k = String(($('#faceWho') || {}).value || '').trim();
+  const t = String(($('#faceNew') || {}).value || '').trim();
+  const F = (typeof FACES !== 'undefined') ? FACES : [];
+  if (!k || !F.some(x => x.k === k)) { bad('だれの字かを、えらんでください', 'msgface'); return; }
+  if (!t) { bad('字を入れてください', 'msgface'); return; }
+  if ([...t].length > max) { bad(max + '文字までです', 'msgface'); return; }
+  try {
+    const { error } = await db.from('faces')
+      .upsert({ k: k, fx: t, user_id: ME.user.id, updated_at: new Date().toISOString() },
+              { onConflict: 'k' });
+    if (error) {
+      const m = String(error.message || '');
+      bad(/relation|does not exist|schema cache/i.test(m)
+        ? '字の置き場が、まだ台帳にありません（少し待ってから、もう一度）'
+        : jaError(error), 'msgface');
+      return;
+    }
+    faceEdit = ''; faceText = '';
+    await loadFaces();
+    ok('変えました', 'msgface');
+    render();
+  } catch (e) { bad(jaError(e), 'msgface'); }
+}
+
 /* 消せるのは、足した本人と まーく様だけ */
 function canDelSay(x){
   return !!(x && (x.user_id === ME.id || (ME.profile && ME.profile.is_admin)));
@@ -7098,6 +7185,29 @@ function wire(){
     };
   }
   if ($('#sayAdd')) $('#sayAdd').onclick = sayAddNew;
+  /* ★顔から出る字（ご指示・2026/11/22） */
+  const fn2 = $('#faceNew');
+  if (fn2) {
+    fn2.oninput = function (){
+      faceText = fn2.value;
+      const mx = (typeof FACE_MAX !== 'undefined') ? FACE_MAX : 20;
+      const el = $('#faceLeft');
+      if (el) el.textContent = String(mx - [...faceText].length);
+    };
+  }
+  const fw = $('#faceWho');
+  if (fw) fw.onchange = function (){ faceEdit = fw.value; };
+  if ($('#faceSave')) $('#faceSave').onclick = faceSave;
+  document.querySelectorAll('[data-facego]').forEach(function (b){
+    b.onclick = function (){
+      const F = (typeof FACES !== 'undefined') ? FACES : [];
+      const x = F.filter(function (y){ return y.k === b.dataset.facego; })[0];
+      if (!x) return;
+      faceEdit = x.k; faceText = x.fx;
+      render();
+      const i = $('#faceNew'); if (i) { i.focus(); i.select(); }
+    };
+  });
   document.querySelectorAll('[data-saydel]').forEach(function (b){
     b.onclick = function (){ sayDel(b.dataset.saydel); };
   });
