@@ -706,6 +706,9 @@ footer{color:var(--muted);font-size:11px;text-align:center;padding:26px 8px 0;li
 .lrow .lp{font-size:13.5px;word-break:break-all;line-height:1.35}
 .lrow .lp i{font-style:normal;display:block;font-size:10.5px;opacity:.75}
 .lrow .lv{font-family:var(--mono);font-size:17px;font-weight:700;color:#6FD8A8;text-align:right}
+/* ★ロングが1本も出ていないときの「—」。
+     緑のままだと、何かの数字が出ているように見えてしまいます（2026/11/22）。 */
+.lrow .lv.nov{color:var(--paper);font-weight:400}
 .lhead .lv,.lhead .ln{text-align:right}
 .lrow .ln{font-family:var(--mono);font-size:13px;text-align:right}
 .lrow .ln i{font-style:normal;display:block;font-size:10.5px;opacity:.75}
@@ -2341,6 +2344,10 @@ p.extnote{margin-top:8px}
 /* ★折れ線の金額の数字は、線の上に重ねます（2026/11/17）。
      点や線に重なっても読めるよう、うしろを少しだけ暗くします。 */
 .ylab{paint-order:stroke;stroke:rgba(10,10,12,.85);stroke-width:3px;stroke-linejoin:round}
+/* ★ロングの線（¥10,000）。ここより上がロングです（2026/11/22）。
+     目盛りの線より少し明るく、破線にして、見分けがつくようにします。 */
+.longline{stroke:#E0B341;stroke-width:1.2;stroke-dasharray:5 4;opacity:.75}
+.llab{fill:#E0B341;paint-order:stroke;stroke:rgba(10,10,12,.85);stroke-width:3px;stroke-linejoin:round}
 
 /* ================================================================
  *  地図（2026/11/17）

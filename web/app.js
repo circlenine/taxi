@@ -4363,9 +4363,14 @@ function scChart(R){
   const W = L + Rp + Math.max(1, (x1 - x0)) * cwS, H = 236;
   const top = Math.max(...R.map(r => r.fare)) || 1000;
   /* ★目盛りは4〜5本に。本数が多いと、線だらけで何も読めません。 */
-  const raw = top / 4;
+  /* ★上の空きを減らしました（2026/11/22）。
+       4で割ると、一番高い点が ¥20,500 のとき 目盛りが
+       0／1万／2万／3万 の4本だけになり、
+       ¥3万の近くが まるまる空いて、肝心の線が下に潰れていました。
+       5で割ると 5千きざみになり、線そのものが大きく見えます。 */
+  const raw = top / 5;
   const step = [500,1000,2000,2500,5000,10000,20000].find(v => v >= raw) || 50000;
-  const y1 = Math.ceil(top / step) * step + step * .18;
+  const y1 = Math.ceil(top / step) * step + step * .10;
   const sx = v => L + (v-x0)/(x1-x0)*(W-L-Rp), sy = v => H-B - (v/y1)*(H-T-B);
   let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
   /* ★縦じくは「¥5,000」のように、そのまま出します（ご指示・2026/11/13）。
@@ -4373,6 +4378,13 @@ function scChart(R){
   for (let v = 0; v <= y1; v += step) s += `<line class="grid-l" x1="${L}" x2="${W-Rp}" y1="${sy(v)}" y2="${sy(v)}"/>
     <text class="axis ylab" x="${L+3}" y="${sy(v)-3}" text-anchor="start" style="font-size:9px">${v ? yen(v) : '0'}</text>`;
   for (let h = x0; h <= x1; h++) s += `<line class="grid-l" x1="${sx(h)}" x2="${sx(h)}" y1="${T}" y2="${H-B}" stroke-dasharray="2 4"/>`;
+  /* ★ロングの線（¥10,000）を1本だけ引きます（2026/11/22）。
+       この線より上がロング、下がそれ以外。
+       どの点がロングだったかが、数字を読まなくても分かります。 */
+  /* 「ロング」の字は、左の金額のすぐ右に置きます。
+     右はしに置くと、横にスクロールしないと読めませんでした。 */
+  if (y1 > 11000) s += `<line class="longline" x1="${L}" x2="${W-Rp}" y1="${sy(10000)}" y2="${sy(10000)}"/>
+    <text class="axis llab" x="${L+52}" y="${sy(10000)-3}" text-anchor="start" style="font-size:9px">ロング</text>`;
   /* ★一番下の線と、時刻の数字は、必ず見えるようにします
        （ご指摘・2026/11/13「下のメモリもなにもみえなくなってしまってる」）。
        点より先に引くと点の下に隠れるので、点のあとに引き直します。 */
@@ -4385,7 +4397,10 @@ function scChart(R){
   };
   const placed = [];
   const fits = (x,y,w) => {
-    if (x < L || x + w > W - 2 || y < T + 2 || y > H - B - 2) return false;
+    /* ★下は、時刻の数字の上までにします（2026/11/22）。
+         前は一番下の線をまたいで、「20」などの数字に
+         金額が重なって出ていました。 */
+    if (x < L || x + w > W - 2 || y < T + 2 || y > H - B - 11) return false;
     for (const p of placed) if (x < p.x+p.w+2 && x+w+2 > p.x && y < p.y+10 && y+10 > p.y) return false;
     return true;
   };
@@ -4726,7 +4741,14 @@ function bestTimeCard(D){
   D.forEach(function (r){ const p = r.place; if (p) cnt[p] = (cnt[p] || 0) + 1; });
   const list = Object.keys(cnt).sort((a2, b2) => cnt[b2] - cnt[a2] || (a2 < b2 ? -1 : 1));
   if (!list.length) return '';
-  const pick = (bestPlace && cnt[bestPlace]) ? bestPlace : list[0];
+  /* ★はじめに出す乗り場は「中身が出せる所」にします（2026/11/22）。
+       ただ件数の多い所をえらぶと、その乗り場に3件そろった時間帯が
+       無いときに、開いた瞬間が空っぽになっていました。
+       ご自分でえらばれた乗り場は、空でもそのまま出します
+       （勝手に別の乗り場へ移ると、何を見ているのか分からなくなるため）。 */
+  const ready = bestReady_(D, cnt);
+  const pick = (bestPlace && cnt[bestPlace]) ? bestPlace
+             : (ready.length ? ready[0].p : list[0]);
 
   const rs = D.filter(r => r.place === pick);
   const hs = [...new Set(rs.map(r => Math.floor(r.dep)))].sort((a2, b2) => a2 - b2);
@@ -4748,7 +4770,7 @@ function bestTimeCard(D){
   if (!rows.length) {
     /* ★行き止まりにしません（2026/11/22）。
          3件以上そろっている乗り場を、そのまま押せる形で並べます。 */
-    const ok = bestReady_(D, cnt).slice(0, 6);
+    const ok = ready.slice(0, 6);
     const go = ok.length
       ? '<p class="note">いま出せるのは、この乗り場です。</p><div class="chips">' +
         ok.map(function (x){
@@ -4757,13 +4779,19 @@ function bestTimeCard(D){
       /* ★どの乗り場も出せないときは、何が効いているのかを書きます。
            絞り込みのせいなのか、記録そのものが足りないのかで、
            次にすることが変わるためです。 */
+      : '';
+    /* ★同じことを二度書きません（2026/11/22）。
+         前は「どの乗り場も3件そろいません」と
+         「◯◯は、3件以上そろった時間帯がありません」が
+         並んで出ていて、読む手間が二重になっていました。 */
+    const msg = ok.length
+      ? esc(pick) + ' は、3件以上そろった時間帯が、まだありません。'
       : (filtOn()
-          ? '<p class="note">この絞り込みでは、どの乗り場も3件そろいません。' +
-            '上の【絞り込みを解除】で、元に戻ります。</p>'
-          : '');
+          ? 'この絞り込みでは、どの乗り場も3件そろいません。上の【絞り込みを解除】で、元に戻ります。'
+          : esc(pick) + ' は、3件以上そろった時間帯が、まだありません。');
     return '<div class="card"><h2>乗り場別 オススメ時間帯</h2>' +
       '<div class="bsel">' + sel + '</div>' + filterChips(true) + go +
-      '<div class="empty">' + esc(pick) + ' は、3件以上そろった時間帯が、まだありません。</div></div>';
+      '<div class="empty">' + msg + '</div></div>';
   }
 
   /* 一番よい時間（ロング率が高い順。同じならロングの平均金額が高いほう） */
@@ -4832,13 +4860,33 @@ function hourPlanCard(D){
 }
 
 /** 並びの1行（押すと地図が開きます） */
+/** ロングが1本も出ていないか（0％の行を並べないための見分け） */
+function longNoL(rank){
+  return !!(rank && rank.length) && rank.every(function (x){ return !x.L; });
+}
+/** そのときに、表の「上」に出す一言 */
+function longNote(rank){
+  return longNoL(rank)
+    ? '<div class="note">この範囲では、ロング（¥10,000以上）が<b>1本も出ていません</b>。' +
+      'かわりに、1本の平均金額が高い順に並べています。</div>'
+    : '';
+}
 function longRows(rank, n){
   if (!rank.length) return '<div class="note">3件以上たまった乗り場が、まだありません。</div>';
-  return rank.slice(0, n || 8).map(function (x, i){
+  /* ★ロングが1本も出ていないときは、0％の行を並べません（2026/11/22）。
+       「ロングが出やすい乗り場」という題の下に 0％ が並ぶと、
+       どこも同じに見えて、走る前に何も決められません。
+       かわりに、1本の平均金額が高い順に並べ直します。
+       （数字をごまかすのではなく、ロング率は「—」と書いて外します） */
+  const noL = longNoL(rank);
+  const rows = noL
+    ? rank.slice().sort(function (a, b){ return b.avg - a.avg || b.o.n - a.o.n; })
+    : rank;
+  return rows.slice(0, n || 8).map(function (x, i){
     return '<a class="lrow" href="' + mapUrl(x.p) + '" target="_blank" rel="noopener">' +
       '<span class="li">' + (i + 1) + '</span>' +
       '<span class="lp">' + esc(x.p) + '<i>' + esc(x.cat) + '</i></span>' +
-      '<span class="lv">' + x.L + '%</span>' +
+      '<span class="lv' + (noL ? ' nov' : '') + '">' + (noL ? '—' : x.L + '%') + '</span>' +
       '<span class="ln">平均 ' + yen(x.avg) + '<i>' + x.o.n + '件</i></span></a>';
   }).join('');
 }
@@ -4935,7 +4983,12 @@ function paneRatio(){
     (hourPick === ''
       ? '<p class="note">下の棒を押すと、その時間帯だけになります。</p>'
       : '<div class="chips"><button class="chip warn rst" data-hr="">全時間に戻す</button></div>') +
-    longHead + longRows(longRank(pickRs), 8) + '</div>';
+    (function (){
+      /* ★一言は、表の「上」に置きます。
+           ロング率の見出しの下に書くと、何の話か分かりません。 */
+      const rk2 = longRank(pickRs);
+      return longNote(rk2) + longHead + longRows(rk2, 8);
+    })() + '</div>';
 
   /* ② ロングが出やすい時間帯（押すと、上の並びがその時間になります） */
   let hrs = [];
@@ -6332,7 +6385,11 @@ const FOLD_KEY = 'tn_folds';
 /* はじめから たたんでおく欄（ご指示・2026/11/16）。見出しの字で見分けます */
 /* ★はじめから たたんでおく欄（ご指示・2026/11/16、2026/11/17）。
      開けば、その端末は開いたままを覚えます。 */
-const FOLD_SHUT = ['このページを見てわかること', '新規の記録'];
+/* ★はじめから たたんでおく見出し。
+     「エリア別のロング割合」は、北・南・他の3つぶんが縦に並んで
+     画面の半分以上を占め、上の3つの表が流れて見えなくなっていました。
+     見たい方は見出しを押せば開きます（2026/11/22）。 */
+const FOLD_SHUT = ['このページを見てわかること', '新規の記録', 'エリア別のロング割合'];
 const FOLD_OPEN_KEY = 'tn_fold_open';
 let foldOpen = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_OPEN_KEY) || '[]') || []; }
