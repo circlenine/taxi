@@ -1157,12 +1157,28 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/id="bestPlaceSel"/.test(app), '★★★乗り場を えらべる');
   t(/bestPlace = bps\.value/.test(app), '　 えらんだら切り替わる');
   t(/が一番よさそうです/.test(app), '★★★一番よい時間を、一言で言い切る');
-  /* ★2026/11/13 のご指示で、一番上に出す形に変えました
-       （「この乗り場は何時が良いかは、1番上にしてください」）。 */
-  /* ★2026/11/17：ページの一番上に移しました（ご指示） */
-  t(/const topCard = bestTimeCard\(visible\(\)\.filter\(hasDep\)\);/.test(app) &&
-    /leadCard\('ratio'\) \+ topCard \+/.test(app),
-    '★★★画面の一番上に出す');
+  /* ★2026/11/22：1ページ立てにしました（ご指示「この3つを一先ず
+       主軸にしたサイトにしたい」）。【％】の上の【乗り場別】で行けます。 */
+  t(/function paneBest\(\)/.test(app) &&
+    /leadCard\('best'\) \+ rMenu\('best'\)/.test(app),
+    '★★★1ページ立てになっている');
+  t(/best: *paneBest/.test(app), '★★★そのページが、行き先として入っている');
+  t(/const R_KINDS = \[/.test(app) && /data-rk=/.test(app),
+    '★★★【ロング率】と【乗り場別】を、1回で行き来できる');
+  t(/\(tab === 'best'\) \? 'ratio' : tab/.test(app),
+    '　 【乗り場別】のときは、押しどころの【％】が光る');
+  t(!/leadCard\('ratio'\) \+ topCard/.test(app),
+    '★★★【％】の中には、もう出していない（同じものを2か所に置かない）');
+  /* ★行き止まりにしません（2026/11/22）。出せる乗り場を、押せる形で並べます。 */
+  t(/function bestReady_\(/.test(app), '★★★3件そろっている乗り場を、数えて出す');
+  t(/data-bestgo=/.test(app) && /bestPlace = b\.dataset\.bestgo/.test(app),
+    '★★★押すと、その乗り場に切り替わる');
+  t(/この絞り込みでは、どの乗り場も3件そろいません。/.test(app),
+    '★★★絞り込みのせいなのか、記録が足りないのかを書き分ける');
+  /* ★曜日や期間も、この場で絞り込めます（平日と金土で狙う時間が違うため） */
+  t(/filterChips\(true\) \+\n? *'<p class="note"><b>' \+ esc\(pick\)/.test(app)
+    || /filterChips\(true\) \+[\s\S]{0,120}esc\(pick\) \+ ' は、'/.test(app),
+    '★★★この場でも、曜日や期間を絞り込める');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件そろわない時間帯は出さない');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件より少ない乗り場は、並びに出さない');
   /* ★その1時間だけでは3件に届かないので、前後1時間をふくめて数えます。
@@ -4491,6 +4507,30 @@ console.log('■ 最初に出るのは【天気】（2026/11/17）');
     '★★★はじめから【天気】を押した形にしておく');
   t(/<button data-t="in" aria-selected="false">/.test(idx),
     '　 【記録】が ひと呼吸 見えることはない');
+}
+
+/* ------------------------------------------------------------
+ *  絞り込みは、はじめ たたんでおく（2026/11/22）
+ *    プルダウンが6本 縦に並び、グラフや表が画面のずっと下へ
+ *    押しやられていました。先に見たいのは中身のほうです。
+ * ---------------------------------------------------------- */
+console.log('■ 絞り込みを たたむ（2026/11/22）');
+{
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/const filterChips = \(full\) => `<div class="filt\$\{filtOpen \? '' : ' shut'\}">/.test(app),
+    '★★★はじめは たたんでおく');
+  t(/const FILT_OPEN_KEY = 'tsukemachi\.filtopen'/.test(app),
+    '　 開いたか たたんだかは、その端末が覚える');
+  t(/\.filt\.shut \.fbody\{display:none\}/.test(css), '　 たたんだら、中身は出さない');
+  t(/<button class="fhead"/.test(app) && /id="fHead"/.test(app), '★★★押すと開く');
+  t(/filtOn\(\) \? filtNowText\(\) : 'すべての記録'/.test(app),
+    '★★★たたんだままでも、いま何で絞っているかが見える');
+  t(/id="fClear2"/.test(app), '★★★たたんだままでも、絞り込みを解除できる');
+  t(/\.filt \.fhrow\{display:grid;grid-template-columns:1fr auto/.test(css),
+    '★★★並びは決め打ち（右利き・左利きで入れ替えない）');
+  t(/\.filt \.fhrow \.rst\{[^}]*order:0/.test(css),
+    '　 「絞り込みを解除」が、左の細いらんに回り込まない');
 }
 
 console.log('■ 見出しの【説明】（2026/11/17）');

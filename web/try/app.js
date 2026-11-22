@@ -1049,7 +1049,9 @@ function render(){
    *   守る値打ちがないので、ほかの画面と同じように回します。
    *   （中身は shared.js の andonRoll）
    */
-  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
+  /* ★【乗り場別】は【％】の中の見方なので、押しどころは【％】を光らせます */
+  const litTab = (tab === 'best') ? 'ratio' : tab;
+  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === litTab));
   htabsFill();
   /* 見ているあいだは、足あとを新しくしておきます（上の tabLoad の見分けに使います） */
   tabTouch();
@@ -1066,7 +1068,7 @@ function render(){
        （ご指示・2026/11/17「これは、お知らせのページに移動してください」）。 */
   const PANES = { in: () => (ME.profile.is_admin ? gasStatCard() : ''), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
-    ratio:paneRatio, tok:paneTok, rep:paneRep, nippo:paneNippo,
+    ratio:paneRatio, best:paneBest, tok:paneTok, rep:paneRep, nippo:paneNippo,
     bara:paneBara, kix:paneKix,
     news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
@@ -1221,12 +1223,14 @@ const LEADS = {
         m: 'この1か月＋去年の同じ月の記録と、気象庁の天気',
         c: '3件以上そろった乗り場だけ。数字は1本の平均金額',
         n: '催しのある夜は、記録より催しが先です' },
-  g:  { w: ['時間帯ごとに、どの乗り場が強いか（表）',
-            '1本ずつの待ち時間と流れ（棒）',
-            '時刻と金額のちらばり（線）'],
+  /* ★出しているのは線グラフだけなので、表と棒の説明は外しました
+       （2026/11/22）。出していないものを書くと、探す手間が増えます。 */
+  g:  { w: ['何時に、いくらの乗車が出ているか',
+            '金額の高い日と、安い日の違い',
+            '同じ時刻でも、日によってどれだけ違うか'],
         m: '絞り込みで選んだ期間・乗り場の記録',
-        c: 'マスは1本の平均金額、下は件数',
-        n: '金額が「不明」の記録は、平均から外します' },
+        c: '点が1件。横は乗せた時刻、縦は金額です',
+        n: '金額が「不明」の記録は、点を打ちません' },
   map:{ w: ['えらんだ時間帯・金額の記録が、どのあたりに多いか',
             '1本 乗せたあと、次をどこで拾えているか'],
         m: '自分たちの記録と、無料の地図（OpenStreetMap）',
@@ -1237,6 +1241,13 @@ const LEADS = {
         m: '金額の入った記録だけ',
         c: 'その乗り場の記録のうち、何％か',
         n: '3件に届かない乗り場は出しません' },
+  /* ★「乗り場別、何時がアツいか」を1ページ立てにしました
+       （ご指示・2026/11/22「この3つを一先ず主軸にしたサイトにしたい」）。 */
+  best:{ w: ['えらんだ乗り場は、何時に着けるのがよいか',
+             'その時間の、ロング率と1本の平均'],
+        m: 'えらんだ乗り場の記録（前後1時間をふくむ）',
+        c: 'ロング率＝¥10,000以上が、何本中 何本か',
+        n: '3件に届かない時間帯は出しません' },
   tok:{ w: ['種類ごとに、何時台に多いか',
             '会場やホテルごとの、呼ばれやすい時間'],
         m: 'GO／Uber の記録と、「他」に書いた印の記録',
@@ -1811,7 +1822,40 @@ const fOpt = (v, now, label) =>
   '<option value="' + esc(v) + '"' + (String(now) === String(v) ? ' selected' : '') +
   '>' + esc(label) + '</option>';
 
-const filterChips = (full) => `<div class="filt">
+/*
+ * ★絞り込みは、はじめは たたんでおきます（2026/11/22）。
+ *
+ *   プルダウンが6本 縦に並ぶので、グラフや表が画面のずっと下へ
+ *   押しやられていました。開いた瞬間に見たいのは、絞り込みの欄ではなく
+ *   中身のほうです。
+ * ★いま何で絞っているかは、たたんだままでも頭の行に出します。
+ *   絞ったまま忘れると、数字を読み違えるためです。
+ * ★「絞り込みを解除」も、たたんだままで押せる所に置きます。
+ * ★開いたか閉じたかは、その端末が覚えます。
+ */
+const filtNowText = () => [
+  onlyBig ? onlyBig : '', onlyCat ? onlyCat : '',
+  onlyPlace ? (splitSel(onlyPlace).place || onlyPlace) : '',
+  (DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n || '',
+  periodLabel()].filter(Boolean).join('／');
+
+const FILT_OPEN_KEY = 'tsukemachi.filtopen';
+let filtOpen = (function (){
+  try { return localStorage.getItem(FILT_OPEN_KEY) === '1'; } catch (e) { return false; }
+})();
+function filtOpenSet(v){
+  filtOpen = !!v;
+  try { localStorage.setItem(FILT_OPEN_KEY, filtOpen ? '1' : '0'); } catch (e) {}
+}
+
+const filterChips = (full) => `<div class="filt${filtOpen ? '' : ' shut'}">
+  <div class="fhrow">
+    <button class="fhead" id="fHead" type="button">
+      <b>絞り込み</b><i>${esc(filtOn() ? filtNowText() : 'すべての記録')}</i>
+      <span class="fmark">▼</span></button>
+    ${filtOn() ? '<button class="chip warn rst" id="fClear2">絞り込みを解除</button>' : ''}
+  </div>
+  <div class="fbody">
   <div class="frow"><label>だれの記録</label>
     <select class="fsel ${onlyMine?'on':''}" data-fs="mine">
       ${fOpt('0', onlyMine?'1':'0', '全員')}${fOpt('1', onlyMine?'1':'0', '自分だけ')}
@@ -1838,14 +1882,10 @@ const filterChips = (full) => `<div class="filt">
   ${prangeBox()}` : ''}
   <!-- ★いま何で絞っているかを、すぐ下に出します。
        絞ったまま忘れると、数字を読み違えます。 -->
-  ${filtOn() ? `<div class="fnow">いま：${
-    [onlyBig ? esc(onlyBig) : '', onlyCat ? esc(onlyCat) : '',
-     onlyPlace ? esc(splitSel(onlyPlace).place || onlyPlace) : '',
-     (DAY_CHIPS.filter(d => d.k === onlyDay)[0] || {}).n || '',
-     periodLabel()].filter(Boolean).join('／')
-  }</div>
+  ${filtOn() ? `<div class="fnow">いま：${esc(filtNowText())}</div>
   <div class="frow one">
     <button class="chip warn rst" id="fClear">絞り込みを解除</button></div>` : ''}
+  </div>
 </div>`;
 
 /** 場所の名前を、地図で開けるようにして返す（押すと新しいタブ） */
@@ -4659,6 +4699,25 @@ function longRank(rs){
  *   （何時に着けるかを決めるための表なので）。
  *   一番よい時間だけ、一言で言い切ります。
  */
+/*
+ * ★3件以上そろった時間帯が1つでもある乗り場を、数えて返します（2026/11/22）。
+ *   えらんだ乗り場に出すものが無いとき、行き止まりにしないためです。
+ *   「ここなら出せます」と、そのまま押せる形で並べます。
+ */
+function bestReady_(D, cnt){
+  const out = [];
+  Object.keys(cnt || {}).forEach(function (p){
+    if (cnt[p] < HOT_MIN_N) return;             // そもそも足りない
+    const rs = D.filter(function (r){ return r.place === p; });
+    const hs = [...new Set(rs.map(function (r){ return Math.floor(r.dep); }))];
+    for (let i = 0; i < hs.length; i++) {
+      const t = rs.filter(function (r){ return Math.abs(Math.floor(r.dep) - hs[i]) <= 1; });
+      if (bandCount(t).n >= HOT_MIN_N) { out.push({ p: p, n: cnt[p] }); return; }
+    }
+  });
+  return out.sort(function (x, y){ return y.n - x.n; });
+}
+
 function bestTimeCard(D){
   if (!D || !D.length) return '';
   /* 乗り場ごとの件数。多い順にえらべるようにします */
@@ -4686,8 +4745,23 @@ function bestTimeCard(D){
     '<div class="fsug" id="bestSug"></div></div>';
 
   if (!rows.length) {
+    /* ★行き止まりにしません（2026/11/22）。
+         3件以上そろっている乗り場を、そのまま押せる形で並べます。 */
+    const ok = bestReady_(D, cnt).slice(0, 6);
+    const go = ok.length
+      ? '<p class="note">いま出せるのは、この乗り場です。</p><div class="chips">' +
+        ok.map(function (x){
+          return '<button class="chip" data-bestgo="' + esc(x.p) + '">' +
+                 esc(x.p) + '（' + x.n + '件）</button>'; }).join('') + '</div>'
+      /* ★どの乗り場も出せないときは、何が効いているのかを書きます。
+           絞り込みのせいなのか、記録そのものが足りないのかで、
+           次にすることが変わるためです。 */
+      : (filtOn()
+          ? '<p class="note">この絞り込みでは、どの乗り場も3件そろいません。' +
+            '上の【絞り込みを解除】で、元に戻ります。</p>'
+          : '');
     return '<div class="card"><h2>乗り場別 オススメ時間帯</h2>' +
-      '<div class="bsel">' + sel + '</div>' +
+      '<div class="bsel">' + sel + '</div>' + filterChips(true) + go +
       '<div class="empty">' + esc(pick) + ' は、3件以上そろった時間帯が、まだありません。</div></div>';
   }
 
@@ -4705,6 +4779,10 @@ function bestTimeCard(D){
   return '<div class="card"><h2>乗り場別 オススメ時間帯</h2>' +
     '<div class="bsel">' + sel +
     '<a class="mini" href="' + mapUrl(pick) + '" target="_blank" rel="noopener">📍 地図</a></div>' +
+    /* ★曜日や期間でも、この場で絞り込めます（2026/11/22）。
+         平日と金土では、同じ乗り場でも狙う時間が違うためです。
+         はじめは たたんであるので、表がすぐ見えます。 */
+    filterChips(true) +
     '<p class="note"><b>' + esc(pick) + ' は、' + top.h + '時台</b>が一番よさそうです' +
     '（ロング ' + top.L + '%・平均 ' + yen(top.avg) + '・' + top.o.n + '件）。</p>' +
     '<div class="btlist">' + body + '</div>' +
@@ -4780,14 +4858,41 @@ const longHead = '<div class="lhead"><span class="li"></span><span class="lp">�
  *   → 時間帯の棒を押すと、その時間の乗り場だけになります。
  *     下に「時間帯べつの乗り場ランキング」も、まるごと並べます。
  */
+/* ================================================================
+ *  ★【％】は、2つの見方に分けました（ご指示・2026/11/22）
+ *    「斉藤さん案：折れ線グラフ／山脇くん案：パーセント／
+ *      山敷くん案：乗り場別、何時がアツいか
+ *      この3つを一先ず主軸にしたサイトにしたい」
+ *
+ *    「乗り場別」は、これまで【％】の一番上に置いていました。
+ *    主軸の1つなので、1ページ立てにして、1回押せば行ける所に出します。
+ *  ★押しどころ（タブ）は10こで変えていません。
+ *    11こにすると、5列2段からはみ出して3段になるためです。
+ * ================================================================ */
+const R_KINDS = [
+  { k: 'ratio', n: 'ロング率', s: 'どこが・何時に出るか' },
+  { k: 'best',  n: '乗り場別', s: 'この乗り場は何時' }
+];
+const rMenu = (now) => '<div class="gmenu">' + R_KINDS.map(x =>
+  '<button class="gm' + (now === x.k ? ' on' : '') + '" data-rk="' + esc(x.k) + '">' +
+  '<b>' + esc(x.n) + '</b><i>' + esc(x.s) + '</i></button>').join('') + '</div>';
+
+/** 乗り場別、何時がアツいか（1ページ立て・2026/11/22） */
+function paneBest(){
+  return leadCard('best') + rMenu('best') +
+    (bestTimeCard(visible().filter(hasDep)) ||
+     emptyCard('時刻の入った記録が、まだありません。'));
+}
+
 function paneRatio(){
   const R = visible();
   /* ★「乗り場別 オススメ時間帯」を、ページの一番上に出します
        （ご指示・2026/11/17「何時が良いかのやつは、
          ページの1番上に移動してください」）。
      走る前に一番に見たいのは「自分の乗り場を、何時に狙うか」だからです。 */
-  const topCard = bestTimeCard(visible().filter(hasDep));
-  const head = leadCard('ratio') + topCard +
+  /* ★「乗り場別 オススメ時間帯」は、1ページ立てにして外へ出しました
+       （ご指示・2026/11/22）。上の【乗り場別】から1回で行けます。 */
+  const head = leadCard('ratio') + rMenu('ratio') +
     '<div class="card"><h2>ロングが出やすい所と時間</h2>' +
     '<p class="note">ロング（¥10,000以上）が<b>出やすい所と時間</b>を探す画面です。' +
     'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。' +
@@ -6833,10 +6938,33 @@ function wire(){
       });
     });
   });
+  /* ★「いま出せるのは、この乗り場です」を押したとき（2026/11/22） */
+  document.querySelectorAll('[data-bestgo]').forEach(function (b){
+    b.onclick = function (){ grab(); bestPlace = b.dataset.bestgo; render(); };
+  });
+  /* ★【ロング率】と【乗り場別】の切り替え（2026/11/22） */
+  document.querySelectorAll('[data-rk]').forEach(function (b){
+    b.onclick = function (){
+      grab(); tab = b.dataset.rk; tabSave(); msg = ''; render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
   const kcl = document.getElementById('ktClear');
   if (kcl) kcl.onclick = function () { grab(); onlyPlace = ''; filtSave(); render(); };
   const fc = document.getElementById('fClear');
   if (fc) fc.onclick = function () { grab(); filtClear(); render(); };
+  /* ★たたんだままでも押せる「絞り込みを解除」 */
+  const fc2 = document.getElementById('fClear2');
+  if (fc2) fc2.onclick = function () { grab(); filtClear(); render(); };
+  /* ★絞り込みを 開く・たたむ（2026/11/22）。
+       はじめは たたんでおいて、グラフや表を先に見せます。 */
+  const fh = document.getElementById('fHead');
+  if (fh) fh.onclick = function () {
+    const box = fh.closest('.filt');
+    const on = box && box.classList.contains('shut');
+    if (box) box.classList.toggle('shut', !on);
+    filtOpenSet(on);
+  };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delRec(b.dataset.del));
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
     const r = records.find(x => x.id === b.dataset.edit); if (!r) return;

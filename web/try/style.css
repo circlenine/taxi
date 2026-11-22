@@ -2419,3 +2419,34 @@ p.extnote{margin-top:8px}
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
   overflow:hidden;text-overflow:ellipsis;word-break:break-word}
 header > .saymount .bubble.two{white-space:normal;overflow:visible}
+
+/* ================================================================
+ *  絞り込みは、はじめ たたんでおく（2026/11/22）
+ *
+ *  ★プルダウンが6本 縦に並ぶので、グラフや表が画面のずっと下へ
+ *    押しやられていました。先に見たいのは中身のほうです。
+ *  ★いま何で絞っているかは、たたんだままでも頭の行に出します。
+ * ================================================================ */
+/* ★並びを決め打ちにします。flex で折り返させると、機種によって
+     「絞り込みを解除」が上の行に回り、順番が入れ替わって見えました。 */
+.filt .fhrow{display:grid;grid-template-columns:1fr auto;align-items:center;
+  gap:8px;margin-bottom:8px}
+.filt .fhrow:has(.fhead:only-child){grid-template-columns:1fr}
+.filt .fhead{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;
+  background:none;border:1px solid var(--line);border-radius:10px;
+  color:#FFFFFF;padding:0 10px;min-height:38px;text-align:left;cursor:pointer}
+.filt .fhead b{font-size:12.5px;font-weight:700;white-space:nowrap}
+.filt .fhead i{font-style:normal;font-size:11.5px;color:#FFFFFF;opacity:.85;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+.filt .fhead .fmark{font-size:11px;opacity:.7;flex:0 0 auto;transition:transform .15s}
+.filt.shut .fhead .fmark{transform:rotate(-90deg)}
+.filt.shut .fbody{display:none}
+/* ★この行だけは、右利き・左利きで入れ替えません（2026/11/22）。
+     入れ替えると「絞り込みを解除」が左の細いらんに入り、
+     「絞／り込み／を解除」と3行に折り返していました。 */
+.filt .fhrow .rst{flex:0 0 auto;order:0;white-space:nowrap}
+@media (max-width:340px){
+  .filt .fhead{padding:0 8px;min-height:34px}
+  .filt .fhead b{font-size:11.5px}
+  .filt .fhead i{font-size:10.5px}
+}
