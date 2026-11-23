@@ -4850,5 +4850,24 @@ console.log('\n■ 題の2行と、見出しの帯（ご指示・2026/11/23）')
     '　 たたんだときは、帯だけが欄いっぱいに出る');
 }
 
+console.log('\n■ イベントの区切りと、1件だけの図（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* ① イベントは、1件ずつ はっきり区切る */
+  t(/\.evrow\{border-top:0;[\s\S]{0,200}border-left:3px solid var\(--andon\)/.test(css),
+    '★★★イベントは、1件ずつ 箱にして区切る');
+  t(/\.evgrp > h3\{margin:0 0 8px;padding:7px 10px;[\s\S]{0,80}background:/.test(css),
+    '★★★種類の見出しも、帯にしてまとまりを分ける');
+
+  /* ② 1件しかないときに、意味のない図を出さない */
+  t(/\(\(o\.nd >= 2 && hrs\.length >= 2\) \? whenBar\(o, hrs\) : ''\)/.test(app),
+    '★★★記録が1件のときは、時間帯の図を出さない');
+  t(/\(\(hrs\.length >= 2\)\s*\n?\s*\? whenBar\(o, hrs\) \+/.test(app),
+    '★★★時間が1つしかないときも、図を出さない');
+  t(!/左から ' \+ \(hrs\[0\] % 24\)[\s\S]{0,120}\n\s*'<\/div>';\n/.test(app) ||
+    /hrs\.length >= 2/.test(app),
+    '　 「左から 20時台 〜 20時台」と書かない');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

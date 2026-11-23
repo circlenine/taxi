@@ -2599,3 +2599,24 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
   border-radius:10px 10px 0 0}
 .card.fold > h2, #ktop.fold > h2{margin-bottom:-12px;border-bottom:0;border-radius:10px}
 .card.lead:not(.fold) > h2{margin-bottom:12px}
+
+/* ================================================================
+ *  イベントの一覧は、1件ずつ はっきり区切ります
+ *    （ご指摘・2026/11/23「イベント一覧も、くぎりがわかりづらいです」）
+ *
+ *  ★前は 1本の細い線だけで区切っていたので、
+ *    会場名・時刻・公演名・タグが 1つながりに見えていました。
+ *  ★1件を ひとつの箱にして、左に色の帯を立てます。
+ *    どこからどこまでが1件かが、目で追えます。
+ *  ★種類の見出し（イベント／バラシ／ホテル宴会／搬入）も、
+ *    同じように帯にして、まとまりを分けます。
+ * ================================================================ */
+.evrow{border-top:0;padding:11px 12px;margin:8px 0 0;
+  background:rgba(255,255,255,.04);border:1px solid var(--ink3);
+  border-left:3px solid var(--andon);border-radius:9px}
+.evrow:first-of-type{margin-top:0}
+.evgrp > h3{margin:0 0 8px;padding:7px 10px;
+  background:rgba(255,255,255,.075);border-radius:8px;
+  border-left:3px solid var(--line)}
+/* 搬入（設営）は、お客が1人も来ない日。左の帯も落ち着いた色にします */
+.evgrp:has(h3) .evrow{border-left-color:var(--andon)}

@@ -5493,7 +5493,11 @@ function whenPane(cat, title, label, lead, test, noLead){
       (o.nd < HOT_MIN_N ? '<i class="wfew">まだ ' + o.nd + '件</i>' : '') + '</div>' +
       '<div class="wkey"><span class="wkl">時間</span>' + hTop + '</div>' +
       (dTop ? '<div class="wkey"><span class="wkl">曜日</span>' + dTop + '</div>' : '') +
-      whenBar(o, hrs) +
+      /* ★記録が1件しかない／時間が1つしかないときは、図を出しません
+           （ご指摘・2026/11/23「これ、みづらいので、もっといい感じにしてください」）。
+         1本の帯が横いっぱいに伸びるだけで、何も読み取れないためです。
+         上の【時間】【曜日】の札だけで足ります。 */
+      ((o.nd >= 2 && hrs.length >= 2) ? whenBar(o, hrs) : '') +
       '<div class="wmeta">' + o.n + '件' +
       (o.nf ? '／1本の平均 ' + yen(o.avg) : '') +
       (o.wait ? '／平均 待ち ' + Math.round(o.wait) + '分' : '') + '</div></div>';
@@ -5536,7 +5540,7 @@ function whenPane(cat, title, label, lead, test, noLead){
   let out = head + plain + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
     '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +
     body +
-    (hrs.length ? '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
+    ((hrs.length >= 2) ? '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
       (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div>' : '') +
     '</div>';
 
@@ -5558,9 +5562,13 @@ function whenPane(cat, title, label, lead, test, noLead){
       '<p class="note">いまのところ、一番多いのは <b>' + (best % 24) + '時台</b>（' +
         hm[best] + '件）です。' +
         ((hm[best] || 0) < HOT_MIN_N ? 'まだ数が少ないので、目安です。' : '') + '</p>' +
-      whenBar(o, hrs) +
-      '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
-      (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div></div>';
+      /* ★時間が1つしかないときは、図も「左から〜」も出しません。
+           「左から 20時台 〜 20時台」は、読む人を困らせるだけです。 */
+      ((hrs.length >= 2)
+        ? whenBar(o, hrs) +
+          '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
+          (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div>'
+        : '') + '</div>';
   }
   return out;
 }
