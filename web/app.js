@@ -1570,9 +1570,19 @@ function troSeenSave(ks){
  *   ★一度に何個 取っても、箱は1つです（続けて出すと、うるさいため）。
  *   ★知らせたものは覚えておき、二度と出しません。
  */
+let troWait_ = 0;
 function troCheck(){
   try {
     if (!ME || !ME.user) return;
+    /* ★ほかの箱（イベントの知らせなど）が出ている間は、待ちます。
+         2つ重なると、どちらを閉じればよいのか分からなくなるためです。
+         30秒ほど待っても閉じないときは、あきらめて次の回にまわします。 */
+    if (document.querySelector('.modal')) {
+      if (troWait_++ > 6) return;
+      setTimeout(troCheck, 5000);
+      return;
+    }
+    troWait_ = 0;
     const now = troAll().filter(function (x){ return x.on; }).map(function (x){ return x.k; });
     const seen = troSeenLoad();
     const fresh = now.filter(function (k){ return seen.indexOf(k) === -1; });
