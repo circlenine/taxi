@@ -2636,3 +2636,9 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
 .psmap{height:min(46vh,300px);border-radius:10px;overflow:hidden;
   background:#15161A;margin:6px 0}
 .psmap .leaflet-tile-pane{filter:saturate(.3) contrast(1.04)}
+
+/* ★いま出ている警報・注意報（ご指示・2026/11/23）。
+     ふだんの一文と見分けがつくよう、赤い札にします。 */
+.hver > .sub.warn{color:#FFFFFF;font-weight:700;
+  background:rgba(200,35,43,.34);border:1px solid var(--andon);
+  border-radius:999px;padding:2px 10px}

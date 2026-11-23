@@ -195,6 +195,12 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   loadFaces();
   /* 自分で決めたピンの場所を読みます（棚が無くても、黙って元のまま） */
   loadPlaces().then(function (){ if (tab === 'map') render(); });
+  /* いま出ている警報・注意報（気象庁）。30分おきに見ます */
+  const warnTick = function (){
+    loadWarn().then(function (){ try { subSet(document.getElementById('sub')); } catch (e) {} });
+  };
+  warnTick();
+  setInterval(warnTick, 30 * 60 * 1000);
   /*
    * ★「いまアツい」は時刻で中身が変わるので、
    *   1分ごとに描き直します（通信はしません）。
@@ -2246,7 +2252,99 @@ function subOver(el){
  * 題の下の一文を入れます。
  * ★乗り場の名前が長いときは、ここだけ「…」で短くしてよい、とのご指示です。
  */
+/* ================================================================
+ *  いま出ている 警報・注意報（ご指示・2026/11/23）
+ *    「v1.0の右横のひとこと …リアルタイムの交通状況
+ *      （通行止めや、事故情報、雨や台風情報など）
+ *      緊急性の高いものを、必ず当日に該当する情報として
+ *      間違いないか確認した上で載せてください」
+ *
+ *  ★出どころは 気象庁だけです（無料・鍵なし・課金の設定なし）。
+ *    https://www.jma.go.jp/bosai/warning/data/warning/270000.json
+ *  ★通行止めや事故は、**無料で確かに読める出どころがありません**。
+ *    あて推量で出すと、空振りや 間違った案内になります。
+ *    だから出しません（迷ったら出さない）。
+ *  ★大阪市に出ているものだけを見ます。
+ *  ★「いつの知らせか」を必ず確かめます。
+ *    1日より古い知らせは、きょうの話ではないので出しません。
+ *  ★読めなければ、これまでどおりの一文に戻ります（止まりません）。
+ * ================================================================ */
+const WARN_URL  = 'https://www.jma.go.jp/bosai/warning/data/warning/270000.json';
+const WARN_CITY = '2710000';          /* 大阪市 */
+/* 気象庁の番号と、その名前（出すのは、ここに名前があるものだけ） */
+const WARN_NAME = {
+  '02':'暴風雪警報','03':'大雨警報','04':'洪水警報','05':'暴風警報',
+  '06':'大雪警報','07':'波浪警報','08':'高潮警報',
+  '10':'大雨注意報','12':'大雪注意報','13':'風雪注意報','14':'雷注意報',
+  '15':'強風注意報','16':'波浪注意報','17':'融雪注意報','18':'洪水注意報',
+  '19':'高潮注意報','20':'濃霧注意報','21':'乾燥注意報','22':'なだれ注意報',
+  '23':'低温注意報','24':'霜注意報','25':'着氷注意報','26':'着雪注意報',
+  '32':'暴風雪特別警報','33':'大雨特別警報','35':'暴風特別警報',
+  '36':'大雪特別警報','37':'波浪特別警報','38':'高潮特別警報'
+};
+/* 走っている人に関わるものだけ。乾燥・霜・なだれなどは出しません */
+const WARN_SHOW = ['02','03','04','05','06','08','10','14','15','18','19','20',
+                   '32','33','35','36','38'];
+let warnNow = null;                   /* { t:'大雨警報', hard:true } か null */
+
+async function loadWarn(){
+  try {
+    const r = await fetch(WARN_URL, { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    /* ★いつの知らせかを、必ず見ます。古い知らせは きょうの話ではありません */
+    const at = new Date(String(j.reportDatetime || ''));
+    if (!(at instanceof Date) || isNaN(at.getTime())) return;
+    if (Date.now() - at.getTime() > 24 * 3600 * 1000) { warnNow = null; return; }
+
+    let area = null;
+    (j.areaTypes || []).forEach(function (t){
+      (t.areas || []).forEach(function (a){
+        if (String(a.code) === WARN_CITY) area = a;
+      });
+    });
+    if (!area) { warnNow = null; return; }
+
+    const on = (area.warnings || []).filter(function (w){
+      const st = String(w.status || '');
+      if (st.indexOf('解除') !== -1 || st.indexOf('なし') !== -1) return false;
+      const c = String(w.code || '');
+      return WARN_SHOW.indexOf(c) !== -1 && !!WARN_NAME[c];
+    });
+    if (!on.length) { warnNow = null; return; }
+    /* 特別警報 → 警報 → 注意報 の順に、強いものを1つだけ出します */
+    const rank = function (c){
+      const n = WARN_NAME[c] || '';
+      if (n.indexOf('特別警報') !== -1) return 0;
+      if (n.indexOf('警報') !== -1) return 1;
+      return 2;
+    };
+    on.sort(function (a, b){ return rank(String(a.code)) - rank(String(b.code)); });
+    const top = WARN_NAME[String(on[0].code)];
+    warnNow = { t: top, hard: rank(String(on[0].code)) <= 1,
+                n: on.length };
+  } catch (e) { /* 読めなければ、何も出しません */ }
+}
+
+/** 一番上の一文に出す、いま出ている警報・注意報（無ければ空） */
+function warnLine(){
+  if (!warnNow || !warnNow.t) return '';
+  return '⚠ ' + warnNow.t + '（大阪市）' +
+         (warnNow.n > 1 ? ' ほか' + (warnNow.n - 1) + '件' : '');
+}
+
 function subSet(el){
+  /* ★いま警報・注意報が出ているときは、そちらを先に出します
+       （ご指示・2026/11/23）。走る前に一番先に知りたいことです。 */
+  const wl = warnLine();
+  if (wl) {
+    el.classList.add('warn');
+    el.style.fontSize = '';
+    el.textContent = wl;
+    subFit(el);
+    return;
+  }
+  el.classList.remove('warn');
   if (!el) return;
   const x = lordPick();
   if (!x) { el.textContent = subLine(); subFit(el); return; }

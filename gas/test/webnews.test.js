@@ -4903,5 +4903,24 @@ console.log('\n■ ピンの場所を、自分で決める（ご指示・2026/11
     '　 入れられるのは、自分の名前でだけ');
 }
 
+console.log('\n■ 一番上の一文に、警報・注意報を出す（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/const WARN_URL  = 'https:\/\/www\.jma\.go\.jp\/bosai\/warning\/data\/warning\/270000\.json'/.test(app),
+    '★★★出どころは 気象庁（無料・鍵なし）');
+  t(/const WARN_CITY = '2710000'/.test(app), '　 大阪市に出ているものだけ');
+  t(/if \(Date\.now\(\) - at\.getTime\(\) > 24 \* 3600 \* 1000\) \{ warnNow = null; return; \}/.test(app),
+    '★★★1日より古い知らせは出さない（きょうの話ではないため）');
+  t(/st\.indexOf\('解除'\) !== -1 \|\| st\.indexOf\('なし'\) !== -1/.test(app),
+    '★★★解除されたものは出さない');
+  t(/const WARN_SHOW = \['02','03'/.test(app) && !/WARN_SHOW[^\]]*'21'/.test(app),
+    '★★★走りに関わらないもの（乾燥など）は出さない');
+  t(/特別警報[\s\S]{0,80}return 0;/.test(app), '　 強いものから出す');
+  t(/\.hver > \.sub\.warn\{/.test(css), '　 ふだんの一文と見分けがつく');
+  /* 通行止め・事故を、あて推量で出していないこと */
+  t(!/通行止め[\s\S]{0,40}fetch\(/.test(app),
+    '★★★通行止め・事故は、確かな出どころが無いので出さない');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
