@@ -12033,6 +12033,22 @@ function vnGasPush_() {
     try { url = (typeof updWebAppUrl_ === "function") ? String(updWebAppUrl_() || "") : ""; } catch (e) { url = ""; }
     if (!url) return false;
 
+    /*
+     * ★前に置いた住所を、手もとに覚えておきます（2026/11/23）。
+     *
+     *   ここは「住所が変わったときだけ置き直す」作りですが、
+     *   変わっていないかを見るために、毎回 置き場を読みにいっていました。
+     *   15分おきなら1日96回。読むだけでも、持ち時間を食います。
+     *   手もとの控えと同じなら、読みにいきません。
+     *   ★住所が変わったときは、その場ですぐ置き直します
+     *     （時間でしぼると、止まったときの戻り道が古いままになるため）。
+     */
+    try {
+      const pr1 = PropertiesService.getScriptProperties();
+      if (String(pr1.getProperty("VN_GAS_URL") || "") === url) return true;
+      pr1.setProperty("VN_GAS_URL", url);
+    } catch (e) {}
+
     const base = "https://api.github.com/repos/" + updRepo_() + "/contents/" + VN_GAS_PATH;
     const ref  = encodeURIComponent(updBranch_());
     let sha = "", prev = "";

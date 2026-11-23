@@ -4516,6 +4516,11 @@ console.log('\n■ 5分おきになっていた見張りを、15分おきに直�
   eq(/if \(typeof trgSwap_ === "function"\) return trgSwap_\("venueDailyJob", make, "vnTrigger"\);/.test(V3),
      true, '★★★先に作って、作れたときだけ古いのを消す');
   eq(/everyMinutes\(15\)/.test(V3), true, '★★★作り直す間かくは15分');
+  /* 受け口の住所は、手もとの控えと同じなら 置き場を読みにいかない */
+  eq(/if \(String\(pr1\.getProperty\("VN_GAS_URL"\) \|\| ""\) === url\) return true;/.test(V3),
+     true, '★★★住所が同じなら、置き場を読みにいかない');
+  eq(/pr1\.setProperty\("VN_GAS_URL", url\);/.test(V3), true,
+     '　 変わったときは、その場で置き直す（時間でしぼらない）');
 }
 
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
