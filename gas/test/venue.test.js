@@ -4504,5 +4504,19 @@ console.log('\n■ イベントを 個人LINEへ送る（2026/11/23）');
      '★★★関所より前に置く（合言葉を入れていなくても押せる）');
 }
 
+console.log('\n■ 5分おきになっていた見張りを、15分おきに直す（2026/11/23）');
+{
+  const V3 = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  eq(/function vnTrg15Once_\(\) \{/.test(V3), true, '★★★1回だけ作り直す係がある');
+  eq(/pr\.setProperty\("VN_TRG_15MIN", "1"\);[\s\S]{0,120}vnEnsureDailyTrigger_\(true\)/.test(V3),
+     true, '★★★札を先に立ててから作り直す（くり返さない）');
+  eq(/try \{ vnTrg15Once_\(\); \} catch/.test(V3), true,
+     '★★★毎回通る所から呼ぶ（1日1回の点検だと、あすまで届かないため）');
+  /* 先に作って、作れたときだけ古いのを消すこと（0個になると永久に止まる） */
+  eq(/if \(typeof trgSwap_ === "function"\) return trgSwap_\("venueDailyJob", make, "vnTrigger"\);/.test(V3),
+     true, '★★★先に作って、作れたときだけ古いのを消す');
+  eq(/everyMinutes\(15\)/.test(V3), true, '★★★作り直す間かくは15分');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

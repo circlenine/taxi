@@ -13181,6 +13181,33 @@ function venueDailyJob() {
   }
   return venueDailyBody_();
 }
+/*
+ * ★イベントの見張りを、1回だけ 作り直します（2026/11/23）。
+ *
+ *   いまの見張りは、ずっと前に作ったもので **5分おき**に動いていました
+ *   （置き直しの足あとが5分ごとに並んでいたので分かりました）。
+ *   コードには15分おきと書いてあるのに、作り直していないので
+ *   そのままだったのです。3倍 動いていたぶん、持ち時間を食っていました。
+ *
+ *   Googleの窓口からは「いまの見張りが何分おきか」を読めません。
+ *   だから、札を1つ立てて、**この版で1回だけ** 作り直します。
+ *   作り方は trgSwap_（先に作って、作れたときだけ古いのを消す）なので、
+ *   しくじっても見張りが0個になることはありません。
+ *
+ * ★1日1回の点検（vnSelfHeal_）ではなく、ここに置いています。
+ *   点検はきょうのぶんが終わっていることがあり、
+ *   そうすると この直しが あすまで届かないためです。
+ *   ふだんは、札を1つ読むだけなので、時間は食いません。
+ */
+function vnTrg15Once_() {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    if (pr.getProperty("VN_TRG_15MIN") === "1") return false;
+    pr.setProperty("VN_TRG_15MIN", "1");          // 何があっても、くり返さない
+    return !!vnEnsureDailyTrigger_(true);
+  } catch (e) { return false; }
+}
+
 function venueDailyBody_() {
   let lock = null;
   try {
@@ -13192,6 +13219,9 @@ function venueDailyBody_() {
     //   「入れ替えたあと、一度どこかを押してください」とお願いするのは、
     //   忘れたときに黙って動かなくなるので、やり方として間違っている。
     //   1日1回だけ確かめて、足りないものがあれば自分で作る。
+    /* ★5分おきになっていた見張りを、15分おきに直します（この版で1回だけ） */
+    try { vnTrg15Once_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnTrg15", e); }
+
     try { vnSelfHeal_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnSelfHeal", e); }
 
     /*
