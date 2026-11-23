@@ -7380,8 +7380,9 @@ console.log('■ スプシ→台帳の自動反映（ご指示・2026/11/10／20
    */
   t(/if \(h >= 10 && h < 17\) return false;/.test(fn),
     '★★★昼は見にいかない（持ち時間を残す）');
-  t(/WEB_SYNC_EVERY_MIN \* 60000/.test(fn) && /const WEB_SYNC_EVERY_MIN = 14;/.test(src),
-    '★★★夜のあいだは15分おきに見る');
+  /* ★2026/11/23：持ち時間を数えたら使いすぎていたので、20分おきに広げました */
+  t(/WEB_SYNC_EVERY_MIN \* 60000/.test(fn) && /const WEB_SYNC_EVERY_MIN = 20;/.test(src),
+    '★★★夜のあいだは20分おきに見る');
   t(fn.indexOf('pr.setProperty("WEB_SYNC_AT"') <
     fn.indexOf('webSyncPush_(true)'),
     '★★★札は先に立てる（6分で切られても、続けて何度も読みに行かない）');
@@ -7477,7 +7478,8 @@ console.log('■ LINEの受け口を10分おきに見る（2026/11/17）');
   const fn  = src.slice(src.indexOf('function updHookTick_'),
                         src.indexOf('const PANEL_HEAL_AT'));
   t(fn.length > 80, '★★★受け口だけを見る係がある');
-  t(/const UPD_HOOK_MIN = 10;/.test(src), '★★★10分おき');
+  /* ★2026/11/23：10分 → 20分（LINEへ1回 聞きにいくので、時間を食うため） */
+  t(/const UPD_HOOK_MIN = 20;/.test(src), '★★★20分おき');
   t(fn.indexOf('setProperty(UPD_HOOK_AT') < fn.indexOf('updLineHookCheck_()'),
     '★★★札は先に立てる（続けて何度も叩かない）');
   t(/updLineHookCheck_\(\)/.test(fn), '★★★LINE自身に、道が通っているかためしてもらう');
@@ -7571,6 +7573,30 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
       run('budUsedMin_()'));
     t(run('budHeavyOk_()') === true, '　 日が変われば、また重い仕事ができる');
   }
+
+  /* ★使いすぎる前に、自分から軽くすること（2026/11/23 に数えて分かった） */
+  t(/const BUD_LAST_MIN = 75;/.test(U), '★★★75分で、最後の砦に入る');
+  t(/function budTight_\(\) \{/.test(U), '　 その見分けがある');
+  t(/if \(!budTight_\(\)\) \{\n      try \{ if \(updAutoPullTick_\(\)\) return; \}/.test(U),
+    '★★★残り少なければ、新しい中身を取りにいかない');
+  t(/if \(typeof budTight_ === "function" && budTight_\(\)\) return;/.test(V),
+    '★★★残り少なければ、イベントの見張りは まるごと休む');
+  /* 止めてはいけないもの（ボタン待ち・LINEの受け口）は、囲みの外 */
+  {
+    const seg2 = U.slice(U.indexOf('function panelWatchBody_'),
+                         U.indexOf('function panelWatchBody_') + 5000);
+    t(/updHookTick_/.test(seg2) && !/if \(!budTight_\(\)\) \{[^}]{0,200}updHookTick_/.test(seg2),
+      '★★★LINEの受け口の見張りは、最後まで止めない');
+    t(/panelPendingRow_/.test(seg2) && !/if \(!budTight_\(\)\) \{[^}]{0,200}panelPendingRow_/.test(seg2),
+      '★★★ボタンが押されていないかを見るのも、止めない');
+  }
+  /* 外へ聞きにいく回数を、実際に減らしてあること */
+  t(/const UPD_PULL_EVERY_MIN = 12;/.test(U), '★★★新しい中身の取り込みは12分おき');
+  t(/const UPD_HOOK_MIN = 20;/.test(U), '★★★LINEの受け口の見張りは20分おき');
+  t(/const WEB_SYNC_EVERY_MIN = 20;/.test(U), '★★★台帳へ移す係は20分おき');
+  t(/Date\.now\(\) - last < 20 \* 60 \* 1000/.test(V), '★★★様子の紙は20分おき');
+  t(/VN_VERDEP_AT/.test(V) && /60 \* 60 \* 1000/.test(V),
+    '★★★版と公開の数は、1時間に1回だけ数え直す（外へ2回 聞きにいくため）');
 
   /* 報告の紙と、台帳の画面に出していること */
   t(/put\("■ 動いた時間：" \+ bt, true\);/.test(U), '★★★報告の紙に出す');

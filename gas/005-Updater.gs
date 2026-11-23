@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U186ver  （2026/11/23）  ★★★
+ *  ★★★  U187ver  （2026/11/23）  ★★★
+ *
+ *   [U187ver]
+ *   ・⏱ 持ち時間の食いすぎを直した（止まっていた原因は、これだった）
+ *     ★数えてみたら、5時間で52分 使っていた。1日なら240分で、
+ *       決まりの90分を はるかに超える。だから毎日 止まっていた。
+ *     ★内わけは ボタンの見張り33分・イベント19分。
+ *       重い中身は「外へ聞きにいく所」だったので、その回数を減らした。
+ *       ・新しい中身の取り込み … 3分おき → 12分おき
+ *       ・LINEの受け口の見張り … 10分おき → 20分おき
+ *       ・台帳へ移す係       … 14分おき → 20分おき
+ *     ★75分を超えたら、ボタン待ちと受け口の見張りだけにする（最後の砦）。
  *
  *   [U186ver]
  *   ・⏱ 1日に動いた時間を数えて、使いすぎる前に重い仕事を止めるようにした
@@ -2014,7 +2025,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U186ver";
+const UPD_VERSION = "U187ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11090,7 +11101,8 @@ function updDoctorTick_() {
  * ================================================================ */
 const BUD_KEY      = "UPD_BUDGET";     // 「日付|合計秒|係:秒,係:秒…」
 const BUD_STOP_MIN = 60;               // ここを超えたら、重い仕事はやめる
-const BUD_MAX_MIN  = 90;               // Googleの決まり（参考に出すだけ）
+const BUD_LAST_MIN = 75;               // ここを超えたら、ボタン待ちと受け口だけ
+const BUD_MAX_MIN  = 90;               // Googleの決まり（ここに触れると全部止まる）
 
 /** きょうの日付（日本時間。真夜中で切りかわります） */
 function budDay_() {
@@ -11136,6 +11148,18 @@ function budUsedMin_() {
 function budHeavyOk_() {
   try { return budUsedMin_() < BUD_STOP_MIN; } catch (e) { return true; }
 }
+/*
+ * ★最後の砦（2026/11/23）。
+ *   75分を超えたら、残すのは次の2つだけにします。
+ *     ・ボタンが押されていないかを見ること
+ *     ・LINEの受け口が切れていないかを見ること
+ *   90分に触れると、その日は **ぜんぶ** 止まります。
+ *   そうなると、LINEに書いた記録が その場で消えます。
+ *   だから、手前で自分から軽くします。
+ */
+function budTight_() {
+  try { return budUsedMin_() >= BUD_LAST_MIN; } catch (e) { return false; }
+}
 
 /** 報告の紙に出す行 */
 function budText_() {
@@ -11163,7 +11187,9 @@ function budRun_(name, fn) {
 }
 
 const UPD_HOOK_AT  = "UPD_HOOK_AT";
-const UPD_HOOK_MIN = 10;
+/* ★20分おき（前は10分）。LINEへ1回 聞きにいくので、ここも時間を食います。
+     切れていたら20分で気づきます。 */
+const UPD_HOOK_MIN = 20;
 
 function updHookTick_() {
   const pr = updProps_();
@@ -11591,7 +11617,10 @@ function panelRepairLost_(sh) {
  * ================================================================ */
 
 /** 何分おきにGitHubを見にいくか（ボタンの見張りに相乗りするときの間かく） */
-const UPD_PULL_EVERY_MIN = 3;
+/* ★3分おきだと、1日480回 外へ聞きにいくことになり、
+     それだけで持ち時間の大半を食っていました（2026/11/23 に数えて分かった）。
+   12分おきなら1日120回。こちらが置いた直しは、12分以内に届きます。 */
+const UPD_PULL_EVERY_MIN = 12;
 
 /** 自動で取り込んでよいか（設定タブ。空なら はい） */
 function updAutoOn_() {
@@ -12047,7 +12076,8 @@ function sbGet_(path) {
      「反映されていない」としか分かりませんでした。
    ★昼（10時〜17時）は、だれも記録を入れないので見にいきません。
      1日90分の持ち時間を、使わずに残しておくためです。 */
-const WEB_SYNC_EVERY_MIN = 14;
+/* ★20分おき（前は14分）。スプシを開いて台帳へ書くので、重い仕事です。 */
+const WEB_SYNC_EVERY_MIN = 20;
 
 function webSyncTick_() {
   try {
@@ -14165,7 +14195,10 @@ function panelWatchBody_() {
      *   取り込みが起きたら、そのあと下のボタン合わせは次の回にまわします。
      *   入れ替わった直後の並びで、もう一度触りにいかないためです。
      */
-    try { if (updAutoPullTick_()) return; } catch (e) { logErr_("panelWatchPull", e); }
+    /* ★持ち時間が残り少ないときは、外へ聞きにいきません（2026/11/23） */
+    if (!budTight_()) {
+      try { if (updAutoPullTick_()) return; } catch (e) { logErr_("panelWatchPull", e); }
+    }
 
     /*
      * ★1時間に1回、自分で自分を診ます（updDoctorTick_）。
@@ -14174,7 +14207,9 @@ function panelWatchBody_() {
      *   ★ここに置いたのは、見張りが生きているかぎり必ず通る道だからです。
      *   ★ふだんは何も言いません。直したときだけ、1日1回まで知らせます。
      */
-    try { if (updDoctorTick_()) return; } catch (e) { logErr_("doctor", e); }
+    if (!budTight_()) {
+      try { if (updDoctorTick_()) return; } catch (e) { logErr_("doctor", e); }
+    }
 
     /*
      * ★LINEの受け口だけは、10分おきに見ます（ご指摘・2026/11/17）。
@@ -14188,8 +14223,10 @@ function panelWatchBody_() {
      *   書き込みでしくじると、その写真はそのまま消えていました。
      *   画像はLINE側に数日残るので、その間なら取り直せます。
      */
-    try { if (typeof imgRetryTick_ === "function" && imgRetryTick_()) return; }
-    catch (e) { logErr_("imgRetry", e); }
+    if (!budTight_()) {
+      try { if (typeof imgRetryTick_ === "function" && imgRetryTick_()) return; }
+      catch (e) { logErr_("imgRetry", e); }
+    }
 
     /*
      * ★イベントの見張り（venueDailyJob）が無ければ、ここで作ります。

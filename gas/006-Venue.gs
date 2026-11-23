@@ -2,7 +2,15 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V126ver  （2026/11/23）  ★★★
+ *  ★★★  V127ver  （2026/11/23）  ★★★
+ *
+ *  [V127ver]
+ *  ・⏱ 様子の紙を置き直すのを、5分おき → 20分おきにした
+ *    ★持ち時間を数えてみたら、イベントの見張りが5時間で19分 使っていた。
+ *      そのほとんどが、この置き直しだった。
+ *  ・⏱ 版と公開の数は、1時間に1回だけ数え直す（前は毎回）
+ *    ★外へ2回 聞きにいくので、ここが一番 重かった。
+ *      数はめったに変わらないので、前の数を使い回す。
  *
  *  [V126ver]
  *  ・📱 イベントを、まーく様の個人LINEへ送れるようにした
@@ -1888,7 +1896,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V126ver";
+const VN_VERSION = "V127ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -12115,12 +12123,13 @@ function vnStatusPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
 
-    /* ★叩かれるたびに書くと、GitHub の回数を使い切ります。
-         ふつうは5分に1回までにします（force でも、この しぼりは効きます）。 */
+    /* ★叩かれるたびに書くと、GitHub の回数と、1日90分の持ち時間を
+         どちらも使い切ります。20分に1回までにします
+         （2026/11/23：5分おきにしていたのが、止まる原因の1つでした）。 */
     const pr = PropertiesService.getScriptProperties();
     try {
       const last = Number(pr.getProperty("VN_STATUS_AT") || 0);
-      if (last && Date.now() - last < 5 * 60 * 1000) return true;
+      if (last && Date.now() - last < 20 * 60 * 1000) return true;
     } catch (e) {}
 
     let trig = 0, jobs = [];
@@ -12153,20 +12162,39 @@ function vnStatusPush_(force) {
       }
     } catch (e) {}
 
-    /* 版と公開（どちらも満杯になると、新しい中身をLINEに覚えさせられません） */
+    /* 版と公開（どちらも満杯になると、新しい中身をLINEに覚えさせられません）
+       ★ここは外へ2回 聞きにいくので、一番 時間を食います（2026/11/23）。
+         数はめったに変わらないので、**1時間に1回だけ**数え直し、
+         ふだんは前の数を使い回します。 */
     let verNo = null, depN = null;
+    let vdFresh = false;
     try {
-      const vs = (updApi_("/versions", "get", null).versions) || [];
-      let top = 0;
-      vs.forEach(function (v) { if (Number(v.versionNumber) > top) top = Number(v.versionNumber); });
-      verNo = top;
+      const vdAt = Number(pr.getProperty("VN_VERDEP_AT") || 0);
+      vdFresh = !!(vdAt && (Date.now() - vdAt) < 60 * 60 * 1000);
     } catch (e) {}
-    try {
-      const ds = (updApi_("/deployments", "get", null).deployments) || [];
-      depN = ds.filter(function (d) {
-        return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
-      }).length;
-    } catch (e) {}
+    if (vdFresh) {
+      try {
+        const o = JSON.parse(pr.getProperty("VN_VERDEP") || "null");
+        if (o) { verNo = o.v; depN = o.d; }
+      } catch (e) {}
+    } else {
+      try {
+        const vs = (updApi_("/versions", "get", null).versions) || [];
+        let top = 0;
+        vs.forEach(function (v) { if (Number(v.versionNumber) > top) top = Number(v.versionNumber); });
+        verNo = top;
+      } catch (e) {}
+      try {
+        const ds = (updApi_("/deployments", "get", null).deployments) || [];
+        depN = ds.filter(function (d) {
+          return d && d.deploymentConfig && Number(d.deploymentConfig.versionNumber) > 0;
+        }).length;
+      } catch (e) {}
+      try {
+        pr.setProperty("VN_VERDEP", JSON.stringify({ v: verNo, d: depN }));
+        pr.setProperty("VN_VERDEP_AT", String(Date.now()));
+      } catch (e) {}
+    }
 
     /* しくじりは「いつ・どのあたりか」だけ。英語の文は1文字も書きません */
     let errN = 0, errs = [];
@@ -13142,6 +13170,9 @@ function venueDailyBody_() {
          （2026/11/23）。ここが一番 時間を食うので、
          先にここを止めれば、記録の取り込みとLINEの受け口は最後まで動きます。 */
     const heavyOk = (typeof budHeavyOk_ === "function") ? budHeavyOk_() : true;
+    /* ★残り少ないときは、イベントの見張りは まるごと お休みします
+         （2026/11/23）。ボタン待ちとLINEの受け口だけを残すためです。 */
+    if (typeof budTight_ === "function" && budTight_()) return;
     if (heavyOk) {
       try { vnDumpTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
     }
