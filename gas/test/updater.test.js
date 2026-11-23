@@ -7512,6 +7512,11 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
   /* 日が変わったら、まっさらに戻ること（前の日のぶんを引きずらない） */
   t(/if \(p\[0\] !== today\) return \{ d: today, sec: 0, by: \{\} \};/.test(U),
     '★★★日が変わったら、数えなおす');
+  /* ★Googleの「1日」は向こうの真夜中で切りかわる（2026/11/23） */
+  t(/"America\/Los_Angeles", "yyyy-MM-dd"/.test(U),
+    '★★★数えなおすのは、Googleの日付に合わせる（日本の真夜中ではない）');
+  t(!/budDay_[\s\S]{0,200}Asia\/Tokyo/.test(U),
+    '　 日本時間では数えない（窓がずれると、歯止めが効かない）');
 
   /* 2つの見張りが、どちらも数えられていること */
   t(/return budRun_\("ボタンの見張り", function \(\) \{ return panelWatchBody_\(\); \}\);/.test(U),
