@@ -3863,7 +3863,10 @@ console.log('\n■ グラフを１ページに、地図にピン（ご指示・2
          例えば、20時台の￥3,000以上 という形で」） */
   t(/data-t="map"[^>]*><b>地図</.test(ix), '★★★「地図」の押しどころがある');
   t(/function paneMap\(\)/.test(app) && /map:paneMap/.test(app), '★★★地図の画面がある');
-  t(/data-mh="\$\{h\}"/.test(app), '★★★時間帯で絞り込める');
+  /* ★2026/11/23：えらぶものは プルダウンにしました
+       （ご指示「基本的に、選択系はプルダウンにしてほしくて」）。 */
+  t(/data-mhsel="1"/.test(app), '★★★時間帯で絞り込める（プルダウン）');
+  t(/data-mfsel="1"/.test(app), '★★★金額でも絞り込める（プルダウン）');
   t(/const MAP_FARES = \[\{ v:0[\s\S]{0,160}v:10000/.test(app), '★★★金額でも絞り込める（¥10,000以上まで）');
   t(/v:3000, n:'¥3,000以上'/.test(app), '　 ¥3,000以上もある（ご指示の例）');
   /* ★2026/11/16：薄い丸をやめ、白いふち付きの塗りつぶし＋件数の数字にしました */
@@ -4418,7 +4421,7 @@ console.log('\n■ 2026/11/16 のご指示');
   }
 
   /* ⑥ 地図 … 「すべて」が2つ並ばない／はじめの絞り込み */
-  t(/<div class="flab">時間帯<\/div>/.test(app) && /<div class="flab">金額<\/div>/.test(app),
+  t(/<label>時間帯<\/label>/.test(app) && /<label>金額<\/label>/.test(app),
     '★★★「すべて」が何の「すべて」かを書いてある');
   t(/\.flab\{/.test(css), '　 その見た目も入っている');
   t(/mfn === 'すべて' \? '金額すべて' : mfn/.test(app),
@@ -4920,6 +4923,17 @@ console.log('\n■ 一番上の一文に、警報・注意報を出す（ご指�
   /* 通行止め・事故を、あて推量で出していないこと */
   t(!/通行止め[\s\S]{0,40}fetch\(/.test(app),
     '★★★通行止め・事故は、確かな出どころが無いので出さない');
+}
+
+console.log('\n■ 止まっている帯を たためる（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/const WAKE_KEY = 'tn_wake_fold';/.test(app), '★★★たたんだままを覚える');
+  t(/<button class="wfold" id="wFold"/.test(app), '★★★たたむ ▼ がある');
+  t(/\.wakebar\.cl > span, \.wakebar\.cl > \.btn, \.wakebar\.cl > \.note\{display:none\}/.test(css),
+    '★★★たたむと、中身は消える');
+  t(!/\.wakebar\.cl > b\{display:none/.test(css),
+    '★★★たたんでも、赤い1行は残る（止まっていることを忘れないため）');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

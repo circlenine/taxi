@@ -1105,7 +1105,17 @@ function render(){
   /* ★赤い帯だけは、目次より上の入れものに出します（ご指示・2026/11/16
        「仕掛けが止まっているかもしれませんの表示は、目次より上にしてください」）。 */
   const wt = $('#wakeTop');
-  if (wt) wt.innerHTML = gasWakeBar();
+  if (wt) {
+    wt.innerHTML = gasWakeBar();
+    const wf = wt.querySelector('#wFold');
+    if (wf) wf.onclick = function (){
+      const bar = wt.querySelector('.wakebar');
+      if (!bar) return;
+      const on = !bar.classList.contains('cl');
+      bar.classList.toggle('cl', on);
+      try { localStorage.setItem(WAKE_KEY, on ? '1' : '0'); } catch (e) {}
+    };
+  }
   const pt = $('#panesTop');
   /* ★「直近の記録」は出しません（ご指示・2026/11/16
        「直近の記録は非表示にしてください」）。
@@ -3039,15 +3049,19 @@ function paneMap(){
     <!-- ★「すべて」が2つ並んでいて、どちらの「すべて」か分かりませんでした
            （ご指摘・2026/11/16「なぜ、すべてのタブが2つあるのですか？」）。
          時間帯のぶんと金額のぶんなので、それぞれに名前を付けます。 -->
-    <div class="flab">時間帯</div>
-    <div class="chips maph">
-      <button class="chip ${mapHour === '' ? 'on' : ''}" data-mh="">すべて</button>
-      ${hrs.map(h => `<button class="chip ${String(mapHour) === String(h) ? 'on' : ''}" data-mh="${h}">${h}時</button>`).join('')}
-    </div>
-    <div class="flab">金額</div>
-    <div class="chips">
-      ${MAP_FARES.map(f => `<button class="chip ${mapMin === f.v ? 'on' : ''}" data-mf="${f.v}">${f.n}</button>`).join('')}
-    </div>
+    <!-- ★えらぶものは、タグではなく プルダウンにします
+           （ご指示・2026/11/23「基本的に、選択系はプルダウンにしてほしくて」）。
+         時間帯は10個ちかく並ぶので、タグだと2〜3段になって
+         肝心の地図が下へ追いやられていました。 -->
+    <div class="frow"><label>時間帯</label>
+      <select class="fsel ${mapHour === '' ? '' : 'on'}" data-mhsel="1">
+        <option value=""${mapHour === '' ? ' selected' : ''}>すべて</option>
+        ${hrs.map(h => `<option value="${h}"${String(mapHour) === String(h) ? ' selected' : ''}>${h}時</option>`).join('')}
+      </select></div>
+    <div class="frow"><label>金額</label>
+      <select class="fsel ${mapMin ? 'on' : ''}" data-mfsel="1">
+        ${MAP_FARES.map(f => `<option value="${f.v}"${mapMin === f.v ? ' selected' : ''}>${esc(f.n)}</option>`).join('')}
+      </select></div>
     <!-- ★有名な場所とホテルも、重ねて出せます（ご指示・2026/11/15）。
            記録ではないので、白いひし形にして、まぎれないようにします。 -->
     <div class="chips">
@@ -5572,6 +5586,7 @@ function gasStatCard(){
     'どうしてもスクリプトの画面でしかできません（Googleの決まりです）。</p>' +
     '</div>';
 }
+const WAKE_KEY = 'tn_wake_fold';
 /** 仕掛けが止まっていそうか（イベントの紙の古さで見ます） */
 function gasStaleH(){
   const at = (evData && evData.at) ? String(evData.at) : '';
@@ -5611,7 +5626,16 @@ function gasWakeBar(){
       'それでも直らなければ、【拡張機能】→【Apps Script】→' +
       '関数えらびで「ニア僕の勝ちだ」→【▶実行】です。</span>'
     : '';
-  return '<div class="wakebar">' +
+  /* ★この帯も、小さく たためます（ご指示・2026/11/23
+       「小さく畳む機能も追加してください」）。
+     止まっているあいだ ずっと画面の3分の1を占めるので、
+     いちど読んだら しまえる形にしました。
+     たたんでも、赤い1行は残します（止まっていることを忘れないため）。 */
+  let wcl = false;
+  try { wcl = (localStorage.getItem(WAKE_KEY) === '1'); } catch (e) {}
+  return '<div class="wakebar' + (wcl ? ' cl' : '') + '">' +
+    '<button class="wfold" id="wFold" type="button" aria-label="たたむ・広げる">' +
+    '<i class="fmark">▼</i></button>' +
     '<b>仕掛けが止まっているかもしれません。</b>' +
     '<span>イベントの紙が ' + esc(String(evData.at)) + ' のままです' +
     '（' + gasStaleText(hrs) + '）。</span>' +
@@ -7341,6 +7365,13 @@ function wire(){
   });
   document.querySelectorAll('[data-mf]').forEach(function (b) {
     b.onclick = function () { mapMin = +b.dataset.mf; mapStop(); render(); };
+  });
+  /* ★えらぶものは プルダウンにしました（ご指示・2026/11/23） */
+  document.querySelectorAll('[data-mhsel]').forEach(function (b) {
+    b.onchange = function () { mapHour = b.value; mapStop(); render(); };
+  });
+  document.querySelectorAll('[data-mfsel]').forEach(function (b) {
+    b.onchange = function () { mapMin = +b.value; mapStop(); render(); };
   });
   /* グラフの形のえらび（表／横棒／折線）。1ページにまとめたので、ここで切り替えます */
   if ($('#spotBtn')) $('#spotBtn').onclick = function (){
