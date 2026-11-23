@@ -722,7 +722,7 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
     /* ★題の中にあってよいのは「X」を光らせるための印だけです
          （ご指示・2026/11/11）。それを外してから、ほかに札が
          まぎれ込んでいないかを見ます。 */
-    const bare = head.replace(/<span class="xg">|<\/span>/g, '');
+    const bare = head.replace(/<span class="(xg|l1|l2)">|<\/span>/g, '');
     t(/<h1[^>]*>[^<]*<\/h1>/.test(bare), '★' + f + '：題だけの行になっている');
     t(!/<h1[^>]*>[\s\S]{0,40}class="ver"/.test(h),
       '　 ' + f + '：版（v1.0）は、題の中に入っていない');
@@ -931,7 +931,10 @@ console.log('■ 題の「X」が、たまに光る（ご指示・2026/11/11）'
 
   ['index.html', 'login.html', path.join('preview', 'index.html')].forEach(function (f) {
     const h = fs.readFileSync(path.join(W, f), 'utf8');
-    t(/<h1 class="dn">TA<span class="xg">X<\/span>I NOTE<\/h1>/.test(h),
+    /* ★2026/11/23：2行の幅をそろえるため、行ごとに札で包みました
+         （ご指摘「Iの右の空白が少しだけ気になります」）。
+       包んだだけで、字は TAXI NOTE のままです。 */
+    t(/<h1 class="dn"><span class="l1">TA<span class="xg">X<\/span>I<\/span><span class="l2">NOTE<\/span><\/h1>/.test(h),
       '★★★' + f + '：Xだけに印が付いていて、題は TAXI NOTE のまま');
   });
 
@@ -4826,6 +4829,25 @@ console.log('\n■ ▼ の形と、顔の大きい絵（ご指示・2026/11/23�
     '　 その見た目もある');
   t(/fimg\.onclick = function \(e\)\{ e\.stopPropagation\(\); faceBig\(fc\); \};/.test(sh),
     '　 ふきだしの横の顔から開く');
+}
+
+console.log('\n■ 題の2行と、見出しの帯（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* ① 題の2行は、同じ幅にそろえる */
+  t(/function logoFit_\(\)\{/.test(app), '★★★題の2行の幅を、測ってそろえる');
+  t(/sh\.style\.marginRight = \(-d\) \+ 'px';/.test(app),
+    '　 字間は最後の字のうしろにも付くので、同じだけ戻す');
+  t(/h1\.dn > \.l1, h1\.dn > \.l2\{display:block/.test(css),
+    '　 2行に分かれている');
+
+  /* ② 見出しは帯にして、区切りを はっきりさせる */
+  t(/\.card > h2, #ktop > h2\{margin:-16px -16px 12px;padding:11px 16px;[\s\S]{0,120}border-bottom:1px solid/.test(css),
+    '★★★見出しは、欄いっぱいの帯にする');
+  t(!/\.card > h2[^{]*\{[^}]*background:#FFF/i.test(css),
+    '★★★白地にはしない（暗い車内で まぶしくなるため）');
+  t(/\.card\.fold > h2, #ktop\.fold > h2\{margin-bottom:-12px/.test(css),
+    '　 たたんだときは、帯だけが欄いっぱいに出る');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

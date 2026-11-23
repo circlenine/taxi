@@ -6867,6 +6867,31 @@ function htabsFill(){
  *    ▼のメニューをしまうと、下の中身も同じだけ上がるので、
  *    「ます目の下 − 上の行の下」の差は変わらないためです。
  * ================================================================ */
+/*
+ * 題の2行（TAXI と NOTE）の幅をそろえます（ご指摘・2026/11/23）。
+ *  ★「TAXI」は I が細いぶん短く、右だけ空いて見えていました。
+ *  ★字の形は機種で変わるので、決め打ちにせず、そのつど測ります。
+ *  ★字間は最後の字のうしろにも付くので、同じだけ右へ戻します。
+ */
+function logoFit_(){
+  try {
+    const a = document.querySelector('header h1 .l1');
+    const b = document.querySelector('header h1 .l2');
+    if (!a || !b) return;
+    a.style.letterSpacing = ''; a.style.marginRight = '';
+    b.style.letterSpacing = ''; b.style.marginRight = '';
+    const wa = a.getBoundingClientRect().width;
+    const wb = b.getBoundingClientRect().width;
+    const sh = (wa < wb) ? a : b;                 /* 短いほうを広げます */
+    const n  = (sh.textContent || '').trim().length;
+    const gap = Math.abs(wb - wa);
+    if (!n || gap < 0.5 || gap > 40) return;      /* 差が大きすぎるときは、さわりません */
+    const d = gap / n;
+    sh.style.letterSpacing = d + 'px';
+    sh.style.marginRight = (-d) + 'px';
+  } catch (e) {}
+}
+
 let tabsSeen_ = null;
 function hdrDupe_(){
   const hdr = document.querySelector('header');
@@ -6889,6 +6914,7 @@ function hdrDupeWire_(){
     requestAnimationFrame(function (){
       hdrTick_ = false; hdrDupe_();
       try { tocTop_(); } catch (e) {}
+      logoFit_();
     });
   };
   window.addEventListener('scroll', run, { passive: true });
@@ -6959,6 +6985,7 @@ function hsubWire(){
   }, { passive: true });
   hverWire_();
   hdrDupeWire_();
+  logoFit_();
 }
 
 /* ★書きかけのまま閉じようとしたら、1度だけ確かめます（ご指示・2026/11/12）

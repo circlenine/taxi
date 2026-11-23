@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261123-be1862aa">
+<link rel="stylesheet" href="style.css?v=20261123-18dd4f83">
 </head>
 <body>
 <div id="boot" class="boot">
@@ -41,7 +41,11 @@
        4段目：▼のつまみ -->
   <header id="hdr">
     <div class="hmain">
-      <h1 class="dn">TA<span class="xg">X</span>I NOTE</h1>
+      <!-- ★2行の幅をそろえます（ご指摘・2026/11/23
+             「Iの右の空白が少しだけ気になります…上下同じになるように」）。
+           「TAXI」は I が細いぶん「NOTE」より短く、右だけ空いていました。
+           app.js の logoFit_ が、2行の幅を測って字間をそろえます。 -->
+      <h1 class="dn"><span class="l1">TA<span class="xg">X</span>I</span><span class="l2">NOTE</span></h1>
       <div id="saymount" class="saymount"></div>
       <button class="fab menu" id="fabMenu" aria-label="メニュー">≡</button>
       <div class="fabsheet" id="fabSheet" hidden></div>
@@ -188,9 +192,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261123-be1862aa"></script>
-<script src="news.js?v=20261123-be1862aa"></script>
-<script src="shared.js?v=20261123-be1862aa"></script>
-<script src="app.js?v=20261123-be1862aa"></script>
+<script src="config.js?v=20261123-18dd4f83"></script>
+<script src="news.js?v=20261123-18dd4f83"></script>
+<script src="shared.js?v=20261123-18dd4f83"></script>
+<script src="app.js?v=20261123-18dd4f83"></script>
 </body>
 </html>

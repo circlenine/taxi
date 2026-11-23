@@ -184,7 +184,15 @@ button{font-family:inherit}
    前は 5px の所と 8px の所が混ざっていました。
    下の字が持っている「上の空き」を取り消して、
    見出しの「下の空き」1つだけで決まるようにします。 */
-.card > h2, #ktop > h2{margin-bottom:9px}
+/* ================================================================
+ *  ★見出しは「帯」にして、区切りを はっきりさせました
+ *    （ご指示・2026/11/23「見出し部分は、あくまで例えばですが
+ *      白背景にするなど 区切りが分かりやすくなるように」）。
+ *  ★暗い車内で読むものなので、白地に黒ではなく、
+ *    白を うすく敷いて、下に1本 線を引く形にしました。
+ *    白地にすると、夜の車内ではまぶしく、目が暗さに戻りません。
+ *  ★帯は欄の内側いっぱいに広げます（左右の欠けを作らないため）。
+ * ================================================================ */
 .card > h2 + *, #ktop > h2 + *{margin-top:0}
 .card.fold > h2 .fmark, #ktop.fold > h2 .fmark{transform:rotate(-90deg)}
 .card.fold > *:not(h2), #ktop.fold > *:not(h2){display:none}
@@ -435,6 +443,8 @@ h1{font-family:var(--disp);font-size:25px;margin:0;letter-spacing:.06em;font-wei
 h1.dn{font-family:var(--goth);font-weight:700;font-size:var(--logo);letter-spacing:.17em;
   line-height:1.2;color:var(--paper);text-shadow:0 0 20px rgba(200,35,43,.35)}
 h1.dn2{font-family:var(--disp);letter-spacing:.08em}
+/* ★題は2行。幅は app.js の logoFit_ がそろえます（2026/11/23） */
+h1.dn > .l1, h1.dn > .l2{display:block;white-space:nowrap}
 /* ★題は、画面の幅に合わせて縮めます（ご指示・2026/11/11）。
      決め打ちだと、ふきだしと顔を右に置いたときに はみ出します。 */
 /* ★題を小さくして、ふきだしに幅をゆずります（ご指示・2026/11/14）。
@@ -2571,3 +2581,21 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
   border-radius:0}
 .modalbox.tall .modalfoot{flex-wrap:wrap;gap:8px}
 .modalbox.tall .modalfoot .mini{margin-right:auto}
+
+/* ================================================================
+ *  見出しの帯（ご指示・2026/11/23）
+ *    「見出し部分は、あくまで例えばですが 白背景にするなど
+ *      区切りが分かりやすくなるように」
+ *
+ *  ★暗い車内で読むものなので、白地に黒ではなく、
+ *    白を うすく敷いて、下に1本 線を引く形にしました。
+ *    白地にすると夜はまぶしく、そのあと暗い所が見えなくなります。
+ *  ★帯は、欄の内側いっぱいに広げます（左右に欠けを作らないため）。
+ *  ★この指定は、あとから出てくる .card h2 の margin に
+ *    上書きされないよう、わざと一番うしろに置いてあります。
+ * ================================================================ */
+.card > h2, #ktop > h2{margin:-16px -16px 12px;padding:11px 16px;
+  background:rgba(255,255,255,.075);border-bottom:1px solid var(--ink3);
+  border-radius:10px 10px 0 0}
+.card.fold > h2, #ktop.fold > h2{margin-bottom:-12px;border-bottom:0;border-radius:10px}
+.card.lead:not(.fold) > h2{margin-bottom:12px}
