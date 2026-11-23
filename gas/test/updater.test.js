@@ -7491,5 +7491,93 @@ console.log('■ LINEの受け口を10分おきに見る（2026/11/17）');
     '★★★1分おきの見張りから、try で囲って呼んでいる');
 }
 
+/* ================================================================
+ *  ⏱ 持ち時間の帳面（ご指示・2026/11/23
+ *    「常に自動で動くように徹底的に見直してください
+ *      何回も止まるの面倒くさすぎです」）
+ * ================================================================ */
+console.log('■ きょう動いた時間を数えて、使いすぎる前に止める（2026/11/23）');
+{
+  const U = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  const V = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+
+  t(/function budRun_\(name, fn\) \{/.test(U), '★★★かかった時間を数える係がある');
+  t(/finally \{ budAdd_\(name, Date\.now\(\) - t0\); \}/.test(U),
+    '★★★しくじっても、時間だけは必ず足す（止まった理由を残すため）');
+  t(/const BUD_STOP_MIN = 60;/.test(U) && /const BUD_MAX_MIN  = 90;/.test(U),
+    '★★★60分を超えたら重い仕事をやめる（決まりは90分）');
+  t(/function budHeavyOk_\(\) \{/.test(U), '　 残っているかを見分けられる');
+  /* 日が変わったら、まっさらに戻ること（前の日のぶんを引きずらない） */
+  t(/if \(p\[0\] !== today\) return \{ d: today, sec: 0, by: \{\} \};/.test(U),
+    '★★★日が変わったら、数えなおす');
+
+  /* 2つの見張りが、どちらも数えられていること */
+  t(/return budRun_\("ボタンの見張り", function \(\) \{ return panelWatchBody_\(\); \}\);/.test(U),
+    '★★★ボタンの見張りを数えている');
+  t(/budRun_\("イベント", function \(\) \{ return venueDailyBody_\(\); \}\)/.test(V),
+    '★★★イベントの見張りも数えている');
+  t(/typeof budRun_ === "function"/.test(V),
+    '　 数える係がまだ無い版でも、そのまま走る');
+
+  /* 重い仕事（会場を見にいく）だけを止めること */
+  t(/const heavyOk = \(typeof budHeavyOk_ === "function"\) \? budHeavyOk_\(\) : true;/.test(V),
+    '★★★残っているかを、1回だけ見る');
+  t(/if \(heavyOk\) \{\n      try \{ vnDumpTick_\(\);/.test(V),
+    '★★★会場の中身づくりは、残っているときだけ');
+  t(/if \(heavyOk\) \{\n      try \{ if \(typeof vnFeedPush_ === "function"\) vnFeedPush_\(\);/.test(V),
+    '★★★イベントの紙づくりも、残っているときだけ');
+  /* 止めてはいけないもの（記録の取り込み・LINEの受け口）は、囲みの外 */
+  const seg = V.slice(V.indexOf('function venueDailyBody_'), V.indexOf('function venueDailyBody_') + 9000);
+  t(/webSyncTick_/.test(seg) && !/if \(heavyOk\) \{[^}]{0,400}webSyncTick_/.test(seg),
+    '★★★記録を台帳へ移す仕事は、止めない');
+
+  /* ★ほんとうに数えられているかを、動かして確かめます */
+  {
+    const vm2 = require('vm');
+    const store = {};
+    const ctx2 = {
+      updProps_: function () {
+        return {
+          getProperty: function (k) { return store[k] == null ? null : store[k]; },
+          setProperty: function (k, v) { store[k] = String(v); }
+        };
+      },
+      Utilities: {
+        formatDate: function (d) {
+          return new Date(d).toISOString().slice(0, 10);
+        }
+      },
+      Date: Date, Math: Math, Object: Object, Number: Number, String: String, console: console
+    };
+    vm2.createContext(ctx2);
+    const head = U.slice(U.indexOf('const BUD_KEY'), U.indexOf('const UPD_HOOK_AT'));
+    vm2.runInContext(head, ctx2);
+    const run = function (code) { return vm2.runInContext(code, ctx2); };
+
+    run('budAdd_("あ", 30000)');          /* 30秒 */
+    t(run('budUsedMin_()') === 1, '★★★30秒を足すと 1分になる（四捨五入）',
+      run('budUsedMin_()'));
+    run('budAdd_("あ", 30 * 60000)');     /* さらに30分 */
+    t(run('budUsedMin_()') === 31, '★★★足し算が合っている', run('budUsedMin_()'));
+    t(run('budHeavyOk_()') === true, '　 31分なら、まだ重い仕事をしてよい');
+    run('budAdd_("い", 30 * 60000)');     /* 合計61分 */
+    t(run('budHeavyOk_()') === false, '★★★61分になったら、重い仕事はやめる');
+    t(/きょう 61分\/90分/.test(run('budText_()').replace(/\s/g, '')) ||
+      /きょう61分／90分/.test(run('budText_()').replace(/\s/g, '')),
+      '　 報告に出す文も合っている', run('budText_()'));
+    /* 日が変わったら、まっさらに戻ること */
+    store[run('BUD_KEY')] = '2000-01-01|9999|あ:9999';
+    t(run('budUsedMin_()') === 0, '★★★前の日のぶんは、引きずらない',
+      run('budUsedMin_()'));
+    t(run('budHeavyOk_()') === true, '　 日が変われば、また重い仕事ができる');
+  }
+
+  /* 報告の紙と、台帳の画面に出していること */
+  t(/put\("■ 動いた時間：" \+ bt, true\);/.test(U), '★★★報告の紙に出す');
+  t(/budMin: \(function \(\) \{/.test(V), '★★★台帳の画面にも出す');
+  t(!/budMin[\s\S]{0,200}exec|budMin[\s\S]{0,200}TOKEN/.test(V),
+    '　 鍵や住所は、1文字も混ぜない');
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

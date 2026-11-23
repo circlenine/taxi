@@ -2,7 +2,18 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U185ver  （2026/11/17）  ★★★
+ *  ★★★  U186ver  （2026/11/23）  ★★★
+ *
+ *   [U186ver]
+ *   ・⏱ 1日に動いた時間を数えて、使いすぎる前に重い仕事を止めるようにした
+ *     ★まーく様のご指示「常に自動で動くように徹底的に見直してください
+ *       何回も止まるの面倒くさすぎです」
+ *     ★Googleの決まりで、ひとりでに動くしかけは1日90分まで。
+ *       使い切ると、その日は ぜんぶ止まる。
+ *       これまで「使い切ったかどうか」を知る手がかりが1つも無かった。
+ *     ★60分を超えたら、会場を見にいく仕事だけを その日はやめる。
+ *       記録の取り込みと、LINEの受け口の見張りは、最後まで動かす。
+ *     ★何に何分 使ったかを、報告の紙にも出す。
  *
  *   [U185ver]
  *   ・🔄 台帳へ移す係が、0件のときも控えに1行 書いていたのをやめた
@@ -2003,7 +2014,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U185ver";
+const UPD_VERSION = "U186ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -10241,6 +10252,16 @@ function updKarteBuild_() {
     put("■ スプシ→台帳：調べられませんでした", true);
   }
 
+  /*
+   * ★きょう、ひとりでに動いたしかけが 何分 使ったか（2026/11/23）。
+   *   Googleの決まりで1日90分まで。使い切ると、その日は ぜんぶ止まります。
+   *   止まった理由が分からないままだったので、ここに残します。
+   */
+  try {
+    const bt = (typeof budText_ === "function") ? budText_() : "";
+    if (bt) put("■ 動いた時間：" + bt, true);
+  } catch (e) {}
+
   // ④ 版と公開（どちらも20・200で満杯になる）
   try {
     const vs = (updApi_("/versions", "get", null).versions) || [];
@@ -11049,6 +11070,98 @@ function updDoctorTick_() {
  *    10分おきでも、持ち時間は食いません。
  *  ★ふだんは1通も出しません。直したときだけ言います。
  * ================================================================ */
+/* ================================================================
+ *  ⏱ 持ち時間の帳面（2026/11/23・ご指示）
+ *
+ *    まーく様のご指示：
+ *      「常に自動で動くように徹底的に見直してください
+ *        何回も止まるの面倒くさすぎです」
+ *
+ *  ★Googleの決まりで、ひとりでに動くしかけは **1日90分** までです。
+ *    使い切ると、その日は ぜんぶ止まります。次の日まで戻りません。
+ *    これまでは、使い切ったのかどうかを知る手がかりが1つも無く、
+ *    止まった理由が だれにも分かりませんでした。
+ *  ★だから、動いた時間を 係ごと・日ごとに数えます。
+ *    ・60分を超えたら、**重い仕事だけ** その日はやめます
+ *      （会場のホームページを見にいく仕事。これが一番 時間を食います）
+ *    ・記録の取り込みと、LINEの受け口の見張りは、最後まで動かします
+ *      （ここが止まると、書いた記録が その場で消えるためです）
+ *  ★数えるのに お金はかかりません。スクリプトの控えに書くだけです。
+ * ================================================================ */
+const BUD_KEY      = "UPD_BUDGET";     // 「日付|合計秒|係:秒,係:秒…」
+const BUD_STOP_MIN = 60;               // ここを超えたら、重い仕事はやめる
+const BUD_MAX_MIN  = 90;               // Googleの決まり（参考に出すだけ）
+
+/** きょうの日付（日本時間。真夜中で切りかわります） */
+function budDay_() {
+  return Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd");
+}
+
+/** いまの帳面を読みます。日が変わっていれば、まっさらにします */
+function budRead_() {
+  const today = budDay_();
+  let raw = "";
+  try { raw = String(updProps_().getProperty(BUD_KEY) || ""); } catch (e) {}
+  const p = raw.split("|");
+  if (p[0] !== today) return { d: today, sec: 0, by: {} };
+  const by = {};
+  String(p[2] || "").split(",").forEach(function (x) {
+    const i = x.lastIndexOf(":");
+    if (i > 0) by[x.slice(0, i)] = Number(x.slice(i + 1)) || 0;
+  });
+  return { d: today, sec: Number(p[1]) || 0, by: by };
+}
+
+/** 使った時間を足します（ミリ秒で受けて、秒で持ちます） */
+function budAdd_(name, ms) {
+  try {
+    const sec = Math.max(0, Math.round(Number(ms) / 1000));
+    if (!sec) return;                       // 1秒に満たないものは数えません
+    const b = budRead_();
+    b.sec += sec;
+    b.by[name] = (b.by[name] || 0) + sec;
+    /* 係の数が増えすぎないように、上位8つだけ残します */
+    const ks = Object.keys(b.by).sort(function (x, y) { return b.by[y] - b.by[x]; }).slice(0, 8);
+    const body = ks.map(function (k) { return k + ":" + b.by[k]; }).join(",");
+    updProps_().setProperty(BUD_KEY, b.d + "|" + b.sec + "|" + body);
+  } catch (e) {}
+}
+
+/** きょう ここまでに使った分（分） */
+function budUsedMin_() {
+  try { return Math.round(budRead_().sec / 60); } catch (e) { return 0; }
+}
+
+/** 重い仕事をしてよいか（持ち時間が残っているか） */
+function budHeavyOk_() {
+  try { return budUsedMin_() < BUD_STOP_MIN; } catch (e) { return true; }
+}
+
+/** 報告の紙に出す行 */
+function budText_() {
+  try {
+    const b = budRead_();
+    const min = Math.round(b.sec / 60);
+    const ks = Object.keys(b.by).sort(function (x, y) { return b.by[y] - b.by[x]; });
+    const inner = ks.slice(0, 5).map(function (k) {
+      return k + " " + Math.round(b.by[k] / 60) + "分";
+    }).join("／");
+    return "きょう " + min + "分／" + BUD_MAX_MIN + "分" +
+           (min >= BUD_STOP_MIN ? "（重い仕事は、きょうはお休み）" : "") +
+           (inner ? "\n 　（" + inner + "）" : "");
+  } catch (e) { return ""; }
+}
+
+/**
+ * 係を1つ走らせて、かかった時間を帳面に足します。
+ * ★しくじっても、時間だけは必ず足します（止まった理由を残すため）。
+ */
+function budRun_(name, fn) {
+  const t0 = Date.now();
+  try { return fn(); }
+  finally { budAdd_(name, Date.now() - t0); }
+}
+
 const UPD_HOOK_AT  = "UPD_HOOK_AT";
 const UPD_HOOK_MIN = 10;
 
@@ -14017,6 +14130,10 @@ function panelResetIfAsked_(sh) {
 
 /** 1分おきの見張り。onEdit が効かない機種のための保険 */
 function panelWatch() {
+  /* ★かかった時間を数えます（1日90分の決まりがあるため・2026/11/23） */
+  return budRun_("ボタンの見張り", function () { return panelWatchBody_(); });
+}
+function panelWatchBody_() {
   try {
     panelBeatWatch_();                 // 「見張りは生きている」の足あと
 

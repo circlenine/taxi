@@ -4936,5 +4936,20 @@ console.log('\n■ 止まっている帯を たためる（ご指示・2026/11/2
     '★★★たたんでも、赤い1行は残る（止まっていることを忘れないため）');
 }
 
+console.log('\n■ 止まっていたら、開いた時点で起こす（ご指示・2026/11/23）');
+{
+  t(/function gasWakeAuto\(\)\{/.test(app), '★★★押していただく前に、こちらで起こす');
+  t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return;[\s\S]{0,120}if \(!gasStale\(\)/.test(app),
+    '★★★まーく様の画面だけ（ほかの方はログインしていないので、断られるだけ）');
+  t(/const WAKE_AUTO_MIN = 30;/.test(app), '★★★30分に1回まで（持ち時間を食わないため）');
+  t(/f\.style\.cssText = 'position:absolute;width:1px;height:1px;opacity:0;'/.test(app),
+    '　 画面には1つも出さない');
+  t(/setTimeout\(function \(\)\{ try \{ f\.remove\(\); \} catch \(e\) \{\} \}, 60000\);/.test(app),
+    '　 置きっぱなしにしない');
+  t(/gasWakeAuto\(\);/.test(app), '　 画面を作り直すたびに通る');
+  /* 画面にも、動いた時間を出していること */
+  t(/s2\.budMin == null \? '' :/.test(app), '★★★きょう動いた時間を、画面にも出す');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

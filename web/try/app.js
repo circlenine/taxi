@@ -1107,6 +1107,8 @@ function render(){
   const wt = $('#wakeTop');
   if (wt) {
     wt.innerHTML = gasWakeBar();
+    /* 止まっていたら、押していただく前に、こちらで起こします */
+    gasWakeAuto();
     const wf = wt.querySelector('#wFold');
     if (wf) wf.onclick = function (){
       const bar = wt.querySelector('.wakebar');
@@ -5549,6 +5551,15 @@ function gasStatCard(){
       ? esc(String(sy.at)) + (sy.n == null ? '' : '　' + sy.n + '件')
       : '不明') + '</td></tr>' +
     '<tr><td>見張りの数</td><td>' + un(s2.trig) + '</td></tr>' +
+    /* ★きょう、ひとりでに動いたしかけが 何分 使ったか（2026/11/23）。
+         1日90分を使い切ると、その日は ぜんぶ止まります。
+         止まった理由が分からないままだったので、ここに出します。 */
+    (s2.budMin == null ? '' :
+      '<tr><td>きょう動いた時間</td><td class="' +
+      (s2.budStop && s2.budMin >= s2.budStop ? 'budhot' : '') + '">' +
+      s2.budMin + '分' + (s2.budMax ? '／' + s2.budMax + '分' : '') +
+      (s2.budStop && s2.budMin >= s2.budStop
+        ? '　重い仕事は きょうはお休み' : '') + '</td></tr>') +
     '<tr><td>受け口</td><td>' + (s2.web == null ? '不明' : ok(s2.web)) + '</td></tr>' +
     '<tr><td>版（200で満杯）</td><td>' + un(s2.verNo) + '</td></tr>' +
     '<tr><td>公開（' + un(s2.depMax) + 'で満杯）</td><td>' + un(s2.depN) + '</td></tr>' +
@@ -5603,6 +5614,42 @@ function gasStaleText(h){
   const d = Math.floor(h / 24), r = Math.floor(h % 24);
   return d ? (d + '日と' + r + '時間') : (Math.floor(h) + '時間');
 }
+/* ================================================================
+ *  止まっていたら、開いた時点で ひとりでに起こします
+ *    （ご指示・2026/11/23「常に自動で動くように徹底的に見直してください
+ *      何回も止まるの面倒くさすぎです」）
+ *
+ *  ★これまでは【仕掛けを起こす】を押していただく形でした。
+ *    押すまで止まったままなので、気づかない日が続いていました。
+ *  ★受け口は Googleのログインが要ります。まーく様はログインしておられるので、
+ *    画面の裏で1回 読みにいけば、それだけで起きます。指は要りません。
+ *  ★ほかの方の画面では やりません。ログインしていないので、
+ *    断られるだけで、何の役にも立たないためです。
+ *  ★30分に1回までです。開くたびに叩くと、持ち時間を食います。
+ *  ★しくじっても、画面は何も変わりません（黙って見送ります）。
+ * ================================================================ */
+const WAKE_AUTO_KEY = 'tn_wake_auto';
+const WAKE_AUTO_MIN = 30;
+function gasWakeAuto(){
+  try {
+    if (!(ME.profile && ME.profile.is_admin)) return;
+    if (!gasStale() || !gasInfo || !gasInfo.exec) return;
+    let at = 0;
+    try { at = Number(localStorage.getItem(WAKE_AUTO_KEY) || 0); } catch (e) {}
+    if (at && (Date.now() - at) < WAKE_AUTO_MIN * 60000) return;
+    try { localStorage.setItem(WAKE_AUTO_KEY, String(Date.now())); } catch (e) {}
+    /* 画面には出しません。1回 読みにいくだけです */
+    const f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;' +
+                      'pointer-events:none;border:0;left:-9999px;top:0';
+    f.src = gasInfo.exec;
+    document.body.appendChild(f);
+    /* 1分たったら片づけます（置きっぱなしにしない） */
+    setTimeout(function (){ try { f.remove(); } catch (e) {} }, 60000);
+  } catch (e) {}
+}
+
 /** 一番上に出す、起こすための帯 */
 function gasWakeBar(){
   /*
@@ -5641,8 +5688,8 @@ function gasWakeBar(){
     '（' + gasStaleText(hrs) + '）。</span>' +
     '<a class="btn" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
     '仕掛けを起こす</a>' +
-    '<span class="note">別のページが開きます。押すと自動で直ります。' +
-    '戻ってきたら、この帯は消えます。</span>' + deep + '</div>';
+    '<span class="note">この画面を開いた時点で、裏で1回 起こしにいっています。' +
+    'それでも消えないときだけ、上のボタンを押してください。</span>' + deep + '</div>';
 }
 
 /* ============================================================

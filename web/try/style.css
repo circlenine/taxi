@@ -2652,3 +2652,6 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
 .wakebar.cl > .wfold .fmark{transform:rotate(-90deg)}
 .wakebar > b{padding-right:34px;display:block}
 .wakebar.cl > span, .wakebar.cl > .btn, .wakebar.cl > .note{display:none}
+
+/* ★持ち時間を使いすぎているときの印（2026/11/23） */
+.systbl td.budhot{color:#FFFFFF;font-weight:700;background:rgba(200,35,43,.28)}

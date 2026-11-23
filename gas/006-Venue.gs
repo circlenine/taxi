@@ -12196,6 +12196,15 @@ function vnStatusPush_(force) {
       beat: beat,          /* 最後に動いた時刻 */
       beatMin: beatMin,    /* その何分前か */
       stop: stop,          /* 止まっていそうか */
+      /* ★きょう、ひとりでに動いたしかけが何分 使ったか（2026/11/23）。
+           1日90分を使い切ると、その日は ぜんぶ止まります。
+           数だけです。鍵も住所も、1文字も書いていません。 */
+      budMin: (function () {
+        try { return (typeof budUsedMin_ === "function") ? budUsedMin_() : null; }
+        catch (e) { return null; }
+      })(),
+      budMax: (typeof BUD_MAX_MIN === "number" ? BUD_MAX_MIN : null),
+      budStop: (typeof BUD_STOP_MIN === "number" ? BUD_STOP_MIN : null),
       verNo: verNo,        /* いちばん新しい版の番号（200で満杯） */
       depMax: (typeof UPD_DEPLOY_MAX === "number" ? UPD_DEPLOY_MAX : null),
       depN: depN,          /* 公開の数 */
@@ -13102,6 +13111,14 @@ function vnSentKey_(d) {
  * 時計を見る形にしてある（確認用16:30〜、グループ17:00〜17:15ごろ）。
  */
 function venueDailyJob() {
+  /* ★かかった時間を数えます（1日90分の決まりがあるため・2026/11/23）。
+       数える係がまだ無い版のときは、そのまま走らせます。 */
+  if (typeof budRun_ === "function") {
+    return budRun_("イベント", function () { return venueDailyBody_(); });
+  }
+  return venueDailyBody_();
+}
+function venueDailyBody_() {
   let lock = null;
   try {
     lock = LockService.getScriptLock();
@@ -13121,7 +13138,13 @@ function venueDailyJob() {
      *   こちらから毎回 頼まなくても、いつでも最新の中身が置いてあります。
      *   読めている会場が1つも無ければ、何も書きません（静かなまま）。
      */
-    try { vnDumpTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
+    /* ★持ち時間が残っていないときは、会場を見にいく仕事はやめます
+         （2026/11/23）。ここが一番 時間を食うので、
+         先にここを止めれば、記録の取り込みとLINEの受け口は最後まで動きます。 */
+    const heavyOk = (typeof budHeavyOk_ === "function") ? budHeavyOk_() : true;
+    if (heavyOk) {
+      try { vnDumpTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
+    }
 
     /*
      * ★つけ待ち台帳（ウェブのアプリ）の倉庫を、眠らせません
@@ -13178,8 +13201,13 @@ function venueDailyJob() {
      *   置き場に小さな紙を書くだけです。
      *   受け口の住所は、どこにも出しません。
      */
-    try { if (typeof vnFeedPush_ === "function") vnFeedPush_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); }
+    /* ★ここも、持ち時間が残っているときだけ（2026/11/23）。
+         会場ぜんぶのホームページを見にいくので、一番 時間を食います。
+         止めても、前に渡した紙はそのまま残ります（画面は空になりません）。 */
+    if (heavyOk) {
+      try { if (typeof vnFeedPush_ === "function") vnFeedPush_(); }
+      catch (e) { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); }
+    }
 
     /* ★受け口の住所も、台帳に置いておきます（ご指示・2026/11/13）。
          止まったときに、台帳の【仕掛けを起こす】から戻せるようにするためです。
