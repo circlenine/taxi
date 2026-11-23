@@ -4259,6 +4259,20 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
       '★★★札は先に立てる（途中で切られても、すぐ やり直さない）');
     t(/if \(typeof budHeavyOk_ === "function" && !budHeavyOk_\(\)\) return false;/.test(fn2),
       '★★★持ち時間が残り少なければ、見にいかない');
+  }
+  /* ★様子の紙の置き直しは、黙って失敗しない（2026/11/23） */
+  {
+    const V4 = fs.readFileSync(path.join(G, '006-Venue.gs'), 'utf8');
+    const fn4 = V4.slice(V4.indexOf('function vnStatusPush_'),
+                         V4.indexOf('/** しくじりの場所を、ざっくり日本語にします'));
+    t(/if \(code === 409 \|\| code === 422\)/.test(fn4),
+      '★★★ふだのずれで突き返されたら、取り直して もう1回');
+    t(/if \(sha3 && sha3 !== sha\) \{ res = put\(sha3\); code = res\.getResponseCode\(\); \}/.test(fn4),
+      '　 同じふだでは出し直さない（同じ失敗をくり返さないため）');
+    t(/logErr_\("vnStatusPush", new Error\("置き直せませんでした/.test(fn4),
+      '★★★それでもだめなら、黙らずに控えに残す');
+    t(/catch \(e\) \{\n    try \{ if \(typeof logErr_ === "function"\) logErr_\("vnStatusPush", e\);/.test(fn4),
+      '　 こけたときも、控えに残す');
     const wa = fs.readFileSync(path.join(__dirname, '..', '004-WebApp.gs'), 'utf8');
     t(/vnStatusPush_\(true\)/.test(wa),
       '★★★【仕掛けを起こす】を押すと、紙が新しくなる');

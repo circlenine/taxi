@@ -2,7 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V128ver  （2026/11/23）  ★★★
+ *  ★★★  V129ver  （2026/11/23）  ★★★
+ *
+ *  [V129ver]
+ *  ・🩺 様子の紙の置き直しが、黙って失敗していたのを直した
+ *    ★ふだのずれで突き返されると、同じふだで出し直すので
+ *      ずっと失敗し続けていた（20:22 を最後に、紙が古いままだった）。
+ *    ★1回だけ ふだを取り直して出し直し、それでもだめなら控えに残す。
+ *      黙って終わっていたので、だれも気づけなかった。
  *
  *  [V128ver]
  *  ・⏱ 話題のとどき具合を、3時間に1回までにした（前は しぼりが無かった）
@@ -1905,7 +1912,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V128ver";
+const VN_VERSION = "V129ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -12297,19 +12304,47 @@ function vnStatusPush_(force) {
       } catch (e) {}
     }
 
-    const payload = { message: "仕組みの様子を置き直した（じどう）",
-      content: Utilities.base64Encode(JSON.stringify(body, null, 1), Utilities.Charset.UTF_8),
-      branch: updBranch_() };
-    if (sha) payload.sha = sha;
-    const res = UrlFetchApp.fetch(base, {
-      method: "put", headers: updGhHeaders_(false),
-      contentType: "application/json",
-      payload: JSON.stringify(payload), muteHttpExceptions: true
-    });
-    const okk = res.getResponseCode() < 300;
+    /*
+     * ★置き直しは、しくじることがあります（2026/11/23）。
+     *   ふだのずれ（sha）で突き返されると、何度やっても同じふだで
+     *   出し直すので、ずっと失敗し続けます。
+     *   ★1回だけ、ふだを取り直して出し直します。
+     *   ★それでもだめなら、**黙らずに控えに残します**。
+     *     これまでは黙って終わっていたので、
+     *     「様子の紙が古いまま」に だれも気づけませんでした。
+     */
+    const put = function (sha2) {
+      const payload = { message: "仕組みの様子を置き直した（じどう）",
+        content: Utilities.base64Encode(JSON.stringify(body, null, 1), Utilities.Charset.UTF_8),
+        branch: updBranch_() };
+      if (sha2) payload.sha = sha2;
+      return UrlFetchApp.fetch(base, {
+        method: "put", headers: updGhHeaders_(false),
+        contentType: "application/json",
+        payload: JSON.stringify(payload), muteHttpExceptions: true
+      });
+    };
+    let res = put(sha);
+    let code = res.getResponseCode();
+    if (code === 409 || code === 422) {
+      /* ふだを取り直して、もう1回だけ */
+      let sha3 = "";
+      try {
+        const got2 = updGhTry_(base + "?ref=" + ref);
+        if (got2.code === 200) sha3 = (JSON.parse(got2.body).sha || "");
+      } catch (e) {}
+      if (sha3 && sha3 !== sha) { res = put(sha3); code = res.getResponseCode(); }
+    }
+    const okk = code < 300;
     if (okk) { try { pr.setProperty("VN_STATUS_AT", String(Date.now())); } catch (e) {} }
+    else {
+      try { if (typeof logErr_ === "function") logErr_("vnStatusPush", new Error("置き直せませんでした（" + code + "）")); } catch (e) {}
+    }
     return okk;
-  } catch (e) { return false; }
+  } catch (e) {
+    try { if (typeof logErr_ === "function") logErr_("vnStatusPush", e); } catch (e2) {}
+    return false;
+  }
 }
 
 /** しくじりの場所を、ざっくり日本語にします（中の名前は出しません） */
