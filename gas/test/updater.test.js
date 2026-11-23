@@ -7397,7 +7397,7 @@ console.log('■ スプシ→台帳の自動反映（ご指示・2026/11/10／20
     '　 控えに1行 残す（走ったかどうかを、こちらから見られる）');
   t(/catch \(e\) \{[\s\S]*logErr_\("webSyncTick", e\)/.test(fn),
     '★★★しくじっても、ほかの仕事は止めない');
-  t(/try \{ if \(typeof webSyncTick_ === "function"\) webSyncTick_\(\); \}/.test(vn)
+  t(/vnStep_\("スプシ→台帳", function \(\) \{\n      if \(typeof webSyncTick_ === "function"\) webSyncTick_\(\);/.test(vn)
     && /logErr_\("webSyncTick", e\)/.test(vn),
     '★★★1日1回かならず通る道から、try で囲って呼んでいる');
 }
@@ -7442,7 +7442,7 @@ console.log('■ 台帳→スプシへ戻す（ご指示・2026/11/15）');
   t(/if \(h < 7 \|\| h >= 9\) return false;/.test(tk), '★★★朝7時台・8時台だけ');
   t(tk.indexOf('pr.setProperty(WEB_PULL_DONE, key);') < tk.indexOf('webPullPush_(true)'),
     '★★★札は先に立てる（6分で切られても、二重に走らせない）');
-  t(/try \{ if \(typeof webPullTick_ === "function"\) webPullTick_\(\); \}/.test(vn)
+  t(/vnStep_\("台帳→スプシ", function \(\) \{\n      if \(typeof webPullTick_ === "function"\) webPullTick_\(\);/.test(vn)
     && /logErr_\("webPullTick", e\)/.test(vn),
     '★★★1日1回かならず通る道から、try で囲って呼んでいる');
   t(vn.indexOf('webSyncTick_()') < vn.indexOf('webPullTick_()'),
@@ -7489,7 +7489,7 @@ console.log('■ LINEの受け口を10分おきに見る（2026/11/17）');
     '★★★しくじっても、ほかの仕事は止めない');
   /* 1分おきに必ず通る道から、try で囲って呼んでいること */
   const pw = src.slice(src.indexOf('function panelWatch()'));
-  t(/try \{ if \(updHookTick_\(\)\) return; \} catch \(e\) \{ logErr_\("hookTick", e\); \}/.test(pw),
+  t(/try \{\n      if \(budStep_\("受け口", function \(\) \{ return updHookTick_\(\); \}\)\) return;\n    \} catch \(e\) \{ logErr_\("hookTick", e\); \}/.test(pw),
     '★★★1分おきの見張りから、try で囲って呼んでいる');
 }
 
@@ -7504,7 +7504,7 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
   const V = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
 
   t(/function budRun_\(name, fn\) \{/.test(U), '★★★かかった時間を数える係がある');
-  t(/finally \{ budAdd_\(name, Date\.now\(\) - t0\); \}/.test(U),
+  t(/finally \{\n    budAdd_\(name, Date\.now\(\) - t0\);/.test(U),
     '★★★しくじっても、時間だけは必ず足す（止まった理由を残すため）');
   t(/const BUD_STOP_MIN = 60;/.test(U) && /const BUD_MAX_MIN  = 90;/.test(U),
     '★★★60分を超えたら重い仕事をやめる（決まりは90分）');
@@ -7535,10 +7535,24 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
   /* 重い仕事（会場を見にいく）だけを止めること */
   t(/const heavyOk = \(typeof budHeavyOk_ === "function"\) \? budHeavyOk_\(\) : true;/.test(V),
     '★★★残っているかを、1回だけ見る');
-  t(/if \(heavyOk\) \{\n      try \{ vnDumpTick_\(\);/.test(V),
+  t(/if \(heavyOk\) \{\n      try \{ vnStep_\("会場の中身", function \(\) \{ vnDumpTick_\(\); \}\);/.test(V),
     '★★★会場の中身づくりは、残っているときだけ');
-  t(/if \(heavyOk\) \{\n      try \{ if \(typeof vnFeedPush_ === "function"\) vnFeedPush_\(\);/.test(V),
-    '★★★イベントの紙づくりも、残っているときだけ');
+  /*
+   * ★台帳へのイベントの紙は、わざと歯止めの外に出してあります（2026/11/24）。
+   *   もともと1日2回だけ（朝の枠・夕の枠）なので、いくら動いても2回ぶんです。
+   *   歯止めを掛けたままだと、夕方には たいてい60分を超えているので
+   *   夕の枠が毎日とばされ、台帳のイベントが朝のまま古くなっていました。
+   */
+  {
+    const i1 = V.indexOf('const heavyOk = ');
+    const i2 = V.indexOf('vnStep_("台帳へイベント"');
+    t(i1 > 0 && i2 > i1, '　 台帳へイベントを渡す所がある', i2);
+    const seg = V.slice(i1, i2);
+    t(!/if \(heavyOk\) \{[^}]*$/.test(seg),
+      '★★★イベントの紙づくりは、60分の歯止めでは止めない（1日2回だけなので）');
+    t(/if \(typeof budTight_ === "function" && budTight_\(\)\) return;/.test(seg),
+      '★★★ただし75分を超えたら、ここも通らない（手前でまるごと帰る）');
+  }
   /* 止めてはいけないもの（記録の取り込み・LINEの受け口）は、囲みの外 */
   const seg = V.slice(V.indexOf('function venueDailyBody_'), V.indexOf('function venueDailyBody_') + 9000);
   t(/webSyncTick_/.test(seg) && !/if \(heavyOk\) \{[^}]{0,400}webSyncTick_/.test(seg),
@@ -7583,12 +7597,51 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
     t(run('budUsedMin_()') === 0, '★★★前の日のぶんは、引きずらない',
       run('budUsedMin_()'));
     t(run('budHeavyOk_()') === true, '　 日が変われば、また重い仕事ができる');
+
+    /*
+     * ★内わけの帳面（2026/11/24）。
+     *   ここが合計に足されてしまうと、二重に数えることになり、
+     *   歯止め（60分・75分・90分）が 早まって効いてしまいます。
+     *   「イベントを止めたのに、何も重くなっていないのに止まる」
+     *   という、いちばん分かりにくい止まり方になります。
+     */
+    run('budAdd_("う", 10 * 60000)');            /* まず10分だけ入れておく */
+    const before = run('budUsedMin_()');
+    run('BUD_DET_BUF["こまかい手間"] = 40 * 60000');   /* 40分ぶんを控える */
+    run('budDetFlush_()');
+    t(run('budUsedMin_()') === before,
+      '★★★内わけは、合計に足さない（足すと歯止めが早まって効く）',
+      run('budUsedMin_()') + ' / ' + before);
+    t(/こまかい手間 40分/.test(run('budDetText_()')),
+      '★★★内わけは、ちゃんと読める形で残る', run('budDetText_()'));
+    /* 日が変わったら、内わけも まっさらに戻ること */
+    store[run('BUD_DET_KEY')] = '2000-01-01|あ:9999';
+    t(run('budDetText_()') === '', '★★★前の日の内わけは、引きずらない',
+      run('budDetText_()'));
   }
+
+  /* 内わけを書くのは、1回の動きにつき1度だけ（数えるほうが重くなっては困る） */
+  t(/finally \{\n    budAdd_\(name, Date\.now\(\) - t0\);\n    try \{ budDetFlush_\(\); \} catch \(e\) \{\}\n  \}/.test(U),
+    '★★★内わけを書くのは、終わりに1度だけ');
+  {
+    const seg = U.slice(U.indexOf('function budStep_'), U.indexOf('function budDetFlush_'));
+    t(seg.length > 0 && !/budAdd_/.test(seg),
+      '★★★内わけの時計は、合計の帳面に手を出さない');
+  }
+  /* 報告の紙に、内わけも出していること */
+  t(/put\(" 　内わけ：" \+ bd, true\);/.test(U), '★★★報告の紙に、内わけも出す');
+  /* どの手間を数えているか（名前が無いと、読んでも分からない） */
+  t(/budStep_\("スプシを開く"/.test(U) && /budStep_\("ボタン読み"/.test(U) &&
+    /budStep_\("ボタン合わせ"/.test(U) && /budStep_\("受け口"/.test(U),
+    '★★★ボタンの見張りの中身に、名前が付いている');
+  t(/vnStep_\("様子の紙"/.test(V) && /vnStep_\("見張りの面倒"/.test(V) &&
+    /vnStep_\("台帳へイベント"/.test(V),
+    '★★★イベントの見張りの中身にも、名前が付いている');
 
   /* ★使いすぎる前に、自分から軽くすること（2026/11/23 に数えて分かった） */
   t(/const BUD_LAST_MIN = 75;/.test(U), '★★★75分で、最後の砦に入る');
   t(/function budTight_\(\) \{/.test(U), '　 その見分けがある');
-  t(/if \(!budTight_\(\)\) \{\n      try \{ if \(updAutoPullTick_\(\)\) return; \}/.test(U),
+  t(/if \(!budTight_\(\)\) \{\n      try \{\n        if \(budStep_\("取り込み", function \(\) \{ return updAutoPullTick_\(\); \}\)\) return;/.test(U),
     '★★★残り少なければ、新しい中身を取りにいかない');
   t(/if \(typeof budTight_ === "function" && budTight_\(\)\) return;/.test(V),
     '★★★残り少なければ、イベントの見張りは まるごと休む');

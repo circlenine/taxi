@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U189ver  （2026/11/23）  ★★★
+ *  ★★★  U190ver  （2026/11/24）  ★★★
+ *
+ *   [U190ver]
+ *   ・⏱ 「どの手間が重いのか」を、中身ごとに数えるようにした
+ *     ★「ボタンの見張り 44分」までは分かっても、その中の
+ *       どこが重いのかが分からず、間かくを広げるのが当て推量だった。
+ *     ★合計には足さない（二重に数えると、歯止めが早まって効く）。
+ *       読むためだけの帳面。報告の紙に「内わけ」として1行 出る。
+ *     ★書くのは1回の動きにつき1度だけ（数えるほうが重くなっては本末転倒）。
  *
  *   [U189ver]
  *   ・⏱ ボタンの見張りを 5分おき → 10分おきにした（1回だけ作り直す）
@@ -2040,7 +2048,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U189ver";
+const UPD_VERSION = "U190ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -10286,6 +10294,10 @@ function updKarteBuild_() {
   try {
     const bt = (typeof budText_ === "function") ? budText_() : "";
     if (bt) put("■ 動いた時間：" + bt, true);
+    /* ★その中の、どの手間が重いのか（2026/11/24）。
+         ここが分からないと、間かくを広げるのが当て推量になります。 */
+    const bd = (typeof budDetText_ === "function") ? budDetText_() : "";
+    if (bd) put(" 　内わけ：" + bd, true);
   } catch (e) {}
 
   // ④ 版と公開（どちらも20・200で満杯になる）
@@ -11207,7 +11219,85 @@ function budText_() {
 function budRun_(name, fn) {
   const t0 = Date.now();
   try { return fn(); }
-  finally { budAdd_(name, Date.now() - t0); }
+  finally {
+    budAdd_(name, Date.now() - t0);
+    try { budDetFlush_(); } catch (e) {}
+  }
+}
+
+/*
+ * ★中身の内わけ（2026/11/24）。
+ *
+ *   「ボタンの見張り 44分／イベント 27分」までは分かっても、
+ *   その中の どの手間が重いのかが分かりませんでした。
+ *   分からないまま間かくを広げると、当て推量になります。
+ *   だから、中の一つひとつにも 時計を付けます。
+ *
+ *   ★合計には足しません。足すと二重に数えてしまい、
+ *     歯止め（60分・75分・90分）が 早まって効いてしまいます。
+ *     ここは「読むため」だけの帳面です。
+ *   ★書くのは、1回の動きにつき 1度だけ（最後にまとめて）。
+ *     一つひとつ書きにいくと、数えるほうが重くなります。
+ */
+const BUD_DET_KEY = "UPD_BUDGET_DET";
+var BUD_DET_BUF = {};              // この1回ぶん（メモリの上だけ）
+
+/** 中身を1つ走らせて、かかった時間を控えます（合計には足しません） */
+function budStep_(name, fn) {
+  const t0 = Date.now();
+  try { return fn(); }
+  finally {
+    try { BUD_DET_BUF[name] = (BUD_DET_BUF[name] || 0) + (Date.now() - t0); } catch (e) {}
+  }
+}
+
+/** この1回ぶんの控えを、帳面に書き足します（書くのは1度だけ） */
+function budDetFlush_() {
+  try {
+    const ks = Object.keys(BUD_DET_BUF);
+    if (!ks.length) return;
+    const today = budDay_();
+    const by = {};
+    try {
+      const raw = String(updProps_().getProperty(BUD_DET_KEY) || "");
+      const a = raw.split("|");
+      if (a[0] === today && a[1]) {
+        a[1].split(",").forEach(function (t) {
+          const kv = t.split(":");
+          if (kv[0]) by[kv[0]] = Number(kv[1] || 0) || 0;
+        });
+      }
+    } catch (e) {}
+    ks.forEach(function (k) {
+      const sec = Math.max(0, Math.round(BUD_DET_BUF[k] / 1000));
+      if (sec) by[k] = (by[k] || 0) + sec;
+    });
+    BUD_DET_BUF = {};
+    const keep = Object.keys(by).sort(function (x, y) { return by[y] - by[x]; }).slice(0, 12);
+    if (!keep.length) return;
+    const body = keep.map(function (k) { return k + ":" + by[k]; }).join(",");
+    updProps_().setProperty(BUD_DET_KEY, today + "|" + body);
+  } catch (e) {}
+}
+
+/** 内わけを、人が読める1行にします（報告の紙に出します） */
+function budDetText_() {
+  try {
+    const raw = String(updProps_().getProperty(BUD_DET_KEY) || "");
+    const a = raw.split("|");
+    if (a[0] !== budDay_() || !a[1]) return "";
+    const by = {};
+    a[1].split(",").forEach(function (t) {
+      const kv = t.split(":");
+      if (kv[0]) by[kv[0]] = Number(kv[1] || 0) || 0;
+    });
+    const ks = Object.keys(by).sort(function (x, y) { return by[y] - by[x]; }).slice(0, 8);
+    if (!ks.length) return "";
+    return ks.map(function (k) {
+      const sec = by[k];
+      return k + " " + (sec >= 90 ? Math.round(sec / 60) + "分" : sec + "秒");
+    }).join("／");
+  } catch (e) { return ""; }
 }
 
 const UPD_HOOK_AT  = "UPD_HOOK_AT";
@@ -14222,27 +14312,29 @@ function panelWatch() {
 }
 function panelWatchBody_() {
   try {
-    panelBeatWatch_();                 // 「見張りは生きている」の足あと
+    budStep_("足あと", function () { panelBeatWatch_(); });   // 「見張りは生きている」の足あと
 
-    const sh = mainSS_().getSheetByName(PANEL_TAB);
+    const sh = budStep_("スプシを開く", function () {
+      return mainSS_().getSheetByName(PANEL_TAB);
+    });
     if (!sh) return;
 
     /*
      * ★いまの調子の信号（1行目F〜G）を、いまの顔にそろえます。
      *   ふだんは読むだけで、書くのは顔が変わったときと5分おきだけです。
      */
-    try { panelLamp_(sh, new Date(), false); } catch (e) {}
+    try { budStep_("信号", function () { panelLamp_(sh, new Date(), false); }); } catch (e) {}
 
     // 「結果を空にする」が押されていたら、まずそれ
-    if (panelResetIfAsked_(sh)) return;
+    if (budStep_("空にする待ち", function () { return panelResetIfAsked_(sh); })) return;
 
     // 動きっぱなしになっていないか、先に見る
-    if (panelCheckStuck_(sh)) return;
+    if (budStep_("動きっぱなし見", function () { return panelCheckStuck_(sh); })) return;
 
     // ★まずチェックのらんだけを読む。
     //   1分おきに走るので、ここが重いと1日ぶんの持ち時間を食いつぶす。
     //   押されているものが無ければ、ここで帰る（読むのは1列だけ）
-    const hit = panelPendingRow_(sh);
+    const hit = budStep_("ボタン読み", function () { return panelPendingRow_(sh); });
     if (hit) { panelRun_(hit); return; }             // 1回に1つだけ
 
     /*
@@ -14254,7 +14346,9 @@ function panelWatchBody_() {
      */
     /* ★持ち時間が残り少ないときは、外へ聞きにいきません（2026/11/23） */
     if (!budTight_()) {
-      try { if (updAutoPullTick_()) return; } catch (e) { logErr_("panelWatchPull", e); }
+      try {
+        if (budStep_("取り込み", function () { return updAutoPullTick_(); })) return;
+      } catch (e) { logErr_("panelWatchPull", e); }
     }
 
     /*
@@ -14265,7 +14359,9 @@ function panelWatchBody_() {
      *   ★ふだんは何も言いません。直したときだけ、1日1回まで知らせます。
      */
     if (!budTight_()) {
-      try { if (updDoctorTick_()) return; } catch (e) { logErr_("doctor", e); }
+      try {
+        if (budStep_("お医者さん", function () { return updDoctorTick_(); })) return;
+      } catch (e) { logErr_("doctor", e); }
     }
 
     /*
@@ -14273,7 +14369,9 @@ function panelWatchBody_() {
      *   ここが切れているあいだ、LINEに書いた記録は その場で消えます。
      *   あとから取り直せないので、気づくのを早くするしかありません。
      */
-    try { if (updHookTick_()) return; } catch (e) { logErr_("hookTick", e); }
+    try {
+      if (budStep_("受け口", function () { return updHookTick_(); })) return;
+    } catch (e) { logErr_("hookTick", e); }
 
     /*
      * ★取り込みそこねたスクショを、あとで取り込み直します（2026/11/17）。
@@ -14281,8 +14379,11 @@ function panelWatchBody_() {
      *   画像はLINE側に数日残るので、その間なら取り直せます。
      */
     if (!budTight_()) {
-      try { if (typeof imgRetryTick_ === "function" && imgRetryTick_()) return; }
-      catch (e) { logErr_("imgRetry", e); }
+      try {
+        if (budStep_("写真の取り直し", function () {
+          return typeof imgRetryTick_ === "function" && imgRetryTick_();
+        })) return;
+      } catch (e) { logErr_("imgRetry", e); }
     }
 
     /*
@@ -14299,8 +14400,11 @@ function panelWatchBody_() {
      *     ここから面倒を見れば、確実に立ち上がります。
      *     中では1日1回しか実際の点検をしません（持ち時間を食わないため）。
      */
-    try { if (typeof vnSelfHeal_ === "function") vnSelfHeal_(); }
-    catch (e) { logErr_("panelWatchHeal", e); }
+    try {
+      budStep_("見張りの面倒", function () {
+        if (typeof vnSelfHeal_ === "function") vnSelfHeal_();
+      });
+    } catch (e) { logErr_("panelWatchHeal", e); }
 
     /*
      * ★天気を、その日のうちにためる（まーく様のご指示）。
@@ -14309,37 +14413,45 @@ function panelWatchBody_() {
      *   そこに相乗りします。中では、夜になってから・
      *   その日のぶんが無いときだけ、10分に1回まで動きます。
      */
-    try { if (typeof tkTick_ === "function") tkTick_(); }
-    catch (e) { logErr_("panelWatchTenki", e); }
+    try {
+      budStep_("天気ためる", function () {
+        if (typeof tkTick_ === "function") tkTick_();
+      });
+    } catch (e) { logErr_("panelWatchTenki", e); }
 
     /*
      * ★ドライブが一杯で止まった仕事が残っていれば、
      *   空きが戻ったかを見て、戻っていればやり直します（ご指示）。
      *   宿題が無ければ、ここは何もせずに帰ります。
      */
-    try { if (updDiskTick_()) return; }
-    catch (e) { logErr_("panelWatchDisk", e); }
+    try {
+      if (budStep_("ドライブの空き", function () { return updDiskTick_(); })) return;
+    } catch (e) { logErr_("panelWatchDisk", e); }
 
     /*
      * ★版の保存が途中なら、続きを少しだけ進めます（ご指示）。
      *   「何回も押さなきゃいけない」を、こちらで引き取ります。
      *   押されているボタンが無いときだけです（上で確かめてあります）。
      */
-    try { if (updVsaveTick_()) return; }
-    catch (e) { logErr_("panelWatchVsave", e); }
+    try {
+      if (budStep_("版の保存", function () { return updVsaveTick_(); })) return;
+    } catch (e) { logErr_("panelWatchVsave", e); }
 
     /*
      * ★止まっていたあいだの反映を、復旧したら すぐ追いかけます（ご指示）。
      *   17:00の1日1回だけだと、次の17:00まで止まったままです。
      *   30分に1回までしか見にいきません。
      */
-    try { if (typeof fmtCatchUp_ === "function" && fmtCatchUp_()) return; }
-    catch (e) { logErr_("panelWatchCatchUp", e); }
+    try {
+      if (budStep_("整えの追いかけ", function () {
+        return (typeof fmtCatchUp_ === "function") && fmtCatchUp_();
+      })) return;
+    } catch (e) { logErr_("panelWatchCatchUp", e); }
 
     // コードが新しくなっていたら、増えたボタンをここで足す。
     // 押されているものが無いときだけ。行を差し込むと下のボタンが動くので、
     // 押した行と実際に動く行がずれてしまう
-    panelAutoSync_(sh);
+    budStep_("ボタン合わせ", function () { panelAutoSync_(sh); });
   } catch (err) { logErr_("panelWatch", err); }
 }
 

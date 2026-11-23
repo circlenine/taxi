@@ -2,7 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V129ver  （2026/11/23）  ★★★
+ *  ★★★  V130ver  （2026/11/24）  ★★★
+ *
+ *  [V130ver]
+ *  ・⏱ 台帳へのイベントの紙を、持ち時間の歯止めから外した
+ *    ★もともと1日2回だけ（朝の枠・夕の枠）にしぼってある。
+ *      夕方には たいてい60分を超えているので、歯止めを掛けたままだと
+ *      夕の枠が毎日とばされ、台帳のイベントが朝のまま古くなっていた。
+ *  ・⏱ 中身ごとに時間を数えるようにした（どこが重いのかを見るため）
  *
  *  [V129ver]
  *  ・🩺 様子の紙の置き直しが、黙って失敗していたのを直した
@@ -1912,7 +1919,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V129ver";
+const VN_VERSION = "V130ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -13259,6 +13266,12 @@ function vnTrg15Once_() {
   } catch (e) { return false; }
 }
 
+/* ★内わけの時計。005-Updater が無い場でも落ちないようにします */
+function vnStep_(name, fn) {
+  if (typeof budStep_ === "function") return budStep_(name, fn);
+  return fn();
+}
+
 function venueDailyBody_() {
   let lock = null;
   try {
@@ -13273,7 +13286,8 @@ function venueDailyBody_() {
     /* ★5分おきになっていた見張りを、15分おきに直します（この版で1回だけ） */
     try { vnTrg15Once_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnTrg15", e); }
 
-    try { vnSelfHeal_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnSelfHeal", e); }
+    try { vnStep_("見張りの面倒", function () { vnSelfHeal_(); }); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnSelfHeal", e); }
 
     /*
      * ★読めていない会場の「ページの中身」を、1日1回 ひとりでに作り直します
@@ -13290,7 +13304,8 @@ function venueDailyBody_() {
          （2026/11/23）。ボタン待ちとLINEの受け口だけを残すためです。 */
     if (typeof budTight_ === "function" && budTight_()) return;
     if (heavyOk) {
-      try { vnDumpTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
+      try { vnStep_("会場の中身", function () { vnDumpTick_(); }); }
+      catch (e) { if (typeof logErr_ === "function") logErr_("vnDumpTick", e); }
     }
 
     /*
@@ -13303,8 +13318,9 @@ function venueDailyBody_() {
      *   ★ここに置いたのは、1日1回かならず通る道だからです。
      *   ★しくじっても、ほかの仕事は止めません。
      */
-    try { if (typeof sbWakeTick_ === "function") sbWakeTick_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("sbWake", e); }
+    try { vnStep_("倉庫を起こす", function () {
+      if (typeof sbWakeTick_ === "function") sbWakeTick_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("sbWake", e); }
 
     /*
      * ★スプシの記録を、台帳へ ひとりでに移します（1日1回・朝7時台）。
@@ -13314,8 +13330,9 @@ function venueDailyBody_() {
      *   押し忘れると 台帳とスプシの数字がずれていました。
      *   ★しくじっても、ほかの仕事は止めません。
      */
-    try { if (typeof webSyncTick_ === "function") webSyncTick_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("webSyncTick", e); }
+    try { vnStep_("スプシ→台帳", function () {
+      if (typeof webSyncTick_ === "function") webSyncTick_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("webSyncTick", e); }
 
     /*
      * ★台帳（ウェブ）で直したものを、スプシへ戻します
@@ -13326,21 +13343,24 @@ function venueDailyBody_() {
      *     先にスプシの中身を台帳へ移してから戻すと、二重に増えません。
      *   ★行を消すことは、絶対にしません。
      */
-    try { if (typeof webPullTick_ === "function") webPullTick_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("webPullTick", e); }
+    try { vnStep_("台帳→スプシ", function () {
+      if (typeof webPullTick_ === "function") webPullTick_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("webPullTick", e); }
 
     /* ★仕組みの様子を、台帳の【管理】の画面にも出します
          （ご質問・2026/11/15「Googleスクリプトのページを、
            webサイトの方にも表示させることはできないのでしょうか」）。
          秘密は1文字も書きません（数と○×だけ）。 */
-    try { if (typeof vnStatusPush_ === "function") vnStatusPush_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("vnStatusPush", e); }
+    try { vnStep_("様子の紙", function () {
+      if (typeof vnStatusPush_ === "function") vnStatusPush_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("vnStatusPush", e); }
 
     /* ★いま、調べられている場所（ご依頼・2026/11/15）。
          ウィキペディアのページが何回ひらかれたかです（無料・鍵なし）。
          落ちても、前に置いた紙がそのまま残ります。 */
-    try { if (typeof vnBuzzPush_ === "function") vnBuzzPush_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("vnBuzzPush", e); }
+    try { vnStep_("話題のとどき具合", function () {
+      if (typeof vnBuzzPush_ === "function") vnBuzzPush_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("vnBuzzPush", e); }
 
     /*
      * ★イベント情報を、TAXI NOTE（ウェブ）にも渡します
@@ -13351,24 +13371,33 @@ function venueDailyBody_() {
     /* ★ここも、持ち時間が残っているときだけ（2026/11/23）。
          会場ぜんぶのホームページを見にいくので、一番 時間を食います。
          止めても、前に渡した紙はそのまま残ります（画面は空になりません）。 */
-    if (heavyOk) {
-      try { if (typeof vnFeedPush_ === "function") vnFeedPush_(); }
-      catch (e) { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); }
-    }
+    /* ★ここは、持ち時間が減っていても通します（2026/11/24）。
+         もともと「1日2回だけ」（朝の枠・夕の枠）にしぼってあるので、
+         いくら動いても1日2回ぶんです。歯止めを掛ける値打ちがありません。
+         それどころか、夕方には たいてい60分を超えているので、
+         掛けたままだと **夕の枠が毎日とばされ**、
+         台帳のイベントの紙が 朝のまま古くなります。
+         （75分を超えたときは、上でまるごと帰るので ここも通りません） */
+    try { vnStep_("台帳へイベント", function () {
+      if (typeof vnFeedPush_ === "function") vnFeedPush_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("vnFeedPush", e); }
 
     /* ★受け口の住所も、台帳に置いておきます（ご指示・2026/11/13）。
          止まったときに、台帳の【仕掛けを起こす】から戻せるようにするためです。
          住所が変わったときだけ置き直すので、ふだんは何もしません。 */
-    try { if (typeof vnGasPush_ === "function") vnGasPush_(); }
-    catch (e) { if (typeof logErr_ === "function") logErr_("vnGasPush", e); }
+    try { vnStep_("受け口の住所", function () {
+      if (typeof vnGasPush_ === "function") vnGasPush_();
+    }); } catch (e) { if (typeof logErr_ === "function") logErr_("vnGasPush", e); }
 
     // ★お知らせの予約は、自動発信が切ってあっても届ける。
     //   これは「自分で押した人」への約束なので、全体の入切とは別。
-    try { vnRemindTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }
+    try { vnStep_("お知らせの予約", function () { vnRemindTick_(); }); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnRemindTick", e); }
 
     // ★16:30／17:00 が近ければ、その時刻ぴったりの見張りを立てる。
     //   15分おきのままだと、届く時刻が毎日15分ぶんばらつくため（V033ver〜）
-    try { vnAimTick_(); } catch (e) { if (typeof logErr_ === "function") logErr_("vnAimTick", e); }
+    try { vnStep_("時刻合わせ", function () { vnAimTick_(); }); }
+    catch (e) { if (typeof logErr_ === "function") logErr_("vnAimTick", e); }
 
     // ★コードが新しくなっていたら、こちらで取り込む。
     //   「伝えるだけで終わる」ようにするため（005-Updater の updAutoPull_）
@@ -13376,7 +13405,9 @@ function venueDailyBody_() {
     //     ここはその保険です。ボタンの見張りが止まっていても、
     //     15分おきのこちらが動いていれば、取り込みは進みます。
     try {
-      if (typeof updAutoPull_ === "function" && updAutoPull_()) return;
+      if (vnStep_("取り込み（保険）", function () {
+        return typeof updAutoPull_ === "function" && updAutoPull_();
+      })) return;
     } catch (e) { if (typeof logErr_ === "function") logErr_("updAutoPull", e); }
 
     if (!vnAutoOn_()) return;
