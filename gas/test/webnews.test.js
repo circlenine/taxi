@@ -4246,6 +4246,19 @@ console.log('\n■ 仕組みの様子を、台帳にも出す（ご質問・2026
       '★★★20分に1回まで（叩かれるたびに書かない）');
     t(/VN_VERDEP_AT/.test(fn),
       '★★★版と公開の数は、1時間に1回だけ数え直す（外へ2回 聞きにいくため）');
+  }
+  /* ★話題のとどき具合（ここが、持ち時間を一番 食っていました・2026/11/23） */
+  {
+    const V2 = fs.readFileSync(path.join(G, '006-Venue.gs'), 'utf8');
+    const fn2 = V2.slice(V2.indexOf('function vnBuzzPush_'),
+                         V2.indexOf('function vnBuzzPush_') + 2600);
+    t(/const VN_BUZZ_MIN = 180;/.test(V2), '★★★3時間に1回まで');
+    t(/if \(!force && last && \(Date\.now\(\) - last\) < VN_BUZZ_MIN \* 60 \* 1000\) return true;/.test(fn2),
+      '★★★しぼりが、ほんとうに効いている');
+    t(/pr0\.setProperty\(VN_BUZZ_AT, String\(Date\.now\(\)\)\);[\s\S]{0,200}const rows = \[\];/.test(fn2),
+      '★★★札は先に立てる（途中で切られても、すぐ やり直さない）');
+    t(/if \(typeof budHeavyOk_ === "function" && !budHeavyOk_\(\)\) return false;/.test(fn2),
+      '★★★持ち時間が残り少なければ、見にいかない');
     const wa = fs.readFileSync(path.join(__dirname, '..', '004-WebApp.gs'), 'utf8');
     t(/vnStatusPush_\(true\)/.test(wa),
       '★★★【仕掛けを起こす】を押すと、紙が新しくなる');

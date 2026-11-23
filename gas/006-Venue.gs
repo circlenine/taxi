@@ -2,7 +2,16 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V127ver  （2026/11/23）  ★★★
+ *  ★★★  V128ver  （2026/11/23）  ★★★
+ *
+ *  [V128ver]
+ *  ・⏱ 話題のとどき具合を、3時間に1回までにした（前は しぼりが無かった）
+ *    ★持ち時間を一番 食っていたのは、ここだった。
+ *      1回ごとに 14か所 × 2回（日本語と英語）＝28回も外へ聞きにいき、
+ *      窓口にやさしくするための待ち（0.2秒×28）だけで5.6秒。
+ *      それを5分おきにやっていたので、1日でとても90分に収まらなかった。
+ *    ★見ているのは「この7日間で、どれだけ調べられたか」なので、
+ *      5分で変わるものではない。3時間に1回で十分。
  *
  *  [V127ver]
  *  ・⏱ 様子の紙を置き直すのを、5分おき → 20分おきにした
@@ -1896,7 +1905,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V127ver";
+const VN_VERSION = "V128ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -12399,9 +12408,35 @@ function vnBuzzSum_(map) {
  * 紙を置き直します（1日1回）。
  * ★中身が変わっていなければ、置き直しません。
  */
-function vnBuzzPush_() {
+const VN_BUZZ_AT  = "VN_BUZZ_AT";
+const VN_BUZZ_MIN = 180;                 /* 3時間に1回まで */
+function vnBuzzPush_(force) {
   try {
     if (typeof updRepo_ !== "function" || typeof updGhHeaders_ !== "function") return false;
+
+    /*
+     * ★3時間に1回までにします（2026/11/23）。
+     *
+     *   ここには しぼりが1つも入っていませんでした。
+     *   1回ごとに 14か所 × 2回（日本語と英語）＝28回 外へ聞きにいき、
+     *   窓口にやさしくするための待ちだけで5.6秒かかります。
+     *   それを5分おきに続けていたので、1日90分の持ち時間を
+     *   これだけで使い切っていました（止まっていた一番の原因）。
+     *
+     *   見ているのは「この7日間で、どれだけ調べられたか」です。
+     *   5分で変わるものではないので、3時間に1回で足ります。
+     */
+    let pr0 = null;
+    try { pr0 = PropertiesService.getScriptProperties(); } catch (e) {}
+    try {
+      const last = Number((pr0 && pr0.getProperty(VN_BUZZ_AT)) || 0);
+      if (!force && last && (Date.now() - last) < VN_BUZZ_MIN * 60 * 1000) return true;
+    } catch (e) {}
+    /* ★先に札を立てます。途中で6分で切られても、すぐ やり直さないためです */
+    try { if (pr0) pr0.setProperty(VN_BUZZ_AT, String(Date.now())); } catch (e) {}
+
+    /* ★持ち時間が残り少ないときは、見にいきません */
+    if (typeof budHeavyOk_ === "function" && !budHeavyOk_()) return false;
 
     const rows = [];
     VN_BUZZ_SPOTS.forEach(function (sp) {
