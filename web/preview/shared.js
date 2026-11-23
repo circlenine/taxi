@@ -607,6 +607,47 @@ function faceFxSet(rows){
 }
 
 /* でたらめに1人（続けて同じ人は出しません） */
+/*
+ * 顔の大きい絵を、まん中に出します（ご指示・2026/11/23）。
+ *  ★小さい絵（_s）ではなく、大きいほうを読みます。
+ *  ★顔から出る字も、同じように ふわっと出します。
+ *    押すたびに出し直せるよう、animation を入れ直しています。
+ */
+function faceBig(fc){
+  try {
+    if (!fc) return;
+    const box = document.createElement('div');
+    box.className = 'modal facebig';
+    box.innerHTML =
+      '<div class="modalbox">' +
+        '<div class="fbwrap">' +
+          '<img class="fbimg" alt="" decoding="async">' +
+          '<span class="hahafx big" aria-hidden="true"><i></i></span>' +
+        '</div>' +
+        '<b class="fbname"></b>' +
+        '<div class="modalfoot"><button class="btn" data-fbclose="1">閉じる</button></div>' +
+      '</div>';
+    box.querySelector('.fbimg').src = sayFaceSrc(fc.k, false);
+    box.querySelector('.fbname').textContent = fc.n;
+    box.querySelector('.hahafx.big i').textContent = fc.fx;
+    document.body.appendChild(box);
+    try { document.body.classList.add('modalon'); } catch (e) {}
+    const close = function (){
+      box.remove();
+      try { document.body.classList.remove('modalon'); } catch (e) {}
+    };
+    box.querySelector('[data-fbclose]').addEventListener('click', close);
+    box.addEventListener('click', function (e){ if (e.target === box) close(); });
+    /* 絵を押すと、ひとことだけ もう一度 ふわっと出ます */
+    box.querySelector('.fbimg').addEventListener('click', function (){
+      const i = box.querySelector('.hahafx.big i');
+      if (!i) return;
+      i.style.animation = 'none';
+      void i.offsetWidth;
+      i.style.animation = '';
+    });
+  } catch (e) {}
+}
 function facePick(){
   const f = pick(FACES);
   return f || FACES[0];
@@ -705,6 +746,15 @@ function sayRoll() {
       mount.querySelector('.facen').textContent = fc.n;
       mount.querySelector('.hahafx i').textContent = fc.fx;
       mount.querySelector('.bubble .t').textContent = say.t;
+      /* ★顔を押すと、大きい絵が出ます（ご指示・2026/11/23
+           「画像をタップしたら ポップアップで拡大画像を出してください
+             画像上にでる、フェードインアウトのひとことも、
+             ポップアップと同時にだしてください」）。 */
+      const fimg = mount.querySelector('.facebox .face');
+      if (fimg) {
+        fimg.style.cursor = 'pointer';
+        fimg.onclick = function (e){ e.stopPropagation(); faceBig(fc); };
+      }
       sayFit(mount);
     } catch (e) {}
   };

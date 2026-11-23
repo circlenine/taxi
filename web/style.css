@@ -163,10 +163,20 @@ button{font-family:inherit}
    前は字をそのまま置いていたので、見出しの字の大きさや
    向きの回転で、大きさが 11.8×14 や 12.7×19.3 とばらついていました。
    22×22 の同じ枠に入れて、まん中にそろえます。 */
-.fmark{font-style:normal;font-size:11px;line-height:1;opacity:.7;margin-left:auto;
+/* ★2026/11/23：▼ は「押せるもの」と分かる形にして、
+     どの欄でも 右から同じ所に並ぶようにしました
+     （ご指摘「▼の大きさや位置などずれてるじゃないですか」）。
+   ・大きさは 26×26 の丸で統一（【説明】の札と同じ高さ）
+   ・右から 9px 内側に置くと、まん中が
+     プルダウンの ▼ と ぴったり同じ所に来ます
+     （プルダウンの ▼ は、枠の右はしから 13px＋しるしの半分7px＝20px 内側。
+       欄の内側 16px ＋ 9px ＋ 丸の半分13px ＝ 欄の右から 38px。
+       プルダウンの枠は 欄の内側 16px から始まるので、同じ 36〜38px） */
+.fmark{font-style:normal;font-size:11px;line-height:1;opacity:.75;margin-left:auto;
   transition:transform .18s ease;color:#FFFFFF;
-  width:22px;height:22px;flex:none;
+  width:26px;height:26px;flex:none;border:1px solid var(--line);border-radius:999px;
   display:inline-flex;align-items:center;justify-content:center}
+.card > h2 .fmark, #ktop > h2 .fmark{margin-right:6px}
 /* ★見出しと、その下の字との空きを そろえます（ご指摘・2026/11/13
      「枠があることで下の文字との高さが狭く感じるものがあります。
        そういった各文字の高さ詰まりがないかを見て
@@ -1825,6 +1835,20 @@ header{padding-left:33px;padding-right:33px}
   100%{opacity:0;transform:translate(7px,-18px) scale(.9)}}
 @media(prefers-reduced-motion:reduce){.hahafx{display:none}}
 
+/* ================================================================
+ *  顔の大きい絵（ご指示・2026/11/23「画像をタップしたら
+ *    ポップアップで拡大画像を出してください」）
+ *  ★顔から出る字も、同じように ふわっと出します。
+ * ================================================================ */
+.facebig .modalbox{text-align:center;max-width:min(92vw,360px)}
+.facebig .fbwrap{position:relative;display:inline-block;margin:4px auto 0}
+.facebig .fbimg{display:block;width:min(70vw,260px);height:auto;border-radius:12px;
+  cursor:pointer}
+.facebig .fbname{display:block;margin:8px 0 2px;font-size:15px;color:#FFFFFF}
+.hahafx.big{left:auto;right:6px;top:6px}
+.hahafx.big i{font-size:15px;white-space:nowrap;
+  animation:hahafx 2.2s ease-out 1 both}
+
 /* 直している行を、見分けられるようにします（ご指示・2026/11/14） */
 .wli.on{outline:2px solid var(--andon);outline-offset:-2px;border-radius:8px}
 
@@ -2368,10 +2392,9 @@ body.tabson #hsub, body.tabson .hgrab{display:none}
 /* ★版と、そのとなりの一文を たたむ ▼（ご指示・2026/11/23） */
 .hver > .hvfold{flex:none;background:none;border:0;cursor:pointer;
   color:var(--paper);opacity:.75;padding:2px 4px;line-height:1;margin-left:auto}
-.hver > .hvfold i{font-style:normal;font-size:11px;display:inline-block;
-  transition:transform .15s}
+.hver > .hvfold .fmark{width:22px;height:22px;font-size:10px;margin-left:0}
 .hver.cl > .ver, .hver.cl > .sub{display:none}
-.hver.cl > .hvfold i{transform:rotate(-90deg)}
+.hver.cl > .hvfold .fmark{transform:rotate(-90deg)}
 .hsub > #htabs{margin-left:var(--gut);margin-right:var(--gut)}
 @media (max-width:340px){ .hsub > #htabs{margin-left:7px;margin-right:7px} }
 /* ★赤い丸は ▼ に付けます（行き先が ▼ の中に入ったため） */

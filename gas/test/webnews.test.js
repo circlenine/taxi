@@ -4802,5 +4802,31 @@ console.log('\n■ 説明タブと、右上の目次（ご指示・2026/11/23）
     '★★★隠しても、≡ の中から出し直せる（出し直せないと、戻せません）');
 }
 
+console.log('\n■ ▼ の形と、顔の大きい絵（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+
+  /* ① ▼ は、どの欄でも同じ大きさ・同じ場所 */
+  t(/\.fmark\{[\s\S]{0,220}width:26px;height:26px/.test(css),
+    '★★★▼ の大きさは、どこでも 26px の丸');
+  t(/\.card > h2 \.fmark, #ktop > h2 \.fmark\{margin-right:6px\}/.test(css),
+    '★★★▼ の場所も、プルダウンの ▼ と同じ所にそろえる');
+  t(/\.hver > \.hvfold \.fmark\{/.test(css),
+    '　 上の行の ▼ も、同じ形にそろえる');
+  t(/b\.innerHTML = '<i class="fmark">▼<\/i>';/.test(app),
+    '　 字ではなく、同じ札として入れている');
+
+  /* ② 顔を押すと、大きい絵が出る */
+  t(/function faceBig\(fc\)\{/.test(sh), '★★★顔を押すと、大きい絵が出る');
+  t(/sayFaceSrc\(fc\.k, false\)/.test(sh), '　 小さい絵ではなく、大きいほうを出す');
+  t(/box\.querySelector\('\.hahafx\.big i'\)\.textContent = fc\.fx;/.test(sh),
+    '★★★顔から出る字も、いっしょに出す');
+  t(/\.facebig \.fbimg\{/.test(css) && /\.hahafx\.big\{/.test(css),
+    '　 その見た目もある');
+  t(/fimg\.onclick = function \(e\)\{ e\.stopPropagation\(\); faceBig\(fc\); \};/.test(sh),
+    '　 ふきだしの横の顔から開く');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

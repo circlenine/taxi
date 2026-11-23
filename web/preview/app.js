@@ -6915,7 +6915,7 @@ function hverWire_(){
   const b = document.createElement('button');
   b.className = 'hvfold'; b.type = 'button';
   b.setAttribute('aria-label', '版とひとことを たたむ');
-  b.innerHTML = '<i>▼</i>';
+  b.innerHTML = '<i class="fmark">▼</i>';
   b.onclick = function (){ hverSet_(!h.classList.contains('cl')); };
   h.appendChild(b);
   let cl = false;
