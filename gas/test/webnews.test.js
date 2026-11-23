@@ -2974,8 +2974,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
        「目次とこのページを見てわかることは、デフォルトは折りたたんでください」） */
   t(/localStorage\.getItem\(TOC_KEY\) !== '0'/.test(app),
     '★★★目次は、はじめから たたんである');
-  t(/const FOLD_SHUT = \['このページを見てわかること', '新規の記録', 'エリア別のロング割合'\]/.test(app),
-    '★★★「このページを見てわかること」「新規の記録」「エリア別のロング割合」は、はじめから たたんである');
+  /* ★「このページを見てわかること」は、ページの中から外しました
+       （ご指示・2026/11/23）。いまは【説明】を押すと箱で出ます。 */
+  t(/const FOLD_SHUT = \['新規の記録', 'エリア別のロング割合'\]/.test(app),
+    '★★★「新規の記録」「エリア別のロング割合」は、はじめから たたんである');
   t(/FOLD_OPEN_KEY/.test(app), '　 いちど開けば、開いたままを覚える');
 
   /* ------------------------------------------------------------
@@ -4762,6 +4764,42 @@ console.log('\n■ 上の行の作り直し（ご指示・2026/11/23）');
   t(/\.hver > \.hvfold\{/.test(css) && !/\.hver\.cl > \.hvfold\{display:none/.test(css),
     '★★★しまっても ▼ は残る（残さないと、二度と戻せません）');
   t(/localStorage\.setItem\(HVER_KEY/.test(app), '　 しまったままを覚える');
+}
+
+console.log('\n■ 説明タブと、右上の目次（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+
+  /* ① 「このページを見てわかること」は、ページの中から外した */
+  t(/function leadCard\(k\)\{ return ''; \}/.test(app),
+    '★★★「このページを見てわかること」の欄は、ページに出さない');
+  t(!/<div class="card lead"><h2>このページを見てわかること/.test(app),
+    '　 欄そのものを作っていない');
+  t(/function leadPopup\(k\)\{/.test(app),
+    '★★★かわりに【説明】を押すと、箱で出る');
+  t((ix.match(/class="leadbtn" data-lead="1"/g) || []).length === 2,
+    '★★★【説明】は、メニューのすぐ下（ページの中と ▼ の中の2か所）',
+    (ix.match(/class="leadbtn"/g) || []).length);
+
+  /* ② 目次は、右上に貼り付ける */
+  t(/\.tocfab\{position:fixed;right:8px/.test(css),
+    '★★★目次は、右上に貼り付ける');
+  t(/\.tocfab \.tocg\{grid-template-columns:repeat\(3,1fr\)/.test(css),
+    '★★★番号は3列（123／456／789）');
+  t(/<em>' \+ \(i \+ 1\) \+ '<\/em>/.test(app) &&
+    /headText\(h\)\.replace/.test(app),
+    '　 番号と、見出しの名前の両方を出す');
+  t(/function tocTop_\(\)\{/.test(app),
+    '　 上の行の高さが変わっても、目次の位置がずれない');
+
+  /* ③ たたむ・隠す。隠しても ≡ から出し直せる */
+  t(/id="tocFold">たたむ/.test(app), '★★★【たたむ】がある');
+  t(/id="tocHide">隠す/.test(app), '★★★【隠す】がある');
+  t(/function tocHidden\(\)\{/.test(app) && /if \(tocHidden\(\)\) return;/.test(app),
+    '　 隠したら、目次そのものを出さない');
+  t(/id="tocBack"[^]{0,80}目次を出す/.test(app),
+    '★★★隠しても、≡ の中から出し直せる（出し直せないと、戻せません）');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261122-519fbb0b">
-<link rel="stylesheet" href="try.css?v=20261122-519fbb0b">
+<link rel="stylesheet" href="style.css?v=20261122-9f400ed2">
+<link rel="stylesheet" href="try.css?v=20261122-9f400ed2">
 </head>
 <body>
 <div class="trybar">ここは<b>見た目の試し</b>のページです。中身は本番と同じものです。本番は
@@ -65,6 +65,10 @@
            中身は下の #tabs から作るので、直すところは1か所だけです。 -->
     <div class="hsub" id="hsub">
       <nav id="htabs"></nav>
+      <!-- ★【説明】は、メニューのすぐ下に置きます（ご指示・2026/11/23）。
+             押すと、いま開いているページで何が分かるかが、箱で出ます。 -->
+      <button class="leadbtn" data-lead="1" type="button">
+        <b>説明</b><i>このページで分かること</i></button>
     </div>
     <button class="hgrab" id="hgrab" aria-label="開く・閉じる"><i>▼</i></button>
     <!-- ★称号・ボタン位置・管理・ログアウトは ≡ の中へ移しました
@@ -111,6 +115,11 @@
     <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
     <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
     </nav>
+  <!-- ★【説明】は、メニューのすぐ下に置きます（ご指示・2026/11/23
+         「メニューのとこに…説明タブを追加して、
+           どういうページなのか、直感的にわかるように」）。 -->
+  <button class="leadbtn" data-lead="1" type="button">
+    <b>説明</b><i>このページで分かること</i></button>
   <!-- ★【イベント】と【お知らせ】は、画面のメニューからは外しました
          （ご指示・2026/11/13「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。
@@ -182,9 +191,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261122-519fbb0b"></script>
-<script src="news.js?v=20261122-519fbb0b"></script>
-<script src="shared.js?v=20261122-519fbb0b"></script>
-<script src="app.js?v=20261122-519fbb0b"></script>
+<script src="config.js?v=20261122-9f400ed2"></script>
+<script src="news.js?v=20261122-9f400ed2"></script>
+<script src="shared.js?v=20261122-9f400ed2"></script>
+<script src="app.js?v=20261122-9f400ed2"></script>
 </body>
 </html>

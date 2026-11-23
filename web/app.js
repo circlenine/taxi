@@ -1055,6 +1055,10 @@ function render(){
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === litTab));
   htabsFill();
   try { hdrDupe_(); } catch (e) {}
+  /* 【説明】は、いま開いているページの話を出します */
+  document.querySelectorAll('[data-lead]').forEach(function (b){
+    b.onclick = function (){ leadPopup(tab); };
+  });
   /* 見ているあいだは、足あとを新しくしておきます（上の tabLoad の見分けに使います） */
   tabTouch();
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
@@ -1273,7 +1277,7 @@ const LEADS = {
   news:{ w: ['使い方と、直したところのお知らせ'], m: '', c: '', n: '' },
   fb: { w: ['気づいたことを書いて送れます'], m: '', c: '', n: '' }
 };
-function leadCard(k){
+function leadBody_(k){
   const L = LEADS[k];
   if (!L) return '';
   /* ★もと・数え方・注意は、1行ずつ並べます。
@@ -1281,10 +1285,41 @@ function leadCard(k){
   const line = function (t, v){
     return v ? '<div class="leadr"><b>' + t + '</b><span>' + esc(v) + '</span></div>' : '';
   };
-  return '<div class="card lead"><h2>このページを見てわかること</h2>' +
-    '<ul class="leadw">' + L.w.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
-    line('もと', L.m) + line('数え方', L.c) + line('注意', L.n) +
-    '</div>';
+  return '<ul class="leadw">' + L.w.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+    line('もと', L.m) + line('数え方', L.c) + line('注意', L.n);
+}
+/*
+ * ★「このページを見てわかること」は、ページの中から外しました
+ *   （ご指示・2026/11/23「説明タブが追加されたので、
+ *     このページを見てわかることは、各ページ上では消してください」
+ *    「メニューのとこに…説明タブを追加して、
+ *      どういうページなのか、直感的にわかるように」）。
+ *   いまは、メニューのすぐ下の【説明】を押すと、箱で出ます。
+ *   どのページにも同じ見出しの欄が並んでいたので、
+ *   そのぶん、中身が上に来ました。
+ */
+function leadCard(k){ return ''; }
+function leadPopup(k){
+  const body = leadBody_(k);
+  let nm = '';
+  try {
+    const tb = document.querySelector('#tabs [data-t="' + k + '"] b');
+    if (tb) nm = (tb.textContent || '').trim();
+  } catch (e) {}
+  if (!body) { calcPopup('このページ', ['まだ説明がありません。']); return; }
+  const box = document.createElement('div');
+  box.className = 'modal';
+  box.innerHTML = '<div class="modalbox"><h2>' + esc(nm ? (nm + ' のページ') : 'このページ') +
+    '</h2><div class="modalbody lead">' + body + '</div>' +
+    '<div class="modalfoot"><button class="btn" id="leadClose">閉じる</button></div></div>';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  box.querySelector('#leadClose').addEventListener('click', close);
+  box.addEventListener('click', function (e){ if (e.target === box) close(); });
 }
 
 /* ---- 記録する ---- */
@@ -6304,6 +6339,13 @@ function fabWire(){
               ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
                 '<b>仕掛けを起こす</b><i>止まったときに押す（別のページが開きます）</i></a>'
               : '')
+          : '') +
+        /* ★右上の目次を「隠す」で消したときは、ここから出し直せます
+             （ご指示・2026/11/23「非表示ボタン
+               （設定から、再び出せるようにする）も追加してください」）。 */
+        (tocHidden()
+          ? '<button class="fsrow" id="tocBack" type="button">' +
+            '<b>目次を出す</b><i>右上の目次を、もう一度 出します</i></button>'
           : ''));
       /* 移してきた箱の中のボタンを、もう一度つなぎ直します */
       sheet.querySelectorAll('[data-hand]').forEach(function (b2) {
@@ -6317,6 +6359,11 @@ function fabWire(){
       if (so && !so.dataset.wired) { so.dataset.wired = '1'; so.addEventListener('click', signOut); }
       const gm = sheet.querySelector('#goMina');
       if (gm) gm.onclick = function (){ sheet.hidden = true; minaOpen(); };
+      const tb2 = sheet.querySelector('#tocBack');
+      if (tb2) tb2.onclick = function (){
+        try { localStorage.removeItem(TOC_HIDE); } catch (e) {}
+        sheet.hidden = true; tocBuild();
+      };
       sheet.hidden = false;
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
         b.onclick = function () {
@@ -6411,7 +6458,7 @@ const FOLD_KEY = 'tn_folds';
      「エリア別のロング割合」は、北・南・他の3つぶんが縦に並んで
      画面の半分以上を占め、上の3つの表が流れて見えなくなっていました。
      見たい方は見出しを押せば開きます（2026/11/22）。 */
-const FOLD_SHUT = ['このページを見てわかること', '新規の記録', 'エリア別のロング割合'];
+const FOLD_SHUT = ['新規の記録', 'エリア別のロング割合'];
 const FOLD_OPEN_KEY = 'tn_fold_open';
 let foldOpen = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_OPEN_KEY) || '[]') || []; }
@@ -6426,6 +6473,21 @@ const TOC_KEY = 'tn_toc_fold';
  */
 function tocFolded(){
   try { return localStorage.getItem(TOC_KEY) !== '0'; } catch (e) { return true; }
+}
+/* ★目次そのものを隠したか（ご指示・2026/11/23「非表示ボタン
+     （設定から、再び出せるようにする）も追加してください」）。
+   出し直すところは ≡ の中にあります。 */
+const TOC_HIDE = 'tn_toc_hide';
+function tocHidden(){
+  try { return localStorage.getItem(TOC_HIDE) === '1'; } catch (e) { return false; }
+}
+/* 右上の目次は、上の行のすぐ下に置きます（行の高さは変わるので、そのつど測ります） */
+function tocTop_(){
+  const n = document.getElementById('toc');
+  if (!n) return;
+  const h = document.querySelector('header');
+  const y = h ? Math.round(h.getBoundingClientRect().bottom) : 60;
+  n.style.top = Math.max(6, y + 6) + 'px';
 }
 let foldSet = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '[]') || []; }
@@ -6698,30 +6760,52 @@ function tocBuild(){
   /* 見出しが1つしかない画面では、目次は出しません（かえって邪魔になります） */
   if (hs.length < 2) return;
   hs.forEach(function (h, i) { if (!h.id) h.id = 'sec' + i; });
+  /* ★目次は、ページの中から外して、右上に貼り付けました
+       （ご指示・2026/11/23「目次も除外してください」
+         「ページを開いた時に 右上に目次の固定スクロールを出して
+           ボタン操作 123／456／789 みたいな感じで、見出し名も追加して
+           すぐ移動できる形にしてください」）。
+     ページの中に置くと、どの画面でも同じ欄が上を占めて、
+     肝心の中身が下へ押し下げられていました。 */
+  if (tocHidden()) return;                 /* 「隠す」を押したときは、出しません */
   const nav = document.createElement('div');
-  nav.className = 'toc' + (tocFolded() ? ' fold' : '');
+  nav.className = 'tocfab' + (tocFolded() ? ' fold' : '');
   nav.id = 'toc';
   nav.innerHTML =
-    '<button class="toch" id="tocH">目次<em>タップで移動します</em>' +
-      '<i class="fmark">▼</i></button>' +
+    '<button class="toch" id="tocH">目次<i class="fmark">▼</i></button>' +
     '<div class="tocg">' + hs.map(function (h, i) {
       return '<button class="tocit" data-toc="' + h.id + '">' +
         '<em>' + (i + 1) + '</em>' +
         '<span>' + esc(headText(h).replace(/[▼▲]/g, '').trim()) + '</span></button>';
-    }).join('') + '</div>';
-  const host = document.getElementById('panesTop') || document.getElementById('panes');
-  host.parentNode.insertBefore(nav, host);
+    }).join('') + '</div>' +
+    '<div class="tocfoot">' +
+      '<button class="mini" id="tocFold">たたむ</button>' +
+      '<button class="mini" id="tocHide">隠す</button>' +
+    '</div>';
+  document.body.appendChild(nav);
+  tocTop_();
   /* 目次そのものも、たたんでおけます（高さを食わないように） */
   const hd = nav.querySelector('#tocH');
-  if (hd) hd.onclick = function () {
-    const on = !nav.classList.contains('fold');
+  const fold = function (on){
     nav.classList.toggle('fold', on);
     try { localStorage.setItem(TOC_KEY, on ? '1' : '0'); } catch (e) {}
+  };
+  if (hd) hd.onclick = function () { fold(!nav.classList.contains('fold')); };
+  const fb = nav.querySelector('#tocFold');
+  if (fb) fb.onclick = function (e){ e.stopPropagation(); fold(true); };
+  /* ★「隠す」を押すと、目次そのものが消えます。
+       消しっぱなしにはしません。≡ の中から、いつでも出し直せます。 */
+  const hb = nav.querySelector('#tocHide');
+  if (hb) hb.onclick = function (e){
+    e.stopPropagation();
+    try { localStorage.setItem(TOC_HIDE, '1'); } catch (er) {}
+    nav.remove();
   };
   nav.querySelectorAll('[data-toc]').forEach(function (b) {
     b.onclick = function () {
       const el = document.getElementById(b.dataset.toc);
       if (!el) return;
+      nav.classList.add('fold');            /* 押したら、目次は たたみます */
       /* 閉じてある区切りは、開いてから動きます（押しても何も見えないと困るため） */
       const card = el.parentElement;
       if (card && card.classList.contains('fold')) el.click();
@@ -6802,7 +6886,10 @@ function hdrDupeWire_(){
   const run = function (){
     if (hdrTick_) return;
     hdrTick_ = true;
-    requestAnimationFrame(function (){ hdrTick_ = false; hdrDupe_(); });
+    requestAnimationFrame(function (){
+      hdrTick_ = false; hdrDupe_();
+      try { tocTop_(); } catch (e) {}
+    });
   };
   window.addEventListener('scroll', run, { passive: true });
   window.addEventListener('resize', run, { passive: true });
