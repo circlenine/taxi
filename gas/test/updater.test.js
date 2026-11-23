@@ -7519,8 +7519,14 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
     '　 日本時間では数えない（窓がずれると、歯止めが効かない）');
 
   /* 2つの見張りが、どちらも数えられていること */
-  t(/return budRun_\("ボタンの見張り", function \(\) \{ return panelWatchBody_\(\); \}\);/.test(U),
+  t(/return budRun_\("ボタンの見張り", function \(\) \{\n    try \{ panelTrg10Once_\(\); \} catch \(e\) \{\}\n    return panelWatchBody_\(\);/.test(U),
     '★★★ボタンの見張りを数えている');
+  /* ★5分おき → 10分おき。ここが一番 時間を食っていた（2026/11/23） */
+  t(/const PANEL_WATCH_MIN = 10;/.test(U), '★★★ボタンの見張りは10分おき');
+  t(/function panelTrg10Once_\(\) \{/.test(U), '★★★いま動いている見張りも、1回だけ作り直す');
+  t(/pr\.setProperty\("UPD_TRG_PW10", "1"\);/.test(U), '　 札は先に立てる（くり返さない）');
+  t(/if \(typeof trgSwap_ === "function"\) return trgSwap_\("panelWatch", make, "panelTrg10"\);/.test(U),
+    '★★★先に作って、作れたときだけ古いのを消す');
   t(/budRun_\("イベント", function \(\) \{ return venueDailyBody_\(\); \}\)/.test(V),
     '★★★イベントの見張りも数えている');
   t(/typeof budRun_ === "function"/.test(V),

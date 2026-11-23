@@ -2,7 +2,15 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U188ver  （2026/11/23）  ★★★
+ *  ★★★  U189ver  （2026/11/23）  ★★★
+ *
+ *   [U189ver]
+ *   ・⏱ ボタンの見張りを 5分おき → 10分おきにした（1回だけ作り直す）
+ *     ★数えたら、ここが一番 時間を食っていた（1日288回、毎回スプシを開く）。
+ *     ★間かくの数字を直しても、いま動いている見張りは前のままなので、
+ *       札を立てて1回だけ作り直す。
+ *     ★押したときは panelOnEdit が その場で動くので、
+ *       この見張りは「それが効かなかったとき」の受け皿。
  *
  *   [U188ver]
  *   ・⏱ 持ち時間の数え方を、アメリカ西海岸の日付に合わせた
@@ -2032,7 +2040,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U188ver";
+const UPD_VERSION = "U189ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -11280,7 +11288,13 @@ function panelHealWatch_() {
  *   「ここで指示すれば必ず直る」が、根元から成り立たなくなります。
  *   5分おきにします（3分おきより、持ち時間はさらに楽になります）。
  */
-const PANEL_WATCH_MIN = 5;
+/* ★10分おき（前は5分）。2026/11/23 に数えたら、ここが一番 時間を食っていました。
+     ボタンを押したときは panelOnEdit が その場で動くので、
+     この見張りは「それが効かなかったとき」の受け皿です。
+     待ちが10分になりますが、1日ぜんぶ止まるよりは ずっと軽い。
+   ★間かくを変えただけでは、いま動いている見張りは前のままです。
+     下の panelTrg10Once_ が、1回だけ作り直します。 */
+const PANEL_WATCH_MIN = 10;
 
 /* Googleが受け取ってくれる「何分おき」の値。これ以外を書くと必ずしくじる */
 const TRG_OK_MINUTES = [1, 5, 10, 15, 30];
@@ -14175,9 +14189,36 @@ function panelResetIfAsked_(sh) {
 }
 
 /** 1分おきの見張り。onEdit が効かない機種のための保険 */
+/*
+ * ★ボタンの見張りを、1回だけ 作り直します（2026/11/23）。
+ *
+ *   いま動いているものは5分おきで、1日288回。
+ *   1回ごとにスプシを開いて読むので、ここが一番 時間を食っていました。
+ *   間かくの数字を直しても、**いま動いている見張りは前のまま**です。
+ *   札を1つ立てて、この版で1回だけ作り直します。
+ *   作り方は「先に作って、作れたときだけ古いのを消す」ので、
+ *   しくじっても見張りが0個になることはありません。
+ */
+function panelTrg10Once_() {
+  try {
+    const pr = PropertiesService.getScriptProperties();
+    if (pr.getProperty("UPD_TRG_PW10") === "1") return false;
+    pr.setProperty("UPD_TRG_PW10", "1");           // 何があっても、くり返さない
+    const make = function () {
+      return ScriptApp.newTrigger("panelWatch").timeBased()
+                      .everyMinutes(PANEL_WATCH_MIN).create();
+    };
+    if (typeof trgSwap_ === "function") return trgSwap_("panelWatch", make, "panelTrg10");
+    try { make(); return true; } catch (e) { return false; }
+  } catch (e) { return false; }
+}
+
 function panelWatch() {
   /* ★かかった時間を数えます（1日90分の決まりがあるため・2026/11/23） */
-  return budRun_("ボタンの見張り", function () { return panelWatchBody_(); });
+  return budRun_("ボタンの見張り", function () {
+    try { panelTrg10Once_(); } catch (e) {}
+    return panelWatchBody_();
+  });
 }
 function panelWatchBody_() {
   try {
