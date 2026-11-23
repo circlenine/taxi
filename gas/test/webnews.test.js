@@ -4880,5 +4880,28 @@ console.log('\n■ イベントを LINEに送る（ご指示・2026/11/23）');
     '　 きょうの欄と、あすの欄の両方に出る');
 }
 
+console.log('\n■ ピンの場所を、自分で決める（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const sql = fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8');
+
+  t(/function pinSetOpen\(name\)\{/.test(app), '★★★地図を押して、場所を決められる');
+  t(/db\.from\('places'\)\.upsert\(/.test(app), '　 決めた場所を、台帳に入れる');
+  t(/let placeFix = \{\};/.test(app) && /async function loadPlaces\(\)\{/.test(app),
+    '★★★決めた場所を読み込む');
+  t(/try \{ fx = placeFix\[pkey\(p\)\]; \} catch \(e\) \{ fx = null; \}/.test(app),
+    '★★★決めた場所は、もとの表より先に使う');
+  t(/data-pinset="/.test(app) && /data-pindel="/.test(app),
+    '　 決める・消すの両方がある');
+  t(/\.psmap\{height:/.test(css), '　 その見た目もある');
+
+  /* 台帳の棚と、守り（RLS）。消せるのは 本人と まーく様だけ */
+  t(/create table if not exists public\.places/.test(sql), '★★★台帳に places の棚を作る');
+  t(/create policy places_delete on public\.places[\s\S]{0,260}p\.is_admin/.test(sql),
+    '★★★消せるのは、決めた本人と まーく様だけ（台帳の側でも止める）');
+  t(/create policy places_insert on public\.places\n  for insert to authenticated with check \(user_id = auth\.uid\(\)\)/.test(sql),
+    '　 入れられるのは、自分の名前でだけ');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

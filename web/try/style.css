@@ -2620,3 +2620,19 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
   border-left:3px solid var(--line)}
 /* 搬入（設営）は、お客が1人も来ない日。左の帯も落ち着いた色にします */
 .evgrp:has(h3) .evrow{border-left-color:var(--andon)}
+
+/* ================================================================
+ *  ピンの場所を、自分で決める（ご指示・2026/11/23）
+ * ================================================================ */
+.misslist{display:flex;flex-direction:column;gap:6px}
+.missrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 10px;background:rgba(255,255,255,.04);
+  border:1px solid var(--ink3);border-radius:8px}
+.missrow > b{font-size:13px;color:#FFFFFF;min-width:0;flex:1 1 auto;word-break:break-all}
+.missrow > i{font-style:normal;font-size:11px;color:#FFFFFF;opacity:.75;flex:none}
+.missrow .mini{flex:none}
+.missrow .mini.del{border-color:var(--andon)}
+.pinset .modalbox{max-width:min(94vw,420px)}
+.psmap{height:min(46vh,300px);border-radius:10px;overflow:hidden;
+  background:#15161A;margin:6px 0}
+.psmap .leaflet-tile-pane{filter:saturate(.3) contrast(1.04)}

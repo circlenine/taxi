@@ -246,3 +246,57 @@ create policy faces_update on public.faces
   using (true) with check (user_id = auth.uid());
 
 grant select, insert, update on public.faces to authenticated;
+
+-- ------------------------------------------------------------
+-- ⑩ 地図のピンの場所を、自分で決められるようにする
+--      （まーく様のご指示・2026/11/23
+--        「地図のピンの位置を設定できる機能も追加してください」）
+--
+--    ★これまでは、場所の分かっている乗り場にしか ピンを打てませんでした
+--      （あてずっぽうの場所に打つほうが、何も出さないより ずっと悪いため）。
+--      ここに入れておけば、その乗り場にも ピンが立ちます。
+--    ★乗り場の名前で1行。だれかが決めたら、みんなの地図に出ます。
+--    ★消せるのは、決めた本人と まーく様だけです。
+-- ------------------------------------------------------------
+create table if not exists public.places (
+  name       text primary key,            -- 乗り場の名前（スプシ・台帳と同じ字）
+  lat        double precision not null,
+  lng        double precision not null,
+  user_id    uuid references auth.users(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+alter table public.places enable row level security;
+
+drop policy if exists places_select on public.places;
+create policy places_select on public.places
+  for select to authenticated using (true);
+
+drop policy if exists places_insert on public.places;
+create policy places_insert on public.places
+  for insert to authenticated with check (user_id = auth.uid());
+
+-- 直せるのは、決めた本人と まーく様だけ
+drop policy if exists places_update on public.places;
+create policy places_update on public.places
+  for update to authenticated
+  using (
+    user_id = auth.uid()
+    or exists (select 1 from public.profiles p
+               where p.id = auth.uid() and p.is_admin)
+  )
+  with check (
+    user_id = auth.uid()
+    or exists (select 1 from public.profiles p
+               where p.id = auth.uid() and p.is_admin)
+  );
+
+drop policy if exists places_delete on public.places;
+create policy places_delete on public.places
+  for delete to authenticated
+  using (
+    user_id = auth.uid()
+    or exists (select 1 from public.profiles p
+               where p.id = auth.uid() and p.is_admin)
+  );
+
+grant select, insert, update, delete on public.places to authenticated;

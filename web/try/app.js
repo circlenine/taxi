@@ -193,6 +193,8 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
   loadSays();
   loadFaces();
+  /* 自分で決めたピンの場所を読みます（棚が無くても、黙って元のまま） */
+  loadPlaces().then(function (){ if (tab === 'map') render(); });
   /*
    * ★「いまアツい」は時刻で中身が変わるので、
    *   1分ごとに描き直します（通信はしません）。
@@ -1055,6 +1057,13 @@ function render(){
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === litTab));
   htabsFill();
   try { hdrDupe_(); } catch (e) {}
+  /* ピンの場所を、自分で決める（ご指示・2026/11/23） */
+  document.querySelectorAll('[data-pinset]').forEach(function (b){
+    b.onclick = function (){ pinSetOpen(b.dataset.pinset); };
+  });
+  document.querySelectorAll('[data-pindel]').forEach(function (b){
+    b.onclick = function (){ pinSetDel(b.dataset.pindel); };
+  });
   /* 【説明】は、いま開いているページの話を出します */
   document.querySelectorAll('[data-lead]').forEach(function (b){
     b.onclick = function (){ leadPopup(tab); };
@@ -1653,9 +1662,38 @@ const PLACE_GEO = [
  * （「天神橋筋六丁目」を「天満」より先に当てるため）。
  * 分からなければ null を返し、ピンは打ちません。
  */
+/*
+ * ★まーく様や乗務員の方が、自分で決めた場所（ご指示・2026/11/23
+ *     「地図のピンの位置を設定できる機能も追加してください」）。
+ *   台帳の places に入っています。名前が ぴったり同じものだけを見ます
+ *   （「〜が名前に入っていれば」で当てると、別の乗り場に飛ぶためです）。
+ *   決めた場所は、下の表より **先** に使います。
+ */
+let placeFix = {};
+async function loadPlaces(){
+  try {
+    const { data, error } = await db.from('places').select('name,lat,lng').limit(500);
+    if (error || !data) return;
+    const m = {};
+    data.forEach(function (r){
+      if (!r || !r.name) return;
+      const la = Number(r.lat), ln = Number(r.lng);
+      if (!isFinite(la) || !isFinite(ln)) return;
+      m[pkey(r.name)] = { key: String(r.name), lat: la, lon: ln };
+    });
+    placeFix = m;
+  } catch (e) {}
+}
+
 function placeGeo(p){
   const v = toHalfW(p);
   if (!v) return null;
+  /* 自分で決めた場所があれば、そちらを先に使います。
+       （検査では この係だけを取り出して動かすので、
+         無いときに止まらないよう try で囲ってあります） */
+  let fx = null;
+  try { fx = placeFix[pkey(p)]; } catch (e) { fx = null; }
+  if (fx) return { key: fx.key, lat: fx.lat, lon: fx.lon };
   let hit = null, len = -1;
   for (let i = 0; i < PLACE_GEO.length; i++) {
     const k = PLACE_GEO[i][0];
@@ -2960,13 +2998,126 @@ function paneMap(){
   /* 場所の分からない乗り場は、黙って落とさずに名前を出します */
   const missCard = missNames.length ? `<div class="card"><h2>地図に出せていない乗り場</h2>
     <p class="note">あたりが分からないので、ピンを打っていません。
-      名前を押すと、地図で探せます。</p>
-    <div class="chips">${missNames.slice(0, 40).map(p =>
-      `<a class="chip" href="${esc(mapUrl(p))}" target="_blank" rel="noopener">${esc(p)}<span class="cnt">${G.miss[p].length}</span></a>`).join('')}</div>
+      【地図】で場所を探して、【ここに決める】で自分で決められます。</p>
+    <div class="misslist">${missNames.slice(0, 40).map(p =>
+      `<div class="missrow"><b>${esc(p)}</b><i>${G.miss[p].length}件</i>
+        <a class="mini" href="${esc(mapUrl(p))}" target="_blank" rel="noopener">📍 地図</a>
+        <button class="mini set" data-pinset="${esc(p)}">ここに決める</button></div>`).join('')}</div>
     </div>` : '';
 
-  if (!R.length) return head + emptyCard('該当データがありません') + missCard + buzzCard();
-  return head + sum + list + nextCard(visible()) + missCard + buzzCard();
+  if (!R.length) return head + emptyCard('該当データがありません') + missCard + fixCard_() + buzzCard();
+  return head + sum + list + nextCard(visible()) + missCard + fixCard_() + buzzCard();
+}
+
+/* ================================================================
+ *  ピンの場所を、自分で決める（ご指示・2026/11/23
+ *    「地図のピンの位置を設定できる機能も追加してください」）
+ *
+ *  ★これまでは、場所の分かっている乗り場にしか ピンを打てませんでした。
+ *    あてずっぽうの場所に打つほうが、何も出さないより ずっと悪いためです。
+ *    自分で決めていただければ、その乗り場にも ピンが立ちます。
+ *  ★決めたものは みんなの地図に出ます。
+ *    直せる・消せるのは、決めた本人と まーく様だけです
+ *    （画面と、台帳の側（RLS）の両方で止めています）。
+ * ================================================================ */
+function fixCard_(){
+  const ks = Object.keys(placeFix);
+  if (!ks.length) return '';
+  return '<div class="card"><h2>自分で決めたピン</h2>' +
+    '<p class="note">ここで決めた場所に、ピンが立ちます。</p>' +
+    '<div class="misslist">' + ks.slice(0, 60).map(function (k){
+      const o = placeFix[k];
+      return '<div class="missrow"><b>' + esc(o.key) + '</b>' +
+        '<i>' + o.lat.toFixed(4) + ', ' + o.lon.toFixed(4) + '</i>' +
+        '<button class="mini set" data-pinset="' + esc(o.key) + '">直す</button>' +
+        '<button class="mini del" data-pindel="' + esc(o.key) + '">消す</button></div>';
+    }).join('') + '</div></div>';
+}
+
+let pinSetMap = null, pinSetAt = null, pinSetName = '';
+function pinSetOpen(name){
+  pinSetName = String(name || '');
+  const cur = placeFix[pkey(pinSetName)] ||
+              (function (){ const g = placeGeo(pinSetName); return g || null; })();
+  pinSetAt = cur ? { lat: cur.lat, lon: cur.lon } : null;
+  const box = document.createElement('div');
+  box.className = 'modal pinset';
+  box.innerHTML =
+    '<div class="modalbox"><h2>' + esc(pinSetName) + ' の場所</h2>' +
+    '<p class="note">地図を押すと、そこにピンが立ちます。' +
+    '指でひろげて、できるだけ近くを押してください。</p>' +
+    '<div class="psmap" id="psMap"></div>' +
+    '<p class="note" id="psAt"></p>' +
+    '<div class="modalfoot">' +
+      '<button class="btn ghost" id="psCancel">やめる</button>' +
+      '<button class="btn" id="psOk">ここにする</button>' +
+    '</div></div>';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    try { if (pinSetMap) pinSetMap.remove(); } catch (e) {}
+    pinSetMap = null;
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  box.querySelector('#psCancel').onclick = close;
+  box.querySelector('#psOk').onclick = function (){ pinSetSave(close); };
+  const at = box.querySelector('#psAt');
+  const show = function (){
+    at.textContent = pinSetAt
+      ? ('いまの場所：' + pinSetAt.lat.toFixed(5) + ', ' + pinSetAt.lon.toFixed(5))
+      : 'まだ押していません。';
+  };
+  show();
+  /* 地図は、出てから作ります（箱の大きさが決まる前だと、灰色のままになります） */
+  setTimeout(function (){
+    try {
+      if (typeof L === 'undefined') {
+        document.getElementById('psMap').textContent = '地図が読めませんでした。';
+        return;
+      }
+      const c = pinSetAt || { lat: 34.7025, lon: 135.4959 };     /* 大阪駅のあたり */
+      const m = L.map(document.getElementById('psMap'),
+        { attributionControl: true, zoomControl: true }).setView([c.lat, c.lon], pinSetAt ? 16 : 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(m);
+      let mk = pinSetAt ? L.marker([pinSetAt.lat, pinSetAt.lon]).addTo(m) : null;
+      m.on('click', function (ev){
+        pinSetAt = { lat: ev.latlng.lat, lon: ev.latlng.lng };
+        if (mk) mk.setLatLng(ev.latlng); else mk = L.marker(ev.latlng).addTo(m);
+        show();
+      });
+      pinSetMap = m;
+      setTimeout(function (){ try { m.invalidateSize(); } catch (e) {} }, 120);
+    } catch (e) {}
+  }, 40);
+}
+
+async function pinSetSave(close){
+  if (!pinSetAt) { alert('地図を押して、場所を決めてください。'); return; }
+  try {
+    const { error } = await db.from('places').upsert({
+      name: pinSetName,
+      lat: pinSetAt.lat,
+      lng: pinSetAt.lon,
+      user_id: ME.user.id,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'name' });
+    if (error) { alert(jaError(error)); return; }
+    await loadPlaces();
+    if (close) close();
+    render();
+  } catch (e) { alert(jaError(e)); }
+}
+
+async function pinSetDel(name){
+  if (!confirm(name + ' のピンを消しますか。')) return;
+  try {
+    const { error } = await db.from('places').delete().eq('name', name);
+    if (error) { alert(jaError(error)); return; }
+    await loadPlaces();
+    render();
+  } catch (e) { alert(jaError(e)); }
 }
 
 /** 地図とピンを組み立てます（1枚の画面に1回だけ） */
