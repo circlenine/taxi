@@ -2,7 +2,14 @@
  * ================================================================
  *  会場・イベント情報あつめ（006-Venue.gs）
  *
- *  ★★★  V125ver  （2026/11/17）  ★★★
+ *  ★★★  V126ver  （2026/11/23）  ★★★
+ *
+ *  [V126ver]
+ *  ・📱 イベントを、まーく様の個人LINEへ送れるようにした
+ *    （ご指示「イベント情報ですが、lineに送る、という機能も追加して
+ *      自分のlineメッセージへ、公式lineから、自分宛のメッセージへ」）
+ *    ★グループへは1文字も出しません。送り先は、まーく様おひとりです。
+ *    ★月に200通までなので、10分に1回・1日5回までにしぼっています。
  *
  *  [V125ver]
  *  ・📷 取り込めなかったスクショの知らせを、グループへ出さない印に足した
@@ -1881,7 +1888,7 @@
  */
 
 /** このファイルのバージョン */
-const VN_VERSION = "V125ver";
+const VN_VERSION = "V126ver";
 
 /*
  * ★催しの名前ではなく「ページの名前」だと分かる言葉
@@ -12408,6 +12415,108 @@ function vnBuzzPush_() {
     });
     return res.getResponseCode() < 300;
   } catch (e) { return false; }
+}
+
+/* ================================================================
+ *  📱 イベントを、まーく様の個人LINEへ送る（ご指示・2026/11/23）
+ *
+ *    「イベント情報ですが、lineに送る、という機能も追加して
+ *      自分のlineメッセージへ、公式lineから、自分宛のメッセージへ
+ *      送れるようにしてほしいです」
+ *
+ *  ★送り先は updMe_()（まーく様の個人LINE）**だけ**です。
+ *    グループへは1文字も出しません。
+ *  ★月に200通までの決まりがあるので、
+ *    10分に1回・1日5回までにしぼります。使い切ると、ほかの知らせが止まります。
+ *  ★送れなかったときは、理由をそのまま返します（黙って失敗しません）。
+ * ================================================================ */
+const VN_LSEND_AT  = "VN_LSEND_AT";      // 最後に送った時刻
+const VN_LSEND_DAY = "VN_LSEND_DAY";     // 今日のぶんの回数（日付|回数）
+const VN_LSEND_MIN = 10;                 // 10分に1回まで
+const VN_LSEND_MAX = 5;                  // 1日5回まで
+
+function vnLineSendText_(day) {
+  let list = [];
+  try { list = vnFeedDay_(day) || []; } catch (e) { list = []; }
+  const ymd = Utilities.formatDate(day, "Asia/Tokyo", "M/d");
+  if (!list.length) return "🎪 " + ymd + " のイベントは、いまのところ ありません。";
+  /* 時刻の早い順。時刻の無いものは うしろへ */
+  const tmin = function (x) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(x.s || x.e || ""));
+    return m ? (+m[1] * 60 + +m[2]) : 9999;
+  };
+  const rows = list.slice().sort(function (a, b) { return tmin(a) - tmin(b); });
+  const L = ["🎪 " + ymd + " のイベント（" + rows.length + "件）"];
+  const max = 8;                          // 走りながら読める数まで
+  rows.slice(0, max).forEach(function (x) {
+    const sk = x.sk || "開演";
+    const ek = x.ek || "終演";
+    let t = "";
+    if (x.s) t += x.s + " " + sk;
+    if (x.e) t += (t ? " / " : "") + ek + " " + x.e + (x.g ? "（予定）" : "");
+    if (!t) t = "時刻は、まだ分かっていません";
+    L.push("・" + (x.v || "") + "　" + t);
+    if (x.t) L.push("　" + String(x.t).slice(0, 34));
+    if (x.a) L.push("　🚕 " + x.a);
+  });
+  if (rows.length > max) {
+    L.push("ほか " + (rows.length - max) + "件は、台帳の【イベント】で見られます。");
+  }
+  return L.join("\n");
+}
+
+/** d は "today" か "tomorrow"。送れたら {ok:true}、だめなら理由を返します */
+function vnLineSend_(d) {
+  let pr = null;
+  try { pr = PropertiesService.getScriptProperties(); } catch (e) {}
+  const now = new Date();
+
+  /* ①しぼり：10分に1回まで */
+  try {
+    const at = Number((pr && pr.getProperty(VN_LSEND_AT)) || 0);
+    if (at && (now.getTime() - at) < VN_LSEND_MIN * 60000) {
+      return { ok: false, why: "さっき送ったばかりです。10分ほど あけてから、もう一度 押してください。" };
+    }
+  } catch (e) {}
+
+  /* ②しぼり：1日5回まで（月200通を使い切らないため） */
+  const today = Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd");
+  let cnt = 0;
+  try {
+    const v = String((pr && pr.getProperty(VN_LSEND_DAY)) || "");
+    const m = /^(\d{4}-\d{2}-\d{2})\|(\d+)$/.exec(v);
+    if (m && m[1] === today) cnt = +m[2];
+  } catch (e) {}
+  if (cnt >= VN_LSEND_MAX) {
+    return { ok: false, why: "きょうは " + VN_LSEND_MAX + "回 送りました。月に送れる数が決まっているので、ここまでにしています。" };
+  }
+
+  const me = (typeof updMe_ === "function") ? updMe_() : "";
+  if (!me) return { ok: false, why: "送り先（まーく様の個人LINE）が分かりません。公式アカウントに1回 話しかけると、分かるようになります。" };
+
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day  = (String(d || "").indexOf("tom") === 0)
+    ? new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1)
+    : base;
+
+  let text = "";
+  try { text = vnLineSendText_(day); } catch (e) { text = ""; }
+  if (!text) return { ok: false, why: "イベントの中身を作れませんでした。" };
+
+  try {
+    if (typeof lrPush_ !== "function") return { ok: false, why: "LINEへ送る係が見つかりません。" };
+    lrPush_(me, [{ type: "text", text: text }]);
+  } catch (e) {
+    return { ok: false, why: "LINEが受け取ってくれませんでした（" + ((e && e.message) || e) + "）。" };
+  }
+  try {
+    if (pr) {
+      pr.setProperty(VN_LSEND_AT, String(now.getTime()));
+      pr.setProperty(VN_LSEND_DAY, today + "|" + (cnt + 1));
+    }
+  } catch (e) {}
+  try { if (typeof updErrandLog_ === "function") updErrandLog_("📱 イベントを個人LINEへ送りました"); } catch (e) {}
+  return { ok: true };
 }
 
 function vnFeedPush_(force) {

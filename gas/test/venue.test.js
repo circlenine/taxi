@@ -4475,5 +4475,34 @@ console.log('\n■ 大阪城音楽堂の催し');
   eq(/if \(src && src\.ongaku\)/.test(body2), true, '★★★その読み先だけ、専用の係で読む');
 }
 
+/* ================================================================
+ *  📱 イベントを、まーく様の個人LINEへ送る（ご指示・2026/11/23）
+ * ================================================================ */
+console.log('\n■ イベントを 個人LINEへ送る（2026/11/23）');
+{
+  const V = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
+  const W = fs.readFileSync(path.join(__dirname, '..', '004-WebApp.gs'), 'utf8');
+  const P = fs.readFileSync(path.join(__dirname, '..', 'parts', 'WebApp.gs'), 'utf8');
+
+  eq(/function vnLineSend_\(d\) \{/.test(V), true, '★★★送る係がある');
+  eq(/const me = \(typeof updMe_ === "function"\) \? updMe_\(\) : "";/.test(V), true,
+     '★★★送り先は、まーく様おひとりだけ');
+  /* グループへ送る道が、まぎれ込んでいないこと */
+  eq(/vnLineSend_[\s\S]*?GROUP_ID/.test(V.slice(V.indexOf('function vnLineSend_'),
+      V.indexOf('function vnFeedPush_'))), false,
+     '★★★グループへ送る道が、1つも無い');
+  eq(/VN_LSEND_MIN = 10;/.test(V) && /VN_LSEND_MAX = 5;/.test(V), true,
+     '★★★10分に1回・1日5回までにしぼる（月200通を使い切らないため）');
+  eq(/きょうは " \+ VN_LSEND_MAX \+ "回 送りました/.test(V), true,
+     '　 使い切ったときは、そう知らせる');
+  eq(/e\.parameter\.line && typeof vnLineSend_ === "function"/.test(P), true,
+     '★★★受け口から呼べる');
+  eq(/e\.parameter\.line && typeof vnLineSend_ === "function"/.test(W), true,
+     '　 組み立て後のファイルにも入っている');
+  /* 関所より前に置くこと（合言葉を入れていなくても押せるように） */
+  eq(W.indexOf('e.parameter.line') < W.indexOf('const gate = wbGate_()'), true,
+     '★★★関所より前に置く（合言葉を入れていなくても押せる）');
+}
+
 console.log(fail ? `\n${fail} 件失敗` : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

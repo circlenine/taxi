@@ -4869,5 +4869,16 @@ console.log('\n■ イベントの区切りと、1件だけの図（ご指示・
     '　 「左から 20時台 〜 20時台」と書かない');
 }
 
+console.log('\n■ イベントを LINEに送る（ご指示・2026/11/23）');
+{
+  t(/function evLineBtn\(which\)\{/.test(app), '★★★【LINEに送る】のボタンがある');
+  t(/function evLineBtn\(which\)\{\n  if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(app),
+    '★★★まーく様の画面にだけ出す（届くのは まーく様の個人LINEだけのため）');
+  t(/'line=1&d=' \+ encodeURIComponent\(which\)/.test(app),
+    '　 きょうのぶん・あすのぶんを、押し分けられる');
+  t(/\$\{evLineBtn\('today'\)\}/.test(app) && /evLineBtn\('tomorrow'\)/.test(app),
+    '　 きょうの欄と、あすの欄の両方に出る');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

@@ -2,12 +2,19 @@
  * ================================================================
  *  みんなの記録ページ（004-WebApp.gs）
  *
- *  ★★★  W016ver  （2026/11/16）  ★★★
+ *  ★★★  W017ver  （2026/11/23）  ★★★
  *
  *  ファイル記号: C=001-Code / E=002-Extras / L=003-LineReport
  *               W=004-WebApp / U=005-Updater / V=006-Venue
  *  直したら数字を1つ増やし、下の履歴に何を直したか書く。
  *
+ *  [W017ver] 📱 イベントを、まーく様の個人LINEへ送れるようにした
+ *            （ご指示・2026/11/23「イベント情報ですが、lineに送る、
+ *              という機能も追加して 自分のlineメッセージへ、公式lineから、
+ *              自分宛のメッセージへ送れるようにしてほしいです」）
+ *            ・?line=1&d=today|tomorrow で呼ばれる
+ *            ・送り先は、まーく様おひとり。グループへは1文字も出さない
+ *            ・記録を1件も渡さないので、関所（合言葉）は通さない
  *  [W016ver] 売上ランキングを、まるごと やめた（ご指示・2026/11/16
  *            「ランキングは、ストレスの発端となるため除外とします
  *              ランキングをつけるにしても、決して売上ランキングではなく
@@ -76,7 +83,7 @@
  * ================================================================
  */
 
-const WB_VERSION = "W016ver";
+const WB_VERSION = "W017ver";
 
 /** 何日ぶんを持っていくか。古い記録まで全部見たいときは URL に ?all=1 を付ける */
 const WB_DAYS = 190;
@@ -190,6 +197,37 @@ function doGet(e) {
     try { logErr_("webapp-ics", err); } catch (e2) {}
     return ContentService.createTextOutput("予定ファイルを作れませんでした")
       .setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  /*
+   * ★イベントを、まーく様の個人LINEへ送るとき（ご指示・2026/11/23）。
+   *
+   *   台帳（TAXI NOTE）の【イベント】にある【LINEに送る】を押すと、
+   *   ここへ来ます。公式アカウントから、まーく様おひとりへ届きます。
+   *   グループへは1文字も出しません。
+   *
+   * ★記録は1件も渡さないので、関所（wbGate_）は通しません。
+   *   通すと、合言葉を入れていないときに押せなくなります。
+   * ★月に送れる数が決まっているので、
+   *   10分に1回・1日5回までにしぼっています（vnLineSend_ の中）。
+   */
+  try {
+    if (e && e.parameter && e.parameter.line && typeof vnLineSend_ === "function") {
+      const r = vnLineSend_(e.parameter.d || "");
+      const msg = r && r.ok
+        ? "LINEへ送りました。アプリに戻ってください。"
+        : ("送れませんでした。" + ((r && r.why) || ""));
+      return HtmlService.createHtmlOutput(
+        '<!doctype html><meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<body style="background:#0B0B0D;color:#FFF;font-family:system-ui;' +
+        'padding:28px 18px;line-height:1.8;font-size:16px">' +
+        '<p>' + (r && r.ok ? "📱 " : "⚠️ ") +
+        String(msg).replace(/[<>&]/g, "") + '</p></body>')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+  } catch (err) {
+    try { logErr_("webapp-line", err); } catch (e2) {}
   }
 
   const all = !!(e && e.parameter && e.parameter.all);

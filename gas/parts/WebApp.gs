@@ -129,6 +129,37 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.TEXT);
   }
 
+  /*
+   * ★イベントを、まーく様の個人LINEへ送るとき（ご指示・2026/11/23）。
+   *
+   *   台帳（TAXI NOTE）の【イベント】にある【LINEに送る】を押すと、
+   *   ここへ来ます。公式アカウントから、まーく様おひとりへ届きます。
+   *   グループへは1文字も出しません。
+   *
+   * ★記録は1件も渡さないので、関所（wbGate_）は通しません。
+   *   通すと、合言葉を入れていないときに押せなくなります。
+   * ★月に送れる数が決まっているので、
+   *   10分に1回・1日5回までにしぼっています（vnLineSend_ の中）。
+   */
+  try {
+    if (e && e.parameter && e.parameter.line && typeof vnLineSend_ === "function") {
+      const r = vnLineSend_(e.parameter.d || "");
+      const msg = r && r.ok
+        ? "LINEへ送りました。アプリに戻ってください。"
+        : ("送れませんでした。" + ((r && r.why) || ""));
+      return HtmlService.createHtmlOutput(
+        '<!doctype html><meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<body style="background:#0B0B0D;color:#FFF;font-family:system-ui;' +
+        'padding:28px 18px;line-height:1.8;font-size:16px">' +
+        '<p>' + (r && r.ok ? "📱 " : "⚠️ ") +
+        String(msg).replace(/[<>&]/g, "") + '</p></body>')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+  } catch (err) {
+    try { logErr_("webapp-line", err); } catch (e2) {}
+  }
+
   const all = !!(e && e.parameter && e.parameter.all);
   const gate = wbGate_();
 

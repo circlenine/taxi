@@ -8213,6 +8213,27 @@ function evHidNote(hid){
     '</div>';
 }
 
+/*
+ * 📱 LINEに送る（ご指示・2026/11/23）
+ *   「イベント情報ですが、lineに送る、という機能も追加して
+ *     自分のlineメッセージへ、公式lineから、自分宛のメッセージへ
+ *     送れるようにしてほしいです」
+ *
+ * ★届くのは、まーく様の個人LINEです。グループへは1文字も出ません。
+ * ★だから、出すのも まーく様の画面だけです。
+ *   ほかの方の送り先（LINEのID）は、こちらでは分からないためです。
+ * ★押すと別のページが一瞬ひらいて、「送りました」とだけ出ます。
+ *   受け口は Google のログインが要るので、この形になります。
+ */
+function evLineBtn(which){
+  if (!(ME.profile && ME.profile.is_admin)) return '';
+  if (!gasInfo || !gasInfo.exec) return '';
+  const u = gasInfo.exec + (gasInfo.exec.indexOf('?') === -1 ? '?' : '&') +
+            'line=1&d=' + encodeURIComponent(which);
+  return '<a class="btn ghost evline" href="' + esc(u) + '" target="_blank" rel="noopener">' +
+         '📱 LINEに送る</a>';
+}
+
 function paneEv(){
   const d = evToday();
   const at = (evData && evData.at) ? evData.at : '';
@@ -8227,6 +8248,7 @@ function paneEv(){
       ${at ? '（取ったのは ' + esc(at) + '）' : ''}</p>
     <div class="actions">
       <button class="btn ghost" id="evAgain">まん中に もう一度 出す</button>
+      ${evLineBtn('today')}
       ${hid ? '<span class="note">※きょうは「もう表示しない」にしてあります。' +
               '押せば、その場でもう一度 出ます。</span>' : ''}
     </div>
@@ -8247,7 +8269,9 @@ function evNextCard(d){
   const i = evData.days.indexOf(d);
   const nx = (i >= 0) ? evData.days[i + 1] : null;
   if (!nx || !nx.d || (d.d && nx.d === d.d)) return '';
-  return '<div class="card"><h2>' + evTitleHTML(nx) + '</h2>' + evRows(nx) + '</div>';
+  return '<div class="card"><h2>' + evTitleHTML(nx) + '</h2>' +
+    '<div class="actions">' + evLineBtn('tomorrow') + '</div>' +
+    evRows(nx) + '</div>';
 }
 
 /* ============================================================
