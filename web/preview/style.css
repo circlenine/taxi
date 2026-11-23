@@ -2655,3 +2655,71 @@ header > .saymount .bubble.two{white-space:normal;overflow:visible}
 
 /* ★持ち時間を使いすぎているときの印（2026/11/23） */
 .systbl td.budhot{color:#FFFFFF;font-weight:700;background:rgba(200,35,43,.28)}
+
+/* ★押しどころが9つになったので、最後の1つを2ます分に広げて
+     行のはしまで埋めます（右だけ空くと、作りかけに見えるため・2026/11/23）。 */
+nav button:last-child:nth-child(9){grid-column:span 2}
+
+/* ================================================================
+ *  一番上の絵（ご指示・2026/11/23）
+ *
+ *  ★動かしているのは、ぜんぶ CSS です。
+ *    絵を描き直していないので、電池も通信も食いません。
+ *  ★動きを止めている機種（設定で切っておられる方）では、
+ *    動かないだけで、絵はそのまま出ます。
+ * ================================================================ */
+.bncard{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;
+  border:1px solid var(--ink3);background:#0B1130}
+.bnsvg{display:block;width:100%;height:min(34vw,150px)}
+.bnover{position:absolute;left:10px;top:9px;display:flex;flex-direction:column;gap:2px}
+.bnwhere{font-size:13px;font-weight:700;color:#FFFFFF;
+  background:rgba(8,10,20,.58);border-radius:6px;padding:2px 8px}
+.bnwhen{font-size:10.5px;color:#FFFFFF;opacity:.92;
+  background:rgba(8,10,20,.45);border-radius:6px;padding:1px 7px;align-self:flex-start}
+.bnwx{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:9px 12px 4px;background:rgba(255,255,255,.045)}
+.bnbig{font-family:var(--mono);font-size:26px;font-weight:700;color:#FFFFFF;line-height:1}
+.bnkv{display:flex;flex-direction:column;gap:1px;min-width:0}
+.bnkv i{font-style:normal;font-size:9.5px;color:#FFFFFF;opacity:.75;white-space:nowrap}
+.bnkv b{font-size:13px;color:#FFFFFF;font-family:var(--mono)}
+.bndiff.up{color:#F2A33C}
+.bndiff.down{color:#7FC4F2}
+.bnsay{padding:2px 12px 9px;font-size:12px;line-height:1.6;color:#FFFFFF;
+  background:rgba(255,255,255,.045)}
+.bnfoot{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 10px;
+  background:rgba(255,255,255,.045)}
+.bnnote{font-size:10.5px;color:#FFFFFF;opacity:.7;align-self:center}
+@media (max-width:340px){
+  .bnwx{gap:9px;padding:8px 10px 4px}
+  .bnbig{font-size:22px}
+  .bnsay,.bnfoot{padding-left:10px;padding-right:10px}
+}
+
+/* タクシーは、ずっと走っています */
+@keyframes bncar{0%{transform:translateX(-40px)}100%{transform:translateX(330px)}}
+.bncar{animation:bncar 11s linear infinite}
+/* 道の白線は、車と逆に流します（走っている感じを出すため） */
+@keyframes bnlane{0%{transform:translateX(0)}100%{transform:translateX(-32px)}}
+.bnlane{animation:bnlane 1.6s linear infinite}
+/* 窓の灯りは、ゆっくり点いたり消えたり */
+@keyframes bnwin{0%,72%{opacity:.95}80%{opacity:.25}88%,100%{opacity:.95}}
+.bnwin{animation:bnwin 9s ease-in-out infinite}
+/* 星はまたたきます */
+@keyframes bnstar{0%,100%{opacity:.25}50%{opacity:1}}
+.bnstar{animation:bnstar 3.4s ease-in-out infinite}
+/* 観覧車はまわります */
+@keyframes bnspin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.bnspin{animation:bnspin 24s linear infinite;transform-origin:0 0}
+/* 高いビルの赤い灯 */
+@keyframes bnblink{0%,60%{opacity:1}70%,100%{opacity:.1}}
+.bnblink{animation:bnblink 2.2s ease-in-out infinite}
+/* ネオンの看板 */
+@keyframes bnneon{0%,100%{opacity:1}45%{opacity:.45}}
+.bnneon{animation:bnneon 2.6s ease-in-out infinite}
+.bnneon2{animation:bnneon 2.6s ease-in-out .9s infinite}
+/* 雨 */
+@keyframes bnrain{0%{transform:translateY(0);opacity:.75}100%{transform:translateY(130px);opacity:0}}
+.bnrain line{animation:bnrain 1.1s linear infinite}
+@media(prefers-reduced-motion:reduce){
+  .bncar,.bnlane,.bnwin,.bnstar,.bnspin,.bnblink,.bnneon,.bnneon2,.bnrain line{animation:none}
+}

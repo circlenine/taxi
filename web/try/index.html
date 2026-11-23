@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261123-90513efb">
-<link rel="stylesheet" href="try.css?v=20261123-90513efb">
+<link rel="stylesheet" href="style.css?v=20261123-b8905007">
+<link rel="stylesheet" href="try.css?v=20261123-b8905007">
 </head>
 <body>
 <div class="trybar">ここは<b>見た目の試し</b>のページです。中身は本番と同じものです。本番は
@@ -100,6 +100,10 @@
        ≡ は、この札を見て行き先の一覧を作ります。
        上の行からは消しましたが、目に見えない形でここに残します。 -->
   <button class="chip fbtab" data-t="fb" aria-selected="false" hidden>フィードバック</button>
+  <!-- ★【天気】のページは、押しどころの行から外しました（ご指示・2026/11/23）。
+         天気は【記録】の一番上の絵に入りましたが、
+         雨雲レーダーだけは ここから いつでも開けるように残します。 -->
+  <button class="chip fbtab" data-t="hot" aria-selected="false" hidden>雨雲レーダー</button>
   <!-- ★≡ の一覧にあったものも、ここに並べました（ご指示・2026/11/16
          「三メニューにある 記録～お知らせまでを ページ内にも載せてください」）。
        10個あるので 5列×2段。そえる字は5文字までにして、
@@ -108,14 +112,17 @@
     <!-- ★開いて最初に出るのは【天気】です（ご指示・2026/11/17）。
            はじめから【天気】を押した形にしておき、
            ひと呼吸だけ【記録】が見えることのないようにします。 -->
-    <button data-t="in" aria-selected="false"><b>記録</b><i>入力・修正</i></button>
-    <button data-t="hot" aria-selected="true"><b>天気</b><i>雨雲と狙い目</i></button>
+    <!-- ★【天気】のページは、やめました（ご指示・2026/11/23
+             「天気ページは一旦やめて 記録ページの1番上に…」）。
+           天気は、【記録】の一番上の絵の中に入りました。
+         ★【再現】も、【特定】の中の1つにまとめました（同日のご指示）。 -->
+    <button data-t="in" aria-selected="true"><b>記録</b><i>入力・修正</i></button>
     <button data-t="map" aria-selected="false"><b>地図</b><i>ピンで見る</i></button>
     <button data-t="g" aria-selected="false"><b>グラフ</b><i>時刻と金額</i></button>
     <button data-t="ratio" aria-selected="false"><b>パーセント</b><i>ロング率</i></button>
     <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真取込み</i></button>
     <button data-t="tok" aria-selected="false"><b>特定</b><i>GO,Uber他</i></button>
-    <button data-t="rep" aria-selected="false"><b>再現</b><i>くり返し</i></button>
+    <button data-t="tro" aria-selected="false"><b><span class="dot" id="troDot" hidden></span>トロフィー</b><i>集めるもの</i></button>
     <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
     <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
     </nav>
@@ -195,9 +202,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261123-90513efb"></script>
-<script src="news.js?v=20261123-90513efb"></script>
-<script src="shared.js?v=20261123-90513efb"></script>
-<script src="app.js?v=20261123-90513efb"></script>
+<script src="config.js?v=20261123-b8905007"></script>
+<script src="news.js?v=20261123-b8905007"></script>
+<script src="shared.js?v=20261123-b8905007"></script>
+<script src="app.js?v=20261123-b8905007"></script>
 </body>
 </html>

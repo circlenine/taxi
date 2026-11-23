@@ -1474,7 +1474,10 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     /* ★2026/11/16：イベント・お知らせも画面に戻し、5つずつ2段の10こ
          （ご指示「三メニューにある 記録～お知らせまでを ページ内にも
            載せてください…10個になるため、上手い具合に調整してください」） */
-    t(subs.length === 10, '★★★画面のメニューは10こ（5つ×2段）', subs.length);
+    /* ★2026/11/23：【天気】のページをやめ、【再現】を【特定】に入れ、
+         【トロフィー】を足したので 9こ（ご指示・同日）。
+       最後の1つは2ます分に広げて、行のはしまで埋めています。 */
+    t(subs.length === 9, '★★★画面のメニューは9こ', subs.length);
     t(/data-t="ev"(?! [^>]*hidden)/.test(h3),
       '★★★イベントも、画面のメニューに出す');
     t(/data-t="news"(?! [^>]*hidden)/.test(h3),
@@ -1486,11 +1489,14 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     const ord = (navH.match(/data-t="([a-z]+)"/g) || [])
       .map(x => x.replace(/data-t="|"/g, ''));
     /* ★2026/11/16：「狙い目」を「天気」に言いかえ、地図とグラフを入れ替えました */
-    t(ord.join(',') === 'in,hot,map,g,ratio,nippo,tok,rep,ev,news',
-      '★★★並びは 記録→天気→地図→グラフ→％→日報→特定→再現→イベント→お知らせ',
+    t(ord.join(',') === 'in,map,g,ratio,nippo,tok,tro,ev,news',
+      '★★★並びは 記録→地図→グラフ→パーセント→日報→特定→トロフィー→イベント→お知らせ',
       ord.join(','));
-    t(/data-t="hot"[^>]*><b>天気<\/b>/.test(h3),
-      '★★★【狙い目】の押しどころは「天気」に言いかえた');
+    /* ★【天気】は、押しどころの行から外しました（ご指示・2026/11/23
+         「天気ページは一旦やめて 記録ページの1番上に…」）。
+       雨雲レーダーだけは、一番上の絵と ≡ から いつでも開けます。 */
+    t(!/data-t="hot"/.test(navH), '★★★【天気】は、押しどころの行に出さない');
+    t(/data-t="hot"[^>]*hidden/.test(h3), '　 ≡ からは、まだ開ける');
     /* ★「ます目からはみ出さない」が目的です。字数は目安で、
          実際にはみ出していないことは、画面を測って確かめています。 */
     t(subs.every(x => x.length <= 11), '★★★そえる字は11文字まで（ます目からはみ出さない）',
@@ -1795,7 +1801,7 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
        （ご指示「%は、やっぱりパーセントにしてください」）。
        字が長くなるので、ます目の字は画面の幅に合わせて
        ぜんぶ同じだけ小さくなります（style.css の clamp）。 */
-  ['記録', '天気', 'グラフ', '地図', 'パーセント'].forEach(function (n) {
+  ['記録', 'グラフ', '地図', 'パーセント', '特定'].forEach(function (n) {
     t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
   });
   t(tabs.indexOf('全記録') === -1 && tabs.indexOf('集計') === -1,
@@ -2619,7 +2625,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/getElementById\('acctBox'\)[\s\S]{0,160}sheet\.appendChild\(box\)/.test(app),
     '★★★≡ の中に、アカウントのことを移してきている');
   t(/id="acctBox" hidden/.test(h3b), '　 アカウントの箱は、はじめは出さない');
-  t(!/data-go=/.test(app), '★★★≡ からは、行き先の行を外した');
+  t(!/data-go="/.test(app), '★★★≡ からは、行き先の行を外した');
 
   /* ⑥-5 「この地図で合っている」のタグはやめ、初回だけ誘う。
          ご指示（2026/11/13）
@@ -2930,7 +2936,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★過去の記録 → 直近の記録 の順');
   /* ★2026/11/16：新規の記録を、直近の記録より上にしました（ご指示
        「新規の記録の方が、直近の記録より上にしてください」） */
-  t(/\(tab === 'in'\) \? \(leadCard\('in'\) \+ paneInNew\(\)\) : ''/.test(app),
+  t(/\(tab === 'in'\) \? \(bannerCard\(\) \+ leadCard\('in'\) \+ paneInNew\(\)\) : ''/.test(app),
     '★★★記録の画面は 新規の記録 → 過去の記録（表つき）の順');
   t(/<div id="ktTbl"><\/div>/.test(idx) &&
     /ktb\.innerHTML = \(tab === 'in'\) \? paneInRecent\(\) : ''/.test(app),
@@ -3094,7 +3100,8 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     vm.runInContext(app.slice(app.indexOf('const TOK_KINDS = ['),
                               app.indexOf('const TOK_KEY')), bx);
     const K = vm.runInContext('TOK_KINDS', bx);
-    t(K.map(x => x.k).join(',') === 'go,uber,bara,kix,ticket',
+    /* ★2026/11/23：【再現】も ここの1つにまとめました（ご指示） */
+    t(K.map(x => x.k).join(',') === 'go,uber,bara,kix,ticket,rep',
       '★★★並びは GO → Uber → バラシ → 関空 → チケット',
       K.map(x => x.n).join('/'));
     t(K[0].n === 'GO', '★★★GOが 一番左');
@@ -4010,7 +4017,10 @@ console.log('\n■ 再現性あるかも（ご指示・2026/11/15）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-  t(/data-t="rep"[^>]*><b>再現</.test(ix), '★★★【再現】の押しどころがある');
+  /* ★2026/11/23：【再現】は【特定】の中の1つになりました（ご指示
+       「再現も、特定のGOとかの中に、一緒に入れて、ひとまとめにしてください」）。 */
+  t(!/data-t="rep"/.test(ix) && /\{ k:'rep',   n:'再現',/.test(app),
+    '★★★【再現】は【特定】の中の1つ');
   t(/function paneRep\(\)/.test(app) && /rep:paneRep/.test(app), '★★★その画面がある');
   /* ★2026/11/17：このページは「同じお客様」の話だけにしました（ご指示
        「同じ人のみを再現性ありと言ってるので この部分は不要なので
@@ -4549,18 +4559,18 @@ console.log('■ 最初に出るのは【天気】（2026/11/17）');
 {
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const idx = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-  t(/let ME = null, records = \[\], names = \{\}, tab = 'hot'/.test(app),
-    '★★★はじめの行き先は【天気】');
-  t(/if \(!PANES\[tab\]\) tab = 'hot';/.test(app), '　 知らない行き先でも【天気】に戻る');
+  t(/let ME = null, records = \[\], names = \{\}, tab = 'in'/.test(app),
+    '★★★はじめの行き先は【記録】');
+  t(/if \(!PANES\[tab\]\) tab = 'in';/.test(app), '　 知らない行き先でも【記録】に戻る');
   t(/const TAB_HOLD_MIN = 30;/.test(app), '★★★30分あいたら、覚えているタブは使わない');
   t(/if \(!at \|\| \(Date\.now\(\) - at\) > TAB_HOLD_MIN \* 60000\) return;/.test(app),
     '★★★そのときは【天気】のまま');
   t(/function tabTouch\(\)/.test(app) && /\n  tabTouch\(\);/.test(app),
     '★★★見ているあいだは、足あとを新しくする（更新しても戻らない）');
-  t(/<button data-t="hot" aria-selected="true">/.test(idx),
-    '★★★はじめから【天気】を押した形にしておく');
-  t(/<button data-t="in" aria-selected="false">/.test(idx),
-    '　 【記録】が ひと呼吸 見えることはない');
+  t(/<button data-t="in" aria-selected="true">/.test(idx),
+    '★★★はじめから【記録】を押した形にしておく');
+  t(!/<button data-t="[a-z]+" aria-selected="true">[\s\S]*?<button data-t="[a-z]+" aria-selected="true">/.test(idx),
+    '　 はじめから押してある札は、1つだけ');
 }
 
 /* ------------------------------------------------------------
@@ -4949,6 +4959,71 @@ console.log('\n■ 止まっていたら、開いた時点で起こす（ご指�
   t(/gasWakeAuto\(\);/.test(app), '　 画面を作り直すたびに通る');
   /* 画面にも、動いた時間を出していること */
   t(/s2\.budMin == null \? '' :/.test(app), '★★★きょう動いた時間を、画面にも出す');
+}
+
+console.log('\n■ 一番上の絵（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* 空・街なみ・ひとことは、動かして確かめます */
+  const bx2 = {};
+  vm.createContext(bx2);
+  vm.runInContext(app.slice(app.indexOf('const BN_POS_KEY'),
+                            app.indexOf('/** 絵の中身（SVG）')), bx2);
+  /* ひとことの係は、絵の下にあります */
+  vm.runInContext(app.slice(app.indexOf('function bnAdvice'),
+                            app.indexOf('/** 一番上の絵（【記録】の先頭） */')), bx2);
+  const call = function (c){ return vm.runInContext(c, bx2); };
+
+  /* ① 空は、開いた時刻で変わる */
+  t(call('bnSky(20).k') === 'night', '★★★20時は 夜の空', call('bnSky(20).k'));
+  t(call('bnSky(12).k') === 'day',   '★★★12時は 昼の空', call('bnSky(12).k'));
+  t(call('bnSky(2).k')  === 'deep',  '★★★2時は 深夜の空', call('bnSky(2).k'));
+  t(call('bnSky(17).k') === 'eve',   '★★★17時は 夕方の空', call('bnSky(17).k'));
+  /* 24時間ぜんぶ、どこかに当てはまること（すき間を作らない） */
+  let holes = 0;
+  for (let h = 0; h < 24; h++) if (!call('bnSky(' + h + ').k')) holes++;
+  t(holes === 0, '★★★24時間すべてに、空の色がある', holes);
+
+  /* ② 街なみは、開いた場所の 一番近い所 */
+  t(call('bnArea(34.666,135.501).k') === 'minami', '★★★難波あたりなら ミナミの街なみ');
+  t(call('bnArea(34.703,135.496).k') === 'umeda',  '★★★梅田あたりなら 梅田の街なみ');
+  t(call('bnArea(34.432,135.231).k') === 'kix',    '★★★関空あたりなら 関空の街なみ');
+
+  /* ③ 走る前のひとこと（傘・防寒） */
+  t(/傘/.test(call('bnAdvice({rainNow:true})')), '★★★降っていれば、傘のことを書く');
+  t(/傘/.test(call('bnAdvice({rain3:70,rainWhen:"21時"})')),
+    '★★★これから降るときも、傘のことを書く');
+  t(/防寒/.test(call('bnAdvice({dTemp:-6})')), '★★★きのうより冷えるなら、防寒のことを書く');
+  t(call('bnAdvice(null)') === '', '★★★天気が読めないときは、何も書かない（当て推量をしない）');
+  t(/いってらっしゃいませ/.test(call('bnAdvice({rain3:0,dTemp:0,temp:15,hum:50})')),
+    '　 何も無い日は、ひとこと送り出す');
+
+  /* ④ 読み先は 無料・鍵なし。前の日とも比べられる */
+  t(/api\.open-meteo\.com/.test(app) && !/key=|apikey/i.test(app.slice(app.indexOf('function bnWxUrl'), app.indexOf('async function bnLoadWx'))),
+    '★★★天気は無料・鍵なし');
+  t(/'&timezone=Asia%2FTokyo&past_days=1&forecast_days=2'/.test(app),
+    '★★★前の日のぶんも取る（前日比を出すため）');
+  t(/relative_humidity_2m/.test(app), '　 湿度も取る');
+
+  /* ⑤ 場所は、いきなり聞かない */
+  t(/st && st\.state === 'granted'/.test(app),
+    '★★★すでに許してくださっているときだけ、黙って読む');
+  t(/if \(force\) \{ go\(\); return; \}/.test(app),
+    '★★★聞くのは、ボタンを押していただいたときだけ');
+  t(/id="bnHere"/.test(app), '　 そのボタンがある');
+
+  /* ⑥ ずっと動く。動きを切っておられる方では、動かさない */
+  t(/@keyframes bncar\{/.test(css) && /\.bncar\{animation:bncar/.test(css),
+    '★★★タクシーは ずっと走っている');
+  t(/@keyframes bnwin\{/.test(css) && /@keyframes bnstar\{/.test(css),
+    '　 窓の灯りと星も動く');
+  t(/prefers-reduced-motion:reduce\)\{\n  \.bncar,\.bnlane/.test(css),
+    '★★★動きを切っておられる方の画面では、動かさない');
+
+  /* ⑦ 【記録】の一番上に出る */
+  t(/\(tab === 'in'\) \? \(bannerCard\(\)/.test(app), '★★★【記録】の一番上に出る');
+  t(/setInterval\(function \(\)\{\n    if \(tab === 'hot' \|\| tab === 'ratio' \|\| tab === 'in'\) render\(\);/.test(app),
+    '　 時刻が変われば、空の色も変わる');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');

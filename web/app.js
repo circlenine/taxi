@@ -5,7 +5,7 @@ const $ = s => document.querySelector(s);
      「天気情報をデフォルトで1番初めに表示する形にしてください」）。
    走り出す前に、まず空と雨雲を見るためです。
    いちど別の画面を選べば、その端末は そこを覚えます。 */
-let ME = null, records = [], names = {}, tab = 'hot', form = {}, editId = null, msg = '', msgBad = false;
+let ME = null, records = [], names = {}, tab = 'in', form = {}, editId = null, msg = '', msgBad = false;
 let scOpt = { line: true, label: true }, onlyMine = false;
 /* ★折線グラフで、自分でえらんだ乗り場（ご指示・2026/11/13
      「その他にも好きに乗り場をカスタムできる選択肢も追加してください」）。
@@ -90,7 +90,7 @@ function tabSave(){
 function tabLoad(){
   try {
     const at = Number(localStorage.getItem(TAB_AT_KEY) || 0);
-    /* 30分あいていたら、覚えているタブは使いません（【天気】のまま） */
+    /* 30分あいていたら、覚えているタブは使いません（【記録】のまま） */
     if (!at || (Date.now() - at) > TAB_HOLD_MIN * 60000) return;
   } catch (e) { return; }
   try { const v = localStorage.getItem(TAB_KEY); if (v) tab = v; } catch (e) {}
@@ -193,6 +193,9 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
   loadSays();
   loadFaces();
+  /* 一番上の絵（場所と天気）。場所は、すでに許してくださっているときだけ */
+  bnPosLoad(); bnAsk(false); bnTick(false);
+  setInterval(function (){ bnTick(false); }, 15 * 60 * 1000);
   /* 自分で決めたピンの場所を読みます（棚が無くても、黙って元のまま） */
   loadPlaces().then(function (){ if (tab === 'map') render(); });
   /* いま出ている警報・注意報（気象庁）。30分おきに見ます */
@@ -211,7 +214,9 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
        「Wikipediaを観光する人が見ると思いますか？」）。
      いまは、名前のついたホテル・レストランの表を出しています。
      読む係（buzzLoad）は消していません。あとで戻せるようにしてあります。 */
-  setInterval(function (){ if (tab === 'hot' || tab === 'ratio') render(); }, 60 * 1000);
+  setInterval(function (){
+    if (tab === 'hot' || tab === 'ratio' || tab === 'in') render();
+  }, 60 * 1000);
   setInterval(loadWx, 30 * 60 * 1000);
 })();
 
@@ -1070,6 +1075,15 @@ function render(){
   document.querySelectorAll('[data-pindel]').forEach(function (b){
     b.onclick = function (){ pinSetDel(b.dataset.pindel); };
   });
+  /* 一番上の絵：いまいる所に合わせる／雨雲レーダーへ */
+  const bh = document.getElementById('bnHere');
+  if (bh) bh.onclick = function (){ bnAsk(true); };
+  document.querySelectorAll('[data-goto]').forEach(function (b){
+    b.onclick = function (){
+      grab(); tab = b.dataset.goto; tabSave(); msg = '';
+      render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
   /* 【説明】は、いま開いているページの話を出します */
   document.querySelectorAll('[data-lead]').forEach(function (b){
     b.onclick = function (){ leadPopup(tab); };
@@ -1096,7 +1110,7 @@ function render(){
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
   /* バラシ・関空は、1つのメニューにまとめました（ご指示・2026/11/15） */
   if (tab === 'bara' || tab === 'kix') { tokKindSet(tab); tab = 'tok'; tabSave(); }
-  if (!PANES[tab]) tab = 'hot';
+  if (!PANES[tab]) tab = 'in';
   $('#panes').innerHTML = PANES[tab]();
   /* 新規の記録は、過去の記録より上に出します（ご指示・2026/11/13）。
      仕掛けが止まっていそうなときは、その上に 赤い帯を出します。 */
@@ -1123,7 +1137,7 @@ function render(){
        「直近の記録は非表示にしてください」）。
      すぐ下の「過去の記録」の表に、同じものが新しい順で並ぶためです。 */
   if (pt) pt.innerHTML =
-    ((tab === 'in') ? (leadCard('in') + paneInNew()) : '');
+    ((tab === 'in') ? (bannerCard() + leadCard('in') + paneInNew()) : '');
   /* 記録の表は「過去の記録」の中へ（欄を2つに分けません） */
   const ktb = $('#ktTbl');
   if (ktb) ktb.innerHTML = (tab === 'in') ? paneInRecent() : '';
@@ -1360,6 +1374,344 @@ function leadPopup(k){
 /* ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13）。
      「過去の記録」は index.html の #ktop なので、
      新規のぶんだけを先に（#panesTop）、直近のぶんをあとに（#panes）出します。 */
+/* ================================================================
+ *  一番上の絵（ご指示・2026/11/23）
+ *
+ *    「記録ページの1番上に、…ずっと自動で動いてる形にしてほしいです
+ *      リアルタイムに、開いた場所、時間によって…周辺地域の特徴を描いた背景、
+ *      時間帯の空に合わせてもらえないでしょうか
+ *      また、天気がわかるように 雨予報や気温や湿度を追加して
+ *      前日比も出してどれくらい違うか、傘が必要か
+ *      防寒に気をつけるべきかなどのアドバイスもほしいです」
+ *
+ *  ★ずっと動きます。動かしているのは CSS だけなので、
+ *    電池も通信も食いません（絵を描き直していません）。
+ *  ★空の色は、開いた時刻で変わります（夜明け・朝・昼・夕方・夜・深夜）。
+ *  ★街なみは、開いた場所の 一番近い所に合わせます
+ *    （梅田は観覧車、天王寺はハルカス、ベイは海と橋…）。
+ *  ★場所は、すでに許してくださっているときだけ 黙って読みます。
+ *    まだのときは聞かずに大阪の真ん中で出し、
+ *    「いまいる所に合わせる」を押していただいたときだけ 聞きます
+ *    （開いた瞬間に許可の窓が出ると、びっくりされるためです）。
+ *  ★天気は Open-Meteo（無料・鍵なし・課金の設定なし）。
+ *    読めなければ、絵だけ出します（止まりません）。
+ * ================================================================ */
+const BN_POS_KEY = 'tn_bn_pos';
+const BN_OSAKA = { la: 34.7025, lo: 135.4959 };
+
+/* 街なみの型。一番近いものを使います */
+const BN_AREAS = [
+  { k:'umeda',    n:'梅田・北',  la:34.7025, lo:135.4959 },
+  { k:'shinchi',  n:'北新地',    la:34.6950, lo:135.4960 },
+  { k:'minami',   n:'ミナミ',    la:34.6657, lo:135.5012 },
+  { k:'tenno',    n:'天王寺',    la:34.6460, lo:135.5140 },
+  { k:'bay',      n:'ベイ・港',  la:34.6550, lo:135.4290 },
+  { k:'shinosaka',n:'新大阪',    la:34.7332, lo:135.5003 },
+  { k:'kyobashi', n:'京橋・大阪城', la:34.6966, lo:135.5340 },
+  { k:'kix',      n:'関空・南',  la:34.4320, lo:135.2304 }
+];
+function bnArea(la, lo){
+  let best = BN_AREAS[0], d0 = 1e9;
+  BN_AREAS.forEach(function (a){
+    const dx = (a.lo - lo) * 0.91, dy = (a.la - la);
+    const d = dx * dx + dy * dy;
+    if (d < d0) { d0 = d; best = a; }
+  });
+  return best;
+}
+
+/* 空（開いた時刻で変わります）。s は「星を出すか」の濃さ */
+function bnSky(h){
+  if (h >= 4  && h < 6)  return { k:'dawn', n:'夜明け前', a:'#141B36', b:'#7A4A5E', s:.55 };
+  if (h >= 6  && h < 9)  return { k:'morn', n:'朝',       a:'#2E5E9E', b:'#D9A87A', s:0   };
+  if (h >= 9  && h < 16) return { k:'day',  n:'昼',       a:'#2F6FB4', b:'#A7CFEA', s:0   };
+  if (h >= 16 && h < 18) return { k:'eve',  n:'夕方',     a:'#1E2448', b:'#CC6A39', s:.35 };
+  if (h >= 18 && h < 23) return { k:'night',n:'夜',       a:'#0B1130', b:'#1E2A54', s:1   };
+  return { k:'deep', n:'深夜', a:'#06091A', b:'#101737', s:1 };
+}
+
+/* 街なみ。型ごとに、ビルの高さの並びと「名物」を変えます。
+   数は決め打ちです（開くたびに形が変わると、落ち着かないため）。 */
+const BN_SKYLINE = {
+  umeda:    [34,52,40,78,46,60,88,44,56,70,38,62],
+  shinchi:  [30,44,36,50,40,58,42,54,34,48,38,46],
+  minami:   [28,46,34,40,52,36,44,30,50,38,42,32],
+  tenno:    [30,38,34,44,36,120,40,34,46,32,42,36],
+  bay:      [22,30,26,34,24,40,28,32,24,36,26,30],
+  shinosaka:[38,56,44,64,48,72,42,58,50,66,40,54],
+  kyobashi: [30,42,36,48,40,34,44,38,52,36,46,32],
+  kix:      [20,26,22,30,24,28,22,32,26,24,28,22]
+};
+/* 名物（その所らしさ）。1つだけ置きます */
+function bnLandmark(k, sky){
+  const lit = (sky.k === 'night' || sky.k === 'deep' || sky.k === 'dawn');
+  if (k === 'umeda') {                       /* 観覧車 */
+    return '<g class="bnwheel" transform="translate(262,74)">' +
+      '<circle r="17" fill="none" stroke="' + (lit ? '#E0B341' : '#8FA2C4') + '" stroke-width="2"/>' +
+      '<g class="bnspin">' +
+      [0,45,90,135].map(function (d){
+        return '<line x1="' + (-17 * Math.cos(d * Math.PI / 180)).toFixed(1) +
+               '" y1="' + (-17 * Math.sin(d * Math.PI / 180)).toFixed(1) +
+               '" x2="' + (17 * Math.cos(d * Math.PI / 180)).toFixed(1) +
+               '" y2="' + (17 * Math.sin(d * Math.PI / 180)).toFixed(1) +
+               '" stroke="' + (lit ? '#E0B341' : '#8FA2C4') + '" stroke-width="1.4"/>';
+      }).join('') + '</g>' +
+      '<rect x="-2" y="17" width="4" height="22" fill="#2B3350"/></g>';
+  }
+  if (k === 'tenno') {                       /* 高いビル（あべののあたり） */
+    return '<g transform="translate(176,0)">' +
+      '<rect x="0" y="0" width="2" height="6" fill="#E23B30" class="bnblink"/></g>';
+  }
+  if (k === 'bay' || k === 'kix') {          /* 橋 */
+    return '<g class="bnbridge">' +
+      '<path d="M18 112 Q110 72 202 112" fill="none" stroke="#8FA2C4" stroke-width="2"/>' +
+      '<line x1="110" y1="86" x2="110" y2="112" stroke="#8FA2C4" stroke-width="2"/>' +
+      '</g>';
+  }
+  if (k === 'kyobashi') {                    /* 天守 */
+    return '<g transform="translate(246,70)">' +
+      '<rect x="-12" y="18" width="24" height="22" fill="#2B3350"/>' +
+      '<path d="M-16 18 L0 4 L16 18 Z" fill="' + (lit ? '#5C6B8F' : '#7F8FB2') + '"/>' +
+      '<path d="M-11 6 L0 -4 L11 6 Z" fill="' + (lit ? '#5C6B8F' : '#7F8FB2') + '"/>' +
+      '<rect x="-1" y="-10" width="2" height="7" fill="#E0B341"/></g>';
+  }
+  if (k === 'minami') {                      /* ネオンの看板 */
+    return '<g transform="translate(60,62)">' +
+      '<rect x="0" y="0" width="26" height="14" rx="2" fill="#C8232B" class="bnneon"/>' +
+      '<rect x="0" y="18" width="26" height="8" rx="2" fill="#E0B341" class="bnneon2"/></g>';
+  }
+  return '';
+}
+
+/** 絵の中身（SVG）。もとの大きさは 320×130 で、画面に合わせて伸ばします */
+function bannerSvg(area, sky, wx){
+  const W = 320, H = 130, GND = 112;
+  const hs = BN_SKYLINE[area.k] || BN_SKYLINE.umeda;
+  const lit = (sky.k === 'night' || sky.k === 'deep' || sky.k === 'dawn');
+  let s = '<svg class="bnsvg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">';
+  /* 空 */
+  s += '<defs><linearGradient id="bnsky" x1="0" y1="0" x2="0" y2="1">' +
+       '<stop offset="0" stop-color="' + sky.a + '"/>' +
+       '<stop offset="1" stop-color="' + sky.b + '"/></linearGradient></defs>' +
+       '<rect width="' + W + '" height="' + H + '" fill="url(#bnsky)"/>';
+  /* 星（夜だけ） */
+  if (sky.s > 0) {
+    const st = [[20,18],[54,30],[88,14],[131,26],[170,12],[205,30],[243,18],[280,28],[300,15],[113,40],[228,42]];
+    s += st.map(function (p, i){
+      return '<rect class="bnstar" x="' + p[0] + '" y="' + p[1] + '" width="1.6" height="1.6" ' +
+             'fill="#FFFFFF" opacity="' + sky.s + '" style="animation-delay:' + (i * .37).toFixed(2) + 's"/>';
+    }).join('');
+    /* 月 */
+    s += '<g transform="translate(276,26)"><circle r="11" fill="#F2EDE4" opacity=".92"/>' +
+         '<circle r="11" cx="5" cy="-3" fill="' + sky.a + '"/></g>';
+  } else {
+    /* 昼のお日さま */
+    s += '<circle cx="278" cy="26" r="11" fill="#FFE08A" opacity=".95"/>';
+  }
+  /* 遠いビル（薄い） */
+  s += '<g opacity=".45">' + hs.map(function (h, i){
+    const x = i * 27 + 4, w = 22, y = GND - h * .7;
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + (GND - y) + '" fill="#1B2440"/>';
+  }).join('') + '</g>';
+  /* 手前のビル＋窓 */
+  s += hs.map(function (h, i){
+    const x = i * 26 + 10, w = 20, y = GND - h;
+    let g = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + (GND - y) + '" fill="#242E4E"/>';
+    if (lit) {
+      for (let r = 0; r < Math.floor(h / 14); r++) {
+        for (let c = 0; c < 2; c++) {
+          const on = ((i * 7 + r * 3 + c) % 5) !== 0;
+          if (!on) continue;
+          g += '<rect class="bnwin" x="' + (x + 4 + c * 9) + '" y="' + (y + 7 + r * 14) +
+               '" width="4" height="6" fill="#E0B341" ' +
+               'style="animation-delay:' + (((i + r + c) % 9) * .7).toFixed(2) + 's"/>';
+        }
+      }
+    }
+    return g;
+  }).join('');
+  /* 名物 */
+  s += bnLandmark(area.k, sky);
+  /* 道路 */
+  s += '<rect x="0" y="' + GND + '" width="' + W + '" height="' + (H - GND) + '" fill="#171B26"/>';
+  s += '<g class="bnlane">' + [0,1,2,3,4,5,6,7,8,9,10].map(function (i){
+    return '<rect x="' + (i * 32) + '" y="' + (GND + 10) + '" width="16" height="2" fill="#6E7788"/>';
+  }).join('') + '</g>';
+  /* タクシー（ずっと走ります） */
+  s += '<g class="bncar"><g transform="translate(0,' + (GND - 12) + ')">' +
+       '<rect x="2" y="4" width="30" height="9" rx="2" fill="#E8C24A"/>' +
+       '<rect x="9" y="-1" width="15" height="6" rx="1.5" fill="#E8C24A"/>' +
+       '<rect x="11" y="0" width="5" height="4" fill="#2B3350"/>' +
+       '<rect x="17" y="0" width="5" height="4" fill="#2B3350"/>' +
+       '<rect x="14" y="-4" width="6" height="3" rx="1" fill="#E23B30"/>' +
+       '<circle cx="9" cy="13" r="2.6" fill="#11131A"/>' +
+       '<circle cx="25" cy="13" r="2.6" fill="#11131A"/>' +
+       '<rect x="31" y="7" width="5" height="2" fill="#FFF3C4" opacity=".85"/>' +
+       '</g></g>';
+  /* 雨（降っているときだけ） */
+  if (wx && wx.rainNow) {
+    s += '<g class="bnrain">' + [6,28,52,74,98,122,146,170,194,218,242,266,290,310].map(function (x, i){
+      return '<line x1="' + x + '" y1="0" x2="' + (x - 4) + '" y2="10" stroke="#9FC6F0" ' +
+             'stroke-width="1" opacity=".7" style="animation-delay:' + (i * .17).toFixed(2) + 's"/>';
+    }).join('') + '</g>';
+  }
+  s += '</svg>';
+  return s;
+}
+
+/* ------------------------------------------------------------
+ *  天気（Open-Meteo・無料・鍵なし）。開いた場所の いまの様子。
+ *  ★前の日と比べられるよう、past_days=1 も 同時に取ります。
+ *  ★読めなければ null。絵だけ出して、天気の行は出しません。
+ * ---------------------------------------------------------- */
+let bnWx = null, bnWxAt = 0, bnPos = null;
+function bnWxUrl(la, lo){
+  return 'https://api.open-meteo.com/v1/forecast?latitude=' + la.toFixed(4) +
+    '&longitude=' + lo.toFixed(4) +
+    '&current=temperature_2m,relative_humidity_2m,precipitation,weather_code' +
+    '&hourly=temperature_2m,precipitation_probability,relative_humidity_2m' +
+    '&daily=temperature_2m_max,temperature_2m_min' +
+    '&timezone=Asia%2FTokyo&past_days=1&forecast_days=2';
+}
+async function bnLoadWx(la, lo){
+  try {
+    const r = await fetch(bnWxUrl(la, lo), { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const cur = j.current || {};
+    const H = j.hourly || {};
+    const times = H.time || [];
+    const now = new Date();
+    /* いまの時刻に一番近い行をさがします */
+    let i0 = -1;
+    for (let i = 0; i < times.length; i++) {
+      if (new Date(times[i]).getTime() <= now.getTime()) i0 = i; else break;
+    }
+    /* これからの3時間で、一番高い雨の見込み */
+    let rain3 = null, rainWhen = '';
+    for (let i = i0 + 1; i <= i0 + 3 && i < times.length; i++) {
+      const p = Number((H.precipitation_probability || [])[i]);
+      if (!isFinite(p)) continue;
+      if (rain3 == null || p > rain3) {
+        rain3 = p;
+        rainWhen = String(times[i]).slice(11, 13) + '時';
+      }
+    }
+    /* 前の日の同じ時刻の気温（24時間前の行） */
+    let yTemp = null;
+    if (i0 - 24 >= 0) {
+      const v = Number((H.temperature_2m || [])[i0 - 24]);
+      if (isFinite(v)) yTemp = v;
+    }
+    const temp = Number(cur.temperature_2m);
+    const hum  = Number(cur.relative_humidity_2m);
+    return {
+      temp: isFinite(temp) ? temp : null,
+      hum:  isFinite(hum)  ? hum  : null,
+      rainNow: Number(cur.precipitation) > 0,
+      rain3: rain3,
+      rainWhen: rainWhen,
+      yTemp: yTemp,
+      dTemp: (isFinite(temp) && yTemp != null) ? (temp - yTemp) : null,
+      max: Number((j.daily && j.daily.temperature_2m_max || [])[1]),
+      min: Number((j.daily && j.daily.temperature_2m_min || [])[1])
+    };
+  } catch (e) { return null; }
+}
+
+/** 走る前のひとこと（傘・防寒）。確かなことだけを書きます */
+function bnAdvice(wx){
+  if (!wx) return '';
+  const a = [];
+  if (wx.rainNow) a.push('いま降っています。傘を積んでください');
+  else if (wx.rain3 != null && wx.rain3 >= 50) a.push(wx.rainWhen + 'ごろ 雨の見込み。傘を積んでください');
+  else if (wx.rain3 != null && wx.rain3 >= 30) a.push(wx.rainWhen + 'ごろ ひと雨あるかもしれません');
+  if (wx.dTemp != null) {
+    if (wx.dTemp <= -4) a.push('きのうより ' + Math.abs(Math.round(wx.dTemp)) + '℃ 低いです。防寒を');
+    else if (wx.dTemp >= 4) a.push('きのうより ' + Math.round(wx.dTemp) + '℃ 高いです。薄着で');
+  }
+  if (wx.temp != null && wx.temp <= 5) a.push('5℃を下回ります。冷えます');
+  if (!a.length && wx.hum != null && wx.hum >= 85) a.push('湿っています。窓が曇りやすい時間です');
+  if (!a.length) a.push('荒れた天気ではありません。いってらっしゃいませ');
+  return a.slice(0, 2).join('／');
+}
+
+/** 一番上の絵（【記録】の先頭） */
+function bannerCard(){
+  const pos = bnPos || BN_OSAKA;
+  const area = bnArea(pos.la, pos.lo);
+  const now = new Date();
+  const sky = bnSky(now.getHours());
+  const wx = bnWx;
+  const t = function (v, u){ return (v == null || !isFinite(v)) ? '—' : (Math.round(v) + u); };
+  const dTxt = (wx && wx.dTemp != null)
+    ? ((wx.dTemp > 0 ? '＋' : '−') + Math.abs(Math.round(wx.dTemp)) + '℃')
+    : '—';
+  const dCls = (wx && wx.dTemp != null)
+    ? (wx.dTemp <= -2 ? ' down' : (wx.dTemp >= 2 ? ' up' : '')) : '';
+  return '<div class="bncard">' +
+    bannerSvg(area, sky, wx) +
+    '<div class="bnover">' +
+      '<span class="bnwhere">' + esc(area.n) + '</span>' +
+      '<span class="bnwhen">' + esc(sky.n) + '　' +
+        ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + '</span>' +
+    '</div>' +
+    '<div class="bnwx">' +
+      '<span class="bnbig">' + t(wx && wx.temp, '℃') + '</span>' +
+      '<span class="bnkv"><i>前日比</i><b class="bndiff' + dCls + '">' + esc(dTxt) + '</b></span>' +
+      '<span class="bnkv"><i>湿度</i><b>' + t(wx && wx.hum, '％') + '</b></span>' +
+      '<span class="bnkv"><i>雨（3時間）</i><b>' +
+        ((wx && wx.rain3 != null) ? (Math.round(wx.rain3) + '％') : '—') + '</b></span>' +
+    '</div>' +
+    '<div class="bnsay">' + esc(bnAdvice(wx)) + '</div>' +
+    '<div class="bnfoot">' +
+      (bnPos ? '<span class="bnnote">いまいる所に合わせています</span>'
+             : '<button class="mini" id="bnHere">いまいる所に合わせる</button>') +
+      '<button class="mini" data-goto="hot">雨雲レーダー</button>' +
+    '</div>' +
+  '</div>';
+}
+
+/* 場所（すでに許してくださっているときだけ、黙って読みます） */
+function bnPosLoad(){
+  try {
+    const raw = localStorage.getItem(BN_POS_KEY);
+    if (raw) { const o = JSON.parse(raw); if (o && isFinite(o.la)) bnPos = o; }
+  } catch (e) {}
+}
+function bnPosSave(){
+  try { localStorage.setItem(BN_POS_KEY, JSON.stringify(bnPos)); } catch (e) {}
+}
+function bnAsk(force){
+  try {
+    if (!navigator.geolocation) return;
+    const go = function (){
+      navigator.geolocation.getCurrentPosition(function (p){
+        bnPos = { la: p.coords.latitude, lo: p.coords.longitude };
+        bnPosSave();
+        bnTick(true);
+        if (tab === 'in') render();
+      }, function (){}, { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
+    };
+    if (force) { go(); return; }
+    /* 聞かずに済むときだけ（すでに許してくださっている場合） */
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then(function (st){
+        if (st && st.state === 'granted') go();
+      }).catch(function (){});
+    }
+  } catch (e) {}
+}
+
+/* 天気を読み直します（15分に1回まで） */
+async function bnTick(force){
+  const pos = bnPos || BN_OSAKA;
+  if (!force && bnWxAt && (Date.now() - bnWxAt) < 15 * 60000) return;
+  bnWxAt = Date.now();
+  const w = await bnLoadWx(pos.la, pos.lo);
+  if (w) { bnWx = w; if (tab === 'in') render(); }
+}
+
 function paneInNew(){
   const f = form, pl = myPlaces();
   const chip = (v,cur,fld,suf='') => `<button class="chip ${String(cur)===String(v)?'on':''}" data-set="${fld}" data-val="${v}">${v}${suf}</button>`;
@@ -5917,7 +6269,12 @@ const TOK_KINDS = [
   { k:'uber',  n:'Uber',     s:'何時台に多いか' },
   { k:'bara',  n:'バラシ',   s:'公演のあと' },
   { k:'kix',   n:'関空',     s:'ホテルと時間' },
-  { k:'ticket',n:'チケット', s:'何時台に多いか' }
+  { k:'ticket',n:'チケット', s:'何時台に多いか' },
+  /* ★「再現」も、ここの1つにまとめました（ご指示・2026/11/23
+       「再現も、特定のGOとかの中に、一緒に入れて、ひとまとめにしてください」
+       「カテゴリーのひとつ（Go、Uber…）として、入れて欲しい」）。
+     押しどころが1つ減り、同じ「えらんで見る」形にそろいます。 */
+  { k:'rep',   n:'再現',     s:'くり返しの印' }
 ];
 const TOK_KEY = 'tsukemachi.tok';
 let tokKind = (function (){
@@ -5942,7 +6299,7 @@ function isGo(r){
 
 function paneTok(){
   const k = tokKind;
-  const head = leadCard('tok') + '<div class="card"><h2>種類別（GO・Uber・バラシ・関空・チケット）</h2>' +
+  const head = leadCard('tok') + '<div class="card"><h2>種類別（GO・Uber・バラシ・関空・チケット・再現）</h2>' +
     '<p class="note">見たいものを、下からえらんでください。</p>' +
     gMenu(TOK_KINDS, tokKind, 'data-tk') + '</div>';
   if (k === 'kix')    return head + whenPane('関空', '関空', 'ホテル',
@@ -5953,6 +6310,7 @@ function paneTok(){
     'Uberの乗車が、どこで・何時台に多いかを並べます。', isUber, true);
   if (k === 'go')     return head + whenPane('', 'GO', '乗り場',
     'GOの乗車が、どこで・何時台に多いかを並べます。', isGo, true);
+  if (k === 'rep')    return head + repBody();
   return head + whenPane('ﾊﾞﾗｼ', 'バラシ', '会場',
     '公演のあと、お客が出てくる時間です。会場ごとに、何時台に呼ばれているかを並べます。', null, true);
 }
@@ -6054,7 +6412,9 @@ function repPatterns(R){
   return out.sort(function (a, b){ return b.n - a.n || b.days - a.days; });
 }
 
-function paneRep(){
+/* 前の押しどころ（【再現】）を覚えている方のために、残してあります */
+function paneRep(){ tokKind = 'rep'; return paneTok(); }
+function repBody(){
   const R = visible();
   /*
    * ★見出しの下の説明も、言い方を直しました（ご指摘・2026/11/16）。
@@ -6068,7 +6428,7 @@ function paneRep(){
    *     この部分は不要なので消してください」）。
    *   「他」の欄に ご自身で印を付けた乗車だけを出します。
    */
-  const head = leadCard('rep') + '<div class="card"><h2>くり返しの印がある乗車</h2>' +
+  const head = '<div class="card"><h2>くり返しの印がある乗車</h2>' +
     '<p class="note">「他」の欄に「2回目」「再現性」などの印が' +
     '書いてある記録です。</p>' +
     filterChips(true) + '</div>';
