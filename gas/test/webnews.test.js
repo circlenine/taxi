@@ -5026,5 +5026,68 @@ console.log('\n■ 一番上の絵（ご指示・2026/11/23）');
     '　 時刻が変われば、空の色も変わる');
 }
 
+console.log('\n■ トロフィー（ご指示・2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  /* 数えるところを、実際に動かして確かめます */
+  const tx = {
+    hasFare: function (r){ return r.fare != null && r.fare !== '' && r.fare !== '不明'; },
+    isUnk:   function (v){ return v == null || v === '' || v === '不明'; },
+    canonPlace: function (p){ return String(p || ''); },
+    dayCls:  function (d){ return 'd-wd'; },
+    normMethod: function (m){ return String(m || ''); },
+    Math: Math, Object: Object, Number: Number, String: String, Date: Date, isFinite: isFinite
+  };
+  vm.createContext(tx);
+  vm.runInContext(app.slice(app.indexOf('const TRO_SEEN_KEY'),
+                            app.indexOf('/** 自分の記録だけ')), tx);
+  vm.runInContext('var records = []; var ME = { user: { id: "me" } };', tx);
+  vm.runInContext(app.slice(app.indexOf('function troMine()'),
+                            app.indexOf('/** 取ったもののしるし')), tx);
+
+  const mk = function (n){
+    const R = [];
+    for (let i = 0; i < n; i++) {
+      R.push({ user_id:'me', date:'2026-11-' + ('0' + ((i % 28) + 1)).slice(-2),
+               dep: 20, wait: 10, fare: 3000, place:'なんば', method:'GO', note:'' });
+    }
+    return R;
+  };
+  vm.runInContext('records = ' + JSON.stringify(mk(12)) + ';', tx);
+  let got = vm.runInContext('troAll()', tx);
+  const by = {}; got.forEach(function (x){ by[x.k] = x; });
+  t(by.n1.on === true,  '★★★1本 入れたら「はじめの1本」がそろう');
+  t(by.n10.on === true, '★★★12本なら「10本」もそろう');
+  t(by.n50.on === false, '★★★50本は、まだ');
+  t(by.n50.raw === 12 && by.n50.need === 50,
+    '★★★まだのものも「いま/あと何本か」が分かる', by.n50.raw + '/' + by.n50.need);
+  t(by.L1.on === false, '　 ロングが無ければ、ロングのしるしは付かない');
+  t(by.mgo.on === true, '　 GOの記録があれば、GOのしるしが付く');
+  t(got.length >= 40, '★★★しるしは40以上ある（集めがいがある）', got.length);
+
+  /* 他人の記録は数えません（人と人を並べないため） */
+  vm.runInContext('records = ' + JSON.stringify(
+    mk(12).map(function (r){ return Object.assign({}, r, { user_id:'other' }); })) + ';', tx);
+  got = vm.runInContext('troAll()', tx);
+  t(got.filter(function (x){ return x.on; }).length === 0,
+    '★★★人の記録は数えない（自分のぶんだけ）');
+
+  /* 画面の作り */
+  t(/function paneTro\(\)\{/.test(app) && /tro:paneTro/.test(app), '★★★トロフィーの画面がある');
+  t(/data-t="tro"/.test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
+    '★★★押しどころがある');
+  t(/class="trotile ' \+ x\.t \+ \(x\.on \? ' on' : ''\)/.test(app),
+    '★★★まだのものも、薄く出す（何が残っているか分かるように）');
+  t(/\.trotile\{[\s\S]{0,260}opacity:\.55\}/.test(css) && /\.trotile\.on\{opacity:1/.test(css),
+    '　 薄いのと、そろったものの見分けがつく');
+  t(/あと <b>' \+ \(all\.length - got\.length\) \+ '<\/b> つです/.test(app),
+    '★★★残りの数を出す');
+  t(/もう少しで届くもの/.test(app), '★★★もう少しで届くものを、先に出す');
+  t(/function troPopup\(got\)\{/.test(app), '★★★手に入れたら、その場で知らせる');
+  t(/troSeenSave\(now\);/.test(app), '★★★一度 知らせたものは、二度と出さない');
+  t(/\.trogrid\{display:grid;grid-template-columns:repeat\(3/.test(css),
+    '　 ます目で並べる（ゲームらしく）');
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);

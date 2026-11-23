@@ -193,6 +193,8 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
   loadSays();
   loadFaces();
+  /* 新しく手に入れたしるしがあれば、まん中で知らせます */
+  setTimeout(function (){ try { troCheck(); } catch (e) {} }, 900);
   /* 一番上の絵（場所と天気）。場所は、すでに許してくださっているときだけ */
   bnPosLoad(); bnAsk(false); bnTick(false);
   setInterval(function (){ bnTick(false); }, 15 * 60 * 1000);
@@ -1075,6 +1077,21 @@ function render(){
   document.querySelectorAll('[data-pindel]').forEach(function (b){
     b.onclick = function (){ pinSetDel(b.dataset.pindel); };
   });
+  /* しるしを押すと、条件をくわしく出します */
+  document.querySelectorAll('[data-tro]').forEach(function (b){
+    b.onclick = function (){
+      const x = troAll().filter(function (y){ return y.k === b.dataset.tro; })[0];
+      if (!x) return;
+      calcPopup(x.n, [
+        x.d,
+        x.on ? 'そろいました。' :
+          ('いま ' + troNum(x, x.raw) + '／' + troNum(x, x.need) +
+           '　あと ' + troNum(x, Math.max(0, x.need - x.raw)) + ' です。'),
+        '段：' + (TRO_TIERS[x.t] ? TRO_TIERS[x.t].n : ''),
+        '自分の記録だけで数えています。'
+      ], '');
+    };
+  });
   /* 一番上の絵：いまいる所に合わせる／雨雲レーダーへ */
   const bh = document.getElementById('bnHere');
   if (bh) bh.onclick = function (){ bnAsk(true); };
@@ -1104,7 +1121,7 @@ function render(){
   const PANES = { in: () => (ME.profile.is_admin ? gasStatCard() : ''), hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, best:paneBest, tok:paneTok, rep:paneRep, nippo:paneNippo,
-    bara:paneBara, kix:paneKix,
+    bara:paneBara, kix:paneKix, tro:paneTro,
     news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
@@ -1148,6 +1165,7 @@ function render(){
   const sb = $('#sub');
   subSet(sb);
   if (tab === 'news') newsSeen();
+  if (tab === 'tro') troDot(false);
   /* ★イベントを開いたら、赤い点は消します（ご指摘・2026/11/12
        「イベント、スクロールし終えても、タブにある、赤い丸が消えません」）。
      見たのに点が残ると、いつまでも新しいものがあるように見えます。 */
@@ -1374,6 +1392,311 @@ function leadPopup(k){
 /* ★並びは 新規の記録 → 過去の記録 → 直近の記録（ご指示・2026/11/13）。
      「過去の記録」は index.html の #ktop なので、
      新規のぶんだけを先に（#panesTop）、直近のぶんをあとに（#panes）出します。 */
+/* ================================================================
+ *  トロフィー（ご指示・2026/11/23）
+ *
+ *    「○○を記録した！みたいな、トロフィーのアンロック要素を追加して
+ *      トロフィー一覧ページも用意して ゲーム風に、やる気が出るような画面に
+ *      アンロック候補も、トロフィー一覧に、薄い形で出すなどして
+ *      残り何があるか、みたいなのも可視化して
+ *      （記録回数をいくつこえた、など、とにかくゲーム性を豊富に）」
+ *
+ *  ★ぜんぶ、**自分の記録から** その場で数えます。
+ *    台帳に新しい棚を作っていないので、棚ができるのを待たずに動きます。
+ *    記録を直せば、その場で数えなおります。
+ *  ★出すのは「自分のぶん」だけです。人と人を並べません
+ *    （ご指示・2026/11/16「ランキングは、ストレスの発端となるため除外」）。
+ *  ★取ったものは、いつ取ったかも出します。
+ *    まだのものは薄く出して、あと何本かを棒で見せます。
+ * ================================================================ */
+const TRO_SEEN_KEY = 'tn_tro_seen';
+
+/* 段。色と名前をそろえます（どの画面でも同じ） */
+const TRO_TIERS = {
+  bronze: { n:'ブロンズ', c:'#C98A5B' },
+  silver: { n:'シルバー', c:'#AFBACB' },
+  gold:   { n:'ゴールド', c:'#E0B341' },
+  rainbow:{ n:'レインボー', c:'#E23B30' }
+};
+
+/* 数えるための下ごしらえ（1回だけ） */
+function troStat(R){
+  const st = {
+    n: R.length, sum: 0, days: {}, places: {}, hours: {}, dcls: {},
+    methods: {}, longs: 0, max: 0, notes: 0, waits: 0,
+    bara: 0, kix: 0, ticket: 0, go: 0, uber: 0, naka: 0,
+    first: '', last: ''
+  };
+  R.forEach(function (r){
+    const f = hasFare(r) ? (+r.fare || 0) : null;
+    if (f != null) { st.sum += f; if (f > st.max) st.max = f; if (f >= 10000) st.longs++; }
+    const d = String(r.date || '');
+    if (d) {
+      st.days[d] = (st.days[d] || 0) + (f || 0);
+      if (!st.first || d < st.first) st.first = d;
+      if (!st.last  || d > st.last)  st.last  = d;
+    }
+    const p = canonPlace(r.place || '');
+    if (p) st.places[p] = (st.places[p] || 0) + 1;
+    if (!isUnk(r.dep) && r.dep !== '' && r.dep != null) {
+      const h = Math.floor(+r.dep);
+      if (isFinite(h)) st.hours[h] = (st.hours[h] || 0) + 1;
+    }
+    if (d) { const c = dayCls(d); if (c) st.dcls[c] = (st.dcls[c] || 0) + 1; }
+    const m = normMethod(String(r.method || ''));
+    if (m) st.methods[m] = (st.methods[m] || 0) + 1;
+    if (m === 'GO') st.go++;
+    if (m === 'Uber') st.uber++;
+    if (/途中/.test(String(r.method || ''))) st.naka++;
+    const nt = String(r.note || '');
+    if (nt) st.notes++;
+    if (/ﾊﾞﾗｼ|バラシ/.test(nt) || /ﾊﾞﾗｼ|バラシ/.test(String(r.place || ''))) st.bara++;
+    if (/関空/.test(nt) || /関空/.test(String(r.place || ''))) st.kix++;
+    if (/チケ/.test(nt)) st.ticket++;
+    if (!isUnk(r.wait)) st.waits++;
+  });
+  st.dayN = Object.keys(st.days).length;
+  st.placeN = Object.keys(st.places).length;
+  st.bestDay = 0; st.bestDayAt = '';
+  Object.keys(st.days).forEach(function (d){
+    if (st.days[d] > st.bestDay) { st.bestDay = st.days[d]; st.bestDayAt = d; }
+  });
+  st.topPlace = 0;
+  Object.keys(st.places).forEach(function (p){
+    if (st.places[p] > st.topPlace) st.topPlace = st.places[p];
+  });
+  /* 続けて記録した日数（一番長かったところ） */
+  const ds = Object.keys(st.days).sort();
+  let run = 0, best = 0, prev = null;
+  ds.forEach(function (d){
+    const t = new Date(d + 'T00:00:00').getTime();
+    if (prev != null && Math.round((t - prev) / 86400000) === 1) run++; else run = 1;
+    if (run > best) best = run;
+    prev = t;
+  });
+  st.streak = best;
+  return st;
+}
+
+/* しるしの一覧。c は「いまの数」、g は「あと何で届くか」 */
+const TRO_LIST = [
+  /* ① 本数 */
+  { k:'n1',    g:'本数', t:'bronze',  n:'はじめの1本',     d:'記録を1本 入れる',        v:s=>s.n,     need:1 },
+  { k:'n10',   g:'本数', t:'bronze',  n:'10本',            d:'記録を10本 入れる',        v:s=>s.n,     need:10 },
+  { k:'n50',   g:'本数', t:'silver',  n:'50本',            d:'記録を50本 入れる',        v:s=>s.n,     need:50 },
+  { k:'n100',  g:'本数', t:'silver',  n:'100本',           d:'記録を100本 入れる',       v:s=>s.n,     need:100 },
+  { k:'n300',  g:'本数', t:'gold',    n:'300本',           d:'記録を300本 入れる',       v:s=>s.n,     need:300 },
+  { k:'n500',  g:'本数', t:'gold',    n:'500本',           d:'記録を500本 入れる',       v:s=>s.n,     need:500 },
+  { k:'n1000', g:'本数', t:'rainbow', n:'1000本',          d:'記録を1000本 入れる',      v:s=>s.n,     need:1000 },
+  /* ② 売上 */
+  { k:'d30',   g:'売上', t:'bronze',  n:'1日 3万円',       d:'1日の合計が ¥30,000',      v:s=>s.bestDay, need:30000, yen:1 },
+  { k:'d40',   g:'売上', t:'silver',  n:'1日 4万円',       d:'1日の合計が ¥40,000',      v:s=>s.bestDay, need:40000, yen:1 },
+  { k:'d50',   g:'売上', t:'gold',    n:'1日 5万円',       d:'1日の合計が ¥50,000',      v:s=>s.bestDay, need:50000, yen:1 },
+  { k:'s10',   g:'売上', t:'bronze',  n:'通算 10万円',     d:'合計が ¥100,000',          v:s=>s.sum,   need:100000, yen:1 },
+  { k:'s50',   g:'売上', t:'silver',  n:'通算 50万円',     d:'合計が ¥500,000',          v:s=>s.sum,   need:500000, yen:1 },
+  { k:'s100',  g:'売上', t:'gold',    n:'通算 100万円',    d:'合計が ¥1,000,000',        v:s=>s.sum,   need:1000000, yen:1 },
+  /* ③ ロング */
+  { k:'L1',    g:'ロング', t:'bronze', n:'はじめのロング', d:'¥10,000以上を1本',         v:s=>s.longs, need:1 },
+  { k:'L5',    g:'ロング', t:'bronze', n:'ロング5本',      d:'¥10,000以上を5本',         v:s=>s.longs, need:5 },
+  { k:'L20',   g:'ロング', t:'silver', n:'ロング20本',     d:'¥10,000以上を20本',        v:s=>s.longs, need:20 },
+  { k:'L50',   g:'ロング', t:'gold',   n:'ロング50本',     d:'¥10,000以上を50本',        v:s=>s.longs, need:50 },
+  { k:'M20',   g:'ロング', t:'silver', n:'2万円の1本',     d:'1本で ¥20,000以上',        v:s=>s.max,   need:20000, yen:1 },
+  { k:'M30',   g:'ロング', t:'rainbow',n:'3万円の1本',     d:'1本で ¥30,000以上',        v:s=>s.max,   need:30000, yen:1 },
+  /* ④ 乗り場 */
+  { k:'p5',    g:'乗り場', t:'bronze', n:'5か所',          d:'5か所で付ける',            v:s=>s.placeN, need:5 },
+  { k:'p15',   g:'乗り場', t:'silver', n:'15か所',         d:'15か所で付ける',           v:s=>s.placeN, need:15 },
+  { k:'p30',   g:'乗り場', t:'gold',   n:'30か所',         d:'30か所で付ける',           v:s=>s.placeN, need:30 },
+  { k:'pt10',  g:'乗り場', t:'bronze', n:'通いの1か所',    d:'同じ乗り場で10本',         v:s=>s.topPlace, need:10 },
+  { k:'pt30',  g:'乗り場', t:'gold',   n:'主（ぬし）',     d:'同じ乗り場で30本',         v:s=>s.topPlace, need:30 },
+  /* ⑤ 時間 */
+  { k:'h17',   g:'時間', t:'bronze',  n:'夕方の1本',       d:'17時台に1本',              v:s=>(s.hours[17]||0), need:1 },
+  { k:'h26',   g:'時間', t:'silver',  n:'丑三つの1本',     d:'26時台（翌2時台）に1本',   v:s=>(s.hours[26]||0), need:1 },
+  { k:'hall',  g:'時間', t:'gold',    n:'夜どおし',        d:'18時台〜27時台の10の時間すべてで1本',
+    v:s=>{ let c=0; for(let h=18;h<=27;h++) if(s.hours[h]) c++; return c; }, need:10 },
+  /* ⑥ 曜日 */
+  { k:'wall',  g:'曜日', t:'silver',  n:'どの曜日も',      d:'平日・金・土・日祝 すべてで記録',
+    v:s=>['d-wd','d-fri','d-sat','d-sun'].filter(x=>s.dcls[x]).length, need:4 },
+  /* ⑦ 続けて */
+  { k:'r2',    g:'続けて', t:'bronze', n:'2日続けて',      d:'2日 続けて記録',           v:s=>s.streak, need:2 },
+  { k:'r5',    g:'続けて', t:'silver', n:'5日続けて',      d:'5日 続けて記録',           v:s=>s.streak, need:5 },
+  { k:'r10',   g:'続けて', t:'gold',   n:'10日続けて',     d:'10日 続けて記録',          v:s=>s.streak, need:10 },
+  { k:'dn30',  g:'続けて', t:'silver', n:'30営業日',       d:'営業日を30日 記録',   v:s=>s.dayN,  need:30 },
+  /* ⑧ 種類 */
+  { k:'mgo',   g:'種類', t:'bronze',  n:'GOを1本',         d:'種類が GO の記録を1本',    v:s=>s.go,    need:1 },
+  { k:'mub',   g:'種類', t:'bronze',  n:'Uberを1本',       d:'種類が Uber の記録を1本',  v:s=>s.uber,  need:1 },
+  { k:'mna',   g:'種類', t:'bronze',  n:'途中乗りを1本',   d:'途中乗りの記録を1本',      v:s=>s.naka,  need:1 },
+  { k:'mall',  g:'種類', t:'gold',    n:'ぜんぶの種類',    d:'GO・Uber・途中乗りを それぞれ1本',
+    v:s=>[s.go,s.uber,s.naka].filter(x=>x>0).length, need:3 },
+  /* ⑨ 特定 */
+  { k:'tbara', g:'特定', t:'silver',  n:'バラシ',          d:'バラシの記録を1本',        v:s=>s.bara,  need:1 },
+  { k:'tkix',  g:'特定', t:'gold',    n:'関空',            d:'関空の記録を1本',          v:s=>s.kix,   need:1 },
+  { k:'ttic',  g:'特定', t:'silver',  n:'チケット',        d:'チケットの記録を1本',      v:s=>s.ticket,need:1 },
+  /* ⑩ ていねいさ */
+  { k:'note10',g:'ていねい', t:'bronze', n:'ひとこと10回', d:'「他」の欄を10回 書く',    v:s=>s.notes, need:10 },
+  { k:'wait50',g:'ていねい', t:'silver', n:'待ち50回',     d:'待ち時間を50回 入れる',    v:s=>s.waits, need:50 },
+  { k:'note50',g:'ていねい', t:'gold',   n:'ひとこと50回', d:'「他」の欄を50回 書く',    v:s=>s.notes, need:50 }
+];
+
+/** 自分の記録だけ（絞り込みは効かせません。しるしは ためた全部で数えます） */
+function troMine(){
+  const me = String((ME.user && ME.user.id) || '');
+  return records.filter(function (r){ return String(r.user_id || '') === me; });
+}
+
+/** いまの様子（取った・まだ・進み具合）を、ぜんぶ返します */
+function troAll(){
+  const st = troStat(troMine());
+  return TRO_LIST.map(function (x){
+    let now = 0;
+    try { now = Number(x.v(st)) || 0; } catch (e) { now = 0; }
+    const on = now >= x.need;
+    return { k:x.k, g:x.g, t:x.t, n:x.n, d:x.d, yen:!!x.yen,
+             now: Math.min(now, x.need), raw: now, need: x.need, on: on };
+  });
+}
+
+/** 取ったもののしるし（覚えておく用） */
+function troSeenLoad(){
+  try { return JSON.parse(localStorage.getItem(TRO_SEEN_KEY) || '[]') || []; }
+  catch (e) { return []; }
+}
+function troSeenSave(ks){
+  try { localStorage.setItem(TRO_SEEN_KEY, JSON.stringify(ks.slice(0, 200))); } catch (e) {}
+}
+
+/*
+ * ★新しく取ったものがあれば、まん中で知らせます（ご指示・2026/11/23
+ *     「○○を記録した！みたいな、トロフィーのアンロック要素」）。
+ *   ★一度に何個 取っても、箱は1つです（続けて出すと、うるさいため）。
+ *   ★知らせたものは覚えておき、二度と出しません。
+ */
+function troCheck(){
+  try {
+    if (!ME || !ME.user) return;
+    const now = troAll().filter(function (x){ return x.on; }).map(function (x){ return x.k; });
+    const seen = troSeenLoad();
+    const fresh = now.filter(function (k){ return seen.indexOf(k) === -1; });
+    troSeenSave(now);
+    if (!fresh.length) return;
+    /* はじめて開いた方（もう何本も記録がある）には、まとめて1回だけ */
+    const got = troAll().filter(function (x){ return fresh.indexOf(x.k) !== -1; });
+    troPopup(got);
+    troDot(true);
+  } catch (e) {}
+}
+function troDot(on){
+  try {
+    const d = document.getElementById('troDot');
+    if (d) d.hidden = !on;
+  } catch (e) {}
+}
+
+function troPopup(got){
+  const box = document.createElement('div');
+  box.className = 'modal trowin';
+  box.innerHTML =
+    '<div class="modalbox">' +
+      '<div class="trohead"><span class="trostar">★</span>' +
+      '<b>' + (got.length > 1 ? got.length + 'つ 手に入れました！' : '手に入れました！') + '</b></div>' +
+      '<div class="trogot">' + got.slice(0, 6).map(function (x){
+        return '<div class="trogotrow ' + x.t + '">' +
+          '<span class="trobadge">' + troIcon(x) + '</span>' +
+          '<span class="trogotn"><b>' + esc(x.n) + '</b><i>' + esc(x.d) + '</i></span></div>';
+      }).join('') +
+      (got.length > 6 ? '<p class="note">ほか ' + (got.length - 6) + 'つ</p>' : '') +
+      '</div>' +
+      '<div class="modalfoot">' +
+        '<button class="btn ghost" data-goto="tro">一覧を見る</button>' +
+        '<button class="btn" id="troClose">とじる</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  box.querySelector('#troClose').addEventListener('click', close);
+  box.addEventListener('click', function (e){ if (e.target === box) close(); });
+  const go = box.querySelector('[data-goto]');
+  if (go) go.onclick = function (){
+    close(); grab(); tab = 'tro'; tabSave(); render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+}
+
+/** しるしの絵（段ごとに形を変えます） */
+function troIcon(x){
+  if (x.t === 'rainbow') return '♛';
+  if (x.t === 'gold')    return '★';
+  if (x.t === 'silver')  return '☆';
+  return '◆';
+}
+
+/** まとめの称号（取った数で変わります。人と人は並べません） */
+function troRank(n, all){
+  const p = all ? (n / all) : 0;
+  if (p >= 1)   return '全部そろえた人';
+  if (p >= .75) return 'ベテラン';
+  if (p >= .5)  return '一人前';
+  if (p >= .25) return '駆け出し';
+  if (n > 0)    return '新人';
+  return 'これから';
+}
+
+function paneTro(){
+  const all = troAll();
+  const got = all.filter(function (x){ return x.on; });
+  const pct = all.length ? Math.round(got.length / all.length * 100) : 0;
+  /* 次に届きそうなもの（あと少しの順に3つ） */
+  const near = all.filter(function (x){ return !x.on && x.raw > 0; })
+    .sort(function (a, b){ return (b.raw / b.need) - (a.raw / a.need); }).slice(0, 3);
+
+  let out = '<div class="card trotop"><h2>集めたしるし</h2>' +
+    '<div class="trosum">' +
+      '<span class="trobig">' + got.length + '<i>/' + all.length + '</i></span>' +
+      '<span class="trorank">' + esc(troRank(got.length, all.length)) + '</span>' +
+    '</div>' +
+    '<div class="trobar"><span style="width:' + pct + '%"></span></div>' +
+    '<p class="note">あと <b>' + (all.length - got.length) + '</b> つです。' +
+    '自分の記録だけで数えています。</p>';
+  if (near.length) {
+    out += '<div class="tronext"><div class="flab">もう少しで届くもの</div>' +
+      near.map(function (x){
+        return '<div class="tronrow"><b>' + esc(x.n) + '</b>' +
+          '<span class="trobar sm"><span style="width:' +
+          Math.round(x.raw / x.need * 100) + '%"></span></span>' +
+          '<i>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</i></div>';
+      }).join('') + '</div>';
+  }
+  out += '</div>';
+
+  /* まとまりごとに並べます（取ったものが先・そのあと 薄く候補） */
+  const gs = [];
+  all.forEach(function (x){ if (gs.indexOf(x.g) === -1) gs.push(x.g); });
+  gs.forEach(function (g){
+    const rows = all.filter(function (x){ return x.g === g; });
+    const n = rows.filter(function (x){ return x.on; }).length;
+    out += '<div class="card"><h2>' + esc(g) + '　<span class="trogn">' +
+      n + '/' + rows.length + '</span></h2>' +
+      '<div class="trogrid">' + rows.map(function (x){
+        const p = Math.round(x.raw / x.need * 100);
+        return '<button class="trotile ' + x.t + (x.on ? ' on' : '') + '" data-tro="' + esc(x.k) + '">' +
+          '<span class="trobadge">' + troIcon(x) + '</span>' +
+          '<b>' + esc(x.n) + '</b>' +
+          (x.on
+            ? '<i class="trook">そろいました</i>'
+            : '<span class="trobar sm"><span style="width:' + Math.min(100, p) + '%"></span></span>' +
+              '<i>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</i>') +
+          '</button>';
+      }).join('') + '</div></div>';
+  });
+  return out;
+}
+function troNum(x, v){
+  return x.yen ? yen(v) : String(v);
+}
+
 /* ================================================================
  *  一番上の絵（ご指示・2026/11/23）
  *
@@ -7357,10 +7680,11 @@ function minaOpen(){
   box.addEventListener('click', function (e){ if (e.target === box) close(); });
 }
 
-function calcPopup(title, lines){
+function calcPopup(title, lines, suffix){
   const box = document.createElement('div');
   box.className = 'modal';
-  box.innerHTML = '<div class="modalbox"><h2>' + esc(title) + '　の数え方</h2>' +
+  box.innerHTML = '<div class="modalbox"><h2>' + esc(title) +
+    (suffix == null ? '　の数え方' : esc(suffix)) + '</h2>' +
     '<div class="modalbody">' +
     lines.map(function (x){ return '<p class="note">' + esc(x) + '</p>'; }).join('') +
     '</div><div class="modalfoot">' +

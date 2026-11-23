@@ -2723,3 +2723,71 @@ nav button:last-child:nth-child(9){grid-column:span 2}
 @media(prefers-reduced-motion:reduce){
   .bncar,.bnlane,.bnwin,.bnstar,.bnspin,.bnblink,.bnneon,.bnneon2,.bnrain line{animation:none}
 }
+
+/* ================================================================
+ *  トロフィー（ご指示・2026/11/23）
+ *    「ゲーム風に、やる気が出るような画面に
+ *      アンロック候補も…薄い形で出すなどして
+ *      残り何があるか、みたいなのも可視化して」
+ *
+ *  ★取ったものは、段ごとの色で光らせます。
+ *  ★まだのものは薄く出して、棒で あと何本かを見せます。
+ *    消してしまうと「何が残っているか」が分かりません。
+ * ================================================================ */
+.trotop .trosum{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.trobig{font-family:var(--mono);font-size:38px;font-weight:700;color:#FFFFFF;line-height:1}
+.trobig i{font-style:normal;font-size:16px;opacity:.7;margin-left:2px}
+.trorank{font-size:13px;color:#FFFFFF;background:rgba(224,179,65,.22);
+  border:1px solid #E0B341;border-radius:999px;padding:3px 12px}
+.trobar{display:block;height:9px;border-radius:999px;margin:10px 0 2px;
+  background:rgba(255,255,255,.12);overflow:hidden}
+.trobar > span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,#C98A5B,#E0B341);
+  transition:width .5s ease}
+.trobar.sm{height:6px;margin:4px 0 2px}
+.tronext{margin-top:10px}
+.tronrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;
+  align-items:center;margin:8px 0}
+.tronrow > b{font-size:12.5px;color:#FFFFFF;min-width:0}
+.tronrow > i{font-style:normal;font-family:var(--mono);font-size:11px;color:#FFFFFF;
+  grid-column:2;grid-row:1 / span 2;white-space:nowrap}
+.tronrow > .trobar{grid-column:1;margin:2px 0 0}
+.trogn{font-size:12px;color:#FFFFFF;opacity:.8;font-family:var(--mono)}
+
+.trogrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:340px){ .trogrid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.trotile{display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:10px 6px 9px;border-radius:10px;cursor:pointer;min-width:0;
+  background:rgba(255,255,255,.035);border:1px solid var(--ink3);
+  color:#FFFFFF;opacity:.55}
+.trotile.on{opacity:1;background:rgba(255,255,255,.07)}
+.trotile > b{font-size:11.5px;line-height:1.3;text-align:center;word-break:break-all}
+.trotile > i{font-style:normal;font-size:9.5px;font-family:var(--mono);opacity:.85}
+.trotile .trook{color:#E0B341;font-family:inherit;font-size:10px}
+.trotile .trobar{width:100%}
+.trobadge{display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;font-size:15px;
+  border:1px solid currentColor}
+.trotile.bronze  .trobadge{color:#C98A5B}
+.trotile.silver  .trobadge{color:#AFBACB}
+.trotile.gold    .trobadge{color:#E0B341}
+.trotile.rainbow .trobadge{color:#E23B30}
+.trotile.on .trobadge{background:rgba(255,255,255,.1);
+  box-shadow:0 0 12px currentColor}
+
+/* 手に入れたときの箱 */
+.trowin .modalbox{max-width:min(92vw,380px)}
+.trohead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.trohead b{font-size:17px;color:#FFFFFF}
+.trostar{font-size:26px;color:#E0B341;animation:trostar 1.2s ease-in-out infinite}
+@keyframes trostar{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(12deg)}}
+.trogotrow{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:6px 0;
+  border-radius:9px;background:rgba(255,255,255,.05);border:1px solid var(--ink3)}
+.trogotrow.bronze  .trobadge{color:#C98A5B}
+.trogotrow.silver  .trobadge{color:#AFBACB}
+.trogotrow.gold    .trobadge{color:#E0B341}
+.trogotrow.rainbow .trobadge{color:#E23B30}
+.trogotn{display:flex;flex-direction:column;gap:1px;min-width:0}
+.trogotn b{font-size:13.5px;color:#FFFFFF}
+.trogotn i{font-style:normal;font-size:10.5px;color:#FFFFFF;opacity:.8}
+@media(prefers-reduced-motion:reduce){.trostar{animation:none}}
