@@ -7641,8 +7641,23 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
   /* ★使いすぎる前に、自分から軽くすること（2026/11/23 に数えて分かった） */
   t(/const BUD_LAST_MIN = 75;/.test(U), '★★★75分で、最後の砦に入る');
   t(/function budTight_\(\) \{/.test(U), '　 その見分けがある');
-  t(/if \(!budTight_\(\)\) \{\n      try \{\n        if \(budStep_\("取り込み", function \(\) \{ return updAutoPullTick_\(\); \}\)\) return;/.test(U),
-    '★★★残り少なければ、新しい中身を取りにいかない');
+  /*
+   * ★取り込みは、残り少なくても止めないこと（2026/11/24）。
+   *   止めると、持ち時間を軽くする直しそのものが届かなくなります。
+   *   実際に、次の日の17時まで届かないところでした。
+   *   止めるのではなく、間かくを広げます（12分 → 60分）。
+   */
+  t(/const UPD_PULL_TIGHT_MIN = 60;/.test(U),
+    '★★★残り少ないときの取り込みは、1時間に1回');
+  t(/if \(typeof budTight_ === "function" && budTight_\(\)\) every = UPD_PULL_TIGHT_MIN;/.test(U),
+    '　 残り少ないときだけ、その間かくに切り替える');
+  {
+    const seg3 = U.slice(U.indexOf('function panelWatchBody_'),
+                         U.indexOf('function panelWatchBody_') + 6000);
+    t(/budStep_\("取り込み"/.test(seg3) &&
+      !/if \(!budTight_\(\)\) \{[\s\S]{0,300}budStep_\("取り込み"/.test(seg3),
+      '★★★取り込みは、残り少なくても止めない（直しが届かなくなるため）');
+  }
   t(/if \(typeof budTight_ === "function" && budTight_\(\)\) return;/.test(V),
     '★★★残り少なければ、イベントの見張りは まるごと休む');
   /* 止めてはいけないもの（ボタン待ち・LINEの受け口）は、囲みの外 */

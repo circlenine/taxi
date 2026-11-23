@@ -770,9 +770,21 @@ console.log('\n■ 🔧 ウェブを開いたときも、見張りを直す');
   const srcW = require('fs').readFileSync(
     require('path').join(__dirname, '..', '004-WebApp.gs'), 'utf8');
   const at = srcW.indexOf('function doGet');
-  const part = srcW.slice(at, at + 700);
+  const part = srcW.slice(at, at + 2600);
   ok(/panelHealWatch_\(\)/.test(part),
      '★★★doGet から 見張りを直す係を呼んでいる');
+  /*
+   * ★「生きていますか」だけを聞かれたときは、その場で返すこと（2026/11/24）。
+   *   ここから下をぜんぶ動かすと、聞いたほうが その終わりまで待たされ、
+   *   20分おきにそれをやって、持ち時間を一番 食っていました。
+   */
+  {
+    const i1 = part.indexOf('e.parameter.ping');
+    const i2 = part.indexOf('panelHealWatch_');
+    ok(i1 > 0 && i1 < i2, '★★★生き死にだけ聞かれたら、何もせずに返す');
+    ok(/if \(e && e\.parameter && e\.parameter\.ping\) \{\n      return ContentService/.test(part),
+       '　 そのときは、その場で返事だけを返す');
+  }
   ok(part.indexOf('typeof panelHealWatch_ === "function"') !== -1,
      '★係が入っていなくても落ちない');
 }

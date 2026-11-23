@@ -2,7 +2,21 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U190ver  （2026/11/24）  ★★★
+ *  ★★★  U191ver  （2026/11/24）  ★★★
+ *
+ *   [U191ver]
+ *   ・⏱ LINEの受け口の見張りが、一番 重かったので軽くした
+ *     ★ふだんは何も壊れていないのに、毎回 自分の受け口を叩いて
+ *       生き死にを確かめていた。しかも叩かれた側は
+ *       「まるごと診る・新しい中身を取り込む」まで動くので、
+ *       聞いたほうは その終わりまで待たされていた（1回 20秒以上）。
+ *     ★先にLINEへ「どこに登録されていますか」と聞く。
+ *       同じで、ためし送りも通るなら、それ以上 何も確かめない。
+ *       食い違っているときだけ、生きている住所を探しにいく。
+ *   ・🩹 持ち時間が残り少なくても、取り込みは止めないようにした
+ *     ★止めていたので、持ち時間を軽くする直しそのものが
+ *       届かなくなっていた。「ここで指示すれば必ず直る」が崩れる。
+ *     ★止めるのではなく、間かくを広げる（12分 → 60分）。
  *
  *   [U190ver]
  *   ・⏱ 「どの手間が重いのか」を、中身ごとに数えるようにした
@@ -2048,7 +2062,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U190ver";
+const UPD_VERSION = "U191ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -10675,12 +10689,21 @@ function updLineHookTest_() {
 function updLineHookCheck_() {
   if (!updLineTok_()) return { fixed: false, text: "" };
 
-  // いま生きている、こちらの住所
+  /*
+   * ★順番を入れ替えました（2026/11/24）。
+   *
+   *   前は、まず自分の受け口を叩いて「生きているか」を見ていました。
+   *   けれど、ふだんは何も壊れていません。
+   *   壊れていないときに毎回 自分を叩くのは、まるごと無駄でした。
+   *   20分おきにそれをやっていたので、持ち時間を一番 食っていました。
+   *
+   *   LINEに「どこに登録されていますか」と聞くほうが軽いので、
+   *   先にそれを聞きます。登録された住所がこちらと同じで、
+   *   ためし送りも通るなら、**それ以上 何も確かめる必要がありません**。
+   *   住所が食い違っているときだけ、生きている住所を探しにいきます。
+   *   （11/9 に実際に止まったのも、住所が食い違ったときでした）
+   */
   let live = updWebAppUrl_();
-  if (!updUrlAlive_(live)) {
-    const found = updFindLiveUrl_();
-    if (found) { live = found; updLiveUrlSet_(found); }
-  }
 
   const now = updLineHookGet_();
   if (!now.ok) return { fixed: false, text: "" };   // LINEに聞けないときは、決めつけない
@@ -10710,7 +10733,17 @@ function updLineHookCheck_() {
     if (t0.slow) return updLineSlowWatch_(t0.why);
   }
 
-  // ここから下は「住所がちがう／はっきり届かない」とき。登録し直します
+  /*
+   * ここから下は「住所がちがう／はっきり届かない」とき。
+   * ★このときだけ、こちらの住所が生きているかを確かめ直します。
+   *   古い住所のまま登録し直しても、また届かないままになるためです。
+   */
+  if (!updUrlAlive_(live)) {
+    const found = updFindLiveUrl_();
+    if (found) { live = found; updLiveUrlSet_(found); }
+  }
+
+  // 登録し直します
   if (!live) {
     return { fixed: false,
              text: "📮 LINEからの記録が入らない状態ですが、受け口の住所が分かりません。" };
@@ -11299,6 +11332,10 @@ function budDetText_() {
     }).join("／");
   } catch (e) { return ""; }
 }
+
+/* ★持ち時間が残り少ないときの、取り込みの間かく（2026/11/24）。
+     止めると直しが届かなくなるので、広げるだけにします。 */
+const UPD_PULL_TIGHT_MIN = 60;
 
 const UPD_HOOK_AT  = "UPD_HOOK_AT";
 /* ★20分おき（前は10分）。LINEへ1回 聞きにいくので、ここも時間を食います。
@@ -14015,7 +14052,15 @@ function updAutoPullTick_() {
   try { cc = CacheService.getScriptCache(); } catch (e) { return false; }
   if (!cc) return false;
   try { if (cc.get("UPD_PULL_WAIT")) return false; } catch (e) { return false; }
-  try { cc.put("UPD_PULL_WAIT", "1", UPD_PULL_EVERY_MIN * 60); } catch (e) {}
+  /*
+   * ★持ち時間が残り少ないときは、間かくを広げます（2026/11/24）。
+   *   止めてしまうと、直したものが届かなくなるので、止めません。
+   *   1時間に1回なら、持ち時間はほとんど食いません。
+   */
+  let every = UPD_PULL_EVERY_MIN;
+  try { if (typeof budTight_ === "function" && budTight_()) every = UPD_PULL_TIGHT_MIN; }
+  catch (e) {}
+  try { cc.put("UPD_PULL_WAIT", "1", every * 60); } catch (e) {}
   // ★おつかいメモも、ついでに見る（置き場を見にいくのは、どのみち1回きり）
   try { if (updErrandTick_()) return true; } catch (e) {
     try { logErr_("updErrand", e); } catch (e2) {}
@@ -14344,12 +14389,21 @@ function panelWatchBody_() {
      *   取り込みが起きたら、そのあと下のボタン合わせは次の回にまわします。
      *   入れ替わった直後の並びで、もう一度触りにいかないためです。
      */
-    /* ★持ち時間が残り少ないときは、外へ聞きにいきません（2026/11/23） */
-    if (!budTight_()) {
-      try {
-        if (budStep_("取り込み", function () { return updAutoPullTick_(); })) return;
-      } catch (e) { logErr_("panelWatchPull", e); }
-    }
+    /*
+     * ★持ち時間が残り少ないときも、取り込みだけは止めません（2026/11/24）。
+     *
+     *   ここを止めてしまうと、**直したものが永久に届きません**。
+     *   実際にそうなりました。持ち時間を軽くする直しを置いたのに、
+     *   その直しを取り込む道そのものを止めていたので、
+     *   次の日の17時まで届かないところでした。
+     *   「ここで指示すれば必ず直る」が、ここで崩れます。
+     *
+     *   止めるのではなく、間かくを広げます（12分 → 60分）。
+     *   1時間に1回なら、持ち時間はほとんど食いません。
+     */
+    try {
+      if (budStep_("取り込み", function () { return updAutoPullTick_(); })) return;
+    } catch (e) { logErr_("panelWatchPull", e); }
 
     /*
      * ★1時間に1回、自分で自分を診ます（updDoctorTick_）。
