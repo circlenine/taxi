@@ -6346,6 +6346,26 @@ function gasWakeBar(){
    */
   if (!(ME.profile && ME.profile.is_admin)) return '';
   if (!gasStale() || !gasInfo || !gasInfo.exec) return '';
+  /*
+   * ★「きょうのぶんの持ち時間を使い切って、わざと休んでいる」ときは、
+   *   赤い帯を出しません（2026/11/23）。
+   *
+   *   Googleの決まりで、ひとりでに動くしかけは1日90分まで。
+   *   60分を超えたら、会場を見にいく仕事だけ こちらから止めています。
+   *   そのあいだイベントの紙は古いままになりますが、**壊れていません**。
+   *   ここで赤い帯を出すと「また止まった」と思わせてしまいます。
+   *   押しても、持ち時間を食うだけで何も直りません。
+   */
+  const st = gasStat || {};
+  if (st.budMin != null && st.budStop && st.budMin >= st.budStop) {
+    return '<div class="restbar">' +
+      '<b>きょうのぶんは、会場を見にいく仕事だけ お休み中です。</b>' +
+      '<span>Googleの決まりで、自動で動くしかけは1日90分までです。' +
+      'きょうは ' + st.budMin + '分 使いました。' +
+      '<b>夕方5時すぎに、自動で戻ります。</b></span>' +
+      '<span class="note">記録の取り込みと、LINEの受け口は動いています。' +
+      'イベントの紙だけが、前のままです。</span></div>';
+  }
   const hrs = gasStaleH();
   /* ★押しても直らないときの道を、ここに書いておきます（2026/11/22）。
        押せば直るのが ほとんどですが、Googleの許可が切れていると

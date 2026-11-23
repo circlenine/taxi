@@ -2791,3 +2791,12 @@ nav button:last-child:nth-child(9){grid-column:span 2}
 .trogotn b{font-size:13.5px;color:#FFFFFF}
 .trogotn i{font-style:normal;font-size:10.5px;color:#FFFFFF;opacity:.8}
 @media(prefers-reduced-motion:reduce){.trostar{animation:none}}
+
+/* ★わざと休んでいるときの帯（2026/11/23）。
+     赤くしません。壊れていないので、不安にさせないためです。 */
+.restbar{background:rgba(255,255,255,.06);border:1px solid var(--ink3);
+  border-radius:12px;padding:12px 14px;margin:0 0 14px;
+  display:flex;flex-direction:column;gap:6px}
+.restbar b{color:#FFFFFF;font-size:13.5px}
+.restbar span{color:#FFFFFF;font-size:12px;line-height:1.7}
+.restbar .note{opacity:.8}

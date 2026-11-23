@@ -5120,5 +5120,23 @@ console.log('\n■ トロフィー（ご指示・2026/11/23）');
     '　 ます目で並べる（ゲームらしく）');
 }
 
+console.log('\n■ わざと休んでいるときは、赤い帯を出さない（2026/11/23）');
+{
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  t(/if \(st\.budMin != null && st\.budStop && st\.budMin >= st\.budStop\) \{/.test(app),
+    '★★★持ち時間を使い切って休んでいるときを、見分ける');
+  t(/restbar/.test(app) && /\.restbar\{/.test(css), '★★★そのときは、赤くない帯を出す');
+  t(/お休み中です/.test(app), '　 壊れていないことが、ことばで分かる');
+  t(/dTemp|budMin \+ '分 使いました/.test(app), '　 何分 使ったかを出す');
+  /* 休んでいるときに【仕掛けを起こす】を出さない（押しても持ち時間を食うだけ） */
+  {
+    const i0 = app.indexOf('function gasWakeBar(){');
+    const seg = app.slice(i0, i0 + 4200);
+    const i1 = seg.indexOf('restbar');
+    const i2 = seg.indexOf("'仕掛けを起こす</a>'");
+    t(i1 > 0 && i2 > i1, '★★★休んでいるときは、起こすボタンを出さない', i1 + '/' + i2);
+  }
+}
+
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
 process.exit(fail ? 1 : 0);
