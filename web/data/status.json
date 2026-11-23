@@ -1,5 +1,5 @@
 {
- "at": "2026-11-23 15:32",
+ "at": "2026-11-23 15:37",
  "ver": "U186ver / V126ver",
  "sync": {
   "at": "11-23 09:45",
@@ -44,10 +44,10 @@
   }
  ],
  "web": true,
- "beat": "11-23 15:32",
+ "beat": "11-23 15:37",
  "beatMin": 0,
  "stop": false,
- "budMin": 0,
+ "budMin": 1,
  "budMax": 90,
  "budStop": 60,
  "verNo": 367,
