@@ -8447,27 +8447,30 @@ function fabWire(){
           }).join('') + '</div>');
       }
       if (box) { box.hidden = false; sheet.appendChild(box); }
-      sheet.insertAdjacentHTML('beforeend',
+      /* ★【もっと】は、全画面に出します（ご指示・2026/11/25
+           「もっとを開いた時 スクロールするような形ではなく
+             全画面を映した状態にしてください」）。
+         下の行も、2列のます目に入れて 高さを食わないようにします。 */
+      sheet.insertAdjacentHTML('beforeend', '<div class="msgrid ms2">' +
         ((gasInfo && gasInfo.exec)
-          ? '<button class="fsrow" id="goMina" type="button">' +
+          ? '<button class="msrow" id="goMina" type="button">' +
             '<b>みんなの記録</b><i>記録カード・ロング</i></button>'
           : '') +
         /* ★仕組みの様子は、まーく様だけ。ここから開きます
              （ご指摘・2026/11/24「Googleスクリプトに載ってる情報も
                webページに載せてほしいと何度も言ってます」）。
            【記録】の一番下に埋めていたので、見つけられませんでした。 */
-        ((ME.profile && ME.profile.is_admin)
-          ? '<button class="fsrow" data-t="sys" type="button">' +
-            '<b>仕組みの様子</b><i>スクリプトの画面で見ていたもの</i></button>' +
-            ((gasInfo && gasInfo.exec)
-              ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-                '<b>仕掛けを起こす</b><i>止まったときに押す</i></a>'
-              : '')
+        /* ★【仕組み】は、上のます目（#more から作るほう）に もう出ています。
+             同じものを2つ出すと、どちらを押したのか分からなくなります。 */
+        ((ME.profile && ME.profile.is_admin && gasInfo && gasInfo.exec)
+          ? '<a class="msrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
+            '<b>仕掛けを起こす</b><i>止まったときに押す</i></a>'
           : '') +
         (tocHidden()
-          ? '<button class="fsrow" id="tocBack" type="button">' +
-            '<b>目次を出す</b><i>右上の目次を、もう一度 出します</i></button>'
+          ? '<button class="msrow" id="tocBack" type="button">' +
+            '<b>目次を出す</b><i>目次を、もう一度 出します</i></button>'
           : '') +
+        '</div>' +
         /* ★閉じ方を、はっきり出します（開けっぱなしだと焦らせます） */
         '<div class="msclose"><button type="button" id="msX">閉じる</button></div>');
       const mx = sheet.querySelector('#msX');

@@ -2186,7 +2186,9 @@ console.log('■ 【仕掛けを起こす】は、まーく様だけ（ご質問
                         app.indexOf('function gasWakeBar()') + 1800);
   t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(bar),
     '★★★赤い帯は、まーく様だけに出る');
-  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n?\s*\?[\s\S]{0,260}'<a class="fsrow wake"/.test(app),
+  /* ★【もっと】は全画面の ます目になりました（ご指示・2026/11/25）。
+       札の名前が fsrow → msrow に変わっています。 */
+  t(/\(\(ME\.profile && ME\.profile\.is_admin && gasInfo && gasInfo\.exec\)\s*\n?\s*\?[\s\S]{0,160}'<a class="msrow wake"/.test(app),
     '★★★【もっと】の【仕掛けを起こす】も、まーく様だけ');
   t(/<b>みんなの記録<\/b>/.test(app)
     && app.indexOf('<b>みんなの記録</b>') < app.indexOf('<b>仕掛けを起こす</b>'),
@@ -3285,7 +3287,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     /なおすボタンが出ます/.test(app),
     '　 そこに、次にすることが書いてある');
   t(/仕掛けを起こす/.test(app), '★★★【仕掛けを起こす】のボタンがある');
-  t(/fsrow wake/.test(app), '★★★≡ の一覧からも、いつでも押せる');
+  t(/msrow wake/.test(app), '★★★【もっと】の一覧からも、いつでも押せる');
   t(/\.wakebar\{/.test(css), '　 その帯の見た目がある');
   {
     const vn = fs.readFileSync(path.join(__dirname, '..', '006-Venue.gs'), 'utf8');
@@ -4485,10 +4487,16 @@ console.log('\n■ 【仕掛けを起こす】は、まーく様だけ（ご質�
   /* ★「記録を書き出す（CSV）」は出しません（ご指示・2026/11/17） */
   t(!/paneOut\(\) \+/.test(app), '★★★CSVの書き出しは、画面に出さない');
   t(/function paneOut\(\)/.test(app), '　 中の係は消していない（あとで戻せる）');
-  /* ③ ≡ の一覧 */
-  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n?\s*\?\s*'<button class="fsrow" data-t="sys"/.test(app),
-    '★★★【もっと】の一覧でも、管理者だけ');
-  t(/fsrow wake/.test(app), '　 【仕掛けを起こす】も、その中');
+  /* ③ 【もっと】の一覧 */
+  /* ★【仕組み】は index.html の #more に1つだけ置き、
+       app.js が まーく様のときだけ出します（同じものを2つ出さないため）。 */
+  {
+    const ix2 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    t(/data-t="sys" id="moSys" hidden/.test(ix2), '★★★【仕組み】は、はじめは出さない');
+    t(/ms\.hidden = !\(ME\.profile && ME\.profile\.is_admin\)/.test(app),
+      '★★★【もっと】の一覧でも、管理者だけ');
+  }
+  t(/msrow wake/.test(app), '　 【仕掛けを起こす】も、その中');
   /* 【みんなの記録】は、みなさんに出したまま（ご指示・2026/11/14） */
   t(/<b>みんなの記録<\/b>/.test(app), '　【みんなの記録】は、みなさんに出すまま');
   /* 他に「仕掛けを起こす」を出している所が無いこと */
@@ -5617,6 +5625,28 @@ console.log('\n■ シロタクの案内は、いまの画面に合っている�
       t(ix.indexOf('data-t="' + k + '"') !== -1, '　 ' + k + ' は、ほんとうにある画面');
     });
   }
+}
+
+console.log('\n■ 【もっと】は、全画面に出す（ご指示・2026/11/25）');
+{
+  /* 「もっとを開いた時 スクロールするような形ではなく
+      全画面を映した状態にしてください」 */
+  t(/\.fabsheet\{position:fixed;top:var\(--topH\);left:0;right:0;bottom:0;/.test(css2()),
+    '★★★画面のはしから はしまで、下まで出す');
+  t(/max-height:none;overflow:hidden/.test(css2()),
+    '★★★スクロールさせない（高さの上限を外す）');
+  t(/grid-auto-rows:minmax\(42px, 1fr\);flex:1 1 auto;min-height:0/.test(css2()),
+    '★★★ます目は、画面の高さに合わせて詰める');
+  t(/\.fabsheet \.msrow b\{font-size:clamp\(/.test(css2()),
+    '　 入らないときは、字のほうを小さくする');
+  t(/\.fabsheet \.msclose\{flex:0 0 auto;margin:0\}/.test(css2()),
+    '★★★【閉じる】は、いつも一番下');
+  /* 下の行も、同じます目に入れる（高さを食わないように） */
+  t(/<div class="msgrid ms2">/.test(app), '★★★下の行も、2列のます目に入れる');
+  t(!/<button class="fsrow" id="goMina"/.test(app), '　 前の1行ずつの形は、残っていない');
+  /* 同じものを2つ出さない */
+  t(!/'<button class="msrow" data-t="sys" type="button">'/.test(app),
+    '★★★【仕組み】を、2か所に出さない');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
