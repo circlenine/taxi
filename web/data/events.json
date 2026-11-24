@@ -1,285 +1,6 @@
 {
- "at": "2026-11-23 15:00",
+ "at": "2026-11-24 17:23",
  "days": [
-  {
-   "d": "2026-11-23",
-   "list": [
-    {
-     "v": "大阪城ホール",
-     "t": "TOMOO",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.osaka-johall.com/event/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "TOMOO"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.tomoo.jp/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/Tomoo_628"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/tomoo_ssw/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCFN-7pQE8CUkruAAJ5IFSLw"
-      }
-     ],
-     "au": "20代～30代の女性が中心。感度の高い音楽ファンや、同世代の女性が圧倒的に多い。",
-     "kn": "ピアノ弾き語りを軸にした独自の世界観が人気。今年開催した初の全国ツアーや新曲の反響が話題。",
-     "av": "",
-     "cap": 16000
-    },
-    {
-     "v": "フェスティバルホール",
-     "t": "氷川きよし（公演日）　📅 2日中の最終日［コンサート］",
-     "k": "barasi",
-     "s": "13:00",
-     "e": "15:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "氷川きよし"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://columbia.jp/hikawa/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/KIINA_STAFF"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/hikawa_kiyoshi_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCS_m28vCTOyxahlyx277z8A"
-      }
-     ],
-     "au": "50代から70代以上の女性が中心。熱心なファンが多く、ペンライトで盛り上がる。",
-     "kn": "2022年末からの休養を経て、昨年からコンサート活動を再開。今回は歌手としての圧倒的な歌唱力を披露するステージで、ファン",
-     "av": "かつての活動休止期間のネガティブな経緯や、現在の活動方針に関する詮索は控えるのが無難です。",
-     "cap": 2700
-    },
-    {
-     "v": "ユニバーサル・スタジオ・ジャパン",
-     "t": "営業時間",
-     "k": "event",
-     "s": "09:00",
-     "e": "20:00",
-     "g": false,
-     "sk": "開園",
-     "ek": "閉園",
-     "a": "19:45 に着ける（終演 20:00 の15分前）",
-     "r": "",
-     "u": "https://www.usj.co.jp/web/ja/jp",
-     "al": [],
-     "au": "10代から30代が中心。グループやカップルが多く、女性比率がやや高め。",
-     "kn": "現在開催中の「ユニバーサル・クールジャパン2024」や期間限定イベントの待ち時間が乗客の関心事です。",
-     "av": "長時間の待ち時間による疲労や、特定のアトラクションが運休・終了している話題。",
-     "cap": 0
-    },
-    {
-     "v": "Zepp Namba",
-     "t": "丸山純奈 ONEMAN LIVE 2026",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
-     "al": [],
-     "au": "10代から20代の女性が中心。SNS発の歌唱力で注目され、同世代の女性ファンが多い。",
-     "kn": "圧倒的な歌唱力で人気のシンガー。TikTok等のSNSで話題になったカバー曲から知ったファンも多い。",
-     "av": "",
-     "cap": 2200
-    },
-    {
-     "v": "Zepp Osaka Bayside",
-     "t": "Zepp Tour 2026 \"View From The Soyuz\"",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "Zepp"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://www.zepp.co.jp/index.php"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/zepphallnetwork"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/zepphallnetwork/"
-      }
-     ],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2882
-    },
-    {
-     "v": "BIGCAT",
-     "t": "DOMICO TWOMAN TOUR 2026",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "http://bigcat-live.com/schedule/",
-     "al": [],
-     "au": "20代から30代が中心。男女比は半々程度で、ロック好きの若者が多い。",
-     "kn": "ギターとドラムの2人編成とは思えない圧倒的な音圧と、中毒性の高いグルーヴが持ち味のバンドです。",
-     "av": "",
-     "cap": 700
-    },
-    {
-     "v": "GORILLA HALL OSAKA",
-     "t": "優利香 Anniversary Oneman Live ”GROWL&GLOW”",
-     "k": "event",
-     "s": "16:00",
-     "e": "18:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://gorillahall.jp/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "優利香"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/yurikassw/"
-      }
-     ],
-     "au": "20代から30代が中心。男女比は半々からやや女性が多い印象です。",
-     "kn": "今回のワンマンライブは「優利香」にとって記念すべきアニバーサリー。新曲披露への期待も高まっています。",
-     "av": "",
-     "cap": 0
-    },
-    {
-     "v": "グランキューブ大阪",
-     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:15",
-     "g": true,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "BUDDiiS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://buddiis.com/"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/buddiis.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
-      }
-     ],
-     "au": "10代〜20代の女性が中心。学生から社会人まで幅広く、熱心なファン層。",
-     "kn": "スターダストプロモーション所属の10人組グループ。ダンスボーカルグループとしての躍進が目覚ましい。",
-     "av": "",
-     "cap": 2754
-    },
-    {
-     "v": "オリックス劇場",
-     "t": "『関西ジュニア CONCERT 2026 〜僕たち粉もんちゃうで",
-     "k": "event",
-     "s": "18:00",
-     "e": "20:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "関西ジュニア"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://jr-official.starto.jp/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/jr_official_X"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/jr_official_/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UC1cHlPIE-kqiPvpyYz2O8rQ"
-      }
-     ],
-     "au": "10代〜20代の女性が中心。親子連れも多い。",
-     "kn": "「粉もんちゃうで」という自虐的なタイトルが話題。関西ジュニアの勢いあるパフォーマンスが注目されている。",
-     "av": "",
-     "cap": 2400
-    }
-   ]
-  },
   {
    "d": "2026-11-24",
    "list": [
@@ -350,9 +71,9 @@
      "r": "",
      "u": "https://www.usj.co.jp/web/ja/jp",
      "al": [],
-     "au": "10代から30代が中心。グループやカップルが多く、女性比率がやや高め。",
-     "kn": "現在開催中の「ユニバーサル・クールジャパン2024」や期間限定イベントの待ち時間が乗客の関心事です。",
-     "av": "長時間の待ち時間による疲労や、特定のアトラクションが運休・終了している話題。",
+     "au": "",
+     "kn": "",
+     "av": "",
      "cap": 0
     },
     {
@@ -426,6 +147,253 @@
      "kn": "セルフプロデュースで楽曲制作から映像まで手掛ける異色のソロアーティスト。今回のツアーは特にダンスナンバーが熱いと話題。",
      "av": "",
      "cap": 700
+    },
+    {
+     "v": "グランキューブ大阪",
+     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:15",
+     "g": true,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "BUDDiiS"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://buddiis.com/"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/buddiis.official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
+      }
+     ],
+     "au": "10代〜20代の女性が中心。学生から社会人まで幅広く、熱心なファン層。",
+     "kn": "スターダストプロモーション所属の10人組グループ。ダンスボーカルグループとしての躍進が目覚ましい。",
+     "av": "",
+     "cap": 2754
+    },
+    {
+     "v": "オリックス劇場",
+     "t": "（名前を読み取れませんでした）",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 2400
+    }
+   ]
+  },
+  {
+   "d": "2026-11-25",
+   "list": [
+    {
+     "v": "大阪城ホール",
+     "t": "GENERATIONS",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:00",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.osaka-johall.com/event/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "GENERATIONS"
+      },
+      {
+       "l": "公式サイト",
+       "u": "http://generations-ldh.jp"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/generationsfext"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/generations_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCzMImnHX_dVAh6oS_HGD3fg"
+      }
+     ],
+     "au": "10代〜30代の女性が中心。グループの活動歴が長く、親子連れで来場するファンも多い。",
+     "kn": "2024年でデビュー12周年を迎え、メンバー個々のバラエティや俳優活動も絶好調なグループです。",
+     "av": "過去のメンバー脱退や、特定のメンバーに関するスキャンダル、SNSでの炎上騒動など。",
+     "cap": 16000
+    },
+    {
+     "v": "パナソニックスタジアム",
+     "t": "AFCチャンピオンズリーグElite MD5 ガンバ大阪 VS ポートFC",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
+     "g": true,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://suitacityfootballstadium.jp/schedule/",
+     "al": [],
+     "au": "20代から50代中心。男性がやや多めだが、家族連れやカップルも多い。",
+     "kn": "リーグ戦終盤の連戦で、アジアの舞台での勝利がチームの勢いに直結する重要な一戦です。",
+     "av": "直近の公式戦での敗戦や、順位に関わるネガティブな話題。",
+     "cap": 0
+    },
+    {
+     "v": "フェスティバルホール",
+     "t": "サグラダ・ファミリア シンフォニックコンサート",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:00",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.festivalhall.jp/events/list/2026/11/",
+     "al": [],
+     "au": "40代〜70代が中心。男女比は4:6程度で、クラシック愛好家や建築ファンが多い傾向。",
+     "kn": "ガウディ没後100年に向けたプロジェクトの一環。実際に現地の鐘の音を録音した音源を使用しています。",
+     "av": "",
+     "cap": 2700
+    },
+    {
+     "v": "京セラドーム大阪",
+     "t": "BIG BANG（搬入（初日））　📅 公演は 11/27 から3日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [],
+     "au": "20代から40代の女性が中心。熱心なファンが多く、韓国文化に馴染みがある層。",
+     "kn": "数年ぶりの来日公演のため、ファンの熱気が非常に高まっています。再会を待ちわびる声が多いです。",
+     "av": "過去のメンバー脱退や、所属事務所のトラブルに関する話題は厳禁です。",
+     "cap": 36000
+    },
+    {
+     "v": "サンケイホールブリーゼ",
+     "t": "舞台『ぼくのドラゴンがごはんを食べない!!』（搬入（初日））　📅 公演は 11/27 から10日間［舞台］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [],
+     "au": "20代から40代が中心で、女性比率が7割程度と高めです。",
+     "kn": "人気声優の朗読劇を交えた舞台で、ドラゴンと少年の心の交流を描く物語です。",
+     "av": "",
+     "cap": 910
+    },
+    {
+     "v": "ユニバーサル・スタジオ・ジャパン",
+     "t": "営業時間",
+     "k": "event",
+     "s": "09:00",
+     "e": "21:00",
+     "g": false,
+     "sk": "開園",
+     "ek": "閉園",
+     "a": "20:45 に着ける（終演 21:00 の15分前）",
+     "r": "",
+     "u": "https://www.usj.co.jp/web/ja/jp",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    },
+    {
+     "v": "BIGCAT",
+     "t": "還暦記念ツアー『猟奇覚醒』",
+     "k": "event",
+     "s": "19:15",
+     "e": "21:45",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "http://bigcat-live.com/schedule/",
+     "al": [],
+     "au": "50代以上が中心、男女比は半々程度。熱心で落ち着いたファン層が目立つ。",
+     "kn": "還暦を迎えたアーティストの記念ツアーで、バンドの歴史を振り返る特別なセットリストが話題。",
+     "av": "メンバー脱退や過去の不祥事、急な活動休止に関する話題。",
+     "cap": 700
+    },
+    {
+     "v": "GORILLA HALL OSAKA",
+     "t": "Wolf Alice",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:00",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://gorillahall.jp/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "Wolf Alice"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.wolfalice.co.uk/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/wolfalicemusic"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/wolfaliceband/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCE3uvMO3ERiFphvVX_ct3GA"
+      }
+     ],
+     "au": "20代から40代が中心。男女比は半々程度で、洋楽ロックを好む感度の高い層が多い。",
+     "kn": "英国のグラストンベリー等でヘッドライナーを務める実力派。待望の来日公演でファンの熱量が高い。",
+     "av": "",
+     "cap": 0
     },
     {
      "v": "オリックス劇場",
