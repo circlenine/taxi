@@ -2863,16 +2863,6 @@ header#hdr.cl .hmain{display:none}
 header#hdr.cl .hgrab i{transform:rotate(180deg)}
 
 /* ---------- 下の帯（ページの行き先） ---------- */
-.botbar{position:fixed;left:0;right:0;bottom:0;z-index:1600;
-  background:var(--bar);border-top:1px solid var(--ink3);
-  padding:0 8px 6px;transition:transform .18s ease}
-.botbar .bgrab{position:absolute;left:50%;transform:translateX(-50%);top:-16px;
-  width:62px;height:17px;border:1px solid var(--ink3);border-bottom:0;
-  border-radius:9px 9px 0 0;background:var(--bar);color:#FFFFFF;
-  padding:0;display:grid;place-items:center;cursor:pointer}
-.botbar .bgrab i{font-style:normal;font-size:10px;line-height:1;transition:transform .18s}
-.botbar.cl{transform:translateY(calc(100% - 0px))}
-.botbar.cl .bgrab i{transform:rotate(180deg)}
 nav#tabs.botnav{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;
   margin:6px auto 0;max-width:1080px;border:0;padding:0;background:none}
 nav#tabs.botnav button{display:flex;align-items:center;justify-content:center;
@@ -3227,7 +3217,97 @@ header#hdr.cl{height:18px}
 header#hdr.cl .hgrab{position:static;width:100%;height:18px;border:0;
   border-radius:0;background:var(--bar)}
 /* 下の帯も、つまみを帯の中へ */
-.botbar{padding-top:16px}
-.botbar .bgrab{top:0;height:15px;width:56px;border:0;border-radius:0;
-  background:transparent}
-.botbar.cl{transform:translateY(calc(100% - 16px))}
+
+/* ============================================================
+ *  上メニューだけにする（ご指示・2026/11/24）
+ *    「下メニューはやめて…スクロール時に、ロゴが消えたら、
+ *      上がメニューに切り替わるようにして、上メニューだけに」
+ *
+ *  ★1段目＝題と時計。下へ進むと、すっと消えます。
+ *  ★2段目＝メニュー。いつでも画面の上にあります。
+ * ============================================================ */
+:root{--topH:94px;--botH:0px}
+header#hdr{height:auto;padding:0;overflow:hidden}
+header#hdr .hmain{height:44px;transition:height .16s ease,opacity .16s ease}
+/* 下へ進んだら、題の行だけ消して メニューを上へ詰めます */
+body.sc header#hdr .hmain{height:0;opacity:0;pointer-events:none}
+header#hdr .hclock{display:flex;align-items:baseline;gap:6px;min-width:0;
+  font-size:12px;color:#FFFFFF;opacity:.95;white-space:nowrap;overflow:hidden}
+header#hdr .hclock b{font-size:13.5px;font-weight:700;letter-spacing:.02em}
+header#hdr .hclock i{font-style:normal;font-size:11px;opacity:.8}
+/* ★細い機種では、秒の最後の1けたが切れていました（320pxで実際に測りました）。
+     画面の幅に合わせて、字を同じだけ小さくします。消しはしません。 */
+@media (max-width:360px){
+  header#hdr .hmain{padding-right:2px}
+  header#hdr .hclock{gap:4px}
+  header#hdr .hclock b{font-size:12px}
+  header#hdr .hclock i{font-size:10px}
+  header#hdr h1.dn .l1{font-size:17px}
+  header#hdr h1.dn .l2{font-size:9.5px}
+}
+
+/* ---------- メニュー（6つ・1段） ---------- */
+/* ★ます目を6等分にすると、字の長い【パーセント】だけが はみ出していました
+     （320pxで実際に測りました）。長い札には、そのぶん広く取ります。 */
+nav#tabs.topnav{display:flex;gap:3px;
+  margin:0;padding:0 8px 7px;max-width:1080px;border:0;background:none}
+body.sc nav#tabs.topnav{padding-top:7px}
+nav#tabs.topnav button{display:flex;align-items:center;justify-content:center;
+  flex:1 1 auto;min-width:0;width:auto;
+  min-height:38px;padding:4px 4px;border-radius:10px;border:1px solid transparent;
+  background:rgba(255,255,255,.07);color:#FFFFFF;font-size:12.5px;line-height:1.1;
+  cursor:pointer;position:relative;white-space:nowrap}
+nav#tabs.topnav button b{font-weight:700;display:flex;align-items:center;gap:3px}
+nav#tabs.topnav button i{display:none}
+nav#tabs.topnav button[aria-selected=true]{background:var(--andon);
+  border-color:var(--andon);font-weight:800}
+/* ★【もっと】は、開いている間ずっと赤いまま（ご指摘・2026/11/24
+     「もっとの部分を押した時には赤いままにしてください」）。 */
+nav#tabs.topnav button#fabMenu.open{background:var(--andon);border-color:var(--andon);
+  font-weight:800}
+nav#tabs.topnav button .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+nav#tabs.topnav button#fabMenu.dotted:after{content:"";position:absolute;top:5px;right:7px;
+  width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+/* ---------- 【もっと】の中身：上から降りてくる ---------- */
+/* ★ほかのページが見えなくならないように、画面の半分までにします
+     （ご指摘・2026/11/24「ポップアップが表示し続けたまま、
+       ほかページが見えなくなっていると焦ります」）。 */
+.fabsheet{position:fixed;top:var(--topH);left:8px;right:8px;bottom:auto;
+  max-height:min(52vh,420px);overflow:auto;z-index:1700}
+.msgrid{grid-template-columns:1fr 1fr}
+.msrow{min-height:50px}
+
+/* つまみは、もう要りません（帯は1つだけになりました） */
+body{padding-top:calc(var(--topH) + 8px);padding-bottom:28px}
+/* 【もっと】は、画面の半分までにして、閉じ方も出します */
+.fabsheet{max-height:min(46vh,380px)}
+.msclose{display:flex;justify-content:center;margin-top:4px}
+.msclose button{min-height:40px;padding:0 22px;border-radius:10px;
+  border:1px solid var(--line);background:rgba(255,255,255,.08);color:#FFFFFF;
+  font-size:13px;font-weight:700;cursor:pointer}
+/* きょうの出勤（走っている車の数と同じ） */
+.bncrew{display:flex;flex-direction:column;gap:2px;margin:8px 0 0;
+  padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.3);
+  border:1px solid var(--ink3)}
+.bncrew b{font-size:13px;font-weight:700;color:var(--gold)}
+.bncrew span{font-size:12.5px;color:#FFFFFF;line-height:1.5}
+.bncrew i{font-style:normal;font-size:10.5px;color:#FFFFFF;opacity:.8}
+
+/* ---------- はじめての案内（シロタク） ---------- */
+/* ご指示・2026/11/24「もっとゲームにあるように
+     ここが、この画面みたいな感じで移動しながら丁寧な説明が必要です」 */
+.tutwin .modalbox{position:fixed;left:10px;right:10px;bottom:14px;top:auto;
+  max-width:none;margin:0}
+.tutwho{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.tutwho img{width:54px;height:54px;flex:none;border-radius:50%;
+  background:#0E1420;border:2px solid var(--gold);object-fit:cover;object-position:top}
+.tutwho span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.tutwho b{font-size:15px;font-weight:800;color:var(--gold)}
+.tutwho i{font-style:normal;font-size:10.5px;color:#FFFFFF;opacity:.8}
+.tutwho em{font-style:normal;margin-left:auto;font-size:10.5px;
+  color:#FFFFFF;opacity:.75;letter-spacing:.1em}
+.tutbox h2{font-size:17px;font-weight:800;margin:0 0 7px}
+.tutbox .tutb{font-size:13.5px;line-height:1.8;margin:0 0 14px}
+/* 案内の間は、画面の下だけを隠します（上のメニューは見えたまま） */
+.tutwin{background:rgba(5,8,14,.45)}

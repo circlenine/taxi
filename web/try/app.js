@@ -182,7 +182,18 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
     const b = e.target.closest ? e.target.closest('[data-t]') : null;
     if (!b || !b.dataset.t) return;
     grab(); tab = b.dataset.t; tabSave(); msg = ''; render();
-    if (!b.closest('#tabs')) window.scrollTo({ top: 0, behavior: 'smooth' });
+    /*
+     * ★押したら、必ず画面の一番上へ戻します（ご指摘・2026/11/24
+     *     「各メニューに移動時、どうしてページ上にいかないのでしょうか」
+     *     「1回でタップして移動してくれないため」）。
+     *
+     *   これまで「メニューの中から押したときは戻さない」としていたため、
+     *   下のほうを見ている最中にメニューを押すと、
+     *   中身は変わっているのに その場に留まり、
+     *   **押しても何も起きていないように見えていました**。
+     *   ゆっくり動かすのもやめます（動き終わるまで変わらなく見えるため）。
+     */
+    window.scrollTo(0, 0);
   });
   filtLoad();                      /* 前に絞ったままの形を思い出す */
   tabLoad();                       /* 前に開いていたタブに戻す */
@@ -1174,7 +1185,24 @@ function render(){
        「直近の記録は非表示にしてください」）。
      すぐ下の「過去の記録」の表に、同じものが新しい順で並ぶためです。 */
   if (pt) pt.innerHTML =
-    ((tab === 'in') ? (bannerCard() + leadCard('in') + paneInNew()) : '');
+    ((tab === 'in')
+      ? (bannerCard() +
+         leadCard('in') + paneInNew() +
+         /* ★「この乗り場は、この時間がアツい」を【記録】にも出します
+              （ご指示・2026/11/24「記録 ⇒ やましきくん案の、
+                この乗り場はこの時間がアツいの形に直してください」）。
+            入れる欄のすぐ下に置きます。記録を1本 入れたあとに、
+            次はどこへ行くかが、そのまま見える並びです。
+            しぼり込みは、すぐ下の「過去の記録」のものが効きます。 */
+         (bestTimeCard(visible().filter(hasDep), true) || '') +
+         /* ★天気の細かいところ（最高・最低・1時間ごと）も、
+              このページへ移しました（ご指示・2026/11/24
+              「天気⇒1番初めのページに載せる形になったので、
+                天気ページは除外」）。
+            ページは無くしましたが、中身は消していません。 */
+         '<div class="card" id="wxcard"><h2>天気</h2>' +
+         wxNowHTML() + wxHoursHTML() + '</div>')
+      : '');
   /* 記録の表は「過去の記録」の中へ（欄を2つに分けません） */
   const ktb = $('#ktTbl');
   if (ktb) ktb.innerHTML = (tab === 'in') ? paneInRecent() : '';
@@ -1865,17 +1893,36 @@ function paneSet(){
  *  ★とばしても、見たことにします（毎回 出されるのが一番うるさいため）。
  * ================================================================ */
 const TUT_KEY = 'tn_tutorial_done';
+
+/*
+ * ★案内役は「シロタク」です（ご指示・2026/11/24）。
+ *     「俺、白越拓也。略してシロタク。へへ･･･」という出だしで、
+ *      チュートリアルキャラ名を入れてください
+ *     「もっとゲームにあるように ここが、この画面みたいな感じで
+ *      移動しながら丁寧な説明が必要です」
+ *
+ * ★だから、**実際にその画面へ移って**から話します。
+ *   読んで終わりではなく、押す所が目の前にある形にします。
+ */
 const TUT_STEPS = [
-  { i:'1', h:'記録する', b:'【記録】の画面で、乗り場・時刻・金額を入れて保存します。' +
-      '書きかけは、閉じても残ります。' },
-  { i:'2', h:'下の帯でページを変える', b:'画面の下の帯が、ページの行き先です。' +
-      'つまみ（▼）を押すと、たためます。' },
-  { i:'3', h:'ためた記録を見る', b:'【グラフ】【パーセント】【地図】で、' +
-      'どの乗り場が、何時に、いくらだったかを見ます。' },
-  { i:'4', h:'しるしを集める', b:'記録を入れると【トロフィー】が開きます。' +
-      '押すと、何をすれば開くのかが出ます。' },
-  { i:'5', h:'困ったら', b:'上の【?】で、その画面の説明が出ます。' +
-      '≡ の中に、設定とフィードバックがあります。' }
+  { t:'in',   h:'はじめまして',
+    b:'俺、白越拓也。略してシロタク。へへ･･･。\nこの台帳の使い方、ざっと案内するわ。' },
+  { t:'in',   h:'ここが【記録】',
+    b:'いま開いてるのが【記録】。\n乗り場・時刻・金額を入れて保存する所や。\n書きかけは、閉じても残るから安心せぇ。' },
+  { t:'in',   h:'一番上は、きょうの空と出番',
+    b:'気温と雨、それに きょう何人 出てるか。\n走ってる車の数が、そのまま出勤の人数や。' },
+  { t:'hot',  h:'ここが【いま】',
+    b:'いまの時刻で「どこへ行くとよいか」を出す。\n迷ったら、まずここ見たらええ。' },
+  { t:'g',    h:'ここが【グラフ】',
+    b:'何時に いくらになってるかを、絵で見る所。\n上の絞り込みで、乗り場や曜日を変えられる。' },
+  { t:'ratio',h:'ここが【割合】',
+    b:'ロング（¥10,000以上）が出やすい所と時間や。\n「どこで粘るか」を決めるのに使う。' },
+  { t:'map',  h:'ここが【地図】',
+    b:'時間帯と金額でしぼって、乗り場にピンを打つ。\n場所で覚えたい人は、ここが早い。' },
+  { t:'in',   h:'あとは【もっと】',
+    b:'イベント・トロフィー・日報・設定は【もっと】の中。\n上のメニューは、どこを見てても ずっと出てる。' },
+  { t:'in',   h:'ほな、いこか',
+    b:'困ったら、右上の【?】を押したらええ。\nその画面の話だけ、短う出るで。へへ･･･。' }
 ];
 function tutDone(){
   try { return localStorage.getItem(TUT_KEY) === '1'; } catch (e) { return false; }
@@ -1883,9 +1930,6 @@ function tutDone(){
 let tutWait_ = 0;
 function tutOpen(force){
   if (!force && tutDone()) return;
-  /* ★ほかの箱（イベントの知らせなど）が出ている間は、待ちます。
-       2つ重なると、どちらを閉じればよいか分からなくなります。
-       閉じていただいたら、そのあとに出します。 */
   if (document.querySelector('.modal')) {
     if (force || tutWait_++ > 20) return;
     setTimeout(function (){ tutOpen(false); }, 1500);
@@ -1893,6 +1937,7 @@ function tutOpen(force){
   }
   tutWait_ = 0;
   let i = 0;
+  const back = tab;
   const box = document.createElement('div');
   box.className = 'modal tutwin';
   document.body.appendChild(box);
@@ -1901,17 +1946,30 @@ function tutOpen(force){
     try { localStorage.setItem(TUT_KEY, '1'); } catch (e) {}
     box.remove();
     try { document.body.classList.remove('modalon'); } catch (e) {}
+    /* 案内のために動かした画面は、元に戻します */
+    try { grab(); tab = back; tabSave(); render(); window.scrollTo(0, 0); } catch (e) {}
+  };
+  const go = function (k){
+    try {
+      if (tab === k) return;
+      grab(); tab = k; tabSave(); render(); window.scrollTo(0, 0);
+    } catch (e) {}
   };
   const draw = function (){
     const st = TUT_STEPS[i];
+    go(st.t);                                  /* ★実際に、その画面へ移ります */
     box.innerHTML =
       '<div class="modalbox tutbox">' +
         '<div class="tutdots">' + TUT_STEPS.map(function (x, j){
           return '<span class="' + (j === i ? 'on' : (j < i ? 'past' : '')) + '"></span>';
         }).join('') + '</div>' +
-        '<div class="tutno">' + st.i + ' / ' + TUT_STEPS.length + '</div>' +
+        '<div class="tutwho">' +
+          '<img src="img/shirotaku.png" alt="">' +
+          '<span><b>シロタク</b><i>白越拓也</i></span>' +
+          '<em>' + (i + 1) + ' / ' + TUT_STEPS.length + '</em>' +
+        '</div>' +
         '<h2>' + esc(st.h) + '</h2>' +
-        '<p class="tutb">' + esc(st.b) + '</p>' +
+        '<p class="tutb">' + esc(st.b).replace(/\n/g, '<br>') + '</p>' +
         '<div class="modalfoot">' +
           '<button class="btn ghost" id="tutSkip">とばす</button>' +
           (i > 0 ? '<button class="btn ghost" id="tutPrev">もどる</button>' : '') +
@@ -2097,17 +2155,24 @@ function bannerSvg(area, sky, wx){
   s += '<g class="bnlane">' + [0,1,2,3,4,5,6,7,8,9,10].map(function (i){
     return '<rect x="' + (i * 32) + '" y="' + (GND + 10) + '" width="16" height="2" fill="#6E7788"/>';
   }).join('') + '</g>';
-  /* タクシー（ずっと走ります） */
-  s += '<g class="bncar"><g transform="translate(0,' + (GND - 12) + ')">' +
-       '<rect x="2" y="4" width="30" height="9" rx="2" fill="#E8C24A"/>' +
-       '<rect x="9" y="-1" width="15" height="6" rx="1.5" fill="#E8C24A"/>' +
-       '<rect x="11" y="0" width="5" height="4" fill="#2B3350"/>' +
-       '<rect x="17" y="0" width="5" height="4" fill="#2B3350"/>' +
-       '<rect x="14" y="-4" width="6" height="3" rx="1" fill="#E23B30"/>' +
-       '<circle cx="9" cy="13" r="2.6" fill="#11131A"/>' +
-       '<circle cx="25" cy="13" r="2.6" fill="#11131A"/>' +
-       '<rect x="31" y="7" width="5" height="2" fill="#FFF3C4" opacity=".85"/>' +
-       '</g></g>';
+  /* ★タクシーは、きょう出ている人数だけ走らせます（ご指示・2026/11/24）。
+       少しずつ ずらして出すので、団子になりません。 */
+  {
+    const n = Math.max(1, crewToday().length);
+    for (let i = 0; i < n; i++) {
+      s += '<g class="bncar" style="animation-delay:' + (-i * 2.1).toFixed(1) + 's">' +
+           '<g transform="translate(0,' + (GND - 12) + ')">' +
+           '<rect x="2" y="4" width="30" height="9" rx="2" fill="#E8C24A"/>' +
+           '<rect x="9" y="-1" width="15" height="6" rx="1.5" fill="#E8C24A"/>' +
+           '<rect x="11" y="0" width="5" height="4" fill="#2B3350"/>' +
+           '<rect x="17" y="0" width="5" height="4" fill="#2B3350"/>' +
+           '<rect x="14" y="-4" width="6" height="3" rx="1" fill="#E23B30"/>' +
+           '<circle cx="9" cy="13" r="2.6" fill="#11131A"/>' +
+           '<circle cx="25" cy="13" r="2.6" fill="#11131A"/>' +
+           '<rect x="31" y="7" width="5" height="2" fill="#FFF3C4" opacity=".85"/>' +
+           '</g></g>';
+    }
+  }
   /* 雨（降っているときだけ） */
   if (wx && wx.rainNow) {
     s += '<g class="bnrain">' + [6,28,52,74,98,122,146,170,194,218,242,266,290,310].map(function (x, i){
@@ -2198,7 +2263,59 @@ function bnAdvice(wx){
   return a.slice(0, 2).join('／');
 }
 
-/** 一番上の絵（【記録】の先頭） */
+/* ================================================================
+ *  きょう、何人が出ているか（ご指示・2026/11/24）
+ *    「現在の開いてる人数に合わせて、人を増やして欲しいです」
+ *    「出勤日は、その台数だけ車を表示させて
+ *      本日の出勤者名の表示と
+ *      注釈として、基本スケジュールのため、休みの場合があります」
+ *
+ *  ★班と人（まーく様に教えていただいた）
+ *      2班 … しゅんくん・じんきちくん・まーく様
+ *      3班 … しろこしくん・かいとくん
+ *      だいすけくん … 日曜が休み（ときどき月曜も）
+ *  ★出番表（昼夜勤 出番表）の「公」が公休です。
+ *    昼夜1〜6は、同じ形を **1日ずつ ずらした** ものでした。
+ *    だから、昼夜1の公休の日を覚えておけば、ほかの班も出せます。
+ *  ★月度は毎月16日はじまり。その中の何日目かで決まります。
+ *  ★**写真から読んだ表**なので、1日ずれていることがあります。
+ *    だから画面にも「基本スケジュールのため、休みの場合があります」と
+ *    必ず添えます。直すときは、下の KYU1 の数字だけを直せば足ります。
+ * ================================================================ */
+const CREW = [
+  { n: 'しゅんくん',   han: 2 },
+  { n: 'じんきちくん', han: 2 },
+  { n: 'まーく様',     han: 2 },
+  { n: 'しろこしくん', han: 3 },
+  { n: 'かいとくん',   han: 3 },
+  { n: 'だいすけくん', han: 0 }     /* 0 … 班に入らず、日曜が休み */
+];
+/* 昼夜1班の公休（月度のはじめ＝16日から数えて何日目か） */
+const KYU1 = [3, 4, 9, 16, 22, 27];
+
+/** その日が「月度のはじめから何日目か」 */
+function crewIdx_(d){
+  const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+  /* 16日より前なら、前の月の16日はじまりの月度です */
+  const st = (day >= 16) ? new Date(y, m, 16) : new Date(y, m - 1, 16);
+  return Math.round((new Date(y, m, day) - st) / 86400000);
+}
+
+/** その班が、その日 公休か */
+function crewOff_(han, d){
+  if (!han) return d.getDay() === 0;          /* だいすけくん＝日曜休み */
+  const i = crewIdx_(d) - (han - 1);
+  return KYU1.indexOf(i) !== -1;
+}
+
+/** きょう出ている人（名前の並び） */
+function crewToday(d){
+  const dt = d || new Date();
+  return CREW.filter(function (c){ return !crewOff_(c.han, dt); })
+             .map(function (c){ return c.n; });
+}
+
+/** 一番上の絵（【記録】の先頭） *//** 一番上の絵（【記録】の先頭） */
 function bannerCard(){
   const pos = bnPos || BN_OSAKA;
   const area = bnArea(pos.la, pos.lo);
@@ -2226,6 +2343,15 @@ function bannerCard(){
         ((wx && wx.rain3 != null) ? (Math.round(wx.rain3) + '％') : '—') + '</b></span>' +
     '</div>' +
     '<div class="bnsay">' + esc(bnAdvice(wx)) + '</div>' +
+    /* ★きょうの出勤（ご指示・2026/11/24）。
+         走っている車の数は、この人数と同じです。 */
+    (function (){
+      const w = crewToday();
+      if (!w.length) return '<div class="bncrew"><b>きょうは 出番なし</b></div>';
+      return '<div class="bncrew"><b>きょうの出勤 ' + w.length + '人</b>' +
+        '<span>' + esc(w.join('・')) + '</span>' +
+        '<i>基本スケジュールのため、休みの場合があります</i></div>';
+    })() +
     '<div class="bnfoot">' +
       (bnPos ? '<span class="bnnote">いまいる所に合わせています</span>'
              : '<button class="mini" id="bnHere">いまいる所に合わせる</button>') +
@@ -3056,113 +3182,15 @@ function kana(v){
 }
 
 /* ------------------------------------------------------------
- *  題の下の一文（ご指示・2026/11/15）
+ *  題の下の一文は、やめました（ご指示・2026/11/24）
  *
- *  ★まーく様のご指示
- *    「完全万収ライナーは、やめて
- *      乗り場が、メンバーの中で多く付けている人に対して
- *      例) 最多付け待ちの為、江坂駅タクシー乗り場のLは〝○○〟です
- *      みたいにしてください
- *      2行になったり、はみ出したりしないように調整してください
- *      ここの文章に限り、乗り場名が長すぎる場合は｢…｣もつけて良いものとします
- *      ただし、メンバーに偏りがないように
- *      メンバーが2回同時に出ないような形で順に表示させる形にしてください
- *      更新する度に切り替わる形で良いです」
- *
- *  ★「最多」と言い切れるときだけ出します。
- *    1件しかない乗り場や、同じ数で並んでいる乗り場は出しません。
- *    言い切れないことを言うと、人の間に きれつが生まれます。
+ *  ★乗り場と人を並べていた一文を
+ *    取り除きました。かわりに、上の帯で 日付・曜日・時刻・秒を
+ *    動かして出しています（clockTick_）。
+ *    一番上の行に出すのは、いま出ている警報・注意報だけです。
  * ---------------------------------------------------------- */
 const MANSHU = 10000;        /* 万収（1万円以上）。ほかの画面で使っています */
 
-/** 乗り場ごとの「一番多く付けている人」 */
-function lordList(){
-  const by = {};
-  (records || []).forEach(function (r){
-    const p = canonPlace(String((r && r.place) || '').trim());
-    if (!p) return;
-    const k = kunName(r.user_id);
-    if (!k) return;
-    by[p] = by[p] || {};
-    by[p][k] = (by[p][k] || 0) + 1;
-  });
-  const out = [];
-  Object.keys(by).forEach(function (p){
-    const m = by[p];
-    const ks = Object.keys(m).sort(function (a, b){
-      return m[b] - m[a] || (a < b ? -1 : 1);
-    });
-    const top = ks[0];
-    if (!top || m[top] < 2) return;                     /* 1件は、たまたまの1本 */
-    if (ks.length > 1 && m[ks[1]] === m[top]) return;   /* 同じ数なら「最多」と言えない */
-    out.push({ p: p, who: top, n: m[top] });
-  });
-  return out;
-}
-
-/**
- * 出す順番を決めます。
- *  ・同じ人が続けて出ないように
- *  ・人にかたよらないように（残りの多い人から出す）
- */
-function lordOrder(list){
-  const by = {};
-  list.forEach(function (x){ (by[x.who] = by[x.who] || []).push(x); });
-  Object.keys(by).forEach(function (k){
-    by[k].sort(function (a, b){ return b.n - a.n; });   /* 件数の多い乗り場から */
-  });
-  const out = [];
-  let prev = '';
-  for (let guard = 0; guard < 500; guard++) {
-    const left = Object.keys(by).filter(function (k){ return by[k].length; });
-    if (!left.length) break;
-    let ks = left.filter(function (k){ return k !== prev; });
-    if (!ks.length) ks = left;                          /* 残りが1人だけのとき */
-    ks.sort(function (a, b){ return by[b].length - by[a].length || (a < b ? -1 : 1); });
-    out.push(by[ks[0]].shift());
-    prev = ks[0];
-  }
-  /*
-   * ★ぐるっと一周して、最後と先頭が同じ人になることがあります。
-   *   そのままだと、開き直したときに同じ人が2回続きます。
-   *   「続いている所」の数が減る入れ替えを、減らなくなるまで探します。
-   */
-  const bads = function (L){
-    let c = 0;
-    for (let i = 0; i < L.length; i++) if (L[i].who === L[(i + 1) % L.length].who) c++;
-    return c;
-  };
-  for (let g = 0; g < 200 && out.length > 2; g++) {
-    const now = bads(out);
-    if (!now) break;
-    let done = false;
-    for (let i = 0; i < out.length && !done; i++) {
-      for (let j = i + 1; j < out.length; j++) {
-        const t = out[i]; out[i] = out[j]; out[j] = t;
-        if (bads(out) < now) { done = true; break; }
-        const u = out[i]; out[i] = out[j]; out[j] = u;     /* 戻す */
-      }
-    }
-    if (!done) break;                /* これ以上は減らせません（人が片寄りすぎ） */
-  }
-  return out;
-}
-
-/* ★「更新する度に切り替わる形で良いです」。開き直すたびに1つ進めます */
-const LORD_KEY = 'tsukemachi.lord';
-let lordSeq = 0;
-function lordSeqInit(){
-  try {
-    lordSeq = (parseInt(localStorage.getItem(LORD_KEY) || '0', 10) || 0) + 1;
-    localStorage.setItem(LORD_KEY, String(lordSeq));
-  } catch (e) { lordSeq = 1; }
-}
-/** きょう出す1つ（無ければ null） */
-function lordPick(){
-  const L = lordOrder(lordList());
-  if (!L.length) return null;
-  return L[((lordSeq % L.length) + L.length) % L.length];
-}
 
 /* 字が枠からはみ出しているか（小数のまま測ります） */
 function subOver(el){
@@ -3270,68 +3298,17 @@ function subSet(el){
     return;
   }
   el.classList.remove('warn');
-  if (!el) return;
-  const x = lordPick();
-  if (!x) { el.textContent = subLine(); subFit(el); return; }
-  /* ★はじめに、対象の日付（曜日）を入れます（ご指示・2026/11/16
-       「これ系については 初めに、対象の日付(曜)も入れてください」）。
-       いつ見ている話なのかが、一目で分かるようにするためです。 */
-  const mk = function (p){
-    return fmtD(today()) + '　最多付け待ちの為、' + p + 'のLは〝' + x.who + '〟です';
-  };
-  const ch = [...String(x.p)];
+  /*
+   * ★題の下にあった、乗り場と人の名前の一文は、
+   *   やめました（ご指示・2026/11/24）。
+   *   日付と時刻は、上の帯の時計が ずっと出しています。
+   *   ここに出すのは、いま警報・注意報が出ているときだけです。
+   *   何も無いときは、1行も出しません（読む字を増やさないため）。
+   */
+  el.textContent = '';
   el.style.fontSize = '';
-  el.textContent = mk(x.p);
-  for (let n = ch.length - 1; n >= 2 && subOver(el); n--) {
-    el.textContent = mk(ch.slice(0, n).join('') + '…');
-  }
-  subFit(el);                       /* それでも入らなければ、字を小さくします */
 }
 
-/* ------------------------------------------------------------
- *  名前の出し方（まーく様のご指示・2026/11/12）
- *
- *  ★前は「昨日の万収ライナー」をほめる一文を出していましたが、
- *    2026/11/15 のご指示でやめました。いまは上の subSet のとおりです。
- *    この表（KUN）は、そちらでも使っています。
- *
- *  ★スマホで1行に収めます。折り返すと、題の位置が下がって
- *    まわりがずれます（これまでに何度も起きています）。
- * ---------------------------------------------------------- */
-const KUN = { 'ダイスケ':'齋藤くん', 'だいすけ':'齋藤くん', '齊藤':'齋藤くん', '齋藤':'齋藤くん',
-  'シュン':'山敷くん', 'しゅん':'山敷くん', '山敷':'山敷くん',
-  'カイト':'山脇くん', 'かいと':'山脇くん', '海斗':'山脇くん', '山脇':'山脇くん',
-  'アナル':'城越くん', '城越':'城越くん',
-  'ジン':'宮下くん', 'じん':'宮下くん', '宮下':'宮下くん',
-  'マーク':'加藤くん', 'まーく':'加藤くん', 'ポンコツ':'加藤くん' };
-function kunName(uid){
-  const n = String(names[uid] || '').trim();
-  if (KUN[n]) return KUN[n];
-  for (const k in KUN) if (n.indexOf(k) !== -1) return KUN[k];
-  return '';
-}
-/*
- * ★「完全万収ライナー」の一文は、やめました（ご指示・2026/11/15）。
- *   いまは「最多付け待ちの為、〇〇のLは〝△△〟です」を出します（subSet）。
- *   ここは、その一文が出せないとき（記録がまだ足りないとき）の控えです。
- */
-function subLine(){
-  /* ★スマホで1行に収めるため、短い言い方にしました（ご指示・2026/11/13）。
-       前は「近日中、誰かがワンメータを乗せたら、〜」で29字あり、
-       390px の画面で おしりが「…」で切れていました。 */
-  return '近日、誰か１メーターを引けば〝' + kiraToday() + '〟がキラです';
-}
-
-/* ------------------------------------------------------------
- *  題の下の一文を、必ず1行に収める（ご指示・2026/11/13）
- *    「1画面で収まるようにしてください。
- *      これでも収まらなければ、収まるように工夫してください」
- *
- *  ★名前によって長さが変わるので、字の大きさを決め打ちにすると
- *    いつか はみ出します（実際に 320px の機種で「…」と切れていました）。
- *    入るまで、少しずつ小さくします。それでも読める下限（9px）で止めます。
- *  ★折り返させません。折り返すと題の位置が下がって、まわりがずれます。
- * ---------------------------------------------------------- */
 function subFit(el){
   try {
     const row = el.parentElement;
@@ -3456,24 +3433,59 @@ function fitLabel(txt, maxW){
   return { fs: 8, lines: L.slice(0, 3) };
 }
 
+/**
+ * グラフの「1時間ぶんの幅」を決めます。どのグラフも、ここ1か所で決めます。
+ *
+ * ★縦画面のときは、グラフぜんたいが1画面に収まる幅にします
+ *   （ご指示・2026/11/24「グラフ 縦画面の場合は、
+ *     表は1画面に収まるようにしてください」）。
+ *   走りながら片手で見るものなので、横に動かさせません。
+ *   そのぶん細くなるので、入りきらない字は出しません。
+ * ★横画面のときは、これまでどおり マスの大きさを優先します
+ *   （ご指示・2026/11/13「22時まではしっかり1画面で見れるように」）。
+ *
+ *  span     … ぜんぶで何時間ぶんあるか
+ *  needYoko … 横画面で「ここまでは収めたい」本数（22時まで）
+ *  pad      … 左右に取ってある幅（名前の欄・右の余白）
+ *  loTate   … 縦画面での下限／loYoko … 横画面での下限／hi … 上限
+ */
+function gCellW_(span, needYoko, pad, loTate, loYoko, hi){
+  const W = (typeof window !== 'undefined') ? window : { innerWidth: 390, innerHeight: 844 };
+  const vw   = Math.max(260, (W.innerWidth || 390) - 56);
+  const n    = Math.max(1, span);
+  const room = Math.max(60, vw - pad);
+  const tate = (W.innerHeight || 844) >= (W.innerWidth || 390);
+  const cw   = tate
+    ? Math.max(loTate, Math.min(hi, Math.floor(room / n)))
+    : Math.max(loYoko, Math.min(hi, Math.floor(room / Math.max(1, needYoko))));
+  return { vw: vw, cw: cw, fits: (pad + cw * n) <= vw + 1 };
+}
+
+/** 表グラフの幅（左の名前の欄ぶんも、ここで決めます） */
+function heatFit_(hrs){
+  const vw0 = Math.max(260,
+    ((typeof window !== 'undefined' ? window.innerWidth : 390) || 390) - 56);
+  const lw  = vw0 < 300 ? 56 : vw0 < 340 ? 64 : 76;   /* 左の名前の欄 */
+  /* 下限18。これより細いと、色の帯すら見えません。
+     横画面の下限は36（これより細いと「¥11,200」が切れます）。 */
+  const f = gCellW_(Math.max(1, hrs.length),
+    Math.max(1, Math.min(hrs.length, 22 - hrs[0] + 1)), lw + 8, 18, 36, 64);
+  return { vw: f.vw, lw: lw, cw: f.cw, fits: f.fits };
+}
+
 function heatSvg(rows, pls, hrs, mx, sumLabel){
-  /* ★22時までは、横にスクロールせずに見られるようにします
-       （ご指示・2026/11/13「22時まではしっかり1画面で見れるように」）。
-       画面の広さから、1時間ぶんの幅を決めます。
-       マスが小さくなりすぎないよう、下限は決めてあります。 */
-  const vw   = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
-  const lw   = vw < 300 ? 56 : vw < 340 ? 64 : 76;  /* 左の名前の欄 */
-  const need = Math.max(1, Math.min(hrs.length, 22 - hrs[0] + 1));  /* 22時までの本数 */
-  /* 下限は36。これより細いと「¥11,200」が収まらず、字が切れます。
-     収まらない幅の機種では、22時までが少しだけ横にずれます。
-     読めない数字を出すより、そのほうがましです。 */
-  const cw   = Math.max(36, Math.min(64, Math.floor((vw - lw) / need)));
+  const fit0 = heatFit_(hrs);
+  const vw = fit0.vw, lw = fit0.lw, cw = fit0.cw;
   /* ★マスの中は「¥13,200」のように、そのまま出します
        （ご指示・2026/11/13「〇〇Kって書き方は全然馴染みがないので ￥〇〇としてください」）。
        一番大きい金額の字数に合わせて、はみ出さない大きさにします。 */
   const dig = Math.max(4, String(yen(mx)).length);
   const fz1 = Math.min(11.5, Math.max(7, (cw - 5) / dig / 0.72));
   const fz2 = Math.max(6.5, fz1 - 2.5);
+  /* ★細いマスでは、入らない字は出しません（出すと切れて読めません）。
+       36以上なら金額、26以上なら件数だけ、それより細ければ色だけ。
+     どの太さでも、マスを押せば 件数と金額が そのまま出ます。 */
+  const mode = cw >= 36 ? 'yen' : cw >= 26 ? 'n' : '';
   const ch = 42;
   const w = lw + hrs.length * cw + 8, hgt = 34 + (pls.length + 1) * ch + 8;
   const cell = (p, h) => {
@@ -3495,8 +3507,9 @@ function heatSvg(rows, pls, hrs, mx, sumLabel){
     hrs.forEach((h,i) => { const c = cell(p,h), x = lw+i*cw, t = c.n ? Math.min(1, c.avg/mx) : 0;
       o += `<g data-tip="${esc(label)} ${h}時台&#10;件数 ${c.n}件&#10;1本の平均金額 ${c.n?yen(c.avg):'—'}&#10;平均 待ち ${c.n?Math.round(c.wait)+'分':'—'}">
         <rect x="${x+2}" y="${y+2}" width="${cw-4}" height="${ch-4}" rx="4" fill="${c.n?`rgba(240,163,59,${.10+t*.82})`:'rgba(255,255,255,.03)'}" stroke="#243350"/>
-        ${c.n ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" style="font-size:${fz1}px" fill="${t>.55?'#14100A':'#EDE6D8'}">${yen(c.avg)}</text>
+        ${(c.n && mode === 'yen') ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2-1}" text-anchor="middle" style="font-size:${fz1}px" fill="${t>.55?'#14100A':'#EDE6D8'}">${yen(c.avg)}</text>
         <text class="glab" x="${x+cw/2}" y="${y+ch/2+12}" text-anchor="middle" style="font-size:${fz2}px" fill="${t>.55?'#4A3A1E':'#8A99B5'}">${cw >= 44 ? '平均・' + c.n + '件' : c.n + '件'}</text>` : ''}
+        ${(c.n && mode === 'n') ? `<text class="glab" x="${x+cw/2}" y="${y+ch/2+4}" text-anchor="middle" style="font-size:${Math.max(7, Math.min(10, cw/2.6))}px" fill="${t>.55?'#14100A':'#EDE6D8'}">${c.n}</text>` : ''}
       </g>`; });
     return o; };
   pls.forEach((p,i) => s += row(p, p, 34+i*ch));
@@ -3622,8 +3635,14 @@ function gChart(kind, R){
     const tf = R.filter(r => r.place === p && Math.floor(r.dep) === h && hasFare(r));
     if (tf.length) mx = Math.max(mx, tf.reduce((a, r) => a + (+r.fare || 0), 0) / tf.length);
   }));
-  return '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
+  /* ★収まっているときに「横にスクロールできます」とは書きません
+       （ご指示・2026/11/24。動かないものを動かせと書くと、
+         何かが足りないように見えます）。 */
+  const fit = heatFit_(hrs);
+  return (fit.fits ? '' : '<div class="snote">← 横にスクロールできます（横画面推奨）</div>') +
     '<div class="scroll fb">' + heatSvg(R, pls, hrs, mx, '合計') + '</div>' +
+    (fit.cw < 36
+      ? '<p class="note">マスを押すと、件数と金額が出ます。</p>' : '') +
     `<div class="legend">
       <span><i style="background:rgba(240,163,59,.15)"></i>薄い＝1本が小さい</span>
       <span><i style="background:rgba(240,163,59,.92)"></i>濃い＝1本が大きい</span>
@@ -5110,8 +5129,10 @@ function paneHot(now){
    *       その下に この時間に強い場所(今の時間帯に強い場所に直してください)」
    *   天気は、その下に回します。
    */
-  const head = '<div class="card"><h2>天気</h2>' +
-    wxNowHTML() + wxHoursHTML() + '</div>' + radarCard();
+  /* ★天気の欄は、やめました（ご指示・2026/11/24
+       「天気ページは除外」）。天気は【記録】の一番上の絵に出ています。
+     雨雲レーダーだけは、ここから開けるように残します。 */
+  const head = radarCard();
 
   /*
    * ★一番上は「いま、どこへ行くか」です（ご指摘・2026/11/24
@@ -5418,9 +5439,10 @@ function tlChart(R){
   const DENS = 52;
   /* ★1時間ぶんの幅は、表グラフと同じ考え方で決めます。
        22時までは、横にスクロールせずに見られる大きさにします。 */
-  const vwT  = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
-  const need = Math.max(1, Math.min(x1 - x0, 22 - x0));
-  const cwT  = Math.max(30, Math.min(52, Math.floor((vwT - L - Rp) / need)));
+  /* ★縦画面では、ぜんぶが1画面に収まる幅にします（ご指示・2026/11/24）。 */
+  const fT   = gCellW_(Math.max(1, x1 - x0),
+    Math.max(1, Math.min(x1 - x0, 22 - x0)), L + Rp, 14, 30, 52);
+  const cwT  = fT.cw;
   const W = L + Rp + Math.max(1, (x1 - x0)) * cwT;
   const H = TOPH + ds.length*rowH + DENS + 26;
   /* ★19時より前の記録が、日付の字に重なっていました（2026/11/12）。
@@ -5524,7 +5546,8 @@ function tlChart(R){
   for (let h = x0; h <= x1; h++) s += `<line class="axis-l" x1="${sx(h)}" x2="${sx(h)}" y1="${H-22}" y2="${H-18}"/>
     <text class="axis" x="${sx(h)}" y="${H-6}" text-anchor="middle" style="font-size:11px">${h}</text>`;
   s += '</svg>';
-  return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
+  /* ★収まっているときに「横にスクロールできます」とは書きません（2026/11/24） */
+  return `${fT.fits ? '' : '<div class="snote">← 横にスクロールできます（横画面推奨）</div>'}
     <div class="scroll fb">${s}</div>
     <div class="legend"><span><i style="background:#8FA3C4"></i>待ち時間</span>${BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.n}</span>`).join('')}<span><i style="background:#5A6273"></i>不明</span><span>横軸は時。25＝翌1時</span></div>
     <p class="note">一番下の「重なり」は、その時間に動いていた本数です
@@ -5571,9 +5594,11 @@ function scChart(R){
   const x0 = Math.floor(Math.min(...xs) - .5), x1 = Math.ceil(Math.max(...xs) + .5);
   /* ★1時間ぶんの幅は、画面の広さに合わせます。
        22時までは、横にスクロールせずに見られる大きさにします。 */
-  const vwS  = Math.max(260, (typeof window !== 'undefined' ? window.innerWidth : 390) - 56);
-  const need = Math.max(1, Math.min(x1 - x0, 22 - x0));
-  const cwS  = Math.max(30, Math.min(52, Math.floor((vwS - L - Rp) / need)));
+  /* ★縦画面では、ぜんぶが1画面に収まる幅にします（ご指示・2026/11/24）。
+       線グラフは 14pxでも形が読めるので、そこまで詰めます。 */
+  const fS   = gCellW_(Math.max(1, x1 - x0),
+    Math.max(1, Math.min(x1 - x0, 22 - x0)), L + Rp, 14, 30, 52);
+  const cwS  = fS.cw;
   /* ★縦も1画面に収めます（ご指示・2026/11/13）。前は 360px あって、
        説明・ボタン・色の一覧を足すと、1画面に入りませんでした。 */
   const W = L + Rp + Math.max(1, (x1 - x0)) * cwS, H = 236;
@@ -5645,7 +5670,8 @@ function scChart(R){
     });
   });
   s += axisBottom() + '</svg>';
-  return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
+  /* ★収まっているときに「横にスクロールできます」とは書きません（2026/11/24） */
+  return `${fS.fits ? '' : '<div class="snote">← 横にスクロールできます（横画面推奨）</div>'}
     <div class="scroll fb">${s}</div>
     <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div>`;
 }
@@ -5952,8 +5978,12 @@ function bestReady_(D, cnt){
   return out.sort(function (x, y){ return y.n - x.n; });
 }
 
-function bestTimeCard(D){
+function bestTimeCard(D, noFilt){
   if (!D || !D.length) return '';
+  /* ★【記録】の画面では、しぼり込みの行を出しません（2026/11/24）。
+       すぐ下の「過去の記録」に、同じ4つのプルダウンが並んでいるので、
+       2か所に同じものが出ると、どちらを触ったのか分からなくなります。 */
+  const fch = noFilt ? '' : filterChips(true);
   /* 乗り場ごとの件数。多い順にえらべるようにします */
   const cnt = {};
   D.forEach(function (r){ const p = r.place; if (p) cnt[p] = (cnt[p] || 0) + 1; });
@@ -6008,7 +6038,7 @@ function bestTimeCard(D){
           ? 'この絞り込みでは、どの乗り場も3件そろいません。上の【絞り込みを解除】で、元に戻ります。'
           : esc(pick) + ' は、3件以上そろった時間帯が、まだありません。');
     return '<div class="card"><h2>乗り場別 オススメ時間帯</h2>' +
-      '<div class="bsel">' + sel + '</div>' + filterChips(true) + go +
+      '<div class="bsel">' + sel + '</div>' + fch + go +
       '<div class="empty">' + msg + '</div></div>';
   }
 
@@ -6029,7 +6059,7 @@ function bestTimeCard(D){
     /* ★曜日や期間でも、この場で絞り込めます（2026/11/22）。
          平日と金土では、同じ乗り場でも狙う時間が違うためです。
          はじめは たたんであるので、表がすぐ見えます。 */
-    filterChips(true) +
+    fch +
     '<p class="note"><b>' + esc(pick) + ' は、' + top.h + '時台</b>が一番よさそうです' +
     '（ロング ' + top.L + '%・平均 ' + yen(top.avg) + '・' + top.o.n + '件）。</p>' +
     '<div class="btlist">' + body + '</div>' +
@@ -7560,9 +7590,25 @@ function importPreview(){
 function fabWire(){
   const m = document.getElementById('fabMenu');
   const sheet = document.getElementById('fabSheet');
+  /* ★開いている間は、【もっと】を赤いままにします（ご指摘・2026/11/24）。
+       どこを押したのか分からないまま、ほかのページが隠れていました。 */
+  const mOpen = function (on){
+    if (m) m.classList.toggle('open', !!on);
+    if (sheet) sheet.hidden = !on;
+  };
   if (m && sheet) {
+    /* 外を押したら閉じます（閉じ方が分からないと、焦らせます） */
+    if (!document.body.dataset.msWired) {
+      document.body.dataset.msWired = '1';
+      document.addEventListener('click', function (e){
+        if (sheet.hidden) return;
+        if (e.target.closest && (e.target.closest('#fabSheet') ||
+            e.target.closest('#fabMenu'))) return;
+        mOpen(false);
+      });
+    }
     m.onclick = function () {
-      if (!sheet.hidden) { sheet.hidden = true; return; }
+      if (!sheet.hidden) { mOpen(false); return; }
       /* ================================================================
        *  ≡ の中身は「アカウントのこと」です（ご指示・2026/11/17）。
        *    ページの行き先は、▼ のほうに移しました。
@@ -7608,7 +7654,11 @@ function fabWire(){
         (tocHidden()
           ? '<button class="fsrow" id="tocBack" type="button">' +
             '<b>目次を出す</b><i>右上の目次を、もう一度 出します</i></button>'
-          : ''));
+          : '') +
+        /* ★閉じ方を、はっきり出します（開けっぱなしだと焦らせます） */
+        '<div class="msclose"><button type="button" id="msX">閉じる</button></div>');
+      const mx = sheet.querySelector('#msX');
+      if (mx) mx.onclick = function (){ mOpen(false); };
       /* 移してきた箱の中のボタンを、もう一度つなぎ直します */
       sheet.querySelectorAll('[data-hand]').forEach(function (b2) {
         b2.onclick = function () {
@@ -7620,20 +7670,20 @@ function fabWire(){
       const so = sheet.querySelector('#out');
       if (so && !so.dataset.wired) { so.dataset.wired = '1'; so.addEventListener('click', signOut); }
       const gm = sheet.querySelector('#goMina');
-      if (gm) gm.onclick = function (){ sheet.hidden = true; minaOpen(); };
+      if (gm) gm.onclick = function (){ mOpen(false); minaOpen(); };
       const tb2 = sheet.querySelector('#tocBack');
       if (tb2) tb2.onclick = function (){
         try { localStorage.removeItem(TOC_HIDE); } catch (e) {}
-        sheet.hidden = true; tocBuild();
+        mOpen(false); tocBuild();
       };
-      sheet.hidden = false;
+      mOpen(true);
       sheet.querySelectorAll('[data-t]').forEach(function (b) {
-        b.addEventListener('click', function (){ sheet.hidden = true; });
+        b.addEventListener('click', function (){ mOpen(false); });
       });
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
         b.onclick = function () {
-          grab(); tab = b.dataset.go; tabSave(); sheet.hidden = true; msg = '';
-          render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+          grab(); tab = b.dataset.go; tabSave(); mOpen(false); msg = '';
+          render(); window.scrollTo(0, 0);
         };
       });
     };
@@ -7755,14 +7805,11 @@ function tocTop_(){
      右上は、上の帯の ≡ と【?】がある所です。そこへ重ねると、
      どちらを押したのか分からなくなります。
      右下なら、片手の親指が 一番 届く所でもあります。 */
+  /* ★下の帯は やめました（ご指示・2026/11/24）。
+       画面の下から少し浮かせるだけにします。 */
   try {
-    const bb = document.getElementById('botbar');
-    let b = 18;
-    if (bb && !bb.classList.contains('cl')) {
-      b = Math.round(bb.getBoundingClientRect().height) + 12;
-    }
     n.style.top = 'auto';
-    n.style.bottom = b + 'px';
+    n.style.bottom = '18px';
   } catch (e) {}
 }
 let foldSet = (function (){
@@ -8209,55 +8256,58 @@ function hverWire_(){}
  *    残さないと、二度と広げられません。
  *  ★たたんだかどうかは覚えておきます（毎回たたみ直させないため）。
  * ================================================================ */
-const TOPBAR_KEY = 'tn_topbar_fold';
-const BOTBAR_KEY = 'tn_botbar_fold';
-
-/** 帯の高さぶん、中身をずらし直します（たたむと そのぶん広く使えます） */
+/* ================================================================
+ *  上の帯（ご指示・2026/11/24）
+ *    「スクロール時に、ロゴが消えたら、上がメニューに切り替わる」
+ *
+ *  ★1段目（題と時計）は、下へ進むと消えます。
+ *    メニューは いつでも画面の上に残るので、
+ *    どこを見ていても 1回 押せば移れます。
+ * ================================================================ */
+/** 帯の高さぶん、中身をずらし直します */
 function barPad_(){
   try {
     const hd = document.getElementById('hdr');
-    const bb = document.getElementById('botbar');
-    /* ★つまみは帯の中に入れました（中身の字に重ならないようにするため）。
-         たたんだときは、つまみの細い帯のぶんだけ空けます。 */
-    const th = hd ? Math.round(hd.getBoundingClientRect().height) : 46;
-    const bh = (bb && !bb.classList.contains('cl'))
-      ? Math.round(bb.getBoundingClientRect().height) : 20;
+    const th = hd ? Math.round(hd.getBoundingClientRect().height) : 94;
     document.documentElement.style.setProperty('--topH', th + 'px');
-    document.documentElement.style.setProperty('--botH', bh + 'px');
+  } catch (e) {}
+}
+
+/** 下へ進んだかどうか（題の行を消すか） */
+let scOn_ = false;
+function scWatch_(){
+  try {
+    const on = (window.scrollY || 0) > 48;
+    if (on === scOn_) return;
+    scOn_ = on;
+    document.body.classList.toggle('sc', on);
+    setTimeout(barPad_, 180);
+  } catch (e) {}
+}
+
+/* ---- 日付・曜日・時刻・秒（ご指示・2026/11/24） ---- */
+const CLK_W = ['日', '月', '火', '水', '木', '金', '土'];
+function clockTick_(){
+  try {
+    const el = document.getElementById('hclock');
+    if (!el) return;
+    const d = new Date();
+    const z = function (n){ return ('0' + n).slice(-2); };
+    el.innerHTML = '<b>' + (d.getMonth() + 1) + '/' + d.getDate() +
+      '(' + CLK_W[d.getDay()] + ')</b><i>' +
+      z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()) + '</i>';
   } catch (e) {}
 }
 
 function barWire_(){
-  const hd = document.getElementById('hdr');
-  const g  = document.getElementById('hgrab');
-  if (hd && g && !g.dataset.wired) {
-    g.dataset.wired = '1';
-    let cl = false;
-    try { cl = (localStorage.getItem(TOPBAR_KEY) === '1'); } catch (e) {}
-    hd.classList.toggle('cl', cl);
-    g.onclick = function (e){
-      e.preventDefault();
-      const on = !hd.classList.contains('cl');
-      hd.classList.toggle('cl', on);
-      try { localStorage.setItem(TOPBAR_KEY, on ? '1' : '0'); } catch (er) {}
-      barPad_(); try { tocTop_(); } catch (er) {}
-    };
+  if (typeof window !== 'undefined' && window.addEventListener && !barWire_.done) {
+    barWire_.done = true;
+    window.addEventListener('scroll', scWatch_, { passive: true });
+    window.addEventListener('resize', function (){ barPad_(); }, { passive: true });
+    clockTick_();
+    setInterval(clockTick_, 1000);
   }
-  const bb = document.getElementById('botbar');
-  const bg = document.getElementById('bgrab');
-  if (bb && bg && !bg.dataset.wired) {
-    bg.dataset.wired = '1';
-    let cl2 = false;
-    try { cl2 = (localStorage.getItem(BOTBAR_KEY) === '1'); } catch (e) {}
-    bb.classList.toggle('cl', cl2);
-    bg.onclick = function (e){
-      e.preventDefault();
-      const on = !bb.classList.contains('cl');
-      bb.classList.toggle('cl', on);
-      try { localStorage.setItem(BOTBAR_KEY, on ? '1' : '0'); } catch (er) {}
-      barPad_();
-    };
-  }
+  scWatch_();
   barPad_();
   hdrDupeWire_();
   logoFit_();
@@ -9180,11 +9230,6 @@ function menuDot(){
   const ev = document.getElementById('evDot');
   const nw = document.getElementById('newsDot');
   const on = (ev && !ev.hidden) || (nw && !nw.hidden);
-  /* ★行き先は、画面の下の帯へ移りました（2026/11/24）。
-       下の帯の【イベント】【お知らせ】に、それぞれ黄色い点が付きます。
-       上の帯の つまみは たたむだけのものなので、点は付けません。 */
-  const g = document.getElementById('hgrab');
-  if (g) g.classList.remove('dotted');
   /* ★【もっと】の中に未読があるときは、【もっと】にも点を付けます
        （中に入っていると、開くまで気づけないためです）。 */
   const m = document.getElementById('fabMenu');
@@ -9709,9 +9754,6 @@ function evPopup(d){
 /* ★イベントの紙と、受け口の住所を 読みます。
      住所は【仕掛けを起こす】のボタンに使います（ご指示・2026/11/13）。 */
 async function bootLoad(){
-  /* ★題の下の一文は「開き直すたびに切り替わる」ので、ここで1つ進めます
-       （ご指示・2026/11/15「更新する度に切り替わる形で良いです」）。 */
-  lordSeqInit();
   await gasLoad();
   await loadEv();
 }

@@ -1204,9 +1204,14 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/この絞り込みでは、どの乗り場も3件そろいません。/.test(app),
     '★★★絞り込みのせいなのか、記録が足りないのかを書き分ける');
   /* ★曜日や期間も、この場で絞り込めます（平日と金土で狙う時間が違うため） */
-  t(/filterChips\(true\) \+\n? *'<p class="note"><b>' \+ esc\(pick\)/.test(app)
-    || /filterChips\(true\) \+[\s\S]{0,120}esc\(pick\) \+ ' は、'/.test(app),
+  /* ★【記録】の画面では出しません（すぐ下の「過去の記録」に同じものが
+       並ぶため）。その切り替えが fch です。 */
+  t(/const fch = noFilt \? '' : filterChips\(true\);/.test(app),
     '★★★この場でも、曜日や期間を絞り込める');
+  t(/fch \+\n? *'<p class="note"><b>' \+ esc\(pick\)/.test(app),
+    '　 それを、表のすぐ上に置く');
+  t(/bestTimeCard\(visible\(\)\.filter\(hasDep\), true\)/.test(app),
+    '★★★【記録】では、同じ絞り込みを二度 出さない');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件そろわない時間帯は出さない');
   t(/x\.o\.n >= HOT_MIN_N/.test(app), '★★★3件より少ない乗り場は、並びに出さない');
   /* ★その1時間だけでは3件に届かないので、前後1時間をふくめて数えます。
@@ -1378,10 +1383,11 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
            （スクロール後も、タップすると、下が開く）」）。 */
     const h5 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
     /* ★2026/11/24：上の帯は 題と ≡ だけ。ページの行き先は 下の帯へ。 */
-    t(h5.indexOf('id="hgrab"') < h5.indexOf('</header>'),
-      '★★★上の帯の たたむ つまみは、帯の中にある');
-    t(h5.indexOf('id="botbar"') > h5.indexOf('</header>'),
-      '★★★下の帯は、上の帯とは別に置く');
+    /* ★2026/11/24：下の帯はやめ、上の帯だけにしました
+         （「1回でタップして移動してくれないため」）。 */
+    t(!/id="botbar"/.test(h5), '★★★下の帯は、もう無い');
+    t(h5.indexOf('<nav id="tabs"') < h5.indexOf('</header>'),
+      '★★★メニューは、上の帯の中にある');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
@@ -1488,14 +1494,16 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     /* ★2026/11/23：【天気】のページをやめ、【再現】を【特定】に入れ、
          【トロフィー】を足したので 9こ（ご指示・同日）。
        最後の1つは2ます分に広げて、行のはしまで埋めています。 */
-    /* ★2026/11/24 のご指示「必要最低限に絞ってください」で5つ。
-         残りは【もっと】の中に、大きな行で並べます。 */
-    t(subs.length === 5, '★★★押しどころは5つだけ', subs.length);
+    /* ★2026/11/24：上の帯に6つ（記録・いま・グラフ・割合・地図・もっと）。
+         そえ字は出しません（1段に収めるため）。 */
     {
+      const n6 = (navH.match(/data-t="/g) || []).length;
+      t(n6 === 5, '★★★押しどころは5つ＋【もっと】', n6);
       const mo = h3.slice(h3.indexOf('<nav id="more"'), h3.indexOf('</nav>', h3.indexOf('<nav id="more"')));
-      ['map','ratio','tok','tro','nippo','news','fb','set'].forEach(function (k){
+      ['ev','tok','tro','nippo','news','fb','set'].forEach(function (k){
         t(mo.indexOf('data-t="' + k + '"') !== -1, '　 ' + k + ' は【もっと】の中');
       });
+      t(mo.indexOf('data-t="hot"') === -1, '　 天気のページは、もう無い');
     }
     t(/data-t="ev"(?! [^>]*hidden)/.test(h3),
       '★★★イベントも、画面のメニューに出す');
@@ -1511,14 +1519,14 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     /* ★「いま」＝いま どこへ行くとよいか。ドライバーが一番 知りたいものを
          2番目に置きます（ご指摘・2026/11/24「タクシードライバーであれば
          知りたい要素について、どう操作したら良いのか全く分かりません」）。 */
-    t(ord.join(',') === 'in,hot,g,ev',
-      '★★★並びは 記録→いま→グラフ→イベント（＋もっと）', ord.join(','));
+    t(ord.join(',') === 'in,hot,g,ratio,map',
+      '★★★並びは 記録→いま→グラフ→割合→地図（＋もっと）', ord.join(','));
     /* ★【天気】は、押しどころの行から外しました（ご指示・2026/11/23
          「天気ページは一旦やめて 記録ページの1番上に…」）。
        雨雲レーダーだけは、一番上の絵と ≡ から いつでも開けます。 */
     t(/data-t="hot"[^>]*><b>いま<\/b>/.test(navH),
       '★★★「いま どこへ行くか」は、押しどころの行に出す');
-    t(/<i>どこへ行く<\/i>/.test(navH), '　 何が見られるかを、そえ字で書く');
+    t(!/<i>/.test(navH), '　 1段に収めるので、そえ字は出さない');
     /* ★「ます目からはみ出さない」が目的です。字数は目安で、
          実際にはみ出していないことは、画面を測って確かめています。 */
     t(subs.every(x => x.length <= 11), '★★★そえる字は11文字まで（ます目からはみ出さない）',
@@ -1721,8 +1729,8 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
      ★そのさらに上に、固定ボタンの左右を切り替える所を置きます。 */
   /* ★2026/11/24：ページの行き先は、画面の下の帯へ移しました。
        利き手の切り替えは、≡ の中と【設定】にあります。 */
-  t(/<div class="botbar" id="botbar">/.test(html),
-    '★★★ページの行き先は、画面の下の帯にある');
+  t(/<nav id="tabs" class="topnav">/.test(html),
+    '★★★ページの行き先は、上の帯にある');
   t(/data-hand="l"/.test(html) && /data-hand="r"/.test(html),
     '★★★利き手の切り替えは、≡ の中にある');
   t(/\.card h2:before\{content:"— "/.test(css), '　 赤い線は、見出しの頭に付く');
@@ -1826,6 +1834,8 @@ console.log('■ 似ている乗り場に気づく・説明を短く（ご指示
        （ご指示「%は、やっぱりパーセントにしてください」）。
        字が長くなるので、ます目の字は画面の幅に合わせて
        ぜんぶ同じだけ小さくなります（style.css の clamp）。 */
+  /* ★2026/11/24：押しどころは、まーく様のお言葉のまま
+       「パーセント」です（ご指示「・パーセント ⇒ メニューに表示」）。 */
   ['記録', 'グラフ', '地図', 'パーセント', '特定'].forEach(function (n) {
     t(tabs.indexOf(n) !== -1, '★★★タブ「' + n + '」がある', tabs.join('/'));
   });
@@ -2123,7 +2133,7 @@ console.log('■ 乗り場のプルダウンが、からっぽにならない（
   t(/function placeSelFill_\(\)/.test(app), '★★★中身を入れる係がある');
   const a1 = app.indexOf("if (pt) pt.innerHTML =");
   const a2 = app.indexOf('placeSelFill_();', a1);
-  t(a1 > 0 && a2 > a1 && a2 - a1 < 400,
+  t(a1 > 0 && a2 > a1 && a2 - a1 < 1200,
     '★★★作り直した「あと」に、中身を入れ直している');
   t((app.match(/placeSelFill_\(\);/g) || []).length >= 2,
     '　 画面を組み立てる前と、あとの両方で呼んでいる');
@@ -2648,7 +2658,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★中身は、ページの中のメニューから作る（元は1つ）');
   /* ★2026/11/24：行き先は、画面の下の帯ひとつにしました
        （同じものを2つ出さないため）。 */
-  t(/<nav id="tabs" class="botnav">/.test(h3b), '★★★行き先は、下の帯にある');
+  t(/<nav id="tabs" class="topnav">/.test(h3b), '★★★行き先は、上の帯にある');
   t(!/<nav id="htabs">/.test(h3b), '　 上の帯には、同じ一覧を置かない');
   t(/getElementById\('acctBox'\)[\s\S]{0,900}sheet\.appendChild\(box\)/.test(app),
     '★★★【もっと】の中に、アカウントのことを移してきている');
@@ -2733,8 +2743,17 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(!/…/.test(app.slice(app.indexOf('function heatSvg'), app.indexOf('const G_KINDS'))),
     '★★★「…」で切らない（どこの乗り場か分からなくなる）');
   t(/22 - hrs\[0\] \+ 1/.test(app), '★★★22時までの本数から、1時間ぶんの幅を決める');
-  t(/const cw   = Math\.max\(36, Math\.min\(64, Math\.floor\(\(vw - lw\) \/ need\)\)\)/.test(app),
-    '★★★画面に収まるまで、マスの幅を詰める');
+  /* ★縦画面では、ぜんぶが1画面に収まる幅にします（ご指示・2026/11/24
+       「グラフ 縦画面の場合は、表は1画面に収まるようにしてください」）。
+     幅を決める係は、どのグラフも gCellW_ 1つにまとめてあります。 */
+  t(/function gCellW_\(span, needYoko, pad, loTate, loYoko, hi\)/.test(app),
+    '★★★1時間ぶんの幅を決める係が、1つにまとまっている');
+  t(/\? Math\.max\(loTate, Math\.min\(hi, Math\.floor\(room \/ n\)\)\)/.test(app),
+    '★★★縦画面では、ぜんぶが1画面に収まるまで詰める');
+  t(/: Math\.max\(loYoko, Math\.min\(hi, Math\.floor\(room \/ Math\.max\(1, needYoko\)\)\)\)/.test(app),
+    '　 横画面では、マスの大きさを優先する');
+  t(/gCellW_\(Math\.max\(1, hrs\.length\),[\s\S]{0,120}lw \+ 8, 18, 36, 64\)/.test(app),
+    '★★★表グラフも、その係で幅を決める');
   t(/window\.innerWidth/.test(app), '　 いまの画面の広さを見ている');
   t(/const fz1 = Math\.min\(11\.5, Math\.max\(7, \(cw - 5\) \/ dig/.test(app),
     '　 一番大きい金額に合わせて、字の大きさを決める');
@@ -2820,9 +2839,12 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★時刻の数字は、上と下の両方に出す');
   t(/fmtD\(d\)\.replace\('\(', ' '\)\.replace\('\)', ''\)/.test(app),
     '★★★日付は「11/11 水」の形（かっこを外して短く）');
-  t(/const need = Math\.max\(1, Math\.min\(x1 - x0, 22 - x0\)\)/.test(app),
-    '★★★22時までが、横にスクロールせずに見られる');
-  t(/const cwT  = Math\.max\(30, Math\.min\(52/.test(app), '　 1時間ぶんの幅を、画面に合わせる');
+  t((app.match(/Math\.max\(1, Math\.min\(x1 - x0, 22 - x0\)\)/g) || []).length >= 2,
+    '★★★横画面では、22時までが横にスクロールせずに見られる');
+  t(/const cwT  = fT\.cw;/.test(app) && /const cwS  = fS\.cw;/.test(app),
+    '　 1時間ぶんの幅は、どのグラフも同じ係で決める');
+  t(/\$\{fT\.fits \? '' :/.test(app) && /\$\{fS\.fits \? '' :/.test(app),
+    '★★★収まっているときは「横にスクロールできます」と書かない');
   /* ⑥-12c 目次：隠している見出しは、目次にも出さない（ご指摘・2026/11/13
             「過去の記録は記録ページのみで良いと言いましたよね？
               なんで他のページにも残ったままなのでしょうか」）
@@ -2889,18 +2911,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ⑥-16 2026/11/13 のまとめてのご指示 */
 
   /* 一番上を、ひとつのブロックに */
-  /* ★2026/11/24 のご指示
-       「固定の上メニュー、下メニューは折りたたみや展開ができるように」 */
-  t(/id="hgrab"/.test(idx), '★★★上の帯に、たたむ つまみがある');
-  t(/id="bgrab"/.test(idx), '★★★下の帯にも、たたむ つまみがある');
-  t(/function barWire_\(/.test(app), '★★★たたむ・広げる動きがある');
-  t(/header#hdr\.cl\{height:0/.test(css), '　 たたむと、上の帯は高さが無くなる');
-  t(/\.botbar\.cl\{transform:translateY/.test(css), '　 下の帯は、下へ しまわれる');
-  t(/header#hdr\.cl \.hgrab i\{transform:rotate\(180deg\)\}/.test(css),
-    '　 たたむと、つまみの向きが変わる');
-  t(/localStorage\.setItem\(TOPBAR_KEY/.test(app) &&
-    /localStorage\.setItem\(BOTBAR_KEY/.test(app),
-    '★★★たたんだかどうかは、覚えておく');
+  /* ★2026/11/24：下へ進むと 題の行が消え、メニューだけが残ります。 */
+  t(/function scWatch_\(/.test(app), '★★★下へ進んだかを見ている');
+  t(/body\.sc header#hdr \.hmain\{height:0/.test(css),
+    '★★★ロゴが消えて、メニューに切り替わる');
+  /* ★つまみと下の帯は、中身ごと やめました（ご指示・2026/11/24）。
+       残しておくと、いつか また出てきます。 */
+  t(!/^\.botbar/m.test(css) && !/getElementById\('botbar'\)/.test(app),
+    '　 下の帯は、中身ごと無い');
 
   /* 過去の記録は、記録の画面だけ */
   t(/ktop\.hidden = \(tab !== 'in'\)/.test(app),
@@ -2966,8 +2984,11 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★過去の記録 → 直近の記録 の順');
   /* ★2026/11/16：新規の記録を、直近の記録より上にしました（ご指示
        「新規の記録の方が、直近の記録より上にしてください」） */
-  t(/\(tab === 'in'\) \? \(bannerCard\(\) \+ leadCard\('in'\) \+ paneInNew\(\)\) : ''/.test(app),
-    '★★★記録の画面は 新規の記録 → 過去の記録（表つき）の順');
+  /* ★2026/11/24：天気の欄も、この画面の一番上へ移しました。 */
+  t(/\(tab === 'in'\)\s*\n?\s*\? \(bannerCard\(\) \+/.test(app) &&
+    /wxNowHTML\(\) \+ wxHoursHTML\(\)/.test(app) &&
+    /leadCard\('in'\) \+ paneInNew\(\)/.test(app),
+    '★★★記録の画面は 絵 → 天気 → 新規の記録 → 過去の記録 の順');
   t(/<div id="ktTbl"><\/div>/.test(idx) &&
     /ktb\.innerHTML = \(tab === 'in'\) \? paneInRecent\(\) : ''/.test(app),
     '★★★記録の表は「過去の記録」の中に出す');
@@ -3094,8 +3115,8 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* 灰色のブロックを、貼り付く行にドッキング */
   t(/header#hdr\{position:fixed/.test(css),
     '★★★上の帯は、下まで進んでも 画面に貼り付いたまま');
-  t(/<i>▼<\/i>/.test(idx), '★★★▼ のつまみがある（押すと下に開く）');
-  t(/header#hdr\.cl \.hgrab i\{transform:rotate\(180deg\)\}/.test(css),
+  t(/id="hclock"/.test(idx), '★★★日付と時刻が、上の帯に出る');
+  t(/body\.sc nav#tabs\.topnav\{padding-top:7px\}/.test(css),
     '　 開いているときは ▲（押すと しまう）');
   t(/<div class="footver">/.test(idx), '★★★版は、ページの一番下（©の下）');
   t(idx.indexOf('class="footver"') > idx.indexOf('class="copy"'),
@@ -3214,9 +3235,9 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
 
   /* ≡ の赤い丸（未読があるとき） */
   t(/function menuDot\(/.test(app), '★★★≡ に赤い丸を付ける係がある');
-  /* ★2026/11/24：行き先は 下の帯へ移したので、点も下の帯に付けます。
-       上の帯の つまみは たたむだけのものなので、点は付けません。 */
-  t(/g\.classList\.remove\('dotted'\)/.test(app), '　 上の帯の つまみには、点を付けない');
+  /* ★2026/11/24：行き先は 上の帯のメニューと【もっと】だけです。
+       たたむつまみは やめたので、そこに点を付ける話も無くなりました。 */
+  t(!/getElementById\('hgrab'\)/.test(app), '　 もう無いつまみを、さわらない');
   t(/m\.classList\.toggle\('dotted', !!inMore\)/.test(app),
     '　 【もっと】の中に未読があれば、【もっと】に点を付ける');
   t(/nav#tabs\.botnav button \.dot\{/.test(css), '　 点は、下の帯のボタンに出る');
@@ -3484,69 +3505,24 @@ console.log('■ 題の下の一文（ご指示・2026/11/15）');
    */
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
+  /* ★2026/11/24 のご指示で、この一文そのものを やめました
+       （「・11/24(火) 最多付け待ちの為、コナン像前のLは〝加藤くん〟です
+         ～の部分」を取り除く／日付・曜日・時刻・秒はリアルタイムで）。
+     いまは、上の帯の時計が 日付と時刻を出しています。 */
   t(!/完全万収ライナーは〝/.test(app), '★★★万収ライナーの一文は、もう出さない');
-  t(/最多付け待ちの為、/.test(app), '★★★「最多付け待ちの為、〜Lは」の一文になっている');
-  t(/のLは〝' \+ x\.who \+ '〟です/.test(app), '　 名前は 〝 〟 ではさむ');
-  /* 出せないときの控えは、これまでどおり「キラ」 */
-  t(/がキラです/.test(sh) && /がキラです/.test(app),
-    '★★★出せないときは「キラ」の一文');
-  t(!/ベルトルトです/.test(sh) && !/ベルトルトです/.test(app),
-    '　「ベルトルト」は残っていない');
+  t(!/最多付け待ちの為、/.test(app), '★★★「最多付け待ちの為〜」の一文も、もう出さない');
+  t(/function clockTick_\(/.test(app) && /setInterval\(clockTick_, 1000\)/.test(app),
+    '★★★かわりに、日付・曜日・時刻・秒が 動いて出る');
+  t(/CLK_W\[d\.getDay\(\)\]/.test(app), '　 曜日も出す');
+  t(/z\(d\.getSeconds\(\)\)/.test(app), '　 秒まで出す');
+  /* 警報・注意報が出ているときだけ、一番上の行に出します */
   t(/subSet\(sb\)/.test(app), '★★★画面に出している');
-  t(/function lordSeqInit\(\)/.test(app) && /lordSeqInit\(\);/.test(app),
-    '★★★開き直すたびに、次の1つへ進む');
-  t(/for \(let n = ch\.length - 1; n >= 2 && subOver\(el\); n--\)/.test(app),
-    '★★★乗り場の名前が長ければ、「…」で短くする');
+  t(/const wl = warnLine\(\);/.test(app), '★★★警報・注意報は、これまでどおり出す');
 
-  /* 中身を動かして確かめます */
-  const box = { console: { log: function(){} } };
-  vm.createContext(box);
-  vm.runInContext(
-    'let names = {u1:"ダイスケ", u2:"マーク", u3:"シュン"}; let records = [];' +
-    'function canonPlace(p){ return p; }' +
-    app.slice(app.indexOf('const MANSHU = 10000;'), app.indexOf('/* ★人ごとの色')), box);
-  const L = rs => { vm.runInContext('records = ' + JSON.stringify(rs) + ';', box);
-    return vm.runInContext('lordList()', box); };
-  const rec = (u, p) => ({ user_id:u, place:p });
-
-  /* 1件だけの乗り場は、「最多」と言い切れないので出さない */
-  t(L([rec('u1', 'A')]).length === 0, '★★★1件だけの乗り場は出さない');
-  /* 同じ数で並んでいるときも、出さない */
-  t(L([rec('u1','A'), rec('u1','A'), rec('u2','A'), rec('u2','A')]).length === 0,
-    '★★★同じ数で並んでいたら、出さない');
-  /* はっきり多い人がいれば、その人 */
-  const g1 = L([rec('u1','A'), rec('u1','A'), rec('u2','A')]);
-  t(g1.length === 1 && g1[0].who === '齋藤くん' && g1[0].n === 2,
-    '★★★いちばん多く付けている人が出る', JSON.stringify(g1));
-
-  /* 同じ人が続けて出ないこと・かたよらないこと */
-  const ord = vm.runInContext('lordOrder(' + JSON.stringify([
-    { p:'A', who:'齋藤くん', n:9 }, { p:'B', who:'齋藤くん', n:8 },
-    { p:'C', who:'齋藤くん', n:7 }, { p:'D', who:'加藤くん', n:6 },
-    { p:'E', who:'加藤くん', n:5 }, { p:'F', who:'山敷くん', n:4 }
-  ]) + ')', box);
-  t(ord.length === 6, '　 すべてが並ぶ', ord.length);
-  let same = 0;
-  for (let i = 1; i < ord.length; i++) if (ord[i].who === ord[i-1].who) same++;
-  t(same === 0, '★★★同じ人が、続けて出ない', ord.map(x => x.who).join('→'));
-  /* ★ぐるっと一周したときも、同じ人が続かないこと
-       （開き直すと先頭へ戻るので、最後と先頭も見ます） */
-  t(ord[0].who !== ord[ord.length - 1].who,
-    '★★★一周しても、同じ人が続かない', ord.map(x => x.who).join('→'));
-  {
-    const o2 = vm.runInContext('lordOrder(' + JSON.stringify([
-      { p:'A', who:'齋藤くん', n:9 }, { p:'B', who:'齋藤くん', n:8 },
-      { p:'C', who:'加藤くん', n:7 }, { p:'D', who:'山敷くん', n:6 }
-    ]) + ')', box);
-    let bad = 0;
-    for (let i = 0; i < o2.length; i++) {
-      if (o2[i].who === o2[(i + 1) % o2.length].who) bad++;
-    }
-    t(bad === 0, '★★★2つだけ多い人がいても、一周して続かない', o2.map(x => x.who).join('→'));
-  }
-  t(ord.slice(0, 3).map(x => x.who).join('/').indexOf('加藤くん') !== -1,
-    '★★★はじめのうちに、ほかの人も出る（かたよらない）',
-    ord.map(x => x.who).join('→'));
+  /* ★乗り場と人を並べていた中身そのものも、消えていること。
+       残しておくと、いつか また出てきます。 */
+  t(!/function lordList\(/.test(app) && !/function lordOrder\(/.test(app),
+    '★★★人と乗り場を並べる中身そのものも、残っていない');
 }
 
 
@@ -4840,13 +4816,32 @@ console.log('\n■ 上の行の作り直し（ご指示・2026/11/23）');
   t(/nav button b\{font-size:clamp\(/.test(css),
     '★★★ます目の字は、画面の幅に合わせて ぜんぶ同じだけ小さくなる');
   t(/<b>パーセント<\/b>/.test(ix), '★★★「％」ではなく「パーセント」と書く');
+  /* ★字の長い【パーセント】だけが、ます目から はみ出していました
+       （320pxで実際に測りました・2026/11/24）。
+     6等分をやめ、長い札には そのぶん広く取ります。
+     width:100% が残っていると、また6等分に戻ります。 */
+  t(/nav#tabs\.topnav\{display:flex/.test(css),
+    '★★★メニューは、字の長さに合わせて幅を取る');
+  t(/nav#tabs\.topnav button\{[^}]*flex:1 1 auto;min-width:0;width:auto/.test(css),
+    '　 6等分に戻らないようにしてある');
 
   /* ④ ★2026/11/24：版は ページの一番下へ、一文は ページの一番上の行へ。
          上の帯そのものが たためるので、たたむ係は 帯のほうに移りました。 */
   t(/<div class="footver">/.test(ix), '★★★版は、ページの一番下（©の下）');
   t(/<div class="topline">/.test(ix), '★★★一番上の一文は、ページの一番上の行');
-  t(/function barWire_\(/.test(app), '★★★上の帯ごと たためる');
-  t(/localStorage\.setItem\(TOPBAR_KEY/.test(app), '　 たたんだままを覚える');
+  /* ★下へ進むと、題と時計の行だけが消えて、メニューの行が残ります
+       （ご指示・2026/11/24「スクロール時に、ロゴが消えたら、
+         上がメニューに切り替わるようにして、上メニューだけに」）。
+     たたむつまみは、もう置きません（手で閉じる必要がなくなったため）。 */
+  t(/function scWatch_\(/.test(app) && /function barWire_\(/.test(app),
+    '★★★下へ進むと、題の行が消えてメニューだけ残る');
+  t(/classList\.toggle\('sc', on\)/.test(app), '　 その切り替えをしている');
+  t(/body\.sc header#hdr \.hmain\{height:0/.test(
+      fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '　 見た目も入っている');
+  t(!/\.botbar[^{]*\{[^}]*display:(?!none)/.test(
+      fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
+    '★★★下の帯は、もう出さない');
 }
 
 console.log('\n■ 説明タブと、右上の目次（ご指示・2026/11/23）');
@@ -5091,7 +5086,7 @@ console.log('\n■ 一番上の絵（ご指示・2026/11/23）');
     '★★★動きを切っておられる方の画面では、動かさない');
 
   /* ⑦ 【記録】の一番上に出る */
-  t(/\(tab === 'in'\) \? \(bannerCard\(\)/.test(app), '★★★【記録】の一番上に出る');
+  t(/tab === 'in'\)[\s\S]{0,20}\? \(bannerCard\(\)/.test(app), '★★★【記録】の一番上に出る');
   t(/setInterval\(function \(\)\{\n    if \(tab === 'hot' \|\| tab === 'ratio' \|\| tab === 'in'\) render\(\);/.test(app),
     '　 時刻が変われば、空の色も変わる');
 }

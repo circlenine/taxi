@@ -279,8 +279,10 @@ console.log('■ 天気が取れなくても、ほかはそのまま出る');
   ]);
   vm.runInContext('hotWx = { ok:false };', ctx);
   const html = H.paneHot(new Date(2026, 9, 28, 1, 0));
-  ok(html.indexOf('取れませんでした') !== -1 && html.indexOf('A</b>') !== -1,
-     '天気が×でも、場所は出る');
+  /* ★2026/11/24：天気の欄は【記録】の一番上の絵に移したので、
+       この画面には出しません（ご指示「天気ページは除外」）。
+     天気が読めなくても、行き先は出ること。 */
+  ok(html.indexOf('A</b>') !== -1, '天気が読めなくても、場所は出る');
 }
 
 console.log('■ 地図は「さがす」形（番地まで当てない）');
@@ -308,7 +310,9 @@ console.log('■ 画面への組み込み（押すところ・描くところ）
        （ご指示「もっと的確な見出し名に直してください」）。 */
   ok(/<h2>いまの時間帯に強い乗り場<\/h2>/.test(appSrc), '表の題は「いまの時間帯に強い乗り場」');
   ok(appSrc.indexOf('<h2>この時間に強い場所</h2>') === -1, '古い題は残っていない');
-  ok(/<h2>天気<\/h2>/.test(appSrc), '天気の区切りがある');
+  /* ★2026/11/24：天気の欄は この画面から外しました。
+       雨雲レーダーだけは、ここから開けるように残します。 */
+  ok(/function radarCard\(/.test(appSrc), '雨雲レーダーは、ここから開ける');
   ok(/hot\s*:\s*paneHot/.test(appSrc), 'app.js が hot のときに paneHot を描く');
   ok(/loadWx\(\)/.test(appSrc), '起動のときに天気を読む');
   ok(/setInterval\(/.test(appSrc), '時刻が変わったら描き直す');
@@ -364,9 +368,12 @@ console.log('■ いちばん上の天気（ご指示・2026/11/12）');
     rec('2026-10-27', 18.2, 'E', 9000), rec('2026-10-20', 18.0, 'E', 9000), rec('2026-10-13', 17.9, 'E', 9000)
   ]);
   const html = H.paneHot(new Date(2026, 9, 28, 17, 20));
-  ok(html.indexOf('wxnow') !== -1, '★★★いちばん上に、いまの天気が出る');
-  ok(html.indexOf('最高') !== -1 && html.indexOf('最低') !== -1, '★★★最高・最低の気温が出る');
-  ok(html.indexOf('wxhs') !== -1, '★★★1時間ごとの一覧が出る');
+  /* ★天気の欄は【記録】の一番上へ移したので、欄そのものを見ます */
+  const wxh = H.wxNowHTML() + H.wxHoursHTML();
+  /* ★2026/11/24：一番上は「いま どこへ行くか」です（ご指示）。 */
+  ok(html.indexOf('の夜') !== -1, '★★★一番上に、いま行くとよい所が出る');
+  ok(wxh.indexOf('最高') !== -1 && wxh.indexOf('最低') !== -1, '★★★最高・最低の気温が出る');
+  ok(wxh.indexOf('wxhs') !== -1, '★★★1時間ごとの一覧が出る');
   ok(html.indexOf('雨雲レーダー') !== -1, '雨雲レーダーの押しどころは残っている');
   vm.runInContext('hotOm = { ok:false };', ctx);
   const h2 = H.paneHot(new Date(2026, 9, 28, 17, 20));
@@ -395,10 +402,12 @@ console.log('■ Open-Meteo が読めない日でも、気温は出る（止ま�
     rec('2026-11-11', 18.2, 'E', 9000), rec('2026-11-04', 18.0, 'E', 9000), rec('2026-10-28', 17.9, 'E', 9000)
   ]);
   const html = H.paneHot(new Date(2026, 10, 12, 17, 31));
-  ok(html.indexOf('wxnow') !== -1, '★★★Open-Meteo が×でも、天気の欄は出る');
-  ok(html.indexOf('18°') !== -1, '★★★いまの気温（アメダス）が出る');
-  ok(html.indexOf('22°') !== -1 && html.indexOf('13°') !== -1, '★★★最高・最低も出る');
-  ok(html.indexOf('あす 最高') !== -1, '　「本日」と偽らない');
+  /* ★天気の欄は【記録】の一番上へ移したので、欄そのものを見ます */
+  const wxh2 = H.wxNowHTML() + H.wxHoursHTML();
+  ok(wxh2.indexOf('wxnow') !== -1, '★★★Open-Meteo が×でも、天気の欄は出る');
+  ok(wxh2.indexOf('18°') !== -1, '★★★いまの気温（アメダス）が出る');
+  ok(wxh2.indexOf('22°') !== -1 && wxh2.indexOf('13°') !== -1, '★★★最高・最低も出る');
+  ok(wxh2.indexOf('あす 最高') !== -1, '　「本日」と偽らない');
   vm.runInContext('hotWx = { ok:false }; hotOm = { ok:false }; hotAmd = { ok:false };', ctx);
 }
 
