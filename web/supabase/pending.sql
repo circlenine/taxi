@@ -300,3 +300,36 @@ create policy places_delete on public.places
   );
 
 grant select, insert, update, delete on public.places to authenticated;
+
+-- ------------------------------------------------------------
+-- ⑪ 区切りのアンロックを、みんなの画面に出す
+--      （まーく様のご指示・2026/11/25
+--        「区切りの良いアンロックが達成した人は
+--          全体ページの、ふきだしの部分に
+--          ○○がアンロック数○○を達成しました と入れてください」）
+--
+--    ★しるしそのものは、これまでどおり 台帳に棚を作りません。
+--      各自の記録から、その場で数えます。
+--    ★ここに入れるのは「だれが・いくつ越えたか」だけです。
+--      同じ人の同じ区切りは、1行しか入りません。
+--    ★読めるのは、ログインした人みんな（みんなの画面に出すため）。
+--      入れられるのは、自分のぶんだけ。消せません（記録なので）。
+-- ------------------------------------------------------------
+create table if not exists public.tro_marks (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  mark       int  not null,              -- 10 / 25 / 50 / 75 / 100
+  who        text not null default '',   -- そのときの呼び名
+  created_at timestamptz not null default now(),
+  primary key (user_id, mark)
+);
+alter table public.tro_marks enable row level security;
+
+drop policy if exists tro_marks_select on public.tro_marks;
+create policy tro_marks_select on public.tro_marks
+  for select to authenticated using (true);
+
+drop policy if exists tro_marks_insert on public.tro_marks;
+create policy tro_marks_insert on public.tro_marks
+  for insert to authenticated with check (user_id = auth.uid());
+
+grant select, insert on public.tro_marks to authenticated;

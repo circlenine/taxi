@@ -5515,6 +5515,16 @@ console.log('\n■ 走る車と、しるし（ご指示・2026/11/25）');
   /* 区切りのよいアンロックを、ふきだしに出します */
   t(/const TRO_MARKS = \[10, 25, 50, 75, 100\];/.test(app), '★★★区切りは 10・25・50・75・100');
   t(/がアンロック数' \+ m \+ 'を達成しました'/.test(app), '★★★その文が出る');
+  /* ★みんなの画面に出します（台帳の棚 tro_marks を使います） */
+  t(/from\('tro_marks'\)/.test(app), '★★★みんなのぶんも、台帳から読む');
+  t(/create table if not exists public\.tro_marks/.test(
+      fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8')),
+    '★★★その棚を作る文が、置いてある');
+  t(/with check \(user_id = auth\.uid\(\)\)/.test(
+      fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8')),
+    '★★★入れられるのは、自分のぶんだけ');
+  t(/if \(error \|\| !data\) return;          \/\* 棚がまだ無くても/.test(app),
+    '★★★棚がまだ無くても、黙って自分のぶんだけ出る（止まらない）');
   t(/function sayNewsSet\(list\)/.test(sh2()), '★★★ふきだしが、その知らせを受け取れる');
   t(/_sayTurn % 3 === 2/.test(sh2()), '　 3回に1回だけ（ひとことが出なくなるのを防ぐ）');
 }

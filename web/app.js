@@ -204,6 +204,9 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
   loadSays();
   loadFaces();
+  /* 区切りのアンロックを、みんなのぶんも読みます（ご指示・2026/11/25）。
+     台帳に棚が無くても、黙って自分のぶんだけ出ます。 */
+  troMarksLoad();
   /* ★はじめての方には、先に案内を出します（ご指示・2026/11/24）。
        とばせます。1回 見たら、もう出しません。 */
   setTimeout(function (){ try { tutOpen(false); } catch (e) {} }, 700);
@@ -2097,16 +2100,54 @@ function troRank(n, all){
  *    みんなの画面に出すには、台帳に棚が1つ要ります。
  * ---------------------------------------------------------- */
 const TRO_MARKS = [10, 25, 50, 75, 100];
+/* みんなのぶん（台帳から読みます。棚が無ければ、自分のぶんだけ出ます） */
+let troMarks = [];
+let troMarkPut = false;
+
+/** 台帳から、みんなの区切りを読みます */
+async function troMarksLoad(){
+  try {
+    const { data, error } = await db.from('tro_marks')
+      .select('user_id,mark,who,created_at')
+      .order('created_at', { ascending: false }).limit(12);
+    if (error || !data) return;          /* 棚がまだ無くても、黙って元のまま */
+    troMarks = data;
+    troNewsPush();
+  } catch (e) {}
+}
+
+/** 自分が越えた区切りを、1度だけ台帳に入れます（消せません。記録なので） */
+async function troMarkSave(m, nm){
+  if (troMarkPut) return;
+  troMarkPut = true;
+  try {
+    await db.from('tro_marks').insert({ user_id: ME.user.id, mark: m, who: nm });
+    await troMarksLoad();
+  } catch (e) {}
+}
+
 function troNewsPush(){
   try {
     if (typeof sayNewsSet !== 'function') return;
     const got = troGot_();
     const hit = TRO_MARKS.filter(function (m){ return got >= m; });
-    if (!hit.length) { sayNewsSet([]); return; }
-    /* 一番 新しく越えた区切りを出します */
-    const m = hit[hit.length - 1];
     const nm = String((ME.profile && (ME.profile.display_name || ME.profile.title)) || 'あなた');
-    sayNewsSet([ nm + 'がアンロック数' + m + 'を達成しました' ]);
+    /* ★みんなのぶんを、新しい順に出します（ご指示・2026/11/25）。
+         台帳の棚がまだ無いときは、自分のぶんだけ出ます。 */
+    const lines = (troMarks || []).map(function (x){
+      return String(x.who || '') + 'がアンロック数' + x.mark + 'を達成しました';
+    }).filter(function (t){ return t.indexOf('が') > 0; });
+    if (hit.length) {
+      const m = hit[hit.length - 1];
+      const mine = nm + 'がアンロック数' + m + 'を達成しました';
+      if (lines.indexOf(mine) === -1) lines.unshift(mine);
+      /* まだ台帳に入れていなければ、1度だけ入れます */
+      const had = (troMarks || []).some(function (x){
+        return String(x.user_id) === String(ME.user && ME.user.id) && Number(x.mark) === m;
+      });
+      if (!had && ME.user && ME.user.id) troMarkSave(m, nm);
+    }
+    sayNewsSet(lines);
   } catch (e) {}
 }
 
