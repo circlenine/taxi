@@ -1336,7 +1336,9 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
        （「フィードバックは三の方にあるので、ここでは消して」）。
        ≡ の一覧からは行けるよう、目に見えない形で残します。 */
   t(/data-t="fb"/.test(html), '★★★フィードバックへは ≡ から行ける');
-  t(/data-t="fb"[^>]*hidden/.test(html), '★★★上の行には出さない（目に見えない形で残す）');
+  /* ★2026/11/24：押しどころを5つに絞り、残りは【もっと】の中へ。 */
+  t(/<nav id="more" hidden>[\s\S]*data-t="fb"/.test(html),
+    '★★★フィードバックは【もっと】の中にある');
   t(!/class="handbar"/.test(html), '　 前の「ボタン位置」の行は、ブロックにまとめた');
   t(!/<nav id="tabs">[\s\S]*?data-t="fb"[\s\S]*?<\/nav>/.test(html),
     '★★★タブの行には、もう入っていない');
@@ -1363,11 +1365,12 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     t(/\.hmain\{[^}]*flex-wrap:nowrap/.test(cs), '★★★題の行は、折り返さない（1行で固定）');
     t(/body\{padding-bottom:\d+px\}/.test(cs), '★★★下の固定ボタンに、中身が隠れない');
     const h2 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-    t(h2.indexOf('<header>') < h2.indexOf('id="fabMenu"') &&
-      h2.indexOf('id="fabMenu"') < h2.indexOf('</header>'),
-      '★★★≡ は、題の行の中にある');
-    t(/\.hmain > #fabMenu\{flex:none;margin-left:auto\}/.test(cs),
-      '★★★題の行の、いちばん右に入れる');
+    /* ★2026/11/24：【もっと】は、下の帯の いちばん右へ移しました。 */
+    t(h2.indexOf('<nav id="tabs"') < h2.indexOf('id="fabMenu"') &&
+      h2.indexOf('id="fabMenu"') < h2.indexOf('</nav>', h2.indexOf('<nav id="tabs"')),
+      '★★★【もっと】は、下の帯の中にある');
+    t(/nav#tabs\.botnav button#fabMenu\{position:relative\}/.test(cs),
+      '★★★下の帯の、いちばん右に入れる');
     t(/body\[data-hand="l"\] \.hmain > #fabMenu\{order:-1/.test(cs),
       '★★★左利きのときは、いちばん左に入れる');
     /* ★2026/11/13 のご指示で、灰色のブロックは 貼り付く行の中へ
@@ -1485,7 +1488,15 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     /* ★2026/11/23：【天気】のページをやめ、【再現】を【特定】に入れ、
          【トロフィー】を足したので 9こ（ご指示・同日）。
        最後の1つは2ます分に広げて、行のはしまで埋めています。 */
-    t(subs.length === 9, '★★★画面のメニューは9こ', subs.length);
+    /* ★2026/11/24 のご指示「必要最低限に絞ってください」で5つ。
+         残りは【もっと】の中に、大きな行で並べます。 */
+    t(subs.length === 5, '★★★押しどころは5つだけ', subs.length);
+    {
+      const mo = h3.slice(h3.indexOf('<nav id="more"'), h3.indexOf('</nav>', h3.indexOf('<nav id="more"')));
+      ['map','ratio','tok','tro','nippo','news','fb','set'].forEach(function (k){
+        t(mo.indexOf('data-t="' + k + '"') !== -1, '　 ' + k + ' は【もっと】の中');
+      });
+    }
     t(/data-t="ev"(?! [^>]*hidden)/.test(h3),
       '★★★イベントも、画面のメニューに出す');
     t(/data-t="news"(?! [^>]*hidden)/.test(h3),
@@ -1497,14 +1508,17 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
     const ord = (navH.match(/data-t="([a-z]+)"/g) || [])
       .map(x => x.replace(/data-t="|"/g, ''));
     /* ★2026/11/16：「狙い目」を「天気」に言いかえ、地図とグラフを入れ替えました */
-    t(ord.join(',') === 'in,map,g,ratio,nippo,tok,tro,ev,news',
-      '★★★並びは 記録→地図→グラフ→パーセント→日報→特定→トロフィー→イベント→お知らせ',
-      ord.join(','));
+    /* ★「いま」＝いま どこへ行くとよいか。ドライバーが一番 知りたいものを
+         2番目に置きます（ご指摘・2026/11/24「タクシードライバーであれば
+         知りたい要素について、どう操作したら良いのか全く分かりません」）。 */
+    t(ord.join(',') === 'in,hot,g,ev',
+      '★★★並びは 記録→いま→グラフ→イベント（＋もっと）', ord.join(','));
     /* ★【天気】は、押しどころの行から外しました（ご指示・2026/11/23
          「天気ページは一旦やめて 記録ページの1番上に…」）。
        雨雲レーダーだけは、一番上の絵と ≡ から いつでも開けます。 */
-    t(!/data-t="hot"/.test(navH), '★★★【天気】は、押しどころの行に出さない');
-    t(/data-t="hot"[^>]*hidden/.test(h3), '　 ≡ からは、まだ開ける');
+    t(/data-t="hot"[^>]*><b>いま<\/b>/.test(navH),
+      '★★★「いま どこへ行くか」は、押しどころの行に出す');
+    t(/<i>どこへ行く<\/i>/.test(navH), '　 何が見られるかを、そえ字で書く');
     /* ★「ます目からはみ出さない」が目的です。字数は目安で、
          実際にはみ出していないことは、画面を測って確かめています。 */
     t(subs.every(x => x.length <= 11), '★★★そえる字は11文字まで（ます目からはみ出さない）',
@@ -2066,7 +2080,7 @@ console.log('■ みんなの記録への行き方（ご質問・2026/11/13）')
   /* ★2026/11/22：別のページへ移らず、この画面の中で開きます。 */
   t(/function minaOpen\(\)/.test(app) && /class="minaf"/.test(app),
     '★★★この画面の中で開く');
-  t(/この画面の中で開きます/.test(app), '　 そう書いてある');
+  t(/記録カード・ロング/.test(app), '　 何が見られるかが書いてある');
   t(/出てこないときは、別のページで開く/.test(app),
     '★★★出てこないときの行き先も、同じ箱に置く（行き止まりにしない）');
   t(/\.minaf\{/.test(fs.readFileSync(path.join(W, 'style.css'), 'utf8')),
@@ -2126,8 +2140,8 @@ console.log('■ 【仕掛けを起こす】は、まーく様だけ（ご質問
                         app.indexOf('function gasWakeBar()') + 1800);
   t(/if \(!\(ME\.profile && ME\.profile\.is_admin\)\) return '';/.test(bar),
     '★★★赤い帯は、まーく様だけに出る');
-  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n\s*\? '<a class="fsrow wake"/.test(app),
-    '★★★≡ の【仕掛けを起こす】も、まーく様だけ');
+  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n?\s*\?[\s\S]{0,260}'<a class="fsrow wake"/.test(app),
+    '★★★【もっと】の【仕掛けを起こす】も、まーく様だけ');
   t(/<b>みんなの記録<\/b>/.test(app)
     && app.indexOf('<b>みんなの記録</b>') < app.indexOf('<b>仕掛けを起こす</b>'),
     '　 「みんなの記録」は、みなさんに出したまま');
@@ -2636,8 +2650,8 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
        （同じものを2つ出さないため）。 */
   t(/<nav id="tabs" class="botnav">/.test(h3b), '★★★行き先は、下の帯にある');
   t(!/<nav id="htabs">/.test(h3b), '　 上の帯には、同じ一覧を置かない');
-  t(/getElementById\('acctBox'\)[\s\S]{0,160}sheet\.appendChild\(box\)/.test(app),
-    '★★★≡ の中に、アカウントのことを移してきている');
+  t(/getElementById\('acctBox'\)[\s\S]{0,900}sheet\.appendChild\(box\)/.test(app),
+    '★★★【もっと】の中に、アカウントのことを移してきている');
   t(/id="acctBox" hidden/.test(h3b), '　 アカウントの箱は、はじめは出さない');
   t(!/data-go="/.test(app), '★★★≡ からは、行き先の行を外した');
 
@@ -3203,7 +3217,8 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ★2026/11/24：行き先は 下の帯へ移したので、点も下の帯に付けます。
        上の帯の つまみは たたむだけのものなので、点は付けません。 */
   t(/g\.classList\.remove\('dotted'\)/.test(app), '　 上の帯の つまみには、点を付けない');
-  t(/m\.classList\.remove\('dotted'\)/.test(app), '　 ≡ にも付けない（行き先が無いので）');
+  t(/m\.classList\.toggle\('dotted', !!inMore\)/.test(app),
+    '　 【もっと】の中に未読があれば、【もっと】に点を付ける');
   t(/nav#tabs\.botnav button \.dot\{/.test(css), '　 点は、下の帯のボタンに出る');
   t(/menuDot\(\);/.test(app), '　 開いたら、その場で消す');
 
@@ -3579,8 +3594,14 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
   t(/id="ktPlace"/.test(html),
     '★★★「過去の記録」で、乗り場を選べる（欄は1つにまとめた）');
   /* ★「過去の記録」でも、全員／自分だけを切り替えられる（ご指示・2026/11/12） */
-  t(/<div class="chips ktmine">/.test(html), '★★★「過去の記録」でも、全員／自分だけ');
-  t(/\.ktmine \[data-mine\]/.test(app), '　 いまの形に合わせて、色が変わる');
+  /* ★2026/11/24：4つのプルダウンに並べ直し、営業曜日を足しました。 */
+  t(/<select class="fsel" id="ktMine">/.test(html), '★★★「過去の記録」でも、全員／自分だけ');
+  t(/<select class="fsel" id="ktDay">/.test(html),
+    '★★★「過去の記録」でも、営業曜日がえらべる（抜けていました）');
+  t(/kdy\.innerHTML = fOpt\('', onlyDay, 'すべて'\) \+/.test(app) &&
+    /DAY_CHIPS\.map/.test(app),
+    '　 平日・金・祝前日・土曜・日祝が、ぜんぶ出る');
+  t(/kmn\.value = onlyMine \? '1' : '0'/.test(app), '　 いまの形に合わせて、色が変わる');
 
   /* 中身を動かして確かめます */
   const box = { console: { log: function(){} } };
@@ -4408,8 +4429,9 @@ console.log('\n■ 【仕掛けを起こす】は、まーく様だけ（ご質�
   t(!/paneOut\(\) \+/.test(app), '★★★CSVの書き出しは、画面に出さない');
   t(/function paneOut\(\)/.test(app), '　 中の係は消していない（あとで戻せる）');
   /* ③ ≡ の一覧 */
-  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\?\s*'<a class="fsrow wake"/.test(app),
-    '★★★≡ の一覧でも、管理者だけ');
+  t(/\(\(ME\.profile && ME\.profile\.is_admin\)\s*\n?\s*\?\s*'<button class="fsrow" data-t="sys"/.test(app),
+    '★★★【もっと】の一覧でも、管理者だけ');
+  t(/fsrow wake/.test(app), '　 【仕掛けを起こす】も、その中');
   /* 【みんなの記録】は、みなさんに出したまま（ご指示・2026/11/14） */
   t(/<b>みんなの記録<\/b>/.test(app), '　【みんなの記録】は、みなさんに出すまま');
   /* 他に「仕掛けを起こす」を出している所が無いこと */
@@ -4494,8 +4516,8 @@ console.log('\n■ 2026/11/16 のご指示');
   t(/function myTopPlace_\(/.test(app), '　 一番 付けている乗り場を出している');
 
   /* ⑦ タブの名前 */
-  t(/<b>日報<\/b><i>写真取込み<\/i>/.test(idx), '★★★日報は「写真取込み」');
-  t(/<b>特定<\/b><i>GO,Uber他<\/i>/.test(idx), '★★★特定は「GO,Uber他」');
+  t(/<b>日報<\/b><i>写真で取り込む<\/i>/.test(idx), '★★★日報は「写真で取り込む」');
+  t(/<b>特定<\/b><i>GO・Uber・バラシ<\/i>/.test(idx), '★★★特定は「GO・Uber・バラシ」');
 
   /* ⑧ 右下の固定ボタンは、いったん出さない／ボタン位置は 左利き→右利き */
   t(/id="fabAdd" hidden data-off="1"/.test(idx), '★★★右下の固定ボタンは出さない');

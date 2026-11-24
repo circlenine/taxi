@@ -1040,11 +1040,17 @@ function render(){
        ★中身を入れるのは placeSelFill_（画面を組み立てたあとに呼びます）。 */
     placeSelFill_();
     const kcl = $('#ktClear');
-    if (kcl) kcl.hidden = !onlyPlace;
-    /* 上の区切りの「全員／自分だけ」も、いまの形に合わせます */
-    document.querySelectorAll('.ktmine [data-mine]').forEach(function (b) {
-      b.classList.toggle('on', (b.dataset.mine === '1') === onlyMine);
-    });
+    if (kcl) kcl.hidden = !filtOn();
+    /* ★営業曜日。ここだけ えらべませんでした（ご指摘・2026/11/24）。
+         平日と土日祝では、売上の出方がまるで違います。 */
+    const kdy = $('#ktDay');
+    if (kdy) {
+      kdy.innerHTML = fOpt('', onlyDay, 'すべて') +
+        DAY_CHIPS.map(function (d){ return fOpt(d.k, onlyDay, d.n); }).join('');
+      kdy.classList.toggle('on', !!onlyDay);
+    }
+    const kmn = $('#ktMine');
+    if (kmn) { kmn.value = onlyMine ? '1' : '0'; kmn.classList.toggle('on', onlyMine); }
     /* 期間の切り替えも、ここに出します（ご指示・2026/11/12） */
     const kpb = $('#ktPeriodBox');
     if (kpb) kpb.innerHTML = periodBox();
@@ -1052,7 +1058,7 @@ function render(){
   const kp = $('#kperiod');
   if (kp) {
     kp.innerHTML = rs.length
-      ? '※1日当たりの数字ではありません。上の期間の合計です。<br>' +
+      ? '※上の期間の合計です（1日当たりではありません）<br>' +
         '※ロングの割合＝¥10,000以上が何割か。金額の分かる記録だけで数えています。'
       : ('※この絞り込みでは、1件もありません。' +
          (filtOn() ? '「絞り込みを解除」を押すと、元に戻ります。' : ''));
@@ -1131,11 +1137,12 @@ function render(){
      ★「ふきだしにひとことを足す」を一番上にします（ご指示・2026/11/17）。 */
   /* ★ひとことを足す欄は、【お知らせ】の一番上に移しました
        （ご指示・2026/11/17「これは、お知らせのページに移動してください」）。 */
-  const PANES = { in: () => (ME.profile.is_admin ? gasStatCard() : ''), hot:paneHot,
+  const PANES = { in: () => '', hot:paneHot,
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, best:paneBest, tok:paneTok, rep:paneRep, nippo:paneNippo,
     bara:paneBara, kix:paneKix, tro:paneTro,
-    news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb, set:paneSet };
+    news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb, set:paneSet,
+    sys: () => (ME.profile.is_admin ? gasStatCard() : '') };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
   /* バラシ・関空は、1つのメニューにまとめました（ご指示・2026/11/15） */
@@ -1695,7 +1702,6 @@ function troDetail(k){
           : '<b>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</b>' +
             '<i>あと ' + troNum(x, Math.max(0, x.need - x.raw)) + '</i>') +
       '</div>' +
-      '<p class="note">自分の記録だけで数えています。記録を直すと、数えなおします。</p>' +
       '<div class="modalfoot"><button class="btn" id="tdClose">とじる</button></div>' +
     '</div>';
   document.body.appendChild(box);
@@ -2395,8 +2401,7 @@ function paneInRecent(){
   const L = tableSort(tblFilter(visible()));
   if (!visible().length) return '<div class="empty">該当データがありません。</div>';
   if (!L.length) return tableHTML([]) + '<div class="empty">絞り込みに当てはまる記録がありません。</div>';
-  return '<p class="note">新しく入れたものが上から10件。見出しを押すと、並べ替えられます。</p>' +
-    tableHTML(L.slice(0, 10));
+  return tableHTML(L.slice(0, 10));
 }
 /* ------------------------------------------------------------
  *  しぼり込みの操作（まーく様のご指示・2026/11/12）
@@ -4046,7 +4051,6 @@ function fixCard_(){
   const ks = Object.keys(placeFix);
   if (!ks.length) return '';
   return '<div class="card"><h2>自分で決めたピン</h2>' +
-    '<p class="note">ここで決めた場所に、ピンが立ちます。</p>' +
     '<div class="misslist">' + ks.slice(0, 60).map(function (k){
       const o = placeFix[k];
       return '<div class="missrow"><b>' + esc(o.key) + '</b>' +
@@ -4845,6 +4849,7 @@ function radarCard(){
            矛盾したことは全ページ通して絶対に書かないでください」）。
        いまは、出せた こま を数えてから、ここに書き直します。 */
     '<p class="note" id="radarRange">読み込んでいます…</p>' +
+    /* ★雨が無いときに何も映らないと「壊れている」と思わせます。1行だけ残します。 */
     '<p class="note">雨が降っていないときは、地図だけが映ります。</p>' +
     '<div id="radarMap" class="radarmap wxmap">読み込んでいます…</div>' +
     '<div class="rdrbar"><b id="radarTime">読み込んでいます…</b>' +
@@ -5108,12 +5113,17 @@ function paneHot(now){
   const head = '<div class="card"><h2>天気</h2>' +
     wxNowHTML() + wxHoursHTML() + '</div>' + radarCard();
 
-  /* ① 一番上 … いまの時刻と、その時刻の狙い目 */
-  /* ★天気を、この画面の一番上に出します（ご指示・2026/11/17
-       「天気情報をデフォルトで1番初めに表示する形にしてください」）。
-     出勤の前に、まず空を見てから 乗り場を決めるためです。 */
-  const clock = leadCard('hot') + head +
-    '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
+  /*
+   * ★一番上は「いま、どこへ行くか」です（ご指摘・2026/11/24
+   *     「とにかくタクシードライバーであれば知りたい要素について、
+   *       どう操作したら良いのか全く分かりません」）。
+   *
+   *   天気を一番上に置いていたので、この画面を開いても
+   *   肝心の「どこへ行くか」が ずっと下にありました。
+   *   天気は、いまは【記録】の一番上の絵にも出ています。
+   *   ここでは、行き先のあとに回します。
+   */
+  const clock = '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
     '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
     '<p class="note">いまの時刻に合わせた、いま行くとよい所です。' +
     (c.early ? '（まだ乗務前なので ' + HOT_FROM + '時台の見当）' : '') +
@@ -5137,12 +5147,12 @@ function paneHot(now){
          「記録が足りないなら、見出し含めて非表示にしてください」）。
        日づけと時刻の見出しを出すと、中身があるように見えてしまいます。
        絞り込みの操作だけは残します（曜日や期間を変えて出し直せるように）。 */
-    return leadCard('hot') + head +
-      '<div class="card">' +
+    return '<div class="card">' +
       '<p class="note">' +
-      (filtOn() ? 'この絞り込みでは、まだ記録が足りません。下の「絞り込みを解除」で元に戻ります。'
+      (filtOn() ? 'この絞り込みでは、まだ記録が足りません。'
                 : 'この時間は、まだ記録が足りません。') + '</p>' +
-      filterChips() + '</div>' + hotPlanCard(plan, c.early, c.early ? -1 : Math.floor(c.h));
+      filterChips() + '</div>' +
+      hotPlanCard(plan, c.early, c.early ? -1 : Math.floor(c.h)) + head;
   }
 
   /* ★カードごと押すと、地図が開きます（ご指示・2026/11/12） */
@@ -5177,7 +5187,10 @@ function paneHot(now){
     '<div class="card"><h2>いまの時間帯に強い乗り場</h2>' +
     '<div class="scroll"><table><thead><tr><th>場所</th><th class="n">件</th>' +
     '<th class="n">1本の平均</th><th style="width:34%"></th><th class="n">待ち</th>' +
-    '</tr></thead><tbody>' + bars + '</tbody></table></div></div>';
+    '</tr></thead><tbody>' + bars + '</tbody></table></div></div>' +
+    /* ★天気と雨雲は、行き先のあとに回します（ご指摘・2026/11/24）。
+         開いてすぐ見たいのは「どこへ行くか」です。 */
+    head;
 }
 
 /*
@@ -5200,7 +5213,6 @@ function hotPlanCard(plan, early, nowH){
        「記録が足りない」ばかりが並ぶと、見るところが分からなくなります。 */
   const nh = (nowH == null) ? -1 : Math.floor(nowH);
   return '<div class="card"><h2>時間帯ごとの狙い目（夜ぜんたい）</h2>' +
-    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。</p>' +
     '<div class="scroll fb"><div class="plan">' + plan.map(function (s){
       if (!s.top) return '';
       /* いまの時間だけ「いま」と出して、目で追えるようにします */
@@ -6182,9 +6194,8 @@ function paneRatio(){
     '<div class="card"><h2>' +
     (hourPick === '' ? 'ロングが出やすい乗り場' : hourPick + '時台に ロングが出やすい乗り場') +
     '</h2>' +
-    '<p class="note">ロングの出た割合が高い順です。3件以上たまった乗り場だけを出しています。押すと地図が開きます。</p>' +
     (hourPick === ''
-      ? '<p class="note">下の棒を押すと、その時間帯だけになります。</p>'
+      ? '<p class="note">棒を押すと、その時間だけになります。</p>'
       : '<div class="chips"><button class="chip warn rst" data-hr="">全時間に戻す</button></div>') +
     (function (){
       /* ★一言は、表の「上」に置きます。
@@ -6235,8 +6246,7 @@ function paneRatio(){
     out += '<div class="card"><h2>ロングが出やすい時間帯</h2>' +
       (bestH ? '<p class="note">いまのところ、一番ロングが出ているのは <b>' + bestH.h +
         '時台</b>（ロング ' + bandPct(bestH.o, 'L') + '%・平均 ' + yen(bestH.avg) + '・' + bestH.o.n + '件）です。</p>' : '') +
-      '<p class="note"><b>棒を押すと、その時間の乗り場だけ</b>になります。</p>' +
-      '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
+        '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
       '<div class="scroll fb">' + g + '</div>' +
       '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
 
@@ -6268,7 +6278,7 @@ function paneRatio(){
     });
     if (hb) {
       rankCard = '<div class="card"><h2>時間帯別 乗り場ランキング</h2>' +
-        '<p class="note">その時間に、ロングが出やすかった乗り場の上位3か所です。' +
+        '<p class="note">その時間に、ロングが出やすかった上位3か所。' +
         '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
         hb + '</div>';
     }
@@ -6311,7 +6321,7 @@ function paneRatio(){
   });
   if (pbody) {
     out += '<div class="card"><h2>エリア別のロング割合</h2>' +
-      '<p class="note">北・南・他のまとまりで見ています。</p>' + pbody +
+      '' + pbody +
       '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
   }
   return head + rankCard + out + compareCard();
@@ -6415,19 +6425,8 @@ function gasStatCard(){
   const ok = function (b){ return b ? '<b class="gsok">○</b>' : '<b class="gsng">×</b>'; };
   const un = function (v){ return (v == null || v === '') ? '不明' : v; };
 
-  /*
-   * ★まーく様のご質問（2026/11/16）
-   *     「Googleスクリプトへ別ページへ飛ばすのではなく
-   *       webページ上で見る、もしくは同じようなページ作成をするのは
-   *       不可能なのでしょうか」
-   *
-   *   スクリプトの画面そのものは、ここには出せません。
-   *   Googleのログインが要るうえ、よその画面の中に入れることを
-   *   Google 側が断っているためです。
-   *   そこで、その画面で見ていたものを、こちらで同じように並べました。
-   *   （紙に書き出したものを読んでいるだけなので、ログインは要りません）
-   */
-
+  /* ★スクリプトの画面で見ていたものを、ここに並べています。
+       スクリプトの画面そのものは、ここには出せません（Googleのログインが要るため）。 */
   /* ① 一番 知りたいこと＝動いているか */
   const live = (s2.stop == null) ? null : !s2.stop;
   const head = '<div class="sysnow ' + (live === null ? '' : (live ? 'ok' : 'ng')) + '">' +
@@ -6480,23 +6479,18 @@ function gasStatCard(){
       }).join('') + '</tbody></table></div>'
     : '';
 
-  return '<div class="card"><h2>仕組みの様子（まーく様だけ）</h2>' +
-    '<p class="note">スクリプトの画面で見ていたものを、ここに並べています。' +
-    'スクリプトの画面そのものは、ここには出せません（Googleのログインが要るためです）。</p>' +
+  /* ★読む字は、ここまで減らします（ご指摘・2026/11/24
+       「不要なもの（その情報がなくても成り立つもの）はもっともっと取り除いて」）。
+     表の見出しだけで分かるものに、説明は付けません。 */
+  return '<div class="card"><h2>仕組みの様子</h2>' +
     head +
-    '<h3 class="syshd">見張りの顔ぶれ</h3>' + jobHTML +
+    '<h3 class="syshd">見張り</h3>' + jobHTML +
     '<h3 class="syshd">数</h3>' + tbl +
-    (errHTML ? '<h3 class="syshd">直近のしくじり</h3>' + errHTML +
-      '<p class="note">どこで起きたかだけを出しています。中身（英語の文）は、' +
-      'だれでも開けるところに置かないようにしています。</p>' : '') +
+    (errHTML ? '<h3 class="syshd">直近のしくじり</h3>' + errHTML : '') +
     (u ? '<div class="actions">' +
       '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">仕掛けを起こす</a>' +
-      '</div><p class="note">別のページが開きます。見張りの立て直し・新しい中身の取り込み・' +
-      '頼まれごとを、まとめて走らせます。<b>この欄も、そのとき新しくなります</b>' +
-      '（1分ほどで入れ替わります）。</p>'
+      '</div>'
       : '<p class="note">受け口の住所が、まだ届いていません。</p>') +
-    '<p class="note">※ 許可のし直しと、中身を書きかえることだけは、' +
-    'どうしてもスクリプトの画面でしかできません（Googleの決まりです）。</p>' +
     '</div>';
 }
 const WAKE_KEY = 'tn_wake_fold';
@@ -6776,7 +6770,6 @@ function whenPane(cat, title, label, lead, test, noLead){
     }).join('') + '</tbody></table></div></div></div>';
 
   let out = head + plain + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
-    '<p class="note">数字は、その時間に入った記録の件数です。濃いほど多く呼ばれています。</p>' +
     body +
     ((hrs.length >= 2) ? '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
       (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div>' : '') +
@@ -6866,7 +6859,6 @@ function isGo(r){
 function paneTok(){
   const k = tokKind;
   const head = leadCard('tok') + '<div class="card"><h2>種類別（GO・Uber・バラシ・関空・チケット・再現）</h2>' +
-    '<p class="note">見たいものを、下からえらんでください。</p>' +
     gMenu(TOK_KINDS, tokKind, 'data-tk') + '</div>';
   if (k === 'kix')    return head + whenPane('関空', '関空', 'ホテル',
     'どのホテルから、何時台に呼ばれているかを並べます。', null, true);
@@ -7578,35 +7570,45 @@ function fabWire(){
        *    すでに作ってあるので、ここへ そのまま移してきます。
        *    作り直すと、名前の出し方を2か所 直すことになります。
        * ================================================================ */
+      /* ★中身は #more から作ります（元を1つにしておくためです）。
+           ★大きな行で並べます（機械が苦手な方にも、押す所が分かるように）。 */
       const box = document.getElementById('acctBox');
       sheet.innerHTML = '';
+      const src = document.getElementById('more');
+      if (src) {
+        sheet.insertAdjacentHTML('beforeend',
+          '<div class="msgrid">' +
+          [].map.call(src.querySelectorAll('[data-t]'), function (b){
+            const nm = (b.querySelector('b') || {}).textContent || '';
+            const sb = (b.querySelector('i') || {}).textContent || '';
+            const dt = b.querySelector('.dot');
+            const nd = (dt && !dt.hidden) ? '<span class="dot"></span>' : '';
+            return '<button class="msrow" data-t="' + esc(b.dataset.t) + '">' +
+              '<b>' + nd + esc(nm) + '</b><i>' + esc(sb) + '</i></button>';
+          }).join('') + '</div>');
+      }
       if (box) { box.hidden = false; sheet.appendChild(box); }
       sheet.insertAdjacentHTML('beforeend',
-        /* ★「みんなの記録」は、ここから開けます（ご質問・2026/11/13）。
-             同じ中身を2つ持つと、直すたびに2か所 直すことになります。 */
         ((gasInfo && gasInfo.exec)
           ? '<button class="fsrow" id="goMina" type="button">' +
-            '<b>みんなの記録</b><i>記録カード・ロング（この画面の中で開きます）</i></button>' +
-            /* ★【仕掛けを起こす】は、まーく様だけ（ご質問・2026/11/14）。
-                 仕組みの手当てなので、乗務員の方々には出しません。 */
-            ((ME.profile && ME.profile.is_admin)
+            '<b>みんなの記録</b><i>記録カード・ロング</i></button>'
+          : '') +
+        /* ★仕組みの様子は、まーく様だけ。ここから開きます
+             （ご指摘・2026/11/24「Googleスクリプトに載ってる情報も
+               webページに載せてほしいと何度も言ってます」）。
+           【記録】の一番下に埋めていたので、見つけられませんでした。 */
+        ((ME.profile && ME.profile.is_admin)
+          ? '<button class="fsrow" data-t="sys" type="button">' +
+            '<b>仕組みの様子</b><i>スクリプトの画面で見ていたもの</i></button>' +
+            ((gasInfo && gasInfo.exec)
               ? '<a class="fsrow wake" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-                '<b>仕掛けを起こす</b><i>止まったときに押す（別のページが開きます）</i></a>'
+                '<b>仕掛けを起こす</b><i>止まったときに押す</i></a>'
               : '')
           : '') +
-        /* ★右上の目次を「隠す」で消したときは、ここから出し直せます
-             （ご指示・2026/11/23「非表示ボタン
-               （設定から、再び出せるようにする）も追加してください」）。 */
         (tocHidden()
           ? '<button class="fsrow" id="tocBack" type="button">' +
             '<b>目次を出す</b><i>右上の目次を、もう一度 出します</i></button>'
-          : '') +
-        /* ★設定は、ここから開きます（ご指示・2026/11/24）。
-             下の帯に足すと、行き先が多くなりすぎます。 */
-        '<button class="fsrow" data-t="set" type="button">' +
-        '<b>設定</b><i>トロフィーの知らせ・目次・ボタン位置・はじめての案内</i></button>' +
-        '<button class="fsrow" data-t="fb" type="button">' +
-        '<b>フィードバック</b><i>気づいたことを、そのまま送れます</i></button>');
+          : ''));
       /* 移してきた箱の中のボタンを、もう一度つなぎ直します */
       sheet.querySelectorAll('[data-hand]').forEach(function (b2) {
         b2.onclick = function () {
@@ -8215,12 +8217,11 @@ function barPad_(){
   try {
     const hd = document.getElementById('hdr');
     const bb = document.getElementById('botbar');
-    /* ★つまみ（▲）は帯の下にぶら下がります。そのぶんも空けないと、
-         一番上の一文に つまみが重なります。 */
-    const th = (hd && !hd.classList.contains('cl'))
-      ? Math.round(hd.getBoundingClientRect().height) + 14 : 20;
+    /* ★つまみは帯の中に入れました（中身の字に重ならないようにするため）。
+         たたんだときは、つまみの細い帯のぶんだけ空けます。 */
+    const th = hd ? Math.round(hd.getBoundingClientRect().height) : 46;
     const bh = (bb && !bb.classList.contains('cl'))
-      ? Math.round(bb.getBoundingClientRect().height) : 18;
+      ? Math.round(bb.getBoundingClientRect().height) : 20;
     document.documentElement.style.setProperty('--topH', th + 'px');
     document.documentElement.style.setProperty('--botH', bh + 'px');
   } catch (e) {}
@@ -8620,8 +8621,22 @@ function wire(){
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
   });
+  /* ★営業曜日と「だれの」を、ここでも切り替えられるようにします
+       （ご指摘・2026/11/24「選択できなければいけない部分が抜けていたり」）。 */
+  {
+    const kdy = document.getElementById('ktDay');
+    if (kdy) kdy.onchange = function (){
+      onlyDay = kdy.value; filtSave(); render();
+    };
+    const kmn = document.getElementById('ktMine');
+    if (kmn) kmn.onchange = function (){
+      onlyMine = (kmn.value === '1'); filtSave(); render();
+    };
+  }
   const kcl = document.getElementById('ktClear');
-  if (kcl) kcl.onclick = function () { grab(); onlyPlace = ''; filtSave(); render(); };
+  /* ★「絞り込みを解除」は、ぜんぶ元に戻します（乗り場だけでは、
+       曜日や期間が残ったままになり、数字を読み違えます）。 */
+  if (kcl) kcl.onclick = function () { grab(); filtClear(); render(); };
   const fc = document.getElementById('fClear');
   if (fc) fc.onclick = function () { grab(); filtClear(); render(); };
   /* ★たたんだままでも押せる「絞り込みを解除」 */
@@ -9170,8 +9185,17 @@ function menuDot(){
        上の帯の つまみは たたむだけのものなので、点は付けません。 */
   const g = document.getElementById('hgrab');
   if (g) g.classList.remove('dotted');
+  /* ★【もっと】の中に未読があるときは、【もっと】にも点を付けます
+       （中に入っていると、開くまで気づけないためです）。 */
   const m = document.getElementById('fabMenu');
-  if (m) m.classList.remove('dotted');
+  if (m) {
+    let inMore = false;
+    try {
+      inMore = [].some.call(document.querySelectorAll('#more .dot'),
+        function (d){ return !d.hidden; });
+    } catch (e) {}
+    m.classList.toggle('dotted', !!inMore);
+  }
   /* 赤い丸は あとから付くので、▼ の中身も そのときに作り直します */
   htabsFill();
 }

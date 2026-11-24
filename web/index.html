@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261124-0d77f41d">
+<link rel="stylesheet" href="style.css?v=20261124-20b50f24">
 </head>
 <body>
 <div id="boot" class="boot">
@@ -51,9 +51,10 @@
              2行だった題を、低い帯に収まる1行にしました。 -->
       <h1 class="dn"><span class="l1">TA<span class="xg">卍</span>I</span><span class="l2">NOTE</span></h1>
       <span class="hgap"></span>
-      <button class="hbtn" data-lead="1" type="button" aria-label="説明">?</button>
-      <button class="hbtn menu" id="fabMenu" aria-label="メニュー">≡</button>
-      <div class="fabsheet" id="fabSheet" hidden></div>
+      <!-- ★押しどころは、画面の下の帯だけにしました（ご指摘・2026/11/24
+             「必要最低限に絞ってください」）。上の ≡ は外し、
+             下の帯の【もっと】ひとつにまとめています。 -->
+      <button class="hbtn" data-lead="1" type="button" aria-label="この画面の説明">?</button>
     </div>
     <!-- ★上の帯も たためます（ご指示・2026/11/24
            「固定の上メニュー、下メニューは折りたたみや展開ができるように」）。
@@ -88,11 +89,18 @@
          「フィードバックは三の方にあるので、ここでは消して」）。
        ≡ は、この札を見て行き先の一覧を作ります。
        上の行からは消しましたが、目に見えない形でここに残します。 -->
-  <button class="chip fbtab" data-t="fb" aria-selected="false" hidden>フィードバック</button>
-  <!-- ★【天気】のページは、押しどころの行から外しました（ご指示・2026/11/23）。
-         天気は【記録】の一番上の絵に入りましたが、
-         雨雲レーダーだけは ここから いつでも開けるように残します。 -->
-  <button class="chip fbtab" data-t="hot" aria-selected="false" hidden>雨雲レーダー</button>
+  <!-- ★【もっと】は、この並びから中身を作ります。
+         元を1つにしておかないと、増やすたびに2か所 直すことになります。 -->
+  <nav id="more" hidden>
+    <button data-t="map"><b>地図</b><i>ピンで見る</i></button>
+    <button data-t="ratio"><b>パーセント</b><i>ロング率</i></button>
+    <button data-t="tok"><b>特定</b><i>GO・Uber・バラシ</i></button>
+    <button data-t="tro"><b><span class="dot" id="troDot" hidden></span>トロフィー</b><i>集めるもの</i></button>
+    <button data-t="nippo"><b>日報</b><i>写真で取り込む</i></button>
+    <button data-t="news"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
+    <button data-t="fb"><b>フィードバック</b><i>意見を送る</i></button>
+    <button data-t="set"><b>設定</b><i>知らせ・ボタン位置</i></button>
+  </nav>
   <!-- ★≡ の一覧にあったものも、ここに並べました（ご指示・2026/11/16
          「三メニューにある 記録～お知らせまでを ページ内にも載せてください」）。
        10個あるので 5列×2段。そえる字は5文字までにして、
@@ -103,23 +111,18 @@
   <div class="botbar" id="botbar">
     <button class="bgrab" id="bgrab" aria-label="下の帯を たたむ・広げる"><i>▼</i></button>
   <nav id="tabs" class="botnav">
-    <!-- ★開いて最初に出るのは【天気】です（ご指示・2026/11/17）。
-           はじめから【天気】を押した形にしておき、
-           ひと呼吸だけ【記録】が見えることのないようにします。 -->
-    <!-- ★【天気】のページは、やめました（ご指示・2026/11/23
-             「天気ページは一旦やめて 記録ページの1番上に…」）。
-           天気は、【記録】の一番上の絵の中に入りました。
-         ★【再現】も、【特定】の中の1つにまとめました（同日のご指示）。 -->
-    <button data-t="in" aria-selected="true"><b>記録</b><i>入力・修正</i></button>
-    <button data-t="map" aria-selected="false"><b>地図</b><i>ピンで見る</i></button>
+    <!-- ★押しどころは5つだけ（ご指摘・2026/11/24
+           「機械が苦手な高齢ドライバーでもわかるように
+             もっと必要最低限に絞ってください」）。
+         走りながら片手で押せる大きさにしてあります。
+         残りは【もっと】の中に、大きな行で並べます。 -->
+    <button data-t="in" aria-selected="true"><b>記録</b><i>入れる</i></button>
+    <button data-t="hot" aria-selected="false"><b>いま</b><i>どこへ行く</i></button>
     <button data-t="g" aria-selected="false"><b>グラフ</b><i>時刻と金額</i></button>
-    <button data-t="ratio" aria-selected="false"><b>パーセント</b><i>ロング率</i></button>
-    <button data-t="nippo" aria-selected="false"><b>日報</b><i>写真取込み</i></button>
-    <button data-t="tok" aria-selected="false"><b>特定</b><i>GO,Uber他</i></button>
-    <button data-t="tro" aria-selected="false"><b><span class="dot" id="troDot" hidden></span>トロフィー</b><i>集めるもの</i></button>
     <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
-    <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
+    <button id="fabMenu" type="button"><b>もっと</b><i>ほかの画面</i></button>
     </nav>
+  <div class="fabsheet" id="fabSheet" hidden></div>
   </div>
   <!-- ★【イベント】と【お知らせ】は、画面のメニューからは外しました
          （ご指示・2026/11/13「イベントとお知らせは画面では非表示で、
@@ -135,21 +138,24 @@
   <div id="panesTop"></div>
   <section class="card blk" id="ktop">
     <h2>過去の記録</h2>
-    <div class="ktplace">
-      <select class="fsel" id="ktPlace"></select>
-      <button class="chip rst" id="ktClear" hidden>すべてに戻す</button>
+    <!-- ★えらぶものは、4つのプルダウンに並べました（ご指摘・2026/11/24
+           「選択できなければいけない部分が抜けていたり」
+             「もっと1画面でスッと映すべき部分が映せてなかったり」）。
+         **営業曜日が、ここだけ えらべませんでした。** 足しました。
+         平日と土日祝では売上の出方がまるで違うので、
+         ここで切り替えられないと、数字を読み違えます。 -->
+    <div class="ktpick">
+      <label><span>乗り場</span><select class="fsel" id="ktPlace"></select></label>
+      <label><span>営業曜日</span><select class="fsel" id="ktDay"></select></label>
+      <label><span>期間</span><span class="ktperiod" id="ktPeriodBox"></span></label>
+      <label><span>だれの</span><select class="fsel" id="ktMine">
+        <option value="0">全員</option><option value="1">自分だけ</option>
+      </select></label>
     </div>
-    <!-- ★プルダウン以外に、字で探せるようにします（ご指示・2026/11/13）。
-           打った字が入っている乗り場を、候補として下に出します。 -->
     <div class="ktfind">
       <input class="ja" id="ktFind" data-find="ktSug" placeholder="乗り場をさがす（例：梅田）">
       <div class="fsug" id="ktSug"></div>
-    </div>
-    <div class="ktperiod" id="ktPeriodBox"></div>
-    <!-- ★ここでも、全員／自分だけを切り替えられます（ご指示・2026/11/12） -->
-    <div class="chips ktmine">
-      <button class="chip" data-mine="0">全員</button>
-      <button class="chip" data-mine="1">自分だけ</button>
+      <button class="chip rst" id="ktClear" hidden>絞り込みを解除</button>
     </div>
     <div class="ktline">
       <div class="ktwhen" id="ktWhen">—</div>
@@ -195,9 +201,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261124-0d77f41d"></script>
-<script src="news.js?v=20261124-0d77f41d"></script>
-<script src="shared.js?v=20261124-0d77f41d"></script>
-<script src="app.js?v=20261124-0d77f41d"></script>
+<script src="config.js?v=20261124-20b50f24"></script>
+<script src="news.js?v=20261124-20b50f24"></script>
+<script src="shared.js?v=20261124-20b50f24"></script>
+<script src="app.js?v=20261124-20b50f24"></script>
 </body>
 </html>
