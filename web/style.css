@@ -3375,3 +3375,151 @@ nav#tabs.topnav button:active,.chip:active,.btn:active,.mini:active,
   .trotile:active,.tronrow2:active,.msrow:active{transform:none;filter:none}
   .bncar.gold{filter:none}
 }
+
+/* ================================================================
+ *  上の帯は いつも出したまま・たためる（ご指示・2026/11/25）
+ *    「ロゴ、時間、？の部分も含めて、固定で出せるようにしてください、
+ *      折りたたみ機能も出してください」
+ *
+ *  ★下へ進んでも、題・時計・【?】は消えません。
+ *  ★たたむつまみは、帯の中に入れます（下にぶら下げると、
+ *    スクロールのたびに中身の字へ重なります）。
+ *  ★たたんでも つまみは必ず残します。残さないと二度と戻せません。
+ * ================================================================ */
+body.sc header#hdr .hmain{height:44px;opacity:1;pointer-events:auto}
+header#hdr .hfold{display:block;width:100%;height:15px;border:0;padding:0;margin:0;
+  background:rgba(255,255,255,.05);color:#FFFFFF;cursor:pointer;line-height:1}
+header#hdr .hfold i{font-style:normal;font-size:10px;opacity:.8;
+  display:inline-block;transition:transform .18s}
+/* たたんだとき：つまみだけ残します */
+body.hdrcl header#hdr .hmain,
+body.hdrcl header#hdr nav#tabs.topnav,
+body.hdrcl header#hdr #acctBox{display:none}
+body.hdrcl header#hdr .hfold i{transform:rotate(180deg)}
+body.hdrcl{padding-top:calc(15px + env(safe-area-inset-top, 0px) + 8px)}
+
+/* ================================================================
+ *  ふきだしは、画面の下に固定（ご指示・2026/11/25）
+ *    「吹き出し部分は、下に固定で出して 折りたたみ機能もつけてください」
+ * ================================================================ */
+.saybar{position:fixed;left:0;right:0;bottom:0;z-index:1500;
+  background:rgba(18,26,40,.96);border-top:1px solid var(--ink3);
+  padding:0 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  backdrop-filter:blur(6px)}
+.saybar .sayfold{display:block;width:100%;height:15px;border:0;padding:0;margin:0;
+  background:none;color:#FFFFFF;cursor:pointer;line-height:1}
+.saybar .sayfold i{font-style:normal;font-size:10px;opacity:.8;
+  display:inline-block;transition:transform .18s}
+body.saycl .saybar .saymount{display:none}
+body.saycl .saybar .sayfold i{transform:rotate(180deg)}
+.saybar .saymount{margin:0 0 2px}
+/* 固定したぶん、ページの下に場所をあけます */
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom, 0px))}
+body.saycl{padding-bottom:calc(34px + env(safe-area-inset-bottom, 0px))}
+/* 目次は、ふきだしの上に出します */
+.toc{bottom:calc(92px + env(safe-area-inset-bottom, 0px)) !important}
+body.saycl .toc{bottom:calc(42px + env(safe-area-inset-bottom, 0px)) !important}
+
+/* ================================================================
+ *  絵の中の「きょうの出来事」（ご指示・2026/11/25）
+ *  ★動かしているのは CSS だけ。絵は描き直していません。
+ * ================================================================ */
+.bnev{will-change:transform}
+@keyframes bnevRun{0%{transform:translateX(-40px)}100%{transform:translateX(360px)}}
+@keyframes bnevRunL{0%{transform:translateX(360px)}100%{transform:translateX(-50px)}}
+@keyframes bnevFly{0%{transform:translate(-40px,0)}100%{transform:translate(360px,-14px)}}
+@keyframes bnevUp{0%{transform:translate(40px,120px);opacity:0}
+  12%{opacity:1}100%{transform:translate(90px,-20px);opacity:0}}
+@keyframes bnevStar{0%{transform:translate(200px,-10px);opacity:0}
+  6%{opacity:1}26%{opacity:0}100%{transform:translate(60px,60px);opacity:0}}
+@keyframes bnevUfo{0%{transform:translate(-40px,0)}
+  50%{transform:translate(160px,-6px)}100%{transform:translate(360px,0)}}
+@keyframes bnSiren{0%,100%{fill:#E23B30}50%{fill:#4F7FD4}}
+@keyframes bnLant{0%,100%{opacity:1}50%{opacity:.55}}
+.bnev-cat{animation:bnevRun 26s linear infinite}
+.bnev-dog{animation:bnevRun 19s linear infinite}
+.bnev-bike{animation:bnevRunL 14s linear infinite}
+.bnev-bus{animation:bnevRun 17s linear infinite}
+.bnev-police{animation:bnevRunL 9s linear infinite}
+.bnev-bird{animation:bnevFly 13s linear infinite}
+.bnev-balloon{animation:bnevUp 15s linear infinite}
+.bnev-star{animation:bnevStar 9s linear infinite}
+.bnev-ufo{animation:bnevUfo 22s linear infinite}
+.bnsiren{animation:bnSiren .6s steps(1) infinite}
+.bnlant{animation:bnLant 2.4s ease-in-out infinite}
+.bnev2{margin:7px 0 0;font-size:12px;opacity:.85;color:#FFFFFF}
+.bnev2 b{font-weight:800}
+
+/* 絵の中の天気（マーク・気温・いつ雨か の3つだけ） */
+.bnwx{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  margin:9px 0 0;color:#FFFFFF}
+.bnwx .bnic{font-size:22px;line-height:1}
+.bnwx .bnbig{font-size:26px;font-weight:800;letter-spacing:.01em}
+.bnwx .bnrain{font-size:13px;opacity:.9}
+
+@media (prefers-reduced-motion:reduce){
+  .bnev-cat,.bnev-dog,.bnev-bike,.bnev-bus,.bnev-police,.bnev-bird,
+  .bnev-balloon,.bnev-star,.bnev-ufo,.bnsiren,.bnlant{animation:none}
+  header#hdr .hfold i,.saybar .sayfold i{transition:none}
+}
+
+/* ---------- グラフの下の「色の見方」（ご指示・2026/11/25） ---------- */
+.ulegend{margin:10px 0 0;padding:9px 10px;border-radius:9px;
+  border:1px solid var(--ink3);background:rgba(255,255,255,.04);color:#FFFFFF}
+.ulegend .ulh{font-size:11px;letter-spacing:.06em;opacity:.7;margin:0 0 6px}
+.ulrow{display:grid;grid-template-columns:14px minmax(54px,auto) auto 1fr;
+  gap:4px 8px;align-items:center;font-size:12.5px;line-height:1.5;
+  padding:4px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ulrow:first-of-type{border-top:0}
+.ulrow > i{width:12px;height:12px;border-radius:3px;display:block}
+.ulrow > b{font-weight:800;white-space:nowrap}
+.ulrow .uln{font-family:var(--mono);white-space:nowrap;opacity:.95}
+.ulrow .ulw{grid-column:2 / -1;font-size:11.5px;opacity:.8}
+.ulrow .uld{grid-column:2 / -1;font-size:11.5px;opacity:.8}
+
+/* ---------- 「どこを押すと、どこが変わるか」（ご指示・2026/11/25） ---------- */
+.howto{margin:0 0 10px;padding:9px 11px;border-radius:9px;
+  border:1px solid var(--ink3);background:rgba(255,255,255,.04)}
+/* ★flex にすると、1つの文が ①／太字／残り の3つに割れて、
+     「乗り場をえらぶ と、その乗り場の良い時間 が出ま す。」のように
+     ばらばらに折り返していました（320pxで実際に見て分かりました）。
+   ふつうの文として流し、番号だけ 左にぶら下げます。 */
+.howto .hw{display:block;font-size:13px;line-height:1.7;color:#FFFFFF;
+  padding:3px 0 3px 1.6em;text-indent:-1.6em}
+.howto .hw em{font-style:normal;font-weight:800;color:var(--gold);
+  display:inline-block;width:1.4em;text-indent:0}
+.howto .hw b{font-weight:800}
+
+/* ---------- 地図のピン（ご指示・2026/11/25） ---------- */
+/* 遠目の丸は「割合の円」。件数の字は入れません（押せば出ます） */
+.pindot.pie span{font-size:0}
+/* 場所を決めるときの赤いピン（地図の印と見分けがつくように） */
+.pinpick span{display:block;width:18px;height:18px;margin:2px;border-radius:999px;
+  background:var(--andon);border:3px solid #FFFFFF;
+  box-shadow:0 0 0 2px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.5)}
+.psat{margin:8px 0 0;padding:8px 10px;border-radius:8px;
+  border:1px solid var(--ink3);background:rgba(255,255,255,.04);color:#FFFFFF}
+.psat b{display:block;font-size:13.5px;font-weight:800}
+.psat i{display:block;font-style:normal;font-size:11.5px;opacity:.8;margin-top:2px}
+.psat.ok{border-color:#5FD39B}
+.psat.ok b{color:#5FD39B}
+/* 1行だけの知らせ */
+.toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(100px + env(safe-area-inset-bottom, 0px));z-index:2200;
+  max-width:min(92vw,420px);padding:10px 14px;border-radius:10px;
+  background:rgba(18,26,40,.97);border:1px solid var(--ink3);color:#FFFFFF;
+  font-size:13px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+
+/* ---------- 特定：結論を1行で（ご指示・2026/11/25） ---------- */
+.tokhit .throw{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:2px 0 6px}
+.tokhit .thp{font-size:18px;font-weight:800;color:#FFFFFF}
+.tokhit .thh{font-size:26px;font-weight:800;color:var(--gold);font-family:var(--mono)}
+.tokhit .thh i{font-style:normal;font-size:13px;margin-left:2px;opacity:.85}
+.tokhit .thmeta{font-size:13px;color:#FFFFFF;opacity:.9;line-height:1.6}
+
+/* ---------- 説明の中の「計算のしかた」（ご指示・2026/11/25） ---------- */
+.leadf{margin:12px 0 0;padding:10px 12px;border-radius:9px;
+  border:1px solid var(--ink3);background:rgba(255,255,255,.04)}
+.leadf > b{display:block;font-size:11.5px;letter-spacing:.07em;opacity:.75;margin:0 0 6px}
+.leadf ul{margin:0;padding-left:1.1em}
+.leadf li{font-size:13px;line-height:1.75;color:#FFFFFF;margin:0 0 3px}

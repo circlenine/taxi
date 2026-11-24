@@ -947,6 +947,26 @@ const places  = () => [...new Set(records.map(r => r.place).filter(Boolean))];
  *    body で受けておけば、何度 作り直しても効きます。
  *  ★1回だけ付けます（押すたびに増やすと、1回の押しで何度も動きます）。
  * ---------------------------------------------------------- */
+/* ------------------------------------------------------------
+ *  たたむ・広げる（上の帯／ふきだし）
+ *  ★たたんだままを覚えます。開き直すたびに広がると、わずらわしいためです。
+ *  ★たたんでも つまみは必ず残します（残さないと二度と戻せません）。
+ * ---------------------------------------------------------- */
+const HDR_FOLD = 'tn_hdr_fold';
+const SAY_FOLD = 'tn_say_fold';
+function foldSet_(cls, key, on){
+  try { document.body.classList.toggle(cls, !!on); } catch (e) {}
+  try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) {}
+  try { barPad_(); } catch (e) {}
+}
+function foldLoad_(){
+  [[ 'hdrcl', HDR_FOLD ], [ 'saycl', SAY_FOLD ]].forEach(function (x){
+    let on = false;
+    try { on = localStorage.getItem(x[1]) === '1'; } catch (e) {}
+    try { document.body.classList.toggle(x[0], on); } catch (e) {}
+  });
+}
+
 function bodyWire_(){
   if (bodyWire_.done || typeof document === 'undefined') return;
   bodyWire_.done = true;
@@ -978,6 +998,10 @@ function bodyWire_(){
     if (q('[data-lead]')) { leadPopup(tab); return; }
     /* 設定の「はじめての案内を もう一度」 */
     if (q('#setTut')) { tutOpen(true); return; }
+    /* 上の帯を たたむ・広げる（ご指示・2026/11/25） */
+    if (q('#hFold')) { foldSet_('hdrcl', HDR_FOLD, !document.body.classList.contains('hdrcl')); return; }
+    /* ふきだしを たたむ・広げる */
+    if (q('#sayFold')) { foldSet_('saycl', SAY_FOLD, !document.body.classList.contains('saycl')); return; }
   });
 
   /* 設定の切り替え（チェックの入り切り） */
@@ -997,17 +1021,41 @@ function bodyWire_(){
   });
 }
 
+/* ------------------------------------------------------------
+ *  無い欄には、書きこまない
+ *
+ *  ★「過去の記録」の欄を外したとき（ご指示・2026/11/25）、
+ *    その欄へ書きこむところが残っていて、**ぜんぶの画面がこけて**
+ *    いました。欄が無ければ、黙って何もしません。
+ *  ★これから欄を外すときも、ここを通していれば こけません。
+ * ---------------------------------------------------------- */
+function setTxt_(sel, v){
+  try { const e = $(sel); if (e) e.textContent = v; } catch (e2) {}
+}
+function setHtml_(sel, v){
+  try { const e = $(sel); if (e) e.innerHTML = v; } catch (e2) {}
+}
+
 function render(){
   const rs = visible();
-  $('#k1').textContent = rs.length;
+  /* ★「過去の記録」の欄は外しました（ご指示・2026/11/25）。
+       欄が無いときに書きこもうとして、ぜんぶの画面がこけていました。
+       setTxt_ / setHtml_ は、欄が無ければ 黙って何もしません。 */
+  setTxt_('#k1', rs.length);
   /* ★合計は、すぐ上の見出しの横に大きく出しています。
        ここで同じ数をくり返しても読みどころが増えないので、
        「1日当たり」に替えました（ご指示・2026/11/12で、
        見返すのに一番良い形かを見直したため）。 */
   {
-    const sum2 = rs.filter(hasFare).reduce((a,r) => a + (+r.fare || 0), 0);
-    const d2 = new Set(rs.map(r => r.date)).size;
-    $('#k2').textContent = d2 ? yen(sum2 / d2) : '—';
+    /* ★数え方が食い違っていました（2026/11/25 に数え直して分かりました）。
+         上（合計）は「金額の入った記録」だけなのに、
+         下（日数）は「金額の無い記録しかない日」まで数えていました。
+         そのぶん、1日当たりが 実際より低く出ます。
+         どちらも「金額の入った記録」でそろえます。 */
+    const F2 = rs.filter(hasFare);
+    const sum2 = F2.reduce((a,r) => a + (+r.fare || 0), 0);
+    const d2 = new Set(F2.map(r => r.date)).size;
+    setTxt_('#k2', d2 ? yen(sum2 / d2) : '—');
   }
   /* ★「時間単価」はやめました（ご指示・2026/11/13）
        「大丸 ￥29,502/h という計算は明らかにおかしいのでやめてください。
@@ -1017,8 +1065,8 @@ function render(){
        代わりに「1本の平均金額」を出します。これは水増しのない数です。 */
   {
     const fr = rs.filter(hasFare);
-    $('#k3').textContent = fr.length
-      ? yen(fr.reduce((a,r) => a + (+r.fare || 0), 0) / fr.length) : '—';
+    setTxt_('#k3', fr.length
+      ? yen(fr.reduce((a,r) => a + (+r.fare || 0), 0) / fr.length) : '—');
   }
   /*
    * ★「アツい時間帯」は、やめました（ご指摘・2026/11/16
@@ -1041,10 +1089,10 @@ function render(){
     const lg  = fr2.filter(r => (+r.fare || 0) >= 10000).length;
     /* ★割合だけでは、何本のうち何本かが分かりません（ご指摘・2026/11/17）。
          数えたもとの数と、ロングの本数を そえます。 */
-    $('#k4').innerHTML = fr2.length
+    setHtml_('#k4', fr2.length
       ? (Math.round(lg * 100 / fr2.length) + '%' +
          '<i class="kpsub">' + fr2.length + '本中 ' + lg + '本</i>')
-      : '—';
+      : '—');
   }
   /*
    * ★一番上に「期間」と「合計」。下に小さく「1日当たりではありません」
@@ -1089,10 +1137,10 @@ function render(){
 
     /* 期間は、見出しの下に出します（見出しは「過去の記録」） */
     const kw = $('#ktWhen'); if (kw) kw.textContent = when;
-    $('#ktSum').textContent  = yen(sum);
+    setTxt_('#ktSum', yen(sum));
     /* ★ひとかたまりの言葉が、行の途中で切れないようにします。
          「記録のある日 9 ／ 日・10件」のような切れ方をすると、読めません。 */
-    $('#ktWho').innerHTML = who.map(x => '<span>' + esc(x) + '</span>').join('');
+    setHtml_('#ktWho', who.map(x => '<span>' + esc(x) + '</span>').join(''));
     /* ★中カテゴリーごとの件数を、1行で出します（ご指示・2026/11/17）。
          まとめスプシのレポートが、同じ形で 一番上に置いていました。
          「この期間、どこで何本だったか」が、これだけで分かります。
@@ -1149,6 +1197,14 @@ function render(){
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === litTab));
   htabsFill();
   try { hdrDupe_(); } catch (e) {}
+  /* 区切りのよいアンロックを、ふきだしに出します（ご指示・2026/11/25） */
+  try { troNewsPush(); } catch (e) {}
+  /* ★Googleスクリプトの様子は、この台帳の中に出します（ご指示・2026/11/25）。
+       仕組みの手当てなので、まーく様だけに出します。 */
+  try {
+    const ms = document.getElementById('moSys');
+    if (ms) ms.hidden = !(ME.profile && ME.profile.is_admin);
+  } catch (e) {}
   /* ★押しどころの受け付けは、ページを作り直したあとでも効くように
        body で受けます（下の bodyWire_）。
      ここで1つずつ付けていたので、**ページの中身を作る前に付けて**
@@ -1173,7 +1229,8 @@ function render(){
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, best:paneBest, tok:paneTok, rep:paneRep, nippo:paneNippo,
     bara:paneBara, kix:paneKix, tro:paneTro,
-    news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb, set:paneSet,
+    /* ★お知らせが一番上（ご指示・2026/11/25）。ふきだしの欄は そのあとへ */
+    news: () => paneNews() + paneSays(), ev:paneEv, fb:paneFb, set:paneSet,
     sys: () => (ME.profile.is_admin ? gasStatCard() : '') };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
@@ -1209,20 +1266,11 @@ function render(){
     ((tab === 'in')
       ? (bannerCard() +
          leadCard('in') + paneInNew() +
-         /* ★「この乗り場は、この時間がアツい」を【記録】にも出します
-              （ご指示・2026/11/24「記録 ⇒ やましきくん案の、
-                この乗り場はこの時間がアツいの形に直してください」）。
-            入れる欄のすぐ下に置きます。記録を1本 入れたあとに、
-            次はどこへ行くかが、そのまま見える並びです。
-            しぼり込みは、すぐ下の「過去の記録」のものが効きます。 */
-         (bestTimeCard(visible().filter(hasDep), true) || '') +
-         /* ★天気の細かいところ（最高・最低・1時間ごと）も、
-              このページへ移しました（ご指示・2026/11/24
-              「天気⇒1番初めのページに載せる形になったので、
-                天気ページは除外」）。
-            ページは無くしましたが、中身は消していません。 */
-         '<div class="card" id="wxcard"><h2>天気</h2>' +
-         wxNowHTML() + wxHoursHTML() + '</div>')
+         /* ★「この乗り場は、この時間がアツい」を【記録】に出します
+              （ご指示・2026/11/24）。
+            「過去の記録」を外したので（ご指示・2026/11/25）、
+            絞り込みは この欄のものを使います。 */
+         (bestTimeCard(visible().filter(hasDep)) || ''))
       : '');
   /* 記録の表は「過去の記録」の中へ（欄を2つに分けません） */
   const ktb = $('#ktTbl');
@@ -1345,18 +1393,27 @@ const emptyCard = t => `<div class="card"><div class="empty">${t}</div></div>`;
  *    w … わかること（2〜3つ）／m … もと／c … 数え方／n … 注意
  * ---------------------------------------------------------- */
 const LEADS = {
-  in: { w: ['きょうまでの記録を、新しい順に',
-            '営業月ごとの件数と売上',
-            '入れ間違いは、その場で直せます'],
+  in: { w: ['乗り場・時刻・金額を入れて、記録を残すところ',
+            'この乗り場は 何時に着けるのがよいか',
+            'きょうの空と、出ている人数'],
         m: '自分たちの記録（LINEと台帳の両方）',
         c: '合計は、金額の入った記録だけ',
-        n: '「不明」は数えません' },
+        n: '「不明」は数えません',
+        f: ['合計 ＝ 金額の入った記録の、金額のたし算',
+            '1本の平均金額 ＝ 合計 ÷ 金額の入った記録の本数',
+            '※「不明」は、上下どちらにも数えません（0円として数えると、平均が下がって嘘になります）'] },
   hot:{ w: ['いまの時刻に、どこへ行くとよいか',
             '夜ぜんたいの、1時間ごとの狙い目',
             'いまの天気と、雨雲の動き'],
         m: 'この1か月＋去年の同じ月の記録と、気象庁の天気',
         c: '3件以上そろった乗り場だけ。数字は1本の平均金額',
-        n: '催しのある夜は、記録より催しが先です' },
+        n: '催しのある夜は、記録より催しが先です',
+        f: ['1本の平均金額 ＝ その乗り場・その時間の金額のたし算 ÷ 金額の入った本数',
+            'まず「同じ曜日の夜・前後1時間」で数えます',
+            '3件に届かなければ「前後2時間」、それでも足りなければ「曜日を問わず・前後2時間」まで広げます',
+            'どこまで広げたかは、必ず画面に書きます（黙って広げません）',
+            '期間も、この1か月＋去年の同じ月 → 全期間 の順に広げます',
+            '3件に届かない乗り場は出しません（1件は たまたまの1本だからです）'] },
   /* ★出しているのは線グラフだけなので、表と棒の説明は外しました
        （2026/11/22）。出していないものを書くと、探す手間が増えます。 */
   g:  { w: ['何時に、いくらの乗車が出ているか',
@@ -1364,29 +1421,50 @@ const LEADS = {
             '同じ時刻でも、日によってどれだけ違うか'],
         m: '絞り込みで選んだ期間・乗り場の記録',
         c: '点が1件。横は乗せた時刻、縦は金額です',
-        n: '金額が「不明」の記録は、点を打ちません' },
+        n: '金額が「不明」の記録は、点を打ちません',
+        f: ['点の高さ ＝ その1本の金額（そのままの数です。平均ではありません）',
+            '点の横 ＝ 乗せた時刻。25 は 翌1時です（0〜6時は、その夜の続きとして数えます）',
+            '色 ＝ 人。同じ人は、どの日でも同じ色です',
+            '線 ＝ その人の、その夜の並び。夜をまたいでは つなぎません'] },
   map:{ w: ['えらんだ時間帯・金額の記録が、どのあたりに多いか',
             '1本 乗せたあと、次をどこで拾えているか'],
         m: '自分たちの記録と、無料の地図（OpenStreetMap）',
-        c: '丸の大きさは件数、色は1本の平均金額',
-        n: 'ピンは、乗り場のあるあたりです' },
+        c: '丸の大きさは件数、色は 金額の3段階の割合',
+        n: 'ピンは、乗り場のあるあたりです',
+        f: ['丸の大きさ ＝ 件数の平方根に合わせています（件数が多いほど大きい）',
+            '丸の色 ＝ ショート・ミドル・ロングの割合を、そのまま円に塗り分けています',
+            '割合 ＝ その段の本数 ÷ 金額の入った本数（「不明」は数えません）',
+            '近づけると、1件ずつのピンに変わります'] },
   ratio:{ w: ['ロング（¥10,000以上）が出やすい乗り場と時間帯',
               'ショート・ミドル・ロングの割合'],
         m: '金額の入った記録だけ',
-        c: 'その乗り場の記録のうち、何％か',
-        n: '3件に届かない乗り場は出しません' },
+        c: 'その乗り場の記録のうち、何パーセントか',
+        n: '3件に届かない乗り場は出しません',
+        f: ['ショート ＝ ¥4,999以下／ミドル ＝ ¥5,000〜9,999／ロング ＝ ¥10,000以上',
+            'ロング率 ＝ ロングの本数 ÷ 金額の入った本数 × 100',
+            '1本の平均金額 ＝ 金額のたし算 ÷ 金額の入った本数',
+            '時間帯べつの並びは、前後1時間をふくめて数えています',
+            '※金額が「不明」の記録は、どの段にも入れません（0円として数えると、ショートが増えて嘘になります）'] },
   /* ★「乗り場別、何時がアツいか」を1ページ立てにしました
        （ご指示・2026/11/22「この3つを一先ず主軸にしたサイトにしたい」）。 */
   best:{ w: ['えらんだ乗り場は、何時に着けるのがよいか',
              'その時間の、ロング率と1本の平均'],
         m: 'えらんだ乗り場の記録（前後1時間をふくむ）',
         c: 'ロング率＝¥10,000以上が、何本中 何本か',
-        n: '3件に届かない時間帯は出しません' },
+        n: '3件に届かない時間帯は出しません',
+        f: ['ロング率 ＝ ロングの本数 ÷ 金額の入った本数 × 100',
+            '「一番よさそうな時間」は、ロング率の高いほうです（同じときは、ロングの平均金額が高いほうを選びます）',
+            '前後1時間をふくめて数えます（1時間だけでは3件に届かないためです）'] },
   tok:{ w: ['種類ごとに、何時台に多いか',
             '会場やホテルごとの、呼ばれやすい時間'],
         m: 'GO／Uber の記録と、「他」に書いた印の記録',
         c: 'ここだけは1件からでも出します',
-        n: '少ない所には「まだ○件」と書いてあります' },
+        n: '少ない所には「まだ○件」と書いてあります',
+        f: ['件数 ＝ そのまま数えた本数です',
+            '時間 ＝ その乗り場で、一番よく出ている時間帯（同じ数なら、早いほう）',
+            '1本の平均 ＝ 金額のたし算 ÷ 金額の入った本数',
+            'バラシ・関空・チケットは、「他」の欄または乗り場の字で見分けています',
+            '※ここは件数が少ないので、割合は出しません。件数は たまたまでも たしかな事実です'] },
   rep:{ w: ['「他」に印のある、くり返しの乗車',
             'いつ・どこで・いくらだったか'],
         m: '「他」に 〇回目・再現性 と書いた記録',
@@ -1413,8 +1491,16 @@ function leadBody_(k){
   const line = function (t, v){
     return v ? '<div class="leadr"><b>' + t + '</b><span>' + esc(v) + '</span></div>' : '';
   };
+  /* ★具体的な計算のしかたも書きます（ご指示・2026/11/25
+       「説明ボタンにも 具体的な計算方法を記載した上で
+         間違いが必ずないことを徹底遵守してください」）。
+     ここに書いた式は、実際に動いている中身と 1つずつ突き合わせてあります。 */
+  const calc = (L.f && L.f.length)
+    ? '<div class="leadf"><b>計算のしかた</b><ul>' +
+      L.f.map(function (x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'
+    : '';
   return '<ul class="leadw">' + L.w.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
-    line('もと', L.m) + line('数え方', L.c) + line('注意', L.n);
+    line('もと', L.m) + line('数え方', L.c) + line('注意', L.n) + calc;
 }
 /*
  * ★「このページを見てわかること」は、ページの中から外しました
@@ -1544,6 +1630,97 @@ function troStat(R){
     prev = t;
   });
   st.streak = best;
+
+  /* ------------------------------------------------------------
+   *  ★しるしを100こにするために、数えるもとを増やしました
+   *    （ご指示・2026/11/25「現時点では、100個のアンロックを
+   *      作ってください」）。
+   *  ★どれも **自分の記録から その場で数えています**。
+   *    作り物の数は1つも使っていません。
+   * ---------------------------------------------------------- */
+  /* 金額の3段階（「不明」は数えません。0円として数えると嘘になります） */
+  st.shorts = 0; st.mids = 0;
+  R.forEach(function (r){
+    if (!hasFare(r)) return;
+    const f = +r.fare || 0;
+    if (f >= 10000) return;
+    if (f >= 5000) st.mids++; else st.shorts++;
+  });
+  /* 深夜（24〜29時台）の本数 */
+  st.late = 0;
+  Object.keys(st.hours).forEach(function (h){
+    if (+h >= 24) st.late += st.hours[h];
+  });
+  /* 記録のある時間帯の数・月の数 */
+  st.hourN = Object.keys(st.hours).length;
+  st.monN = (function (){
+    const m = {};
+    Object.keys(st.days).forEach(function (d){ m[d.slice(0, 7)] = 1; });
+    return Object.keys(m).length;
+  })();
+  /* 1か月の最高合計・1日の最高本数 */
+  st.bestMon = 0;
+  (function (){
+    const m = {};
+    R.forEach(function (r){
+      if (!r.date || !hasFare(r)) return;
+      const k = String(r.date).slice(0, 7);
+      m[k] = (m[k] || 0) + (+r.fare || 0);
+    });
+    Object.keys(m).forEach(function (k){ if (m[k] > st.bestMon) st.bestMon = m[k]; });
+  })();
+  st.bestDayN = 0;
+  (function (){
+    const m = {};
+    R.forEach(function (r){ if (r.date) m[r.date] = (m[r.date] || 0) + 1; });
+    Object.keys(m).forEach(function (k){ if (m[k] > st.bestDayN) st.bestDayN = m[k]; });
+  })();
+  /* 1日に出たロングの最高本数 */
+  st.bestDayL = 0;
+  (function (){
+    const m = {};
+    R.forEach(function (r){
+      if (!r.date || !hasFare(r) || (+r.fare || 0) < 10000) return;
+      m[r.date] = (m[r.date] || 0) + 1;
+    });
+    Object.keys(m).forEach(function (k){ if (m[k] > st.bestDayL) st.bestDayL = m[k]; });
+  })();
+  /* 大カテゴリー（エリア）の数 */
+  st.bigN = (function (){
+    const m = {};
+    R.forEach(function (r){ const b = recBig(r); if (b) m[b] = 1; });
+    return Object.keys(m).length;
+  })();
+  st.catN = (function (){
+    const m = {};
+    R.forEach(function (r){ const c = recCat(r); if (c) m[c] = 1; });
+    return Object.keys(m).length;
+  })();
+  /* 待ち時間（入っているものだけ） */
+  st.noWait = 0; st.longWait = 0; st.waitSum = 0;
+  R.forEach(function (r){
+    if (isUnk(r.wait)) return;
+    const w = +r.wait || 0;
+    st.waitSum += w;
+    if (w <= 5) st.noWait++;
+    if (w >= 60) st.longWait++;
+  });
+  st.waitAvg = st.waits ? (st.waitSum / st.waits) : 0;
+  /* 1本の平均金額（金額の入っているものだけ） */
+  st.nf = R.filter(hasFare).length;
+  st.avg = st.nf ? (st.sum / st.nf) : 0;
+  /* ていねいさ：乗り場・時刻・金額・待ち・他 を ぜんぶ書いた本数 */
+  st.full = R.filter(function (r){
+    return !!String(r.place || '').trim() && hasDep(r) && hasFare(r) &&
+           !isUnk(r.wait) && !!String(r.note || '').trim();
+  }).length;
+  /* 記録をはじめてから、きょうまでの日数 */
+  st.spanD = (function (){
+    if (!st.first || !st.last) return 0;
+    const a = new Date(st.first + 'T00:00:00').getTime();
+    const b2 = new Date(st.last + 'T00:00:00').getTime();
+    return Math.round((b2 - a) / 86400000) + 1;
+  })();
   return st;
 }
 
@@ -1552,59 +1729,132 @@ const TRO_LIST = [
   /* ① 本数 */
   { k:'n1',    g:'本数', t:'bronze',  n:'はじめの1本',     d:'記録を1本 入れる',        v:s=>s.n,     need:1 },
   { k:'n10',   g:'本数', t:'bronze',  n:'10本',            d:'記録を10本 入れる',        v:s=>s.n,     need:10 },
+  { k:'n30',   g:'本数', t:'bronze',  n:'30本',            d:'記録を30本 入れる',        v:s=>s.n,     need:30 },
   { k:'n50',   g:'本数', t:'silver',  n:'50本',            d:'記録を50本 入れる',        v:s=>s.n,     need:50 },
   { k:'n100',  g:'本数', t:'silver',  n:'100本',           d:'記録を100本 入れる',       v:s=>s.n,     need:100 },
+  { k:'n200',  g:'本数', t:'silver',  n:'200本',           d:'記録を200本 入れる',       v:s=>s.n,     need:200 },
   { k:'n300',  g:'本数', t:'gold',    n:'300本',           d:'記録を300本 入れる',       v:s=>s.n,     need:300 },
   { k:'n500',  g:'本数', t:'gold',    n:'500本',           d:'記録を500本 入れる',       v:s=>s.n,     need:500 },
   { k:'n1000', g:'本数', t:'rainbow', n:'1000本',          d:'記録を1000本 入れる',      v:s=>s.n,     need:1000 },
+  { k:'n2000', g:'本数', t:'rainbow', n:'2000本',          d:'記録を2000本 入れる',      v:s=>s.n,     need:2000 },
+  { k:'dayn8', g:'本数', t:'bronze',  n:'1日 8本',         d:'1日に8本 記録する',        v:s=>s.bestDayN, need:8 },
+  { k:'dayn15',g:'本数', t:'silver',  n:'1日 15本',        d:'1日に15本 記録する',       v:s=>s.bestDayN, need:15 },
+  { k:'dayn25',g:'本数', t:'gold',    n:'1日 25本',        d:'1日に25本 記録する',       v:s=>s.bestDayN, need:25 },
+
   /* ② 売上 */
+  { k:'d20',   g:'売上', t:'bronze',  n:'1日 2万円',       d:'1日の合計が ¥20,000',      v:s=>s.bestDay, need:20000, yen:1 },
   { k:'d30',   g:'売上', t:'bronze',  n:'1日 3万円',       d:'1日の合計が ¥30,000',      v:s=>s.bestDay, need:30000, yen:1 },
   { k:'d40',   g:'売上', t:'silver',  n:'1日 4万円',       d:'1日の合計が ¥40,000',      v:s=>s.bestDay, need:40000, yen:1 },
   { k:'d50',   g:'売上', t:'gold',    n:'1日 5万円',       d:'1日の合計が ¥50,000',      v:s=>s.bestDay, need:50000, yen:1 },
+  { k:'d70',   g:'売上', t:'rainbow', n:'1日 7万円',       d:'1日の合計が ¥70,000',      v:s=>s.bestDay, need:70000, yen:1 },
   { k:'s10',   g:'売上', t:'bronze',  n:'通算 10万円',     d:'合計が ¥100,000',          v:s=>s.sum,   need:100000, yen:1 },
   { k:'s50',   g:'売上', t:'silver',  n:'通算 50万円',     d:'合計が ¥500,000',          v:s=>s.sum,   need:500000, yen:1 },
   { k:'s100',  g:'売上', t:'gold',    n:'通算 100万円',    d:'合計が ¥1,000,000',        v:s=>s.sum,   need:1000000, yen:1 },
+  { k:'s300',  g:'売上', t:'rainbow', n:'通算 300万円',    d:'合計が ¥3,000,000',        v:s=>s.sum,   need:3000000, yen:1 },
+  { k:'mo30',  g:'売上', t:'silver',  n:'1か月 30万円',    d:'1か月の合計が ¥300,000',   v:s=>s.bestMon, need:300000, yen:1 },
+  { k:'mo60',  g:'売上', t:'gold',    n:'1か月 60万円',    d:'1か月の合計が ¥600,000',   v:s=>s.bestMon, need:600000, yen:1 },
+  { k:'avg4',  g:'売上', t:'silver',  n:'1本 平均4千円',   d:'1本の平均が ¥4,000以上（20本から）',
+    v:s=>(s.nf>=20 ? s.avg : 0), need:4000, yen:1 },
+  { k:'avg6',  g:'売上', t:'gold',    n:'1本 平均6千円',   d:'1本の平均が ¥6,000以上（20本から）',
+    v:s=>(s.nf>=20 ? s.avg : 0), need:6000, yen:1 },
+
   /* ③ ロング */
   { k:'L1',    g:'ロング', t:'bronze', n:'はじめのロング', d:'¥10,000以上を1本',         v:s=>s.longs, need:1 },
   { k:'L5',    g:'ロング', t:'bronze', n:'ロング5本',      d:'¥10,000以上を5本',         v:s=>s.longs, need:5 },
+  { k:'L10',   g:'ロング', t:'bronze', n:'ロング10本',     d:'¥10,000以上を10本',        v:s=>s.longs, need:10 },
   { k:'L20',   g:'ロング', t:'silver', n:'ロング20本',     d:'¥10,000以上を20本',        v:s=>s.longs, need:20 },
   { k:'L50',   g:'ロング', t:'gold',   n:'ロング50本',     d:'¥10,000以上を50本',        v:s=>s.longs, need:50 },
+  { k:'L100',  g:'ロング', t:'rainbow',n:'ロング100本',    d:'¥10,000以上を100本',       v:s=>s.longs, need:100 },
   { k:'M20',   g:'ロング', t:'silver', n:'2万円の1本',     d:'1本で ¥20,000以上',        v:s=>s.max,   need:20000, yen:1 },
   { k:'M30',   g:'ロング', t:'rainbow',n:'3万円の1本',     d:'1本で ¥30,000以上',        v:s=>s.max,   need:30000, yen:1 },
-  /* ④ 乗り場 */
+  { k:'dL2',   g:'ロング', t:'silver', n:'1日にロング2本', d:'同じ日に ロングを2本',     v:s=>s.bestDayL, need:2 },
+  { k:'dL3',   g:'ロング', t:'gold',   n:'1日にロング3本', d:'同じ日に ロングを3本',     v:s=>s.bestDayL, need:3 },
+  { k:'dL5',   g:'ロング', t:'rainbow',n:'1日にロング5本', d:'同じ日に ロングを5本',     v:s=>s.bestDayL, need:5 },
+
+  /* ④ ミドル・ショート */
+  { k:'md10',  g:'ミドル', t:'bronze', n:'ミドル10本',     d:'¥5,000〜9,999 を10本',     v:s=>s.mids,  need:10 },
+  { k:'md50',  g:'ミドル', t:'silver', n:'ミドル50本',     d:'¥5,000〜9,999 を50本',     v:s=>s.mids,  need:50 },
+  { k:'sh50',  g:'ミドル', t:'bronze', n:'ショート50本',   d:'¥4,999以下 を50本',        v:s=>s.shorts,need:50 },
+  { k:'sh200', g:'ミドル', t:'silver', n:'ショート200本',  d:'¥4,999以下 を200本',       v:s=>s.shorts,need:200 },
+  /* ⑤ 乗り場 */
   { k:'p5',    g:'乗り場', t:'bronze', n:'5か所',          d:'5か所で付ける',            v:s=>s.placeN, need:5 },
+  { k:'p10',   g:'乗り場', t:'bronze', n:'10か所',         d:'10か所で付ける',           v:s=>s.placeN, need:10 },
   { k:'p15',   g:'乗り場', t:'silver', n:'15か所',         d:'15か所で付ける',           v:s=>s.placeN, need:15 },
   { k:'p30',   g:'乗り場', t:'gold',   n:'30か所',         d:'30か所で付ける',           v:s=>s.placeN, need:30 },
+  { k:'p50',   g:'乗り場', t:'rainbow',n:'50か所',         d:'50か所で付ける',           v:s=>s.placeN, need:50 },
+  { k:'pt5',   g:'乗り場', t:'bronze', n:'なじみの1か所',  d:'同じ乗り場で5本',          v:s=>s.topPlace, need:5 },
   { k:'pt10',  g:'乗り場', t:'bronze', n:'通いの1か所',    d:'同じ乗り場で10本',         v:s=>s.topPlace, need:10 },
   { k:'pt30',  g:'乗り場', t:'gold',   n:'主（ぬし）',     d:'同じ乗り場で30本',         v:s=>s.topPlace, need:30 },
-  /* ⑤ 時間 */
-  { k:'h17',   g:'時間', t:'bronze',  n:'夕方の1本',       d:'17時台に1本',              v:s=>(s.hours[17]||0), need:1 },
+  { k:'pt60',  g:'乗り場', t:'rainbow',n:'ぬしの中のぬし', d:'同じ乗り場で60本',         v:s=>s.topPlace, need:60 },
+  { k:'big3',  g:'乗り場', t:'silver', n:'3エリア',        d:'3つのエリアで付ける',      v:s=>s.bigN,  need:3 },
+  { k:'bigall',g:'乗り場', t:'gold',   n:'どのエリアも',   d:'5つのエリアで付ける',      v:s=>s.bigN,  need:5 },
+  { k:'cat8',  g:'乗り場', t:'silver', n:'8つの分け',      d:'8つの中分類で付ける',      v:s=>s.catN,  need:8 },
+
+  /* ⑥ 時間 */
   { k:'h26',   g:'時間', t:'silver',  n:'丑三つの1本',     d:'26時台（翌2時台）に1本',   v:s=>(s.hours[26]||0), need:1 },
+  { k:'h27',   g:'時間', t:'gold',    n:'明け方の1本',     d:'27時台（翌3時台）に1本',   v:s=>(s.hours[27]||0), need:1 },
   { k:'hall',  g:'時間', t:'gold',    n:'夜どおし',        d:'18時台〜27時台の10の時間すべてで1本',
     v:s=>{ let c=0; for(let h=18;h<=27;h++) if(s.hours[h]) c++; return c; }, need:10 },
-  /* ⑥ 曜日 */
+  { k:'hn10',  g:'時間', t:'silver',  n:'10の時間帯',      d:'10の時間帯で付ける',       v:s=>s.hourN, need:10 },
+  { k:'lt10',  g:'時間', t:'bronze',  n:'深夜10本',        d:'24時台より後に10本',       v:s=>s.late,  need:10 },
+  { k:'lt50',  g:'時間', t:'silver',  n:'深夜50本',        d:'24時台より後に50本',       v:s=>s.late,  need:50 },
+  { k:'lt150', g:'時間', t:'gold',    n:'深夜150本',       d:'24時台より後に150本',      v:s=>s.late,  need:150 },
+
+  /* ⑦ 曜日・日数 */
   { k:'wall',  g:'曜日', t:'silver',  n:'どの曜日も',      d:'平日・金・土・日祝 すべてで記録',
     v:s=>['d-wd','d-fri','d-sat','d-sun'].filter(x=>s.dcls[x]).length, need:4 },
-  /* ⑦ 続けて */
-  { k:'r2',    g:'続けて', t:'bronze', n:'2日続けて',      d:'2日 続けて記録',           v:s=>s.streak, need:2 },
-  { k:'r5',    g:'続けて', t:'silver', n:'5日続けて',      d:'5日 続けて記録',           v:s=>s.streak, need:5 },
-  { k:'r10',   g:'続けて', t:'gold',   n:'10日続けて',     d:'10日 続けて記録',          v:s=>s.streak, need:10 },
-  { k:'dn30',  g:'続けて', t:'silver', n:'30営業日',       d:'営業日を30日 記録',   v:s=>s.dayN,  need:30 },
+  { k:'wsat',  g:'曜日', t:'bronze',  n:'土曜の常連',      d:'土曜に20本',               v:s=>(s.dcls['d-sat']||0), need:20 },
+  { k:'wfri',  g:'曜日', t:'bronze',  n:'金曜の常連',      d:'金・祝前日に20本',         v:s=>(s.dcls['d-fri']||0), need:20 },
+  { k:'wwd',   g:'曜日', t:'bronze',  n:'平日の常連',      d:'平日に50本',               v:s=>(s.dcls['d-wd']||0), need:50 },
+  { k:'dn10',  g:'日数', t:'bronze',  n:'10営業日',        d:'営業日を10日 記録',        v:s=>s.dayN,  need:10 },
+  { k:'dn30',  g:'日数', t:'silver',  n:'30営業日',        d:'営業日を30日 記録',        v:s=>s.dayN,  need:30 },
+  { k:'dn60',  g:'日数', t:'gold',    n:'60営業日',        d:'営業日を60日 記録',        v:s=>s.dayN,  need:60 },
+  { k:'dn120', g:'日数', t:'rainbow', n:'120営業日',       d:'営業日を120日 記録',       v:s=>s.dayN,  need:120 },
+  { k:'mn3',   g:'日数', t:'bronze',  n:'3か月',           d:'3つの月に記録がある',      v:s=>s.monN,  need:3 },
+  { k:'mn6',   g:'日数', t:'silver',  n:'半年',            d:'6つの月に記録がある',      v:s=>s.monN,  need:6 },
+  { k:'mn12',  g:'日数', t:'gold',    n:'1年',             d:'12の月に記録がある',       v:s=>s.monN,  need:12 },
+  { k:'sp100', g:'日数', t:'silver',  n:'100日の歩み',     d:'はじめの記録から100日',    v:s=>s.spanD, need:100 },
+  { k:'sp365', g:'日数', t:'rainbow', n:'1年の歩み',       d:'はじめの記録から365日',    v:s=>s.spanD, need:365 },
+
   /* ⑧ 種類 */
   { k:'mgo',   g:'種類', t:'bronze',  n:'GOを1本',         d:'種類が GO の記録を1本',    v:s=>s.go,    need:1 },
+  { k:'mgo100',g:'種類', t:'gold',    n:'GOを100本',       d:'種類が GO の記録を100本',  v:s=>s.go,    need:100 },
   { k:'mub',   g:'種類', t:'bronze',  n:'Uberを1本',       d:'種類が Uber の記録を1本',  v:s=>s.uber,  need:1 },
+  { k:'mub20', g:'種類', t:'silver',  n:'Uberを20本',      d:'種類が Uber の記録を20本', v:s=>s.uber,  need:20 },
   { k:'mna',   g:'種類', t:'bronze',  n:'途中乗りを1本',   d:'途中乗りの記録を1本',      v:s=>s.naka,  need:1 },
+  { k:'mna10', g:'種類', t:'silver',  n:'途中乗り10本',    d:'途中乗りの記録を10本',     v:s=>s.naka,  need:10 },
   { k:'mall',  g:'種類', t:'gold',    n:'ぜんぶの種類',    d:'GO・Uber・途中乗りを それぞれ1本',
     v:s=>[s.go,s.uber,s.naka].filter(x=>x>0).length, need:3 },
+
   /* ⑨ 特定 */
   { k:'tbara', g:'特定', t:'silver',  n:'バラシ',          d:'バラシの記録を1本',        v:s=>s.bara,  need:1 },
+  { k:'tbara10',g:'特定',t:'gold',    n:'バラシ10本',      d:'バラシの記録を10本',       v:s=>s.bara,  need:10 },
   { k:'tkix',  g:'特定', t:'gold',    n:'関空',            d:'関空の記録を1本',          v:s=>s.kix,   need:1 },
+  { k:'tkix5', g:'特定', t:'rainbow', n:'関空5本',         d:'関空の記録を5本',          v:s=>s.kix,   need:5 },
   { k:'ttic',  g:'特定', t:'silver',  n:'チケット',        d:'チケットの記録を1本',      v:s=>s.ticket,need:1 },
-  /* ⑩ ていねいさ */
+  { k:'ttic10',g:'特定', t:'gold',    n:'チケット10本',    d:'チケットの記録を10本',     v:s=>s.ticket,need:10 },
+  { k:'tall',  g:'特定', t:'rainbow', n:'3つ そろえる',    d:'バラシ・関空・チケットを それぞれ1本',
+    v:s=>[s.bara,s.kix,s.ticket].filter(x=>x>0).length, need:3 },
+
+  /* ⑩ 待ち */
+  { k:'w0_10', g:'待ち', t:'bronze',  n:'すぐ乗せた10回',  d:'待ち5分以内を10回',        v:s=>s.noWait, need:10 },
+  { k:'w0_50', g:'待ち', t:'silver',  n:'すぐ乗せた50回',  d:'待ち5分以内を50回',        v:s=>s.noWait, need:50 },
+  { k:'w0_150',g:'待ち', t:'gold',    n:'すぐ乗せた150回', d:'待ち5分以内を150回',       v:s=>s.noWait, need:150 },
+  { k:'wl10',  g:'待ち', t:'silver',  n:'ねばりの10回',    d:'待ち60分以上を10回',       v:s=>s.longWait, need:10 },
+  { k:'wl30',  g:'待ち', t:'gold',    n:'ねばりの30回',    d:'待ち60分以上を30回',       v:s=>s.longWait, need:30 },
+
+  /* ⑪ ていねいさ */
   { k:'note10',g:'ていねい', t:'bronze', n:'ひとこと10回', d:'「他」の欄を10回 書く',    v:s=>s.notes, need:10 },
+  { k:'note50',g:'ていねい', t:'silver', n:'ひとこと50回', d:'「他」の欄を50回 書く',    v:s=>s.notes, need:50 },
+  { k:'note150',g:'ていねい',t:'gold',   n:'ひとこと150回',d:'「他」の欄を150回 書く',   v:s=>s.notes, need:150 },
   { k:'wait50',g:'ていねい', t:'silver', n:'待ち50回',     d:'待ち時間を50回 入れる',    v:s=>s.waits, need:50 },
-  { k:'note50',g:'ていねい', t:'gold',   n:'ひとこと50回', d:'「他」の欄を50回 書く',    v:s=>s.notes, need:50 }
+  { k:'wait200',g:'ていねい',t:'gold',   n:'待ち200回',    d:'待ち時間を200回 入れる',   v:s=>s.waits, need:200 },
+  { k:'full10',g:'ていねい', t:'bronze', n:'全部うめた10本', d:'乗り場・時刻・金額・待ち・他 を ぜんぶ書いた記録を10本',
+    v:s=>s.full,  need:10 },
+  { k:'full50',g:'ていねい', t:'silver', n:'全部うめた50本', d:'ぜんぶ書いた記録を50本', v:s=>s.full,  need:50 },
+  { k:'full200',g:'ていねい',t:'rainbow',n:'全部うめた200本',d:'ぜんぶ書いた記録を200本',v:s=>s.full,  need:200 }
 ];
+
 
 /** 自分の記録だけ（絞り込みは効かせません。しるしは ためた全部で数えます） */
 function troMine(){
@@ -1782,17 +2032,22 @@ function troDetail(k){
 }
 
 /* まとまり（本数・売上…）の見出しを押したとき */
+/* ★「続けて（毎日 出勤）」のしるしは、やめました（ご指示・2026/11/25
+     「毎日出勤って、労働基準法違反なので、このアンロックも除外」）。
+   「17時台に1本」も やめました（17時台に出勤しない方がいるため）。 */
 const TRO_GINFO = {
-  '本数':   '入れた記録の本数です。1本 入れるたびに進みます。',
-  '売上':   '金額の合計です。1日の合計と、通算の合計の2通りで見ます。',
-  'ロング': '¥10,000以上の記録です。本数と、1本の最高額で見ます。',
-  '乗り場': '付けた乗り場の数と、同じ乗り場に通った本数です。',
+  '本数':   '入れた記録の本数です。1本 入れるたびに進みます。1日の本数も見ます。',
+  '売上':   '金額の合計です。1日・1か月・通算、それに1本の平均で見ます。',
+  'ロング': '¥10,000以上の記録です。本数・1本の最高額・1日に出た本数で見ます。',
+  'ミドル': '¥5,000〜9,999 と ¥4,999以下 の本数です。',
+  '乗り場': '付けた乗り場の数と、同じ乗り場に通った本数、エリアの広さです。',
   '時間':   '何時台に付けたかです。夜どおしは18時台〜27時台のすべてです。',
-  '曜日':   '平日・金・土・日祝の4つ すべてで記録すると そろいます。',
-  '続けて': '営業日を続けて記録した日数です。1日あくと、数え直しになります。',
+  '曜日':   '平日・金・土・日祝の4つで数えます。',
+  '日数':   '記録した営業日の数と、月の数です。続けてでなくても進みます。',
   '種類':   'GO・Uber・途中乗りです。記録の「種類」の欄から数えます。',
   '特定':   'バラシ・関空・チケットです。「他」の欄の字から見分けます。',
-  'ていねい': '待ち時間や「他」の欄を、どれだけ書いたかです。'
+  '待ち':   '待ち時間の欄から数えます。「不明」は数えません。',
+  'ていねい': '欄を どれだけ書いたかです。ぜんぶ書いた記録も数えます。'
 };
 function troGroup(g){
   const rows = troAll().filter(function (x){ return x.g === g; });
@@ -1830,6 +2085,31 @@ function troRank(n, all){
  *    「ランキングは、ストレスの発端となるため除外」）。
  *  ★数は、自分の記録から その場で数えています。作り物ではありません。
  * ================================================================ */
+/* ------------------------------------------------------------
+ *  区切りのよいアンロックを、ふきだしに出す（ご指示・2026/11/25）
+ *    「区切りの良いアンロックが達成した人は 全体ページの、
+ *      ふきだしの部分に ○○がアンロック数○○を達成しました
+ *      と入れてください」
+ *
+ *  ★区切りは 10・25・50・75・100 の5つです。
+ *  ★数は、自分の記録から その場で数えています（作り物の数は使いません）。
+ *  ★いまは **ご自分の画面にだけ** 出ます。
+ *    みんなの画面に出すには、台帳に棚が1つ要ります。
+ * ---------------------------------------------------------- */
+const TRO_MARKS = [10, 25, 50, 75, 100];
+function troNewsPush(){
+  try {
+    if (typeof sayNewsSet !== 'function') return;
+    const got = troGot_();
+    const hit = TRO_MARKS.filter(function (m){ return got >= m; });
+    if (!hit.length) { sayNewsSet([]); return; }
+    /* 一番 新しく越えた区切りを出します */
+    const m = hit[hit.length - 1];
+    const nm = String((ME.profile && (ME.profile.display_name || ME.profile.title)) || 'あなた');
+    sayNewsSet([ nm + 'がアンロック数' + m + 'を達成しました' ]);
+  } catch (e) {}
+}
+
 function troLv(got){
   const lv = Math.floor(got / 3) + 1;            /* 3つで1つ上がります */
   const inLv = got % 3;
@@ -1854,7 +2134,7 @@ function paneTro(){
     '<div class="trolvsub">つぎの段まで あと <b>' + lv.next + '</b> つ</div>' +
     '<div class="trostats">' +
       '<span><i>そろった</i><b>' + got.length + '<em>/' + all.length + '</em></b></span>' +
-      '<span><i>続けて</i><b>' + (st.streak || 0) + '<em>日</em></b></span>' +
+      '<span><i>営業日</i><b>' + (st.dayN || 0) + '<em>日</em></b></span>' +
       '<span><i>記録</i><b>' + (st.n || 0) + '<em>本</em></b></span>' +
     '</div>' +
     '<div class="trobar"><span style="width:' + pct + '%"></span></div>' +
@@ -1943,26 +2223,38 @@ const TUT_KEY = 'tn_tutorial_done';
  * ★だから、**実際にその画面へ移って**から話します。
  *   読んで終わりではなく、押す所が目の前にある形にします。
  */
+/* ★案内の中身は、いまの画面に合わせてあります（ご指示・2026/11/25
+     「ちゃんと全て綺麗に直せたら、シロタクのチュートリアルも、
+       それにきちんと合わせてください」）。
+   画面を直したら、ここも必ず直します。合っていないと、
+   はじめての方が「書いてある所が無い」と迷います。 */
 const TUT_STEPS = [
   { t:'in',   h:'はじめまして',
     b:'俺、白越拓也。略してシロタク。へへ･･･。\nこの台帳の使い方、ざっと案内するわ。' },
   { t:'in',   h:'ここが【記録】',
     b:'いま開いてるのが【記録】。\n乗り場・時刻・金額を入れて保存する所や。\n書きかけは、閉じても残るから安心せぇ。' },
   { t:'in',   h:'一番上は、きょうの空と出番',
-    b:'気温と雨、それに きょう何人 出てるか。\n走ってる車の数が、そのまま出勤の人数や。' },
+    b:'天気マークと気温、それに「いつ雨か」。\n走ってる車の数が、そのまま きょうの出勤の人数や。\n絵の中には、日替わりで なんか出てくるで。' },
+  { t:'in',   h:'車は、しるしを集めると上がる',
+    b:'トロフィーを集めると、走る車が変わる。\n軽タクシーから、いつか 金のリムジンまでな。' },
+  { t:'in',   h:'入れたら、すぐ下を見てみ',
+    b:'【乗り場別 オススメ時間帯】が出てる。\n「この乗り場は何時がアツいか」が、そのまま分かる。' },
   { t:'hot',  h:'ここが【いま】',
     b:'いまの時刻で「どこへ行くとよいか」を出す。\n迷ったら、まずここ見たらええ。' },
   { t:'g',    h:'ここが【グラフ】',
-    b:'何時に いくらになってるかを、絵で見る所。\n上の絞り込みで、乗り場や曜日を変えられる。' },
-  { t:'ratio',h:'ここが【割合】',
-    b:'ロング（¥10,000以上）が出やすい所と時間や。\n「どこで粘るか」を決めるのに使う。' },
+    b:'何時に いくらになってるかを、絵で見る所。\n点の色は人ごとや。下に「色の見方」も出てる。' },
+  { t:'ratio',h:'ここが【パーセント】',
+    b:'ロング（¥10,000以上）が出やすい所と時間や。\n①②③の番号どおりに押したら、つながって分かる。' },
   { t:'map',  h:'ここが【地図】',
-    b:'時間帯と金額でしぼって、乗り場にピンを打つ。\n場所で覚えたい人は、ここが早い。' },
+    b:'乗り場に丸が出る。丸の色は金額の割合や。\n赤が多い所ほど、ロングが出てる。' },
   { t:'in',   h:'あとは【もっと】',
     b:'イベント・トロフィー・日報・設定は【もっと】の中。\n上のメニューは、どこを見てても ずっと出てる。' },
+  { t:'in',   h:'ふきだしは、下に出てる',
+    b:'画面の下のふきだしは、▼で たためる。\n上の帯も、▲で たためるで。' },
   { t:'in',   h:'ほな、いこか',
-    b:'困ったら、右上の【?】を押したらええ。\nその画面の話だけ、短う出るで。へへ･･･。' }
+    b:'困ったら、上の【?】を押したらええ。\nその画面の数え方まで、ちゃんと書いたる。へへ･･･。' }
 ];
+
 function tutDone(){
   try { return localStorage.getItem(TUT_KEY) === '1'; } catch (e) { return false; }
 }
@@ -2216,6 +2508,135 @@ function carSvg_(g, y){
   return o;
 }
 
+/* ------------------------------------------------------------
+ *  絵の中の「きょうの出来事」（ご指示・2026/11/25）
+ *    「車のイラスト部分ですが、飽きさせないように
+ *      定期的にランダムイベントを追加して、絵の代わり映えを出して、
+ *      楽しさをアップさせてください」
+ *
+ *  ★1日に1つ。開き直すたびに変わると、落ち着かないためです。
+ *  ★その日の日付から決めるので、同じ日は だれが見ても同じ絵です。
+ *  ★時刻や天気に合わないものは、その日は出しません
+ *    （昼に流れ星、晴れの日に虹…は、嘘になります）。
+ *  ★動かしているのは CSS だけ。絵を描き直していないので、
+ *    電池も通信も食いません。
+ * ---------------------------------------------------------- */
+const BN_EVENTS = [
+  { k:'cat',    n:'野良ねこ',     when:function (){ return true; } },
+  { k:'bird',   n:'とり',         when:function (sky){ return sky.k !== 'night' && sky.k !== 'deep'; } },
+  { k:'balloon',n:'風船',         when:function (sky){ return sky.k === 'morning' || sky.k === 'noon'; } },
+  { k:'star',   n:'流れ星',       when:function (sky){ return sky.k === 'night' || sky.k === 'deep'; } },
+  { k:'ufo',    n:'なぞの光',     when:function (sky){ return sky.k === 'night' || sky.k === 'deep'; } },
+  { k:'rainbow',n:'にじ',         when:function (sky, wx){ return !!(wx && wx.rain3 != null && wx.rain3 >= 30) && sky.k !== 'night' && sky.k !== 'deep'; } },
+  { k:'dog',    n:'さんぽの犬',   when:function (){ return true; } },
+  { k:'bike',   n:'自転車',       when:function (){ return true; } },
+  { k:'bus',    n:'バス',         when:function (){ return true; } },
+  { k:'police', n:'パトカー',     when:function (){ return true; } },
+  { k:'moonbig',n:'大きな月',     when:function (sky){ return sky.k === 'night' || sky.k === 'deep'; } },
+  { k:'fire',   n:'屋台',         when:function (sky){ return sky.k === 'evening' || sky.k === 'night'; } }
+];
+
+/** きょうの出来事を1つ（その日の日付から決めます） */
+function bnEvent_(sky, wx){
+  const ok = BN_EVENTS.filter(function (e){
+    try { return e.when(sky, wx); } catch (e2) { return false; }
+  });
+  if (!ok.length) return null;
+  const d = new Date();
+  /* 日付そのものから決めます。開き直しても変わりません。 */
+  const key = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  return ok[key % ok.length];
+}
+
+/** 出来事の絵（道の上・空の上に1つだけ置きます） */
+function bnEventSvg_(e, W, GND){
+  if (!e) return '';
+  const g = function (body, cls){
+    return '<g class="bnev ' + cls + '">' + body + '</g>';
+  };
+  switch (e.k) {
+    case 'cat':
+      return g('<g transform="translate(0,' + (GND - 4) + ')">' +
+        '<ellipse cx="8" cy="3" rx="7" ry="3" fill="#C9A227"/>' +
+        '<circle cx="14" cy="0" r="3" fill="#C9A227"/>' +
+        '<path d="M12 -2 L13 -5 L15 -2 Z M15 -2 L17 -5 L18 -2 Z" fill="#C9A227"/>' +
+        '<path d="M1 2 Q-3 -2 0 -4" stroke="#C9A227" stroke-width="1.4" fill="none"/>' +
+        '</g>', 'bnev-cat');
+    case 'dog':
+      return g('<g transform="translate(0,' + (GND - 5) + ')">' +
+        '<ellipse cx="9" cy="3" rx="8" ry="3.4" fill="#A7733F"/>' +
+        '<circle cx="16" cy="0" r="3.4" fill="#A7733F"/>' +
+        '<ellipse cx="18" cy="-2" rx="1.6" ry="2.4" fill="#8A5A2C"/>' +
+        '<path d="M1 2 Q-2 -3 1 -5" stroke="#A7733F" stroke-width="1.6" fill="none"/>' +
+        '</g>', 'bnev-dog');
+    case 'bird':
+      return g('<g transform="translate(0,26)">' +
+        '<path d="M0 0 Q5 -5 10 0 Q15 -5 20 0" stroke="#E7EEFA" stroke-width="1.6" fill="none"/>' +
+        '<path d="M26 6 Q30 2 34 6 Q38 2 42 6" stroke="#E7EEFA" stroke-width="1.2" fill="none" opacity=".7"/>' +
+        '</g>', 'bnev-bird');
+    case 'balloon':
+      return g('<g transform="translate(0,20)">' +
+        '<ellipse cx="0" cy="0" rx="6" ry="7.5" fill="#E8556E"/>' +
+        '<path d="M0 7.5 L0 18" stroke="#E7EEFA" stroke-width="0.8"/>' +
+        '</g>', 'bnev-balloon');
+    case 'star':
+      return g('<path d="M0 0 L26 14" stroke="#FFF6D6" stroke-width="1.6" stroke-linecap="round"/>' +
+        '<circle cx="26" cy="14" r="1.8" fill="#FFFFFF"/>', 'bnev-star');
+    case 'ufo':
+      return g('<g transform="translate(0,22)">' +
+        '<ellipse cx="0" cy="0" rx="11" ry="3.4" fill="#8FE3C8"/>' +
+        '<path d="M-5 -1 Q0 -7 5 -1 Z" fill="#CFF6E8"/>' +
+        '<path d="M-7 2 L-11 10 L11 10 L7 2 Z" fill="#8FE3C8" opacity=".22"/>' +
+        '</g>', 'bnev-ufo');
+    case 'rainbow':
+      return g('<g transform="translate(' + Math.round(W * .62) + ',' + (GND - 2) + ')" opacity=".55">' +
+        ['#E8556E','#F0A33B','#E8D06A','#6FD8A8','#7FA9F0','#C98BE0'].map(function (c, i){
+          return '<path d="M' + (-46 + i * 3) + ' 0 A' + (46 - i * 3) + ' ' + (46 - i * 3) +
+                 ' 0 0 1 ' + (46 - i * 3) + ' 0" stroke="' + c + '" stroke-width="2.4" fill="none"/>';
+        }).join('') + '</g>', 'bnev-still');
+    case 'bike':
+      return g('<g transform="translate(0,' + (GND - 10) + ')">' +
+        '<circle cx="4" cy="9" r="4" stroke="#C9D3E6" stroke-width="1.2" fill="none"/>' +
+        '<circle cx="18" cy="9" r="4" stroke="#C9D3E6" stroke-width="1.2" fill="none"/>' +
+        '<path d="M4 9 L11 3 L18 9 M11 3 L13 9" stroke="#C9D3E6" stroke-width="1.2" fill="none"/>' +
+        '<circle cx="12" cy="-1" r="2.4" fill="#E7EEFA"/>' +
+        '</g>', 'bnev-bike');
+    case 'bus':
+      return g('<g transform="translate(0,' + (GND - 16) + ')">' +
+        '<rect x="0" y="0" width="46" height="16" rx="3" fill="#4F7FD4"/>' +
+        '<rect x="3" y="3" width="9" height="6" fill="#16203A"/>' +
+        '<rect x="15" y="3" width="9" height="6" fill="#16203A"/>' +
+        '<rect x="27" y="3" width="9" height="6" fill="#16203A"/>' +
+        '<circle cx="10" cy="16" r="2.6" fill="#11131A"/>' +
+        '<circle cx="36" cy="16" r="2.6" fill="#11131A"/>' +
+        '</g>', 'bnev-bus');
+    case 'police':
+      return g('<g transform="translate(0,' + (GND - 12) + ')">' +
+        '<rect x="2" y="4" width="30" height="9" rx="2" fill="#F2F5FA"/>' +
+        '<rect x="2" y="8" width="30" height="5" fill="#2B3350"/>' +
+        '<rect x="9" y="-1" width="15" height="6" rx="1.5" fill="#F2F5FA"/>' +
+        '<rect x="13" y="-5" width="8" height="3" rx="1.2" fill="#E23B30" class="bnsiren"/>' +
+        '<circle cx="9" cy="13" r="2.6" fill="#11131A"/>' +
+        '<circle cx="25" cy="13" r="2.6" fill="#11131A"/>' +
+        '</g>', 'bnev-police');
+    case 'moonbig':
+      return g('<g transform="translate(' + Math.round(W * .18) + ',26)">' +
+        '<circle cx="0" cy="0" r="13" fill="#FFF3C4" opacity=".92"/>' +
+        '<circle cx="-4" cy="-3" r="2.2" fill="#E8DCA8" opacity=".6"/>' +
+        '<circle cx="3" cy="4" r="3" fill="#E8DCA8" opacity=".5"/>' +
+        '</g>', 'bnev-still');
+    case 'fire':
+      return g('<g transform="translate(' + Math.round(W * .74) + ',' + (GND - 16) + ')">' +
+        '<rect x="0" y="6" width="26" height="10" rx="2" fill="#7A4A2A"/>' +
+        '<rect x="-2" y="2" width="30" height="5" rx="2" fill="#E8556E"/>' +
+        '<path d="M4 2 L4 -5 M22 2 L22 -5" stroke="#C9D3E6" stroke-width="1"/>' +
+        '<circle cx="8" cy="-6" r="2.2" fill="#FFD36E" class="bnlant"/>' +
+        '<circle cx="18" cy="-6" r="2.2" fill="#FFD36E" class="bnlant"/>' +
+        '</g>', 'bnev-still');
+  }
+  return '';
+}
+
 function bannerSvg(area, sky, wx){
   const W = 320, H = 130, GND = 112;
   const hs = BN_SKYLINE[area.k] || BN_SKYLINE.umeda;
@@ -2264,6 +2685,9 @@ function bannerSvg(area, sky, wx){
   }).join('');
   /* 名物 */
   s += bnLandmark(area.k, sky);
+  /* ★きょうの出来事（1日に1つ・ご指示・2026/11/25） */
+  const bnEv = bnEvent_(sky, wx);
+  s += bnEventSvg_(bnEv, W, GND);
   /* 道路 */
   s += '<rect x="0" y="' + GND + '" width="' + W + '" height="' + (H - GND) + '" fill="#171B26"/>';
   s += '<g class="bnlane">' + [0,1,2,3,4,5,6,7,8,9,10].map(function (i){
@@ -2353,6 +2777,33 @@ async function bnLoadWx(la, lo){
 }
 
 /** 走る前のひとこと（傘・防寒）。確かなことだけを書きます */
+/* ★bnAdvice（ひとこと助言）は、絵の中では出さなくなりました
+     （ご指示・2026/11/25「必要最低限だけを端的に」）。
+   消してはいません。戻したくなったら、呼ぶだけです。 */
+/** 天気マーク（取れないときは空にします。嘘のマークは出しません） */
+function bnIcon_(){
+  try {
+    const o = (typeof hotOm !== 'undefined' && hotOm && hotOm.ok) ? hotOm : null;
+    const w = (typeof hotWx !== 'undefined' && hotWx && hotWx.ok) ? hotWx : null;
+    if (o && o.icon) return o.icon;
+    if (w && w.text) return jpIcon(w.text);
+  } catch (e) {}
+  return '';
+}
+
+/**
+ * 「いつ雨か」を1行で。
+ * ★時刻が分からないときは、時刻を書きません（あてずっぽうを出さない）。
+ */
+function bnRainLine_(wx){
+  if (!wx) return '';
+  if (wx.rainNow) return 'いま雨';
+  if (wx.rain3 != null && wx.rain3 >= 50) return (wx.rainWhen ? wx.rainWhen + 'ごろ 雨' : '3時間以内に 雨');
+  if (wx.rain3 != null && wx.rain3 >= 30) return (wx.rainWhen ? wx.rainWhen + 'ごろ ひと雨かも' : 'ひと雨かも');
+  if (wx.rain3 != null) return '3時間は 降りません';
+  return '';
+}
+
 function bnAdvice(wx){
   if (!wx) return '';
   const a = [];
@@ -2390,13 +2841,16 @@ function bnAdvice(wx){
  *    だから画面にも「基本スケジュールのため、休みの場合があります」と
  *    必ず添えます。直すときは、下の KYU1 の数字だけを直せば足ります。
  * ================================================================ */
+/* ★名前は、台帳の呼び名にそろえます（ご指示・2026/11/25
+     「だいすけくん＝ダイスケ／しゅんくん＝シュン／かいとくん＝カイト／
+       しろこしくん＝アナル／まーく＝マーク に直してください」）。 */
 const CREW = [
-  { n: 'しゅんくん',   han: 2 },
-  { n: 'じんきちくん', han: 2 },
-  { n: 'まーく様',     han: 2 },
-  { n: 'しろこしくん', han: 3 },
-  { n: 'かいとくん',   han: 3 },
-  { n: 'だいすけくん', han: 0 }     /* 0 … 班に入らず、日曜が休み */
+  { n: 'シュン',   han: 2 },
+  { n: 'ジンキチ', han: 2 },
+  { n: 'マーク',   han: 2 },
+  { n: 'アナル',   han: 3 },
+  { n: 'カイト',   han: 3 },
+  { n: 'ダイスケ', han: 0 }     /* 0 … 班に入らず、日曜が休み */
 ];
 /* 昼夜1班の公休（月度のはじめ＝16日から数えて何日目か） */
 const KYU1 = [3, 4, 9, 16, 22, 27];
@@ -2443,14 +2897,16 @@ function bannerCard(){
       '<span class="bnwhen">' + esc(sky.n) + '　' +
         ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + '</span>' +
     '</div>' +
+    /* ★天気は、絵の中に最低限だけ（ご指示・2026/11/25
+         「天気情報は、車のページと一緒にして 天気マークや、
+           何分後に雨予報などの必要最低限だけを端的に表示させてください」）。
+       出すのは「天気マーク・気温・いつ雨か」の3つだけです。
+       最高／最低・湿度・前日比は、ここでは出しません。 */
     '<div class="bnwx">' +
+      '<span class="bnic">' + bnIcon_() + '</span>' +
       '<span class="bnbig">' + t(wx && wx.temp, '℃') + '</span>' +
-      '<span class="bnkv"><i>前日比</i><b class="bndiff' + dCls + '">' + esc(dTxt) + '</b></span>' +
-      '<span class="bnkv"><i>湿度</i><b>' + t(wx && wx.hum, '％') + '</b></span>' +
-      '<span class="bnkv"><i>雨（3時間）</i><b>' +
-        ((wx && wx.rain3 != null) ? (Math.round(wx.rain3) + '％') : '—') + '</b></span>' +
+      '<span class="bnrain">' + esc(bnRainLine_(wx)) + '</span>' +
     '</div>' +
-    '<div class="bnsay">' + esc(bnAdvice(wx)) + '</div>' +
     /* ★きょうの出勤（ご指示・2026/11/24）。
          走っている車の数は、この人数と同じです。 */
     (function (){
@@ -2463,6 +2919,12 @@ function bannerCard(){
     /* ★いまの車（ご指示・2026/11/25「走る車は、トロフィー数に応じて
          グレードが高い車に変更していってください」）。
        つぎの車まで あと何個かも出します。 */
+    /* ★きょうの出来事（1日に1つ・ご指示・2026/11/25）。
+         何が出ているのか分かるように、名前を小さく書きます。 */
+    (function (){
+      const e = bnEvent_(bnSky(new Date().getHours()), bnWx);
+      return e ? '<div class="bnev2">きょうの出来事：<b>' + esc(e.n) + '</b></div>' : '';
+    })() +
     (function (){
       const got = troGot_();
       const g = carGrade(got), nx = carNext(got);
@@ -2476,7 +2938,7 @@ function bannerCard(){
     '<div class="bnfoot">' +
       (bnPos ? '<span class="bnnote">いまいる所に合わせています</span>'
              : '<button class="mini" id="bnHere">いまいる所に合わせる</button>') +
-      '<button class="mini" data-goto="hot">雨雲レーダー</button>' +
+      /* ★雨雲レーダーへのボタンも、外しました（ご指示・2026/11/25） */
     '</div>' +
   '</div>';
 }
@@ -4122,6 +4584,37 @@ function myTopPlace_(R){
   return ks.length ? { p: ks[0], n: by[ks[0]] } : null;
 }
 
+/**
+ * ショート・ミドル・ロングの割合を、そのまま円に塗り分けます。
+ * ★「不明」は外します（0円として数えると、ショートが増えて嘘になります）。
+ * ★遠目でも分かるよう、透けさせません。
+ */
+/** 1行だけの知らせ（数秒で消えます）。押した手ごたえを返すために使います */
+function toast_(msg){
+  try {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = String(msg || '');
+    document.body.appendChild(el);
+    setTimeout(function (){ try { el.remove(); } catch (e) {} }, 3200);
+  } catch (e) {}
+}
+
+function bandPie_(o){
+  const ps = BANDS.map(function (bd){ return { c: bd.c, p: bandPct(o, bd.k) }; })
+    .filter(function (x){ return x.p > 0; });
+  if (!ps.length) return '#8A8F98';                 /* 金額が1件も入っていない */
+  if (ps.length === 1) return ps[0].c;
+  let a = 0;
+  const stops = ps.map(function (x){
+    const b = a + x.p * 3.6;
+    const t = x.c + ' ' + a.toFixed(1) + 'deg ' + b.toFixed(1) + 'deg';
+    a = b;
+    return t;
+  });
+  return 'conic-gradient(' + stops.join(',') + ')';
+}
+
 function paneMap(){
   mapDefault_();
   const R0 = visible().filter(hasDep);
@@ -4195,12 +4688,17 @@ function paneMap(){
 
   /* 場所の分からない乗り場は、黙って落とさずに名前を出します */
   const missCard = missNames.length ? `<div class="card"><h2>地図に出せていない乗り場</h2>
-    <p class="note">あたりが分からないので、ピンを打っていません。
-      【地図】で場所を探して、【ここに決める】で自分で決められます。</p>
+    <p class="note">場所が分からないので、ピンを打っていません。
+      下の【場所を決める】から、1分で決められます。</p>
+    <div class="howto">
+      <div class="hw"><em>①</em>決めたい乗り場の<b>【場所を決める】</b>を押します。</div>
+      <div class="hw"><em>②</em>出てきた地図を<b>指でなぞって動かし</b>、乗り場の所を<b>1回 押します</b>。赤いピンが立ちます。</div>
+      <div class="hw"><em>③</em><b>【この場所にする】</b>を押すと、みんなの地図に出ます。</div>
+    </div>
     <div class="misslist">${missNames.slice(0, 40).map(p =>
       `<div class="missrow"><b>${esc(p)}</b><i>${G.miss[p].length}件</i>
         <a class="mini" href="${esc(mapUrl(p))}" target="_blank" rel="noopener">📍 地図</a>
-        <button class="mini set" data-pinset="${esc(p)}">ここに決める</button></div>`).join('')}</div>
+        <button class="mini set" data-pinset="${esc(p)}">場所を決める</button></div>`).join('')}</div>
     </div>` : '';
 
   if (!R.length) return head + emptyCard('該当データがありません') + missCard + fixCard_() + buzzCard();
@@ -4241,12 +4739,18 @@ function pinSetOpen(name){
   box.className = 'modal pinset';
   box.innerHTML =
     '<div class="modalbox"><h2>' + esc(pinSetName) + ' の場所</h2>' +
-    '<p class="note">地図を押すと、そこにピンが立ちます。</p>' +
+    /* ★「設定方法がわけがわかりません」とのご指摘（2026/11/25）。
+         何をすればよいのかを、番号で1つずつ書きます。 */
+    '<div class="howto">' +
+      '<div class="hw"><em>①</em>地図を<b>指でなぞって動かし</b>、乗り場の所をさがします。</div>' +
+      '<div class="hw"><em>②</em>その場所を<b>1回 押します</b>。赤いピンが立ちます。</div>' +
+      '<div class="hw"><em>③</em>下の<b>【この場所にする】</b>を押せば、できあがりです。</div>' +
+    '</div>' +
     '<div class="psmap" id="psMap"></div>' +
-    '<p class="note" id="psAt"></p>' +
+    '<div class="psat" id="psAt"></div>' +
     '<div class="modalfoot">' +
       '<button class="btn ghost" id="psCancel">やめる</button>' +
-      '<button class="btn" id="psOk">ここにする</button>' +
+      '<button class="btn" id="psOk" disabled>この場所にする</button>' +
     '</div></div>';
   document.body.appendChild(box);
   try { document.body.classList.add('modalon'); } catch (e) {}
@@ -4259,10 +4763,20 @@ function pinSetOpen(name){
   box.querySelector('#psCancel').onclick = close;
   box.querySelector('#psOk').onclick = function (){ pinSetSave(close); };
   const at = box.querySelector('#psAt');
+  const okb = box.querySelector('#psOk');
   const show = function (){
-    at.textContent = pinSetAt
-      ? ('いまの場所：' + pinSetAt.lat.toFixed(5) + ', ' + pinSetAt.lon.toFixed(5))
-      : 'まだ押していません。';
+    /* ★数字（緯度・経度）だけでは、合っているのか分かりません。
+         「決まった／まだ」が、一目で分かる形にします。 */
+    if (pinSetAt) {
+      at.className = 'psat ok';
+      at.innerHTML = '<b>✓ ピンが立ちました</b>' +
+        '<i>ずれていたら、もう一度 地図を押せば 立て直せます</i>';
+    } else {
+      at.className = 'psat';
+      at.innerHTML = '<b>地図を1回 押してください</b>' +
+        '<i>押した所に、赤いピンが立ちます</i>';
+    }
+    if (okb) okb.disabled = !pinSetAt;
   };
   show();
   /* 地図は、出てから作ります（箱の大きさが決まる前だと、灰色のままになります） */
@@ -4277,10 +4791,15 @@ function pinSetOpen(name){
         { attributionControl: true, zoomControl: true }).setView([c.lat, c.lon], pinSetAt ? 16 : 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(m);
-      let mk = pinSetAt ? L.marker([pinSetAt.lat, pinSetAt.lon]).addTo(m) : null;
+      /* ★普通の青いピンだと、地図の印と見分けがつきませんでした。
+           赤い丸にして、どこに立ったのかが すぐ分かるようにします。 */
+      const redIc = L.divIcon({ className: 'pinpick', iconSize: [22, 22],
+        iconAnchor: [11, 11], html: '<span></span>' });
+      let mk = pinSetAt ? L.marker([pinSetAt.lat, pinSetAt.lon], { icon: redIc }).addTo(m) : null;
       m.on('click', function (ev){
         pinSetAt = { lat: ev.latlng.lat, lon: ev.latlng.lng };
-        if (mk) mk.setLatLng(ev.latlng); else mk = L.marker(ev.latlng).addTo(m);
+        if (mk) mk.setLatLng(ev.latlng);
+        else mk = L.marker(ev.latlng, { icon: redIc }).addTo(m);
         show();
       });
       pinSetMap = m;
@@ -4303,6 +4822,9 @@ async function pinSetSave(close){
     await loadPlaces();
     if (close) close();
     render();
+    /* ★決まったことを、その場で1行 出します。
+         黙って閉じると、反映されたのかが分かりません。 */
+    try { toast_(pinSetName + ' の場所を決めました。地図に出ます。'); } catch (e) {}
   } catch (e) { alert(jaError(e)); }
 }
 
@@ -4398,13 +4920,19 @@ function mapBoot(){
             return;
           }
           const d = 26 + Math.round(22 * Math.sqrt(o.rows.length / mxn));
-          /* ★丸は、すこし透けさせます（ご指摘・2026/11/17
-               「丸が透明度無くなってるため、細かい範囲が丸で分かりません」）。
-             下の道や地名が透けるので、どのあたりなのかが読めます。 */
-          const ic = L.divIcon({ className: 'pindot', iconSize: [d, d],
+          /* ★丸の色を「平均の1色」にしていたので、ほとんどが薄い青になり、
+               **全部ショートだと見えていました**（ご指摘・2026/11/25
+               「遠目に件数だけ表示して、全て薄い青となってるので、
+                 全部ショートだと勘違いが起きやすいです」）。
+             いまは、ショート・ミドル・ロングの**割合そのもの**を
+             円に塗り分けます。遠目でも、ロングの多い所が 赤く見えます。
+             件数は 円の中には書きません（押せば出ます）。 */
+          const o2 = bandCount(o.rows);
+          const pie = bandPie_(o2);
+          const ic = L.divIcon({ className: 'pindot pie', iconSize: [d, d],
             iconAnchor: [d / 2, d / 2],
-            html: '<span style="background:' + col + ';width:' + d + 'px;height:' + d + 'px' +
-                  ';opacity:.72">' + o.rows.length + '</span>' });
+            html: '<span style="width:' + d + 'px;height:' + d + 'px;background:' +
+                  pie + '"></span>' });
           L.marker([o.lat, o.lon], { icon: ic, zIndexOffset: 200 })
             .bindPopup('<b>' + esc(o.key) + 'のあたり</b><br>' + o.rows.length + '件' +
               '<br>1本の平均 ' + (a.fare ? yen(a.fare) : '不明') +
@@ -5281,10 +5809,11 @@ function paneHot(now){
    *       その下に この時間に強い場所(今の時間帯に強い場所に直してください)」
    *   天気は、その下に回します。
    */
-  /* ★天気の欄は、やめました（ご指示・2026/11/24
-       「天気ページは除外」）。天気は【記録】の一番上の絵に出ています。
-     雨雲レーダーだけは、ここから開けるように残します。 */
-  const head = radarCard();
+  /* ★雨雲レーダーも、やめました（ご指示・2026/11/25
+       「雨雲レーダーはいらないので、除外してください」）。
+     天気は【記録】の一番上の絵に、必要最低限だけ出ています。
+     radarCard の中身は消していません（戻したくなったら呼ぶだけです）。 */
+  const head = '';
 
   /*
    * ★一番上は「いま、どこへ行くか」です（ご指摘・2026/11/24
@@ -5702,6 +6231,7 @@ function tlChart(R){
   return `${fT.fits ? '' : '<div class="snote">← 横にスクロールできます（横画面推奨）</div>'}
     <div class="scroll fb">${s}</div>
     <div class="legend"><span><i style="background:#8FA3C4"></i>待ち時間</span>${BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.n}</span>`).join('')}<span><i style="background:#5A6273"></i>不明</span><span>横軸は時。25＝翌1時</span></div>
+    ${userLegend(R)}
     <p class="note">一番下の「重なり」は、その時間に動いていた本数です
       （${ds.length}夜ぶん）。お客様の人数ではありません。</p>`;
 }
@@ -5729,6 +6259,47 @@ function tlChart(R){
  * ---------------------------------------------------------- */
 
 /** 1枚ぶんの図を作ります（えらんだ記録だけで描きます） */
+/* ------------------------------------------------------------
+ *  グラフの下の「色の見方」（ご指示・2026/11/25）
+ *    「表のした部分、名前しか書かれてませんが 色＝名前
+ *      具体的な日数や営業曜日なども、記載してもらわないと、
+ *      わけがわかりません」
+ *
+ *  ★名前だけでは、その線が「いつの・何日ぶんの」ものか分かりません。
+ *    人ごとに「色・名前・本数・日数・いつからいつまで・営業曜日」を
+ *    1行で並べます。
+ *  ★営業曜日は、その人の記録に出てくるものだけを書きます
+ *    （出ていない曜日を書くと、嘘になります）。
+ * ---------------------------------------------------------- */
+const DCLS_N = { 'd-wd':'平日', 'd-fri':'金・祝前', 'd-sat':'土', 'd-sun':'日・祝' };
+function userLegend(R){
+  const us = [...new Set(R.map(r => r.user_id))];
+  if (!us.length) return '';
+  /* 名前の分からない方が2人以上いると「不明」が並ぶので、番号をそえます */
+  let k = 0;
+  const unk = us.filter(u => !names[u]).length;
+  const rows = us.map(function (u){
+    const rs = R.filter(r => r.user_id === u);
+    const ds = [...new Set(rs.map(r => r.date).filter(Boolean))].sort();
+    const cls = [...new Set(rs.map(r => dayCls(r.date)).filter(Boolean))];
+    const nm = names[u] ? names[u] : ('不明' + (unk > 1 ? (++k) : ''));
+    return { u: u, nm: nm, n: rs.length, dn: ds.length,
+             from: ds[0] || '', to: ds[ds.length - 1] || '',
+             wd: cls.map(function (c){ return DCLS_N[c] || ''; }).filter(Boolean) };
+  }).sort(function (a, b){ return b.n - a.n; });
+  return '<div class="ulegend"><div class="ulh">色の見方（色＝人）</div>' +
+    rows.map(function (x){
+      return '<div class="ulrow">' +
+        '<i style="background:' + ucol(x.u) + '"></i>' +
+        '<b>' + esc(x.nm) + '</b>' +
+        '<span class="uln">' + x.n + '件・' + x.dn + '日</span>' +
+        '<span class="ulw">' + (x.from ? esc(fmtD(x.from)) +
+          (x.to && x.to !== x.from ? '〜' + esc(fmtD(x.to)) : '') : '') + '</span>' +
+        '<span class="uld">' + (x.wd.length ? esc(x.wd.join('・')) : '') + '</span>' +
+        '</div>';
+    }).join('') + '</div>';
+}
+
 function scChart(R){
   const ds = [...new Set(R.map(r => r.date))].sort();
   /* ★左の数字の場所は、ギリギリまで詰めます（ご指示・2026/11/13）。
@@ -5835,17 +6406,7 @@ function scChart(R){
   /* ★収まっているときに「横にスクロールできます」とは書きません（2026/11/24） */
   return `${fS.fits ? '' : '<div class="snote">← 横にスクロールできます（横画面推奨）</div>'}
     <div class="scroll fb">${s}</div>
-    <div class="legend">${(function (){
-      const us = [...new Set(R.map(r => r.user_id))];
-      /* ★名前の分からない方が2人以上いると「不明」が並んで、
-           どちらの色か分からなくなります。番号をそえます。 */
-      let k = 0;
-      const unk = us.filter(u => !names[u]).length;
-      return us.map(function (u){
-        const nm = names[u] ? names[u] : ('不明' + (unk > 1 ? (++k) : ''));
-        return `<span><i style="background:${ucol(u)}"></i>${esc(nm)}</span>`;
-      }).join('');
-    })()}</div>`;
+    ${userLegend(R)}`;
 }
 
 /* ---- 集計 ---- */
@@ -6346,11 +6907,9 @@ const rMenu = (now) => '<div class="gmenu">' + R_KINDS.map(x =>
   '<b>' + esc(x.n) + '</b><i>' + esc(x.s) + '</i></button>').join('') + '</div>';
 
 /** 乗り場別、何時がアツいか（1ページ立て・2026/11/22） */
-function paneBest(){
-  return leadCard('best') + rMenu('best') +
-    (bestTimeCard(visible().filter(hasDep)) ||
-     emptyCard('時刻の入った記録が、まだありません。'));
-}
+/* ★【乗り場別】は【パーセント】にまとめました（ご指示・2026/11/25）。
+     前の押しどころを覚えておられる方のために、同じ中身を出します。 */
+function paneBest(){ return paneRatio(); }
 
 function paneRatio(){
   const R = visible();
@@ -6360,10 +6919,22 @@ function paneRatio(){
      走る前に一番に見たいのは「自分の乗り場を、何時に狙うか」だからです。 */
   /* ★「乗り場別 オススメ時間帯」は、1ページ立てにして外へ出しました
        （ご指示・2026/11/22）。上の【乗り場別】から1回で行けます。 */
-  const head = leadCard('ratio') + rMenu('ratio') +
+  /* ★【乗り場別】と1ページにまとめました（ご指示・2026/11/25
+       「ロング別と乗り場別はもう1ページにまとめてください」）。
+     えらぶ行（rMenu）は、行き先が1つになったので出しません。 */
+  const head = leadCard('ratio') +
     '<div class="card"><h2>ロングが出やすい所と時間</h2>' +
-    '<p class="note">ロング（¥10,000以上）が出やすい所と時間。3件未満は出しません。</p>' +
-    filterChips(true) + '</div>';
+    /* ★「何とリンクしているのか分かりづらい」とのご指摘（2026/11/25）。
+         どこを押すと、どこが変わるのかを、番号で書きます。 */
+    '<div class="howto">' +
+      '<div class="hw"><em>①</em>乗り場をえらぶと、<b>その乗り場の良い時間</b>が出ます。</div>' +
+      '<div class="hw"><em>②</em>時間の棒を押すと、<b>③と④がその時間だけ</b>になります。</div>' +
+      '<div class="hw"><em>③</em>その時間に、<b>どの乗り場でロングが出たか</b>が並びます。</div>' +
+    '</div>' +
+    '<p class="note">ロング＝¥10,000以上。3件未満は出しません。</p>' +
+    filterChips(true) + '</div>' +
+    /* ①＝乗り場別 オススメ時間帯（1ページにまとめました） */
+    (bestTimeCard(visible().filter(hasDep), true) || '');
   if (!R.length) return head + emptyCard('該当データがありません');
   const all = bandCount(R);
   if (!all.n) return head + emptyCard('金額の入った記録が、まだありません。');
@@ -6394,7 +6965,7 @@ function paneRatio(){
   /* ① ロングが出やすい乗り場（えらんだ時間帯があれば、その時間だけ） */
   out +=
     '<div class="card"><h2>' +
-    (hourPick === '' ? 'ロングが出やすい乗り場' : hourPick + '時台に ロングが出やすい乗り場') +
+    (hourPick === '' ? '③ ロングが出やすい乗り場' : '③ ' + hourPick + '時台に ロングが出やすい乗り場') +
     '</h2>' +
     (hourPick === ''
       ? '<p class="note">棒を押すと、その時間だけになります。</p>'
@@ -6418,7 +6989,7 @@ function paneRatio(){
     const bestH = hrow.slice().sort((a, b) => bandPct(b.o, 'L') - bandPct(a.o, 'L'))[0];
 
     const cw = 54, L = 10, T = 22, BH = 210;
-    const W = L + hrs.length * cw + 12, H = T + BH + 52;
+    const W = L + hrs.length * cw + 12, H = T + BH + 62;
     let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">';
     hrs.forEach(function (h, i){
       const o = bandCount(D.filter(r => Math.floor(r.dep) === h));
@@ -6426,10 +6997,26 @@ function paneRatio(){
       const on = (hourPick !== '' && +hourPick === h);
       /* 押せるように、1本まるごとを囲みます */
       g += '<g class="hbar' + (on ? ' on' : '') + '" data-hr="' + h + '" style="cursor:pointer">';
-      g += '<rect x="' + (x + 2) + '" y="' + (T - 6) + '" width="' + (cw - 4) + '" height="' + (BH + 46) +
+      g += '<rect x="' + (x + 2) + '" y="' + (T - 6) + '" width="' + (cw - 4) + '" height="' + (BH + 56) +
            '" rx="8" fill="' + (on ? 'rgba(240,163,59,.16)' : 'transparent') + '"/>';
       g += '<text class="axis" x="' + (x + cw/2) + '" y="' + (T + BH + 20) + '" text-anchor="middle">' + h + '時</text>';
-      g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 38) + '" text-anchor="middle">' + o.n + '件</text>';
+      g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 34) + '" text-anchor="middle">' + o.n + '件</text>';
+      /* ★その時間に、具体的にどこでロングが出たのかを 1つ書きます
+           （ご指摘・2026/11/25「ロングが出やすい時間帯の棒グラフは、
+             具体的な乗り場は何なのかまるでわかりません」）。
+         前後1時間をふくめて数えます（1時間だけでは3件に届かないため）。
+         3件に届く乗り場が無ければ、何も書きません（1件は たまたまの1本）。 */
+      {
+        const wide = D.filter(function (r){ return Math.abs(Math.floor(r.dep) - h) <= 1; });
+        const rk = longRank(wide);
+        if (rk.length) {
+          const nm = fitLabel(String(rk[0].p || ''), cw - 4);
+          g += '<text class="glab" x="' + (x + cw/2) + '" y="' + (T + BH + 48) +
+               '" text-anchor="middle" fill="#FFD36E" style="font-size:' +
+               Math.min(9.5, nm.fs) + 'px">' + esc(nm.lines[0]) +
+               (nm.lines.length > 1 ? '…' : '') + '</text>';
+        }
+      }
       if (o.n) {
         let y = T + BH;
         BANDS.forEach(function (bd){
@@ -6445,7 +7032,9 @@ function paneRatio(){
       g += '</g>';
     });
     g += '</svg>';
-    out += '<div class="card"><h2>ロングが出やすい時間帯</h2>' +
+    out += '<div class="card"><h2>② ロングが出やすい時間帯</h2>' +
+      '<p class="note">黄色い字は、<b>その時間に ロングが出た乗り場</b>です。' +
+      '棒を押すと、下の並びが その時間だけになります。</p>' +
       (bestH ? '<p class="note">いまのところ、一番ロングが出ているのは <b>' + bestH.h +
         '時台</b>（ロング ' + bandPct(bestH.o, 'L') + '%・平均 ' + yen(bestH.avg) + '・' + bestH.o.n + '件）です。</p>' : '') +
         '<div class="snote">← 横にスクロールできます（横画面推奨）</div>' +
@@ -6479,7 +7068,7 @@ function paneRatio(){
         '</div>';
     });
     if (hb) {
-      rankCard = '<div class="card"><h2>時間帯別 乗り場ランキング</h2>' +
+      rankCard = '<div class="card"><h2>④ 時間帯別 乗り場ランキング</h2>' +
         '<p class="note">その時間に、ロングが出やすかった上位3か所。' +
         '乗り場ごとでは件数が少ないので、<b>前後1時間をふくめて</b>数えています。押すと地図が開きます。</p>' +
         hb + '</div>';
@@ -6526,7 +7115,10 @@ function paneRatio(){
       '' + pbody +
       '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
   }
-  return head + rankCard + out + compareCard();
+  /* ★「前の期間と比べる」は外しました（ご指示・2026/11/25
+       「前の期間と比べるもいらないので除外」）。
+     compareCard の中身は消していません（戻したくなったら呼ぶだけです）。 */
+  return head + rankCard + out;
 }
 
 /* ============================================================
@@ -6883,10 +7475,7 @@ function whenPane(cat, title, label, lead, test, noLead){
      ★1件・2件のところには「まだ○件」と、はっきり添えます。 */
   const head = (noLead ? '' : leadCard('tok')) +
     '<div class="card"><h2>' + esc(title) + '</h2>' +
-    '<p class="note">' + lead +
-    '<b>記録がたまるほど、当たるようになります。</b>' +
-    'いまは ' + R.length + '件 から出しています。' +
-    '1件からでも出します（数が少ないところには「まだ○件」と書きます）。</p>' +
+    '<p class="note">' + lead + 'いまは ' + R.length + '件 から出しています。</p>' +
     filterChips(true) + '</div>';
   if (!R.length) return head + emptyCard('該当データがありません');
 
@@ -6971,11 +7560,60 @@ function whenPane(cat, title, label, lead, test, noLead){
         '</tr>';
     }).join('') + '</tbody></table></div></div></div>';
 
-  let out = head + plain + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
+  /*
+   * ★「分かりづらい／データ化するにはどうするのが最適か」とのご指摘
+   *   （2026/11/25）。並べ方を変えました。
+   *     ① 結論を1行（一番 多いのは、いつ・どこ・いくら）
+   *     ② まとめの表（◯◯ごとに 件数・よく出る時間・平均・曜日 を1行）
+   *     ③ 細かい内わけ（これまでの形）
+   *     ④ そのままの記録（新しい順）
+   *   走る前に見るのは ①と② だけで足ります。
+   */
+  const topCard = (function (){
+    if (!fat.length) return '';
+    const b = fat.slice().sort(function (a2, b2){ return b2.n - a2.n; })[0];
+    const h = b.hrs.length ? (b.hrs[0] % 24) : null;
+    return '<div class="card tokhit"><h2>一番 多いのは</h2>' +
+      '<div class="throw">' +
+      '<span class="thp">' + esc(b.p) + '</span>' +
+      (h === null ? '<span class="thh">時刻 不明</span>'
+                  : '<span class="thh">' + h + '<i>時台</i></span>') +
+      '</div>' +
+      '<div class="thmeta">' + b.n + '件' +
+      (b.nf ? '／1本の平均 ' + yen(b.avg) : '／金額は 不明') +
+      (b.dys.length ? '／よく出るのは ' + esc((DCLS.filter(function (x){ return x[0] === b.dys[0]; })[0] || ['',''])[1]) : '') +
+      '</div>' +
+      (b.n < HOT_MIN_N ? '<p class="note">まだ ' + b.n + '件です。たまたまの可能性があります。</p>' : '') +
+      '</div>';
+  })();
+
+  const tbl2 = (function (){
+    if (!fat.length) return '';
+    const rows2 = fat.slice().sort(function (a2, b2){ return b2.n - a2.n; });
+    return '<div class="card"><h2>' + esc(label) + 'べつの まとめ</h2>' +
+      '<p class="note">件数の多い順。時間は、一番よく出る時間帯です。</p>' +
+      '<div class="tblwrap"><div class="scroll tbl"><table><thead><tr>' +
+      '<th>' + esc(label) + '</th><th class="n">件</th><th class="n">時間</th>' +
+      '<th class="n">1本の平均</th><th>曜日</th></tr></thead><tbody>' +
+      rows2.map(function (o){
+        const h = o.hrs.length ? ((o.hrs[0] % 24) + '時') : UNK;
+        const d = o.dys.length
+          ? (DCLS.filter(function (x){ return x[0] === o.dys[0]; })[0] || ['', ''])[1] : '';
+        return '<tr>' +
+          '<td class="c-place">' + esc(o.p) + '</td>' +
+          '<td class="n">' + o.n + '</td>' +
+          '<td class="n">' + h + '</td>' +
+          '<td class="n">' + (o.nf ? yen(o.avg) : UNK) + '</td>' +
+          '<td class="' + (o.dys[0] || '') + '">' + esc(d) + '</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table></div></div></div>';
+  })();
+
+  let out = head + topCard + tbl2 + '<div class="card"><h2>' + esc(label) + 'ごとの 呼ばれやすい時間</h2>' +
     body +
     ((hrs.length >= 2) ? '<div class="wlegend">左から ' + (hrs[0] % 24) + '時台 〜 ' +
       (hrs[hrs.length - 1] % 24) + '時台（25＝翌1時）</div>' : '') +
-    '</div>';
+    '</div>' + plain;
 
   if (thin.length) {
     out += '<div class="card"><h2>まだ数が足りない' + esc(label) + '</h2>' +
@@ -7262,6 +7900,9 @@ let nippoBusy = '';
  *   控えておけば、画面が作り直されても消えません。
  */
 let nippoFiles = [];
+/* ★「もう読んだか」の札。これが無いと、写真が0枚のときに
+     読み直しが止まらず、画面が ちかちかします（2026/11/25）。 */
+let nippoRead = false;
 
 async function nippoLoad(){
   try {
@@ -8448,6 +9089,10 @@ function barPad_(){
 /** 下へ進んだかどうか（題の行を消すか） */
 let scOn_ = false;
 function scWatch_(){
+  /* ★下へ進んでも、題・時計・【?】は消しません（ご指示・2026/11/25
+       「ロゴ、時間、？の部分も含めて、固定で出せるようにしてください」）。
+     しるし（body.sc）だけは残します。見た目を変えたくなったときに、
+     どこを直せばよいかが分かるようにするためです。 */
   try {
     const on = (window.scrollY || 0) > 48;
     if (on === scOn_) return;
@@ -8474,6 +9119,7 @@ function clockTick_(){
 function barWire_(){
   if (typeof window !== 'undefined' && window.addEventListener && !barWire_.done) {
     barWire_.done = true;
+    foldLoad_();
     window.addEventListener('scroll', scWatch_, { passive: true });
     window.addEventListener('resize', function (){ barPad_(); }, { passive: true });
     clockTick_();
@@ -8528,8 +9174,20 @@ function wire(){
   if (tab === 'hot') radarBoot(); else radarStop();
   /* ピンの地図も、その画面にいるときだけ組み立てます */
   if (tab === 'map') mapBoot(); else mapStop();
-  /* 日報の画面を開いたら、置いた写真の様子を読み直します */
-  if (tab === 'nippo' && !nippoBusy && !nippos.length) nippoLoad().then(render);
+  /*
+   * 日報の画面を開いたら、置いた写真の様子を読み直します。
+   *
+   * ★画面が ちかちかしていました（ご指摘・2026/11/25）。
+   *   「写真が1枚も無いとき」を「まだ読んでいない」と見分けられず、
+   *   読む → 0枚のまま → 画面を作り直す → また読む …と
+   *   止まらなくなっていました。**防げたものでした。**
+   *   読んだかどうかを 札（nippoRead）で持ちます。
+   */
+  if (tab === 'nippo' && !nippoBusy && !nippoRead) {
+    nippoRead = true;
+    nippoLoad().then(render);
+  }
+  if (tab !== 'nippo') nippoRead = false;   /* 開き直したら、また読みます */
   const dep = $('#f_dep');
   const upd = () => {
     const d = parseT(dep ? dep.value : '');
@@ -9447,11 +10105,24 @@ function paneNews(){
       '<ul class="newsl">' + (n.items || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
   }).join('');
 
-  return leadCard('news') + '<div class="card"><h2>使い方</h2>' +
-    '<p class="note">知りたい所だけ読めば大丈夫です。いま動いているのは <b>' +
+  /*
+   * ★並びを入れ替えました（ご指示・2026/11/25
+   *     「順序がめちゃくちゃです まず、お知らせが1番上にくるはずです
+   *       それ以外の設定方法など、順番は最適な形に整えてください」）。
+   *   ページの名前が【お知らせ】なので、お知らせを一番上に置きます。
+   *   そのあとは「はじめての人が読む順」に並べます。
+   *     ① お知らせ（新しく変わったところ）
+   *     ② 使い方（はじめての人が読むところ）
+   *     ③ ふきだしのひとこと（足す・直す）
+   *     ④ 顔から出る字（変える）
+   */
+  return '<div class="card"><h2>お知らせ</h2>' +
+    '<p class="note">いま動いているのは <b>' +
     esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : '') + '</b> です。</p>' +
-    '<div class="gwrap">' + cards + '</div></div>' +
-    '<div class="card"><h2>お知らせ</h2>' + (news || '<div class="note">まだありません。</div>') +
+    (news || '<div class="note">まだありません。</div>') + '</div>' +
+    '<div class="card"><h2>使い方</h2>' +
+    '<p class="note">知りたい所だけ読めば大丈夫です。</p>' +
+    '<div class="gwrap">' + cards + '</div>' +
     '<div class="actions">' +
     '<a class="btn ghost" href="/say" target="_blank" rel="noopener" style="text-decoration:none">' +
     'ひとことを、すべて見る（別のページが開きます）</a></div></div>';

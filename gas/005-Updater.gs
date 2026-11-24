@@ -2,7 +2,17 @@
  * ================================================================
  *  コードの自動更新（005-Updater.gs）
  *
- *  ★★★  U191ver  （2026/11/24）  ★★★
+ *  ★★★  U192ver  （2026/11/25）  ★★★
+ *
+ *   [U192ver]
+ *   ・📲 LINEに届いた記録を、その場で台帳にも入れるようにした
+ *     ★これまでは「LINE → スプシ →（20分おき）→ 台帳」。
+ *       スプシが固まると、そこで止まり、台帳にも出てこなかった。
+ *     ★いまは「LINE → 台帳」も同時にやる。スプシが固まっても、
+ *       台帳には その場で入り、画面にすぐ出る。
+ *     ★二重には入らない（営業日・時刻・金額が同じなら入れない）。
+ *     ★鍵が無ければ黙って何もしない。ほかの仕事は止めない。
+ *     ★係は sbRideNow_。見つけるテストは gas/test/updater.test.js
  *
  *   [U191ver]
  *   ・⏱ LINEの受け口の見張りが、一番 重かったので軽くした
@@ -2062,7 +2072,7 @@
  * ================================================================
  */
 
-const UPD_VERSION = "U191ver";
+const UPD_VERSION = "U192ver";
 
 /** ドライブ上の置き場所（GitHubを使わないときの読み元） */
 const UPD_FOLDER  = "taxi-gas";
@@ -12204,6 +12214,120 @@ function sbGet_(path) {
     if (res.getResponseCode() !== 200) return null;
     return JSON.parse(res.getContentText());
   } catch (e) { return null; }
+}
+
+/* ============================================================
+ *  LINEに届いた記録を、その場で台帳へも入れる（ご指示・2026/11/25）
+ *
+ *  ★まーく様のご指示
+ *      「また、スプシが固まったら止まってしまうのであれば
+ *        このwebサイトも、グループlineと紐づけて
+ *        グループlineでの記録をリアルタイムで反映できるようにして、
+ *        とにかく止まることを防いでください」
+ *
+ *  ★これまでは「LINE → スプシ →（20分おき）→ 台帳」でした。
+ *    スプシが固まると、そこで止まります。台帳にも出てきません。
+ *  ★これからは「LINE → 台帳」も**同時に**やります。
+ *    スプシが固まっても、台帳には その場で入り、画面にすぐ出ます。
+ *  ★スプシへの書き込みと、台帳への書き込みは **別々に try で囲います**。
+ *    片方がこけても、もう片方は必ず通します。
+ *  ★二重には入りません。あとから走る webSyncPush_ は、
+ *    「営業日・時刻・金額」が同じものを入れない作りなので、
+ *    ここで先に入れておけば、そちらは黙って飛ばします。
+ *  ★鍵が入っていなければ、黙って何もしません（止めません）。
+ *  ★お金はかかりません（Supabase は無料のままです）。
+ * ========================================================== */
+
+/** 「HH:MM」を、台帳と同じ数（0〜6時は その夜の続き）に直します */
+function sbDep_(hhmm) {
+  try {
+    const m = String(hhmm == null ? "" : hhmm).match(/(\d{1,2})\D(\d{2})/);
+    if (!m) return null;
+    let dep = Number(m[1]) + Number(m[2]) / 60;
+    if (dep <= 6) dep += 24;          /* 0〜6時は、その夜の続き */
+    if (dep >= 36) return null;
+    return Number(dep.toFixed(2));
+  } catch (e) { return null; }
+}
+
+/** 数えられる数だけ返します（「不明」は null のまま） */
+function sbNum_(v) {
+  const t = String(v == null ? "" : v).trim();
+  if (t === "" || /不明|ふめい|[?？]/.test(t)) return null;
+  const n = Number(t.replace(/[^\d]/g, ""));
+  return isFinite(n) ? n : null;
+}
+
+/** 名前（タブ名）から、台帳の人のIDを引きます。1時間おぼえます */
+function sbUidOf_(who) {
+  try {
+    const key = sbNkey_(who);
+    if (!key) return "";
+    const cc = CacheService.getScriptCache();
+    let map = null;
+    try { const hit = cc ? cc.get("SB_UIDMAP") : null; if (hit) map = JSON.parse(hit); } catch (e) {}
+    if (!map) {
+      const ps = sbGet_("profiles?select=id,display_name");
+      if (!ps) return "";
+      map = {};
+      ps.forEach(function (p) { map[sbNkey_(p.display_name)] = p.id; });
+      try { if (cc) cc.put("SB_UIDMAP", JSON.stringify(map), 3600); } catch (e) {}
+    }
+    return map[key] || "";
+  } catch (e) { return ""; }
+}
+
+/**
+ * 1件を、その場で台帳に入れます。
+ * ★入れられたら true。入れられなくても、ぜったいに例外を投げません
+ *   （ここでこけると、スプシへの書き込みまで巻き添えになります）。
+ */
+function sbRideNow_(rec) {
+  try {
+    if (!rec || !rec.bizDate) return false;
+    const conf = sbWakeConf_();
+    if (!conf) return false;                       /* 住所と鍵が、まだ入っていない */
+    const tok = sbToken_();
+    if (!tok) return false;                        /* 台帳に入れない。黙って何もしない */
+    const uid = sbUidOf_(rec.ownerTab || rec.sender);
+    if (!uid) return false;                        /* だれのか分からないものは入れない */
+
+    const dep  = sbDep_(rec.time);
+    const fare = sbNum_(rec.money);
+
+    /* すでに同じものが入っていないか、1件だけ聞きます（軽い問い合わせです） */
+    try {
+      const q = "rides?select=id&work_date=eq." + encodeURIComponent(rec.bizDate) +
+                (dep  == null ? "&dep=is.null"  : "&dep=eq."  + dep) +
+                (fare == null ? "&fare=is.null" : "&fare=eq." + fare) + "&limit=1";
+      const had = sbGet_(q);
+      if (had && had.length) return false;         /* もう入っています */
+    } catch (e) {}
+
+    const row = {
+      user_id: uid,
+      work_date: rec.bizDate,
+      place: String(rec.place || ""),
+      dep: dep,
+      wait_min: sbNum_(rec.wait),
+      ride_min: null,
+      fare: fare,
+      method: String(rec.method || ""),
+      note: String(rec.other || "")
+    };
+    const res = UrlFetchApp.fetch(conf.url + "/rest/v1/rides", {
+      method: "post",
+      headers: { "apikey": conf.key, "Authorization": "Bearer " + tok, "Prefer": "return=minimal" },
+      contentType: "application/json",
+      payload: JSON.stringify([row]),
+      muteHttpExceptions: true
+    });
+    const code = res.getResponseCode();
+    return (code >= 200 && code < 300);
+  } catch (e) {
+    try { if (typeof logErr_ === "function") logErr_("sbRideNow", e); } catch (e2) {}
+    return false;
+  }
 }
 
 /**

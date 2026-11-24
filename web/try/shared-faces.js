@@ -122,9 +122,26 @@ const SAY_MIN_PX = 9;
  */
 const SAY_MAX = 34;
 
+/*
+ * ★区切りのよいアンロックを取ったら、そのお知らせを ふきだしに混ぜます
+ *   （ご指示・2026/11/25「区切りの良いアンロックが達成した人は
+ *     全体ページの、ふきだしの部分に
+ *     ○○がアンロック数○○を達成しました と入れてください」）。
+ * ★お知らせがあるときは、まずそれを出し、そのあと ふだんの交互に戻ります。
+ */
+let _sayNews = [];
+function sayNewsSet(list){ _sayNews = (list || []).slice(0, 6); }
+
 /* 必ず交互に出します（ぼやき → ありがとう → ぼやき → …） */
 let _sayTurn = 0;
+let _sayNewsAt = 0;
 function sayNext(){
+  /* 3回に1回は、お知らせを出します（毎回だと、ひとことが出なくなります） */
+  if (_sayNews.length && (_sayTurn % 3 === 2)) {
+    _sayTurn++;
+    const t = _sayNews[(_sayNewsAt++) % _sayNews.length];
+    return { t: t, good: true, news: true };
+  }
   const arr = (_sayTurn++ % 2 === 0) ? _sayB : _sayG;
   return { t: pick(arr), good: arr === _sayG };
 }

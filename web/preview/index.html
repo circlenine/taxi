@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261124-a8f391ef">
+<link rel="stylesheet" href="style.css?v=20261124-bc0cb1fe">
 </head>
 <body>
 <div class="pvbar">ここは<b>下見用</b>のページです。本番は
@@ -68,6 +68,12 @@
       <button data-t="map" aria-selected="false"><b>地図</b></button>
       <button id="fabMenu" type="button"><b>もっと</b></button>
     </nav>
+    <!-- ★上の帯は いつも出したまま（ご指示・2026/11/25
+           「ロゴ、時間、？の部分も含めて、固定で出せるようにしてください、
+             折りたたみ機能も出してください」）。
+         下へ進んでも消えません。たたみたいときは、この つまみで。
+         たたんでも つまみは必ず残します（残さないと二度と戻せません）。 -->
+    <button class="hfold" id="hFold" type="button" aria-label="上の帯をたたむ"><i>▲</i></button>
     <div class="fabsheet" id="fabSheet" hidden></div>
     <div id="acctBox" hidden>
       <div class="subline"><b class="mytitle" id="me">—</b></div>
@@ -86,8 +92,7 @@
   <!-- ★「最多付け待ちの為〜」の一文は、やめました（ご指示・2026/11/24）。
          いま出ている警報・注意報があるときだけ、ここに出します。 -->
   <div class="topline"><span class="sub" id="sub"></span></div>
-  <!-- ★ふきだしも、上の帯から ここへ移しました。 -->
-  <div id="saymount" class="saymount"></div>
+
 
   <!-- ★フィードバックは、≡ の一覧からだけ行けます（ご指示・2026/11/13
          「フィードバックは三の方にあるので、ここでは消して」）。
@@ -105,6 +110,11 @@
     <button data-t="news"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
     <button data-t="fb"><b>フィードバック</b><i>意見を送る</i></button>
     <button data-t="set"><b>設定</b><i>知らせ・ボタン位置</i></button>
+    <!-- ★Googleスクリプトの様子も、この台帳の中に出します
+           （ご指示・2026/11/25「別ページに飛ばすのではなく、
+             このTA卍I NOTE自体に載せてください」）。
+         まーく様だけに出します（app.js が出し入れします）。 -->
+    <button data-t="sys" id="moSys" hidden><b>仕組み</b><i>動いている様子</i></button>
   </nav>
   <!-- ★≡ の一覧にあったものも、ここに並べました（ご指示・2026/11/16
          「三メニューにある 記録～お知らせまでを ページ内にも載せてください」）。
@@ -123,56 +133,19 @@
        帯だけを さらに上の入れものに分けています。 -->
   <div id="wakeTop"></div>
   <div id="panesTop"></div>
-  <section class="card blk" id="ktop">
-    <h2>過去の記録</h2>
-    <!-- ★えらぶものは、4つのプルダウンに並べました（ご指摘・2026/11/24
-           「選択できなければいけない部分が抜けていたり」
-             「もっと1画面でスッと映すべき部分が映せてなかったり」）。
-         **営業曜日が、ここだけ えらべませんでした。** 足しました。
-         平日と土日祝では売上の出方がまるで違うので、
-         ここで切り替えられないと、数字を読み違えます。 -->
-    <div class="ktpick">
-      <label><span>乗り場</span><select class="fsel" id="ktPlace"></select></label>
-      <label><span>営業曜日</span><select class="fsel" id="ktDay"></select></label>
-      <label><span>期間</span><span class="ktperiod" id="ktPeriodBox"></span></label>
-      <label><span>だれの</span><select class="fsel" id="ktMine">
-        <option value="0">全員</option><option value="1">自分だけ</option>
-      </select></label>
-    </div>
-    <div class="ktfind">
-      <input class="ja" id="ktFind" data-find="ktSug" placeholder="乗り場をさがす（例：梅田）">
-      <div class="fsug" id="ktSug"></div>
-      <button class="chip rst" id="ktClear" hidden>絞り込みを解除</button>
-    </div>
-    <div class="ktline">
-      <div class="ktwhen" id="ktWhen">—</div>
-      <div class="ktsum"><small>合計</small><b id="ktSum">¥0</b></div>
-    </div>
-    <div class="ktwho" id="ktWho">—</div>
-    <!-- ★中カテゴリーごとの件数（ご指示・2026/11/17）。
-           まとめスプシのレポートの、上から2行目と同じ形です。
-           「この期間、どこで何本だったか」が、1行で分かります。 -->
-    <div class="ktarea" id="ktArea"></div>
-    <div class="kpis">
-      <div class="kpi"><small>記録の数</small><b id="k1">0</b></div>
-      <div class="kpi"><small>1日当たり</small><b id="k2">¥0</b></div>
-      <div class="kpi gr"><small>1本の平均金額</small><b id="k3">—</b></div>
-      <!-- ★「アツい時間帯」は やめました（ご指摘・2026/11/16
-             「エリア指定してないのに、アツい時間帯というのはなんなのですか？
-               根拠のないデータは絶対に載せないでください」）。
-           乗り場をしぼっていないと、場所がバラバラの平均になり、
-           どこの話かも言えない数字でした。 -->
-      <div class="kpi"><small>ロングの割合</small><b id="k4">—</b></div>
-    </div>
-    <div class="kperiod" id="kperiod">—</div>
-    <!-- ★記録の表は、ここに出します（ご指示・2026/11/16
-           「直近の記録は非表示にしてください」）。
-         「直近の記録」という別の欄に、同じ乗り場えらび・同じ絞り込みが
-         もう一組ならんでいて、2つの欄が同じことをしていました。
-         欄を1つにして、絞り込みの すぐ下に表を置きます。 -->
-    <div id="ktTbl"></div>
-  </section>
+  <!-- ★「過去の記録」は、いったん外しました（ご指示・2026/11/25
+         「過去の記録はもういらないので、一旦除外してください」）。
+       **消してはいません。** 中身の係（paneInRecent・ktop の絞り込み）は
+       そのまま残してあるので、戻したくなったら ここに書き戻すだけです。 -->
   <div id="panes"></div>
+
+  <!-- ★ふきだしは、画面の下に固定しました（ご指示・2026/11/25
+         「吹き出し部分は、下に固定で出して 折りたたみ機能もつけてください」）。
+       たたんでも つまみは残します。 -->
+  <div class="saybar" id="sayBar">
+    <button class="sayfold" id="sayFold" type="button" aria-label="ふきだしをたたむ"><i>▼</i></button>
+    <div id="saymount" class="saymount"></div>
+  </div>
 
   <footer>
     <div class="copy">©ibakuzo!!!!!! Gevanni!!!!!! ~1night done~</div>
@@ -188,9 +161,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261124-a8f391ef"></script>
-<script src="news.js?v=20261124-a8f391ef"></script>
-<script src="shared.js?v=20261124-a8f391ef"></script>
-<script src="app.js?v=20261124-a8f391ef"></script>
+<script src="config.js?v=20261124-bc0cb1fe"></script>
+<script src="news.js?v=20261124-bc0cb1fe"></script>
+<script src="shared.js?v=20261124-bc0cb1fe"></script>
+<script src="app.js?v=20261124-bc0cb1fe"></script>
 </body>
 </html>

@@ -7707,5 +7707,47 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
     '　 鍵や住所は、1文字も混ぜない');
 }
 
+console.log('\n■ LINEの記録を、その場で台帳にも入れる（ご指示・2026/11/25）');
+{
+  const C = fs.readFileSync(path.join(__dirname, '..', '001-Code.gs'), 'utf8');
+  const U = fs.readFileSync(path.join(__dirname, '..', '005-Updater.gs'), 'utf8');
+  t(/function sbRideNow_\(rec\) \{/.test(U), '★★★その場で台帳に入れる係がある');
+  /* ★スプシより「先に」入れます。スプシが固まっても、台帳には入ります */
+  {
+    const i = C.indexOf('function writeRecord_(rec) {');
+    const seg = C.slice(i, i + 1400);
+    const a = seg.indexOf('sbRideNow_(rec)');
+    const b = seg.indexOf('const ss = mainSS_();');
+    t(a > 0 && b > a, '★★★スプシより先に、台帳へ入れる', a + '/' + b);
+    t(/try \{\n    if \(typeof sbRideNow_ === "function"\) sbRideNow_\(rec\);\n  \} catch/.test(C),
+      '★★★ここがこけても、スプシへの書き込みは止めない');
+  }
+  /* ★二重に入れない（同じ営業日・時刻・金額があれば、入れない） */
+  t(/work_date=eq\.|&dep=is\.null|&fare=is\.null/.test(U),
+    '★★★すでに入っているかを、先に確かめる');
+  t(/if \(had && had\.length\) return false;/.test(U), '　 入っていれば、入れない');
+  /* ★時刻の数え方が、台帳の画面と同じであること（ずれると二重に入ります） */
+  {
+    /* ★ほかの係にも同じ行があるので、sbDep_ の中だけを見ます。
+         ここを見落とすと、ずれても気づけません（実際に見逃しました）。 */
+    const i = U.indexOf('function sbDep_(hhmm) {');
+    const seg = U.slice(i, U.indexOf('function sbNum_'));
+    t(i > 0 && /if \(dep <= 6\) dep \+= 24;/.test(seg),
+      '★★★0〜6時は、その夜の続きとして数える');
+    t(/if \(dep >= 36\) return null;/.test(seg), '　 ありえない時刻は、入れない');
+  }
+  /* ★鍵が無ければ、黙って何もしない（ほかの仕事を止めない） */
+  t(/if \(!conf\) return false;/.test(U) && /if \(!tok\) return false;/.test(U),
+    '★★★鍵が入っていなければ、黙って何もしない');
+  t(/catch \(e\) \{[\s\S]{0,160}return false;\n  \}\n\}/.test(
+      U.slice(U.indexOf('function sbRideNow_'))),
+    '★★★ぜったいに例外を外へ出さない');
+  /* ★鍵そのものを、コードにも控えにも書かない */
+  {
+    const seg = U.slice(U.indexOf('function sbRideNow_'), U.indexOf('function sbRideNow_') + 3000);
+    t(!/eyJ[A-Za-z0-9_-]{10,}/.test(seg), '★★★鍵の字を、1文字も書いていない');
+  }
+}
+
 console.log(ng ? '\n✗ ' + ng + '件 失敗\n' : '\n✓ すべて通りました\n');
 process.exit(ng ? 1 : 0);

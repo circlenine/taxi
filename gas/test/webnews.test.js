@@ -30,6 +30,7 @@ const V = n => vm.runInContext(n, ctx);
 const ver = V('APP_VERSION'), news = V('APP_NEWS');
 
 function css2(){ return fs.readFileSync(path.join(W, 'style.css'), 'utf8'); }
+function sh2(){ return fs.readFileSync(path.join(W, 'shared.js'), 'utf8'); }
 console.log('■ 版の番号');
 ok(typeof ver === 'string' && /^v\d+\.\d+$/.test(ver), '★版の番号が、v1.2 の形で入っている', ver);
 
@@ -66,7 +67,8 @@ const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
 ok(idx.indexOf('id="ver"') !== -1, '★題のとなりに、版を出す場所がある');
 ok(idx.indexOf('data-t="news"') !== -1, '★お知らせのタブがある');
 ok(idx.indexOf('news.js') !== -1, '　 お知らせの中身を読み込んでいる');
-ok(app.indexOf('paneSays() + paneNews()') !== -1, '★お知らせのタブを押すと、中身が出る');
+/* ★並びを入れ替えました（ご指示・2026/11/25「まず、お知らせが1番上」） */
+ok(app.indexOf('paneNews() + paneSays()') !== -1, '★お知らせのタブを押すと、中身が出る');
 ok(app.indexOf('newsSeen()') !== -1, '　 読んだら、赤い点が消える');
 
 console.log('■ 読み込むだけで、画面をいじらない');
@@ -1129,10 +1131,14 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   const html = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
   /* ---- 操作するところが、ちゃんとある ---- */
-  t(/id="ktPlace"/.test(html) && /ktPlace/.test(app),
-    '★★★乗り場をえらぶところが、いちばん上にある');
-  t(html.indexOf('id="ktPlace"') < html.indexOf('class="kpis"'),
-    '　 4つの数より上（いつでも目に入る）');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(/data-filt="period"/.test(app), '★★★期間をえらぶところがある');
   t(/data-filt="from"/.test(app) && /data-filt="to"/.test(app),
     '★★★期間は、自分で決めることもできる');
@@ -1165,7 +1171,11 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/if \(isUnk\(v\)\) return '';/.test(rep),
     '★★★金額が「不明」のものは、割合に入れない（0円にしない）');
   t(/o\.unk\+\+/.test(rep), '　 外したぶんが何件かも、ことばで出す');
-  t(/compareCard\(\)/.test(rep), '　 前の期間とくらべる所も、ここに出す');
+  /* ★「前の期間と比べる」は外しました（ご指示・2026/11/25
+       「前の期間と比べるもいらないので除外」）。
+     compareCard の中身は消していないので、戻せます。 */
+  t(!/return head \+ rankCard \+ out \+ compareCard\(\);/.test(app),
+    '　 【パーセント】では、前の期間と比べない');
   /* ★時間帯と乗り場をつなぐ（ご指示・2026/11/12
        「ロングが出やすい乗り場と時間帯はリンクさせてほしいです
          時間帯別に、どこの乗り場がアツいのかをランキング形式に」） */
@@ -1188,9 +1198,13 @@ console.log('■ 乗り場と期間でしぼる（ご指示・2026/11/12）');
   t(/が一番よさそうです/.test(app), '★★★一番よい時間を、一言で言い切る');
   /* ★2026/11/22：1ページ立てにしました（ご指示「この3つを一先ず
        主軸にしたサイトにしたい」）。【％】の上の【乗り場別】で行けます。 */
-  t(/function paneBest\(\)/.test(app) &&
-    /leadCard\('best'\) \+ rMenu\('best'\)/.test(app),
-    '★★★1ページ立てになっている');
+  /* ★【乗り場別】は【パーセント】に1ページでまとめました
+       （ご指示・2026/11/25「ロング別と乗り場別はもう1ページに
+         まとめてください」）。前の押しどころで来ても、同じ中身が出ます。 */
+  t(/function paneBest\(\)\{ return paneRatio\(\); \}/.test(app),
+    '★★★【パーセント】に1ページでまとまっている');
+  t(/\(bestTimeCard\(visible\(\)\.filter\(hasDep\), true\) \|\| ''\)/.test(app),
+    '　 「この乗り場は何時」も、同じページに出る');
   t(/best: *paneBest/.test(app), '★★★そのページが、行き先として入っている');
   t(/const R_KINDS = \[/.test(app) && /data-rk=/.test(app),
     '★★★【ロング率】と【乗り場別】を、1回で行き来できる');
@@ -1706,24 +1720,40 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   const pv   = fs.readFileSync(path.join(W, 'preview', 'index.html'), 'utf8');
 
   /* ---- いちばん上に、期間と合計 ---- */
-  t(/id="ktop"/.test(html), '★★★いちばん上の帯がある');
-  t(/id="ktWhen"/.test(html) && /id="ktSum"/.test(html),
-    '★★★そこに「期間」と「合計」が入る');
-  t(html.indexOf('id="ktop"') < html.indexOf('class="kpis"'),
-    '★★★4つの数より、上にある');
-  t(html.indexOf('id="kperiod"') > html.indexOf('class="kpis"'),
-    '★★★注意書きは、4つの数より下');
-  t(/id="ktop"/.test(pv), '　 下見用のページも同じ');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(/\.ktwhen\{/.test(css) && /\.ktsum b\{/.test(css), '　 その見た目も入っている');
   /* ★ひと区切りごとに、赤い線の見出し（ご指示・2026/11/12
        「赤い線を最初に入れて、見出しとしてだしてもらわないと、
          わけがわかりません」） */
   /* ★乗り場と数字は、1つの区切りにまとめました（ご指示・2026/11/12）。
        見出しは「過去の記録」。 */
-  t(/<section class="card blk" id="ktop">[\s\S]{0,80}<h2>過去の記録<\/h2>/.test(html),
-    '★★★見出しは「過去の記録」');
-  t(html.indexOf('id="ktPlace"') < html.indexOf('id="ktWhen"'),
-    '★★★同じ区切りの中で、乗り場が数字より上にある');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(!/id="blkPlace"/.test(html), '　 前の2つに分かれた形は、残っていない');
   /* ★メニューを、いちばん上に移しました（ご指示・2026/11/12
        「このメニューが1番上の方が良いのではないでしょうか」）。
@@ -1751,8 +1781,10 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   });
   /* ★「1日当たり」は、いちばん上の「過去の記録」（index.html）に出ています。
        かな書きに戻っていないことだけを、上の並びで押さえています。 */
-  t(/1日当たり/.test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')),
-    '★★★「当たり」と漢字で書いている');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   /* ★耳なれない言い方は使わない（ご指示・2026/11/12
        「ためた分 ぜんぶ ってなんですか」「全期間とかで良いじゃないですか」） */
   ['ためた分', 'ためた記録ぜんぶ', 'ぜんぶに戻す', '乗り場：ぜんぶ',
@@ -1975,7 +2007,10 @@ console.log('■ 見返しやすさの3つ（ご指示・2026/11/12「全部や�
   const css  = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
 
   /* ① 期間の切り替えも、上の区切りの中に */
-  t(/id="ktPeriodBox"/.test(html), '★★★期間の切り替えが、上の区切りの中にある');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(html.indexOf('id="ktPeriodBox"') < html.indexOf('<div id="panes">'),
     '★★★期間は、画面の中身より上にある');
   t(/const periodBox = /.test(app), '　 その中身も入っている');
@@ -2169,9 +2204,11 @@ console.log('■ ふきだしに、自由に足せる（ご指示・2026/11/14�
     '★★★入れる枠がある（そのままの言い方で）');
   /* ★2026/11/17：【お知らせ】の一番上に移しました
        （ご指示「これは、お知らせのページに移動してください」）。 */
+  /* ★一番上は「お知らせ」になりました（ご指示・2026/11/25）。
+       ふきだしの欄は、そのすぐ下です。 */
   t(/function paneSays\(\)/.test(app) &&
-    /news: \(\) => paneSays\(\) \+ paneNews\(\)/.test(app),
-    '★★★【お知らせ】の画面の、一番上に出る');
+    /news: \(\) => paneNews\(\) \+ paneSays\(\)/.test(app),
+    '★★★【お知らせ】の画面に、ふきだしの欄が出る');
   t(!/in: \(\) => paneSays\(\)/.test(app), '★★★【記録】の画面には、もう出さない');
   /* ★探さなくても行けること（ご質問・2026/11/14
        「ふきだし追加したい時のやつ、どこにあるんですか？」）。
@@ -2706,7 +2743,8 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/avg:  F\.length \? sum\/F\.length : 0/.test(app),
     '★★★まとめの「avg」は、1本の平均金額になっている');
   t(/1本の平均金額/.test(app), '　 画面には「1本の平均金額」と出す');
-  t(idx.indexOf('1本の平均金額') !== -1, '　 上の4つの名札も入れ替わっている');
+  /* ★4つの数は「過去の記録」の中にあったので、いっしょに外れました
+       （ご指示・2026/11/25）。計算のほうは、そのまま残しています。 */
   t(idx.indexOf('平均 時間単価') === -1, '　 古い名札は残っていない');
 
   /* ⑥-8 一番上の行を、何にも ふさがせない。
@@ -2884,7 +2922,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
           ご指示（2026/11/13）
             「乗り場の選択は、プルダウン以外に検索で。
               検索の該当文字が含んでいたら、候補を表示する形にしてください」 */
-  t(/id="ktFind" data-find="ktSug"/.test(idx), '★★★上の欄に、乗り場をさがす入力がある');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   /* ★2026/11/16：「直近の記録」の欄は なくしました（ご指示
        「直近の記録は非表示にしてください」）。同じ乗り場えらび・
        同じ絞り込みが2つ並んでいたためです。表は「過去の記録」の中へ。 */
@@ -2902,12 +2943,19 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
          その関連性を考えながら、順序をしっかり組み直してください」
        一番上は「時間帯べつ 乗り場ランキング」、そのすぐ下に
        「この乗り場は、何時がよいか」→「時間順の狙い目」と続けます。 */
-  t(/return head \+ rankCard \+ out \+ compareCard\(\);/.test(app),
+  t(/return head \+ rankCard \+ out;/.test(app),
     '★★★「時間帯べつ 乗り場ランキング」が一番上');
   t(/let out = hourPlanCard\(D\);/.test(app),
     '★★★そのあとが「時間帯ごとの おすすめ乗り場」');
-  t(/rankCard = '<div class="card"><h2>時間帯別 乗り場ランキング<\/h2>'/.test(app),
+  t(/rankCard = '<div class="card"><h2>④ 時間帯別 乗り場ランキング<\/h2>'/.test(app),
     '　 ランキングは、あとから一番上に置き直している');
+  /* ★どこを押すと どこが変わるのかを、番号で書きます
+       （ご指摘・2026/11/25「使い方がまるでわかりません
+         (何とリンクしてるのかが分かりづらい)」）。 */
+  t(/<div class="howto">/.test(app) && /②<\/em>時間の棒を押すと/.test(app),
+    '★★★押すと何が変わるのかを、番号で書く');
+  t(/その時間に ロングが出た乗り場/.test(app),
+    '★★★棒グラフに、具体的な乗り場の名前を出す');
 
   /* ⑥-16 2026/11/13 のまとめてのご指示 */
 
@@ -2927,7 +2975,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(!/#ktop\.on\{border-color/.test(css), '★★★赤枠はやめた（ほかの区切りに合わせる）');
 
   /* 合計と日付を、同じ高さに */
-  t(/<div class="ktline">/.test(idx), '★★★日付と合計を、同じ行に入れる');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(/\.ktline\{[^}]*align-items:center/.test(css), '★★★高さをそろえる');
   t(!/\.ktsum\{[^}]*margin-top:-20px/.test(css), '　 むりやり重ねる書き方は、残っていない');
 
@@ -2956,8 +3007,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/body\[data-hand="l"\] \.rst\{order:99\}/.test(css), '★★★左利きは、リセットが右');
   t(/body\[data-hand="l"\] \.hrow \.whoR\{[^}]*order:-1/.test(css),
     '　 管理・ログアウトも、左利きなら左へ');
-  t(/id="ktClear"[^>]*class|class="chip rst" id="ktClear"/.test(idx) ||
-    /class="chip rst" id="ktClear"/.test(idx), '　 「すべてに戻す」にも目印がある');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
 
   /* 使い方は、端的に */
   {
@@ -2979,20 +3032,31 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/function paneInNew\(/.test(app) && /function paneInRecent\(/.test(app),
     '★★★新規と直近を、別々に出せるようにした');
   t(/<div id="panesTop"><\/div>/.test(idx), '　 新規を入れる場所が、過去の記録より上にある');
-  t(idx.indexOf('id="panesTop"') < idx.indexOf('id="ktop"'),
-    '★★★新規の記録 → 過去の記録 の順');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(idx.indexOf('id="ktop"') < idx.indexOf('id="panes"'),
     '★★★過去の記録 → 直近の記録 の順');
   /* ★2026/11/16：新規の記録を、直近の記録より上にしました（ご指示
        「新規の記録の方が、直近の記録より上にしてください」） */
   /* ★2026/11/24：天気の欄も、この画面の一番上へ移しました。 */
+  /* ★天気の大きな欄は、やめました（ご指示・2026/11/25
+       「天気情報は、車のページと一緒にして 天気マークや、
+         何分後に雨予報などの必要最低限だけを端的に」）。
+     いまは 絵 → 新規の記録 → この乗り場は何時、の順です。 */
   t(/\(tab === 'in'\)\s*\n?\s*\? \(bannerCard\(\) \+/.test(app) &&
-    /wxNowHTML\(\) \+ wxHoursHTML\(\)/.test(app) &&
-    /leadCard\('in'\) \+ paneInNew\(\)/.test(app),
-    '★★★記録の画面は 絵 → 天気 → 新規の記録 → 過去の記録 の順');
-  t(/<div id="ktTbl"><\/div>/.test(idx) &&
-    /ktb\.innerHTML = \(tab === 'in'\) \? paneInRecent\(\) : ''/.test(app),
-    '★★★記録の表は「過去の記録」の中に出す');
+    /leadCard\('in'\) \+ paneInNew\(\)/.test(app) &&
+    /bestTimeCard\(visible\(\)\.filter\(hasDep\)\)/.test(app),
+    '★★★記録の画面は 絵 → 新規の記録 → この乗り場は何時 の順');
+  t(/bnIcon_\(\)/.test(app) && /bnRainLine_\(wx\)/.test(app),
+    '★★★天気は、絵の中に マークと「いつ雨か」だけ');
+  t(!/<div class="card" id="wxcard">/.test(app),
+    '　 大きな天気の欄は、もう出さない');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
 
   /* 目次 */
   t(/function tocBuild\(/.test(app), '★★★目次を作る係がある');
@@ -3568,13 +3632,20 @@ console.log('■ 乗り場の分け方と、書き方のゆれ（ご指示・202
     '★★★書き方がゆれていても、同じ所として絞れる');
   t(/placeLink\(canonPlace\(r\.place\)\)/.test(app),
     '★★★表でも、そろえた書き方で出す');
-  t(/id="ktPlace"/.test(html),
-    '★★★「過去の記録」で、乗り場を選べる（欄は1つにまとめた）');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   /* ★「過去の記録」でも、全員／自分だけを切り替えられる（ご指示・2026/11/12） */
   /* ★2026/11/24：4つのプルダウンに並べ直し、営業曜日を足しました。 */
-  t(/<select class="fsel" id="ktMine">/.test(html), '★★★「過去の記録」でも、全員／自分だけ');
-  t(/<select class="fsel" id="ktDay">/.test(html),
-    '★★★「過去の記録」でも、営業曜日がえらべる（抜けていました）');
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
+  /* ★「過去の記録」の欄は、いったん外しました（ご指示・2026/11/25
+       「過去の記録はもういらないので、一旦除外してください」）。
+     中身の係は消していないので、戻したくなったら index.html に
+     書き戻すだけです。その日まで、この約束は見張りません。 */
   t(/kdy\.innerHTML = fOpt\('', onlyDay, 'すべて'\) \+/.test(app) &&
     /DAY_CHIPS\.map/.test(app),
     '　 平日・金・祝前日・土曜・日祝が、ぜんぶ出る');
@@ -3799,8 +3870,8 @@ console.log('\n■ 表・タグ・期間の直し（ご指示・2026/11/13）');
     const ix = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
     t(!/<small>アツい時間帯<\/small>/.test(ix),
       '★★★4つの数から「アツい時間帯」を外した');
-    t(/<small>ロングの割合<\/small>/.test(ix),
-      '★★★代わりは「ロングの割合」（どこへ行け、とは言わない数）');
+    /* ★4つの数は「過去の記録」の中にあったので、
+         いっしょに外れました（ご指示・2026/11/25）。 */
     t(!/hourAgg\(\)\.filter\(h => h\.n >= 3\)\.sort\(\(a,b\) => b\.avg - a\.avg\)\[0\]/.test(app),
       '★★★場所を混ぜた平均で「一番の時間」を選ぶ書き方は、残っていない');
     t(/ロングの割合＝¥10,000以上が何割か。金額の分かる記録だけで数えています/.test(app),
@@ -3910,10 +3981,19 @@ console.log('\n■ グラフを１ページに、地図にピン（ご指示・2
        「もっとポイントを分かりやすくしてください、全体の色合いが似ていて、
          どこに丸されてるかすぐに見分けできませんし
          色の違いの説明もしっかり記載してください」） */
-  t(/className: 'pindot'/.test(app), '★★★ピンは、白いふち付きの塗りつぶし');
+  /* ★遠目の丸を「平均の1色」にしていたので、ほとんどが薄い青になり、
+       全部ショートだと見えていました（ご指摘・2026/11/25）。
+     いまは ショート・ミドル・ロングの割合そのものを円に塗り分けます。 */
+  t(/className: 'pindot pie'/.test(app), '★★★ピンは、割合を塗り分けた円');
+  t(/function bandPie_\(o\)\{/.test(app) && /conic-gradient\(/.test(app),
+    '★★★ショート・ミドル・ロングの割合を、そのまま塗る');
+  t(/\.pindot\.pie span\{font-size:0\}/.test(css),
+    '　 件数の字は、円の中に入れない（押せば出ます）');
   t(/\.pindot span\{[^}]*border:3px solid #FFFFFF/.test(css), '　 その見た目も入っている');
-  t(/o\.rows\.length \+\s*'<\/span>'/.test(app) || /'">' \+\s*\n?\s*o\.rows\.length/.test(app),
-    '★★★ピンの中に、件数の数字を入れる');
+  /* ★件数の字は、円の中に入れません（ご指示・2026/11/25
+       「件数はマストではないので、それよりも色別にきちんと
+         遠目でもわかるようにしてください」）。押せば出ます。 */
+  t(/o\.rows\.length \+ '件'/.test(app), '★★★件数は、押したときに出す');
   /* ★ピンの地図は、暗くしません（ご指摘・2026/11/17）。
        地域が読めなければ、何の役にも立ちません。 */
   t(!/class="radarmap pinmap wxmap"/.test(app),
@@ -4530,7 +4610,8 @@ console.log('■ 中カテゴリーごとの件数（2026/11/17）');
   const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
   const idx = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-  t(/<div class="ktarea" id="ktArea"><\/div>/.test(idx), '★★★件数を出す場所がある');
+  /* ★「過去の記録」ごと外れました（ご指示・2026/11/25）。
+       入れる係（ktArea）は、そのまま残しています。 */
   t(/const ka = \$\('#ktArea'\);/.test(app), '★★★そこへ入れている');
   t(/CAT_ORDER\.filter\(function \(c\)\{ return cnt\[c\]; \}\)/.test(app),
     '★★★1件も無い分けは出さない（0を並べない）');
@@ -5160,6 +5241,10 @@ console.log('\n■ トロフィー（ご指示・2026/11/23）');
     canonPlace: function (p){ return String(p || ''); },
     dayCls:  function (d){ return 'd-wd'; },
     normMethod: function (m){ return String(m || ''); },
+    /* しるしの数えもとが増えたので、使う係も渡します（2026/11/25） */
+    recBig:  function (r){ return 'ﾐﾅﾐ'; },
+    recCat:  function (r){ return 'なんば'; },
+    hasDep:  function (r){ return r && r.dep !== '' && r.dep != null; },
     Math: Math, Object: Object, Number: Number, String: String, Date: Date, isFinite: isFinite
   };
   vm.createContext(tx);
@@ -5187,7 +5272,19 @@ console.log('\n■ トロフィー（ご指示・2026/11/23）');
     '★★★まだのものも「いま/あと何本か」が分かる', by.n50.raw + '/' + by.n50.need);
   t(by.L1.on === false, '　 ロングが無ければ、ロングのしるしは付かない');
   t(by.mgo.on === true, '　 GOの記録があれば、GOのしるしが付く');
-  t(got.length >= 40, '★★★しるしは40以上ある（集めがいがある）', got.length);
+  /* ★100こにしました（ご指示・2026/11/25
+       「現時点では、100個のアンロックを作ってください」）。 */
+  t(got.length === 100, '★★★しるしは ちょうど100こ', got.length);
+  /* ★17時台・毎日出勤のしるしは、やめました（ご指示・2026/11/25） */
+  t(!got.some(function (x){ return /17時台/.test(x.d); }),
+    '★★★17時台のしるしは、もう無い');
+  t(!got.some(function (x){ return /続けて記録/.test(x.d); }),
+    '★★★毎日 出勤をすすめるしるしは、もう無い');
+  /* しるしの名札が、ぜんぶ ちがうこと（同じ名札があると、見分けがつきません） */
+  {
+    const ks = got.map(function (x){ return x.k; });
+    t(new Set(ks).size === ks.length, '　 名札が重なっていない');
+  }
 
   /* 他人の記録は数えません（人と人を並べないため） */
   vm.runInContext('records = ' + JSON.stringify(
@@ -5329,6 +5426,197 @@ console.log('\n■ 画面のへりと、読む字の大きさ（2026/11/25）');
     '★★★押したことが、その場で分かる');
   t(/prefers-reduced-motion:reduce\)\{\n  nav#tabs\.topnav button:active/.test(css2()),
     '★★★動きを切っておられる方の画面では、動かさない');
+}
+
+console.log('\n■ 上の帯は いつも出す・たためる（ご指示・2026/11/25）');
+{
+  const ix = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/body\.sc header#hdr \.hmain\{height:44px/.test(css2()),
+    '★★★下へ進んでも、題・時計・【?】は消えない');
+  t(/id="hFold"/.test(ix) && /class="hfold"/.test(ix), '★★★たたむつまみがある');
+  t(/body\.hdrcl header#hdr \.hmain,/.test(css2()), '　 たたむと、題もメニューも隠れる');
+  t(/header#hdr \.hfold\{display:block/.test(css2()),
+    '★★★たたんでも、つまみは必ず残る（残さないと戻せない）');
+  t(/localStorage\.setItem\(key, on \? '1' : '0'\)/.test(app),
+    '　 たたんだままを覚える');
+}
+
+console.log('\n■ ふきだしは、画面の下に固定（ご指示・2026/11/25）');
+{
+  const ix = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/<div class="saybar" id="sayBar">/.test(ix), '★★★下に固定する入れものがある');
+  t(/\.saybar\{position:fixed/.test(css2()), '　 その見た目も入っている');
+  t(/id="sayFold"/.test(ix), '★★★たたむつまみがある');
+  t(/body\.saycl \.saybar \.saymount\{display:none\}/.test(css2()),
+    '　 たたむと、ふきだしが隠れる');
+  t(/body\.saycl \.saybar \.sayfold i\{transform:rotate\(180deg\)\}/.test(css2()),
+    '★★★たたんでも、つまみは残る');
+  t(/body\.saycl\{padding-bottom:/.test(css2()),
+    '　 たたんだぶん、ページの下の空きも詰める');
+}
+
+console.log('\n■ Googleスクリプトの様子は、この台帳の中に（ご指示・2026/11/25）');
+{
+  const ix = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+  t(/data-t="sys" id="moSys"/.test(ix), '★★★【もっと】から行ける');
+  t(/sys: \(\) => \(ME\.profile\.is_admin \? gasStatCard\(\) : ''\)/.test(app),
+    '★★★その画面が、この台帳の中に出る');
+  t(/ms\.hidden = !\(ME\.profile && ME\.profile\.is_admin\)/.test(app),
+    '★★★まーく様だけに出す（乗務員の方には関わりがない）');
+}
+
+console.log('\n■ 絵の中の「きょうの出来事」（ご指示・2026/11/25）');
+{
+  t(/const BN_EVENTS = \[/.test(app) && /function bnEvent_\(sky, wx\)/.test(app),
+    '★★★出来事の表と、えらぶ係がある');
+  t((app.match(/\{ k:'[a-z]+',\s+n:'/g) || []).length >= 10 ||
+    (app.slice(app.indexOf('const BN_EVENTS'), app.indexOf('function bnEvent_'))
+      .match(/\{ k:'/g) || []).length >= 10,
+    '★★★出来事は10こ以上（飽きないように）');
+  t(/const key = d\.getFullYear\(\) \* 10000/.test(app),
+    '★★★1日に1つ（開き直すたびに変わらない）');
+  t(/sky\.k === 'night' \|\| sky\.k === 'deep'/.test(app),
+    '★★★時刻に合わないものは出さない（昼の流れ星は 嘘になる）');
+  t(/\.bnev-star\{animation:bnevStar/.test(css2()), '　 動きも入っている');
+  t(/prefers-reduced-motion:reduce\)\{\n  \.bnev-cat,/.test(css2()),
+    '★★★動きを切っておられる方の画面では、動かさない');
+}
+
+console.log('\n■ 日報の ちかちか（2026/11/25・しくじり）');
+{
+  /* 写真が0枚のときに「まだ読んでいない」と見分けられず、
+     読む → 0枚のまま → 画面を作り直す → また読む、が止まりませんでした。 */
+  t(/let nippoRead = false;/.test(app), '★★★「もう読んだか」の札がある');
+  t(/if \(tab === 'nippo' && !nippoBusy && !nippoRead\) \{/.test(app),
+    '★★★0枚でも、読み直しが止まる');
+  t(!/!nippoBusy && !nippos\.length\) nippoLoad\(\)\.then\(render\)/.test(app),
+    '　 前の書き方は、残っていない');
+  t(/if \(tab !== 'nippo'\) nippoRead = false;/.test(app),
+    '　 開き直したら、また読む');
+}
+
+console.log('\n■ 走る車と、しるし（ご指示・2026/11/25）');
+{
+  /* 名前は、台帳の呼び名にそろえました */
+  ['シュン', 'ジンキチ', 'マーク', 'アナル', 'カイト', 'ダイスケ'].forEach(function (n){
+    t((new RegExp("\\{ n: '" + n + "'")).test(app), '　 ' + n + ' の名前');
+  });
+  ['しゅんくん', 'かいとくん', 'しろこしくん', 'だいすけくん'].forEach(function (n){
+    t(!(new RegExp("\\{ n: '" + n + "'")).test(app), '　 前の呼び名は残っていない（' + n + '）');
+  });
+  /* 区切りのよいアンロックを、ふきだしに出します */
+  t(/const TRO_MARKS = \[10, 25, 50, 75, 100\];/.test(app), '★★★区切りは 10・25・50・75・100');
+  t(/がアンロック数' \+ m \+ 'を達成しました'/.test(app), '★★★その文が出る');
+  t(/function sayNewsSet\(list\)/.test(sh2()), '★★★ふきだしが、その知らせを受け取れる');
+  t(/_sayTurn % 3 === 2/.test(sh2()), '　 3回に1回だけ（ひとことが出なくなるのを防ぐ）');
+}
+
+console.log('\n■ グラフの下の「色の見方」（ご指示・2026/11/25）');
+{
+  t(/function userLegend\(R\)\{/.test(app), '★★★人ごとの見方を作る係がある');
+  t(/const DCLS_N = \{ 'd-wd':'平日'/.test(app), '★★★営業曜日も書く');
+  t(/x\.n \+ '件・' \+ x\.dn \+ '日</.test(app), '★★★件数と日数も書く');
+  t(/esc\(fmtD\(x\.from\)\)/.test(app), '★★★いつからいつまでかも書く');
+  t((app.match(/\$\{userLegend\(R\)\}/g) || []).length >= 2,
+    '　 線グラフにも 棒グラフにも出す');
+  t(/\.ulegend\{/.test(css2()), '　 その見た目も入っている');
+}
+
+console.log('\n■ 地図（ご指示・2026/11/25）');
+{
+  t(/<div class="howto">/.test(app), '★★★場所の決め方を、番号で書く');
+  t(/この場所にする/.test(app), '★★★押すボタンの名前が、画面と同じ');
+  t(/if \(okb\) okb\.disabled = !pinSetAt;/.test(app),
+    '★★★地図を押すまでは、決められない（押せるのに効かない、を無くす）');
+  t(/className: 'pinpick'/.test(app), '　 立てたピンは、赤くて見分けがつく');
+  t(/toast_\(pinSetName \+ ' の場所を決めました/.test(app),
+    '★★★決まったことを、その場で知らせる');
+}
+
+console.log('\n■ 特定（ご指示・2026/11/25）');
+{
+  t(/<div class="card tokhit"><h2>一番 多いのは<\/h2>'/.test(app),
+    '★★★結論を1行で出す');
+  t(/べつの まとめ<\/h2>'/.test(app), '★★★まとめの表を出す');
+  t(/<th class="n">時間<\/th>/.test(app), '　 件数・時間・平均・曜日 が1行で分かる');
+  t(/まだ ' \+ b\.n \+ '件です。たまたまの可能性があります。/.test(app),
+    '★★★数が少ないときは、そう書く（言い切らない）');
+}
+
+console.log('\n■ 説明に、計算のしかたを書く（ご指示・2026/11/25）');
+{
+  /* 「説明ボタンにも 具体的な計算方法を記載した上で
+      間違いが必ずないことを徹底遵守してください」 */
+  t(/<div class="leadf"><b>計算のしかた<\/b>/.test(app), '★★★「計算のしかた」の欄がある');
+  t(/\.leadf\{/.test(css2()), '　 その見た目も入っている');
+  /* ページごとに、式が書いてあること */
+  {
+    const seg = app.slice(app.indexOf('const LEADS = {'), app.indexOf('function leadBody_'));
+    ['in', 'hot', 'g', 'map', 'ratio', 'best', 'tok'].forEach(function (k){
+      const i = seg.indexOf('\n  ' + k + (k.length === 1 ? ': ' : ':'));
+      const i2 = i < 0 ? seg.indexOf('\n  ' + k + ':  {') : i;
+      t(i2 >= 0 && seg.slice(i2, i2 + 900).indexOf('f: [') !== -1,
+        '★★★' + k + ' のページに、式が書いてある');
+    });
+  }
+  /* ★割合の数え方が、実際の中身と合っていること */
+  t(/ロング率 ＝ ロングの本数 ÷ 金額の入った本数 × 100/.test(app),
+    '★★★ロング率の式が書いてある');
+  t(/const bandPct = \(o, k\) => o\.n \? Math\.round\(o\[k\] \/ o\.n \* 1000\) \/ 10 : 0;/.test(app),
+    '　 実際の中身も、その式どおり');
+  t(/if \(!b\) \{ o\.unk\+\+; return; \}\n    o\[k?b?\]?/.test(app) ||
+    /if \(!b\) \{ o\.unk\+\+; return; \}/.test(app),
+    '　 「不明」は、割合の下に数えない');
+}
+
+console.log('\n■ 数え方の食い違いを直した（2026/11/25）');
+{
+  /* 上（合計）は「金額の入った記録」だけなのに、
+     下（日数）は「金額の無い記録しかない日」まで数えていました。
+     そのぶん、1日当たりが 実際より低く出ます。 */
+  t(/const F2 = rs\.filter\(hasFare\);/.test(app) &&
+    /const d2 = new Set\(F2\.map\(r => r\.date\)\)\.size;/.test(app),
+    '★★★1日当たりは、上と下を同じ記録でそろえる');
+  t(!/const d2 = new Set\(rs\.map\(r => r\.date\)\)\.size;/.test(app),
+    '　 前の数え方は、残っていない');
+  /* 1本の平均は、どこでも同じ数え方であること */
+  t(/avg:  F\.length \? sum\/F\.length : 0/.test(app), '　 まとめの平均も、金額の入った本数で割る');
+  t(/function bandAvg\(rs\)\{\n  const f = rs\.filter\(hasFare\);/.test(app) ||
+    /const f = rs\.filter\(hasFare\);\n  return f\.length \? f\.reduce/.test(app),
+    '　 帯の平均も、同じ数え方');
+}
+
+console.log('\n■ 無い欄には書きこまない（2026/11/25・しくじり）');
+{
+  /* 「過去の記録」の欄を外したとき、そこへ書きこむところが残っていて、
+     ぜんぶの画面がこけていました。 */
+  t(/function setTxt_\(sel, v\)\{/.test(app) && /function setHtml_\(sel, v\)\{/.test(app),
+    '★★★欄が無ければ、黙って何もしない係がある');
+  ['#k1', '#k2', '#k3', '#k4', '#ktSum', '#ktWho'].forEach(function (k){
+    t(!(new RegExp("\\$\\('" + k + "'\\)\\.(textContent|innerHTML) =")).test(app),
+      '　 ' + k + ' へ、じかに書きこんでいない');
+  });
+}
+
+console.log('\n■ シロタクの案内は、いまの画面に合っている（ご指示・2026/11/25）');
+{
+  const seg = app.slice(app.indexOf('const TUT_STEPS = ['), app.indexOf('function tutDone'));
+  /* 外したものを、案内に残さない */
+  ['雨雲レーダー', '過去の記録', '下のメニュー'].forEach(function (w){
+    t(seg.indexOf(w) === -1, '　 もう無いものを案内しない：' + w);
+  });
+  /* いま出ているものは、案内にある */
+  ['乗り場別 オススメ時間帯', '色の見方', 'ふきだし', 'パーセント'].forEach(function (w){
+    t(seg.indexOf(w) !== -1, '★★★いま出ているものを案内する：' + w);
+  });
+  /* 行き先は、ぜんぶ ほんとうにある画面であること */
+  {
+    const ks = (seg.match(/t:'([a-z]+)'/g) || []).map(function (x){ return x.slice(3, -1); });
+    const ix = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
+    ks.forEach(function (k){
+      t(ix.indexOf('data-t="' + k + '"') !== -1, '　 ' + k + ' は、ほんとうにある画面');
+    });
+  }
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
