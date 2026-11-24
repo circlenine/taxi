@@ -3311,3 +3311,67 @@ body{padding-top:calc(var(--topH) + 8px);padding-bottom:28px}
 .tutbox .tutb{font-size:13.5px;line-height:1.8;margin:0 0 14px}
 /* 案内の間は、画面の下だけを隠します（上のメニューは見えたまま） */
 .tutwin{background:rgba(5,8,14,.45)}
+
+/* ================================================================
+ *  ゲームの画面に寄せる（ご指示・2026/11/25）
+ *    「もっと、スマホのゲーム画面についての資料を徹底的に
+ *      インプットした上で より良い形に作り替えてください」
+ *
+ *  ★調べて分かったことのうち、この台帳に効くものだけを入れました。
+ *    ・走りながら読む字は、小さくしすぎない（14px を目安に）
+ *    ・押したことが、指の「上」で分かるようにする
+ *    ・画面のへり（ノッチ・下の線）を避ける
+ *    ・まだのものは、色を抜いて鍵を出す（何が残っているか分かる）
+ * ================================================================ */
+
+/* ---------- ① 画面のへりを避ける ---------- */
+/* ノッチや ダイナミックアイランドの下に、題が隠れていました。 */
+header#hdr{padding-top:env(safe-area-inset-top, 0px)}
+body{padding-bottom:calc(28px + env(safe-area-inset-bottom, 0px))}
+.toc{bottom:calc(18px + env(safe-area-inset-bottom, 0px)) !important}
+
+/* ---------- ② 走りながら読む字を、小さくしすぎない ---------- */
+/* 注意書きは 11.5px でした。暗い車内では読めません。 */
+.card .note,#ktop .note{font-size:13px;line-height:1.7}
+.card.lead .note{font-size:13px}
+.trotile > b{font-size:12.5px}
+.trotile > i{font-size:10.5px}
+
+/* ---------- ③ 押したことが、その場で分かる ---------- */
+/* 指で隠れる所ではなく、札そのものが へこんで返します。 */
+nav#tabs.topnav button,.chip,.btn,.mini,.trotile,.tronrow2,.msrow{
+  transition:transform .09s ease, filter .09s ease}
+nav#tabs.topnav button:active,.chip:active,.btn:active,.mini:active,
+.trotile:active,.tronrow2:active,.msrow:active{transform:scale(.96);filter:brightness(1.15)}
+
+/* ---------- ④ まだのしるしは、色を抜いて鍵を出す ---------- */
+.trotile:not(.on) .trobadge{filter:grayscale(1);opacity:.55}
+.trotile:not(.on) > b{opacity:.75}
+.trotile:not(.on):before{content:"🔒";position:absolute;top:3px;right:5px;
+  font-size:9px;opacity:.6}
+.trotile{position:relative}
+
+/* ---------- ⑤ しるしの中身（押したときの箱） ---------- */
+.trodetd em,.trodetg em,.trodetx em{display:block;font-style:normal;
+  font-size:10.5px;letter-spacing:.08em;opacity:.7;margin-bottom:3px}
+.trodetg,.trodetx{margin-top:10px;padding-top:9px;border-top:1px solid var(--ink3);
+  font-size:12.5px;line-height:1.6;color:#FFFFFF}
+.trodetx i{font-style:normal;font-family:var(--mono);opacity:.8;margin-left:7px}
+
+/* ---------- ⑥ いまの車（しるしの数で変わります） ---------- */
+.bncar2{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;min-height:44px;margin:8px 0 0;padding:7px 11px;border-radius:9px;
+  border:1px solid var(--ink3);background:rgba(255,255,255,.05);
+  color:#FFFFFF;cursor:pointer;text-align:left}
+.bncarn{display:flex;align-items:baseline;gap:7px;min-width:0}
+.bncarn i{font-style:normal;font-size:10.5px;opacity:.7}
+.bncarn b{font-size:14px;font-weight:800;white-space:nowrap}
+.bncarx{font-size:11.5px;opacity:.8;white-space:nowrap}
+/* 金の車だけ、ほんのり光ります（やりすぎないように） */
+.bncar.gold{filter:drop-shadow(0 0 3px rgba(255,214,120,.65))}
+
+@media (prefers-reduced-motion:reduce){
+  nav#tabs.topnav button:active,.chip:active,.btn:active,.mini:active,
+  .trotile:active,.tronrow2:active,.msrow:active{transform:none;filter:none}
+  .bncar.gold{filter:none}
+}

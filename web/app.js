@@ -934,10 +934,69 @@ function newestId(){
   return id;
 }
 const places  = () => [...new Set(records.map(r => r.place).filter(Boolean))];
-const DCOL = ['#F0A33B','#E4573D','#6FD8A8','#7FA9F0','#C98BE0','#E8D06A','#5FBFC4','#EF8FA8'];
-const dcol = d => { const ds = [...new Set(visible().map(r => r.date))].sort(); return DCOL[ds.indexOf(d) % DCOL.length]; };
+/* ★日付ごとに色を変える係は、やめました（ご指示・2026/11/25）。
+     色は「人ごと」にそろえます（ucol）。残しておくと、また日付で
+     色が付いてしまいます。 */
 
 /* ---------- 描画 ---------- */
+/* ------------------------------------------------------------
+ *  押しどころの受け付け（body でまとめて受けます）
+ *
+ *  ★ページの中身は、押すたびに作り直しています。
+ *    作り直すと、1つずつ付けた受け付けは外れます。
+ *    body で受けておけば、何度 作り直しても効きます。
+ *  ★1回だけ付けます（押すたびに増やすと、1回の押しで何度も動きます）。
+ * ---------------------------------------------------------- */
+function bodyWire_(){
+  if (bodyWire_.done || typeof document === 'undefined') return;
+  bodyWire_.done = true;
+
+  document.body.addEventListener('click', function (e){
+    const q = function (sel){ return e.target.closest ? e.target.closest(sel) : null; };
+
+    /* しるしを押すと、どうすれば開くのかが出ます（ご指示・2026/11/24） */
+    const tro = q('[data-tro]');
+    if (tro) { troDetail(tro.dataset.tro); return; }
+    /* まとまりの見出しの【?】 */
+    const trg = q('[data-trog]');
+    if (trg) { e.stopPropagation(); troGroup(trg.dataset.trog); return; }
+    /* 地図のピンの場所を、自分で決める（ご指示・2026/11/23） */
+    const ps = q('[data-pinset]');
+    if (ps) { pinSetOpen(ps.dataset.pinset); return; }
+    const pd = q('[data-pindel]');
+    if (pd) { pinSetDel(pd.dataset.pindel); return; }
+    /* 一番上の絵：いまいる所に合わせる */
+    if (q('#bnHere')) { bnAsk(true); return; }
+    /* ほかのページへ飛ぶボタン */
+    const gt = q('[data-goto]');
+    if (gt) {
+      grab(); tab = gt.dataset.goto; tabSave(); msg = '';
+      render(); window.scrollTo(0, 0);
+      return;
+    }
+    /* 【説明】は、いま開いているページの話を出します */
+    if (q('[data-lead]')) { leadPopup(tab); return; }
+    /* 設定の「はじめての案内を もう一度」 */
+    if (q('#setTut')) { tutOpen(true); return; }
+  });
+
+  /* 設定の切り替え（チェックの入り切り） */
+  document.body.addEventListener('change', function (e){
+    const t = e.target;
+    if (!t || !t.id) return;
+    if (t.id === 'setTro') { troPopOffSet(!!t.checked); return; }
+    if (t.id === 'setToc') {
+      try {
+        if (t.checked) localStorage.setItem(TOC_HIDE, '1');
+        else localStorage.removeItem(TOC_HIDE);
+      } catch (e2) {}
+      const old = document.getElementById('toc');
+      if (old) old.remove();
+      if (!t.checked) tocBuild();
+    }
+  });
+}
+
 function render(){
   const rs = visible();
   $('#k1').textContent = rs.length;
@@ -1090,51 +1149,13 @@ function render(){
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === litTab));
   htabsFill();
   try { hdrDupe_(); } catch (e) {}
-  /* ピンの場所を、自分で決める（ご指示・2026/11/23） */
-  document.querySelectorAll('[data-pinset]').forEach(function (b){
-    b.onclick = function (){ pinSetOpen(b.dataset.pinset); };
-  });
-  document.querySelectorAll('[data-pindel]').forEach(function (b){
-    b.onclick = function (){ pinSetDel(b.dataset.pindel); };
-  });
-  /* 設定の画面 */
-  {
-    const t1 = document.getElementById('setTro');
-    if (t1) t1.onchange = function (){ troPopOffSet(!!t1.checked); };
-    const t2 = document.getElementById('setToc');
-    if (t2) t2.onchange = function (){
-      try {
-        if (t2.checked) localStorage.setItem(TOC_HIDE, '1');
-        else localStorage.removeItem(TOC_HIDE);
-      } catch (e) {}
-      const old2 = document.getElementById('toc');
-      if (old2) old2.remove();
-      if (!t2.checked) tocBuild();
-    };
-    const t3 = document.getElementById('setTut');
-    if (t3) t3.onclick = function (){ tutOpen(true); };
-  }
-  /* しるしを押すと、条件をくわしく出します（ご指示・2026/11/24） */
-  document.querySelectorAll('[data-tro]').forEach(function (b){
-    b.onclick = function (){ troDetail(b.dataset.tro); };
-  });
-  /* まとまりの見出しを押しても、どういうものかが出ます */
-  document.querySelectorAll('[data-trog]').forEach(function (b){
-    b.onclick = function (e){ e.stopPropagation(); troGroup(b.dataset.trog); };
-  });
-  /* 一番上の絵：いまいる所に合わせる／雨雲レーダーへ */
-  const bh = document.getElementById('bnHere');
-  if (bh) bh.onclick = function (){ bnAsk(true); };
-  document.querySelectorAll('[data-goto]').forEach(function (b){
-    b.onclick = function (){
-      grab(); tab = b.dataset.goto; tabSave(); msg = '';
-      render(); window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-  });
-  /* 【説明】は、いま開いているページの話を出します */
-  document.querySelectorAll('[data-lead]').forEach(function (b){
-    b.onclick = function (){ leadPopup(tab); };
-  });
+  /* ★押しどころの受け付けは、ページを作り直したあとでも効くように
+       body で受けます（下の bodyWire_）。
+     ここで1つずつ付けていたので、**ページの中身を作る前に付けて**
+     いました。作り直すたびに外れるので、
+     **トロフィーを押しても何も出ない／設定の切り替えが効かない／
+       ピンの場所を決められない**状態になっていました。 */
+  bodyWire_();
   /* 見ているあいだは、足あとを新しくしておきます（上の tabLoad の見分けに使います） */
   tabTouch();
   /* ★「集計」と「全記録」は、ご指示でなくしました（2026/11/12）。
@@ -1722,7 +1743,8 @@ function troDetail(k){
       '<div class="trodeth"><span class="trobadge">' + troIcon(x) + '</span>' +
         '<b>' + esc(x.n) + '</b>' +
         '<i>' + esc((TRO_TIERS[x.t] || {}).n || '') + '</i></div>' +
-      '<div class="trodetd">' + esc(x.d) + '</div>' +
+      /* ★アンロックの条件を、まず大きく出します（ご指示・2026/11/25） */
+      '<div class="trodetd"><em>開くには</em>' + esc(x.d) + '</div>' +
       '<div class="trobar"><span style="width:' + p + '%"></span></div>' +
       '<div class="trodetn">' +
         (x.on
@@ -1730,6 +1752,23 @@ function troDetail(k){
           : '<b>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</b>' +
             '<i>あと ' + troNum(x, Math.max(0, x.need - x.raw)) + '</i>') +
       '</div>' +
+      /* ★数え方（そのまとまりの共通の決まり）。
+           これが無いと「何を数えているのか」が分からないままでした。 */
+      (TRO_GINFO[x.g] ? '<div class="trodetg"><em>数え方</em>' +
+        esc(TRO_GINFO[x.g]) + '</div>' : '') +
+      /* ★つぎの段（同じまとまりの、1つ上）。
+           「これが開いたら、つぎは何か」が見えると、続けたくなります。 */
+      (function (){
+        const nx = troAll().filter(function (y){
+          return y.g === x.g && !y.on && y.need > x.need;
+        }).sort(function (a2, b2){ return a2.need - b2.need; })[0];
+        if (!nx) return '';
+        /* 名前に数が入っているときは、同じ数を二度 出しません */
+        const num = troNum(nx, nx.need);
+        const dup = String(nx.n).indexOf(String(nx.need)) !== -1;
+        return '<div class="trodetx"><em>つぎは</em>' + esc(nx.n) +
+          (dup ? '' : '<i>' + num + '</i>') + '</div>';
+      })() +
       '<div class="modalfoot"><button class="btn" id="tdClose">とじる</button></div>' +
     '</div>';
   document.body.appendChild(box);
@@ -2102,6 +2141,81 @@ function bnLandmark(k, sky){
 }
 
 /** 絵の中身（SVG）。もとの大きさは 320×130 で、画面に合わせて伸ばします */
+/* ------------------------------------------------------------
+ *  走る車のグレード（ご指示・2026/11/25）
+ *    「走る車は、トロフィー数に応じて
+ *      グレードが高い車に変更していってください」
+ *
+ *  ★そろえたしるしの数だけで決めます。作り物の数は1つも使いません。
+ *  ★車の名前は、どこかの会社のものにしません（言い切れないため）。
+ * ---------------------------------------------------------- */
+const CAR_GRADES = [
+  { need: 0,  n:'軽タクシー',   body:'#E3C76A', roof:'#E3C76A', deco:'' },
+  { need: 5,  n:'セダン',       body:'#E8C24A', roof:'#E8C24A', deco:'' },
+  { need: 12, n:'上級セダン',   body:'#F0D06A', roof:'#FFF0B8', deco:'line' },
+  /* ★黒い車は、道（#171B26）と同じ暗さだと見えません。
+       少し明るい黒にして、帯を1本 入れて形が分かるようにしました。 */
+  { need: 20, n:'ハイヤー',     body:'#39404F', roof:'#454D5E', deco:'line' },
+  { need: 30, n:'リムジン',     body:'#2E3545', roof:'#3A4254', deco:'long' },
+  { need: 40, n:'金のリムジン', body:'#E0B341', roof:'#FFE9A8', deco:'gold' }
+];
+
+/** いまの車（そろえたしるしの数から） */
+function carGrade(got){
+  const n = (got == null) ? troGot_() : got;
+  let g = CAR_GRADES[0];
+  CAR_GRADES.forEach(function (x){ if (n >= x.need) g = x; });
+  return g;
+}
+/** つぎの車（まだあるときだけ） */
+function carNext(got){
+  const n = (got == null) ? troGot_() : got;
+  return CAR_GRADES.filter(function (x){ return n < x.need; })[0] || null;
+}
+/** そろえたしるしの数（数えられないときは0） */
+function troGot_(){
+  try {
+    return troAll().filter(function (x){ return x.on; }).length;
+  } catch (e) { return 0; }
+}
+
+/**
+ * 車1台の絵。グレードが上がるほど、長く・低く・飾りが付きます。
+ * ★動かしているのは CSS だけなので、絵が増えても電池は食いません。
+ */
+function carSvg_(g, y){
+  const long = (g.deco === 'long' || g.deco === 'gold');
+  const W  = long ? 44 : 34;                 /* 車の長さ */
+  const wh = long ? [11, 33] : [9, 25];      /* 車輪の場所 */
+  let o = '<g transform="translate(0,' + y + ')">';
+  /* 車体 */
+  o += '<rect x="2" y="4" width="' + (W - 4) + '" height="9" rx="2" fill="' + g.body + '"/>';
+  /* 屋根 */
+  o += '<rect x="' + (long ? 13 : 9) + '" y="-1" width="' + (long ? 19 : 15) +
+       '" height="6" rx="1.5" fill="' + g.roof + '"/>';
+  /* 窓 */
+  o += '<rect x="' + (long ? 15 : 11) + '" y="0" width="5" height="4" fill="#2B3350"/>' +
+       '<rect x="' + (long ? 21 : 17) + '" y="0" width="5" height="4" fill="#2B3350"/>';
+  if (long) o += '<rect x="27" y="0" width="4" height="4" fill="#2B3350"/>';
+  /* 行灯 */
+  o += '<rect x="' + (long ? 19 : 14) + '" y="-4" width="6" height="3" rx="1" fill="#E23B30"/>';
+  /* 飾り（グレードが上のときだけ） */
+  if (g.deco === 'line')
+    o += '<rect x="3" y="9" width="' + (W - 6) + '" height="1.2" fill="#FFFFFF" opacity=".55"/>';
+  if (g.deco === 'long')
+    o += '<rect x="3" y="9" width="' + (W - 6) + '" height="1.2" fill="#C9D3E6" opacity=".7"/>';
+  if (g.deco === 'gold')
+    o += '<rect x="3" y="9" width="' + (W - 6) + '" height="1.6" fill="#FFF6D6" opacity=".9"/>' +
+         '<rect x="2" y="3" width="' + (W - 4) + '" height="1" fill="#FFF6D6" opacity=".8"/>';
+  /* 車輪 */
+  o += '<circle cx="' + wh[0] + '" cy="13" r="2.6" fill="#11131A"/>' +
+       '<circle cx="' + wh[1] + '" cy="13" r="2.6" fill="#11131A"/>';
+  /* 前の灯り */
+  o += '<rect x="' + (W - 3) + '" y="7" width="5" height="2" fill="#FFF3C4" opacity=".85"/>';
+  o += '</g>';
+  return o;
+}
+
 function bannerSvg(area, sky, wx){
   const W = 320, H = 130, GND = 112;
   const hs = BN_SKYLINE[area.k] || BN_SKYLINE.umeda;
@@ -2159,18 +2273,12 @@ function bannerSvg(area, sky, wx){
        少しずつ ずらして出すので、団子になりません。 */
   {
     const n = Math.max(1, crewToday().length);
+    /* ★車の形は、そろえたしるしの数で変わります（ご指示・2026/11/25） */
+    const g = carGrade();
     for (let i = 0; i < n; i++) {
-      s += '<g class="bncar" style="animation-delay:' + (-i * 2.1).toFixed(1) + 's">' +
-           '<g transform="translate(0,' + (GND - 12) + ')">' +
-           '<rect x="2" y="4" width="30" height="9" rx="2" fill="#E8C24A"/>' +
-           '<rect x="9" y="-1" width="15" height="6" rx="1.5" fill="#E8C24A"/>' +
-           '<rect x="11" y="0" width="5" height="4" fill="#2B3350"/>' +
-           '<rect x="17" y="0" width="5" height="4" fill="#2B3350"/>' +
-           '<rect x="14" y="-4" width="6" height="3" rx="1" fill="#E23B30"/>' +
-           '<circle cx="9" cy="13" r="2.6" fill="#11131A"/>' +
-           '<circle cx="25" cy="13" r="2.6" fill="#11131A"/>' +
-           '<rect x="31" y="7" width="5" height="2" fill="#FFF3C4" opacity=".85"/>' +
-           '</g></g>';
+      s += '<g class="bncar' + (g.deco === 'gold' ? ' gold' : '') +
+           '" style="animation-delay:' + (-i * 2.1).toFixed(1) + 's">' +
+           carSvg_(g, GND - 12) + '</g>';
     }
   }
   /* 雨（降っているときだけ） */
@@ -2351,6 +2459,19 @@ function bannerCard(){
       return '<div class="bncrew"><b>きょうの出勤 ' + w.length + '人</b>' +
         '<span>' + esc(w.join('・')) + '</span>' +
         '<i>基本スケジュールのため、休みの場合があります</i></div>';
+    })() +
+    /* ★いまの車（ご指示・2026/11/25「走る車は、トロフィー数に応じて
+         グレードが高い車に変更していってください」）。
+       つぎの車まで あと何個かも出します。 */
+    (function (){
+      const got = troGot_();
+      const g = carGrade(got), nx = carNext(got);
+      return '<button class="bncar2" data-goto="tro" type="button">' +
+        '<span class="bncarn"><i>いまの車</i><b>' + esc(g.n) + '</b></span>' +
+        (nx ? '<span class="bncarx">つぎは ' + esc(nx.n) +
+              '（あと ' + (nx.need - got) + 'つ）</span>'
+            : '<span class="bncarx">一番上の車です</span>') +
+        '</button>';
     })() +
     '<div class="bnfoot">' +
       (bnPos ? '<span class="bnnote">いまいる所に合わせています</span>'
@@ -3352,6 +3473,37 @@ function subFit(el){
   } catch (e) {}
 }
 
+/* ------------------------------------------------------------
+ *  グラフの色は「人ごと」にそろえます（ご指示・2026/11/25）
+ *    「グラフの丸の色ですが 日付別に色変えするのではなく
+ *      ユーザー別に統一した色変えにしてください」
+ *
+ *  ★日付ごとに色を変えていたので、同じ人でも日によって色が変わり、
+ *    「だれの点か」をたどれませんでした。
+ *  ★表の色（td.w-◯◯）と同じ人に、同じ色あいを当てます。
+ *    表は地の色なので暗く、グラフは点なので明るくしてあります。
+ * ---------------------------------------------------------- */
+const UCOL = {
+  'w-dai':  '#5CC8E8',   /* 齊藤さん … 水色 */
+  'w-shun': '#5FD39B',   /* 山敷くん … 緑 */
+  'w-kaito':'#F07FB4',   /* 山脇くん … 桃 */
+  'w-ana':  '#F0A33B',   /* 城越くん … 橙 */
+  'w-jin':  '#B18BE8',   /* 宮下くん … 紫 */
+  'w-mark': '#C6CEDC'    /* まーく様 … 白ねずみ */
+};
+const UCOL_ETC = ['#E8D06A', '#7FA9F0', '#E4573D', '#5FBFC4'];
+/** その人の色。表に無い方も、いつも同じ色になります */
+function ucol(uid){
+  const c = UCOL[whoCls(uid)];
+  if (c) return c;
+  /* 並び順で決めると、記録が増えるたびに色が入れ替わってしまいます。
+     名札そのものから決めるので、いつ見ても同じ色です。 */
+  const t = String(uid || '');
+  let h = 0;
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+  return UCOL_ETC[h % UCOL_ETC.length];
+}
+
 /* ★人ごとの色（記録用スプレッドシートのタブ色と同じ考え方・ご指示 2026/11/12） */
 function whoCls(uid){
   const n = String(names[uid] || '').trim();
@@ -3567,7 +3719,7 @@ function gKindSet(k){
 const G_NOTE = {
   heat: '時間帯ごとに、どの乗り場が強いかを並べた表です。マスの数字は1本の平均金額、下は件数です。',
   tl:   '1件ずつを、時刻の線の上に並べた図です。細い線が待ち時間、太い帯が乗せていた時間です。',
-  sc:   '横は乗せた時刻（25＝翌1時）、縦は金額です。日付ごとに色を変えています。' };
+  sc:   '横は乗せた時刻（25＝翌1時）、縦は金額です。色は、人ごとに分けています。' };
 /* えらぶところ（メニューの形）。押すと、その形の1枚に切り替わります */
 const gMenu = (list, now, attr) => '<div class="gmenu">' + list.map(x =>
   '<button class="gm' + (now === x.k ? ' on' : '') + '" ' + attr + '="' + x.k + '">' +
@@ -5466,7 +5618,7 @@ function tlChart(R){
     const rows = R.filter(r => r.date === d);
     const sum  = rows.filter(hasFare).reduce((t,r) => t + (+r.fare||0), 0);
     /* 「11/11(水)」は長いので、かっこを外して「11/11 水」にします */
-    s += `<text class="axis" x="${L-6}" y="${y+23}" text-anchor="end" fill="${dcol(d)}"
+    s += `<text class="axis" x="${L-6}" y="${y+23}" text-anchor="end" fill="#C9D3E6"
       style="font-size:10px">${esc(fmtD(d).replace('(', ' ').replace(')', ''))}</text>
       ` + (slim
         ? `<text class="axis" x="${L-6}" y="${y+33}" text-anchor="end"
@@ -5645,8 +5797,18 @@ function scChart(R){
     for (const p of placed) if (x < p.x+p.w+2 && x+w+2 > p.x && y < p.y+10 && y+10 > p.y) return false;
     return true;
   };
-  ds.forEach(d => {
-    const c = dcol(d), pts = R.filter(r => r.date === d).sort((a,b) => a.dep - b.dep);
+  /* ★色は人ごと。線は「その人の、その夜」をつなぎます（ご指示・2026/11/25）。
+       人ごとに色を分けたまま、夜をまたいで線を引くと、
+       朝から夜へ線が飛んで、形が読めなくなるためです。 */
+  const uds = [];
+  ds.forEach(function (d){
+    [...new Set(R.filter(r => r.date === d).map(r => r.user_id))]
+      .forEach(function (u){ uds.push({ d: d, u: u }); });
+  });
+  uds.forEach(du => {
+    const d = du.d;
+    const c = ucol(du.u);
+    const pts = R.filter(r => r.date === d && r.user_id === du.u).sort((a,b) => a.dep - b.dep);
     if (scOpt.line && pts.length > 1)
       /* ★pathLength="1" にすると、線の長さが どれでも1になります。
            こうしておくと、長さの違う線でも 同じ速さで引かれます（CSSの gdraw）。 */
@@ -5673,7 +5835,17 @@ function scChart(R){
   /* ★収まっているときに「横にスクロールできます」とは書きません（2026/11/24） */
   return `${fS.fits ? '' : '<div class="snote">← 横にスクロールできます（横画面推奨）</div>'}
     <div class="scroll fb">${s}</div>
-    <div class="legend">${ds.map(d => `<span><i style="background:${dcol(d)}"></i>${fmtD(d)}</span>`).join('')}</div>`;
+    <div class="legend">${(function (){
+      const us = [...new Set(R.map(r => r.user_id))];
+      /* ★名前の分からない方が2人以上いると「不明」が並んで、
+           どちらの色か分からなくなります。番号をそえます。 */
+      let k = 0;
+      const unk = us.filter(u => !names[u]).length;
+      return us.map(function (u){
+        const nm = names[u] ? names[u] : ('不明' + (unk > 1 ? (++k) : ''));
+        return `<span><i style="background:${ucol(u)}"></i>${esc(nm)}</span>`;
+      }).join('');
+    })()}</div>`;
 }
 
 /* ---- 集計 ---- */
@@ -7946,7 +8118,7 @@ function calcHelp(k){
             CALC_UNK];
   if (k.indexOf('線グラフ') === 0)
     return ['横は乗せた時刻（25＝翌1時）、縦は金額です。',
-            '日付ごとに色を変えています。1つの点が1件です。',
+            '色は、人ごとに分けています。1つの点が1件です。',
             '金額が「不明」の記録は、点を打っていません。'];
   return null;
 }

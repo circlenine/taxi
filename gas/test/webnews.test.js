@@ -29,6 +29,7 @@ vm.runInContext(fs.readFileSync(path.join(W, 'news.js'), 'utf8'), ctx);
 const V = n => vm.runInContext(n, ctx);
 const ver = V('APP_VERSION'), news = V('APP_NEWS');
 
+function css2(){ return fs.readFileSync(path.join(W, 'style.css'), 'utf8'); }
 console.log('■ 版の番号');
 ok(typeof ver === 'string' && /^v\d+\.\d+$/.test(ver), '★版の番号が、v1.2 の形で入っている', ver);
 
@@ -5229,6 +5230,105 @@ console.log('\n■ わざと休んでいるときは、赤い帯を出さない�
     const i2 = seg.indexOf("'仕掛けを起こす</a>'");
     t(i1 > 0 && i2 > i1, '★★★休んでいるときは、起こすボタンを出さない', i1 + '/' + i2);
   }
+}
+
+console.log('\n■ 押しどころは、ページを作り直しても効く（2026/11/25・しくじり）');
+{
+  /*
+   * ★トロフィーを押しても何も出ませんでした。
+   *   受け付けを「ページの中身を作る前」に1つずつ付けていたので、
+   *   作り直すたびに外れていました。設定の切り替え・地図のピン・
+   *   ページへ飛ぶボタンも、同じ理由で効いていませんでした。
+   *   body でまとめて受ける形にして直しました。
+   */
+  t(/function bodyWire_\(\)\{/.test(app), '★★★body でまとめて受ける係がある');
+  t(/if \(bodyWire_\.done/.test(app), '　 受け付けは1回だけ付ける（二重に動かない）');
+  /* 1つずつ付ける書き方が戻っていないこと */
+  ['data-tro', 'data-trog', 'data-pinset', 'data-pindel', 'data-goto', 'data-lead']
+    .forEach(function (k){
+      t(!(new RegExp("querySelectorAll\\('\\[" + k + "\\]'\\)\\.forEach")).test(app),
+        '　 ' + k + ' を1つずつ付けていない');
+    });
+  t(/if \(tro\) \{ troDetail\(tro\.dataset\.tro\); return; \}/.test(app),
+    '★★★しるしを押すと、箱が出る');
+  t(/t\.id === 'setTro'/.test(app) && /t\.id === 'setToc'/.test(app),
+    '★★★設定の切り替えも、body で受ける');
+}
+
+console.log('\n■ しるしの箱（ご指示・2026/11/25）');
+{
+  /* 「各トロフィーをタップしたら、アンロック条件などを
+      ポップアップで表示させてください」 */
+  t(/<div class="trodetd"><em>開くには<\/em>/.test(app), '★★★開く条件を、まず出す');
+  t(/TRO_GINFO\[x\.g\] \? '<div class="trodetg"><em>数え方<\/em>'/.test(app),
+    '★★★何を数えているかも出す');
+  t(/<div class="trodetx"><em>つぎは<\/em>/.test(app), '★★★つぎの段も出す');
+  t(/アンロック済み/.test(app), '　 もう持っているものは、そう書く');
+  /* まだのものは、色を抜いて鍵を出します（何が残っているか分かるように） */
+  t(/\.trotile:not\(\.on\) \.trobadge\{filter:grayscale\(1\)/.test(css2()),
+    '★★★まだのものは、色を抜く');
+  t(/\.trotile:not\(\.on\):before\{content:"🔒"/.test(css2()), '　 鍵のしるしを出す');
+}
+
+console.log('\n■ 走る車のグレード（ご指示・2026/11/25）');
+{
+  /* 「走る車は、トロフィー数に応じて
+      グレードが高い車に変更していってください」 */
+  t(/const CAR_GRADES = \[/.test(app), '★★★車のグレードの表がある');
+  t(/function carGrade\(got\)\{/.test(app) && /function carNext\(got\)\{/.test(app),
+    '★★★いまの車と、つぎの車が出せる');
+  t(/function troGot_\(\)\{/.test(app) && /x\.on; \}\)\.length;/.test(app),
+    '★★★そろえたしるしの数から決める（作り物の数を使わない）');
+  t(/carSvg_\(g, GND - 12\)/.test(app), '★★★絵も、そのグレードで描き分ける');
+  t(/<span class="bncarn"><i>いまの車<\/i>/.test(app), '★★★いまの車の名前を出す');
+  t(/つぎは ' \+ esc\(nx\.n\)/.test(app), '　 つぎの車と、あと何つかも出す');
+  /* 一番上まで行ったときに、行き止まりにしない */
+  t(/一番上の車です/.test(app), '　 一番上のときは、そう書く');
+  /* 黒い車が、道と同じ暗さで消えないこと */
+  {
+    const seg = app.slice(app.indexOf('const CAR_GRADES'), app.indexOf('function carGrade'));
+    const dark = (seg.match(/body:'#([0-9A-Fa-f]{6})'/g) || []).map(function (x){
+      return parseInt(x.slice(7, 13), 16);
+    });
+    const road = 0x171B26;
+    const near = dark.filter(function (v){
+      const d = function (a, b){ return Math.abs(((a >> b) & 255) - ((road >> b) & 255)); };
+      return d(v, 16) + d(v, 8) + d(v, 0) < 24;
+    });
+    t(near.length === 0, '★★★道と同じ暗さの車を作らない（見えなくなる）', near.length);
+  }
+}
+
+console.log('\n■ グラフの色は、人ごと（ご指示・2026/11/25）');
+{
+  /* 「グラフの丸の色ですが 日付別に色変えするのではなく
+      ユーザー別に統一した色変えにしてください」 */
+  t(/const UCOL = \{/.test(app) && /function ucol\(uid\)\{/.test(app),
+    '★★★人ごとの色を決める係がある');
+  t(/const c = ucol\(du\.u\);/.test(app), '★★★線グラフの点と線は、人の色');
+  t(!/function dcol\b/.test(app) && !/const dcol /.test(app),
+    '★★★日付ごとに色を変える係は、残っていない');
+  t(!/dcol\(/.test(app), '　 どこからも呼んでいない');
+  /* 名前の分からない方が2人いても、見分けがつくこと */
+  t(/'不明' \+ \(unk > 1 \? \(\+\+k\) : ''\)/.test(app),
+    '★★★「不明」が並んでも、どちらの色か分かる');
+  t(/色は、人ごとに分けています/.test(app), '　 画面の説明も、そうなっている');
+  t(!/日付ごとに色を変えています/.test(app), '　 前の説明が残っていない');
+}
+
+console.log('\n■ 画面のへりと、読む字の大きさ（2026/11/25）');
+{
+  /* スマホのゲーム画面の作り方を調べて、効くものだけ入れました。 */
+  t(/header#hdr\{padding-top:env\(safe-area-inset-top/.test(css2()),
+    '★★★ノッチの下に、題が隠れない');
+  t(/padding-bottom:calc\(28px \+ env\(safe-area-inset-bottom/.test(css2()),
+    '　 下の線にも、かぶらない');
+  t(/\.card \.note,#ktop \.note\{font-size:13px/.test(css2()),
+    '★★★走りながら読む字を、小さくしすぎない');
+  t(/\.trotile:active[^{]*\{transform:scale\(\.96\)/.test(css2()),
+    '★★★押したことが、その場で分かる');
+  t(/prefers-reduced-motion:reduce\)\{\n  nav#tabs\.topnav button:active/.test(css2()),
+    '★★★動きを切っておられる方の画面では、動かさない');
 }
 
 console.log(fail ? ('\n☓ ' + fail + '件 こけました') : '\n全テスト通過');
