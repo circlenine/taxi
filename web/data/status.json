@@ -1,9 +1,9 @@
 {
- "at": "2026-11-25 01:23",
- "ver": "U191ver / V131ver",
+ "at": "2026-11-25 01:53",
+ "ver": "U192ver / V131ver",
  "sync": {
-  "at": "11-25 01:08",
-  "n": 0
+  "at": "11-25 01:38",
+  "n": 2
  },
  "trig": 8,
  "jobs": [
@@ -44,13 +44,13 @@
   }
  ],
  "web": true,
- "beat": "11-25 01:21",
+ "beat": "11-25 01:51",
  "beatMin": 2,
  "stop": false,
- "budMin": 24,
+ "budMin": 25,
  "budMax": 90,
  "budStop": 60,
- "verNo": 376,
+ "verNo": 377,
  "depMax": 20,
  "depN": 5,
  "errN": 5,
