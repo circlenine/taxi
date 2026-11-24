@@ -7397,7 +7397,7 @@ console.log('■ スプシ→台帳の自動反映（ご指示・2026/11/10／20
     '　 控えに1行 残す（走ったかどうかを、こちらから見られる）');
   t(/catch \(e\) \{[\s\S]*logErr_\("webSyncTick", e\)/.test(fn),
     '★★★しくじっても、ほかの仕事は止めない');
-  t(/vnStep_\("スプシ→台帳", function \(\) \{\n      if \(typeof webSyncTick_ === "function"\) webSyncTick_\(\);/.test(vn)
+  t(/vnStep_\("スプシ→台帳", function \(\) \{\n\s+if \(typeof webSyncTick_ === "function"\) webSyncTick_\(\);/.test(vn)
     && /logErr_\("webSyncTick", e\)/.test(vn),
     '★★★1日1回かならず通る道から、try で囲って呼んでいる');
 }
@@ -7442,7 +7442,7 @@ console.log('■ 台帳→スプシへ戻す（ご指示・2026/11/15）');
   t(/if \(h < 7 \|\| h >= 9\) return false;/.test(tk), '★★★朝7時台・8時台だけ');
   t(tk.indexOf('pr.setProperty(WEB_PULL_DONE, key);') < tk.indexOf('webPullPush_(true)'),
     '★★★札は先に立てる（6分で切られても、二重に走らせない）');
-  t(/vnStep_\("台帳→スプシ", function \(\) \{\n      if \(typeof webPullTick_ === "function"\) webPullTick_\(\);/.test(vn)
+  t(/vnStep_\("台帳→スプシ", function \(\) \{\n\s+if \(typeof webPullTick_ === "function"\) webPullTick_\(\);/.test(vn)
     && /logErr_\("webPullTick", e\)/.test(vn),
     '★★★1日1回かならず通る道から、try で囲って呼んでいる');
   t(vn.indexOf('webSyncTick_()') < vn.indexOf('webPullTick_()'),
@@ -7550,8 +7550,9 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
     const seg = V.slice(i1, i2);
     t(!/if \(heavyOk\) \{[^}]*$/.test(seg),
       '★★★イベントの紙づくりは、60分の歯止めでは止めない（1日2回だけなので）');
-    t(/if \(typeof budTight_ === "function" && budTight_\(\)\) return;/.test(seg),
-      '★★★ただし75分を超えたら、ここも通らない（手前でまるごと帰る）');
+    const iTight = V.lastIndexOf('if (!tight) {', i2);
+    t(iTight > i1 && iTight < i2,
+      '★★★ただし75分を超えたら、ここも通らない（ふだんの手入れのほう）', iTight);
   }
   /* 止めてはいけないもの（記録の取り込み・LINEの受け口）は、囲みの外 */
   const seg = V.slice(V.indexOf('function venueDailyBody_'), V.indexOf('function venueDailyBody_') + 9000);
@@ -7658,8 +7659,30 @@ console.log('■ きょう動いた時間を数えて、使いすぎる前に止
       !/if \(!budTight_\(\)\) \{[\s\S]{0,300}budStep_\("取り込み"/.test(seg3),
       '★★★取り込みは、残り少なくても止めない（直しが届かなくなるため）');
   }
-  t(/if \(typeof budTight_ === "function" && budTight_\(\)\) return;/.test(V),
-    '★★★残り少なければ、イベントの見張りは まるごと休む');
+  /*
+   * ★残り少なくても、「その日の知らせ」までは たどり着かせること（2026/11/24）。
+   *   16:05 の確認用と 16:30 のグループ行きは1日1回ずつ。しかも
+   *   Googleの1日は夕方17時で切りかわるので、16時台はいつも
+   *   「持ち時間を使い切るころ」に当たる。まるごと帰っていたので、
+   *   知らせが毎日 黙ってとばされる形になっていた。
+   */
+  t(/const tight = \(typeof budTight_ === "function"\) \? budTight_\(\) : false;/.test(V),
+    '★★★残り少ないかを、合図として持つ');
+  {
+    const i0 = V.indexOf('const tight = (typeof budTight_');
+    const i1 = V.indexOf('if (!vnAutoOn_()) return;', i0);
+    t(i0 > 0 && i1 > i0, '　 その先に、知らせのところがある', i1);
+    const seg = V.slice(i0, i1);
+    t(!/budTight_\(\)\) return;/.test(seg),
+      '★★★残り少なくても、まるごと帰らない（知らせが毎日とばされるため）');
+    t(/if \(!tight\) \{/.test(seg),
+      '★★★ふだんの手入れだけを飛ばす');
+    /* 飛ばすほうに入っているもの（ふだんの手入れ） */
+    t(/if \(!tight\) \{[\s\S]*vnStep_\("様子の紙"/.test(seg),
+      '　 様子の紙は、ふだんの手入れのほう');
+    t(/if \(!tight\) \{[\s\S]*vnStep_\("話題のとどき具合"/.test(seg),
+      '　 話題のとどき具合も、ふだんの手入れのほう');
+  }
   /* 止めてはいけないもの（ボタン待ち・LINEの受け口）は、囲みの外 */
   {
     const seg2 = U.slice(U.indexOf('function panelWatchBody_'),
