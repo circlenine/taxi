@@ -1,6 +1,6 @@
 {
- "at": "2026-11-24 08:08",
- "ver": "U191ver / V130ver",
+ "at": "2026-11-24 15:33",
+ "ver": "U191ver / V131ver",
  "sync": {
   "at": "11-24 00:08",
   "n": 0
@@ -44,13 +44,13 @@
   }
  ],
  "web": true,
- "beat": "11-24 08:01",
- "beatMin": 7,
+ "beat": "11-24 15:31",
+ "beatMin": 2,
  "stop": false,
- "budMin": 91,
+ "budMin": 100,
  "budMax": 90,
  "budStop": 60,
- "verNo": 375,
+ "verNo": 376,
  "depMax": 20,
  "depN": 5,
  "errN": 5,
