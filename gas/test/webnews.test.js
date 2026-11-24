@@ -5074,6 +5074,64 @@ console.log('\n■ 一番上の絵（ご指示・2026/11/23）');
     '　 時刻が変われば、空の色も変わる');
 }
 
+console.log('\n■ グラフの動き（ご指示・2026/11/24）');
+{
+  /*
+   * ★まーく様のご指示（2026/11/24）
+   *     「グラフ系は、サイトによくある系の、動きも付けてください」
+   *
+   *   ★動かしているのは CSS だけです（絵を描き直していません）。
+   *   ★動きを切っておられる方の画面では、必ず止めます。
+   *     ここを忘れると、乗り物に弱い方の画面で ずっと動き続けます。
+   */
+  const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
+  const app = fs.readFileSync(path.join(W, 'app.js'), 'utf8');
+
+  /* ① 線グラフ：線が左から引かれる */
+  t(/class="gline" pathLength="1"/.test(app),
+    '★★★線グラフの線に、引いていくための印が付いている');
+  t(/\.gline\{stroke-dasharray:1;stroke-dashoffset:1;/.test(css) &&
+    /@keyframes gdraw\{to\{stroke-dashoffset:0\}\}/.test(css),
+    '★★★線は、左から引かれていく');
+  /* ② 点は、線のあとに出す（先に出ると、線より点が目立ちます） */
+  t(/class="gdot"/.test(app) && /\.gdot\{[^}]*animation:gpop/.test(css),
+    '★★★点は、ぽんと出る');
+  t(/animation:gpop[^;}]*\.55s/.test(css), '　 線が引かれたあとに出る');
+
+  /* ③ 棒は、のびる */
+  t(/class="gwait"/.test(app) && /class="gride"/.test(app),
+    '★★★横棒グラフの棒に、印が付いている');
+  t(/\.gwait,\.gride\{[^}]*animation:gwide/.test(css), '★★★横棒は、左からのびる');
+  t(/class="gcol"/.test(app) && /\.gcol\{[^}]*animation:gtall/.test(css),
+    '★★★時間帯の縦棒は、下からのびる');
+  t(/@keyframes gwide\{from\{transform:scaleX\(0\)\}/.test(css), '　 0から横へ');
+  t(/@keyframes gtall\{from\{transform:scaleY\(0\)\}/.test(css), '　 0から上へ');
+
+  /* ④ 表の中の棒・割合の帯・トロフィーの棒も、同じ動きで */
+  t(/\.bar\{transform-origin:left center;animation:gwide/.test(css),
+    '★★★表の中の棒も、左からのびる');
+  t(/\.bandbar > span\{[^}]*animation:gwide/.test(css), '★★★割合の帯も、左からのびる');
+  t(/\.trobar > span\{[^}]*animation:gwide/.test(css), '　 トロフィーの棒も、同じ動き');
+
+  /* ⑤ 少しずつ ずらして出す（どっと出ると、目が追えません） */
+  t(/\.trow:nth-of-type\(2\)\{animation-delay:/.test(css) &&
+    /\.hbar:nth-of-type\(2\) \.gcol\{animation-delay:/.test(css),
+    '★★★少しずつ ずらして出す');
+  t(/#panes \.card\{animation:grise/.test(css), '★★★欄も、ふわっと浮かび上がる');
+
+  /* ⑥ ★動きを切っておられる方の画面では、必ず止める */
+  {
+    const i0 = css.lastIndexOf('@media(prefers-reduced-motion:reduce)');
+    t(i0 > 0, '★★★動きを切る設定を見ている');
+    const seg = css.slice(i0, i0 + 400);
+    ['.gline', '.gdot', '.gwait', '.gride', '.gcol', '.bar', '.trow',
+     '.bandbar > span', '.trobar > span', '#panes .card'].forEach(function (k){
+      t(seg.indexOf(k) !== -1, '　 ' + k + ' も止める');
+    });
+    t(/animation:none/.test(seg), '★★★そのときは、1つも動かさない');
+  }
+}
+
 console.log('\n■ トロフィー（ご指示・2026/11/23）');
 {
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');

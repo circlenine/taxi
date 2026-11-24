@@ -3076,3 +3076,93 @@ body{padding-top:calc(var(--topH) + 10px);padding-bottom:calc(var(--botH) + 18px
   width:7px;height:7px;border-radius:50%;background:var(--andon)}
 /* はじめての案内の見出しには、頭の「—」を付けません（字だけで足ります） */
 .tutbox h2:before{content:none !important}
+
+/* ============================================================
+ *  グラフの動き（ご指示・2026/11/24）
+ *    「グラフ系は、サイトによくある系の、動きも付けてください」
+ *
+ *  ★よそのサイトでよく見る形にそろえました。
+ *    ・棒は、下（または左）から すっと伸びる
+ *    ・線は、左から 引かれていく
+ *    ・点は、線のあとから ぽんと出る
+ *    ・ます目は、少しずつ ずれて浮かび上がる
+ *  ★動かしているのは CSS だけです。絵を描き直していないので、
+ *    電池も通信も食いません。
+ *  ★動きを切っておられる方の画面では、動かしません（一番下）。
+ *  ★透明度と形だけを動かします。場所や大きさの計算には さわらないので、
+ *    枠からはみ出すことはありません。
+ * ============================================================ */
+
+/* ---------- ① 線グラフ：線が、左から引かれる ---------- */
+.gline{stroke-dasharray:1;stroke-dashoffset:1;
+  animation:gdraw .9s ease-out forwards}
+@keyframes gdraw{to{stroke-dashoffset:0}}
+/* 点は、線が引かれたあとに ぽんと出ます */
+.gdot{opacity:0;transform-box:fill-box;transform-origin:center;
+  animation:gpop .34s cubic-bezier(.2,1.4,.4,1) .55s forwards}
+@keyframes gpop{0%{opacity:0;transform:scale(.2)}
+  70%{opacity:1;transform:scale(1.5)}100%{opacity:1;transform:scale(1)}}
+/* 金額の字も、少し遅れて出します（先に出ると、線より字が目立ちます） */
+.glab{opacity:0;animation:gfade .4s ease-out .7s forwards}
+@keyframes gfade{to{opacity:1}}
+
+/* ---------- ② 横棒グラフ：左から のびる ---------- */
+.gwait,.gride{transform-box:fill-box;transform-origin:left center;
+  animation:gwide .55s cubic-bezier(.22,.8,.3,1) both}
+@keyframes gwide{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* 1日ごとに、少しずつ ずらして出します（どっと出ると、目が追えません） */
+.trow{opacity:0;animation:gfade .4s ease-out both}
+.trow:nth-of-type(1){animation-delay:.02s}
+.trow:nth-of-type(2){animation-delay:.06s}
+.trow:nth-of-type(3){animation-delay:.10s}
+.trow:nth-of-type(4){animation-delay:.14s}
+.trow:nth-of-type(5){animation-delay:.18s}
+.trow:nth-of-type(n+6){animation-delay:.22s}
+
+/* ---------- ③ 時間帯の縦棒：下から のびる ---------- */
+.gcol{transform-box:fill-box;transform-origin:center bottom;
+  animation:gtall .6s cubic-bezier(.22,.8,.3,1) both}
+@keyframes gtall{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.hbar:nth-of-type(2) .gcol{animation-delay:.03s}
+.hbar:nth-of-type(3) .gcol{animation-delay:.06s}
+.hbar:nth-of-type(4) .gcol{animation-delay:.09s}
+.hbar:nth-of-type(5) .gcol{animation-delay:.12s}
+.hbar:nth-of-type(6) .gcol{animation-delay:.15s}
+.hbar:nth-of-type(n+7) .gcol{animation-delay:.18s}
+
+/* ---------- ④ 表の中の棒：左から のびる ---------- */
+.bar{transform-origin:left center;animation:gwide .5s cubic-bezier(.22,.8,.3,1) both}
+tbody tr:nth-child(2) .bar{animation-delay:.03s}
+tbody tr:nth-child(3) .bar{animation-delay:.06s}
+tbody tr:nth-child(4) .bar{animation-delay:.09s}
+tbody tr:nth-child(5) .bar{animation-delay:.12s}
+tbody tr:nth-child(n+6) .bar{animation-delay:.15s}
+
+/* ---------- ⑤ 割合の帯：左から のびる ---------- */
+.bandbar > span{transform-origin:left center;
+  animation:gwide .55s cubic-bezier(.22,.8,.3,1) both}
+.bandbar > span:nth-child(2){animation-delay:.08s}
+.bandbar > span:nth-child(3){animation-delay:.16s}
+
+/* ---------- ⑥ トロフィーの棒も、同じ動きで ---------- */
+.trobar > span{transform-origin:left center;
+  animation:gwide .7s cubic-bezier(.22,.8,.3,1) both}
+
+/* ---------- ⑦ 欄そのものも、ふわっと出す ---------- */
+/* よそのサイトでよく見る「下から少し浮かび上がる」形です */
+#panes .card{animation:grise .38s ease-out both}
+#panes .card:nth-of-type(2){animation-delay:.05s}
+#panes .card:nth-of-type(3){animation-delay:.10s}
+#panes .card:nth-of-type(n+4){animation-delay:.14s}
+@keyframes grise{from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:none}}
+
+/* ---------- 動きを切っておられる方の画面では、動かしません ---------- */
+@media(prefers-reduced-motion:reduce){
+  .gline{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
+  .gdot,.glab,.gwait,.gride,.gcol,.bar,.trow,
+  .bandbar > span,.trobar > span,#panes .card{animation:none;opacity:1;transform:none}
+}
+/* 顔から出る字は、顔の上に浮かびます。そのぶんの空きを取っておきます
+   （取らないと、一番上の一文に重なります）。 */
+#saymount.saymount{margin-top:12px}

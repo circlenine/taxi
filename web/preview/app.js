@@ -5446,8 +5446,8 @@ function tlChart(R){
       const bd = band(r), bw = Math.max(3, c-b);
       const tip = `${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;つけ ${showT(isUnk(r.dep)?null:r.dep-(r.wait||0)/60)} → 出 ${showT(r.dep)}（待ち${showMin(r.wait)}）&#10;乗車 ${showMin(r.ride)}・${showYen(r.fare)}・${bd[1]}`;
       s += `<g data-tip="${tip}">
-        <rect x="${a}" y="${y+(slim?15:19)}" width="${Math.max(1,b-a)}" height="${slim?5:7}" rx="3.5" fill="#8FA3C4"/>
-        <rect x="${b}" y="${y+(slim?9:11)}" width="${bw}" height="${slim?17:23}" rx="5" fill="${bd[0]}"/>`;
+        <rect class="gwait" x="${a}" y="${y+(slim?15:19)}" width="${Math.max(1,b-a)}" height="${slim?5:7}" rx="3.5" fill="#8FA3C4"/>
+        <rect class="gride" x="${b}" y="${y+(slim?9:11)}" width="${bw}" height="${slim?17:23}" rx="5" fill="${bd[0]}"/>`;
       /* ③ 乗り場の名前は、帯の中に。入りきらないときは出しません */
       const nm = String(r.place || '');
       if (nm && bw >= nm.length*10 + 10)
@@ -5611,12 +5611,14 @@ function scChart(R){
   ds.forEach(d => {
     const c = dcol(d), pts = R.filter(r => r.date === d).sort((a,b) => a.dep - b.dep);
     if (scOpt.line && pts.length > 1)
-      s += `<polyline fill="none" stroke="${c}" stroke-width="1.2" opacity=".5" points="${pts.map(r => sx(r.dep)+','+sy(r.fare)).join(' ')}"/>`;
+      /* ★pathLength="1" にすると、線の長さが どれでも1になります。
+           こうしておくと、長さの違う線でも 同じ速さで引かれます（CSSの gdraw）。 */
+      s += `<polyline class="gline" pathLength="1" fill="none" stroke="${c}" stroke-width="1.2" opacity=".5" points="${pts.map(r => sx(r.dep)+','+sy(r.fare)).join(' ')}"/>`;
     pts.forEach(r => {
       const x = sx(r.dep), y = sy(r.fare);
       /* ★丸は小さく（ご指示・2026/11/13）。押せる広さは透明の丸で別にとります */
       s += `<g data-tip="${fmtD(d)} ${esc(r.place||'')}・${esc(r.who)}&#10;${showT(r.dep)}・${showYen(r.fare)}&#10;待ち${showMin(r.wait)}／乗車${showMin(r.ride)}">
-        <circle cx="${x}" cy="${y}" r="2.2" fill="${c}"/><circle cx="${x}" cy="${y}" r="11" fill="transparent"/></g>`;
+        <circle class="gdot" cx="${x}" cy="${y}" r="2.2" fill="${c}"/><circle cx="${x}" cy="${y}" r="11" fill="transparent"/></g>`;
       if (scOpt.label) {
         const txt = yen(r.fare), w = txt.length*5.2;
         /* ★数字が重ならないように、右・左・上・下と置き場所をさがします。
@@ -6221,7 +6223,7 @@ function paneRatio(){
           const pp = bandPct(o, bd.k), hh = BH * pp / 100;
           if (!hh) return;
           y -= hh;
-          g += '<rect x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh +
+          g += '<rect class="gcol" x="' + (x + 5) + '" y="' + y + '" width="' + (cw - 10) + '" height="' + hh +
                '" fill="' + bd.c + '" rx="3"/>' +
             (hh > 18 ? '<text class="glab" x="' + (x + cw/2) + '" y="' + (y + hh/2 + 4) +
               '" text-anchor="middle" fill="#14100A">' + Math.round(pp) + '</text>' : '');
