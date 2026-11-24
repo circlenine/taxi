@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TAXI NOTE</title>
+<title>TA卍I NOTE</title>
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#101A2B">
+<meta name="theme-color" content="#121A28">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261123-28212c89">
+<link rel="stylesheet" href="style.css?v=20261124-b54d57cc">
 </head>
 <body>
 <div id="boot" class="boot">
@@ -39,49 +39,34 @@
        2段目：版 v1.0（ロゴのすぐ下・いつも見えます）
        3段目：灰色のブロック（▼でしまう・広げる）
        4段目：▼のつまみ -->
+  <!-- ★上の帯（ご指示・2026/11/24）
+         「上部分のv1.0〜メニューまでは全て取り除き
+           もっと、上メニューはGoogleスクリプトと同様くらいの高さに」
+       題と ≡ と【説明】だけの、低い1行にしました。
+       ページの行き先は、画面の下の帯へ移しました。
+       版（v1.0）は、ページの一番下の © の下へ移しました。 -->
   <header id="hdr">
     <div class="hmain">
-      <!-- ★2行の幅をそろえます（ご指摘・2026/11/23
-             「Iの右の空白が少しだけ気になります…上下同じになるように」）。
-           「TAXI」は I が細いぶん「NOTE」より短く、右だけ空いていました。
-           app.js の logoFit_ が、2行の幅を測って字間をそろえます。 -->
-      <h1 class="dn"><span class="l1">TA<span class="xg">X</span>I</span><span class="l2">NOTE</span></h1>
-      <div id="saymount" class="saymount"></div>
-      <button class="fab menu" id="fabMenu" aria-label="メニュー">≡</button>
+      <!-- ★題は TA卍I NOTE（ご指示・2026/11/24）。
+             2行だった題を、低い帯に収まる1行にしました。 -->
+      <h1 class="dn"><span class="l1">TA<span class="xg">卍</span>I</span><span class="l2">NOTE</span></h1>
+      <span class="hgap"></span>
+      <button class="hbtn" data-lead="1" type="button" aria-label="説明">?</button>
+      <button class="hbtn menu" id="fabMenu" aria-label="メニュー">≡</button>
       <div class="fabsheet" id="fabSheet" hidden></div>
     </div>
-    <!-- ★版は、ロゴのすぐ下に いつも出します（ご指示・2026/11/13
-           「v1.0をロゴ下にしてください」）。
-         下の灰色のブロックは まるごと しまえるので、
-         しまっても版だけは見えるように、ここへ出します。 -->
-    <!-- ★一文（近日中〜）は、版のとなりに出します（ご指示・2026/11/13
-           「近日中～は v1.0の横に表示させてください」）。 -->
-    <div class="hver"><span class="ver" id="ver"></span>
-      <span class="sub" id="sub">近日、誰か１メーターを引けばキラが決まります</span></div>
-    <!-- ★灰色のブロックは、まるごと しまえます（ご指示・2026/11/13）。
-         はじめは開いたまま。下にスクロールすると、1回だけ自動で閉じます。
-         そのあとは ▼ を押せば、どこまで下がっていても その場で開きます。 -->
-    <!-- ★▼ を押すと、ページの行き先が 5列2段で出ます（ご指示・2026/11/17）。
-           下へスクロールしても、ここからどのページへでも行けます。
-           中身は下の #tabs から作るので、直すところは1か所だけです。 -->
-    <div class="hsub" id="hsub">
-      <nav id="htabs"></nav>
-      <!-- ★【説明】は、メニューのすぐ下に置きます（ご指示・2026/11/23）。
-             押すと、いま開いているページで何が分かるかが、箱で出ます。 -->
-      <button class="leadbtn" data-lead="1" type="button">
-        <b>説明</b><i>このページで分かること</i></button>
-    </div>
-    <button class="hgrab" id="hgrab" aria-label="開く・閉じる"><i>▼</i></button>
-    <!-- ★称号・ボタン位置・管理・ログアウトは ≡ の中へ移しました
-           （ご指示・2026/11/17）。≡ を開くと、この箱がそのまま中に入ります。
-         先に置いてあるのは、名前や管理の出し入れが、開く前から効くためです。 -->
+    <!-- ★上の帯も たためます（ご指示・2026/11/24
+           「固定の上メニュー、下メニューは折りたたみや展開ができるように」）。
+         たたんでも、この つまみだけは残るので いつでも戻せます。 -->
+    <button class="hgrab" id="hgrab" aria-label="上の帯を たたむ・広げる"><i>▲</i></button>
+    <!-- ★称号・ボタン位置・管理・ログアウトは ≡ の中へ入ります。
+           先に置いてあるのは、開く前から名前の出し入れが効くためです。 -->
     <div id="acctBox" hidden>
       <div class="subline">
         <b class="mytitle" id="me">—</b>
       </div>
       <div class="hrow">
         <span>ボタン位置</span>
-        <!-- ★並びは 左利き → 右利き（ご指示・2026/11/16） -->
         <button class="chip" data-hand="l">左利き</button>
         <button class="chip" data-hand="r">右利き</button>
         <span class="whoR">
@@ -91,6 +76,13 @@
       </div>
     </div>
   </header>
+
+  <!-- ★一番上の一文（いま出ている警報・注意報／最多付け待ち）。
+         上の帯から外し、ページの一番上の細い行にしました。
+         帯を低くしても、警報は必ず目に入ります。 -->
+  <div class="topline"><span class="sub" id="sub"></span></div>
+  <!-- ★ふきだしも、上の帯から ここへ移しました。 -->
+  <div id="saymount" class="saymount"></div>
 
   <!-- ★フィードバックは、≡ の一覧からだけ行けます（ご指示・2026/11/13
          「フィードバックは三の方にあるので、ここでは消して」）。
@@ -105,7 +97,12 @@
          「三メニューにある 記録～お知らせまでを ページ内にも載せてください」）。
        10個あるので 5列×2段。そえる字は5文字までにして、
        ます目の中で折り返さないようにしています。 -->
-  <nav id="tabs">
+  <!-- ★下の帯（ご指示・2026/11/24「上メニュー＋下メニューを追加した形に」）。
+         ページの行き先は、ここに固定します。走りながら片手で押せる所です。
+         ★つまみで たためます。たたんでも つまみは残ります。 -->
+  <div class="botbar" id="botbar">
+    <button class="bgrab" id="bgrab" aria-label="下の帯を たたむ・広げる"><i>▼</i></button>
+  <nav id="tabs" class="botnav">
     <!-- ★開いて最初に出るのは【天気】です（ご指示・2026/11/17）。
            はじめから【天気】を押した形にしておき、
            ひと呼吸だけ【記録】が見えることのないようにします。 -->
@@ -123,11 +120,7 @@
     <button data-t="ev" aria-selected="false"><b><span class="dot" id="evDot" hidden></span>イベント</b><i>今日・明日</i></button>
     <button data-t="news" aria-selected="false"><b><span class="dot" id="newsDot" hidden></span>お知らせ</b><i>使い方</i></button>
     </nav>
-  <!-- ★【説明】は、メニューのすぐ下に置きます（ご指示・2026/11/23
-         「メニューのとこに…説明タブを追加して、
-           どういうページなのか、直感的にわかるように」）。 -->
-  <button class="leadbtn" data-lead="1" type="button">
-    <b>説明</b><i>このページで分かること</i></button>
+  </div>
   <!-- ★【イベント】と【お知らせ】は、画面のメニューからは外しました
          （ご指示・2026/11/13「イベントとお知らせは画面では非表示で、
            三の方には追加したままで」）。
@@ -190,6 +183,9 @@
 
   <footer>
     <div class="copy">©ibakuzo!!!!!! Gevanni!!!!!! ~1night done~</div>
+    <!-- ★版は、ここに小さく（ご指示・2026/11/24
+           「v1.0は、ページ一番下の©の下あたりに小さくで構いません」）。 -->
+    <div class="footver"><span class="ver" id="ver"></span></div>
   </footer>
 </div>
 <div class="tip" id="tip"></div>
@@ -199,9 +195,9 @@
      ★消してはいません。hidden を外せば、そのまま戻ります。 -->
 <button class="fab done" id="fabAdd" hidden data-off="1"><span class="lab"><span class="k">粛清<i>きろく</i></span>完了</span></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261123-28212c89"></script>
-<script src="news.js?v=20261123-28212c89"></script>
-<script src="shared.js?v=20261123-28212c89"></script>
-<script src="app.js?v=20261123-28212c89"></script>
+<script src="config.js?v=20261124-b54d57cc"></script>
+<script src="news.js?v=20261124-b54d57cc"></script>
+<script src="shared.js?v=20261124-b54d57cc"></script>
+<script src="app.js?v=20261124-b54d57cc"></script>
 </body>
 </html>

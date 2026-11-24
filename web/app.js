@@ -193,8 +193,11 @@ const filtOn = () => !!onlyPlace || !!onlyCat || !!onlyBig || !!onlyDay ||
   /* 足されたひとことを読みます（台帳に棚が無くても、黙って元のまま） */
   loadSays();
   loadFaces();
+  /* ★はじめての方には、先に案内を出します（ご指示・2026/11/24）。
+       とばせます。1回 見たら、もう出しません。 */
+  setTimeout(function (){ try { tutOpen(false); } catch (e) {} }, 700);
   /* 新しく手に入れたしるしがあれば、まん中で知らせます */
-  setTimeout(function (){ try { troCheck(); } catch (e) {} }, 900);
+  setTimeout(function (){ try { troCheck(); } catch (e) {} }, 2200);
   /* 一番上の絵（場所と天気）。場所は、すでに許してくださっているときだけ */
   bnPosLoad(); bnAsk(false); bnTick(false);
   setInterval(function (){ bnTick(false); }, 15 * 60 * 1000);
@@ -1077,20 +1080,30 @@ function render(){
   document.querySelectorAll('[data-pindel]').forEach(function (b){
     b.onclick = function (){ pinSetDel(b.dataset.pindel); };
   });
-  /* しるしを押すと、条件をくわしく出します */
-  document.querySelectorAll('[data-tro]').forEach(function (b){
-    b.onclick = function (){
-      const x = troAll().filter(function (y){ return y.k === b.dataset.tro; })[0];
-      if (!x) return;
-      calcPopup(x.n, [
-        x.d,
-        x.on ? 'そろいました。' :
-          ('いま ' + troNum(x, x.raw) + '／' + troNum(x, x.need) +
-           '　あと ' + troNum(x, Math.max(0, x.need - x.raw)) + ' です。'),
-        '段：' + (TRO_TIERS[x.t] ? TRO_TIERS[x.t].n : ''),
-        '自分の記録だけで数えています。'
-      ], '');
+  /* 設定の画面 */
+  {
+    const t1 = document.getElementById('setTro');
+    if (t1) t1.onchange = function (){ troPopOffSet(!!t1.checked); };
+    const t2 = document.getElementById('setToc');
+    if (t2) t2.onchange = function (){
+      try {
+        if (t2.checked) localStorage.setItem(TOC_HIDE, '1');
+        else localStorage.removeItem(TOC_HIDE);
+      } catch (e) {}
+      const old2 = document.getElementById('toc');
+      if (old2) old2.remove();
+      if (!t2.checked) tocBuild();
     };
+    const t3 = document.getElementById('setTut');
+    if (t3) t3.onclick = function (){ tutOpen(true); };
+  }
+  /* しるしを押すと、条件をくわしく出します（ご指示・2026/11/24） */
+  document.querySelectorAll('[data-tro]').forEach(function (b){
+    b.onclick = function (){ troDetail(b.dataset.tro); };
+  });
+  /* まとまりの見出しを押しても、どういうものかが出ます */
+  document.querySelectorAll('[data-trog]').forEach(function (b){
+    b.onclick = function (e){ e.stopPropagation(); troGroup(b.dataset.trog); };
   });
   /* 一番上の絵：いまいる所に合わせる／雨雲レーダーへ */
   const bh = document.getElementById('bnHere');
@@ -1122,7 +1135,7 @@ function render(){
     g:paneG, heat:paneG, tl:paneG, sc:paneG, map:paneMap,
     ratio:paneRatio, best:paneBest, tok:paneTok, rep:paneRep, nippo:paneNippo,
     bara:paneBara, kix:paneKix, tro:paneTro,
-    news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb };
+    news: () => paneSays() + paneNews(), ev:paneEv, fb:paneFb, set:paneSet };
   /* 古い押しどころで来たときは、その形をえらんだことにします */
   if (tab === 'heat' || tab === 'tl' || tab === 'sc') { gKindSet(tab); tab = 'g'; tabSave(); }
   /* バラシ・関空は、1つのメニューにまとめました（ご指示・2026/11/15） */
@@ -1601,20 +1614,43 @@ function troDot(on){
   } catch (e) {}
 }
 
+/* ★トロフィーの箱を出すか（ご指示・2026/11/24
+     「トロフィーのポップアップ表示をやめる…チェックボタンも実装し
+       設定画面から、切り替えができる、という形に」）。
+   ★切っても、手に入れたことは記録されます（しるしは付きます）。
+     出なくなるのは、まん中の箱だけです。 */
+const TRO_POP_KEY = 'tn_tro_popup_off';
+function troPopOff(){
+  try { return localStorage.getItem(TRO_POP_KEY) === '1'; } catch (e) { return false; }
+}
+function troPopOffSet(on){
+  try { localStorage.setItem(TRO_POP_KEY, on ? '1' : '0'); } catch (e) {}
+}
+
 function troPopup(got){
+  /* 切っておられるときは、箱を出しません（しるしは付いたままです） */
+  if (troPopOff()) return;
+  const top = got[0] || {};
   const box = document.createElement('div');
   box.className = 'modal trowin';
   box.innerHTML =
-    '<div class="modalbox">' +
-      '<div class="trohead"><span class="trostar">★</span>' +
-      '<b>' + (got.length > 1 ? got.length + 'つ 手に入れました！' : '手に入れました！') + '</b></div>' +
-      '<div class="trogot">' + got.slice(0, 6).map(function (x){
-        return '<div class="trogotrow ' + x.t + '">' +
-          '<span class="trobadge">' + troIcon(x) + '</span>' +
-          '<span class="trogotn"><b>' + esc(x.n) + '</b><i>' + esc(x.d) + '</i></span></div>';
-      }).join('') +
-      (got.length > 6 ? '<p class="note">ほか ' + (got.length - 6) + 'つ</p>' : '') +
-      '</div>' +
+    '<div class="modalbox tromodal ' + esc(top.t || 'bronze') + '">' +
+      '<div class="troburst" aria-hidden="true"></div>' +
+      '<div class="trounlock">UNLOCKED</div>' +
+      '<div class="trobig2">' + troIcon(top) + '</div>' +
+      '<div class="trotitle"><b>' + esc(top.n || '') + '</b>' +
+        '<i>を アンロック！</i></div>' +
+      '<div class="trotier">' +
+        esc((TRO_TIERS[top.t] || {}).n || '') + '　' + esc(top.d || '') + '</div>' +
+      (got.length > 1
+        ? '<div class="tromore">' + got.slice(1, 5).map(function (x){
+            return '<span class="trochip ' + esc(x.t) + '">' + troIcon(x) + ' ' + esc(x.n) + '</span>';
+          }).join('') +
+          (got.length > 5 ? '<span class="trochip">ほか ' + (got.length - 5) + 'つ</span>' : '') +
+          '</div>'
+        : '') +
+      '<label class="trooff"><input type="checkbox" id="troOff">' +
+        '<span>次からは、この知らせを出さない</span></label>' +
       '<div class="modalfoot">' +
         '<button class="btn ghost" data-goto="tro">一覧を見る</button>' +
         '<button class="btn" id="troClose">とじる</button>' +
@@ -1626,6 +1662,8 @@ function troPopup(got){
     box.remove();
     try { document.body.classList.remove('modalon'); } catch (e) {}
   };
+  const ck = box.querySelector('#troOff');
+  if (ck) ck.onchange = function (){ troPopOffSet(!!ck.checked); };
   box.querySelector('#troClose').addEventListener('click', close);
   box.addEventListener('click', function (e){ if (e.target === box) close(); });
   const go = box.querySelector('[data-goto]');
@@ -1633,6 +1671,64 @@ function troPopup(got){
     close(); grab(); tab = 'tro'; tabSave(); render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+}
+
+/* ★押すと、どういう条件なのかが出ます（ご指示・2026/11/24
+     「各トロフィーや見出しを押すと どういうアンロック要素なのか、
+       わかるように」）。 */
+function troDetail(k){
+  const x = troAll().filter(function (y){ return y.k === k; })[0];
+  if (!x) return;
+  const p = Math.min(100, Math.round(x.raw / x.need * 100));
+  const box = document.createElement('div');
+  box.className = 'modal';
+  box.innerHTML =
+    '<div class="modalbox trodet ' + esc(x.t) + (x.on ? ' on' : '') + '">' +
+      '<div class="trodeth"><span class="trobadge">' + troIcon(x) + '</span>' +
+        '<b>' + esc(x.n) + '</b>' +
+        '<i>' + esc((TRO_TIERS[x.t] || {}).n || '') + '</i></div>' +
+      '<div class="trodetd">' + esc(x.d) + '</div>' +
+      '<div class="trobar"><span style="width:' + p + '%"></span></div>' +
+      '<div class="trodetn">' +
+        (x.on
+          ? '<b class="ok">アンロック済み</b>'
+          : '<b>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</b>' +
+            '<i>あと ' + troNum(x, Math.max(0, x.need - x.raw)) + '</i>') +
+      '</div>' +
+      '<p class="note">自分の記録だけで数えています。記録を直すと、数えなおします。</p>' +
+      '<div class="modalfoot"><button class="btn" id="tdClose">とじる</button></div>' +
+    '</div>';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  box.querySelector('#tdClose').addEventListener('click', close);
+  box.addEventListener('click', function (e){ if (e.target === box) close(); });
+}
+
+/* まとまり（本数・売上…）の見出しを押したとき */
+const TRO_GINFO = {
+  '本数':   '入れた記録の本数です。1本 入れるたびに進みます。',
+  '売上':   '金額の合計です。1日の合計と、通算の合計の2通りで見ます。',
+  'ロング': '¥10,000以上の記録です。本数と、1本の最高額で見ます。',
+  '乗り場': '付けた乗り場の数と、同じ乗り場に通った本数です。',
+  '時間':   '何時台に付けたかです。夜どおしは18時台〜27時台のすべてです。',
+  '曜日':   '平日・金・土・日祝の4つ すべてで記録すると そろいます。',
+  '続けて': '営業日を続けて記録した日数です。1日あくと、数え直しになります。',
+  '種類':   'GO・Uber・途中乗りです。記録の「種類」の欄から数えます。',
+  '特定':   'バラシ・関空・チケットです。「他」の欄の字から見分けます。',
+  'ていねい': '待ち時間や「他」の欄を、どれだけ書いたかです。'
+};
+function troGroup(g){
+  const rows = troAll().filter(function (x){ return x.g === g; });
+  const n = rows.filter(function (x){ return x.on; }).length;
+  calcPopup(g, [
+    TRO_GINFO[g] || '',
+    'この まとまりは ' + rows.length + 'つ。いま ' + n + 'つ そろっています。',
+    '一つひとつを押すと、あと何本かが出ます。'
+  ], ' のしるし');
 }
 
 /** しるしの絵（段ごとに形を変えます） */
@@ -1654,48 +1750,73 @@ function troRank(n, all){
   return 'これから';
 }
 
+/* ================================================================
+ *  段（レベル）。しるしの数から出します（ご指示・2026/11/24
+ *    「記録したくなるわくわくするゲーム要素は徹底的に盛り込んで」）
+ *  ★人と人は並べません（ご指示・2026/11/16
+ *    「ランキングは、ストレスの発端となるため除外」）。
+ *  ★数は、自分の記録から その場で数えています。作り物ではありません。
+ * ================================================================ */
+function troLv(got){
+  const lv = Math.floor(got / 3) + 1;            /* 3つで1つ上がります */
+  const inLv = got % 3;
+  return { lv: lv, inLv: inLv, next: 3 - inLv, pct: Math.round(inLv / 3 * 100) };
+}
+
 function paneTro(){
   const all = troAll();
   const got = all.filter(function (x){ return x.on; });
   const pct = all.length ? Math.round(got.length / all.length * 100) : 0;
+  const lv  = troLv(got.length);
+  const st  = troStat(troMine());
   /* 次に届きそうなもの（あと少しの順に3つ） */
   const near = all.filter(function (x){ return !x.on && x.raw > 0; })
     .sort(function (a, b){ return (b.raw / b.need) - (a.raw / a.need); }).slice(0, 3);
 
-  let out = '<div class="card trotop"><h2>集めたしるし</h2>' +
-    '<div class="trosum">' +
-      '<span class="trobig">' + got.length + '<i>/' + all.length + '</i></span>' +
-      '<span class="trorank">' + esc(troRank(got.length, all.length)) + '</span>' +
+  /* ---- 一番上：段と、そろった数 ---- */
+  let out = '<div class="card trohero">' +
+    '<div class="trolv"><span class="trolvn">Lv.' + lv.lv + '</span>' +
+      '<span class="trolvr">' + esc(troRank(got.length, all.length)) + '</span></div>' +
+    '<div class="trobar lvbar"><span style="width:' + lv.pct + '%"></span></div>' +
+    '<div class="trolvsub">つぎの段まで あと <b>' + lv.next + '</b> つ</div>' +
+    '<div class="trostats">' +
+      '<span><i>そろった</i><b>' + got.length + '<em>/' + all.length + '</em></b></span>' +
+      '<span><i>続けて</i><b>' + (st.streak || 0) + '<em>日</em></b></span>' +
+      '<span><i>記録</i><b>' + (st.n || 0) + '<em>本</em></b></span>' +
     '</div>' +
     '<div class="trobar"><span style="width:' + pct + '%"></span></div>' +
-    '<p class="note">あと <b>' + (all.length - got.length) + '</b> つです。' +
-    '自分の記録だけで数えています。</p>';
+    '<div class="trolvsub">ぜんぶで ' + pct + 'パーセント</div>' +
+    '</div>';
+
+  /* ---- つぎの1つ ---- */
   if (near.length) {
-    out += '<div class="tronext"><div class="flab">もう少しで届くもの</div>' +
+    out += '<div class="card"><h2>もう少しで届くもの</h2>' +
       near.map(function (x){
-        return '<div class="tronrow"><b>' + esc(x.n) + '</b>' +
+        return '<button class="tronrow2 ' + x.t + '" data-tro="' + esc(x.k) + '">' +
+          '<span class="trobadge">' + troIcon(x) + '</span>' +
+          '<span class="tronn"><b>' + esc(x.n) + '</b>' +
           '<span class="trobar sm"><span style="width:' +
-          Math.round(x.raw / x.need * 100) + '%"></span></span>' +
-          '<i>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</i></div>';
+          Math.round(x.raw / x.need * 100) + '%"></span></span></span>' +
+          '<i>あと ' + troNum(x, Math.max(0, x.need - x.raw)) + '</i></button>';
       }).join('') + '</div>';
   }
-  out += '</div>';
 
-  /* まとまりごとに並べます（取ったものが先・そのあと 薄く候補） */
+  /* ---- まとまりごと ---- */
   const gs = [];
   all.forEach(function (x){ if (gs.indexOf(x.g) === -1) gs.push(x.g); });
   gs.forEach(function (g){
     const rows = all.filter(function (x){ return x.g === g; });
     const n = rows.filter(function (x){ return x.on; }).length;
-    out += '<div class="card"><h2>' + esc(g) + '　<span class="trogn">' +
-      n + '/' + rows.length + '</span></h2>' +
+    out += '<div class="card"><h2>' + esc(g) +
+      '<span class="trogn">' + n + '/' + rows.length + '</span>' +
+      '<button class="trogi" data-trog="' + esc(g) + '" type="button">?</button></h2>' +
       '<div class="trogrid">' + rows.map(function (x){
         const p = Math.round(x.raw / x.need * 100);
         return '<button class="trotile ' + x.t + (x.on ? ' on' : '') + '" data-tro="' + esc(x.k) + '">' +
           '<span class="trobadge">' + troIcon(x) + '</span>' +
           '<b>' + esc(x.n) + '</b>' +
           (x.on
-            ? '<i class="trook">そろいました</i>'
+            ? '<i class="trook">アンロック済み</i>'
             : '<span class="trobar sm"><span style="width:' + Math.min(100, p) + '%"></span></span>' +
               '<i>' + troNum(x, x.raw) + ' / ' + troNum(x, x.need) + '</i>') +
           '</button>';
@@ -1703,6 +1824,106 @@ function paneTro(){
   });
   return out;
 }
+/* ================================================================
+ *  設定の画面（ご指示・2026/11/24）
+ *    「設定画面から、切り替えができる、という形にしてください」
+ *  ★≡ の中から開きます。下の帯には置きません（行き先が増えすぎるため）。
+ *  ★ここで切り替えたものは、この機械の中だけに残ります。
+ * ================================================================ */
+function paneSet(){
+  const offTro = troPopOff();
+  const hid    = tocHidden();
+  return '<div class="card"><h2>設定</h2>' +
+    '<label class="setrow"><input type="checkbox" id="setTro"' +
+      (offTro ? ' checked' : '') + '>' +
+      '<span><b>トロフィーの知らせを出さない</b>' +
+      '<i>手に入れたときの、まん中の箱を出しません。しるしは付きます。</i></span></label>' +
+    '<label class="setrow"><input type="checkbox" id="setToc"' +
+      (hid ? ' checked' : '') + '>' +
+      '<span><b>目次を出さない</b><i>右上に出る目次を、隠します。</i></span></label>' +
+    '<div class="setrow btns">' +
+      '<span><b>ボタン位置</b><i>固定ボタンを、どちらの手に寄せるか。</i></span>' +
+      '<span class="setb"><button class="chip" data-hand="l">左利き</button>' +
+      '<button class="chip" data-hand="r">右利き</button></span></div>' +
+    '<div class="setrow btns">' +
+      '<span><b>はじめての案内</b><i>使い方の案内を、もう一度 見ます。</i></span>' +
+      '<span class="setb"><button class="btn ghost" id="setTut">見る</button></span></div>' +
+    '</div>';
+}
+
+/* ================================================================
+ *  はじめての方への案内（ご指示・2026/11/24）
+ *    「まず初めのユーザーには、ゲームでよくある、
+ *      チュートリアル機能を追加してください スキップ機能も」
+ *  ★1回 見たら、もう出しません。設定から、いつでも見直せます。
+ *  ★とばしても、見たことにします（毎回 出されるのが一番うるさいため）。
+ * ================================================================ */
+const TUT_KEY = 'tn_tutorial_done';
+const TUT_STEPS = [
+  { i:'1', h:'記録する', b:'【記録】の画面で、乗り場・時刻・金額を入れて保存します。' +
+      '書きかけは、閉じても残ります。' },
+  { i:'2', h:'下の帯でページを変える', b:'画面の下の帯が、ページの行き先です。' +
+      'つまみ（▼）を押すと、たためます。' },
+  { i:'3', h:'ためた記録を見る', b:'【グラフ】【パーセント】【地図】で、' +
+      'どの乗り場が、何時に、いくらだったかを見ます。' },
+  { i:'4', h:'しるしを集める', b:'記録を入れると【トロフィー】が開きます。' +
+      '押すと、何をすれば開くのかが出ます。' },
+  { i:'5', h:'困ったら', b:'上の【?】で、その画面の説明が出ます。' +
+      '≡ の中に、設定とフィードバックがあります。' }
+];
+function tutDone(){
+  try { return localStorage.getItem(TUT_KEY) === '1'; } catch (e) { return false; }
+}
+let tutWait_ = 0;
+function tutOpen(force){
+  if (!force && tutDone()) return;
+  /* ★ほかの箱（イベントの知らせなど）が出ている間は、待ちます。
+       2つ重なると、どちらを閉じればよいか分からなくなります。
+       閉じていただいたら、そのあとに出します。 */
+  if (document.querySelector('.modal')) {
+    if (force || tutWait_++ > 20) return;
+    setTimeout(function (){ tutOpen(false); }, 1500);
+    return;
+  }
+  tutWait_ = 0;
+  let i = 0;
+  const box = document.createElement('div');
+  box.className = 'modal tutwin';
+  document.body.appendChild(box);
+  try { document.body.classList.add('modalon'); } catch (e) {}
+  const close = function (){
+    try { localStorage.setItem(TUT_KEY, '1'); } catch (e) {}
+    box.remove();
+    try { document.body.classList.remove('modalon'); } catch (e) {}
+  };
+  const draw = function (){
+    const st = TUT_STEPS[i];
+    box.innerHTML =
+      '<div class="modalbox tutbox">' +
+        '<div class="tutdots">' + TUT_STEPS.map(function (x, j){
+          return '<span class="' + (j === i ? 'on' : (j < i ? 'past' : '')) + '"></span>';
+        }).join('') + '</div>' +
+        '<div class="tutno">' + st.i + ' / ' + TUT_STEPS.length + '</div>' +
+        '<h2>' + esc(st.h) + '</h2>' +
+        '<p class="tutb">' + esc(st.b) + '</p>' +
+        '<div class="modalfoot">' +
+          '<button class="btn ghost" id="tutSkip">とばす</button>' +
+          (i > 0 ? '<button class="btn ghost" id="tutPrev">もどる</button>' : '') +
+          '<button class="btn" id="tutNext">' +
+            (i === TUT_STEPS.length - 1 ? 'はじめる' : 'つぎへ') + '</button>' +
+        '</div>' +
+      '</div>';
+    box.querySelector('#tutSkip').onclick = close;
+    const pv = box.querySelector('#tutPrev');
+    if (pv) pv.onclick = function (){ i--; draw(); };
+    box.querySelector('#tutNext').onclick = function (){
+      if (i === TUT_STEPS.length - 1) { close(); return; }
+      i++; draw();
+    };
+  };
+  draw();
+}
+
 function troNum(x, v){
   return x.yen ? yen(v) : String(v);
 }
@@ -1956,16 +2177,18 @@ async function bnLoadWx(la, lo){
 function bnAdvice(wx){
   if (!wx) return '';
   const a = [];
-  if (wx.rainNow) a.push('いま降っています。傘を積んでください');
-  else if (wx.rain3 != null && wx.rain3 >= 50) a.push(wx.rainWhen + 'ごろ 雨の見込み。傘を積んでください');
-  else if (wx.rain3 != null && wx.rain3 >= 30) a.push(wx.rainWhen + 'ごろ ひと雨あるかもしれません');
+  /* ★短くします（ご指示・2026/11/24）。走りながら読むものなので、
+       1行で読み切れる長さに収めます。 */
+  if (wx.rainNow) a.push('雨。傘を積んで');
+  else if (wx.rain3 != null && wx.rain3 >= 50) a.push(wx.rainWhen + 'ごろ 雨。傘を積んで');
+  else if (wx.rain3 != null && wx.rain3 >= 30) a.push(wx.rainWhen + 'ごろ ひと雨かも');
   if (wx.dTemp != null) {
-    if (wx.dTemp <= -4) a.push('きのうより ' + Math.abs(Math.round(wx.dTemp)) + '℃ 低いです。防寒を');
-    else if (wx.dTemp >= 4) a.push('きのうより ' + Math.round(wx.dTemp) + '℃ 高いです。薄着で');
+    if (wx.dTemp <= -4) a.push('前日比 −' + Math.abs(Math.round(wx.dTemp)) + '℃。防寒を');
+    else if (wx.dTemp >= 4) a.push('前日比 ＋' + Math.round(wx.dTemp) + '℃。薄着で');
   }
-  if (wx.temp != null && wx.temp <= 5) a.push('5℃を下回ります。冷えます');
-  if (!a.length && wx.hum != null && wx.hum >= 85) a.push('湿っています。窓が曇りやすい時間です');
-  if (!a.length) a.push('荒れた天気ではありません。いってらっしゃいませ');
+  if (wx.temp != null && wx.temp <= 5) a.push('5℃以下。冷えます');
+  if (!a.length && wx.hum != null && wx.hum >= 85) a.push('湿気あり。窓が曇ります');
+  if (!a.length) a.push('穏やかです。いってらっしゃいませ');
   return a.slice(0, 2).join('／');
 }
 
@@ -3666,8 +3889,8 @@ function nextCard(R){
        空っぽの枠が並ぶと、見るところが分からなくなります。 */
   if (!L.length) return '';
   return '<div class="card"><h2>1本のあと、次に拾えた乗り場</h2>' +
-    '<p class="note">1本 乗せたあと、次の1本を <b>どこで・何分後に</b> 拾えているかです。' +
-    HOT_MIN_N + '件以上そろった組み合わせだけを出しています。押すと地図が開きます。</p>' +
+    '<p class="note">次の1本を、どこで・何分後に拾えているか（' +
+    HOT_MIN_N + '件以上）。押すと地図が開きます。</p>' +
     '<div class="scroll"><table><thead><tr><th>この乗り場のあと</th><th>次に拾えた所</th>' +
     '<th class="n">件</th><th class="n">何分後</th><th class="n">次の1本</th></tr></thead><tbody>' +
     L.slice(0, 12).map(function (o){
@@ -3843,8 +4066,7 @@ function pinSetOpen(name){
   box.className = 'modal pinset';
   box.innerHTML =
     '<div class="modalbox"><h2>' + esc(pinSetName) + ' の場所</h2>' +
-    '<p class="note">地図を押すと、そこにピンが立ちます。' +
-    '指でひろげて、できるだけ近くを押してください。</p>' +
+    '<p class="note">地図を押すと、そこにピンが立ちます。</p>' +
     '<div class="psmap" id="psMap"></div>' +
     '<p class="note" id="psAt"></p>' +
     '<div class="modalfoot">' +
@@ -4893,11 +5115,9 @@ function paneHot(now){
   const clock = leadCard('hot') + head +
     '<div class="card"><h2>' + esc(fmtD(c.date)) + ' ' + esc(c.clock) +
     '<span class="nowk">' + esc(c.kind) + 'の夜</span></h2>' +
-    '<p class="note">いまの時刻に合わせて、いま行くとよい所です。' +
-    '全期間の表は【表グラフ】のほうです。</p>' +
-    '<p class="note">' +
-    (c.early ? 'まだ乗務の時間ではないので、' + HOT_FROM + '時台の見当です。' : '') +
-    '自分たちの記録からの傾向です。いま何人いるかを測っているのではありません。</p>' +
+    '<p class="note">いまの時刻に合わせた、いま行くとよい所です。' +
+    (c.early ? '（まだ乗務前なので ' + HOT_FROM + '時台の見当）' : '') +
+    '記録からの傾向で、いまの人数ではありません。</p>' +
     filterChips();
 
   /*
@@ -4980,8 +5200,7 @@ function hotPlanCard(plan, early, nowH){
        「記録が足りない」ばかりが並ぶと、見るところが分からなくなります。 */
   const nh = (nowH == null) ? -1 : Math.floor(nowH);
   return '<div class="card"><h2>時間帯ごとの狙い目（夜ぜんたい）</h2>' +
-    '<p class="note">1時間ごとの、一番強かった場所です。' +
-    '出勤の前でも、夜ぜんたいの流れが分かります。押すと地図が開きます。</p>' +
+    '<p class="note">1時間ごとの、一番強かった場所です。押すと地図が開きます。</p>' +
     '<div class="scroll fb"><div class="plan">' + plan.map(function (s){
       if (!s.top) return '';
       /* いまの時間だけ「いま」と出して、目で追えるようにします */
@@ -5296,9 +5515,8 @@ function tlChart(R){
   return `<div class="snote">← 横にスクロールできます（横画面推奨）</div>
     <div class="scroll fb">${s}</div>
     <div class="legend"><span><i style="background:#8FA3C4"></i>待ち時間</span>${BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.n}</span>`).join('')}<span><i style="background:#5A6273"></i>不明</span><span>横軸は時。25＝翌1時</span></div>
-    <p class="note">一番下の<b>「重なり</b>」は、その時間に動いていた<b>本数</b>です
-      （${ds.length}夜ぶんを合わせた数）。付け待ちを始めてから、降ろすまでを数えています。
-      一番多い時間だけ、色を変えています。<b>お客様の人数ではありません。</b></p>`;
+    <p class="note">一番下の「重なり」は、その時間に動いていた本数です
+      （${ds.length}夜ぶん）。お客様の人数ではありません。</p>`;
 }
 
 /* ------------------------------------------------------------
@@ -5801,8 +6019,7 @@ function bestTimeCard(D){
     '<p class="note"><b>' + esc(pick) + ' は、' + top.h + '時台</b>が一番よさそうです' +
     '（ロング ' + top.L + '%・平均 ' + yen(top.avg) + '・' + top.o.n + '件）。</p>' +
     '<div class="btlist">' + body + '</div>' +
-    '<p class="note">時刻の順に並べています。件数が少ないので、' +
-    '<b>前後1時間をふくめて</b>数えています。3件そろわない時間帯は出していません。</p>' +
+    '<p class="note">時刻の順。前後1時間をふくめて数え、3件未満は出しません。</p>' +
     '<div class="legend">' + BANDS.map(bd => '<span><i style="background:' + bd.c + '"></i>' + bd.n + '</span>').join('') + '</div></div>';
 }
 
@@ -5929,9 +6146,7 @@ function paneRatio(){
        （ご指示・2026/11/22）。上の【乗り場別】から1回で行けます。 */
   const head = leadCard('ratio') + rMenu('ratio') +
     '<div class="card"><h2>ロングが出やすい所と時間</h2>' +
-    '<p class="note">ロング（¥10,000以上）が<b>出やすい所と時間</b>を探す画面です。' +
-    'ショートは¥4,999以下、ミドルは¥5,000〜9,999です。金額が不明な記録は外しています。' +
-    '<b>3件に届かない乗り場は、割合を出しません。</b></p>' +
+    '<p class="note">ロング（¥10,000以上）が出やすい所と時間。3件未満は出しません。</p>' +
     filterChips(true) + '</div>';
   if (!R.length) return head + emptyCard('該当データがありません');
   const all = bandCount(R);
@@ -6358,25 +6573,23 @@ function gasWakeBar(){
    */
   const st = gasStat || {};
   if (st.budMin != null && st.budStop && st.budMin >= st.budStop) {
+    /* ★読む字は、ここまで減らします（ご指示・2026/11/24）。
+         くわしい話は【お知らせ】にあります。 */
     return '<div class="restbar">' +
-      '<b>きょうのぶんは、会場を見にいく仕事だけ お休み中です。</b>' +
-      '<span>Googleの決まりで、自動で動くしかけは1日90分までです。' +
-      'きょうは ' + st.budMin + '分 使いました。' +
-      '<b>夕方5時すぎに、自動で戻ります。</b></span>' +
-      '<span class="note">記録の取り込みと、LINEの受け口は動いています。' +
-      'イベントの紙だけが、前のままです。</span></div>';
+      '<b>イベントだけ お休み中（夕方5時すぎに戻ります）</b>' +
+      '<span>きょう ' + st.budMin + '分／90分。記録は ふだんどおり入ります。</span>' +
+      '</div>';
   }
   const hrs = gasStaleH();
   /* ★押しても直らないときの道を、ここに書いておきます（2026/11/22）。
        押せば直るのが ほとんどですが、Googleの許可が切れていると
        この受け口も動きません。そのときだけ、スプシを開く形になります。
        2日たっても止まったままなら、それが起きていると見ます。 */
+  /* ★2日たっても消えないときの道は、押しても直らなかった方にだけ
+       出します。ふだんは1行も出しません（ご指示・2026/11/24）。 */
   const deep = (hrs > 40)
-    ? '<span class="note wdeep">押しても この帯が消えないときは、' +
-      'Googleの許可が切れています。記録用スプレッドシートを開くと、' +
-      'まん中に なおすボタンの箱が出ます。' +
-      'それでも直らなければ、【拡張機能】→【Apps Script】→' +
-      '関数えらびで「ニア僕の勝ちだ」→【▶実行】です。</span>'
+    ? '<span class="wdeep">消えないときは、記録用スプシを開くと ' +
+      'なおすボタンが出ます。</span>'
     : '';
   /* ★この帯も、小さく たためます（ご指示・2026/11/23
        「小さく畳む機能も追加してください」）。
@@ -6392,9 +6605,7 @@ function gasWakeBar(){
     '<span>イベントの紙が ' + esc(String(evData.at)) + ' のままです' +
     '（' + gasStaleText(hrs) + '）。</span>' +
     '<a class="btn" href="' + esc(gasInfo.exec) + '" target="_blank" rel="noopener">' +
-    '仕掛けを起こす</a>' +
-    '<span class="note">この画面を開いた時点で、裏で1回 起こしにいっています。' +
-    'それでも消えないときだけ、上のボタンを押してください。</span>' + deep + '</div>';
+    '仕掛けを起こす</a>' + deep + '</div>';
 }
 
 /* ============================================================
@@ -7387,7 +7598,13 @@ function fabWire(){
         (tocHidden()
           ? '<button class="fsrow" id="tocBack" type="button">' +
             '<b>目次を出す</b><i>右上の目次を、もう一度 出します</i></button>'
-          : ''));
+          : '') +
+        /* ★設定は、ここから開きます（ご指示・2026/11/24）。
+             下の帯に足すと、行き先が多くなりすぎます。 */
+        '<button class="fsrow" data-t="set" type="button">' +
+        '<b>設定</b><i>トロフィーの知らせ・目次・ボタン位置・はじめての案内</i></button>' +
+        '<button class="fsrow" data-t="fb" type="button">' +
+        '<b>フィードバック</b><i>気づいたことを、そのまま送れます</i></button>');
       /* 移してきた箱の中のボタンを、もう一度つなぎ直します */
       sheet.querySelectorAll('[data-hand]').forEach(function (b2) {
         b2.onclick = function () {
@@ -7406,6 +7623,9 @@ function fabWire(){
         sheet.hidden = true; tocBuild();
       };
       sheet.hidden = false;
+      sheet.querySelectorAll('[data-t]').forEach(function (b) {
+        b.addEventListener('click', function (){ sheet.hidden = true; });
+      });
       sheet.querySelectorAll('[data-go]').forEach(function (b) {
         b.onclick = function () {
           grab(); tab = b.dataset.go; tabSave(); sheet.hidden = true; msg = '';
@@ -7526,9 +7746,20 @@ function tocHidden(){
 function tocTop_(){
   const n = document.getElementById('toc');
   if (!n) return;
-  const h = document.querySelector('header');
-  const y = h ? Math.round(h.getBoundingClientRect().bottom) : 60;
-  n.style.top = Math.max(6, y + 6) + 'px';
+  /* ★目次は、画面の右下（下の帯のすぐ上）に置きます
+       （ご指摘・2026/11/24「右上の目次がメニューと被って押しづらいです」）。
+     右上は、上の帯の ≡ と【?】がある所です。そこへ重ねると、
+     どちらを押したのか分からなくなります。
+     右下なら、片手の親指が 一番 届く所でもあります。 */
+  try {
+    const bb = document.getElementById('botbar');
+    let b = 18;
+    if (bb && !bb.classList.contains('cl')) {
+      b = Math.round(bb.getBoundingClientRect().height) + 12;
+    }
+    n.style.top = 'auto';
+    n.style.bottom = b + 'px';
+  } catch (e) {}
 }
 let foldSet = (function (){
   try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '[]') || []; }
@@ -7886,6 +8117,8 @@ function tocBuild(){
 function htabsFill(){
   const src = document.getElementById('tabs');
   const box = document.getElementById('htabs');
+  /* ★ページの行き先は、画面の下の帯ひとつにしました（ご指示・2026/11/24）。
+       上の帯に同じ一覧を持たせると、同じものが2つ出ます。 */
   if (!src || !box) return;
   box.innerHTML = [...src.querySelectorAll('[data-t]')].map(function (b){
     const nm = (b.querySelector('b') || {}).textContent || (b.textContent || '').trim();
@@ -7934,18 +8167,11 @@ function logoFit_(){
   } catch (e) {}
 }
 
-let tabsSeen_ = null;
+/* ★ページの中のメニューは、画面の下の帯に移りました（ご指示・2026/11/24）。
+     いつも見えているので、「見えているか」を見張る必要がなくなりました。
+     印だけは外しておきます（前の形の名残で、字が消えないように）。 */
 function hdrDupe_(){
-  const hdr = document.querySelector('header');
-  const src = document.getElementById('tabs');
-  if (!hdr || !src) return;
-  const d = src.getBoundingClientRect().bottom - hdr.getBoundingClientRect().bottom;
-  let seen = tabsSeen_;
-  if (d > 12) seen = true;
-  else if (d < -4) seen = false;
-  if (seen === tabsSeen_) return;
-  tabsSeen_ = seen;
-  try { document.body.classList.toggle('tabson', !!seen); } catch (e) {}
+  try { document.body.classList.remove('tabson'); } catch (e) {}
 }
 let hdrTick_ = false;
 function hdrDupeWire_(){
@@ -7964,71 +8190,77 @@ function hdrDupeWire_(){
   hdrDupe_();
 }
 
+/* ★版（v1.0）は、ページの一番下の © の下へ移しました（ご指示・2026/11/24）。
+     上にあった「版とひとこと」の帯そのものが無くなったので、
+     たたむ係は要らなくなりました。呼び出し元が残っていても
+     落ちないように、名前だけ置いておきます。 */
+function hverSet_(){}
+function hverWire_(){}
+
 /* ================================================================
- *  版と、そのとなりの一文も ▼ でしまえます（ご指示・2026/11/23）
- *    「v1.0と、右横のひとことも ▼で折りたたみできるようにしてください」
- *  ★しまっても ▼ だけは残します。残さないと、二度と戻せません。
+ *  上の帯と、下の帯の たたみ・広げ（ご指示・2026/11/24）
+ *    「固定の上メニュー、下メニューは折りたたみや展開ができるように」
+ *
+ *  ★たたんでも、つまみだけは必ず残します。
+ *    残さないと、二度と広げられません。
+ *  ★たたんだかどうかは覚えておきます（毎回たたみ直させないため）。
  * ================================================================ */
-const HVER_KEY = 'tn_hver_fold';
-function hverSet_(cl){
-  const h = document.querySelector('.hver');
-  if (!h) return;
-  h.classList.toggle('cl', !!cl);
-  try { localStorage.setItem(HVER_KEY, cl ? '1' : '0'); } catch (e) {}
-}
-function hverWire_(){
-  const h = document.querySelector('.hver');
-  if (!h || h.dataset.wired) return;
-  h.dataset.wired = '1';
-  const b = document.createElement('button');
-  b.className = 'hvfold'; b.type = 'button';
-  b.setAttribute('aria-label', '版とひとことを たたむ');
-  b.innerHTML = '<i class="fmark">▼</i>';
-  b.onclick = function (){ hverSet_(!h.classList.contains('cl')); };
-  h.appendChild(b);
-  let cl = false;
-  try { cl = (localStorage.getItem(HVER_KEY) === '1'); } catch (e) {}
-  h.classList.toggle('cl', cl);
+const TOPBAR_KEY = 'tn_topbar_fold';
+const BOTBAR_KEY = 'tn_botbar_fold';
+
+/** 帯の高さぶん、中身をずらし直します（たたむと そのぶん広く使えます） */
+function barPad_(){
+  try {
+    const hd = document.getElementById('hdr');
+    const bb = document.getElementById('botbar');
+    /* ★つまみ（▲）は帯の下にぶら下がります。そのぶんも空けないと、
+         一番上の一文に つまみが重なります。 */
+    const th = (hd && !hd.classList.contains('cl'))
+      ? Math.round(hd.getBoundingClientRect().height) + 14 : 20;
+    const bh = (bb && !bb.classList.contains('cl'))
+      ? Math.round(bb.getBoundingClientRect().height) : 18;
+    document.documentElement.style.setProperty('--topH', th + 'px');
+    document.documentElement.style.setProperty('--botH', bh + 'px');
+  } catch (e) {}
 }
 
-let hsubAuto = false;
-function hsubSet(cl){
-  const h = document.getElementById('hsub');
-  if (!h) return;
-  h.classList.toggle('cl', cl);
-}
-function hsubWire(){
-  const h = document.getElementById('hsub');
-  if (!h || h.dataset.wired) return;
-  h.dataset.wired = '1';
-  h.classList.remove('cl');                 /* はじめは開いたまま */
-  const g = document.getElementById('hgrab');
-  if (g) g.onclick = function (e) {
-    e.preventDefault(); hsubAuto = true; hsubSet(!h.classList.contains('cl'));
-  };
-  /* 指で上下に払っても、開いたり閉じたりします */
-  let y0 = null;
-  h.addEventListener('touchstart', function (e) {
-    y0 = (e.touches && e.touches[0]) ? e.touches[0].clientY : null;
-  }, { passive: true });
-  h.addEventListener('touchend', function (e) {
-    if (y0 === null) return;
-    const y1 = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : y0;
-    const dy = y1 - y0;
-    y0 = null;
-    if (Math.abs(dy) < 18) return;          /* 押したつもりで閉じない */
-    hsubAuto = true;
-    hsubSet(dy < 0);                        /* 上へ払ったら閉じる */
-  }, { passive: true });
-  /* 下にスクロールしたら、1回だけ 自動で閉じます */
-  window.addEventListener('scroll', function () {
-    if (hsubAuto) return;
-    if (window.scrollY > 60) { hsubAuto = true; hsubSet(true); }
-  }, { passive: true });
-  hverWire_();
+function barWire_(){
+  const hd = document.getElementById('hdr');
+  const g  = document.getElementById('hgrab');
+  if (hd && g && !g.dataset.wired) {
+    g.dataset.wired = '1';
+    let cl = false;
+    try { cl = (localStorage.getItem(TOPBAR_KEY) === '1'); } catch (e) {}
+    hd.classList.toggle('cl', cl);
+    g.onclick = function (e){
+      e.preventDefault();
+      const on = !hd.classList.contains('cl');
+      hd.classList.toggle('cl', on);
+      try { localStorage.setItem(TOPBAR_KEY, on ? '1' : '0'); } catch (er) {}
+      barPad_(); try { tocTop_(); } catch (er) {}
+    };
+  }
+  const bb = document.getElementById('botbar');
+  const bg = document.getElementById('bgrab');
+  if (bb && bg && !bg.dataset.wired) {
+    bg.dataset.wired = '1';
+    let cl2 = false;
+    try { cl2 = (localStorage.getItem(BOTBAR_KEY) === '1'); } catch (e) {}
+    bb.classList.toggle('cl', cl2);
+    bg.onclick = function (e){
+      e.preventDefault();
+      const on = !bb.classList.contains('cl');
+      bb.classList.toggle('cl', on);
+      try { localStorage.setItem(BOTBAR_KEY, on ? '1' : '0'); } catch (er) {}
+      barPad_();
+    };
+  }
+  barPad_();
   hdrDupeWire_();
   logoFit_();
 }
+/* 前の名前のままでも動くようにしておきます（呼び出し元を1か所にするため） */
+function hsubWire(){ barWire_(); }
 
 /* ★書きかけのまま閉じようとしたら、1度だけ確かめます（ご指示・2026/11/12）
      「なにか入力情報があるままの場合、更新したら、入力途中のため、
@@ -8931,10 +9163,11 @@ function menuDot(){
   const ev = document.getElementById('evDot');
   const nw = document.getElementById('newsDot');
   const on = (ev && !ev.hidden) || (nw && !nw.hidden);
-  /* ★行き先は ▼ の中へ移したので、赤い丸も ▼ に付けます（2026/11/17）。
-       ≡ はアカウントのことだけになったので、新着は出ません。 */
+  /* ★行き先は、画面の下の帯へ移りました（2026/11/24）。
+       下の帯の【イベント】【お知らせ】に、それぞれ黄色い点が付きます。
+       上の帯の つまみは たたむだけのものなので、点は付けません。 */
   const g = document.getElementById('hgrab');
-  if (g) g.classList.toggle('dotted', !!on);
+  if (g) g.classList.remove('dotted');
   const m = document.getElementById('fabMenu');
   if (m) m.classList.remove('dotted');
   /* 赤い丸は あとから付くので、▼ の中身も そのときに作り直します */

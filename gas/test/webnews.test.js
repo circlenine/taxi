@@ -598,7 +598,7 @@ console.log('■ 下見用のページ（ご指示・2026/11/11）');
       });
     const h = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
     t(/pvbar/.test(h) && /下見用/.test(h), '★★★「下見用」と、はっきり出る');
-    t(/<title>TAXI NOTE（下見）<\/title>/.test(h), '　 題でも見分けられる');
+    t(/<title>TA卍I NOTE（下見）<\/title>/.test(h), '　 題でも見分けられる');
     const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
     t(/\.pvbar\{/.test(css), '　 その帯の見た目も入っている');
   }
@@ -729,9 +729,15 @@ console.log('■ ヘッダーの組み方（ご指示・2026/11/11）');
     t(/class="subline"/.test(h), '★★★' + f + '：版と一文が、同じ段にある');
   });
   const idx = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-  const i1 = idx.indexOf('<h1'), i2 = idx.indexOf('id="saymount"'), i3 = idx.indexOf('class="subline"');
-  t(i1 !== -1 && i2 > i1 && i3 > i2,
-    '★★★並びは 題 → ふきだし → 版と一文 の順', [i1, i2, i3]);
+  /* ★2026/11/24 のご指示で、上の帯は 題と ≡ だけの低い1行になりました
+       （「上部分のv1.0〜メニューまでは全て取り除き…Googleスクリプトと
+         同様くらいの高さに」）。版は、ページの一番下へ移しました。 */
+  const i1 = idx.indexOf('<h1'), i2 = idx.indexOf('class="topline"'),
+        i3 = idx.indexOf('id="saymount"'), i4 = idx.indexOf('class="footver"');
+  t(i1 !== -1 && i2 > i1 && i3 > i2 && i4 > i3,
+    '★★★並びは 題 → 一番上の一文 → ふきだし …… 版 の順', [i1, i2, i3, i4]);
+  t(idx.indexOf('class="copy"') < i4, '★★★版は、©のすぐ下にある');
+  t(!/class="hver"/.test(idx), '★★★題のとなりに、版は出さない');
 
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   /* ★題の行は、1行だけの横ならびにしました（ご指摘・2026/11/12
@@ -934,8 +940,9 @@ console.log('■ 題の「X」が、たまに光る（ご指示・2026/11/11）'
     /* ★2026/11/23：2行の幅をそろえるため、行ごとに札で包みました
          （ご指摘「Iの右の空白が少しだけ気になります」）。
        包んだだけで、字は TAXI NOTE のままです。 */
-    t(/<h1 class="dn"><span class="l1">TA<span class="xg">X<\/span>I<\/span><span class="l2">NOTE<\/span><\/h1>/.test(h),
-      '★★★' + f + '：Xだけに印が付いていて、題は TAXI NOTE のまま');
+    /* ★2026/11/24 のご指示で「TAXI NOTE ⇒ TA卍I NOTE」。 */
+    t(/<h1 class="dn"><span class="l1">TA<span class="xg">卍<\/span>I<\/span><span class="l2">NOTE<\/span><\/h1>/.test(h),
+      '★★★' + f + '：題は TA卍I NOTE（卍だけに印）');
   });
 
   t(/h1\.dn \.xg\.on\{animation:xgleam/.test(css), '★★★光らせる動きがある');
@@ -1367,10 +1374,11 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
          （「固定スクロールとドッキングさせる形
            （スクロール後も、タップすると、下が開く）」）。 */
     const h5 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
-    t(h5.indexOf('class="hsub"') < h5.indexOf('</header>'),
-      '★★★灰色のブロックは、貼り付く行の中にある');
-    t(h5.indexOf('class="hver"') < h5.indexOf('class="hsub"'),
-      '★★★版は、ロゴのすぐ下（ブロックをしまっても見える）');
+    /* ★2026/11/24：上の帯は 題と ≡ だけ。ページの行き先は 下の帯へ。 */
+    t(h5.indexOf('id="hgrab"') < h5.indexOf('</header>'),
+      '★★★上の帯の たたむ つまみは、帯の中にある');
+    t(h5.indexOf('id="botbar"') > h5.indexOf('</header>'),
+      '★★★下の帯は、上の帯とは別に置く');
   }
 
   /* ★「粛清完了」には「きろく」とルビを振ります（ご指示・2026/11/12） */
@@ -1455,14 +1463,14 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
        「ちゃんと、メニューらしく 横幅を画面幅に揃えて、作り直してください」） */
   {
     const cs = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
-    t(/nav\{display:grid;grid-template-columns:repeat\(5,1fr\)/.test(cs),
+    t(/nav#tabs\.botnav\{display:grid;grid-template-columns:repeat\(5,1fr\)/.test(cs),
       '★★★メニューは5つずつの ます目（10個を2段で）');
     t(/nav button\{[^}]*width:100%/.test(cs), '★★★1つ1つを、同じ幅にする');
     t(/nav button b\{[^}]*white-space:nowrap/.test(cs), '　 名前は折り返さない');
     const h3 = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
     /* ★タブの中の <i> だけを数えます（▼のつまみは、タブではありません） */
     /* ★▼ の中にも nav（#htabs）があるので、#tabs のほうから数えます */
-    const nav0 = h3.indexOf('<nav id="tabs">');
+    const nav0 = h3.indexOf('<nav id="tabs"');
     const navH = h3.slice(nav0, h3.indexOf('</nav>', nav0));
     const subs = (navH.match(/<i>([^<]*)<\/i>/g) || []).map(x => x.replace(/<\/?i>/g, ''));
     /* ★2026/11/13：「バラシ」「関空」を足し、
@@ -1586,9 +1594,10 @@ console.log('■ 名前と、画面のちがい（ご指示・2026/11/12）');
   /* ★2つの画面のちがいが、それぞれに書いてあること */
   t(/時間帯ごとに、どの乗り場が強いかを並べた表です/.test(app),
     '★★★「表グラフ」が何の表かは、えらんだときに出る');
-  t(/いまの時刻に合わせて[\s\S]{0,40}いま行くとよい所/.test(app),
+  t(/いまの時刻に合わせた、いま行くとよい所/.test(app),
     '★★★「いまアツい」は、いまの時刻の話だと書いてある');
-  t(/表グラフ】のほう/.test(app), '　 もう一方への案内もある');
+  t(/記録からの傾向で、いまの人数ではありません/.test(app),
+    '　 いまの人数ではないと、はっきり書く');
 }
 
 
@@ -1696,10 +1705,12 @@ console.log('■ 4つの数の出し方と、ことばづかい（ご指示・20
   /* ★メニューを、いちばん上に移しました（ご指示・2026/11/12
        「このメニューが1番上の方が良いのではないでしょうか」）。
      ★そのさらに上に、固定ボタンの左右を切り替える所を置きます。 */
-  t(html.indexOf('<nav id="tabs">') < html.indexOf('id="ktop"'),
-    '★★★メニューが、数字より上にある');
-  t(html.indexOf('class="handbar"') < html.indexOf('<nav id="tabs">'),
-    '★★★利き手の切り替えは、いちばん上');
+  /* ★2026/11/24：ページの行き先は、画面の下の帯へ移しました。
+       利き手の切り替えは、≡ の中と【設定】にあります。 */
+  t(/<div class="botbar" id="botbar">/.test(html),
+    '★★★ページの行き先は、画面の下の帯にある');
+  t(/data-hand="l"/.test(html) && /data-hand="r"/.test(html),
+    '★★★利き手の切り替えは、≡ の中にある');
   t(/\.card h2:before\{content:"— "/.test(css), '　 赤い線は、見出しの頭に付く');
 
   /* ---- 長い1文は、もう出さない ---- */
@@ -2621,7 +2632,10 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   t(/function htabsFill\(/.test(app), '★★★▼ の中に、行き先を並べる係がある');
   t(/const src = document\.getElementById\('tabs'\)/.test(app),
     '★★★中身は、ページの中のメニューから作る（元は1つ）');
-  t(/<nav id="htabs"><\/nav>/.test(h3b), '★★★▼ の中に、行き先の入れものがある');
+  /* ★2026/11/24：行き先は、画面の下の帯ひとつにしました
+       （同じものを2つ出さないため）。 */
+  t(/<nav id="tabs" class="botnav">/.test(h3b), '★★★行き先は、下の帯にある');
+  t(!/<nav id="htabs">/.test(h3b), '　 上の帯には、同じ一覧を置かない');
   t(/getElementById\('acctBox'\)[\s\S]{0,160}sheet\.appendChild\(box\)/.test(app),
     '★★★≡ の中に、アカウントのことを移してきている');
   t(/id="acctBox" hidden/.test(h3b), '　 アカウントの箱は、はじめは出さない');
@@ -2771,7 +2785,7 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
     '★★★一番 重なっている時間は、色を変える');
   t(/この時間に動いていた \$\{n\}本/.test(app),
     '★★★本数だと分かるように書く');
-  t(/<b>お客様の人数ではありません。<\/b>/.test(app),
+  t(/お客様の人数ではありません。/.test(app),
     '★★★人数ではないと、はっきり書く（数字を嘘にしない）');
   /* ⑥-12b 横棒グラフ：パッと見て分かる形に（ご指摘・2026/11/13
             「これ、パッと見、よく分からないので もっと視覚的に
@@ -2861,16 +2875,18 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ⑥-16 2026/11/13 のまとめてのご指示 */
 
   /* 一番上を、ひとつのブロックに */
-  t(/<div class="hsub" id="hsub">/.test(idx), '★★★上のブロックに、まとめる入れものがある');
-  t(/id="hgrab"/.test(idx), '★★★指で開け閉めするつまみがある');
-  t(/\.hsub\.cl\{[^}]*max-height:0/.test(css), '　 閉じたら、灰色のブロックが まるごと消える');
-  t(/function hsubWire\(/.test(app), '★★★開け閉めの動きがある');
-  t(/addEventListener\('touchend'/.test(app), '★★★指で上下に払って開け閉めできる');
-  t(/Math\.abs\(dy\) < 18/.test(app), '　 少し触れただけでは閉じない');
-  /* ★2026/11/13 のご指示で「1番初めは、開いたままの状態で」。
-       覚えておく形はやめ、開くたびに 開いた形から始めます。 */
-  t(/h\.classList\.remove\('cl'\);/.test(app), '　 はじめは、いつも開いたまま');
-  t(/window\.scrollY > 60/.test(app), '　 下にスクロールしたら、1回だけ自動で閉じる');
+  /* ★2026/11/24 のご指示
+       「固定の上メニュー、下メニューは折りたたみや展開ができるように」 */
+  t(/id="hgrab"/.test(idx), '★★★上の帯に、たたむ つまみがある');
+  t(/id="bgrab"/.test(idx), '★★★下の帯にも、たたむ つまみがある');
+  t(/function barWire_\(/.test(app), '★★★たたむ・広げる動きがある');
+  t(/header#hdr\.cl\{height:0/.test(css), '　 たたむと、上の帯は高さが無くなる');
+  t(/\.botbar\.cl\{transform:translateY/.test(css), '　 下の帯は、下へ しまわれる');
+  t(/header#hdr\.cl \.hgrab i\{transform:rotate\(180deg\)\}/.test(css),
+    '　 たたむと、つまみの向きが変わる');
+  t(/localStorage\.setItem\(TOPBAR_KEY/.test(app) &&
+    /localStorage\.setItem\(BOTBAR_KEY/.test(app),
+    '★★★たたんだかどうかは、覚えておく');
 
   /* 過去の記録は、記録の画面だけ */
   t(/ktop\.hidden = \(tab !== 'in'\)/.test(app),
@@ -3062,14 +3078,14 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ⑥-18 2026/11/13（3回目）のご指示 */
 
   /* 灰色のブロックを、貼り付く行にドッキング */
-  t(idx.indexOf('class="hsub"') < idx.indexOf('</header>'),
-    '★★★灰色のブロックは、貼り付く行の中（下まで進んでも ▼ で開く）');
+  t(/header#hdr\{position:fixed/.test(css),
+    '★★★上の帯は、下まで進んでも 画面に貼り付いたまま');
   t(/<i>▼<\/i>/.test(idx), '★★★▼ のつまみがある（押すと下に開く）');
-  t(/\.hsub:not\(\.cl\) \+ \.hgrab i\{transform:rotate\(180deg\)\}/.test(css),
+  t(/header#hdr\.cl \.hgrab i\{transform:rotate\(180deg\)\}/.test(css),
     '　 開いているときは ▲（押すと しまう）');
-  t(/<div class="hver">/.test(idx), '★★★版は、ロゴのすぐ下');
-  t(idx.indexOf('class="hver"') < idx.indexOf('class="hsub"'),
-    '　 ブロックをしまっても、版は見える');
+  t(/<div class="footver">/.test(idx), '★★★版は、ページの一番下（©の下）');
+  t(idx.indexOf('class="footver"') > idx.indexOf('class="copy"'),
+    '　 上の帯を たたんでも、版は ページの下に残る');
   t(!/HSUB_KEY/.test(app), '★★★閉じたままは覚えない（はじめは いつも開いたまま）');
 
   /* イベントは、種類ごとに大きな見出し＋時間の早い順 */
@@ -3165,8 +3181,9 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
   /* ★押しても直らないときの道。許可が切れていると受け口も動きません。 */
   t(/const deep = \(hrs > 40\)/.test(app),
     '★★★2日たっても止まったままなら、次の手も出す');
-  t(/ニア僕の勝ちだ[\s\S]{0,60}▶実行/.test(app),
-    '　 そこに、押すものの名前がそのまま書いてある');
+  t(/記録用スプシを開くと ' \+\s*\n?\s*'なおすボタンが出ます/.test(app) ||
+    /なおすボタンが出ます/.test(app),
+    '　 そこに、次にすることが書いてある');
   t(/仕掛けを起こす/.test(app), '★★★【仕掛けを起こす】のボタンがある');
   t(/fsrow wake/.test(app), '★★★≡ の一覧からも、いつでも押せる');
   t(/\.wakebar\{/.test(css), '　 その帯の見た目がある');
@@ -3183,11 +3200,11 @@ console.log('■ 記録の表と、色の決まり（ご指示・2026/11/12）')
 
   /* ≡ の赤い丸（未読があるとき） */
   t(/function menuDot\(/.test(app), '★★★≡ に赤い丸を付ける係がある');
-  /* ★行き先は ▼ の中へ移したので、赤い丸も ▼ に付けます（2026/11/17） */
-  t(/g\.classList\.toggle\('dotted', !!on\)/.test(app), '　 未読があるときだけ ▼ に付ける');
-  t(/m\.classList\.remove\('dotted'\)/.test(app), '　 ≡ には付けない（行き先が無いので）');
-  t(/\.hgrab\.dotted:before\{/.test(css), '　 つまみの線（:after）を消さない形で付けている');
-  t(/\.fab\.menu\.dotted:after\{/.test(css), '　 その赤い丸の見た目がある');
+  /* ★2026/11/24：行き先は 下の帯へ移したので、点も下の帯に付けます。
+       上の帯の つまみは たたむだけのものなので、点は付けません。 */
+  t(/g\.classList\.remove\('dotted'\)/.test(app), '　 上の帯の つまみには、点を付けない');
+  t(/m\.classList\.remove\('dotted'\)/.test(app), '　 ≡ にも付けない（行き先が無いので）');
+  t(/nav#tabs\.botnav button \.dot\{/.test(css), '　 点は、下の帯のボタンに出る');
   t(/menuDot\(\);/.test(app), '　 開いたら、その場で消す');
 
   /* 見出しだけで、折りたたむ・広げる */
@@ -4569,7 +4586,7 @@ console.log('■ 見た目の試しのページ（2026/11/17）');
   const tcss = fs.readFileSync(path.join(T, 'try.css'), 'utf8');
   t(/<div class="trybar">/.test(tix), '★★★試しの帯が出ている（本番と見分けがつく）');
   t(/見た目の試し/.test(tix), '　 そう書いてある');
-  t(/<title>TAXI NOTE（見た目の試し）<\/title>/.test(tix), '★★★題でも見分けがつく');
+  t(/<title>TA卍I NOTE（見た目の試し）<\/title>/.test(tix), '★★★題でも見分けがつく');
   t(/<link rel="stylesheet" href="try\.css\?v=/.test(tix), '★★★試しの上がけを読んでいる');
   t(tix.indexOf('style.css?v=') < tix.indexOf('try.css?v='),
     '★★★本番の見た目の「あと」に上がけする');
@@ -4619,8 +4636,7 @@ console.log('■ 顔から出る字を変える（2026/11/22）');
   const sh  = fs.readFileSync(path.join(W, 'shared.js'), 'utf8');
   const sql = fs.readFileSync(path.join(W, 'supabase', 'pending.sql'), 'utf8');
   t(/function paneFaceFx\(\)/.test(app), '★★★変える欄がある');
-  t(/paneSays[\s\S]{0,40}\}\n*\s*`? ?/.test(app) && /\+ paneFaceFx\(\);/.test(app),
-    '★★★ふきだしの欄の、すぐ下に出す');
+  t(/\+ paneFaceFx\(\);/.test(app), '★★★ふきだしの欄の、すぐ下に出す');
   t(/async function faceSave\(\)/.test(app) && /\.from\('faces'\)\s*\n?\s*\.upsert/.test(app),
     '★★★変えると、台帳に入る（みんなの画面が同じ字になる）');
   t(/async function loadFaces\(\)/.test(app) && /loadFaces\(\);/.test(app),
@@ -4782,12 +4798,11 @@ console.log('\n■ 上の行の作り直し（ご指示・2026/11/23）');
   const css = fs.readFileSync(path.join(W, 'style.css'), 'utf8');
   const ix  = fs.readFileSync(path.join(W, 'index.html'), 'utf8');
 
-  /* ① ページの中のメニューが見えている間は、▼のメニューを出さない */
+  /* ★2026/11/24：ページの行き先は、画面の下の帯 ひとつになりました。
+       いつも見えているので、同じ一覧を2つ持つ心配そのものが無くなりました。 */
   t(/function hdrDupe_\(\)\{/.test(app), '★★★同じメニューが2つ並ばないようにしている');
-  t(/if \(d > 12\) seen = true;[\s\S]{0,60}else if \(d < -4\) seen = false;/.test(app),
-    '★★★境目で ちらつかないよう、出す線と消す線をずらしてある');
-  t(/body\.tabson #hsub, body\.tabson \.hgrab\{display:none\}/.test(css),
-    '★★★見えている間は、▼ のメニューも つまみも出さない');
+  t(!/<nav id="htabs">/.test(ix), '★★★上の帯には、同じ一覧を置かない');
+  t(/nav#tabs\.botnav\{/.test(css), '★★★行き先は、下の帯ひとつ');
   t(/window\.addEventListener\('scroll', run/.test(app) &&
     /window\.addEventListener\('resize', run/.test(app),
     '　 動かしたときと、画面の向きを変えたときに見直す');
@@ -4804,13 +4819,12 @@ console.log('\n■ 上の行の作り直し（ご指示・2026/11/23）');
     '★★★ます目の字は、画面の幅に合わせて ぜんぶ同じだけ小さくなる');
   t(/<b>パーセント<\/b>/.test(ix), '★★★「％」ではなく「パーセント」と書く');
 
-  /* ④ 版と、そのとなりの一文を たためる */
-  t(/function hverWire_\(\)\{/.test(app), '★★★版と一文を ▼ でしまえる');
-  t(/\.hver\.cl > \.ver, \.hver\.cl > \.sub\{display:none\}/.test(css),
-    '　 しまうと、版も一文も消える');
-  t(/\.hver > \.hvfold\{/.test(css) && !/\.hver\.cl > \.hvfold\{display:none/.test(css),
-    '★★★しまっても ▼ は残る（残さないと、二度と戻せません）');
-  t(/localStorage\.setItem\(HVER_KEY/.test(app), '　 しまったままを覚える');
+  /* ④ ★2026/11/24：版は ページの一番下へ、一文は ページの一番上の行へ。
+         上の帯そのものが たためるので、たたむ係は 帯のほうに移りました。 */
+  t(/<div class="footver">/.test(ix), '★★★版は、ページの一番下（©の下）');
+  t(/<div class="topline">/.test(ix), '★★★一番上の一文は、ページの一番上の行');
+  t(/function barWire_\(/.test(app), '★★★上の帯ごと たためる');
+  t(/localStorage\.setItem\(TOPBAR_KEY/.test(app), '　 たたんだままを覚える');
 }
 
 console.log('\n■ 説明タブと、右上の目次（ご指示・2026/11/23）');
@@ -4825,9 +4839,12 @@ console.log('\n■ 説明タブと、右上の目次（ご指示・2026/11/23）
     '　 欄そのものを作っていない');
   t(/function leadPopup\(k\)\{/.test(app),
     '★★★かわりに【説明】を押すと、箱で出る');
-  t((ix.match(/class="leadbtn" data-lead="1"/g) || []).length === 2,
-    '★★★【説明】は、メニューのすぐ下（ページの中と ▼ の中の2か所）',
-    (ix.match(/class="leadbtn"/g) || []).length);
+  /* ★2026/11/24：【説明】は、上の帯の【?】ひとつにしました
+       （同じものを2つ出さない・帯を低くする、の両方のため）。 */
+  t((ix.match(/data-lead="1"/g) || []).length === 1,
+    '★★★【説明】は、上の帯の【?】ひとつ',
+    (ix.match(/data-lead="1"/g) || []).length);
+  t(/<button class="hbtn" data-lead="1"/.test(ix), '　 題のとなりに置く');
 
   /* ② 目次は、右上に貼り付ける */
   t(/\.tocfab\{position:fixed;right:8px/.test(css),
@@ -4859,9 +4876,9 @@ console.log('\n■ ▼ の形と、顔の大きい絵（ご指示・2026/11/23�
     '★★★▼ の大きさは、どこでも 26px の丸');
   t(/\.card > h2 \.fmark, #ktop > h2 \.fmark\{margin-right:6px\}/.test(css),
     '★★★▼ の場所も、プルダウンの ▼ と同じ所にそろえる');
-  t(/\.hver > \.hvfold \.fmark\{/.test(css),
-    '　 上の行の ▼ も、同じ形にそろえる');
-  t(/b\.innerHTML = '<i class="fmark">▼<\/i>';/.test(app),
+  t(/\.hbtn\{width:32px;height:32px/.test(css),
+    '　 上の帯のボタンも、同じ大きさにそろえる');
+  t(/i\.className = 'fmark'; i\.textContent = '▼';/.test(app),
     '　 字ではなく、同じ札として入れている');
 
   /* ② 顔を押すと、大きい絵が出る */
@@ -5109,9 +5126,10 @@ console.log('\n■ トロフィー（ご指示・2026/11/23）');
     '★★★押しどころがある');
   t(/class="trotile ' \+ x\.t \+ \(x\.on \? ' on' : ''\)/.test(app),
     '★★★まだのものも、薄く出す（何が残っているか分かるように）');
-  t(/\.trotile\{[\s\S]{0,260}opacity:\.55\}/.test(css) && /\.trotile\.on\{opacity:1/.test(css),
+  t(/\.trotile:not\(\.on\)\{opacity:\.62/.test(css) && /\.trotile\.on\{opacity:1/.test(css),
     '　 薄いのと、そろったものの見分けがつく');
-  t(/あと <b>' \+ \(all\.length - got\.length\) \+ '<\/b> つです/.test(app),
+  t(/つぎの段まで あと <b>' \+ lv\.next/.test(app) &&
+    /'<span><i>そろった<\/i><b>' \+ got\.length/.test(app),
     '★★★残りの数を出す');
   t(/もう少しで届くもの/.test(app), '★★★もう少しで届くものを、先に出す');
   t(/function troPopup\(got\)\{/.test(app), '★★★手に入れたら、その場で知らせる');
@@ -5126,8 +5144,8 @@ console.log('\n■ わざと休んでいるときは、赤い帯を出さない�
   t(/if \(st\.budMin != null && st\.budStop && st\.budMin >= st\.budStop\) \{/.test(app),
     '★★★持ち時間を使い切って休んでいるときを、見分ける');
   t(/restbar/.test(app) && /\.restbar\{/.test(css), '★★★そのときは、赤くない帯を出す');
-  t(/お休み中です/.test(app), '　 壊れていないことが、ことばで分かる');
-  t(/dTemp|budMin \+ '分 使いました/.test(app), '　 何分 使ったかを出す');
+  t(/お休み中/.test(app), '　 壊れていないことが、ことばで分かる');
+  t(/st\.budMin \+ '分／90分/.test(app), '　 何分 使ったかを出す');
   /* 休んでいるときに【仕掛けを起こす】を出さない（押しても持ち時間を食うだけ） */
   {
     const i0 = app.indexOf('function gasWakeBar(){');

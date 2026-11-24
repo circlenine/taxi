@@ -36,7 +36,7 @@ for f in sorted(P.glob('*')):
         continue
     t = src.read_text(encoding='utf-8')
     if f.name == 'index.html':
-        t = t.replace('<title>TAXI NOTE</title>', '<title>TAXI NOTE（下見）</title>', 1)
+        t = t.replace('<title>TA卍I NOTE</title>', '<title>TA卍I NOTE（下見）</title>', 1)
         L = t.split('\n')
         at = next(i for i, ln in enumerate(L) if '<body' in ln) + 1
         L.insert(at, BAR)

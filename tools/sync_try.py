@@ -38,8 +38,8 @@ for f in sorted(T.glob('*')):
         continue
     t = src.read_text(encoding='utf-8')
     if f.name == 'index.html':
-        t = t.replace('<title>TAXI NOTE</title>',
-                      '<title>TAXI NOTE（見た目の試し）</title>', 1)
+        t = t.replace('<title>TA卍I NOTE</title>',
+                      '<title>TA卍I NOTE（見た目の試し）</title>', 1)
         # 本番の style.css の「あと」に、試しの上がけを足します
         m = re.search(r'<link rel="stylesheet" href="style\.css\?v=([^"]+)">', t)
         ver = m.group(1) if m else '1'
