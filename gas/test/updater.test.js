@@ -7742,6 +7742,21 @@ console.log('\n■ LINEの記録を、その場で台帳にも入れる（ご指
   t(/catch \(e\) \{[\s\S]{0,160}return false;\n  \}\n\}/.test(
       U.slice(U.indexOf('function sbRideNow_'))),
     '★★★ぜったいに例外を外へ出さない');
+  /* ★入ったか／断られたかを、控えに残すこと。
+       これが無いと、ここが黙ってこけても **だれも気づけません**。
+       20分おきの取り込みが後から同じ記録を入れるので、
+       画面の上では何ごとも無かったように見えてしまいます。 */
+  {
+    const i = U.indexOf('function sbRideNow_(rec) {');
+    const seg = U.slice(i, U.indexOf('\n}\n', i));
+    t(/📲 台帳へ その場で入れました：/.test(seg), '★★★入ったことを、控えに残す');
+    t(/📲 台帳に入れられませんでした（/.test(seg), '★★★断られたことも、控えに残す');
+    t(/📲 台帳へ入れる所でこけました：/.test(seg), '★★★こけたことも、控えに残す');
+    /* 人の名前は書かない（控えは まーく様だけが見るものだが、名前は要らない） */
+    t(!/rec\.sender|rec\.ownerTab/.test(seg.slice(seg.indexOf('updErrandLog_'))),
+      '　 控えに、人の名前は書かない');
+  }
+
   /* ★鍵そのものを、コードにも控えにも書かない */
   {
     const seg = U.slice(U.indexOf('function sbRideNow_'), U.indexOf('function sbRideNow_') + 3000);
