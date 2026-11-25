@@ -1,217 +1,6 @@
 {
- "at": "2026-11-25 15:23",
+ "at": "2026-11-26 00:23",
  "days": [
-  {
-   "d": "2026-11-25",
-   "list": [
-    {
-     "v": "大阪城ホール",
-     "t": "GENERATIONS",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.osaka-johall.com/event/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "GENERATIONS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://generations-ldh.jp"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/generationsfext"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/generations_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCzMImnHX_dVAh6oS_HGD3fg"
-      }
-     ],
-     "au": "10代〜30代の女性が中心。グループの活動歴が長く、親子連れで来場するファンも多い。",
-     "kn": "2024年でデビュー12周年を迎え、メンバー個々のバラエティや俳優活動も絶好調なグループです。",
-     "av": "過去のメンバー脱退や、特定のメンバーに関するスキャンダル、SNSでの炎上騒動など。",
-     "cap": 16000
-    },
-    {
-     "v": "パナソニックスタジアム",
-     "t": "AFCチャンピオンズリーグElite MD5 ガンバ大阪 VS ポートFC",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://suitacityfootballstadium.jp/schedule/",
-     "al": [],
-     "au": "20代から50代中心。男性がやや多めだが、家族連れやカップルも多い。",
-     "kn": "リーグ戦終盤の連戦で、アジアの舞台での勝利がチームの勢いに直結する重要な一戦です。",
-     "av": "直近の公式戦での敗戦や、順位に関わるネガティブな話題。",
-     "cap": 0
-    },
-    {
-     "v": "京セラドーム大阪",
-     "t": "BIG BANG（搬入（初日））　📅 公演は 11/27 から3日間［コンサート］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [],
-     "au": "20代から40代の女性が中心。熱心なファンが多く、韓国文化に馴染みがある層。",
-     "kn": "数年ぶりの来日公演のため、ファンの熱気が非常に高まっています。再会を待ちわびる声が多いです。",
-     "av": "過去のメンバー脱退や、所属事務所のトラブルに関する話題は厳禁です。",
-     "cap": 36000
-    },
-    {
-     "v": "フェスティバルホール",
-     "t": "サグラダ・ファミリア シンフォニックコンサート",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": [],
-     "au": "40代〜70代が中心。男女比は4:6程度で、クラシック愛好家や建築ファンが多い傾向。",
-     "kn": "ガウディ没後100年に向けたプロジェクトの一環。実際に現地の鐘の音を録音した音源を使用しています。",
-     "av": "",
-     "cap": 2700
-    },
-    {
-     "v": "サンケイホールブリーゼ",
-     "t": "舞台『ぼくのドラゴンがごはんを食べない!!』（搬入（初日））　📅 公演は 11/27 から10日間［舞台］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [],
-     "au": "20代から40代が中心で、女性比率が7割程度と高めです。",
-     "kn": "人気声優の朗読劇を交えた舞台で、ドラゴンと少年の心の交流を描く物語です。",
-     "av": "",
-     "cap": 910
-    },
-    {
-     "v": "ユニバーサル・スタジオ・ジャパン",
-     "t": "営業時間",
-     "k": "event",
-     "s": "09:00",
-     "e": "21:00",
-     "g": false,
-     "sk": "開園",
-     "ek": "閉園",
-     "a": "20:45 に着ける（終演 21:00 の15分前）",
-     "r": "",
-     "u": "https://www.usj.co.jp/web/ja/jp",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 0
-    },
-    {
-     "v": "BIGCAT",
-     "t": "還暦記念ツアー『猟奇覚醒』",
-     "k": "event",
-     "s": "19:15",
-     "e": "21:45",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "http://bigcat-live.com/schedule/",
-     "al": [],
-     "au": "50代以上が中心、男女比は半々程度。熱心で落ち着いたファン層が目立つ。",
-     "kn": "還暦を迎えたアーティストの記念ツアーで、バンドの歴史を振り返る特別なセットリストが話題。",
-     "av": "メンバー脱退や過去の不祥事、急な活動休止に関する話題。",
-     "cap": 700
-    },
-    {
-     "v": "GORILLA HALL OSAKA",
-     "t": "Wolf Alice",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://gorillahall.jp/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "Wolf Alice"
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://www.wolfalice.co.uk/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/wolfalicemusic"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/wolfaliceband/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCE3uvMO3ERiFphvVX_ct3GA"
-      }
-     ],
-     "au": "20代から40代が中心。男女比は半々程度で、洋楽ロックを好む感度の高い層が多い。",
-     "kn": "英国のグラストンベリー等でヘッドライナーを務める実力派。待望の来日公演でファンの熱量が高い。",
-     "av": "",
-     "cap": 0
-    },
-    {
-     "v": "オリックス劇場",
-     "t": "（名前を読み取れませんでした）",
-     "k": "event",
-     "s": "17:00",
-     "e": "19:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2400
-    }
-   ]
-  },
   {
    "d": "2026-11-26",
    "list": [
@@ -450,6 +239,42 @@
      "cap": 0
     },
     {
+     "v": "グランキューブ大阪",
+     "t": "BUDDiiS vol.12 Hall Tour - LiMiT -の公演詳細 | 公演を探す",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:15",
+     "g": true,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://kyodo-osaka.co.jp/search/detail/13278",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "BUDDiiS"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://buddiis.com/"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/buddiis.official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCH3rQwjymt2WWLKpDbAb2Dg"
+      }
+     ],
+     "au": "10代〜20代の女性が中心。学生から社会人まで幅広く、熱心なファン層。",
+     "kn": "スターダストプロモーション所属の10人組グループ。ダンスボーカルグループとしての躍進が目覚ましい。",
+     "av": "",
+     "cap": 2754
+    },
+    {
      "v": "オリックス劇場",
      "t": "初の全国ホールツアー2026",
      "k": "event",
@@ -466,6 +291,169 @@
      "kn": "",
      "av": "",
      "cap": 2400
+    },
+    {
+     "v": "フェニーチェ堺",
+     "t": "木村くんと有山くん meets アフリカン・リズム2026",
+     "k": "event",
+     "s": "19:00",
+     "e": "21:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.fenice-sacay.jp/",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    }
+   ]
+  },
+  {
+   "d": "2026-11-27",
+   "list": [
+    {
+     "v": "京セラドーム",
+     "t": "BIGBANG 2026-2027 WORLD TOUR IN JAPAN",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "📅 3日中の初日",
+     "u": "https://www.kyoceradome-osaka.jp/schedule/",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    },
+    {
+     "v": "大阪城ホール",
+     "t": "矢沢永吉（搬入（初日））　📅 公演は 11/28 から2日間［コンサート］",
+     "k": "hanyu",
+     "s": "",
+     "e": "",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://onetoone-jp.com/schedule.php",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "矢沢永吉"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.eikichiyazawa.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/official_YAZAWA"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/eikichi_yazawa_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCclg9BKyyV_crlsuuXgVYcw"
+      }
+     ],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 16000
+    },
+    {
+     "v": "ユニバーサル・スタジオ・ジャパン",
+     "t": "営業時間",
+     "k": "event",
+     "s": "08:30",
+     "e": "19:00",
+     "g": false,
+     "sk": "開園",
+     "ek": "閉園",
+     "a": "18:45 に着ける（終演 19:00 の15分前）",
+     "r": "",
+     "u": "https://www.usj.co.jp/web/ja/jp",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    },
+    {
+     "v": "BIGCAT",
+     "t": "ONE MAN TOUR 2026-2027 『きみのページに、栞をひとつ』",
+     "k": "event",
+     "s": "18:30",
+     "e": "21:00",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "http://bigcat-live.com/schedule/",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 700
+    },
+    {
+     "v": "オリックス劇場",
+     "t": "（名前を読み取れませんでした）",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 2400
+    },
+    {
+     "v": "フェニーチェ堺",
+     "t": "大人のための「好き」をみつける劇場への扉 第３回・第４回",
+     "k": "event",
+     "s": "16:00",
+     "e": "21:00",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.fenice-sacay.jp/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "大人のための"
+      },
+      {
+       "l": "公式サイト",
+       "u": "http://www.pref.shiga.lg.jp/e/seijin/"
+      }
+     ],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
     }
    ]
   }
