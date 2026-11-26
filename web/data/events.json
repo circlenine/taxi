@@ -1,281 +1,6 @@
 {
- "at": "2026-11-26 15:08",
+ "at": "2026-11-27 00:08",
  "days": [
-  {
-   "d": "2026-11-26",
-   "list": [
-    {
-     "v": "大阪城ホール",
-     "t": "GENERATIONS",
-     "k": "event",
-     "s": "18:30",
-     "e": "21:00",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.osaka-johall.com/event/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "GENERATIONS"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://generations-ldh.jp"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/generationsfext"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/generations_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCzMImnHX_dVAh6oS_HGD3fg"
-      }
-     ],
-     "au": "10代〜30代の女性が中心。グループの活動歴が長く、親子連れで来場するファンも多い。",
-     "kn": "2024年でデビュー12周年を迎え、メンバー個々のバラエティや俳優活動も絶好調なグループです。",
-     "av": "過去のメンバー脱退や、特定のメンバーに関するスキャンダル、SNSでの炎上騒動など。",
-     "cap": 16000
-    },
-    {
-     "v": "京セラドーム大阪",
-     "t": "BIG BANG（搬入（初日））　📅 公演は 11/27 から3日間［コンサート］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [],
-     "au": "20代〜40代の女性が中心。熱狂的なファンが多く、韓国カルチャーに関心が高い層が目立つ。",
-     "kn": "久しぶりの大規模な動きにファンは期待が高まっています。メンバー個々の活動やグループの再集結といった近況が話題の種になりそ",
-     "av": "過去の脱退騒動やメンバー個人の不祥事、法的なトラブルに関する話題は避けるのが無難です。",
-     "cap": 36000
-    },
-    {
-     "v": "フェスティバルホール",
-     "t": "tuki.『秋の修学旅⾏〜天体観測〜』",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.festivalhall.jp/events/list/2026/11/",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "tuki."
-      },
-      {
-       "l": "公式サイト",
-       "u": "https://tuki-official.net/"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/tuki_music_"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/tuki.music.official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCp74ruKv2sUiI2HqEhH8pRw"
-      }
-     ],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2700
-    },
-    {
-     "v": "グランキューブ大阪(大阪府立国際会議場）",
-     "t": "MAZZEL（公演日）［コンサート］",
-     "k": "barasi",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "MAZZEL"
-      },
-      {
-       "l": "X",
-       "u": "https://x.com/mazzel_official"
-      },
-      {
-       "l": "Instagram",
-       "u": "https://www.instagram.com/mazzel_official/"
-      },
-      {
-       "l": "YouTube",
-       "u": "https://www.youtube.com/channel/UCMF_5h2OejEhVorTB02UUSg"
-      }
-     ],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2754
-    },
-    {
-     "v": "サンケイホールブリーゼ",
-     "t": "舞台『ぼくのドラゴンがごはんを食べない!!』（搬入（初日））　📅 公演は 11/27 から10日間［舞台］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 910
-    },
-    {
-     "v": "森ノ宮ピロティホール",
-     "t": "WAHAHA本舗（搬入（初日））　📅 公演は 11/27 から3日間［舞台］",
-     "k": "hanyu",
-     "s": "",
-     "e": "",
-     "g": false,
-     "sk": "",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://onetoone-jp.com/schedule.php",
-     "al": [
-      {
-       "l": "name",
-       "u": "",
-       "n": "WAHAHA本舗"
-      },
-      {
-       "l": "公式サイト",
-       "u": "http://wahahahompo.co.jp/"
-      }
-     ],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 1030
-    },
-    {
-     "v": "ユニバーサル・スタジオ・ジャパン",
-     "t": "営業時間",
-     "k": "event",
-     "s": "08:30",
-     "e": "21:30",
-     "g": false,
-     "sk": "開園",
-     "ek": "閉園",
-     "a": "21:15 に着ける（終演 21:30 の15分前）",
-     "r": "",
-     "u": "https://www.usj.co.jp/web/ja/jp",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 0
-    },
-    {
-     "v": "BIGCAT",
-     "t": "wave to earth – the pieces tour",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "http://bigcat-live.com/schedule/",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 700
-    },
-    {
-     "v": "GORILLA HALL OSAKA",
-     "t": "天羽生茜・藤堂未渚 (すーぱーぷーばぁー!!)",
-     "k": "event",
-     "s": "18:50",
-     "e": "20:50",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://gorillahall.jp/",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 0
-    },
-    {
-     "v": "オリックス劇場",
-     "t": "初の全国ホールツアー2026",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 2400
-    },
-    {
-     "v": "フェニーチェ堺",
-     "t": "木村くんと有山くん meets アフリカン・リズム2026",
-     "k": "event",
-     "s": "19:00",
-     "e": "21:30",
-     "g": true,
-     "sk": "開演",
-     "ek": "",
-     "a": "",
-     "r": "",
-     "u": "https://www.fenice-sacay.jp/",
-     "al": [],
-     "au": "",
-     "kn": "",
-     "av": "",
-     "cap": 0
-    }
-   ]
-  },
   {
    "d": "2026-11-27",
    "list": [
@@ -390,6 +115,265 @@
      "kn": "",
      "av": "",
      "cap": 2400
+    },
+    {
+     "v": "フェニーチェ堺",
+     "t": "大人のための「好き」をみつける劇場への扉 第３回・第４回",
+     "k": "event",
+     "s": "16:00",
+     "e": "21:00",
+     "g": false,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.fenice-sacay.jp/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "大人のための"
+      },
+      {
+       "l": "公式サイト",
+       "u": "http://www.pref.shiga.lg.jp/e/seijin/"
+      }
+     ],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    }
+   ]
+  },
+  {
+   "d": "2026-11-28",
+   "list": [
+    {
+     "v": "大阪城ホール",
+     "t": "矢沢永吉",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.osaka-johall.com/event/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "矢沢永吉"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.eikichiyazawa.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/official_YAZAWA"
+      },
+      {
+       "l": "Instagram",
+       "u": "https://www.instagram.com/eikichi_yazawa_official/"
+      },
+      {
+       "l": "YouTube",
+       "u": "https://www.youtube.com/channel/UCclg9BKyyV_crlsuuXgVYcw"
+      }
+     ],
+     "au": "50代から70代が中心。男女比は男性6対女性4程度で、熱烈なファンが多い。",
+     "kn": "75歳を迎え、変わらぬエネルギーで全国を巡るツアーの熱量や、代表曲の盛り上がりについて。",
+     "av": "",
+     "cap": 16000
+    },
+    {
+     "v": "京セラドーム",
+     "t": "BIGBANG 2026-2027 WORLD TOUR IN JAPAN",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "📅 3日中の2日目",
+     "u": "https://www.kyoceradome-osaka.jp/schedule/",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    },
+    {
+     "v": "ユニバーサル・スタジオ・ジャパン",
+     "t": "営業時間",
+     "k": "event",
+     "s": "08:30",
+     "e": "22:00",
+     "g": false,
+     "sk": "開園",
+     "ek": "閉園",
+     "a": "21:45 に着ける（終演 22:00 の15分前）",
+     "r": "",
+     "u": "https://www.usj.co.jp/web/ja/jp",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 0
+    },
+    {
+     "v": "フェスティバルホール",
+     "t": "松山バレエ団 「くるみ割り人形」全幕",
+     "k": "event",
+     "s": "15:00",
+     "e": "18:00",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.festivalhall.jp/events/list/2026/11/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "松山バレエ団"
+      },
+      {
+       "l": "公式サイト",
+       "u": "https://www.matsuyama-ballet.com"
+      }
+     ],
+     "au": "40代以上の女性が中心。バレエ教室に通う親子連れや熱心なファンが多く、女性比率は8割以上。",
+     "kn": "主演の森下洋子さんは御年70代。長年踊り続けるその驚異的な現役姿と、演出の完成度が高く評価されています。",
+     "av": "",
+     "cap": 2700
+    },
+    {
+     "v": "Zepp Namba",
+     "t": "You’ll see Queens of the Stone Age World Tour",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.zepp.co.jp/hall/namba/schedule/",
+     "al": [],
+     "au": "30代から50代が中心。男女比は男性がやや多いが、海外ロックファン層として比較的バランスが良い。",
+     "kn": "最新アルバム『In Times New Roman...』を引っ提げた待望の来日公演。数年ぶりの日本での熱狂的なステージ",
+     "av": "ボーカルのジョシュ・オムが抱える健康問題や、過去の法的なトラブルなど個人的な私生活の話題。",
+     "cap": 2200
+    },
+    {
+     "v": "Zepp Osaka Bayside",
+     "t": "ナナコロビヤオキ 東名阪Zepp Tour -天下一舞闘会- 桶狭間の戦い",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.zepp.co.jp/hall/osakabayside/schedule/",
+     "al": [],
+     "au": "10代〜20代中心。男女比は半々からやや女性多め。",
+     "kn": "バンド名の由来通り、メンバー全員が過去の苦難を乗り越えて結成された経緯が熱いとファンに支持されています。",
+     "av": "過去の解散騒動や、特定のメンバーが体調不良で欠席した際の経緯には触れない方が無難です。",
+     "cap": 2882
+    },
+    {
+     "v": "GORILLA HALL OSAKA",
+     "t": "バックドロップシンデレラ 「20周年のワンマンウンザを踊るツアー」",
+     "k": "event",
+     "s": "18:00",
+     "e": "20:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://gorillahall.jp/",
+     "al": [
+      {
+       "l": "name",
+       "u": "",
+       "n": "バックドロップシンデレラ"
+      },
+      {
+       "l": "公式サイト",
+       "u": "http://www.backdropc.com/"
+      },
+      {
+       "l": "X",
+       "u": "https://x.com/bdcinderella"
+      }
+     ],
+     "au": "20代から40代が中心。男女比は半々程度で、熱心なライブファンが多いのが特徴です。",
+     "kn": "結成20周年を記念したツアーで、彼らの代名詞であるダンス曲「ウンザウンザ」を掲げた特別な公演です。",
+     "av": "",
+     "cap": 0
+    },
+    {
+     "v": "グランキューブ大阪",
+     "t": "SENRA LIVE TOUR 2026 Caleaの公演詳細 | 公演を探す",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:45",
+     "g": true,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://kyodo-osaka.co.jp/search/detail/12842",
+     "al": [],
+     "au": "10代〜20代の女性が中心。熱心なファンが多く、ペンライトを持って来場する層です。",
+     "kn": "浦島坂田船のメンバーとしても活動する「センラ」さんのソロライブツアーです。",
+     "av": "",
+     "cap": 2754
+    },
+    {
+     "v": "オリックス劇場",
+     "t": "（名前を読み取れませんでした）",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:30",
+     "g": true,
+     "sk": "開演",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.orixtheater.jp/update/event/2026/202611event.json",
+     "al": [],
+     "au": "",
+     "kn": "",
+     "av": "",
+     "cap": 2400
+    },
+    {
+     "v": "新歌舞伎座",
+     "t": "Thank you very マッチ de SHOW｜公演情報",
+     "k": "event",
+     "s": "17:00",
+     "e": "19:45",
+     "g": true,
+     "sk": "",
+     "ek": "",
+     "a": "",
+     "r": "",
+     "u": "https://www.shinkabukiza.co.jp/perf_info/s20261128.html",
+     "al": [],
+     "au": "50代から70代が中心。女性比率が非常に高く、約8割から9割を占める。",
+     "kn": "近藤真彦さんの還暦記念ライブ。デビュー当時のヒット曲から最新曲まで、ファンと一体感を楽しめる構成です。",
+     "av": "",
+     "cap": 1638
     },
     {
      "v": "フェニーチェ堺",
