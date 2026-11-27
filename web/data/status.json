@@ -1,5 +1,5 @@
 {
- "at": "2026-11-27 14:08",
+ "at": "2026-11-27 14:30",
  "ver": "U193ver / V131ver",
  "sync": {
   "at": "11-27 09:53",
@@ -44,10 +44,10 @@
   }
  ],
  "web": true,
- "beat": "11-27 14:01",
- "beatMin": 7,
+ "beat": "11-27 14:21",
+ "beatMin": 9,
  "stop": false,
- "budMin": 48,
+ "budMin": 49,
  "budMax": 90,
  "budStop": 60,
  "verNo": 378,
